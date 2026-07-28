@@ -111,3 +111,4 @@ Accepted requirements will be in `cairn/specs/`. Active implementation changes w
 - [Temporal](https://temporal.io/) — deterministic replay compatibility and command-history audit patterns.
 - [CDEvents](https://cdevents.dev/) and [OpenTelemetry CI/CD](https://opentelemetry.io/docs/specs/semconv/cicd/) — non-authoritative event and observability projections.
 - [Buildbot](https://buildbot.net/) — change-source, scheduler, build-request, worker, and reporter separation.
+- [Pueue](https://github.com/Nukesor/pueue) — operator status, logs, waiting, dependency visibility, local capacity groups, scoped controls, and crash-recovery test patterns. Kiln does not use its scheduler, protocol, runtime, types, or provider model.
