@@ -101,6 +101,7 @@ Accepted requirements will be in `cairn/specs/`. Active implementation changes w
 - [Radicle CI](https://radicle-ci.liw.fi/) — node-local event filtering, CI-engine adapters, and decentralized operation.
 - [Radicle CI broker architecture](https://radicle-ci-broker.liw.fi/architecture.html) — event normalization and adapter process boundaries.
 - [Radicle native CI](https://radicle.network/nodes/radicle.liw.fi/rad%3Az3qg5TKmN83afz2fj9z3fQjU8vaYE) — compatibility protocol and trusted local runner reference.
+- [Cairn](../cairn) — lifecycle, Radicle COB profiles, typed conflict handling, preview-first mutation, and interoperability evidence reference. Kiln retains CI identity and state authority.
 - [Choregraph](../choregraph) — bounded execution-graph and pure transition reference.
 - [Zuul](https://zuul-ci.org/) — exact candidate sets, speculative gates, dependency queues, and frozen repository state.
 - [Concourse](https://concourse-ci.org/) — versioned resource discovery, pinning, acquisition, and mutation separation.
