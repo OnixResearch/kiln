@@ -129,6 +129,8 @@
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
+            nickel export evidence/publication-candidate.ncl >/dev/null
+            nickel export evidence/release-input.ncl >/dev/null
             for fixture in config/fixtures/negative-*.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then
                 echo "negative Nickel fixture passed: $fixture" >&2
@@ -137,6 +139,21 @@
             done
             touch "$out"
           '';
+          release-evidence =
+            pkgs.runCommand "kiln-release-evidence"
+              {
+                nativeBuildInputs = [
+                  package
+                  pkgs.nickel
+                ];
+              }
+              ''
+                ${copySource}
+                nickel export evidence/release-input.ncl --format json > release-input.json
+                kiln evidence release-input.json release-evidence.json >/dev/null
+                cmp release-evidence.json evidence/release-evidence.json
+                touch "$out"
+              '';
         }
       );
 

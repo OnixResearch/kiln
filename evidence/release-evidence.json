@@ -1,0 +1,428 @@
+{
+  "authority": {
+    "radicle_publication_authorized": false,
+    "remote_publication_performed": false,
+    "rid_assigned": false
+  },
+  "checks": {
+    "cairn_task_gates": "PASS",
+    "cairn_validation": "PASS",
+    "dependency_boundaries": "PASS",
+    "nickel_positive_and_negative": "PASS",
+    "nix_flake_check_x86_64_linux": "PASS",
+    "no_std_wasm": "PASS",
+    "runtime_independence": "PASS",
+    "strict_clippy": "PASS",
+    "traceability": "PASS",
+    "workspace_tests": {
+      "tests": 78,
+      "verdict": "PASS"
+    }
+  },
+  "identities": [
+    {
+      "blake3": "blake3-yHm9IUm8ELl1wMCqhXLmhctPaHfCSqoKmdWSszTZEHc=",
+      "path": "Cargo.lock"
+    },
+    {
+      "blake3": "blake3-BtxUHihCZ+vfPoJ1OoBthWCD0Ri2MIYU2gd0FrdEwIg=",
+      "path": "flake.lock"
+    },
+    {
+      "blake3": "blake3-bfPbiokPYLm7Mr5THHNK0zOnlOij/41aZFQlXnG34Jw=",
+      "path": "rust-toolchain.toml"
+    },
+    {
+      "blake3": "blake3-P2bGCDIy4BlZDE+53ahsYpYwaZ+4k9F4N8xEE+RWfbc=",
+      "path": "config"
+    },
+    {
+      "blake3": "blake3-axYEl7hCX4DQTnXtJoTiOTQAZDzBeiA2trsrmjHcPak=",
+      "path": "cairn-policy/generated/cairn-policy.json"
+    }
+  ],
+  "non_claims": [
+    "local tests do not prove external provider correctness",
+    "interchange projections do not grant canonical state authority",
+    "a local publication candidate is not a Radicle publication",
+    "Cairn gates prove lifecycle structure and do not prove whole-system correctness"
+  ],
+  "profiles": {
+    "cobs": {
+      "profiles": [
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read",
+            "event_intake"
+          ],
+          "complete_head_resolution": true,
+          "id": "radicle-issue-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "radicle",
+          "reducer": "radicle-issue-0.24.0",
+          "schema_line": "radicle.issue.v1",
+          "type_name": "xyz.radicle.issue",
+          "upstream_revision": "radicle-0.24.0"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read",
+            "event_intake"
+          ],
+          "complete_head_resolution": true,
+          "id": "radicle-patch-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "radicle",
+          "reducer": "radicle-patch-0.24.0",
+          "schema_line": "radicle.patch.v1",
+          "type_name": "xyz.radicle.patch",
+          "upstream_revision": "radicle-0.24.0"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read",
+            "status_projection"
+          ],
+          "complete_head_resolution": true,
+          "id": "radicle-ci-job-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "radicle-ci-broker",
+          "reducer": "radicle-ci-job-v1",
+          "schema_line": "radicle.ci-job.v1",
+          "type_name": "xyz.radicle.ci-job",
+          "upstream_revision": "a688afde1f730ef60402a809d9cdadc55e8dd749"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read"
+          ],
+          "complete_head_resolution": true,
+          "id": "cairn-change-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "cairn-cob",
+          "reducer": "radicle-cob-0.20.0",
+          "schema_line": "cairn.change.v1",
+          "type_name": "xyz.onixresearch.cairn-change",
+          "upstream_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read"
+          ],
+          "complete_head_resolution": true,
+          "id": "cairn-rfd-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "cairn-cob",
+          "reducer": "radicle-cob-0.20.0",
+          "schema_line": "cairn.rfd.v1",
+          "type_name": "xyz.onixresearch.rfd",
+          "upstream_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read"
+          ],
+          "complete_head_resolution": true,
+          "id": "cairn-adr-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "cairn-cob",
+          "reducer": "radicle-cob-0.20.0",
+          "schema_line": "cairn.adr.v1",
+          "type_name": "xyz.onixresearch.adr",
+          "upstream_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read"
+          ],
+          "complete_head_resolution": true,
+          "id": "cairn-verification-obligation-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "cairn-cob",
+          "reducer": "radicle-cob-0.20.0",
+          "schema_line": "cairn.verification-obligation.v1",
+          "type_name": "xyz.onixresearch.verification-obligation",
+          "upstream_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read"
+          ],
+          "complete_head_resolution": true,
+          "id": "cairn-release-decision-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "cairn-cob",
+          "reducer": "radicle-cob-0.20.0",
+          "schema_line": "cairn.release-decision.v1",
+          "type_name": "xyz.onixresearch.release-decision",
+          "upstream_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822"
+        },
+        {
+          "actions": [],
+          "capabilities": [
+            "typed_read"
+          ],
+          "complete_head_resolution": true,
+          "id": "cairn-policy-exception-v1",
+          "license": "MIT OR Apache-2.0",
+          "limits": {
+            "max_actions": 16,
+            "max_heads": 32,
+            "max_payload_bytes": 1048576,
+            "retry_limit": 3
+          },
+          "mapper_version": 1,
+          "non_claims": [
+            "local reduction does not prove remote synchronization",
+            "a signature observation does not prove actor trust or action authority",
+            "a COB projection does not replace the Kiln journal or release authority"
+          ],
+          "provider": "cairn-cob",
+          "reducer": "radicle-cob-0.20.0",
+          "schema_line": "cairn.policy-exception.v1",
+          "type_name": "xyz.onixresearch.policy-exception",
+          "upstream_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822"
+        }
+      ]
+    },
+    "hosting": {
+      "archive": {
+        "blake3": "ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2",
+        "format": "git-archive-tar"
+      },
+      "authority": {
+        "announced": false,
+        "mirrors_mutated": false,
+        "pushed": false,
+        "radicle_initialized": false,
+        "signed": false
+      },
+      "hosting_profile_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+      "license": "MIT OR Apache-2.0",
+      "lifecycle": {
+        "state": "local-validation-complete-publication-not-authorized",
+        "task_gate_receipts": [
+          "46139d1e8e3948742f11cb4c998b3ed67fb92f7b2e517d353d5e6397b2e51f5a",
+          "19e0fac3cca1acb6ed9923e168c4f69dc3deb91bcad005541b128c70b002c4de",
+          "df9014d3d9cd7db7517e056e681b2dd4aa20df64bcb4544b3ecd168ded687c4f"
+        ]
+      },
+      "non_claims": [
+        "the candidate is a local source archive and is not a Radicle publication",
+        "the unassigned RID prevents published-state admission",
+        "remote mutation requires a separate explicit operator authorization"
+      ],
+      "rollback_revision": "b16f8792849cd3e2f2802c9a5063d5567a68f389",
+      "schema": "kiln.radicle-publication-candidate.v1",
+      "source_change": "oyzuupzrwuysrvtonpurwqykoozkzrpq",
+      "source_revision": "36984e367eafd44c22d2b4f4f47121deb51eece3"
+    },
+    "provider_contract": "kiln-provider-v1",
+    "radicle_broker": "radicle-ci-broker-v1",
+    "remote_execution": "build.bazel.remote.execution.v2",
+    "stack": {
+      "profiles": [
+        {
+          "authority_boundary": "Mantle owns build and cache observations; Kiln owns CI state only",
+          "capabilities": [
+            "dispatch",
+            "completion",
+            "products",
+            "metrics"
+          ],
+          "id": "mantle-build-v1",
+          "role": "build",
+          "source_revision": "5dd6e8826e2934709e0b584ccf445a6fc5c57ba1",
+          "unsupported_capabilities": [
+            "merge",
+            "release"
+          ]
+        },
+        {
+          "authority_boundary": "Lattice owns workflow execution; Kiln owns CI state only",
+          "capabilities": [
+            "dispatch",
+            "completion",
+            "cancel"
+          ],
+          "id": "lattice-workflow-v1",
+          "role": "workflow",
+          "source_revision": "5c9902f777412296c13e2347e45b3bede335b828",
+          "unsupported_capabilities": [
+            "build_truth",
+            "merge"
+          ]
+        },
+        {
+          "authority_boundary": "Aspen owns runtime transport and persistence; Kiln owns CI state only",
+          "capabilities": [
+            "service_hosting"
+          ],
+          "id": "aspen-runtime-v1",
+          "role": "runtime",
+          "source_revision": "08e4dfa5443737c81577f6691c673ab1ad78db4d",
+          "unsupported_capabilities": [
+            "ci_state",
+            "release"
+          ]
+        },
+        {
+          "authority_boundary": "Valence owns evidence identity and linkage; Kiln owns CI state only",
+          "capabilities": [
+            "projection"
+          ],
+          "id": "valence-evidence-v1",
+          "role": "evidence",
+          "source_revision": "b37177bbdd9ca0665412e6600f401e5cb54908d2",
+          "unsupported_capabilities": [
+            "behavioral_proof",
+            "release"
+          ]
+        },
+        {
+          "authority_boundary": "Cairn owns lifecycle gates; Kiln owns candidate and CI state only",
+          "capabilities": [
+            "evaluate"
+          ],
+          "id": "cairn-gate-v1",
+          "role": "gate",
+          "source_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
+          "unsupported_capabilities": [
+            "ci_state",
+            "merge",
+            "release_execution"
+          ]
+        },
+        {
+          "authority_boundary": "Choregraph owns graph decisions; provider shells own execution",
+          "capabilities": [
+            "validate_machine"
+          ],
+          "id": "choregraph-intake-v1",
+          "role": "machine_intake",
+          "source_revision": "2afbafb266c60530ae05a6862eb06ace72ae787a",
+          "unsupported_capabilities": [
+            "execute",
+            "authorize"
+          ]
+        }
+      ]
+    }
+  },
+  "receipt_hash": "40d62c6895caccd1e14dedc4dfe809ad162d21c4a162fb7a373e32a4858039e8",
+  "references": {
+    "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
+    "details": "docs/reference-pins.md",
+    "pueue": "b3fe223ef0a3c51d95d5c6128700b79442c54af7"
+  },
+  "schema": "kiln.local-release-evidence.v1",
+  "source": {
+    "archive_blake3": "ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2",
+    "change": "oyzuupzrwuysrvtonpurwqykoozkzrpq",
+    "commit": "36984e367eafd44c22d2b4f4f47121deb51eece3"
+  }
+}
