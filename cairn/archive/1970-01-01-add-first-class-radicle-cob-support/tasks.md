@@ -39,4 +39,4 @@
 - [x] [serial] Record the Radicle and Cairn references, exact revisions, adapter boundaries, and compatibility matrix in repository-owned documentation. r[kiln.radicle_cobs.initial_profiles] r[kiln.radicle_cobs.interop]
 - [x] [serial] Run formatting, workspace tests, strict Clippy, `no_std` checks, Nickel checks, dependency gates, all COB fixtures, Cairn validation, traceability coverage, and focused Nix checks. r[kiln.radicle_cobs.configuration] r[kiln.radicle_cobs.interop]
 - [x] [serial] Record deterministic evidence for profile admission, pure decisions, shell results, format compatibility, runtime independence, and bounded non-claims. r[kiln.radicle_cobs.interop] r[kiln.radicle_cobs.nonclaims]
-- [ ] [serial] Sync accepted specifications, confirm complete requirement coverage, archive the change with evidence, and rerun post-archive validation. r[kiln.radicle_cobs.model] r[kiln.radicle_cobs.nonclaims]
+- [x] [serial] Sync accepted specifications, confirm complete requirement coverage, archive the change with evidence, and rerun post-archive validation. r[kiln.radicle_cobs.model] r[kiln.radicle_cobs.nonclaims]

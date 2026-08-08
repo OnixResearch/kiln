@@ -1,5 +1,7 @@
 # Task Operations Specification
 
+## Requirements
+
 ### Requirement: Reference-only adaptation boundary
 r[kiln.task_operations.reference_boundary] Kiln MUST implement task-operations behavior without a Pueue or `pueue-lib` dependency, Pueue protocol type, Pueue executable invocation, Pueue provider profile, or Pueue adapter.
 

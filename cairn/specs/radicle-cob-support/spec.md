@@ -1,5 +1,7 @@
 # First-Class Radicle COB Support Specification
 
+## Requirements
+
 ### Requirement: Typed COB identity model
 r[kiln.radicle_cobs.model] Kiln MUST model a Radicle collaborative object with separate repository, type, object, operation, semantic-state, and canonical Kiln identities.
 

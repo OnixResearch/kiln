@@ -16,7 +16,7 @@ let Identity = {
     { path = "Cargo.lock", blake3 = "blake3-yHm9IUm8ELl1wMCqhXLmhctPaHfCSqoKmdWSszTZEHc=" },
     { path = "flake.lock", blake3 = "blake3-BtxUHihCZ+vfPoJ1OoBthWCD0Ri2MIYU2gd0FrdEwIg=" },
     { path = "rust-toolchain.toml", blake3 = "blake3-bfPbiokPYLm7Mr5THHNK0zOnlOij/41aZFQlXnG34Jw=" },
-    { path = "config", blake3 = "blake3-P2bGCDIy4BlZDE+53ahsYpYwaZ+4k9F4N8xEE+RWfbc=" },
+    { path = "config", blake3 = "blake3-DxsGYcNh8v6aK05tUE5JszO3lSBd6s1IiaxpuhSeD+c=" },
     { path = "cairn-policy/generated/cairn-policy.json", blake3 = "blake3-axYEl7hCX4DQTnXtJoTiOTQAZDzBeiA2trsrmjHcPak=" },
   ],
   checks = {
@@ -37,7 +37,8 @@ let Identity = {
     remote_execution = "build.bazel.remote.execution.v2",
     cobs = import "../config/cob-profiles.ncl",
     stack = import "../config/stack-profiles.ncl",
-    hosting = import "publication-candidate.ncl",
+    hosting_candidate = import "publication-candidate.ncl",
+    hosting_publication = import "publication-receipt.ncl",
   },
   references = {
     cairn_cob = "837d730799faffe6a088cfd6dc49e08c7e0f1822",
@@ -45,14 +46,14 @@ let Identity = {
     details = "docs/reference-pins.md",
   },
   authority = {
-    rid_assigned = false,
-    radicle_publication_authorized = false,
-    remote_publication_performed = false,
+    rid_assigned = true,
+    radicle_publication_authorized = true,
+    remote_publication_performed = true,
   },
   non_claims = [
     "local tests do not prove external provider correctness",
     "interchange projections do not grant canonical state authority",
-    "a local publication candidate is not a Radicle publication",
+    "publication does not prove indefinite availability or seed trust",
     "Cairn gates prove lifecycle structure and do not prove whole-system correctness",
   ],
 }

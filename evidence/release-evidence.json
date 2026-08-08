@@ -1,8 +1,8 @@
 {
   "authority": {
-    "radicle_publication_authorized": false,
-    "remote_publication_performed": false,
-    "rid_assigned": false
+    "radicle_publication_authorized": true,
+    "remote_publication_performed": true,
+    "rid_assigned": true
   },
   "checks": {
     "cairn_task_gates": "PASS",
@@ -33,7 +33,7 @@
       "path": "rust-toolchain.toml"
     },
     {
-      "blake3": "blake3-P2bGCDIy4BlZDE+53ahsYpYwaZ+4k9F4N8xEE+RWfbc=",
+      "blake3": "blake3-DxsGYcNh8v6aK05tUE5JszO3lSBd6s1IiaxpuhSeD+c=",
       "path": "config"
     },
     {
@@ -44,7 +44,7 @@
   "non_claims": [
     "local tests do not prove external provider correctness",
     "interchange projections do not grant canonical state authority",
-    "a local publication candidate is not a Radicle publication",
+    "publication does not prove indefinite availability or seed trust",
     "Cairn gates prove lifecycle structure and do not prove whole-system correctness"
   ],
   "profiles": {
@@ -289,7 +289,7 @@
         }
       ]
     },
-    "hosting": {
+    "hosting_candidate": {
       "archive": {
         "blake3": "ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2",
         "format": "git-archive-tar"
@@ -320,6 +320,59 @@
       "schema": "kiln.radicle-publication-candidate.v1",
       "source_change": "oyzuupzrwuysrvtonpurwqykoozkzrpq",
       "source_revision": "36984e367eafd44c22d2b4f4f47121deb51eece3"
+    },
+    "hosting_publication": {
+      "receipt": {
+        "author_sigrefs": "848a208c2f8353426fa23e50ab06d98fc64a797e",
+        "authority": "operator_authorized",
+        "branches": {
+          "candidate": "36984e367eafd44c22d2b4f4f47121deb51eece3",
+          "main": "36984e367eafd44c22d2b4f4f47121deb51eece3"
+        },
+        "delegates": [
+          "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+        ],
+        "hosting_profile_blake3": "31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82",
+        "https_acquisition": {
+          "archive_blake3": "ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2",
+          "git_fsck": "verified",
+          "receive_pack_discovery": "rejected-http-503",
+          "receive_pack_post": "rejected-http-503",
+          "revision": "36984e367eafd44c22d2b4f4f47121deb51eece3",
+          "unknown_ref": "rejected",
+          "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git"
+        },
+        "identity_revision": "7ce7e08059bc233ac12407a112e2dd9791d93190",
+        "license": "MIT OR Apache-2.0",
+        "native_acquisition": {
+          "archive_blake3": "ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2",
+          "git_fsck": "verified",
+          "revision": "36984e367eafd44c22d2b4f4f47121deb51eece3",
+          "seed": "z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo",
+          "signed_refs_feature": "parent"
+        },
+        "non_claims": [
+          "publication does not prove indefinite availability",
+          "replica agreement does not prove seed trust",
+          "source identity does not prove source or CI correctness",
+          "the HTTPS route is a read-only projection and has no governance authority",
+          "publication does not grant runtime or release authority"
+        ],
+        "observed_at_utc": "2026-08-08T05:32:03Z",
+        "publication_sequence": 1,
+        "replication": {
+          "observed_in_sync": 13,
+          "required": 1
+        },
+        "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "schema": "kiln.radicle-publication-receipt.v1",
+        "signed_refs_feature": "parent",
+        "source_archive_blake3": "ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2",
+        "source_archive_bytes": 880640,
+        "source_revision": "36984e367eafd44c22d2b4f4f47121deb51eece3",
+        "status": "published",
+        "threshold": 1
+      }
     },
     "provider_contract": "kiln-provider-v1",
     "radicle_broker": "radicle-ci-broker-v1",
@@ -413,7 +466,7 @@
       ]
     }
   },
-  "receipt_hash": "40d62c6895caccd1e14dedc4dfe809ad162d21c4a162fb7a373e32a4858039e8",
+  "receipt_hash": "e86a17559646f72bff3eb402d560967fb1a4e3a722f69480c7c8be8d95eba9c7",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

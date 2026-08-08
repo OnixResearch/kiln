@@ -130,6 +130,7 @@
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
+            nickel export evidence/publication-receipt.ncl >/dev/null
             nickel export evidence/release-input.ncl >/dev/null
             for fixture in config/fixtures/negative-*.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then

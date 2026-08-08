@@ -13,7 +13,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - Radicle broker compatibility;
 - typed Nickel configuration and Nix checks.
 
-Kiln has no assigned Radicle RID. This repository performs no remote publication or mirror mutation.
+Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. The published `main` and `candidate` branches identify validated commit `36984e367eafd44c22d2b4f4f47121deb51eece3`.
 
 ## Quick start
 
@@ -73,19 +73,19 @@ Core crates must not import provider implementations. Provider identities remain
 
 ## Repository hosting
 
-Radicle is the planned canonical source and collaboration host. Kiln is not published, and it has no RID or remote authority.
+Radicle is the canonical source and collaboration host. The operator-authorized publication receipt is `evidence/publication-receipt.ncl`.
 
 Repository hosting does not create a Kiln runtime dependency on Radicle. Exact source archives and declared read-only mirrors must support acquisition without a Radicle node.
 
 Mirrors are projections. They cannot replace Radicle governance without an explicit policy change.
 
-Publication requires these items:
+Publication records these items:
 
-- a license decision
-- a checked immutable candidate
-- explicit operator authority
-- governed signed references
-- independent acquisition evidence
+- the `MIT OR Apache-2.0` license decision;
+- the exact immutable candidate and archive BLAKE3 identity;
+- explicit operator authority;
+- the delegate, threshold, and parent-feature signed references;
+- native and read-only HTTPS acquisition evidence.
 
 ## Configuration and identity
 

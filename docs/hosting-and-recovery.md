@@ -1,6 +1,6 @@
 # Repository hosting and recovery
 
-Radicle is the planned canonical source and collaboration host. Kiln has no assigned RID and no remote publication authority.
+Radicle is the canonical source and collaboration host. Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE` under explicit operator authority.
 
 ## Local candidate
 
@@ -15,13 +15,13 @@ A publication candidate binds these facts:
 
 Candidate validation performs no signing, push, synchronization, announcement, or mirror mutation.
 
-## Publication authority
+## Publication receipt
 
-Publication requires a separate operator action. The operator action must preserve the exact validated candidate.
+The operator published exact candidate `36984e367eafd44c22d2b4f4f47121deb51eece3`. Its source archive BLAKE3 identity is `ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2`.
 
-The publication bundle binds the RID, signed revision, delegates, threshold, sequence, acquisitions, and archive identity.
+The publication uses one delegate, threshold one, and parent-feature signed refs. Native acquisition from Rosa and HTTPS acquisition from `seed.radicle.garden` reproduced the exact commit and archive identity.
 
-This implementation does not perform publication. The RID remains unassigned.
+See `evidence/publication-receipt.ncl` for the bounded publication facts and non-claims.
 
 ## Mirrors
 
