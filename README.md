@@ -47,7 +47,7 @@ Imperative shells will persist events. They will interpret requested effects thr
 
 | Port | Possible providers |
 |---|---|
-| Source snapshots | Git, Pijul |
+| Source snapshots | Git, Pijul, Jujutsu |
 | Collaboration and review | GitHub, Radicle |
 | Triggers and status | GitHub, Radicle, local hooks |
 | Workflow execution | Lattice, a standalone runner |
@@ -112,3 +112,4 @@ Accepted requirements will be in `cairn/specs/`. Active implementation changes w
 - [CDEvents](https://cdevents.dev/) and [OpenTelemetry CI/CD](https://opentelemetry.io/docs/specs/semconv/cicd/) — non-authoritative event and observability projections.
 - [Buildbot](https://buildbot.net/) — change-source, scheduler, build-request, worker, and reporter separation.
 - [Pueue](https://github.com/Nukesor/pueue) — operator status, logs, waiting, dependency visibility, local capacity groups, scoped controls, and crash-recovery test patterns. Kiln does not use its scheduler, protocol, runtime, types, or provider model.
+- [Jujutsu](https://github.com/jj-vcs/jj) — source-provider semantics for bookmarks, stable change IDs, exact commit IDs, divergent changes, operation observations, and Git-backed interoperability. Kiln does not treat Jujutsu as a forge or collaboration provider.

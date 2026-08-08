@@ -13,7 +13,9 @@ stack already supplies several possible providers:
 None of these systems should own CI projects, pipeline revisions, evaluations,
 runs, products, status, or tenant policy. GitHub and Radicle also combine forge
 and collaboration behavior with Git, while Pijul has different change and
-channel semantics. A single `SourceProvider` abstraction would erase important
+channel semantics. Jujutsu adds rewritable changes, immutable commits,
+bookmarks, divergent changes, operation history, and backend-specific commit
+identities. A single `SourceProvider` abstraction would erase important
 differences.
 
 Hydra shows the value of a stable project, jobset, evaluation, build, product,
@@ -62,8 +64,12 @@ Completion requires all of these results:
 - Source discovery, acquisition, and mutation use separate capabilities.
 - Optional remote-execution and standard-interchange adapters preserve Kiln
   identity and authority boundaries.
-- Git, Pijul, GitHub, and Radicle fit explicit source and collaboration ports
-  without pretending their native identities have equal meaning.
+- Git, Pijul, Jujutsu, GitHub, and Radicle fit explicit source and
+  collaboration ports without pretending their native identities have equal
+  meaning.
+- Jujutsu resolution binds one exact commit identity, preserves its change ID,
+  backend kind, and observed operation identity, and rejects ambiguous revsets,
+  conflicted bookmarks, and divergent changes.
 - A typed hosting profile plans Radicle as canonical source governance without
   making Radicle software a core, build, test, or source-archive dependency.
 - Publication evidence binds the exact candidate, RID, signed refs, configured
@@ -82,6 +88,7 @@ The following results are false completion:
   planning, validation, or release-candidate generation;
 - using a provider run ID as a primary Kiln identity;
 - treating a branch, commit, pull request, or Radicle patch as universal CI data;
+- treating a Jujutsu change ID, bookmark, or revset as an immutable source revision;
 - replacing separate source and effect ports with a universal resource object;
 - applying a gate result to a different candidate set or moved target;
 - letting a cache hit, provenance document, external event, trace, or metric
@@ -158,9 +165,32 @@ Credentials and transport handles remain shell-owned.
 One adapter package may implement several ports, but each capability stays
 explicit.
 
-**Rationale:** Git and Pijul are version-control systems. GitHub is a Git forge.
-Radicle is peer-to-peer Git collaboration with identity and collaborative
-objects. One large provider interface would encode false equivalence.
+**Rationale:** Git, Pijul, and Jujutsu are version-control systems. GitHub is a
+Git forge. Radicle is peer-to-peer Git collaboration with identity and
+collaborative objects. One large provider interface would encode false
+equivalence.
+
+### Decision: Preserve Jujutsu change and commit identity
+
+**Choice:** Jujutsu is a source provider. It is not a forge, collaboration
+provider, or canonical Kiln identity authority.
+
+A Jujutsu source observation records the repository identity, backend kind,
+observed operation identity, symbolic bookmark or revset, stable change ID when
+available, and one exact commit ID. Kiln binds source acquisition and evaluation
+to the exact commit ID and canonical tree identity.
+
+A change ID, bookmark, or revset can move or resolve to multiple commits. The
+provider must reject ambiguous resolution, conflicted bookmarks, and divergent
+changes before acquisition. The initial profile admits only the pinned Git
+backend. Other backend kinds fail until a later profile admits them.
+
+Git-backed Jujutsu commit IDs can also be Git OIDs, but their typed Jujutsu and
+Git observations remain distinct provider facts.
+
+**Rationale:** Jujutsu change IDs survive normal rewrites, while commit IDs name
+exact revisions. Kiln needs both facts without promoting a moving change or
+bookmark into immutable CI identity.
 
 ### Decision: Gate exact candidate sets
 
@@ -488,7 +518,7 @@ A deployment can select independent providers:
 
 | Role | Example |
 |---|---|
-| Source | Git or Pijul |
+| Source | Git, Pijul, or Jujutsu |
 | Collaboration | GitHub or Radicle |
 | Trigger | GitHub webhook, Radicle broker, local hook, or polling |
 | Workflow | Lattice or standalone runner |
@@ -524,14 +554,16 @@ explicit version.
 
 Positive validation includes valid project admission, immutable pipeline
 revisions, accepted transitions, retries, cancellation, replay, capability
-matching, source resolution, candidate composition, serial and speculative
+matching, Git, Pijul, and Jujutsu source resolution, candidate composition,
+serial and speculative
 gating, invalidation, merge preflight, standalone execution, weighted and
 dominant-share fairness, retained-history replay, remote-execution mapping,
 interchange projections, planned and published hosting profiles, exact
 acquisition, Radicle trigger mapping, and status projection.
 
 Negative validation includes malformed identities, duplicate events, terminal
-mutation, stale revisions, moving-reference drift, unsupported capabilities,
+mutation, stale revisions, moving-reference drift, ambiguous Jujutsu revsets,
+conflicted bookmarks, divergent changes, unsupported capabilities,
 provider substitution, invalid signatures, replayed triggers, stale usage,
 zero or invalid shares, ambiguous outcomes, outbox interruption, event-history
 corruption, Radicle protocol noise, missing commits, unsafe shell imports,

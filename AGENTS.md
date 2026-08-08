@@ -5,7 +5,8 @@ Read `README.md` before changing this repository.
 ## Product boundary
 
 Kiln owns provider-neutral CI domain semantics. Keep Aspen, Mantle, Lattice,
-GitHub, Radicle, Git, and Pijul behind versioned adapter ports.
+GitHub, Radicle, Git, Pijul, and Jujutsu behind versioned adapter ports.
+Treat Jujutsu as a source provider, not a forge or collaboration provider.
 
 Core crates must not import provider implementations. Provider identifiers must
 not become primary Kiln identifiers. Unsupported capabilities must fail before

@@ -1,6 +1,6 @@
 ## Phase 1: Repository and canonical model
 
-- [ ] [serial] Record exact Hydra, Radicle CI, Radicle native CI, Choregraph, Aspen, Mantle, Lattice, Valence, Cairn, Zuul, Concourse, Bazel Remote Execution API, SLSA, in-toto, TUF, Kueue, DRF, Temporal, CDEvents, OpenTelemetry CI/CD, and Buildbot revisions or specification versions, licenses, selected concepts, rejected concepts, maturity, and non-claims. r[kiln.domain.boundary] r[kiln.radicle.nonclaims] r[kiln.gating.nonclaims] r[kiln.remote.nonclaims] r[kiln.interchange.nonclaims]
+- [ ] [serial] Record exact Hydra, Radicle CI, Radicle native CI, Jujutsu, Choregraph, Aspen, Mantle, Lattice, Valence, Cairn, Zuul, Concourse, Bazel Remote Execution API, SLSA, in-toto, TUF, Kueue, DRF, Temporal, CDEvents, OpenTelemetry CI/CD, and Buildbot revisions or specification versions, licenses, selected concepts, rejected concepts, maturity, and non-claims. r[kiln.domain.boundary] r[kiln.radicle.nonclaims] r[kiln.gating.nonclaims] r[kiln.remote.nonclaims] r[kiln.interchange.nonclaims]
 - [ ] [serial] Create the Rust workspace, root license decision, Nix development surface, typed Nickel project profile, documentation layout, and adapter dependency policy without manually editing `flake.lock`. r[kiln.providers.core_independence] r[kiln.operations.configuration]
 - [ ] [depends:workspace-layout] Add `no_std + alloc` domain, canonical model, provider API, codec, standalone shell, CLI, Radicle compatibility, and conformance crate boundaries. r[kiln.domain.model] r[kiln.providers.versioning]
 - [ ] [parallel] Add positive dependency-boundary checks for allowed core, shell, codec, and adapter edges. r[kiln.providers.core_independence]
@@ -28,10 +28,11 @@
 
 - [ ] [serial] Define neutral repository, named-reference, source-snapshot, proposed-change, source-event, actor-reference, and source-resolution observation types without universal commit, branch, or pull-request assumptions. r[kiln.source.model]
 - [ ] [depends:source-model] Implement pure validation for symbolic-to-immutable resolution, canonical tree manifests, BLAKE3 tree identity, and immutable evaluation binding. r[kiln.source.resolution] r[kiln.source.tree_identity]
-- [ ] [depends:source-model] Define distinct source discovery, exact resolution, acquisition, collaboration, trigger, status, identity-observation, credential-shell, and mutation capability profiles for Git, Pijul, GitHub, and Radicle mappings. r[kiln.source.port_split] r[kiln.source.native_semantics] r[kiln.source.observation_split]
+- [ ] [depends:source-model] Define distinct source discovery, exact resolution, acquisition, collaboration, trigger, status, identity-observation, credential-shell, and mutation capability profiles for Git, Pijul, Jujutsu, GitHub, and Radicle mappings. r[kiln.source.port_split] r[kiln.source.native_semantics] r[kiln.source.observation_split]
+- [ ] [depends:source-resolution] Implement a versioned Jujutsu source-provider shell for admitted repository observation, bookmark and revset discovery, exact-one commit resolution, and snapshot acquisition without forge authority. r[kiln.source.jujutsu] r[kiln.source.native_semantics]
 - [ ] [depends:source-resolution] Add proposed-change candidate and mirror policy contracts that require exact provider-produced snapshots and explicit disagreement handling. r[kiln.source.proposed_change] r[kiln.source.mirrors]
-- [ ] [parallel] Add positive Git, Pijul, GitHub, and Radicle mapping fixtures that preserve native identities and one canonical materialized snapshot. r[kiln.source.fixtures]
-- [ ] [parallel] Add negative moving-reference, missing revision, tree mismatch, forged actor, replayed trigger, invalid protocol signature, mirror disagreement, and false-history-equivalence fixtures. r[kiln.source.fixtures] r[kiln.source.trigger_security]
+- [ ] [parallel] Add positive Git, Pijul, Jujutsu, GitHub, and Radicle mapping fixtures that preserve native identities and one canonical materialized snapshot. r[kiln.source.fixtures] r[kiln.source.jujutsu]
+- [ ] [parallel] Add negative moving-reference, missing revision, tree mismatch, unsupported Jujutsu backend, ambiguous Jujutsu revset, conflicted bookmark, divergent change, forged actor, replayed trigger, invalid protocol signature, mirror disagreement, and false-history-equivalence fixtures. r[kiln.source.fixtures] r[kiln.source.jujutsu] r[kiln.source.trigger_security]
 
 ## Phase 5: Durable operations and fair admission
 
