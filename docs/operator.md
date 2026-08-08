@@ -1,0 +1,65 @@
+# Kiln operator guide
+
+## Local reference run
+
+1. Enter the development shell:
+
+   ```console
+   nix develop path:$PWD
+   ```
+
+2. Run the standalone fixture:
+
+   ```console
+   cargo run -p kiln-cli -- demo
+   ```
+
+3. Run all checks:
+
+   ```console
+   cargo test --workspace
+   cargo clippy --workspace --all-targets -- -D warnings
+   nix flake check path:$PWD -L
+   ```
+
+## Status
+
+Status has three separate facets:
+
+- readiness reports holds, delays, dependencies, and provider-local capacity;
+- execution reports dispatch and provider observations;
+- outcome reports the canonical attempt result.
+
+Status is a rebuildable projection. It cannot mutate journal state.
+
+## Logs and follow
+
+A cursor binds one exact stream and byte offset. A read reports gaps when retained data no longer contains that offset.
+
+A completed follow reports the final cursor and terminal stream state. Truncation does not change an attempt outcome.
+
+## Wait
+
+A wait request binds an exact selection and one named predicate. A client deadline changes only the client result.
+
+The supported predicates are `all_terminal`, `any_terminal`, and `all_successful`.
+
+## Capacity and readiness
+
+Global tenant fairness runs before provider-local capacity admission. Capacity classes do not select workers or calculate tenant shares.
+
+The shell supplies time and capacity observations. The core does not read a clock or poll a provider.
+
+## Controls
+
+An admission hold stops new dispatches in its scope. It does not pause a running attempt.
+
+Cancellation, pause, and resume require an exact active attempt. They also require the provider capability.
+
+Kiln does not support arbitrary process input as a standard control.
+
+## Recovery
+
+Restore the latest committed journal snapshot. Then classify each outbox lease.
+
+Reconcile expired or ambiguous effects before redispatch. Do not claim exactly-once provider execution.

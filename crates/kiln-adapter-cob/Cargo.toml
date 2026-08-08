@@ -1,0 +1,15 @@
+[package]
+name = "kiln-adapter-cob"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

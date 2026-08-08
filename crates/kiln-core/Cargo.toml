@@ -1,0 +1,13 @@
+[package]
+name = "kiln-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+serde = { workspace = true, default-features = false, features = ["alloc", "derive"] }
+
+[lints]
+workspace = true

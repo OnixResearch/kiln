@@ -1,20 +1,33 @@
 # Kiln
 
-Kiln is a planned provider-neutral control plane for continuous integration. It owns CI meaning and delegates external effects to replaceable adapters.
+Kiln is a provider-neutral control plane for continuous integration. It owns CI meaning and delegates external effects to replaceable adapters.
 
 ## Status
 
-Kiln is in the design stage. The first active Cairn change defines these areas:
+Kiln has an initial functional core and standalone reference shell. The implementation includes these areas:
 
-- CI domain types
-- provider contracts
-- durable state transitions
-- Radicle repository hosting
-- initial Radicle CI compatibility
+- deterministic CI commands, events, effects, and replay;
+- versioned provider capability admission;
+- source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
+- packed Preserves and BLAKE3 canonical identity;
+- Radicle broker compatibility;
+- typed Nickel configuration and Nix checks.
+
+Kiln has no assigned Radicle RID. This repository performs no remote publication or mirror mutation.
+
+## Quick start
+
+```console
+nix develop path:$PWD
+cargo test --workspace
+cargo run -p kiln-cli -- demo
+```
+
+Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior.
 
 ## Owned boundary
 
-Kiln will own these functions:
+Kiln owns these functions:
 
 - projects, pipeline revisions, triggers, and evaluations
 - runs, tasks, attempts, products, and metrics
@@ -25,7 +38,7 @@ Kiln will own these functions:
 - provider capability admission and adapter conformance contracts
 - CI status, cancellation, retry, and notification meaning
 
-Kiln will not own these functions:
+Kiln does not own these functions:
 
 - source-control history or forge authority
 - workflow execution or build realization
@@ -36,14 +49,14 @@ Kiln will not own these functions:
 
 ## Architecture
 
-The pure core will use these transitions:
+The pure core uses these transitions:
 
 ```text
 state + command -> events + requested effects
 state + event   -> new state
 ```
 
-Imperative shells will persist events. They will interpret requested effects through versioned provider ports.
+Imperative shells persist events. They interpret requested effects through versioned provider ports.
 
 | Port | Possible providers |
 |---|---|
@@ -66,7 +79,7 @@ Repository hosting does not create a Kiln runtime dependency on Radicle. Exact s
 
 Mirrors are projections. They cannot replace Radicle governance without an explicit policy change.
 
-Publication will require these items:
+Publication requires these items:
 
 - a license decision
 - a checked immutable candidate
@@ -76,9 +89,9 @@ Publication will require these items:
 
 ## Configuration and identity
 
-Human-authored configuration will use typed Nickel contracts.
+Human-authored configuration uses typed Nickel contracts.
 
-Kiln will use BLAKE3 for its content identities, event fingerprints, and deterministic identifiers. Interoperability protocols retain their required algorithms and native identities.
+Kiln uses BLAKE3 for its content identities, event fingerprints, and deterministic identifiers. Interoperability protocols retain their required algorithms and native identities.
 
 ## Claim boundary
 
@@ -93,7 +106,7 @@ The decision does not prove that a provider performed an effect. It also does no
 
 ## Lifecycle
 
-Accepted requirements will be in `cairn/specs/`. Active implementation changes will be in `cairn/changes/`.
+Accepted requirements are in `cairn/specs/`. Active implementation changes are in `cairn/changes/`.
 
 ## References
 

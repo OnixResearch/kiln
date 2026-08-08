@@ -1,0 +1,19 @@
+[package]
+name = "kiln-conformance"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+kiln-adapter-cob.workspace = true
+kiln-adapter-jj.workspace = true
+kiln-adapter-radicle.workspace = true
+kiln-adapter-remote.workspace = true
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+kiln-standalone.workspace = true
+
+[lints]
+workspace = true

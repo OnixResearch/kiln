@@ -1,0 +1,14 @@
+[package]
+name = "kiln-provider-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+kiln-core.workspace = true
+serde = { workspace = true, default-features = false, features = ["alloc", "derive"] }
+
+[lints]
+workspace = true
