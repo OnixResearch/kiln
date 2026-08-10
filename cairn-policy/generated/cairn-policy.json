@@ -466,6 +466,7 @@
           "source_manifest_hash",
           "destination_manifest_hash",
           "manifest_hash",
+          "plan_hash",
           "policy_hash",
           "receipt_hash"
         ],
@@ -3363,7 +3364,7 @@
   "policy_schema_compatibility": {
     "field_set_digest": "9f44153637df26127588d81e70bb2095f07f64c4e7d5c009608f6c70b6ca961a",
     "producer": "cairn policy export",
-    "refresh_command": "nix run path:$CAIRN_SOURCE#cairn -- policy export --output cairn-policy/generated/cairn-policy.json",
+    "refresh_command": "nix run path:$CAIRN_SOURCE#cairn -- policy export --source cairn-policy/default.ncl --output cairn-policy/generated/cairn-policy.json",
     "schema_version": "cairn.policy-schema.v1"
   },
   "probe_policy": {
@@ -3930,6 +3931,7 @@
       "hash_fields": [
         "destination_manifest_hash",
         "manifest_hash",
+        "plan_hash",
         "policy_hash",
         "receipt_hash",
         "source_manifest_hash"
@@ -3948,6 +3950,7 @@
         "manifest_hash",
         "mutated",
         "mutation_manifest",
+        "plan_hash",
         "policy",
         "policy_hash",
         "receipt_hash",
@@ -5474,7 +5477,7 @@
   },
   "sync_archive_policy": {
     "archive_date_prefix": true,
-    "default_archive_dir": "cairn/archive",
+    "default_archive_dir": ".cairn/archive",
     "require_all_tasks_done": true
   },
   "task_marker_policy": {
@@ -5542,7 +5545,7 @@
             "extensions": [
               "md"
             ],
-            "root": "cairn/specs",
+            "root": ".cairn/specs",
             "source_kind": "accepted_specs"
           }
         ]

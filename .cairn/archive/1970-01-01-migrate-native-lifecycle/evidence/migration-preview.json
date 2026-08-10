@@ -1,0 +1,242 @@
+{
+  "actions": [
+    {
+      "destination": "./.cairn/archive/1970-01-01-adapt-task-operations/design.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-adapt-task-operations/design.md",
+      "source_hash": "d882b8ede86acf2a156723e67e59560d6cf3c1c8d0b17e622897c00a6dd912ce"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-adapt-task-operations/proposal.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-adapt-task-operations/proposal.md",
+      "source_hash": "aab1e346981f7239317d02a35c9ce09a11a1e211cf03415650adfe6b338b4e0c"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-adapt-task-operations/specs/task-operations/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-adapt-task-operations/specs/task-operations/spec.md",
+      "source_hash": "9269c8b0be23c4b829b2da5dde5aef308d501e920da27f366bcfcd2f73dccaa9"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-adapt-task-operations/tasks.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-adapt-task-operations/tasks.md",
+      "source_hash": "3fdaa8c6798b215bde2b04f78029d1ba6e9f987e2d0f0567feedcf6cbb7d8a99"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-add-first-class-radicle-cob-support/design.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-add-first-class-radicle-cob-support/design.md",
+      "source_hash": "a741c633ba7442d1831d6167c12da6c68c88720c2b30f62426f702bcbb4384a1"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-add-first-class-radicle-cob-support/metadata.json",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-add-first-class-radicle-cob-support/metadata.json",
+      "source_hash": "97381ec0cefa124d9bfc02985b479aa61f853d46c086e00b9f4dfa0ff0ea6151"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-add-first-class-radicle-cob-support/proposal.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-add-first-class-radicle-cob-support/proposal.md",
+      "source_hash": "7499b99d1e9620cda72e4aa235453b1e40860f60d04fd8f3c060bf160c43cd91"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-add-first-class-radicle-cob-support/specs/radicle-cob-support/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-add-first-class-radicle-cob-support/specs/radicle-cob-support/spec.md",
+      "source_hash": "6c546b9e6d3352f624d4fd94b9dc707fc583f541ed3366c740378d6f4889637c"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-add-first-class-radicle-cob-support/tasks.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-add-first-class-radicle-cob-support/tasks.md",
+      "source_hash": "0d3a66538e7164b0d4b7cdf7655dc2267589c7235a4e93b71110bbd28b53a449"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/design.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/design.md",
+      "source_hash": "136b0595f67b38f44d7f2b0ab17bb232c6dd577c1a90e012e4b196659fb163f2"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/proposal.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/proposal.md",
+      "source_hash": "2fb959191caf79b22178966de5e9e89e083759fa421e75f6037f8d0a4745d52e"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/change-gating/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/change-gating/spec.md",
+      "source_hash": "6185ad9b3fd30adb456b61206920242cfd3bd1bf8b604fc6ec408a711aac9a47"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/ci-domain/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/ci-domain/spec.md",
+      "source_hash": "ba4e00d74043843ef1b991dd5f135f55f946085545eeb6a7ec4ab571e42d4c33"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/durable-operations/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/durable-operations/spec.md",
+      "source_hash": "165265e6b9e2d377d2a41b698e4e9449803280583637753eb325fbb141d4277b"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/interchange-projections/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/interchange-projections/spec.md",
+      "source_hash": "36eabf88714e0216f06f18f42e5201caaa75ec908050adba8a1578dae27afc47"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/provider-ports/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/provider-ports/spec.md",
+      "source_hash": "01799978d2a17924c160a537016855f43ca9ab7f92518a47e9f698f7887d84ab"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/radicle-ci-compatibility/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/radicle-ci-compatibility/spec.md",
+      "source_hash": "47c6a6b29466d59fa751a783aac5cf7889e7793346664c1a0fea14a4540a7bbb"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/remote-execution-compatibility/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/remote-execution-compatibility/spec.md",
+      "source_hash": "8884ca969a95bac9239f454aea3338793fb7de821f9168ebdab713c01a6231de"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/repository-hosting/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/repository-hosting/spec.md",
+      "source_hash": "72880594b161c0559eb0062624fd400496314708981a6ee799948f655f47c9dc"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/source-collaboration/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/specs/source-collaboration/spec.md",
+      "source_hash": "a7e0b0bb328e01e38cd90105bc1dc136469d97f752c67510fb8724838c753286"
+    },
+    {
+      "destination": "./.cairn/archive/1970-01-01-establish-neutral-ci-control-plane/tasks.md",
+      "destination_hash": null,
+      "source": "./cairn/archive/1970-01-01-establish-neutral-ci-control-plane/tasks.md",
+      "source_hash": "e0fb817f83507f8989955eeb5dda27681d71b3875383e9a67469e94869a3d0f5"
+    },
+    {
+      "destination": "./.cairn/changes/add-first-class-radicle-cob-support/design.md",
+      "destination_hash": null,
+      "source": "./cairn/changes/add-first-class-radicle-cob-support/design.md",
+      "source_hash": "a741c633ba7442d1831d6167c12da6c68c88720c2b30f62426f702bcbb4384a1"
+    },
+    {
+      "destination": "./.cairn/changes/add-first-class-radicle-cob-support/metadata.json",
+      "destination_hash": null,
+      "source": "./cairn/changes/add-first-class-radicle-cob-support/metadata.json",
+      "source_hash": "97381ec0cefa124d9bfc02985b479aa61f853d46c086e00b9f4dfa0ff0ea6151"
+    },
+    {
+      "destination": "./.cairn/changes/add-first-class-radicle-cob-support/proposal.md",
+      "destination_hash": null,
+      "source": "./cairn/changes/add-first-class-radicle-cob-support/proposal.md",
+      "source_hash": "7499b99d1e9620cda72e4aa235453b1e40860f60d04fd8f3c060bf160c43cd91"
+    },
+    {
+      "destination": "./.cairn/changes/add-first-class-radicle-cob-support/specs/radicle-cob-support/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/changes/add-first-class-radicle-cob-support/specs/radicle-cob-support/spec.md",
+      "source_hash": "6c546b9e6d3352f624d4fd94b9dc707fc583f541ed3366c740378d6f4889637c"
+    },
+    {
+      "destination": "./.cairn/changes/add-first-class-radicle-cob-support/tasks.md",
+      "destination_hash": null,
+      "source": "./cairn/changes/add-first-class-radicle-cob-support/tasks.md",
+      "source_hash": "592b48bf3e8aa5c39cacd30b4d885b19e4ceb87a3c1c7e8bc24fc6b94c765aff"
+    },
+    {
+      "destination": "./.cairn/specs/change-gating/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/change-gating/spec.md",
+      "source_hash": "0c826cd994836ba253e7a511bcb81fe5659c695748dd8eadb6c4dbdfe348d411"
+    },
+    {
+      "destination": "./.cairn/specs/ci-domain/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/ci-domain/spec.md",
+      "source_hash": "4e4c2ce5de73b7c400ef5fb66dc89fc720a5f965ef11d8feeb674d4da9aa3da6"
+    },
+    {
+      "destination": "./.cairn/specs/durable-operations/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/durable-operations/spec.md",
+      "source_hash": "284a74b75128d3a5407184efb5318b93d0420348da65e7ac101e7eb04f1ed472"
+    },
+    {
+      "destination": "./.cairn/specs/interchange-projections/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/interchange-projections/spec.md",
+      "source_hash": "56251b3980b65818889f818604035efd215a3ba43f7f9468f8ed95f46dd432a4"
+    },
+    {
+      "destination": "./.cairn/specs/provider-ports/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/provider-ports/spec.md",
+      "source_hash": "b33ac9e7f6e542214b338d185b043c4d59bda658625780271a0f4ccb85e5f8fd"
+    },
+    {
+      "destination": "./.cairn/specs/radicle-ci-compatibility/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/radicle-ci-compatibility/spec.md",
+      "source_hash": "fd2dfb8ef2e499a8259cb76b6622cccc7c348aab041b0c3cd854919fe158466f"
+    },
+    {
+      "destination": "./.cairn/specs/radicle-cob-support/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/radicle-cob-support/spec.md",
+      "source_hash": "a2c0656c5f38d5fc16e24cabefa05b8590117e85692180e4fdc193e6eef6c6dc"
+    },
+    {
+      "destination": "./.cairn/specs/remote-execution-compatibility/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/remote-execution-compatibility/spec.md",
+      "source_hash": "250ff5f4acdb89c6bcea1765791ee26a0f81d8338dfa08b16d3f2a31a6976a56"
+    },
+    {
+      "destination": "./.cairn/specs/repository-hosting/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/repository-hosting/spec.md",
+      "source_hash": "16810e237ed6b3ffff5f54a6d522123556cc1ff187065d00c0626f065cad258a"
+    },
+    {
+      "destination": "./.cairn/specs/source-collaboration/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/source-collaboration/spec.md",
+      "source_hash": "b4b64922cb65d7fa68f3d998a69125b384aeae98db6108b6d87534053365b50d"
+    },
+    {
+      "destination": "./.cairn/specs/task-operations/spec.md",
+      "destination_hash": null,
+      "source": "./cairn/specs/task-operations/spec.md",
+      "source_hash": "35f466529b9a13e50be3838522d14b2ed6b9ed4d5ed9a8c8f4258bd9f81711ad"
+    }
+  ],
+  "blocked": false,
+  "command": "migrate_legacy-cairn",
+  "conflicts": [],
+  "destination_layout": "cairn",
+  "destination_manifest_hash": "77b78bc73e4407efb745ddfb0cd47b799d310df95ed241cd26b5f227c811d070",
+  "dry_run": true,
+  "manifest_hash": "9e522c8dccdc05b576e54e5e0aff8517df318f89a184a3e7f3dbb156f75bbe80",
+  "mutated": false,
+  "mutation_manifest": null,
+  "plan_hash": "1971dce186eb7847d3678920844196e131a1a608e7c2d632caa354a60eb37202",
+  "policy": "kiln-default",
+  "policy_hash": "b712c117adc6eda79be41578323c2af496dcd5caad0ce120d1b3c671e207ffec",
+  "receipt_hash": "115d545fba44418569598f7d8988ba554bc6cd5e7d1f540de951af7943c8e055",
+  "root": ".",
+  "source_layout": "legacy-cairn",
+  "source_manifest_hash": "2d16d705d9cf1243d7239e4b34411da2cb7aa93140a190651e763df0a9fd3164"
+}

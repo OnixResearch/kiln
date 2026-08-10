@@ -1,6 +1,11 @@
 // Accepted-spec traceability index. The paths identify the implementation or conformance surface.
 //
 // Radicle COB model and adapters: crates/kiln-core/src/cob.rs, crates/kiln-adapter-cob/src/lib.rs.
+// r[impl kiln.lifecycle.native_store]
+// r[verify kiln.lifecycle.native_store.scenario.active_paths]
+// r[verify kiln.lifecycle.native_store.scenario.parity]
+// r[verify kiln.lifecycle.native_store.scenario.stale_plan]
+
 // r[impl kiln.radicle_cobs.model]
 // r[verify kiln.radicle_cobs.model.scenario.identity]
 // r[verify kiln.radicle_cobs.model.scenario.history]

@@ -1,0 +1,191 @@
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: migrate-native-lifecycle",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle"
+    }
+  ],
+  "blocked": false,
+  "change": "migrate-native-lifecycle",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "fd9dfacb6f78f7755d528fe230bd0c3d813a9ed1f1b4614447aeca257a99adaf",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "86b616aab8234e9881e48054f1f00e320ac6be57367882519668d73493a183af",
+    "receipt_hash": "662fdead8d1011f8bc52d6da27d29d920be4c47569c4bea997ebf08f245157cc",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "5f7e260ab5940760f70c28d67d2c7565ae8c2ef2a0b47b819874f7588266d8f5",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "684fc12311ab92286eed93c26220c6e1f84332068879ab3918cc67ad09db46b3",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/design.md"
+        },
+        {
+          "content_hash": "c58ef967a904857f709fd2802397ff90e7b8ebcfdb2e387b7006f094b4d94881",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/evidence/migration-execute.json"
+        },
+        {
+          "content_hash": "e6fa61ae4a7f34ab04bb0d93c861bfd8582718b41c844644b311f4211a9075af",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/evidence/migration-preview.json"
+        },
+        {
+          "content_hash": "50cc1102b1c612e6962547aacdcef9a400d4416ef8dd9388e885991853c400c9",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/evidence/stale-plan.status"
+        },
+        {
+          "content_hash": "ddc9ef3edb111695e441e675fb521cc0d964b811f6859d94bf1db79f0a558710",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/evidence/stale-plan.stderr"
+        },
+        {
+          "content_hash": "c9f45878ebc3b3e0832dcb5f5beeecda787feba014e3325d02b6f00c1a2cca89",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/evidence/sync-execute.json"
+        },
+        {
+          "content_hash": "1ddc2662a30c240034920d7d3533f58144c8763a0849b4d0d64ceecbb496e195",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/evidence/sync-preview.json"
+        },
+        {
+          "content_hash": "2d0abad55804e0bf7cadee58bdd5e1531a0fe7ab3964427ac096a7c94427f922",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/evidence/validation.md"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/metadata.json"
+        },
+        {
+          "content_hash": "467b1b651eb9c5dfa516ef5d59c8c17dbf8e4cb61822890256f949c287faac45",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/proposal.md"
+        },
+        {
+          "content_hash": "ece053b923bbb2cf0a69f695c1e0965947e9d7c01f6b381252be6bbb12754722",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/specs/repository-lifecycle/spec.md"
+        },
+        {
+          "content_hash": "6c1b101399e309555120d6cda703d3cf2f85cdf1259871372ee14f491f0e626d",
+          "exists": true,
+          "path": "./.cairn/archive/1970-01-01-migrate-native-lifecycle/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/migrate-native-lifecycle"
+        }
+      ],
+      "manifest_hash": "20e5a11a2c6a3c2e4cec61320131a1c03a63df22537edf0e498aa8503bef439c"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "684fc12311ab92286eed93c26220c6e1f84332068879ab3918cc67ad09db46b3",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/design.md"
+        },
+        {
+          "content_hash": "c58ef967a904857f709fd2802397ff90e7b8ebcfdb2e387b7006f094b4d94881",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/evidence/migration-execute.json"
+        },
+        {
+          "content_hash": "e6fa61ae4a7f34ab04bb0d93c861bfd8582718b41c844644b311f4211a9075af",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/evidence/migration-preview.json"
+        },
+        {
+          "content_hash": "50cc1102b1c612e6962547aacdcef9a400d4416ef8dd9388e885991853c400c9",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/evidence/stale-plan.status"
+        },
+        {
+          "content_hash": "ddc9ef3edb111695e441e675fb521cc0d964b811f6859d94bf1db79f0a558710",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/evidence/stale-plan.stderr"
+        },
+        {
+          "content_hash": "c9f45878ebc3b3e0832dcb5f5beeecda787feba014e3325d02b6f00c1a2cca89",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/evidence/sync-execute.json"
+        },
+        {
+          "content_hash": "1ddc2662a30c240034920d7d3533f58144c8763a0849b4d0d64ceecbb496e195",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/evidence/sync-preview.json"
+        },
+        {
+          "content_hash": "2d0abad55804e0bf7cadee58bdd5e1531a0fe7ab3964427ac096a7c94427f922",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/evidence/validation.md"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/metadata.json"
+        },
+        {
+          "content_hash": "467b1b651eb9c5dfa516ef5d59c8c17dbf8e4cb61822890256f949c287faac45",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/proposal.md"
+        },
+        {
+          "content_hash": "ece053b923bbb2cf0a69f695c1e0965947e9d7c01f6b381252be6bbb12754722",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/specs/repository-lifecycle/spec.md"
+        },
+        {
+          "content_hash": "6c1b101399e309555120d6cda703d3cf2f85cdf1259871372ee14f491f0e626d",
+          "exists": true,
+          "path": "./.cairn/changes/migrate-native-lifecycle/tasks.md"
+        }
+      ],
+      "manifest_hash": "3c693275b674c788770ccd8f8e825a0739ee6c0b42c9bff45fda0c74ee7bde07"
+    },
+    "kind": "archive",
+    "manifest_hash": "c0ce7ea938f1739cf904887a3afcd80289aa3f4b88672d4fb9fb7890bf5c40e3"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "4e88ba1058049e7ad42394dcd14c79aecead6d488b72a4f8ac98eed5b5494d46",
+  "policy": "kiln-default",
+  "policy_hash": "86b616aab8234e9881e48054f1f00e320ac6be57367882519668d73493a183af",
+  "profile_identity_hash": "927d749d0938b94bcd255d7595d77b7d90df2f29d16adcb46677f9f925ef2f1c",
+  "reasons": [],
+  "receipt_hash": "d4d2f9303866a19ab81bf0d083873954ea373b920cd9daec1dcad181951b988d",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}

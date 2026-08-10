@@ -68,7 +68,7 @@ failure.
 
 ## Lifecycle and VCS
 
-Use native `cairn/` lifecycle packages. Validate proposal, design, and task
+Use native `.cairn/` lifecycle packages. Validate proposal, design, and task
 gates before implementation. Use `jj` for version-control operations.
 
 Do not edit `flake.lock` manually. Do not push without an explicit request.

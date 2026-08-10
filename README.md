@@ -106,7 +106,7 @@ The decision does not prove that a provider performed an effect. It also does no
 
 ## Lifecycle
 
-Accepted requirements are in `cairn/specs/`. Active implementation changes are in `cairn/changes/`.
+Accepted requirements are in `.cairn/specs/`. Active implementation changes are in `.cairn/changes/`.
 
 ## References
 

@@ -1,0 +1,86 @@
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/migrate-native-lifecycle/specs/repository-lifecycle/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/migrate-native-lifecycle/specs/repository-lifecycle/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "migrate-native-lifecycle",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "3da8c9cc3ef208992c40d732b4c30611ea7b99e8d364f529b37c34fee49da84c",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "58aefd8b62de92d39f5077564d59f7aca64d632a89210681c3f99acd01f000f8",
+    "receipt_hash": "f08dc0e95bbd17c92109af2eaeb7aa4a008ce497dbe8b215ad5e20d5c60e086f",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/migrate-native-lifecycle/specs/repository-lifecycle/spec.md"
+  ],
+  "dry_run": true,
+  "input_hash": "a084da69d03d91e9b81d0acc96e48aed2856b6e10ecc8439d9facb3f744e6f8b",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": false,
+        "accepted_before_hash": "dc184b86a4d699a6e68bee9e72986028d906eae2a16d316ed53cb4b362c5800e",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "ece053b923bbb2cf0a69f695c1e0965947e9d7c01f6b381252be6bbb12754722",
+        "destination": ".cairn/specs/repository-lifecycle/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "2a607b69d40d94fa4dd5b992c289c4ce8afecc9a6dad59d6ed94d76e479760ce",
+        "operations": [
+          {
+            "block_hash": "409dd1a3fbaed7346769425d21cf64711248384c7e97a538bd6f46fbf7c3cb36",
+            "heading": "### Requirement: Native lifecycle store",
+            "kind": "added",
+            "requirement_id": "kiln.lifecycle.native_store"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.lifecycle.native_store",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/migrate-native-lifecycle/specs/repository-lifecycle/spec.md"
+      }
+    ]
+  },
+  "mutated": false,
+  "mutation_manifest": null,
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "9b1f9975446b7b2bd3c515af6f6e954b884f3291f5a93e53519716af5bbb119f",
+  "policy": "kiln-default",
+  "policy_hash": "58aefd8b62de92d39f5077564d59f7aca64d632a89210681c3f99acd01f000f8",
+  "profile_identity_hash": "32080e5ae57df8db3a218a1b2c2bccc489012c7dba4dbbbafed11fa0a4ee2e40",
+  "reasons": [],
+  "receipt_hash": "83d0fb7798dcb9e9cb1824518217c5c69155967a68cf4ebbdae048734d02d9a7",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
