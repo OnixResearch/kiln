@@ -140,6 +140,7 @@
             nickel export config/opentelemetry-profile.ncl >/dev/null
             nickel export config/valence-profile.ncl >/dev/null
             nickel export config/webhook-profile.ncl >/dev/null
+            nickel export config/sqlite-profile.ncl >/dev/null
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null

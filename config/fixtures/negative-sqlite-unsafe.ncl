@@ -1,0 +1,28 @@
+let Contracts = import "../contracts.ncl" in
+({
+  database_path = "events.db",
+  open_mode = "read_write_create",
+  rusqlite_version = "0.40.2",
+  libsqlite3_sys_version = "0.38.2",
+  sqlite_runtime_version = "3.53.2",
+  license = "MIT",
+  schema_version = 1,
+  transaction_kind = "immediate",
+  journal_mode = "DELETE",
+  synchronous = "OFF",
+  backup_required = false,
+  destructive_repair = true,
+  bounds = {
+    busy_timeout_millis = 1,
+    max_events_per_append = 1,
+    max_replay_records = 1,
+    max_outbox_records = 1,
+    max_event_bytes = 1,
+    max_snapshot_bytes = 1,
+    max_backup_bytes = 1,
+    max_migration_steps = 1,
+    max_retention_deletes = 1,
+  },
+  migration_edges = [{ from = 0, to = 1 }],
+  non_claims = ["invalid unsafe profile"],
+}) | Contracts.SQLiteProfile

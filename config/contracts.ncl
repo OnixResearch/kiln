@@ -4,6 +4,9 @@ let NonEmptyString = std.contract.from_predicate (fun value =>
 let Positive = std.contract.from_predicate (fun value =>
   std.is_number value && value > 0
 ) in
+let NonNegative = std.contract.from_predicate (fun value =>
+  std.is_number value && value >= 0
+) in
 let VersionOne = std.contract.from_predicate (fun value =>
   std.is_number value && value == 1
 ) in
@@ -106,7 +109,61 @@ let WebhookAuthKind = std.contract.from_predicate (fun value =>
 let EmptyString = std.contract.from_predicate (fun value =>
   std.is_string value && std.string.length value == 0
 ) in
+let RusqliteVersion = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "0.40.2"
+) in
+let LibsqliteVersion = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "0.38.2"
+) in
+let SqliteRuntimeVersion = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "3.53.2"
+) in
+let MitLicense = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "MIT"
+) in
+let SqliteTransaction = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "immediate"
+) in
+let SqliteJournalMode = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "WAL"
+) in
+let SqliteSynchronous = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "FULL"
+) in
+let TrueOnly = std.contract.from_predicate (fun value =>
+  std.is_bool value && value == true
+) in
 {
+  SQLiteProfile = {
+    database_path | NonEmptyString,
+    open_mode | NonEmptyString,
+    rusqlite_version | RusqliteVersion,
+    libsqlite3_sys_version | LibsqliteVersion,
+    sqlite_runtime_version | SqliteRuntimeVersion,
+    license | MitLicense,
+    schema_version | VersionOne,
+    transaction_kind | SqliteTransaction,
+    journal_mode | SqliteJournalMode,
+    synchronous | SqliteSynchronous,
+    backup_required | TrueOnly,
+    destructive_repair | LocalCapacityOnly,
+    bounds | {
+      busy_timeout_millis | Positive,
+      max_events_per_append | Positive,
+      max_replay_records | Positive,
+      max_outbox_records | Positive,
+      max_event_bytes | Positive,
+      max_snapshot_bytes | Positive,
+      max_backup_bytes | Positive,
+      max_migration_steps | Positive,
+      max_retention_deletes | Positive,
+    },
+    migration_edges | Array {
+      from | NonNegative,
+      to | VersionOne,
+    },
+    non_claims | Array NonEmptyString,
+  },
   WebhookProfile = {
     id | NonEmptyString,
     endpoint | {

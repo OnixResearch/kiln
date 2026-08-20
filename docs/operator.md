@@ -58,6 +58,18 @@ Cancellation, pause, and resume require an exact active attempt. They also requi
 
 Kiln does not support arbitrary process input as a standard control.
 
+## SQLite event store
+
+`kiln-adapter-sqlite` pins `rusqlite 0.40.2`, `libsqlite3-sys 0.38.2`, and bundled SQLite `3.53.2`.
+
+The profile uses immediate transactions, WAL, and `FULL` synchronization. Each transaction commits accepted events, stream revision, and outbox records together.
+
+Before retention, write a snapshot at the exact retention boundary. Replay rejects a retained history without that snapshot.
+
+Use `backup_to` only with a new destination. The adapter runs SQLite integrity checks and records the backup BLAKE3 identity.
+
+Schema changes require an admitted migration edge. Unknown or partially applied versions stop service admission without destructive repair.
+
 ## Recovery
 
 Restore the latest committed journal snapshot. Then classify each outbox lease.

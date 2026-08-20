@@ -1,4 +1,5 @@
 use kiln_core::domain::Outcome;
+use kiln_core::operations::{JournalRecord, OutboxRecord};
 use kiln_core::provider::{CapabilityProfile, ProviderObservation, ProviderRole};
 use kiln_core::types::{ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, RunId};
 use serde::{Deserialize, Serialize};
@@ -22,7 +23,29 @@ pub trait TriggerPort: ProviderPort {}
 pub trait StatusPort: ProviderPort {}
 pub trait WorkflowPort: ProviderPort {}
 pub trait BuildPort: ProviderPort {}
-pub trait EventStorePort: ProviderPort {}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct EventAppendRequest {
+    pub stream: ExternalRef,
+    pub expected_revision: u64,
+    pub records: Vec<JournalRecord>,
+    pub outbox: Vec<OutboxRecord>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct EventStoreSnapshot {
+    pub records: Vec<JournalRecord>,
+    pub outbox: Vec<OutboxRecord>,
+}
+
+pub trait EventStorePort {
+    fn append(&mut self, request: &EventAppendRequest) -> Result<u64, PortFailure>;
+
+    fn load(
+        &self,
+        stream: &ExternalRef,
+        max_records: usize,
+    ) -> Result<EventStoreSnapshot, PortFailure>;
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct NotificationRequest {

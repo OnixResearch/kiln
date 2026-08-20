@@ -21,6 +21,10 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "valence_core::",
     "kiln-adapter-webhook =",
     "kiln_adapter_webhook::",
+    "kiln-adapter-sqlite =",
+    "kiln_adapter_sqlite::",
+    "rusqlite =",
+    "rusqlite::",
     "radicle-cob =",
     "radicle_cob::",
     "pueue-lib =",
@@ -88,6 +92,7 @@ pub fn audit_reference_boundary(root: &Path) -> std::io::Result<Vec<BoundaryFind
         "crates/kiln-adapter-opentelemetry",
         "crates/kiln-adapter-valence",
         "crates/kiln-adapter-webhook",
+        "crates/kiln-adapter-sqlite",
         "crates/kiln-cli",
     ] {
         let selected = root.join(relative);
