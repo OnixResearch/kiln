@@ -1,0 +1,31 @@
+let Contracts = import "../contracts.ncl" in
+({
+  otlp_proto_version = "1.11.0",
+  otlp_proto_revision = "790608c4d51e6ffc12210b541e8514cbed9e91a4",
+  semantic_conventions_version = "unsupported",
+  semantic_conventions_revision = "89aae438b3b3b0a8dd33003c9d70592baf7dbd0d",
+  cicd_stability = "release_candidate",
+  license = "Apache-2.0",
+  signals = ["span", "metric", "log"],
+  allowed_attributes = ["kiln.outcome"],
+  allowed_metric_names = ["duration_ticks"],
+  resource_attributes = {},
+  drop_policy = "drop_newest",
+  bounds = {
+    max_attributes = 1,
+    max_value_bytes = 1,
+    max_record_bytes = 1,
+    max_batch_records = 1,
+    max_queue_records = 1,
+  },
+  transport = {
+    protocol = "otlp_http_json",
+    endpoint_profile = "local-collector-v1",
+    credential_reference = "",
+    tls_required = true,
+    deadline_ticks = 1,
+    max_response_bytes = 1,
+    retry_limit = 1,
+  },
+  non_claims = ["invalid drift fixture"],
+}) | Contracts.OpenTelemetryProfile

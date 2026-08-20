@@ -128,6 +128,7 @@
             nickel export config/cob-profiles.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
+            nickel export config/opentelemetry-profile.ncl >/dev/null
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null

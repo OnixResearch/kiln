@@ -1,0 +1,73 @@
+{
+  "batch_identity": "ae4e91f70c6fb88a1d4aa30e7804c4dc1d32756771fecc97c4e20e97ed15b424",
+  "payload": {
+    "protocol_version": "1.11.0",
+    "semantic_conventions_version": "1.43.0",
+    "source_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource_attributes": {
+      "service.name": "kiln"
+    },
+    "records": [
+      {
+        "signal": "span",
+        "name": "cicd.pipeline.task.run",
+        "attributes": {
+          "cicd.pipeline.run.id": "fixture-run",
+          "cicd.pipeline.task.name": "build",
+          "cicd.pipeline.task.run.id": "fixture-attempt",
+          "kiln.attempt.id": "fixture-attempt",
+          "kiln.outcome": "success",
+          "kiln.provider.profile": "fixture-provider"
+        },
+        "links": [
+          {
+            "run_id": "fixture-run",
+            "attempt_id": "fixture-attempt",
+            "provider_profile": "fixture-provider"
+          }
+        ],
+        "observed_timestamp": 1,
+        "trace_id": null,
+        "span_id": null
+      },
+      {
+        "signal": "metric",
+        "name": "kiln.cicd.attempt.metric",
+        "value": 1,
+        "dimensions": {
+          "kiln.metric.name": "duration_ticks",
+          "kiln.outcome": "success"
+        },
+        "links": [
+          {
+            "run_id": "fixture-run",
+            "attempt_id": "fixture-attempt",
+            "provider_profile": "fixture-provider"
+          }
+        ],
+        "observed_timestamp": 1
+      },
+      {
+        "signal": "log",
+        "event_name": "kiln.cicd.attempt.outcome",
+        "body": "fixture completed",
+        "attributes": {
+          "cicd.pipeline.run.id": "fixture-run",
+          "cicd.pipeline.task.name": "build",
+          "cicd.pipeline.task.run.id": "fixture-attempt",
+          "kiln.attempt.id": "fixture-attempt",
+          "kiln.outcome": "success",
+          "kiln.provider.profile": "fixture-provider"
+        },
+        "links": [
+          {
+            "run_id": "fixture-run",
+            "attempt_id": "fixture-attempt",
+            "provider_profile": "fixture-provider"
+          }
+        ],
+        "observed_timestamp": 1
+      }
+    ]
+  }
+}

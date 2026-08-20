@@ -42,7 +42,11 @@ The initial registry supports task-run started and finished events. The pure cod
 
 Unknown types, missing links, duplicate identities, context disagreements, and lossy profiles fail before a canonical action. The adapter performs no transport effects.
 
-OpenTelemetry output is rebuildable from retained events. Telemetry loss does not change canonical state.
+`kiln-adapter-opentelemetry` pins OTLP `1.11.0` at revision `790608c4d51e6ffc12210b541e8514cbed9e91a4`. It pins semantic conventions `1.43.0` at revision `89aae438b3b3b0a8dd33003c9d70592baf7dbd0d`.
+
+The adapter projects spans, bounded metrics, and redacted logs. Metric names use a configured registry, and provider labels cannot become dynamic metric keys.
+
+The optional OTLP/HTTP JSON shell uses a registered endpoint profile. Telemetry loss, duplication, delay, and backend acceptance do not change canonical state.
 
 ## Radicle CI broker
 

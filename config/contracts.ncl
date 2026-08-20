@@ -34,7 +34,61 @@ let CloudEventsContext = std.contract.from_predicate (fun value =>
 let ApacheLicense = std.contract.from_predicate (fun value =>
   std.is_string value && value == "Apache-2.0"
 ) in
+let OtlpVersion = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "1.11.0"
+) in
+let OtlpRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "790608c4d51e6ffc12210b541e8514cbed9e91a4"
+) in
+let SemanticConventionsVersion = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "1.43.0"
+) in
+let SemanticConventionsRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "89aae438b3b3b0a8dd33003c9d70592baf7dbd0d"
+) in
+let ReleaseCandidate = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "release_candidate"
+) in
+let OtlpHttpJson = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "otlp_http_json"
+) in
+let TlsRequired = std.contract.from_predicate (fun value =>
+  std.is_bool value && value == true
+) in
+let TelemetryDropPolicy = std.contract.from_predicate (fun value =>
+  std.is_string value && (value == "drop_newest" || value == "reject_batch")
+) in
 {
+  OpenTelemetryProfile = {
+    otlp_proto_version | OtlpVersion,
+    otlp_proto_revision | OtlpRevision,
+    semantic_conventions_version | SemanticConventionsVersion,
+    semantic_conventions_revision | SemanticConventionsRevision,
+    cicd_stability | ReleaseCandidate,
+    license | ApacheLicense,
+    signals | Array NonEmptyString,
+    allowed_attributes | Array NonEmptyString,
+    allowed_metric_names | Array NonEmptyString,
+    resource_attributes | { _ : NonEmptyString },
+    drop_policy | TelemetryDropPolicy,
+    bounds | {
+      max_attributes | Positive,
+      max_value_bytes | Positive,
+      max_record_bytes | Positive,
+      max_batch_records | Positive,
+      max_queue_records | Positive,
+    },
+    transport | {
+      protocol | OtlpHttpJson,
+      endpoint_profile | NonEmptyString,
+      credential_reference | String,
+      tls_required | TlsRequired,
+      deadline_ticks | Positive,
+      max_response_bytes | Positive,
+      retry_limit | Positive,
+    },
+    non_claims | Array NonEmptyString,
+  },
   CDEventsProfile = {
     cdevents_spec_version | CDEventsVersion,
     cdevents_source_revision | CDEventsRevision,

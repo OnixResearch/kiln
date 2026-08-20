@@ -132,6 +132,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-opentelemetry"
+version = "0.1.0"
+dependencies = [
+ "kiln-codec",
+ "kiln-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kiln-adapter-radicle"
 version = "0.1.0"
 dependencies = [
