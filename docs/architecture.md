@@ -10,6 +10,9 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-provider-api` | Narrow versioned provider ports. |
 | `kiln-codec` | Packed Preserves encoding and BLAKE3 identity. |
 | `kiln-standalone` | Reference journal, outbox, log store, and recovery shell. |
+| `kiln-adapter-jj` | Jujutsu source-provider compatibility. |
+| `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
+| `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Radicle broker protocol compatibility. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
 | `kiln-adapter-cdevents` | Bounded CDEvents and CloudEvents interchange. |

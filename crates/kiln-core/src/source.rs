@@ -1,4 +1,5 @@
 use alloc::collections::BTreeSet;
+use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
@@ -26,6 +27,7 @@ pub struct SourceProviderProfile {
     pub immutable_resolution: bool,
 }
 
+// r[impl kiln.git.capabilities]
 pub fn admit_source_capability(
     profile: &SourceProviderProfile,
     capability: SourceCapability,
@@ -94,6 +96,191 @@ pub fn admit_source_trigger(
         ));
     }
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum GitObjectFormat {
+    Sha1,
+    Other,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub enum GitEntryKind {
+    Regular,
+    Executable,
+    Symlink,
+    Gitlink,
+    Unsupported,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GitResolutionFacts {
+    pub repository: ExternalRef,
+    pub symbolic_reference: ExternalRef,
+    pub exact_commit: ExternalRef,
+    pub native_tree: ExternalRef,
+    pub observed_ref_before: ExternalRef,
+    pub observed_ref_after: ExternalRef,
+    pub object_format: GitObjectFormat,
+    pub partial_repository: bool,
+    pub replacement_objects: bool,
+    pub alternate_object_database: bool,
+    pub signature_observed: bool,
+}
+
+// r[impl kiln.git.resolution] r[impl kiln.git.profile]
+pub fn admit_git_resolution(facts: &GitResolutionFacts) -> CoreResult<()> {
+    facts.repository.validate()?;
+    facts.symbolic_reference.validate()?;
+    facts.exact_commit.validate()?;
+    facts.native_tree.validate()?;
+    facts.observed_ref_before.validate()?;
+    facts.observed_ref_after.validate()?;
+    if facts.object_format != GitObjectFormat::Sha1 {
+        return Err(Diagnostic::new(
+            "git_object_format",
+            "git.object_format",
+            "Git object format is not in the selected local profile",
+        ));
+    }
+    if facts.partial_repository || facts.replacement_objects || facts.alternate_object_database {
+        return Err(Diagnostic::new(
+            "git_repository_feature",
+            "git.repository_features",
+            "Git repository requires an unsupported source feature",
+        ));
+    }
+    if facts.observed_ref_before != facts.exact_commit
+        || facts.observed_ref_after != facts.exact_commit
+    {
+        return Err(Diagnostic::new(
+            "git_reference_moved",
+            "git.reference",
+            "Git reference changed during source acquisition",
+        ));
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GitSnapshotLimits {
+    pub max_entries: usize,
+    pub max_path_bytes: usize,
+    pub max_file_bytes: usize,
+    pub max_total_bytes: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GitSnapshotEntry {
+    pub path: String,
+    pub kind: GitEntryKind,
+    pub native_object: ExternalRef,
+    pub bytes: Vec<u8>,
+}
+
+const GIT_SNAPSHOT_TAG: &[u8] = b"kiln.git.snapshot.v1\0";
+const GIT_ENTRY_REGULAR: u8 = b'f';
+const GIT_ENTRY_EXECUTABLE: u8 = b'x';
+const GIT_ENTRY_SYMLINK: u8 = b'l';
+
+fn append_framed(output: &mut Vec<u8>, bytes: &[u8]) -> CoreResult<()> {
+    let length = u64::try_from(bytes.len()).map_err(|_| {
+        Diagnostic::new(
+            "git_snapshot_bound",
+            "git.snapshot",
+            "Git snapshot field length exceeds the framing range",
+        )
+    })?;
+    output.extend_from_slice(&length.to_be_bytes());
+    output.extend_from_slice(bytes);
+    Ok(())
+}
+
+fn validate_git_path(path: &str, max_path_bytes: usize) -> CoreResult<()> {
+    if path.is_empty()
+        || path.len() > max_path_bytes
+        || path.starts_with('/')
+        || path.contains('\\')
+        || path.contains('\0')
+        || path
+            .split('/')
+            .any(|component| component.is_empty() || component == "." || component == "..")
+    {
+        return Err(Diagnostic::new(
+            "git_snapshot_path",
+            "git.snapshot.path",
+            "Git snapshot path is unsafe or exceeds its named bound",
+        ));
+    }
+    Ok(())
+}
+
+// r[impl kiln.git.snapshot]
+pub fn build_git_snapshot_manifest(
+    entries: &[GitSnapshotEntry],
+    limits: &GitSnapshotLimits,
+) -> CoreResult<Vec<u8>> {
+    if entries.len() > limits.max_entries {
+        return Err(Diagnostic::new(
+            "git_snapshot_entries",
+            "git.snapshot.entries",
+            "Git snapshot entry count exceeds its named bound",
+        ));
+    }
+    let mut ordered = entries.to_vec();
+    ordered.sort_by(|left, right| left.path.cmp(&right.path));
+    let mut previous_path: Option<&str> = None;
+    let mut total_bytes = 0usize;
+    let mut manifest = GIT_SNAPSHOT_TAG.to_vec();
+    for entry in &ordered {
+        validate_git_path(&entry.path, limits.max_path_bytes)?;
+        if previous_path == Some(entry.path.as_str()) {
+            return Err(Diagnostic::new(
+                "git_snapshot_duplicate",
+                "git.snapshot.path",
+                "Git snapshot has a duplicate path",
+            ));
+        }
+        previous_path = Some(entry.path.as_str());
+        if entry.bytes.len() > limits.max_file_bytes {
+            return Err(Diagnostic::new(
+                "git_snapshot_file_bound",
+                "git.snapshot.bytes",
+                "Git snapshot file exceeds its named bound",
+            ));
+        }
+        total_bytes = total_bytes.checked_add(entry.bytes.len()).ok_or_else(|| {
+            Diagnostic::new(
+                "git_snapshot_total_bound",
+                "git.snapshot.bytes",
+                "Git snapshot total byte count overflowed",
+            )
+        })?;
+        if total_bytes > limits.max_total_bytes {
+            return Err(Diagnostic::new(
+                "git_snapshot_total_bound",
+                "git.snapshot.bytes",
+                "Git snapshot total bytes exceed the named bound",
+            ));
+        }
+        let kind = match entry.kind {
+            GitEntryKind::Regular => GIT_ENTRY_REGULAR,
+            GitEntryKind::Executable => GIT_ENTRY_EXECUTABLE,
+            GitEntryKind::Symlink => GIT_ENTRY_SYMLINK,
+            GitEntryKind::Gitlink | GitEntryKind::Unsupported => {
+                return Err(Diagnostic::new(
+                    "git_snapshot_entry_kind",
+                    "git.snapshot.kind",
+                    "Git snapshot entry kind is not supported by this profile",
+                ));
+            }
+        };
+        entry.native_object.validate()?;
+        manifest.push(kind);
+        append_framed(&mut manifest, entry.path.as_bytes())?;
+        append_framed(&mut manifest, &entry.bytes)?;
+    }
+    Ok(manifest)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -350,6 +537,144 @@ mod tests {
         trigger.signature_valid = true;
         trigger.replayed = true;
         assert!(admit_source_trigger(&profile, &trigger).is_err());
+    }
+
+    const GIT_MAX_ENTRIES: usize = 8;
+    const GIT_MAX_PATH_BYTES: usize = 128;
+    const GIT_MAX_FILE_BYTES: usize = 1024;
+    const GIT_MAX_TOTAL_BYTES: usize = 4096;
+
+    fn git_limits() -> GitSnapshotLimits {
+        GitSnapshotLimits {
+            max_entries: GIT_MAX_ENTRIES,
+            max_path_bytes: GIT_MAX_PATH_BYTES,
+            max_file_bytes: GIT_MAX_FILE_BYTES,
+            max_total_bytes: GIT_MAX_TOTAL_BYTES,
+        }
+    }
+
+    fn git_entry(path: &str, kind: GitEntryKind, value: &str) -> GitSnapshotEntry {
+        GitSnapshotEntry {
+            path: path.into(),
+            kind,
+            native_object: external("git", "object", value),
+            bytes: value.as_bytes().to_vec(),
+        }
+    }
+
+    // r[verify kiln.git.snapshot.scenario.valid]
+    #[test]
+    fn git_snapshot_manifest_is_deterministic() {
+        let entries = alloc::vec![
+            git_entry("script", GitEntryKind::Executable, "second"),
+            git_entry("link", GitEntryKind::Symlink, "first"),
+            git_entry("file", GitEntryKind::Regular, "third"),
+        ];
+        let mut reversed = entries.clone();
+        reversed.reverse();
+        assert_eq!(
+            build_git_snapshot_manifest(&entries, &git_limits()),
+            build_git_snapshot_manifest(&reversed, &git_limits())
+        );
+        let mut equal_tree_with_other_native_objects = entries.clone();
+        for entry in &mut equal_tree_with_other_native_objects {
+            entry.native_object = external("git", "object", "different-history");
+        }
+        assert_eq!(
+            build_git_snapshot_manifest(&entries, &git_limits()),
+            build_git_snapshot_manifest(&equal_tree_with_other_native_objects, &git_limits())
+        );
+    }
+
+    // r[verify kiln.git.snapshot.scenario.path]
+    #[test]
+    fn git_snapshot_rejects_unsafe_duplicate_and_gitlink_entries() {
+        let unsafe_entry = git_entry("../secret", GitEntryKind::Regular, "unsafe");
+        assert!(build_git_snapshot_manifest(&[unsafe_entry], &git_limits()).is_err());
+        let duplicate = git_entry("same", GitEntryKind::Regular, "duplicate");
+        assert!(
+            build_git_snapshot_manifest(&[duplicate.clone(), duplicate], &git_limits()).is_err()
+        );
+        let gitlink = git_entry("module", GitEntryKind::Gitlink, "gitlink");
+        assert!(build_git_snapshot_manifest(&[gitlink], &git_limits()).is_err());
+        let mut small_limit = git_limits();
+        small_limit.max_file_bytes = 1;
+        let oversized = git_entry("large", GitEntryKind::Regular, "oversized");
+        assert!(build_git_snapshot_manifest(&[oversized], &small_limit).is_err());
+    }
+
+    // r[verify kiln.git.resolution.scenario.stable]
+    // r[verify kiln.git.profile.scenario.match]
+    #[test]
+    fn admits_stable_local_git_resolution() {
+        let commit = external("git", "commit", "commit");
+        let facts = GitResolutionFacts {
+            repository: external("git", "repository", "repo"),
+            symbolic_reference: external("git", "reference", "refs/heads/main"),
+            exact_commit: commit.clone(),
+            native_tree: external("git", "tree", "tree"),
+            observed_ref_before: commit.clone(),
+            observed_ref_after: commit,
+            object_format: GitObjectFormat::Sha1,
+            partial_repository: false,
+            replacement_objects: false,
+            alternate_object_database: false,
+            signature_observed: false,
+        };
+        assert!(admit_git_resolution(&facts).is_ok());
+    }
+
+    // r[verify kiln.git.resolution.scenario.moved]
+    // r[verify kiln.git.profile.scenario.feature]
+    #[test]
+    fn rejects_moved_or_unsupported_git_resolution() {
+        let commit = external("git", "commit", "commit");
+        let mut facts = GitResolutionFacts {
+            repository: external("git", "repository", "repo"),
+            symbolic_reference: external("git", "reference", "refs/heads/main"),
+            exact_commit: commit.clone(),
+            native_tree: external("git", "tree", "tree"),
+            observed_ref_before: commit,
+            observed_ref_after: external("git", "commit", "moved"),
+            object_format: GitObjectFormat::Sha1,
+            partial_repository: false,
+            replacement_objects: false,
+            alternate_object_database: false,
+            signature_observed: false,
+        };
+        assert!(admit_git_resolution(&facts).is_err());
+        facts.observed_ref_after = facts.exact_commit.clone();
+        facts.partial_repository = true;
+        assert!(admit_git_resolution(&facts).is_err());
+    }
+
+    // r[verify kiln.git.capabilities.scenario.read]
+    // r[verify kiln.git.capabilities.scenario.fetch]
+    #[test]
+    fn local_git_profile_has_no_network_or_mutation_authority() {
+        let profile = SourceProviderProfile {
+            id: ProviderProfileId::new("git-source-v1").unwrap_or_else(|_| unreachable!()),
+            native_system: external("git", "source-provider", "libgit2"),
+            capabilities: BTreeSet::from([
+                SourceCapability::Discover,
+                SourceCapability::ResolveExact,
+                SourceCapability::Acquire,
+                SourceCapability::ObserveIdentity,
+            ]),
+            identity_namespaces: BTreeSet::from([
+                Alias::new("git-commit").unwrap_or_else(|_| unreachable!()),
+                Alias::new("git-tree").unwrap_or_else(|_| unreachable!()),
+            ]),
+            immutable_resolution: true,
+        };
+        assert!(admit_source_capability(&profile, SourceCapability::Acquire, &profile.id).is_ok());
+        for denied in [
+            SourceCapability::UseCredentials,
+            SourceCapability::Mutate,
+            SourceCapability::Collaborate,
+        ] {
+            assert!(admit_source_capability(&profile, denied, &profile.id).is_err());
+        }
     }
 
     #[test]

@@ -1,7 +1,9 @@
 use kiln_codec::identity_from_bytes;
-use kiln_core::source::{JujutsuFacts, SourceResolution, admit_jujutsu_facts, validate_resolution};
+use kiln_core::source::{
+    JujutsuBackend, JujutsuFacts, SourceResolution, admit_jujutsu_facts, validate_resolution,
+};
 use kiln_core::types::{Diagnostic, ExternalRef, ProviderProfileId};
-use kiln_provider_api::{PortFailure, PortResult, SourceRepositoryPort};
+use kiln_provider_api::{PortFailure, PortResult, SourceRepositoryBackend, SourceRepositoryPort};
 
 pub fn resolve_and_acquire<R: SourceRepositoryPort>(
     repository: &R,
@@ -10,13 +12,30 @@ pub fn resolve_and_acquire<R: SourceRepositoryPort>(
 ) -> PortResult<SourceResolution> {
     let observation = repository.observe()?;
     let resolved = repository.resolve(symbolic)?;
+    let operation_identity = observation.operation.ok_or_else(|| {
+        PortFailure::Domain(Diagnostic::new(
+            "jujutsu_operation_missing",
+            "jujutsu.operation",
+            "Jujutsu repository observation has no operation identity",
+        ))
+    })?;
+    let change_id = resolved.native_change.ok_or_else(|| {
+        PortFailure::Domain(Diagnostic::new(
+            "jujutsu_change_missing",
+            "jujutsu.change_id",
+            "Jujutsu resolution has no change identity",
+        ))
+    })?;
     let jujutsu = JujutsuFacts {
-        backend: observation.backend,
-        operation_identity: observation.operation,
-        change_id: resolved.change_id,
-        bookmark: resolved.bookmark,
-        resolved_commits: resolved.commits,
-        conflicted_bookmark: resolved.conflicted_bookmark,
+        backend: match observation.backend {
+            SourceRepositoryBackend::Git => JujutsuBackend::Git,
+            SourceRepositoryBackend::Other => JujutsuBackend::Other,
+        },
+        operation_identity,
+        change_id,
+        bookmark: resolved.alias,
+        resolved_commits: resolved.exact_revisions,
+        conflicted_bookmark: resolved.conflicted_alias,
         divergent_change: resolved.divergent_change,
     };
     let commit = admit_jujutsu_facts(&jujutsu)
@@ -46,7 +65,6 @@ pub fn resolve_and_acquire<R: SourceRepositoryPort>(
 mod tests {
     use std::cell::Cell;
 
-    use kiln_core::source::JujutsuBackend;
     use kiln_core::types::Alias;
     use kiln_provider_api::{SourceRepositoryObservation, SourceResolutionObservation};
 
@@ -72,18 +90,18 @@ mod tests {
         fn observe(&self) -> PortResult<SourceRepositoryObservation> {
             Ok(SourceRepositoryObservation {
                 repository: ExternalRef::new("jj", "repository", "repo")?,
-                backend: JujutsuBackend::Git,
-                operation: ExternalRef::new("jj", "operation", "op")?,
+                backend: SourceRepositoryBackend::Git,
+                operation: Some(ExternalRef::new("jj", "operation", "op")?),
             })
         }
 
         fn resolve(&self, symbolic: &ExternalRef) -> PortResult<SourceResolutionObservation> {
             Ok(SourceResolutionObservation {
                 symbolic: symbolic.clone(),
-                change_id: ExternalRef::new("jj", "change", "change")?,
-                commits: self.commits.clone(),
-                bookmark: Some(Alias::new("main")?),
-                conflicted_bookmark: false,
+                native_change: Some(ExternalRef::new("jj", "change", "change")?),
+                exact_revisions: self.commits.clone(),
+                alias: Some(Alias::new("main")?),
+                conflicted_alias: false,
                 divergent_change: self.divergent,
             })
         }

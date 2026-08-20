@@ -42,6 +42,11 @@
             lockFile = ./Cargo.lock;
             allowBuiltinFetchGit = true;
           };
+          nativeBuildInputs = [
+            pkgs.cmake
+            pkgs.pkg-config
+          ];
+          buildInputs = [ pkgs.zlib ];
           cargoBuildFlags = [
             "--workspace"
             "--all-targets"
@@ -101,7 +106,12 @@
               lockFile = ./Cargo.lock;
               allowBuiltinFetchGit = true;
             };
-            nativeBuildInputs = [ pkgs.clippy ];
+            nativeBuildInputs = [
+              pkgs.clippy
+              pkgs.cmake
+              pkgs.pkg-config
+            ];
+            buildInputs = [ pkgs.zlib ];
             buildPhase = ''
               runHook preBuild
               cargo clippy --workspace --all-targets -- -D warnings
@@ -135,6 +145,7 @@
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
+            nickel export config/git-source-profile.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
             nickel export config/opentelemetry-profile.ncl >/dev/null
@@ -142,6 +153,7 @@
             nickel export config/webhook-profile.ncl >/dev/null
             nickel export config/sqlite-profile.ncl >/dev/null
             nickel export config/fixtures/positive.ncl >/dev/null
+            nickel export config/fixtures/git-source-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
             nickel export evidence/publication-receipt.ncl >/dev/null
@@ -185,8 +197,11 @@
           default = pkgs.mkShell {
             packages = [
               toolchain
+              pkgs.cmake
               pkgs.nickel
               pkgs.nixfmt
+              pkgs.pkg-config
+              pkgs.zlib
             ];
           };
         }

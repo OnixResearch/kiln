@@ -6,7 +6,6 @@ use kiln_core::provider::{
     ProviderRole, classify_provider_failure,
 };
 use kiln_core::remote::{RemoteAction, RemoteObservation};
-use kiln_core::source::JujutsuBackend;
 use kiln_core::types::{Alias, ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, RunId};
 use serde::{Deserialize, Serialize};
 
@@ -31,20 +30,26 @@ pub trait WorkflowPort: ProviderPort {}
 pub trait BuildPort: ProviderPort {}
 
 // r[impl kiln.providers.port_ownership]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum SourceRepositoryBackend {
+    Git,
+    Other,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SourceRepositoryObservation {
     pub repository: ExternalRef,
-    pub backend: JujutsuBackend,
-    pub operation: ExternalRef,
+    pub backend: SourceRepositoryBackend,
+    pub operation: Option<ExternalRef>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SourceResolutionObservation {
     pub symbolic: ExternalRef,
-    pub change_id: ExternalRef,
-    pub commits: Vec<ExternalRef>,
-    pub bookmark: Option<Alias>,
-    pub conflicted_bookmark: bool,
+    pub native_change: Option<ExternalRef>,
+    pub exact_revisions: Vec<ExternalRef>,
+    pub alias: Option<Alias>,
+    pub conflicted_alias: bool,
     pub divergent_change: bool,
 }
 

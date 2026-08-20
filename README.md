@@ -8,6 +8,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 
 - deterministic CI commands, events, effects, and replay;
 - versioned provider capability admission;
+- bounded read-only source snapshots from local Git repositories;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
 - Radicle broker compatibility;

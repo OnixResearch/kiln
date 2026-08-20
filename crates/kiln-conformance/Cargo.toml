@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 kiln-adapter-cob.workspace = true
+kiln-adapter-git.workspace = true
 kiln-adapter-jj.workspace = true
 kiln-adapter-radicle.workspace = true
 kiln-adapter-remote.workspace = true
