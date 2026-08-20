@@ -15,6 +15,10 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "kiln_adapter_cdevents::",
     "kiln-adapter-opentelemetry =",
     "kiln_adapter_opentelemetry::",
+    "kiln-adapter-valence =",
+    "kiln_adapter_valence::",
+    "valence-core =",
+    "valence_core::",
     "radicle-cob =",
     "radicle_cob::",
     "pueue-lib =",
@@ -80,6 +84,7 @@ pub fn audit_reference_boundary(root: &Path) -> std::io::Result<Vec<BoundaryFind
         "crates/kiln-adapter-cob",
         "crates/kiln-adapter-cdevents",
         "crates/kiln-adapter-opentelemetry",
+        "crates/kiln-adapter-valence",
         "crates/kiln-cli",
     ] {
         let selected = root.join(relative);

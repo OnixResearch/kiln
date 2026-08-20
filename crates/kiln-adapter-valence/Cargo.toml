@@ -1,0 +1,15 @@
+[package]
+name = "kiln-adapter-valence"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+kiln-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+valence-core.workspace = true
+
+[lints]
+workspace = true

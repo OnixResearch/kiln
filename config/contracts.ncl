@@ -58,7 +58,61 @@ let TlsRequired = std.contract.from_predicate (fun value =>
 let TelemetryDropPolicy = std.contract.from_predicate (fun value =>
   std.is_string value && (value == "drop_newest" || value == "reject_batch")
 ) in
+let ValenceRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "220307a371e7bc4e3309447b09447d0fe6c4db5f"
+) in
+let ArtifactAuthRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "e41340bec587b6d049b5cc518ec7db925dde84be"
+) in
+let ValenceEvidenceSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "valence.evidence-ir.v1"
+) in
+let ValenceSidecarSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "valence.stack-provenance-sidecar.v1"
+) in
+let ValenceReceiptSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "valence.receipt-transcript.v1"
+) in
+let ValenceRoleRegistry = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "valence-core::stack_role_registry@220307a371e7bc4e3309447b09447d0fe6c4db5f"
+) in
+let ValenceSpanRegistry = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "valence-core::evidence_ir::EvidenceSpan@220307a371e7bc4e3309447b09447d0fe6c4db5f"
+) in
+let ValenceLicense = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "MPL-2.0"
+) in
+let ValenceSubjectKind = std.contract.from_predicate (fun value =>
+  std.is_string value && std.array.elem value ["candidate", "pipeline", "run", "attempt", "product", "event", "receipt"]
+) in
+let ValenceIdentityRole = std.contract.from_predicate (fun value =>
+  std.is_string value && std.array.elem value ["producer", "checker", "builder", "signer", "provider", "worker", "linker", "consumer"]
+) in
+let ValenceSpanKind = std.contract.from_predicate (fun value =>
+  std.is_string value && std.array.elem value ["source", "receipt", "event"]
+) in
 {
+  ValenceProfile = {
+    source_revision | ValenceRevision,
+    artifact_auth_revision | ArtifactAuthRevision,
+    evidence_ir_schema | ValenceEvidenceSchema,
+    sidecar_schema | ValenceSidecarSchema,
+    receipt_schema | ValenceReceiptSchema,
+    role_registry | ValenceRoleRegistry,
+    span_registry | ValenceSpanRegistry,
+    license | ValenceLicense,
+    subject_kinds | Array ValenceSubjectKind,
+    identity_roles | Array ValenceIdentityRole,
+    span_kinds | Array ValenceSpanKind,
+    required_non_claims | Array NonEmptyString,
+    bounds | {
+      max_artifact_bytes | Positive,
+      max_facts | Positive,
+      max_roles | Positive,
+      max_text_bytes | Positive,
+      max_response_bytes | Positive,
+    },
+  },
   OpenTelemetryProfile = {
     otlp_proto_version | OtlpVersion,
     otlp_proto_revision | OtlpRevision,

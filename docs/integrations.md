@@ -48,6 +48,16 @@ The adapter projects spans, bounded metrics, and redacted logs. Metric names use
 
 The optional OTLP/HTTP JSON shell uses a registered endpoint profile. Telemetry loss, duplication, delay, and backend acceptance do not change canonical state.
 
+## Valence evidence
+
+`kiln-adapter-valence` pins `valence-core` revision `220307a371e7bc4e3309447b09447d0fe6c4db5f`. It records the transitive Artifact Auth revision `e41340bec587b6d049b5cc518ec7db925dde84be`.
+
+The adapter emits `valence.evidence-ir.v1` artifacts with the `recorded_only` verification role. It preserves exact Kiln subjects, source spans, identities, roles, and non-claims.
+
+Kiln cannot promote itself into builder, checker, or signer roles. Imported evidence cannot create runs, outcomes, merge authority, or release readiness.
+
+`valence-core` uses `MPL-2.0`. Kiln consumes it as a pinned dependency and does not copy its source.
+
 ## Radicle CI broker
 
 Broker mode reads one JSON line. It returns one `triggered` line and one terminal line.

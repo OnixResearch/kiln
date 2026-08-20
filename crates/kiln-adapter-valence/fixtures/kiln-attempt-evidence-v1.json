@@ -1,0 +1,69 @@
+{
+  "schema": "valence.evidence-ir.v1",
+  "artifact_kind": "kiln-ci-observation-v1",
+  "stable_id": "kiln:attempt:fixture-attempt",
+  "canonical_hash": "b3:79b28fa0f253345fb93be859e4a14bb27ed12a3cf06db12208d2c0d5629a7f4c",
+  "source_span": {
+    "source_id": "kiln:event:fixture-attempt",
+    "source_path": "journal/events",
+    "start_byte": 0,
+    "end_byte": 8,
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 8,
+    "label": "attempt-completed"
+  },
+  "verification_role": "recorded_only",
+  "payload": {
+    "algorithms": [
+      "BLAKE3"
+    ],
+    "facts": {
+      "outcome": "success"
+    },
+    "receipt_schema": "valence.receipt-transcript.v1",
+    "role_registry": "valence-core::stack_role_registry@220307a371e7bc4e3309447b09447d0fe6c4db5f",
+    "roles": [
+      {
+        "identity": {
+          "contract_version": 1,
+          "native_id": "kiln",
+          "native_kind": "control-plane",
+          "provider_namespace": "kiln"
+        },
+        "role": "producer"
+      },
+      {
+        "identity": {
+          "contract_version": 1,
+          "native_id": "fixture-builder",
+          "native_kind": "builder",
+          "provider_namespace": "mantle"
+        },
+        "role": "builder"
+      },
+      {
+        "identity": {
+          "contract_version": 1,
+          "native_id": "fixture-provider",
+          "native_kind": "build",
+          "provider_namespace": "provider"
+        },
+        "role": "provider"
+      }
+    ],
+    "sidecar_schema": "valence.stack-provenance-sidecar.v1",
+    "span_registry": "valence-core::evidence_ir::EvidenceSpan@220307a371e7bc4e3309447b09447d0fe6c4db5f",
+    "subject": {
+      "content_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "kiln_id": "fixture-attempt",
+      "kind": "attempt"
+    }
+  },
+  "non_claims": [
+    "Kiln evidence records identity and linkage only; it does not establish CI correctness or release eligibility",
+    "does not claim behavioral correctness, semantic equivalence, or whole-program verification",
+    "provider observations remain bounded external facts and do not prove provider correctness"
+  ]
+}

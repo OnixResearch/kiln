@@ -14,6 +14,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
 | `kiln-adapter-cdevents` | Bounded CDEvents and CloudEvents interchange. |
 | `kiln-adapter-opentelemetry` | Rebuildable telemetry projection and bounded OTLP shell. |
+| `kiln-adapter-valence` | Recorded-only Valence Evidence IR projection and import. |
 | `kiln-conformance` | Shared positive and negative provider gates. |
 | `kiln-cli` | Local operator shell. |
 

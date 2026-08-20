@@ -38,7 +38,10 @@
           pname = "kiln";
           version = "0.1.0";
           src = self;
-          cargoLock.lockFile = ./Cargo.lock;
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            allowBuiltinFetchGit = true;
+          };
           cargoBuildFlags = [
             "--workspace"
             "--all-targets"
@@ -94,7 +97,10 @@
             pname = "kiln-clippy";
             version = "0.1.0";
             src = self;
-            cargoLock.lockFile = ./Cargo.lock;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              allowBuiltinFetchGit = true;
+            };
             nativeBuildInputs = [ pkgs.clippy ];
             buildPhase = ''
               runHook preBuild
@@ -110,7 +116,10 @@
             pname = "kiln-no-std";
             version = "0.1.0";
             src = self;
-            cargoLock.lockFile = ./Cargo.lock;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              allowBuiltinFetchGit = true;
+            };
             cargoBuildFlags = [
               "-p"
               "kiln-core"
@@ -129,6 +138,7 @@
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
             nickel export config/opentelemetry-profile.ncl >/dev/null
+            nickel export config/valence-profile.ncl >/dev/null
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
