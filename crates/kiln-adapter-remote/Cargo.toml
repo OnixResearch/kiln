@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 kiln-core.workspace = true
+kiln-provider-api.workspace = true
 serde.workspace = true
 
 [lints]

@@ -46,6 +46,21 @@ pub struct RemoteAction {
     pub provider: ProviderProfileId,
 }
 
+// r[impl kiln.providers.policy_effect_split]
+pub fn admit_remote_capability(
+    profile: &RemoteProfile,
+    capability: RemoteCapability,
+) -> CoreResult<()> {
+    if !profile.capabilities.contains(&capability) {
+        return Err(Diagnostic::new(
+            "remote_capability_unsupported",
+            "remote.capabilities",
+            "remote provider does not declare the selected capability",
+        ));
+    }
+    Ok(())
+}
+
 pub fn admit_action(
     profile: &RemoteProfile,
     action: &RemoteAction,
@@ -60,13 +75,7 @@ pub fn admit_action(
             "remote action provider does not match the selected profile",
         ));
     }
-    if !profile.capabilities.contains(&RemoteCapability::Execute) {
-        return Err(Diagnostic::new(
-            "remote_execute_unsupported",
-            "remote.capabilities",
-            "remote provider does not support execution",
-        ));
-    }
+    admit_remote_capability(profile, RemoteCapability::Execute)?;
     if !profile.digest_functions.contains(required_digest) {
         return Err(Diagnostic::new(
             "remote_digest_unsupported",
@@ -94,6 +103,26 @@ pub struct RemoteObservation {
     pub logs: Vec<ExternalRef>,
     pub outcome: Outcome,
     pub required_outputs_present: bool,
+}
+
+pub fn disconnected_remote_observation(
+    action: ExternalRef,
+    operation: Option<ExternalRef>,
+) -> CoreResult<RemoteObservation> {
+    action.validate()?;
+    if let Some(reference) = &operation {
+        reference.validate()?;
+    }
+    Ok(RemoteObservation {
+        action,
+        operation,
+        cache_result: None,
+        execution: None,
+        worker: None,
+        logs: Vec::new(),
+        outcome: Outcome::Unknown,
+        required_outputs_present: false,
+    })
 }
 
 pub fn admit_remote_completion(observation: &RemoteObservation) -> CoreResult<Outcome> {
@@ -138,5 +167,32 @@ mod tests {
         let cache =
             ExternalRef::new("reapi", "cache-result", "same").unwrap_or_else(|_| unreachable!());
         assert_ne!(operation, cache);
+    }
+
+    #[test]
+    fn capability_admission_is_value_based() {
+        let profile = RemoteProfile {
+            protocol_version: ExternalRef::new("reapi", "version", "v2")
+                .unwrap_or_else(|_| unreachable!()),
+            provider: ProviderProfileId::new("remote").unwrap_or_else(|_| unreachable!()),
+            digest_functions: BTreeSet::new(),
+            capabilities: BTreeSet::from([RemoteCapability::Poll]),
+            max_action_bytes: 1,
+            max_log_bytes: 1,
+        };
+        assert!(admit_remote_capability(&profile, RemoteCapability::Poll).is_ok());
+        assert!(admit_remote_capability(&profile, RemoteCapability::Wait).is_err());
+    }
+
+    #[test]
+    fn disconnect_after_acceptance_is_unknown() {
+        let observation = disconnected_remote_observation(
+            ExternalRef::new("reapi", "action", "action").unwrap_or_else(|_| unreachable!()),
+            Some(
+                ExternalRef::new("reapi", "operation", "operation")
+                    .unwrap_or_else(|_| unreachable!()),
+            ),
+        );
+        assert_eq!(observation.map(|value| value.outcome), Ok(Outcome::Unknown));
     }
 }

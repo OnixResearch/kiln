@@ -22,6 +22,12 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 
+`kiln-provider-api` owns the source-repository, collaboration-mutation, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
+
+Each port returns typed domain or infrastructure failures. Timeout, cancellation, and unknown results stay distinct until an application shell applies retry policy.
+
+The application composition root selects each concrete adapter. The core and adapters do not select fallback providers.
+
 ## Production transition
 
 Kiln uses one command decision and one event evolution path:

@@ -105,6 +105,18 @@ pub fn classify_conflict(
     CobConflict::None
 }
 
+// r[impl kiln.providers.policy_effect_split]
+pub fn admit_cob_freshness(expected: &CobObservation, observed: &CobObservation) -> CoreResult<()> {
+    if observed != expected {
+        return Err(Diagnostic::new(
+            "stale_cob_preflight",
+            "cob_effect.expected_heads",
+            "fresh COB observation differs from the planned observation",
+        ));
+    }
+    Ok(())
+}
+
 pub fn admit_resolution(
     profile: &CobProfile,
     observation: &CobObservation,
@@ -284,5 +296,9 @@ mod tests {
             .unwrap_or_else(|_| unreachable!()),
         };
         assert!(admit_resolution(&profile, &observation, &selected).is_err());
+        assert!(admit_cob_freshness(&observation, &observation).is_ok());
+        let mut stale = observation.clone();
+        stale.heads = selected;
+        assert!(admit_cob_freshness(&observation, &stale).is_err());
     }
 }

@@ -11,6 +11,14 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "aspen::",
     "mantle::",
     "lattice::",
+    "kiln-adapter-cob =",
+    "kiln_adapter_cob::",
+    "kiln-adapter-jj =",
+    "kiln_adapter_jj::",
+    "kiln-adapter-radicle =",
+    "kiln_adapter_radicle::",
+    "kiln-adapter-remote =",
+    "kiln_adapter_remote::",
     "kiln-adapter-cdevents =",
     "kiln_adapter_cdevents::",
     "kiln-adapter-opentelemetry =",
@@ -38,6 +46,16 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "use reqwest",
 ];
 
+// r[impl kiln.providers.port_ownership] r[impl kiln.providers.composition_root]
+// r[impl kiln.providers.boundary_conformance]
+pub const FORBIDDEN_ADAPTER_PORT_DECLARATIONS: &[&str] = &[
+    "pub trait BrokerService",
+    "pub trait CobMutationTransport",
+    "pub trait JujutsuRepository",
+    "pub trait RemoteLifecycleTransport",
+    "pub trait RemoteTransport",
+];
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoundaryFinding {
     pub token: &'static str,
@@ -46,7 +64,16 @@ pub struct BoundaryFinding {
 
 #[must_use]
 pub fn audit_text(path: &Path, text: &str) -> Vec<BoundaryFinding> {
-    FORBIDDEN_CORE_DEPENDENCIES
+    audit_patterns(path, text, FORBIDDEN_CORE_DEPENDENCIES)
+}
+
+#[must_use]
+pub fn audit_patterns(
+    path: &Path,
+    text: &str,
+    patterns: &'static [&'static str],
+) -> Vec<BoundaryFinding> {
+    patterns
         .iter()
         .copied()
         .filter(|token| text.contains(token))
@@ -58,19 +85,54 @@ pub fn audit_text(path: &Path, text: &str) -> Vec<BoundaryFinding> {
 }
 
 pub fn audit_core(root: &Path) -> std::io::Result<Vec<BoundaryFinding>> {
-    let core = root.join("crates/kiln-core");
+    audit_application_contracts_at(root, &["crates/kiln-core"])
+}
+
+pub fn audit_application_boundaries(root: &Path) -> std::io::Result<Vec<BoundaryFinding>> {
+    audit_application_contracts_at(root, &["crates/kiln-core", "crates/kiln-provider-api"])
+}
+
+fn audit_application_contracts_at(
+    root: &Path,
+    paths: &[&str],
+) -> std::io::Result<Vec<BoundaryFinding>> {
     let mut findings = Vec::new();
-    visit(&core, &mut |path| {
-        if path
-            .extension()
-            .and_then(|value| value.to_str())
-            .is_some_and(|extension| extension == "rs" || extension == "toml")
-        {
-            let text = fs::read_to_string(path)?;
-            findings.extend(audit_text(path, &text));
-        }
-        Ok(())
-    })?;
+    for relative in paths {
+        visit(&root.join(relative), &mut |path| {
+            if path
+                .extension()
+                .and_then(|value| value.to_str())
+                .is_some_and(|extension| extension == "rs" || extension == "toml")
+            {
+                let text = fs::read_to_string(path)?;
+                findings.extend(audit_text(path, &text));
+            }
+            Ok(())
+        })?;
+    }
+    Ok(findings)
+}
+
+pub fn audit_adapter_port_ownership(root: &Path) -> std::io::Result<Vec<BoundaryFinding>> {
+    let mut findings = Vec::new();
+    for relative in [
+        "crates/kiln-adapter-cob",
+        "crates/kiln-adapter-jj",
+        "crates/kiln-adapter-radicle",
+        "crates/kiln-adapter-remote",
+    ] {
+        visit(&root.join(relative), &mut |path| {
+            if path.extension().and_then(|value| value.to_str()) == Some("rs") {
+                let text = fs::read_to_string(path)?;
+                findings.extend(audit_patterns(
+                    path,
+                    &text,
+                    FORBIDDEN_ADAPTER_PORT_DECLARATIONS,
+                ));
+            }
+            Ok(())
+        })?;
+    }
     Ok(findings)
 }
 
@@ -298,6 +360,35 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let findings = audit_core(&root);
         assert!(findings.as_ref().is_ok_and(Vec::is_empty));
+        let application_findings = audit_application_boundaries(&root);
+        assert!(application_findings.as_ref().is_ok_and(Vec::is_empty));
+    }
+
+    // r[verify kiln.providers.port_ownership]
+    #[test]
+    fn provider_contracts_have_one_application_owner() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let findings = audit_adapter_port_ownership(&root);
+        assert!(findings.as_ref().is_ok_and(Vec::is_empty));
+    }
+
+    // r[verify kiln.providers.composition_root]
+    // r[verify kiln.providers.port_ownership.scenario.competing]
+    // r[verify kiln.providers.composition_root.scenario.hidden_selection]
+    // r[verify kiln.providers.boundary_conformance.scenario.missing_negative]
+    #[test]
+    fn provider_contract_gate_rejects_adapter_owned_ports() {
+        for declaration in FORBIDDEN_ADAPTER_PORT_DECLARATIONS {
+            let findings = audit_patterns(
+                Path::new("crates/provider/src/lib.rs"),
+                declaration,
+                FORBIDDEN_ADAPTER_PORT_DECLARATIONS,
+            );
+            assert!(
+                !findings.is_empty(),
+                "declaration was not rejected: {declaration}"
+            );
+        }
     }
 
     #[test]

@@ -33,6 +33,43 @@ pub enum Operation {
     ReadLogs,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum ProviderFailureClass {
+    Domain,
+    Infrastructure,
+    RetryableInfrastructure,
+    TimedOut,
+    Cancelled,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum ProviderFailureDisposition {
+    RejectDomain,
+    ProviderFailure,
+    RetryInfrastructure,
+    TimedOut,
+    Cancelled,
+    ReconcileUnknown,
+}
+
+// r[impl kiln.providers.error_ownership]
+#[must_use]
+pub const fn classify_provider_failure(
+    failure: ProviderFailureClass,
+) -> ProviderFailureDisposition {
+    match failure {
+        ProviderFailureClass::Domain => ProviderFailureDisposition::RejectDomain,
+        ProviderFailureClass::Infrastructure => ProviderFailureDisposition::ProviderFailure,
+        ProviderFailureClass::RetryableInfrastructure => {
+            ProviderFailureDisposition::RetryInfrastructure
+        }
+        ProviderFailureClass::TimedOut => ProviderFailureDisposition::TimedOut,
+        ProviderFailureClass::Cancelled => ProviderFailureDisposition::Cancelled,
+        ProviderFailureClass::Unknown => ProviderFailureDisposition::ReconcileUnknown,
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ProviderLimits {
     pub max_request_bytes: usize,
@@ -205,6 +242,35 @@ mod tests {
             external_reference: None,
         };
         assert!(admit_observation(&profile(), &observation).is_err());
+    }
+
+    // r[verify kiln.providers.error_ownership]
+    #[test]
+    fn failure_translation_preserves_each_class() {
+        assert_eq!(
+            classify_provider_failure(ProviderFailureClass::Domain),
+            ProviderFailureDisposition::RejectDomain
+        );
+        assert_eq!(
+            classify_provider_failure(ProviderFailureClass::Infrastructure),
+            ProviderFailureDisposition::ProviderFailure
+        );
+        assert_eq!(
+            classify_provider_failure(ProviderFailureClass::RetryableInfrastructure),
+            ProviderFailureDisposition::RetryInfrastructure
+        );
+        assert_eq!(
+            classify_provider_failure(ProviderFailureClass::TimedOut),
+            ProviderFailureDisposition::TimedOut
+        );
+        assert_eq!(
+            classify_provider_failure(ProviderFailureClass::Cancelled),
+            ProviderFailureDisposition::Cancelled
+        );
+        assert_eq!(
+            classify_provider_failure(ProviderFailureClass::Unknown),
+            ProviderFailureDisposition::ReconcileUnknown
+        );
     }
 
     #[test]

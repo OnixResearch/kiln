@@ -9,6 +9,7 @@ publish = false
 [dependencies]
 kiln-codec.workspace = true
 kiln-core.workspace = true
+kiln-provider-api.workspace = true
 serde.workspace = true
 
 [lints]

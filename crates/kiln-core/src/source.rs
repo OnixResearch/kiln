@@ -133,7 +133,8 @@ pub fn validate_resolution(resolution: &SourceResolution) -> CoreResult<()> {
     Ok(())
 }
 
-fn validate_jujutsu(facts: &JujutsuFacts, exact_revision: &ExternalRef) -> CoreResult<()> {
+// r[impl kiln.providers.policy_effect_split]
+pub fn admit_jujutsu_facts(facts: &JujutsuFacts) -> CoreResult<&ExternalRef> {
     if facts.backend != JujutsuBackend::Git {
         return Err(Diagnostic::new(
             "unsupported_backend",
@@ -169,6 +170,11 @@ fn validate_jujutsu(facts: &JujutsuFacts, exact_revision: &ExternalRef) -> CoreR
             "Jujutsu reference did not resolve",
         ));
     };
+    Ok(resolved)
+}
+
+fn validate_jujutsu(facts: &JujutsuFacts, exact_revision: &ExternalRef) -> CoreResult<()> {
+    let resolved = admit_jujutsu_facts(facts)?;
     if resolved != exact_revision {
         return Err(Diagnostic::new(
             "revision_mismatch",
