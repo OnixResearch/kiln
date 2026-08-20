@@ -11,6 +11,7 @@ members = [
   "crates/kiln-adapter-cdevents",
   "crates/kiln-adapter-opentelemetry",
   "crates/kiln-adapter-valence",
+  "crates/kiln-adapter-webhook",
   "crates/kiln-conformance",
   "crates/kiln-cli",
 ]

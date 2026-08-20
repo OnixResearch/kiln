@@ -58,6 +58,16 @@ Kiln cannot promote itself into builder, checker, or signer roles. Imported evid
 
 `valence-core` uses `MPL-2.0`. Kiln consumes it as a pinned dependency and does not copy its source.
 
+## Webhook notifications
+
+`kiln-adapter-webhook` delivers notification intents only through registered HTTPS endpoint profiles. Requests cannot supply destination URLs.
+
+The adapter checks DNS results against address-class policy before it loads secrets. Redirects and private, loopback, link-local, multicast, and unspecified addresses are denied by default.
+
+Bodies bind the run, outcome, policy, endpoint, BLAKE3 identity, and idempotency key. Timeouts after possible acceptance remain `Unknown` unless an idempotent reconciliation contract permits retry.
+
+`bounded-http` revision `db13eb8a0341719e54817ae34451cf310a41033f` was evaluated but not imported. Its minimum Rust version is `1.96.0`; Kiln is pinned to `1.88`.
+
 ## Radicle CI broker
 
 Broker mode reads one JSON line. It returns one `triggered` line and one terminal line.

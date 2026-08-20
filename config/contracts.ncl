@@ -91,7 +91,52 @@ let ValenceIdentityRole = std.contract.from_predicate (fun value =>
 let ValenceSpanKind = std.contract.from_predicate (fun value =>
   std.is_string value && std.array.elem value ["source", "receipt", "event"]
 ) in
+let HttpsScheme = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "https"
+) in
+let PostMethod = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "POST"
+) in
+let JsonContentType = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "application/json"
+) in
+let WebhookAuthKind = std.contract.from_predicate (fun value =>
+  std.is_string value && std.array.elem value ["none", "bearer", "blake3_signature"]
+) in
+let EmptyString = std.contract.from_predicate (fun value =>
+  std.is_string value && std.string.length value == 0
+) in
 {
+  WebhookProfile = {
+    id | NonEmptyString,
+    endpoint | {
+      scheme | HttpsScheme,
+      host | NonEmptyString,
+      port | Positive,
+      path | NonEmptyString,
+      method | PostMethod,
+      content_type | JsonContentType,
+      dynamic_destination | LocalCapacityOnly,
+      allow_redirects | LocalCapacityOnly,
+      allow_private_ranges | LocalCapacityOnly,
+    },
+    auth | {
+      kind | WebhookAuthKind,
+      secret_reference | NonEmptyString,
+      inline_secret | EmptyString,
+      signature_algorithm | NonEmptyString,
+    },
+    idempotent_receiver | Bool,
+    reconciliation_supported | Bool,
+    bounds | {
+      max_request_bytes | Positive,
+      max_response_bytes | Positive,
+      max_resolver_candidates | Positive,
+      deadline_ticks | Positive,
+      retry_limit | Positive,
+    },
+    non_claims | Array NonEmptyString,
+  },
   ValenceProfile = {
     source_revision | ValenceRevision,
     artifact_auth_revision | ArtifactAuthRevision,

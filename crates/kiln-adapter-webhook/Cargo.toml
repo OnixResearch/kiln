@@ -1,0 +1,17 @@
+[package]
+name = "kiln-adapter-webhook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+blake3.workspace = true
+kiln-codec.workspace = true
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
