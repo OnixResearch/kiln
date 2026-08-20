@@ -146,6 +146,7 @@
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
             nickel export config/git-source-profile.ncl >/dev/null
+            nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
             nickel export config/opentelemetry-profile.ncl >/dev/null
@@ -154,7 +155,9 @@
             nickel export config/sqlite-profile.ncl >/dev/null
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
+            nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
+            nickel export fixtures/lattice/workflow-contract/66fe7b9b43567490caacc797ebda307e734c4419/source.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
             nickel export evidence/publication-receipt.ncl >/dev/null
             nickel export evidence/release-input.ncl >/dev/null

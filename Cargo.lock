@@ -386,6 +386,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-lattice"
+version = "0.1.0"
+dependencies = [
+ "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "lattice-workflow-contract",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kiln-adapter-opentelemetry"
 version = "0.1.0"
 dependencies = [
@@ -509,6 +521,15 @@ dependencies = [
  "kiln-provider-api",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "lattice-workflow-contract"
+version = "0.1.0"
+source = "git+ssh://git@github.com/OnixResearch/lattice.git?rev=66fe7b9b43567490caacc797ebda307e734c4419#66fe7b9b43567490caacc797ebda307e734c4419"
+dependencies = [
+ "blake3",
+ "serde",
 ]
 
 [[package]]

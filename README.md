@@ -9,6 +9,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - deterministic CI commands, events, effects, and replay;
 - versioned provider capability admission;
 - bounded read-only source snapshots from local Git repositories;
+- versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
 - Radicle broker compatibility;
@@ -128,3 +129,4 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Buildbot](https://buildbot.net/) — change-source, scheduler, build-request, worker, and reporter separation.
 - [Pueue](https://github.com/Nukesor/pueue) — operator status, logs, waiting, dependency visibility, local capacity groups, scoped controls, and crash-recovery test patterns. Kiln does not use its scheduler, protocol, runtime, types, or provider model.
 - [Jujutsu](https://github.com/jj-vcs/jj) — source-provider semantics for bookmarks, stable change IDs, exact commit IDs, divergent changes, operation observations, and Git-backed interoperability. Kiln does not treat Jujutsu as a forge or collaboration provider.
+- [Lattice](https://github.com/OnixResearch/lattice) — producer-owned workflow request and observation contract at revision `66fe7b9b43567490caacc797ebda307e734c4419`. Kiln retains CI state and outcome authority.

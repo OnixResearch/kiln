@@ -11,6 +11,8 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "aspen::",
     "mantle::",
     "lattice::",
+    "lattice-workflow-contract =",
+    "lattice_workflow_contract::",
     "kiln-adapter-cob =",
     "kiln_adapter_cob::",
     "kiln-adapter-jj =",
@@ -123,6 +125,7 @@ pub fn audit_adapter_port_ownership(root: &Path) -> std::io::Result<Vec<Boundary
         "crates/kiln-adapter-cob",
         "crates/kiln-adapter-jj",
         "crates/kiln-adapter-radicle",
+        "crates/kiln-adapter-lattice",
         "crates/kiln-adapter-remote",
     ] {
         visit(&root.join(relative), &mut |path| {
@@ -152,6 +155,7 @@ pub fn audit_reference_boundary(root: &Path) -> std::io::Result<Vec<BoundaryFind
         "crates/kiln-standalone",
         "crates/kiln-adapter-jj",
         "crates/kiln-adapter-git",
+        "crates/kiln-adapter-lattice",
         "crates/kiln-adapter-remote",
         "crates/kiln-adapter-radicle",
         "crates/kiln-adapter-cob",

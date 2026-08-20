@@ -25,6 +25,7 @@ pub enum Operation {
     Acquire,
     Mutate,
     Dispatch,
+    Observe,
     PublishStatus,
     Cancel,
     Pause,

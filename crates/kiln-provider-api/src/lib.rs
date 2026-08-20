@@ -7,6 +7,10 @@ use kiln_core::provider::{
 };
 use kiln_core::remote::{RemoteAction, RemoteObservation};
 use kiln_core::types::{Alias, ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, RunId};
+use kiln_core::workflow::{
+    WorkflowControlRequest, WorkflowEffectPlan, WorkflowLogChunk, WorkflowLogReadRequest,
+    WorkflowObservation,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -26,7 +30,48 @@ pub trait SourcePort: ProviderPort {}
 pub trait CollaborationPort: ProviderPort {}
 pub trait TriggerPort: ProviderPort {}
 pub trait StatusPort: ProviderPort {}
-pub trait WorkflowPort: ProviderPort {}
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum WorkflowExchangeOperation {
+    Dispatch,
+    Observe,
+    Cancel,
+    Pause,
+    Resume,
+    ReadLog,
+    Reconcile,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WorkflowExchangeRequest {
+    pub operation: WorkflowExchangeOperation,
+    pub body_identity: ContentId,
+    pub body: Vec<u8>,
+    pub max_response_bytes: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WorkflowExchangeResponse {
+    pub body: Vec<u8>,
+    pub log_bytes: Vec<u8>,
+    pub disconnected_after_acceptance: bool,
+}
+
+pub trait WorkflowExchangePort {
+    fn exchange(
+        &mut self,
+        request: WorkflowExchangeRequest,
+    ) -> PortResult<WorkflowExchangeResponse>;
+}
+
+pub trait WorkflowPort {
+    fn profile(&self) -> &CapabilityProfile;
+    fn dispatch(&mut self, plan: &WorkflowEffectPlan) -> PortResult<WorkflowObservation>;
+    fn observe(&mut self, effect_id: &EffectId) -> PortResult<WorkflowObservation>;
+    fn control(&mut self, request: &WorkflowControlRequest) -> PortResult<WorkflowObservation>;
+    fn read_log(&mut self, request: &WorkflowLogReadRequest) -> PortResult<WorkflowLogChunk>;
+    fn reconcile(&mut self, effect_id: &EffectId) -> PortResult<WorkflowObservation>;
+}
+
 pub trait BuildPort: ProviderPort {}
 
 // r[impl kiln.providers.port_ownership]

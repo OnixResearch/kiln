@@ -12,6 +12,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-standalone` | Reference journal, outbox, log store, and recovery shell. |
 | `kiln-adapter-jj` | Jujutsu source-provider compatibility. |
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
+| `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Radicle broker protocol compatibility. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
@@ -25,7 +26,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 
-`kiln-provider-api` owns the source-repository, collaboration-mutation, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
+`kiln-provider-api` owns the source-repository, collaboration-mutation, workflow-execution, workflow-exchange, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
 
 Each port returns typed domain or infrastructure failures. Timeout, cancellation, and unknown results stay distinct until an application shell applies retry policy.
 
