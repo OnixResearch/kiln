@@ -8,6 +8,7 @@ members = [
   "crates/kiln-adapter-cob",
   "crates/kiln-adapter-jj",
   "crates/kiln-adapter-remote",
+  "crates/kiln-adapter-cdevents",
   "crates/kiln-conformance",
   "crates/kiln-cli",
 ]

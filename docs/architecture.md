@@ -12,6 +12,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-standalone` | Reference journal, outbox, log store, and recovery shell. |
 | `kiln-adapter-radicle` | Radicle broker protocol compatibility. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
+| `kiln-adapter-cdevents` | Bounded CDEvents and CloudEvents interchange. |
 | `kiln-conformance` | Shared positive and negative provider gates. |
 | `kiln-cli` | Local operator shell. |
 

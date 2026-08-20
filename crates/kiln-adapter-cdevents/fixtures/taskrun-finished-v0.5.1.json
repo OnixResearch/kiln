@@ -1,0 +1,30 @@
+{
+  "specversion": "1.0",
+  "id": "fixture-event",
+  "source": "/kiln/fixture",
+  "type": "dev.cdevents.taskrun.finished.0.3.0",
+  "subject": "fixture-attempt",
+  "time": "2026-08-19T00:00:00Z",
+  "datacontenttype": "application/json",
+  "data": {
+    "context": {
+      "specversion": "0.5.1",
+      "id": "fixture-event",
+      "source": "/kiln/fixture",
+      "type": "dev.cdevents.taskrun.finished.0.3.0",
+      "timestamp": "2026-08-19T00:00:00Z"
+    },
+    "subject": {
+      "id": "fixture-attempt",
+      "source": "/kiln/fixture",
+      "content": {
+        "taskName": "build",
+        "pipelineRun": {
+          "id": "fixture-run",
+          "source": "/kiln/fixture"
+        },
+        "outcome": "success"
+      }
+    }
+  }
+}

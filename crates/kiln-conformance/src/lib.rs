@@ -7,10 +7,12 @@ use kiln_core::provider::{Operation, OperationRequest, admit_observation, admit_
 use kiln_core::types::{CONTRACT_VERSION_V1, CoreResult, Diagnostic};
 use kiln_provider_api::{ProviderPort, ProviderRequest};
 
-pub const FORBIDDEN_CORE_DEPENDENCIES: [&str; 14] = [
+pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "aspen::",
     "mantle::",
     "lattice::",
+    "kiln-adapter-cdevents =",
+    "kiln_adapter_cdevents::",
     "radicle-cob =",
     "radicle_cob::",
     "pueue-lib =",
@@ -74,6 +76,7 @@ pub fn audit_reference_boundary(root: &Path) -> std::io::Result<Vec<BoundaryFind
         "crates/kiln-adapter-remote",
         "crates/kiln-adapter-radicle",
         "crates/kiln-adapter-cob",
+        "crates/kiln-adapter-cdevents",
         "crates/kiln-cli",
     ] {
         let selected = root.join(relative);

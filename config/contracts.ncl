@@ -19,7 +19,37 @@ let MirrorAuthority = std.contract.from_predicate (fun value =>
 let LocalCapacityOnly = std.contract.from_predicate (fun value =>
   std.is_bool value && value == false
 ) in
+let CDEventsVersion = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "0.5.1"
+) in
+let CDEventsRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "df02ce0b6563a13bf35cc109993b03b18da8a14a"
+) in
+let CloudEventsSpec = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "1.0.2"
+) in
+let CloudEventsContext = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "1.0"
+) in
+let ApacheLicense = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "Apache-2.0"
+) in
 {
+  CDEventsProfile = {
+    cdevents_spec_version | CDEventsVersion,
+    cdevents_source_revision | CDEventsRevision,
+    cloudevents_spec_version | CloudEventsSpec,
+    cloudevents_context_version | CloudEventsContext,
+    license | ApacheLicense,
+    supported_event_types | Array NonEmptyString,
+    allow_lossy_mapping | LocalCapacityOnly,
+    bounds | {
+      max_envelope_bytes | Positive,
+      max_text_bytes | Positive,
+      max_fields | Positive,
+    },
+    non_claims | Array NonEmptyString,
+  },
   Config = {
     version | VersionOne,
     domain | {

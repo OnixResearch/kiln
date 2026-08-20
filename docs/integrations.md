@@ -36,7 +36,11 @@ The core imports no generated Remote Execution API types. The standalone profile
 
 SLSA and in-toto projections bind the exact producing attempt. Builder, signer, provider, worker, and Kiln identities stay separate.
 
-CDEvents import pins the event and envelope versions. Unknown event types do not create Kiln commands.
+`kiln-adapter-cdevents` pins CDEvents `0.5.1` at revision `df02ce0b6563a13bf35cc109993b03b18da8a14a`. It pins CloudEvents `1.0.2` with context version `1.0`.
+
+The initial registry supports task-run started and finished events. The pure codec preserves envelope, subject, correlation, and causation facts.
+
+Unknown types, missing links, duplicate identities, context disagreements, and lossy profiles fail before a canonical action. The adapter performs no transport effects.
 
 OpenTelemetry output is rebuildable from retained events. Telemetry loss does not change canonical state.
 
