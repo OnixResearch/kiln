@@ -1,6 +1,6 @@
 # Cairn policy provenance
 
-`contracts.ncl` and `upstream-default.ncl` are exact snapshots from Cairn revision `695124d459574ba7aeba6097310d237f393c243c`.
+`contracts.ncl` and `upstream-default.ncl` are exact snapshots from Cairn revision `b6759012db4dab0158936e995b7bad39ac10465b`.
 
 `default.ncl` overlays Kiln traceability roots and keeps the upstream lifecycle, workflow, receipt, and validation policy.
 
