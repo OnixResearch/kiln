@@ -1,7 +1,9 @@
 {
   "depends_on": [
-    "establish-neutral-ci-control-plane"
+    "establish-neutral-ci-control-plane",
+    "add-lattice-workflow-adapter"
   ],
+  "status": "blocked",
   "workflow_profile": {
     "id": "spec-driven",
     "source": "change_create",
