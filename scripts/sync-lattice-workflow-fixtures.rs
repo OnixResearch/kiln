@@ -9,14 +9,21 @@ const EXPECTED_CHECK_ARGUMENT_COUNT: usize = 3;
 const SOURCE_ARGUMENT_INDEX: usize = 1;
 const MODE_ARGUMENT_INDEX: usize = 2;
 const CHECK_MODE: &str = "--check";
-const EXPECTED_REVISION: &str = "66fe7b9b43567490caacc797ebda307e734c4419";
+const EXPECTED_REVISION: &str = "e3148ec59fa12081c270d9800a060d94214b9405";
 const SOURCE_URL: &str = "ssh://git@github.com/OnixResearch/lattice.git";
 const SOURCE_FIXTURE: &str = "crates/lattice-workflow-contract/fixtures/producer-fixtures-v1.json";
+const SOURCE_TRANSPORT_FIXTURE: &str =
+    "crates/lattice-workflow-contract/transport/fixtures/producer-fixtures-v1.json";
+const SOURCE_RECOVERY_FIXTURE: &str =
+    "crates/lattice-workflow-contract/transport/fixtures/recovery-fixtures-v1.json";
 const SOURCE_LICENSE: &str = "crates/lattice-workflow-contract/LICENSE";
 const SOURCE_MANIFEST: &str = "crates/lattice-workflow-contract/Cargo.toml";
+const SOURCE_TRANSPORT_MANIFEST: &str = "crates/lattice-workflow-contract/transport/Cargo.toml";
 const DESTINATION_DIRECTORY: &str =
-    "fixtures/lattice/workflow-contract/66fe7b9b43567490caacc797ebda307e734c4419";
+    "fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405";
 const DESTINATION_FIXTURE: &str = "producer-fixtures-v1.json";
+const DESTINATION_TRANSPORT_FIXTURE: &str = "transport-producer-fixtures-v1.json";
+const DESTINATION_RECOVERY_FIXTURE: &str = "recovery-fixtures-v1.json";
 const DESTINATION_METADATA: &str = "source.ncl";
 const MAXIMUM_FIXTURE_BYTES: u64 = 1_048_576;
 const GIT_PROGRAM: &str = "git";
@@ -50,20 +57,29 @@ fn run(arguments: &[String]) -> Result<String, String> {
     let source_root = Path::new(&arguments[SOURCE_ARGUMENT_INDEX]);
     verify_revision(source_root)?;
     verify_source_contract(source_root)?;
-    let source_fixture = source_root.join(SOURCE_FIXTURE);
-    let fixture = read_bounded(&source_fixture)?;
+    let fixture = read_bounded(&source_root.join(SOURCE_FIXTURE))?;
+    let transport_fixture = read_bounded(&source_root.join(SOURCE_TRANSPORT_FIXTURE))?;
+    let recovery_fixture = read_bounded(&source_root.join(SOURCE_RECOVERY_FIXTURE))?;
     let metadata = metadata();
     let destination_root = PathBuf::from(DESTINATION_DIRECTORY);
     let destination_fixture = destination_root.join(DESTINATION_FIXTURE);
+    let destination_transport_fixture = destination_root.join(DESTINATION_TRANSPORT_FIXTURE);
+    let destination_recovery_fixture = destination_root.join(DESTINATION_RECOVERY_FIXTURE);
     let destination_metadata = destination_root.join(DESTINATION_METADATA);
     if check_only {
         compare(&destination_fixture, &fixture)?;
+        compare(&destination_transport_fixture, &transport_fixture)?;
+        compare(&destination_recovery_fixture, &recovery_fixture)?;
         compare(&destination_metadata, metadata.as_bytes())?;
         return Ok("Lattice workflow fixtures match the pinned producer revision".to_string());
     }
     fs::create_dir_all(&destination_root)
         .map_err(|error| format!("create destination: {error}"))?;
     fs::write(&destination_fixture, fixture).map_err(|error| format!("write fixture: {error}"))?;
+    fs::write(&destination_transport_fixture, transport_fixture)
+        .map_err(|error| format!("write transport fixture: {error}"))?;
+    fs::write(&destination_recovery_fixture, recovery_fixture)
+        .map_err(|error| format!("write recovery fixture: {error}"))?;
     fs::write(&destination_metadata, metadata)
         .map_err(|error| format!("write metadata: {error}"))?;
     Ok("synchronized Lattice workflow fixtures".to_string())
@@ -95,9 +111,13 @@ fn verify_source_contract(source_root: &Path) -> Result<(), String> {
         .map_err(|error| format!("read source license: {error}"))?;
     let manifest = fs::read_to_string(source_root.join(SOURCE_MANIFEST))
         .map_err(|error| format!("read source manifest: {error}"))?;
+    let transport_manifest = fs::read_to_string(source_root.join(SOURCE_TRANSPORT_MANIFEST))
+        .map_err(|error| format!("read transport manifest: {error}"))?;
     if !license.starts_with("MIT License")
         || !manifest.contains("name = \"lattice-workflow-contract\"")
         || !manifest.contains("license = \"MIT\"")
+        || !transport_manifest.contains("name = \"lattice-workflow-transport\"")
+        || !transport_manifest.contains("license = \"MIT\"")
     {
         return Err("source contract identity or license is not the reviewed cohort".to_string());
     }
@@ -144,6 +164,7 @@ fn metadata() -> String {
   non_claims = [
     "fixture identity does not prove workflow execution",
     "producer fixtures do not grant Lattice availability or authority",
+    "transport recovery fixtures do not prove durable lookup or non-execution",
   ],
 }} | Source)
 "#

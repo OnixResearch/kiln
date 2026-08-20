@@ -5,8 +5,8 @@
 ## Pinned contract
 
 - Repository: `ssh://git@github.com/OnixResearch/lattice.git`
-- Revision: `66fe7b9b43567490caacc797ebda307e734c4419`
-- Crate: `lattice-workflow-contract`
+- Revision: `e3148ec59fa12081c270d9800a060d94214b9405`
+- Crates: `lattice-workflow-contract` and `lattice-workflow-transport`
 - License: `MIT`
 - Request: `lattice.workflow-request.v1`
 - Observation: `lattice.workflow-observation.v1`
@@ -14,7 +14,7 @@
 
 Cargo uses this exact Git revision. It does not use an ambient sibling checkout.
 
-The producer fixture is under `fixtures/lattice/workflow-contract/66fe7b9b43567490caacc797ebda307e734c4419/`.
+The producer fixtures are under `fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405/`.
 
 Refresh and check it with:
 
@@ -25,11 +25,11 @@ scripts/sync-lattice-workflow-fixtures.rs ../lattice --check
 
 ## Setup
 
-Review `config/lattice-workflow-profile.ncl`. Select an application-owned `WorkflowExchangePort` at the composition root.
+Review `config/lattice-workflow-profile.ncl`. The composition root can construct `UnixWorkflowExchange` with the explicit socket path, peer IDs, deadlines, frame limits, and record bound.
 
 The profile fixes platform, graph schema, node kinds, effect classes, adapter kinds, controls, byte limits, concurrency, and non-claims.
 
-The adapter receives no ambient endpoint, credential, clock, filesystem, or process authority.
+The adapter receives no ambient endpoint, credential, clock, filesystem, or process authority. It never starts a Lattice process.
 
 ## Dispatch flow
 
@@ -52,7 +52,9 @@ Equal admitted plans produce equal Lattice requests. A changed graph, profile, c
 
 `Accepted`, `Queued`, `Running`, and `Paused` map to pending Kiln state. They cannot report terminal success.
 
-A transport disconnect after acceptance preserves the exact native execution identity and returns `Unknown`.
+If a dispatch write completes without a valid response, the adapter sends `RecoverDispatch` with the original admitted request. It does not dispatch again.
+
+A recovered exact acceptance enters normal observation. Not-found or another disconnect remains `Unknown` without retry authority.
 
 Reconciliation uses the stored request and accepted execution. A stale execution, earlier sequence, or conflicting duplicate sequence fails without replacing active state.
 

@@ -76,6 +76,20 @@ impl WorkflowExchangePort for FixtureTransport {
                     disconnected_after_acceptance: self.disconnect_dispatch,
                 })
             }
+            WorkflowExchangeOperation::RecoverDispatch => {
+                let workflow_request: WorkflowRequest =
+                    serde_json::from_slice(&request.body).unwrap_or_else(|_| unreachable!());
+                let accepted = accepted(&workflow_request);
+                self.requests.insert(
+                    workflow_request.identity.as_str().to_string(),
+                    (workflow_request, accepted.clone()),
+                );
+                Ok(WorkflowExchangeResponse {
+                    body: serde_json::to_vec(&accepted).unwrap_or_else(|_| unreachable!()),
+                    log_bytes: Vec::new(),
+                    disconnected_after_acceptance: false,
+                })
+            }
             WorkflowExchangeOperation::Observe
             | WorkflowExchangeOperation::Reconcile
             | WorkflowExchangeOperation::Cancel
@@ -115,7 +129,8 @@ impl WorkflowExchangePort for FixtureTransport {
                     WorkflowExchangeOperation::Observe
                     | WorkflowExchangeOperation::Reconcile
                     | WorkflowExchangeOperation::ReadLog => ExecutionState::Completed,
-                    WorkflowExchangeOperation::Dispatch => unreachable!(),
+                    WorkflowExchangeOperation::Dispatch
+                    | WorkflowExchangeOperation::RecoverDispatch => unreachable!(),
                 };
                 let include_log = request.operation == WorkflowExchangeOperation::ReadLog;
                 self.sequence = self.sequence.saturating_add(1);
@@ -495,7 +510,7 @@ struct RejectedProducerFixtures {
 #[test]
 fn pinned_producer_fixtures_pass_independent_consumer_admission() {
     let fixtures: ProducerFixtures = serde_json::from_str(include_str!(
-        "../../../fixtures/lattice/workflow-contract/66fe7b9b43567490caacc797ebda307e734c4419/producer-fixtures-v1.json"
+        "../../../fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405/producer-fixtures-v1.json"
     ))
     .unwrap_or_else(|_| unreachable!());
     assert_eq!(
@@ -552,3 +567,6 @@ fn unavailable_provider_fails_without_fallback() {
     assert!(adapter.dispatch(&plan()).is_err());
     assert_eq!(adapter.transport().exchanges.len(), 0);
 }
+
+#[cfg(target_os = "linux")]
+mod unix;

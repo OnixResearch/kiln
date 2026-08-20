@@ -205,7 +205,13 @@ impl<T: WorkflowExchangePort> WorkflowPort for LatticeAdapter<T> {
                 message: "Lattice adapter reached its in-flight execution bound".to_string(),
             }));
         }
-        let response = self.exchange(WorkflowExchangeOperation::Dispatch, &request)?;
+        let response = match self.exchange(WorkflowExchangeOperation::Dispatch, &request) {
+            Ok(response) => response,
+            Err(PortFailure::Unknown(_failure)) => {
+                self.exchange(WorkflowExchangeOperation::RecoverDispatch, &request)?
+            }
+            Err(failure) => return Err(failure),
+        };
         let accepted: WorkflowAccepted = self.decode(&response.body)?;
         let observation = accepted_observation(
             plan,

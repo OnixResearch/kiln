@@ -1,0 +1,130 @@
+{
+  "schema": "lattice.workflow-transport-recovery-fixtures.v1",
+  "request": {
+    "schema": "lattice.workflow-exchange-request.v1",
+    "identity": "b3:a69f82b98a67aa52e7537aeb4064c6e91e36070fe1cdd4089f1e50b67892d43a",
+    "command": {
+      "operation": "recover_dispatch",
+      "payload": {
+        "profile": {
+          "schema": "lattice.workflow-profile.v1",
+          "graph_schema": "lattice.workflow-graph.v1",
+          "platforms": [
+            "linux-x86_64"
+          ],
+          "node_kinds": [
+            "build",
+            "test"
+          ],
+          "effect_classes": [
+            "build",
+            "test"
+          ],
+          "adapter_kinds": [
+            "local",
+            "remote"
+          ],
+          "controls": {
+            "cancel": true,
+            "pause": true,
+            "resume": true
+          },
+          "limits": {
+            "maximum_nodes": 8,
+            "maximum_edges": 16,
+            "maximum_log_references": 8,
+            "maximum_log_read_bytes": 4096,
+            "maximum_total_log_bytes": 16384
+          },
+          "non_claims": [
+            "workflow admission does not prove workflow correctness",
+            "workflow admission does not prove host confinement",
+            "workflow observation does not prove an external effect succeeded",
+            "workflow observation does not prove credential freshness",
+            "workflow observation does not establish release readiness"
+          ]
+        },
+        "request": {
+          "schema": "lattice.workflow-request.v1",
+          "identity": "b3:70ddc3c6bee7a7b9c5ea4901a50cb856cddf978bea59b438923fbc456e4cd1af",
+          "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+          "profile_identity": "b3:76cd726a32c4c4ca1b327c9efe8e637028f9b3f0b118b38fa84bffab50a5504e",
+          "platform": "linux-x86_64",
+          "kiln": {
+            "effect_identity": "b3:4444444444444444444444444444444444444444444444444444444444444444",
+            "attempt_identity": "b3:5555555555555555555555555555555555555555555555555555555555555555",
+            "candidate_identity": "b3:6666666666666666666666666666666666666666666666666666666666666666",
+            "pipeline_revision_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+            "workflow_policy_identity": "b3:8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          "graph": {
+            "schema": "lattice.workflow-graph.v1",
+            "identity": "b3:22d2b6abb236a8d6efc2efa88d9990433a470993da536d363d990714324f5213",
+            "nodes": [
+              {
+                "id": "build",
+                "kind": "build",
+                "effect_class": "build",
+                "adapter_kind": "local",
+                "operation_identity": "b3:1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              {
+                "id": "test",
+                "kind": "test",
+                "effect_class": "test",
+                "adapter_kind": "remote",
+                "operation_identity": "b3:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "edges": [
+              {
+                "source": "build",
+                "target": "test"
+              }
+            ]
+          },
+          "controls": {
+            "cancel": true,
+            "pause": true,
+            "resume": true
+          },
+          "observation": {
+            "maximum_log_references": 8,
+            "maximum_log_read_bytes": 4096,
+            "maximum_total_log_bytes": 16384
+          }
+        }
+      }
+    }
+  },
+  "accepted_response": {
+    "schema": "lattice.workflow-exchange-response.v1",
+    "identity": "b3:5103608bec01c60a0ff5ed2af51fe16ba82f84e6f7111b1fd79a9f36ad0b1473",
+    "request_identity": "b3:a69f82b98a67aa52e7537aeb4064c6e91e36070fe1cdd4089f1e50b67892d43a",
+    "result": {
+      "disposition": "success",
+      "payload": {
+        "kind": "accepted",
+        "payload": {
+          "schema": "lattice.workflow-accepted.v1",
+          "request_identity": "b3:70ddc3c6bee7a7b9c5ea4901a50cb856cddf978bea59b438923fbc456e4cd1af",
+          "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+          "workflow_identity": "b3:9999999999999999999999999999999999999999999999999999999999999999",
+          "execution_identity": "b3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    }
+  },
+  "not_found_response": {
+    "schema": "lattice.workflow-exchange-response.v1",
+    "identity": "b3:d891533a44ca0cd7aa3c9fb1a0712a92287831423d1a716477bb73ea719b3b3a",
+    "request_identity": "b3:a69f82b98a67aa52e7537aeb4064c6e91e36070fe1cdd4089f1e50b67892d43a",
+    "result": {
+      "disposition": "rejected",
+      "payload": {
+        "code": "not_found",
+        "field": "exchange.handler"
+      }
+    }
+  }
+}

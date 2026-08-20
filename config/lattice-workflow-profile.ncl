@@ -5,11 +5,16 @@ let NonEmpty = std.contract.from_predicate (fun value =>
 let Positive = std.contract.from_predicate (fun value =>
   std.is_number value && value > 0
 ) in
+let NonEmptyPositiveArray = std.contract.from_predicate (fun value =>
+  std.is_array value
+  && std.array.length value > 0
+  && std.array.all (fun item => std.is_number item && item >= 0) value
+) in
 let ExactSource = std.contract.from_predicate (fun value =>
   value == "ssh://git@github.com/OnixResearch/lattice.git"
 ) in
 let ExactRevision = std.contract.from_predicate (fun value =>
-  value == "66fe7b9b43567490caacc797ebda307e734c4419"
+  value == "e3148ec59fa12081c270d9800a060d94214b9405"
 ) in
 let ExactLicense = std.contract.from_predicate (fun value => value == "MIT") in
 let RequestSchema = std.contract.from_predicate (fun value =>
@@ -42,6 +47,15 @@ let Profile = {
   adapter_kinds | RequiredAdapters,
   controls | RequiredControls,
   observation_mode | NonEmpty,
+  socket_path | NonEmpty,
+  allowed_user_ids | NonEmptyPositiveArray,
+  transport_limits | {
+    maximum_frame_bytes | Positive,
+    maximum_log_bytes | Positive,
+    maximum_connections | Positive,
+    read_deadline_milliseconds | Positive,
+    write_deadline_milliseconds | Positive,
+  },
   limits | {
     max_nodes | Positive,
     max_edges | Positive,
@@ -64,10 +78,15 @@ let MaxRequestBytes = 1048576 in
 let MaxResponseBytes = 16777216 in
 let MaxInFlight = 64 in
 let TimeoutMilliseconds = 30000 in
+let TransportFrameBytes = 33554432 in
+let TransportLogBytes = 16777216 in
+let TransportConnections = 64 in
+let TransportUserId = 1000 in
 {
+
   profile | Profile = {
     source = "ssh://git@github.com/OnixResearch/lattice.git",
-    revision = "66fe7b9b43567490caacc797ebda307e734c4419",
+    revision = "e3148ec59fa12081c270d9800a060d94214b9405",
     license = "MIT",
     request_schema = "lattice.workflow-request.v1",
     observation_schema = "lattice.workflow-observation.v1",
@@ -79,6 +98,15 @@ let TimeoutMilliseconds = 30000 in
     adapter_kinds = ["local", "remote"],
     controls = { cancel = true, pause = true, resume = true },
     observation_mode = "poll",
+    socket_path = "/run/kiln/lattice.sock",
+    allowed_user_ids = [TransportUserId],
+    transport_limits = {
+      maximum_frame_bytes = TransportFrameBytes,
+      maximum_log_bytes = TransportLogBytes,
+      maximum_connections = TransportConnections,
+      read_deadline_milliseconds = TimeoutMilliseconds,
+      write_deadline_milliseconds = TimeoutMilliseconds,
+    },
     limits = {
       max_nodes = MaxNodes,
       max_edges = MaxEdges,

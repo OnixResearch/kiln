@@ -33,6 +33,7 @@ pub trait StatusPort: ProviderPort {}
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum WorkflowExchangeOperation {
     Dispatch,
+    RecoverDispatch,
     Observe,
     Cancel,
     Pause,

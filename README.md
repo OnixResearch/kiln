@@ -129,4 +129,4 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Buildbot](https://buildbot.net/) — change-source, scheduler, build-request, worker, and reporter separation.
 - [Pueue](https://github.com/Nukesor/pueue) — operator status, logs, waiting, dependency visibility, local capacity groups, scoped controls, and crash-recovery test patterns. Kiln does not use its scheduler, protocol, runtime, types, or provider model.
 - [Jujutsu](https://github.com/jj-vcs/jj) — source-provider semantics for bookmarks, stable change IDs, exact commit IDs, divergent changes, operation observations, and Git-backed interoperability. Kiln does not treat Jujutsu as a forge or collaboration provider.
-- [Lattice](https://github.com/OnixResearch/lattice) — producer-owned workflow request and observation contract at revision `66fe7b9b43567490caacc797ebda307e734c4419`. Kiln retains CI state and outcome authority.
+- [Lattice](https://github.com/OnixResearch/lattice) — producer-owned workflow contract and bounded Unix transport at revision `e3148ec59fa12081c270d9800a060d94214b9405`. Kiln retains CI state and outcome authority.

@@ -1,0 +1,261 @@
+{
+  "schema": "lattice.workflow-transport-producer-fixtures.v1",
+  "profile": {
+    "schema": "lattice.workflow-transport-profile.v1",
+    "limits": {
+      "maximum_frame_bytes": 1048576,
+      "maximum_log_bytes": 65536,
+      "maximum_connections": 8,
+      "read_deadline_milliseconds": 30000,
+      "write_deadline_milliseconds": 30000
+    },
+    "peers": {
+      "allowed_user_ids": [
+        1000
+      ]
+    },
+    "non_claims": [
+      "transport admission does not prove workflow correctness",
+      "transport peer identity does not prove peer intent",
+      "transport acceptance does not prove an operation executed",
+      "transport response does not prove an external effect succeeded",
+      "transport checks do not establish production deployment"
+    ]
+  },
+  "request": {
+    "schema": "lattice.workflow-exchange-request.v1",
+    "identity": "b3:e862c1e267240e066f4dddc490980e694ea77f50d85882609b8ba5e374b43209",
+    "command": {
+      "operation": "dispatch",
+      "payload": {
+        "profile": {
+          "schema": "lattice.workflow-profile.v1",
+          "graph_schema": "lattice.workflow-graph.v1",
+          "platforms": [
+            "linux-x86_64"
+          ],
+          "node_kinds": [
+            "build",
+            "test"
+          ],
+          "effect_classes": [
+            "build",
+            "test"
+          ],
+          "adapter_kinds": [
+            "local",
+            "remote"
+          ],
+          "controls": {
+            "cancel": true,
+            "pause": true,
+            "resume": true
+          },
+          "limits": {
+            "maximum_nodes": 8,
+            "maximum_edges": 16,
+            "maximum_log_references": 8,
+            "maximum_log_read_bytes": 4096,
+            "maximum_total_log_bytes": 16384
+          },
+          "non_claims": [
+            "workflow admission does not prove workflow correctness",
+            "workflow admission does not prove host confinement",
+            "workflow observation does not prove an external effect succeeded",
+            "workflow observation does not prove credential freshness",
+            "workflow observation does not establish release readiness"
+          ]
+        },
+        "request": {
+          "schema": "lattice.workflow-request.v1",
+          "identity": "b3:70ddc3c6bee7a7b9c5ea4901a50cb856cddf978bea59b438923fbc456e4cd1af",
+          "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+          "profile_identity": "b3:76cd726a32c4c4ca1b327c9efe8e637028f9b3f0b118b38fa84bffab50a5504e",
+          "platform": "linux-x86_64",
+          "kiln": {
+            "effect_identity": "b3:4444444444444444444444444444444444444444444444444444444444444444",
+            "attempt_identity": "b3:5555555555555555555555555555555555555555555555555555555555555555",
+            "candidate_identity": "b3:6666666666666666666666666666666666666666666666666666666666666666",
+            "pipeline_revision_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+            "workflow_policy_identity": "b3:8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          "graph": {
+            "schema": "lattice.workflow-graph.v1",
+            "identity": "b3:22d2b6abb236a8d6efc2efa88d9990433a470993da536d363d990714324f5213",
+            "nodes": [
+              {
+                "id": "build",
+                "kind": "build",
+                "effect_class": "build",
+                "adapter_kind": "local",
+                "operation_identity": "b3:1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              {
+                "id": "test",
+                "kind": "test",
+                "effect_class": "test",
+                "adapter_kind": "remote",
+                "operation_identity": "b3:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "edges": [
+              {
+                "source": "build",
+                "target": "test"
+              }
+            ]
+          },
+          "controls": {
+            "cancel": true,
+            "pause": true,
+            "resume": true
+          },
+          "observation": {
+            "maximum_log_references": 8,
+            "maximum_log_read_bytes": 4096,
+            "maximum_total_log_bytes": 16384
+          }
+        }
+      }
+    }
+  },
+  "response": {
+    "schema": "lattice.workflow-exchange-response.v1",
+    "identity": "b3:dc2ad1a4dc649e8a3501f168282540e4d2082a778d04b6a5c94d3512f3fa287a",
+    "request_identity": "b3:e862c1e267240e066f4dddc490980e694ea77f50d85882609b8ba5e374b43209",
+    "result": {
+      "disposition": "success",
+      "payload": {
+        "kind": "accepted",
+        "payload": {
+          "schema": "lattice.workflow-accepted.v1",
+          "request_identity": "b3:70ddc3c6bee7a7b9c5ea4901a50cb856cddf978bea59b438923fbc456e4cd1af",
+          "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+          "workflow_identity": "b3:9999999999999999999999999999999999999999999999999999999999999999",
+          "execution_identity": "b3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    }
+  },
+  "rejected": {
+    "changed_body_with_stale_identity": {
+      "schema": "lattice.workflow-exchange-request.v1",
+      "identity": "b3:e862c1e267240e066f4dddc490980e694ea77f50d85882609b8ba5e374b43209",
+      "command": {
+        "operation": "dispatch",
+        "payload": {
+          "profile": {
+            "schema": "lattice.workflow-profile.v1",
+            "graph_schema": "lattice.workflow-graph.v1",
+            "platforms": [
+              "linux-x86_64"
+            ],
+            "node_kinds": [
+              "build",
+              "test"
+            ],
+            "effect_classes": [
+              "build",
+              "test"
+            ],
+            "adapter_kinds": [
+              "local",
+              "remote"
+            ],
+            "controls": {
+              "cancel": true,
+              "pause": true,
+              "resume": true
+            },
+            "limits": {
+              "maximum_nodes": 8,
+              "maximum_edges": 16,
+              "maximum_log_references": 8,
+              "maximum_log_read_bytes": 4096,
+              "maximum_total_log_bytes": 16384
+            },
+            "non_claims": [
+              "workflow admission does not prove workflow correctness",
+              "workflow admission does not prove host confinement",
+              "workflow observation does not prove an external effect succeeded",
+              "workflow observation does not prove credential freshness",
+              "workflow observation does not establish release readiness"
+            ]
+          },
+          "request": {
+            "schema": "lattice.workflow-request.v1",
+            "identity": "b3:70ddc3c6bee7a7b9c5ea4901a50cb856cddf978bea59b438923fbc456e4cd1af",
+            "idempotency_key": "b3:4444444444444444444444444444444444444444444444444444444444444444",
+            "profile_identity": "b3:76cd726a32c4c4ca1b327c9efe8e637028f9b3f0b118b38fa84bffab50a5504e",
+            "platform": "linux-x86_64",
+            "kiln": {
+              "effect_identity": "b3:4444444444444444444444444444444444444444444444444444444444444444",
+              "attempt_identity": "b3:5555555555555555555555555555555555555555555555555555555555555555",
+              "candidate_identity": "b3:6666666666666666666666666666666666666666666666666666666666666666",
+              "pipeline_revision_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+              "workflow_policy_identity": "b3:8888888888888888888888888888888888888888888888888888888888888888"
+            },
+            "graph": {
+              "schema": "lattice.workflow-graph.v1",
+              "identity": "b3:22d2b6abb236a8d6efc2efa88d9990433a470993da536d363d990714324f5213",
+              "nodes": [
+                {
+                  "id": "build",
+                  "kind": "build",
+                  "effect_class": "build",
+                  "adapter_kind": "local",
+                  "operation_identity": "b3:1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                {
+                  "id": "test",
+                  "kind": "test",
+                  "effect_class": "test",
+                  "adapter_kind": "remote",
+                  "operation_identity": "b3:2222222222222222222222222222222222222222222222222222222222222222"
+                }
+              ],
+              "edges": [
+                {
+                  "source": "build",
+                  "target": "test"
+                }
+              ]
+            },
+            "controls": {
+              "cancel": true,
+              "pause": true,
+              "resume": true
+            },
+            "observation": {
+              "maximum_log_references": 8,
+              "maximum_log_read_bytes": 4096,
+              "maximum_total_log_bytes": 16384
+            }
+          }
+        }
+      }
+    },
+    "oversized_profile": {
+      "schema": "lattice.workflow-transport-profile.v1",
+      "limits": {
+        "maximum_frame_bytes": 33554433,
+        "maximum_log_bytes": 65536,
+        "maximum_connections": 8,
+        "read_deadline_milliseconds": 30000,
+        "write_deadline_milliseconds": 30000
+      },
+      "peers": {
+        "allowed_user_ids": [
+          1000
+        ]
+      },
+      "non_claims": [
+        "transport admission does not prove workflow correctness",
+        "transport peer identity does not prove peer intent",
+        "transport acceptance does not prove an operation executed",
+        "transport response does not prove an external effect succeeded",
+        "transport checks do not establish production deployment"
+      ]
+    }
+  }
+}
