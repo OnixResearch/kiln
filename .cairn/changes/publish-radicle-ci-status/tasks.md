@@ -19,5 +19,5 @@
 - [x] [depends:status-shell] Add native positive and negative repository fixtures created by the pinned cohort, including repeat writes, foreign heads, and missing declarations. r[kiln.radicle.status_conformance]
 - [x] [parallel] Add runtime-independence checks that keep SecretSpec and Radicle crates outside core and standalone builds. r[kiln.radicle.status_signer]
 - [x] [parallel] Document setup, SecretSpec configuration, single-writer policy, bounds, diagnostics, and non-claims. r[kiln.radicle.status_signer] r[kiln.radicle.status_allowlist]
-- [ ] [serial] Run formatting, workspace tests, strict Clippy, `no_std`, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.status_conformance]
-- [ ] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.status_conformance]
+- [x] [serial] Run formatting, workspace tests, strict Clippy, `no_std`, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.status_conformance]
+- [x] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.status_conformance]

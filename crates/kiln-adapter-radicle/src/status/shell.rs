@@ -27,6 +27,7 @@ use super::storage::{CobRepository, StorageError};
 const COMMIT_AUTHOR_NAME: &str = "Kiln Status";
 const COMMIT_AUTHOR_EMAIL: &str = "status@kiln.invalid";
 
+// r[impl kiln.radicle.shell_status]
 /// Bounded, single-writer Radicle CI status publication shell.
 ///
 /// The shell owns storage handles and SecretSpec resolution. Pure functions

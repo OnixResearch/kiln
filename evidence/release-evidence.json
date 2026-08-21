@@ -380,6 +380,24 @@
     "stack": {
       "profiles": [
         {
+          "authority_boundary": "Radicle owns local COB storage and signatures; Kiln owns CI state, target admission, and single-writer policy",
+          "capabilities": [
+            "publish",
+            "observe",
+            "reconcile"
+          ],
+          "id": "radicle-status-v1",
+          "role": "status",
+          "source_revision": "crates.io:sha256:8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e",
+          "unsupported_capabilities": [
+            "canonical_ci_state",
+            "collaboration",
+            "merge",
+            "network_peer",
+            "remote_visibility"
+          ]
+        },
+        {
           "authority_boundary": "Pijul owns native repository observations; Kiln owns bounded source admission and canonical byte identity",
           "capabilities": [
             "discover",
@@ -510,7 +528,7 @@
       ]
     }
   },
-  "receipt_hash": "8ef2ec8f5a0dffe9c74b1857ebdb8438e48c711bedae9e0728a721e8600baa80",
+  "receipt_hash": "e95f6dff0eaaa7400b042574a5cbf4fdb47b6c5110d98733b5b4122064f91611",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

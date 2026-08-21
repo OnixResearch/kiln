@@ -114,6 +114,7 @@ fn shell(temporary: &tempfile::TempDir, provider: &str) -> (RadicleStatusShell, 
     (shell, executable)
 }
 
+// r[verify kiln.radicle.status_conformance]
 // r[verify kiln.radicle.status_conformance.scenario.repeat]
 // r[verify kiln.radicle.shell_status.scenario.success]
 #[test]
