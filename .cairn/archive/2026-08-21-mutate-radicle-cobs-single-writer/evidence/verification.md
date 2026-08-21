@@ -76,6 +76,8 @@ The task gate receipt is `cb4e528e8cba26cc5873dd2bdc6c7027e42712d63048e37cfa16e6
 
 The specification sync receipt is `5e6c6d623936b4f15010cff4db934bfb46d19d70d9daa294b3e8bb627660d84a`.
 
+The archive receipt is `d56b77d00b6224819d85912b9fe1fa715e10a6bb49594c7af6befe5f530ee9f4`.
+
 Tracey references all 493 accepted requirements. Its receipt is `1a02f25ec962d32ccb7afcaecf359ba1b660951d41a1c35470bc0c198b8df84f`.
 
 The deterministic release-evidence identity is `6ba830d9926030b8567b9cd17b2adf2c5ceb1dc4cf237224b572b51f049bc394`.
