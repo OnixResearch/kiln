@@ -20,6 +20,14 @@ let Profile = {
       authority_boundary = "Radicle owns local COB storage and signatures; Kiln owns CI state, target admission, and single-writer policy",
     },
     {
+      id = "radicle-patch-review-v1",
+      role = "collaboration_mutation",
+      source_revision = "crates.io:sha256:8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e",
+      capabilities = ["review", "observe", "reconcile"],
+      unsupported_capabilities = ["patch_create", "patch_close", "patch_merge", "history_rewrite", "network_peer", "remote_visibility"],
+      authority_boundary = "Radicle owns local patch COB storage; Kiln owns declared review payloads, exact-head admission, and canonical CI state",
+    },
+    {
       id = "pijul-source-v1",
       role = "source",
       source_revision = "crates.io:sha256:8a4fc27aa81ee061310d57fce2df9cc45f3149ddb00bdfab2b816beb0359b13d",

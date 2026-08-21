@@ -340,6 +340,7 @@
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel export config/radicle-status-profile.ncl >/dev/null
+            nickel export config/radicle-mutation-profile.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
             nickel export config/opentelemetry-profile.ncl >/dev/null
@@ -355,6 +356,7 @@
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-status-positive.ncl >/dev/null
+            nickel export config/fixtures/radicle-mutation-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
@@ -505,6 +507,35 @@
               }
             else
               pkgs.runCommand "kiln-radicle-status-native-fixtures-unsupported" { } ''
+                touch "$out"
+              '';
+          radicle-mutation-native-fixtures =
+            if system == "x86_64-linux" then
+              rustPlatform.buildRustPackage {
+                pname = "kiln-radicle-mutation-native-fixtures";
+                version = "0.1.0";
+                src = self;
+                cargoLock = {
+                  lockFile = ./Cargo.lock;
+                  allowBuiltinFetchGit = true;
+                };
+                nativeBuildInputs = [
+                  pkgs.cmake
+                  pkgs.pkg-config
+                ];
+                buildInputs = [ pkgs.zlib ];
+                buildPhase = ''
+                  runHook preBuild
+                  cargo test -p kiln-adapter-radicle --features status-native-fixtures --test mutation_native --offline
+                  runHook postBuild
+                '';
+                doCheck = false;
+                installPhase = ''
+                  touch "$out"
+                '';
+              }
+            else
+              pkgs.runCommand "kiln-radicle-mutation-native-fixtures-unsupported" { } ''
                 touch "$out"
               '';
           radicle-status-cohort =

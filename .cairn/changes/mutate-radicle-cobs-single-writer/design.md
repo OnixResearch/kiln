@@ -38,17 +38,17 @@ False completion includes ambient identity lookup, accepting foreign heads, merg
 
 ### Decision: Reload, compare, then sign
 
-**Choice:** The shell reads current heads within one storage view, compares them to plan expectations under single-writer rules, resolves the SecretSpec signer, previews the rendered update, and only then signs and writes.
+**Choice:** The shell reads current heads, releases that view, resolves the SecretSpec signer, and previews the rendered update. Dispatch then reloads and compares the exact head immediately before signing.
 
-Any mismatch, resolution failure, or preview rejection aborts before signing.
+The Git reference write also uses an atomic expected-target comparison. Any mismatch, resolution failure, or preview rejection aborts before signing.
 
 **Rationale:** This orders every denial before the first irreversible effect.
 
 ### Decision: Timeouts bound the storage view
 
-**Choice:** Named deadlines bound preflight, signing, and write phases. Exceeded deadlines classify as timeout, never as success, and leave reconciliation to the journal.
+**Choice:** Named deadlines bound preflight, signing, and write phases. A deadline after possible acceptance becomes unknown and requires reconciliation.
 
-**Rationale:** Storage views hold locks. Bounded phases release them promptly and keep outcomes honest.
+**Rationale:** The shell does not hold a storage view while it resolves secrets or previews payloads. Bounded phases keep outcomes honest without long-lived locks.
 
 ## Functional Core and Imperative Shell
 
