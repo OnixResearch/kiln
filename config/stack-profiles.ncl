@@ -12,6 +12,14 @@ let Profile = {
 {
   profiles | Array Profile = [
     {
+      id = "radicle-status-v1",
+      role = "status",
+      source_revision = "crates.io:sha256:8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e",
+      capabilities = ["publish", "observe", "reconcile"],
+      unsupported_capabilities = ["canonical_ci_state", "collaboration", "merge", "network_peer", "remote_visibility"],
+      authority_boundary = "Radicle owns local COB storage and signatures; Kiln owns CI state, target admission, and single-writer policy",
+    },
+    {
       id = "pijul-source-v1",
       role = "source",
       source_revision = "crates.io:sha256:8a4fc27aa81ee061310d57fce2df9cc45f3149ddb00bdfab2b816beb0359b13d",

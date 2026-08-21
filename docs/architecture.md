@@ -18,7 +18,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-mantle` | Exact Mantle build lowering, bounded execution, product admission, logs, and reconciliation. |
 | `kiln-adapter-nix-eval` | Exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
-| `kiln-adapter-radicle` | Radicle broker protocol compatibility. |
+| `kiln-adapter-radicle` | Radicle trigger compatibility and bounded single-writer ci-job status publication. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
 | `kiln-adapter-cdevents` | Bounded CDEvents and CloudEvents interchange. |
 | `kiln-adapter-opentelemetry` | Rebuildable telemetry projection and bounded OTLP shell. |
@@ -33,6 +33,8 @@ The core has no filesystem, process, network, clock, credential, or provider-run
 `kiln-provider-api` owns the source-repository, Pijul-repository, collaboration-mutation, discovery, workflow, gate, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
 
 Each port returns typed domain or infrastructure failures. Timeout, cancellation, and unknown results stay distinct until an application shell applies retry policy.
+
+The Radicle status shell uses `radicle-cob` behind adapter-owned storage traits. SecretSpec and Radicle crates do not enter `kiln-core` or standalone builds.
 
 The application composition root selects each concrete adapter. The core and adapters do not select fallback providers.
 

@@ -1,6 +1,7 @@
 pub mod defelo;
 mod profile;
 mod replay;
+pub mod status;
 mod workflow;
 
 pub use profile::*;

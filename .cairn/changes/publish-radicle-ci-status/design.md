@@ -12,7 +12,7 @@ The goal is a versioned, read-only-toward-Kiln status projection with explicit s
 
 Completion requires these results:
 
-- the cohort pins exact `radicle`, `radicle-cob`, and SecretSpec versions, revisions, licenses, and one platform;
+- the cohort pins exact SQLite-free Radicle crates, the SecretSpec CLI, their revisions, licenses, and one platform;
 - a typed Nickel status profile admits declared RIDs, the `xyz.radicle.ci-job` type, bounds, and non-claims;
 - the signer resolves through one SecretSpec declaration and fails closed when absent;
 - each write binds one Kiln attempt, one idempotency key, one RID, and one COB identity;
@@ -26,7 +26,9 @@ False completion includes ambient key lookup, raw key material in configuration 
 
 ### Decision: Resolve the signer through SecretSpec
 
-**Choice:** The typed profile names one SecretSpec declaration: project, profile, secret key, and optional provider restriction. The shell resolves it through the `secretspec` Rust crate immediately before dispatch.
+**Choice:** The typed profile names one SecretSpec declaration: project root, project, profile, secret key, and optional provider restriction. The shell invokes the pinned SecretSpec CLI through Bounded Exec immediately before dispatch.
+
+The CLI uses a cleared environment plus fixed time, input, output, polling, and teardown bounds. The shell verifies its BLAKE3 identity before every invocation.
 
 Missing declarations, unresolved secrets, and provider failures deny the effect before any signing. Resolved key bytes stay in memory, are used for signing, and are dropped without logging. Tests must prove redaction.
 
@@ -36,7 +38,9 @@ Missing declarations, unresolved secrets, and provider failures deny the effect 
 
 **Choice:** The profile enables single-writer mode. The preflight reads current COB heads and accepts exactly two shapes: no prior head (first write) or one head authored by the resolved Kiln signer.
 
-Any other head count, author, or content rejects the plan before signing.
+Any other head count or author rejects the plan before signing. A non-idempotent update must also match the exact planned head.
+
+The Git reference mutation uses an atomic expected-target comparison. A race after preflight cannot overwrite a newer same-signer head.
 
 **Rationale:** Single-writer removes merge ambiguity while Radicle collaboration stays out of scope. A later change can widen this policy deliberately.
 
@@ -48,9 +52,13 @@ Any other head count, author, or content rejects the plan before signing.
 
 ### Decision: Status is rebuildable and idempotent
 
-**Choice:** Each write binds attempt ID, run outcome, idempotency key, and timestamp facts into the COB update. Repeating one idempotency key produces the same observation. Any transport ambiguity yields unknown and requires reconciliation, never redispatch.
+**Choice:** Each write binds the run ID, run outcome, idempotency key, RID, and native object identity. Repeating one key with equal facts produces the same observation. Different facts under one key fail closed.
 
-**Rationale:** The accepted `kiln.radicle.status` requirement already forbids canonical-state mutation. Idempotency makes replay safe after crashes.
+A first-write plan omits the object ID because Radicle derives it from the signed root change. Kiln returns the derived ID and can discover it later through a bounded key scan.
+
+Any write ambiguity yields unknown and requires reconciliation, never redispatch.
+
+**Rationale:** The accepted `kiln.radicle.status` requirement forbids canonical-state mutation. Native object identity and idempotency make replay safe after crashes.
 
 ## Functional Core and Imperative Shell
 
@@ -67,7 +75,8 @@ Negative fixtures cover wrong RID, unlisted COB type, stale or foreign head, mis
 ## Risks and Trade-offs
 
 - The `radicle-cob` API can drift; exact pins and cohort checks make drift visible.
-- SecretSpec adds one dependency to the adapter only; core and standalone stay independent.
+- The full `radicle` runtime conflicts with Kiln's SQLite cohort, so this change uses only the SQLite-free COB crates.
+- SecretSpec runs as a pinned adapter process; core and standalone stay independent.
 - Single-writer cannot represent external collaborators' updates; those reject instead of merging.
 
 ## Claim Boundary

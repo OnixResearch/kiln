@@ -34,6 +34,23 @@
       ];
       eachSystem = function: nixpkgs.lib.genAttrs systems (system: function system);
       nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
+      secretspecCohortVersion = "0.19.0";
+      secretspecPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        pkgs.rustPlatform.buildRustPackage {
+          pname = "secretspec";
+          version = secretspecCohortVersion;
+          src = pkgs.fetchCrate {
+            pname = "secretspec";
+            version = secretspecCohortVersion;
+            hash = "sha256-tpzmzChyyYogebNZZi3LT61MO1HKZW8ln+21CwlqW8M=";
+          };
+          cargoHash = "sha256-VO05AAjBqNVowY2AsyF2W1k4sXWJxOw1U0krs13JS28=";
+          doCheck = false;
+        };
       pijulCohortVersion = "1.0.0-beta.11";
       pijulCohortSourceFor =
         system:
@@ -132,6 +149,7 @@
       packages = eachSystem (system: {
         kiln = packageFor system;
         pijul-cohort-fixture-producer = pijulCohortPackageFor system;
+        secretspec-cohort = secretspecPackageFor system;
         default = packageFor system;
       });
 
@@ -321,6 +339,7 @@
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
+            nickel export config/radicle-status-profile.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
             nickel export config/opentelemetry-profile.ncl >/dev/null
@@ -335,6 +354,7 @@
             nickel export config/fixtures/mantle-build-positive.ncl >/dev/null
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
+            nickel export config/fixtures/radicle-status-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
@@ -458,6 +478,101 @@
               pkgs.runCommand "kiln-nix-eval-jobs-cohort-unsupported" { } ''
                 touch "$out"
               '';
+          radicle-status-native-fixtures =
+            if system == "x86_64-linux" then
+              rustPlatform.buildRustPackage {
+                pname = "kiln-radicle-status-native-fixtures";
+                version = "0.1.0";
+                src = self;
+                cargoLock = {
+                  lockFile = ./Cargo.lock;
+                  allowBuiltinFetchGit = true;
+                };
+                nativeBuildInputs = [
+                  pkgs.cmake
+                  pkgs.pkg-config
+                ];
+                buildInputs = [ pkgs.zlib ];
+                buildPhase = ''
+                  runHook preBuild
+                  cargo test -p kiln-adapter-radicle --features status-native-fixtures --test status_native --offline
+                  runHook postBuild
+                '';
+                doCheck = false;
+                installPhase = ''
+                  touch "$out"
+                '';
+              }
+            else
+              pkgs.runCommand "kiln-radicle-status-native-fixtures-unsupported" { } ''
+                touch "$out"
+              '';
+          radicle-status-cohort =
+            if system == "x86_64-linux" then
+              pkgs.runCommand "kiln-radicle-status-cohort"
+                {
+                  nativeBuildInputs = [
+                    (secretspecPackageFor system)
+                    pkgs.b3sum
+                    pkgs.gnugrep
+                  ];
+                }
+                ''
+                  executable=${secretspecPackageFor system}/bin/secretspec
+                  lock_context_lines=3
+                  test "$executable" = \
+                    '/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec'
+                  test "$($executable --version)" = 'secretspec 0.19.0'
+                  test "$(b3sum --no-names "$executable")" = \
+                    'c15ea6408e2ff98fd976507a2ae5bec3cb99ef5580ce7342ba92eb465d9b28a6'
+                  grep -A "$lock_context_lines" -F 'name = "radicle-cob"' ${self}/Cargo.lock | \
+                    grep -F 'version = "0.21.1"' >/dev/null
+                  grep -A "$lock_context_lines" -F 'name = "radicle-crypto"' ${self}/Cargo.lock | \
+                    grep -F 'version = "0.19.0"' >/dev/null
+                  grep -A "$lock_context_lines" -F 'name = "radicle-oid"' ${self}/Cargo.lock | \
+                    grep -F 'version = "0.2.2"' >/dev/null
+                  grep -A "$lock_context_lines" -F 'name = "radicle-git-ref-format"' ${self}/Cargo.lock | \
+                    grep -F 'version = "0.2.0"' >/dev/null
+                  grep -A "$lock_context_lines" -F 'name = "git2"' ${self}/Cargo.lock | \
+                    grep -F 'version = "0.21.0"' >/dev/null
+                  if grep -F 'name = "radicle"' ${self}/Cargo.lock >/dev/null; then
+                    echo 'full Radicle runtime entered the status cohort' >&2
+                    exit 1
+                  fi
+                  touch "$out"
+                ''
+            else
+              pkgs.runCommand "kiln-radicle-status-cohort-unsupported" { } ''
+                touch "$out"
+              '';
+          radicle-status-boundaries = rustPlatform.buildRustPackage {
+            pname = "kiln-radicle-status-boundaries";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              allowBuiltinFetchGit = true;
+            };
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+            ];
+            buildInputs = [ pkgs.zlib ];
+            buildPhase = ''
+              runHook preBuild
+              cargo tree -p kiln-core --edges normal > core-tree.txt
+              cargo tree -p kiln-standalone --edges normal > standalone-tree.txt
+              if grep -E 'radicle|secretspec' core-tree.txt standalone-tree.txt >/dev/null; then
+                echo 'Radicle or SecretSpec entered a runtime-independent crate' >&2
+                exit 1
+              fi
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
           release-evidence =
             pkgs.runCommand "kiln-release-evidence"
               {

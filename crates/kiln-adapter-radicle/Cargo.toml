@@ -6,6 +6,15 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+default = []
+status-native-fixtures = []
+
+[[bin]]
+name = "secretspec_fixture"
+path = "src/bin/secretspec_fixture.rs"
+required-features = ["status-native-fixtures"]
+
 [dependencies]
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
@@ -13,10 +22,17 @@ kiln-codec.workspace = true
 kiln-adapter-lattice.workspace = true
 lattice-workflow-transport.workspace = true
 rusqlite.workspace = true
+radicle-cob.workspace = true
+radicle-crypto.workspace = true
+radicle-oid.workspace = true
+radicle-git-ref-format.workspace = true
+cob-git2.workspace = true
+nonempty.workspace = true
+blake3.workspace = true
+zeroize.workspace = true
+bounded-exec.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-
-[dev-dependencies]
 tempfile = "3.27.0"
 
 [lints]

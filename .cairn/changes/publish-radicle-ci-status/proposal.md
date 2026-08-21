@@ -10,7 +10,7 @@ The signer must never come from an ambient identity or a hard-coded path. Secret
 
 ## What Changes
 
-- Pin the exact `radicle`, `radicle-cob`, and SecretSpec crate cohort.
+- Pin the exact SQLite-free `radicle-cob` crate cohort and the SecretSpec CLI.
 - Add a typed Nickel status profile with RID and COB-type allowlists, bounds, and non-claims.
 - Resolve the signer secret through one explicit SecretSpec declaration at dispatch time.
 - Write admitted run status to `xyz.radicle.ci-job` as an idempotent, single-writer projection.
@@ -27,7 +27,7 @@ Implementation must pin the exact cohort before it adds provider code. The pin r
 ## Impact
 
 - **Adapters**: extends `kiln-adapter-radicle` with a bounded status publication shell.
-- **Configuration**: adds a typed Radicle status profile and a `secretspec.toml` declaration.
+- **Configuration**: adds a typed Radicle status profile that names one external SecretSpec declaration.
 - **Testing**: adds positive and negative native fixtures, redaction checks, drift, stale-head, and reconciliation cases.
 - **Documentation**: records setup, SecretSpec resolution, limits, and non-claims.
 

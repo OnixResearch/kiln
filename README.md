@@ -15,7 +15,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
-- Radicle broker compatibility;
+- Radicle broker compatibility and bounded single-writer CI status publication;
 - typed Nickel configuration and Nix checks.
 
 Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. The published `main` and `candidate` branches identify validated commit `36984e367eafd44c22d2b4f4f47121deb51eece3`.
@@ -28,7 +28,7 @@ cargo test --workspace
 cargo run -p kiln-cli -- demo
 ```
 
-Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary.
+Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary.
 
 ## Owned boundary
 
@@ -119,6 +119,8 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Radicle CI](https://radicle-ci.liw.fi/) — node-local event filtering, CI-engine adapters, and decentralized operation.
 - [Radicle CI broker architecture](https://radicle-ci-broker.liw.fi/architecture.html) — event normalization and adapter process boundaries.
 - [Radicle native CI](https://radicle.network/nodes/radicle.liw.fi/rad%3Az3qg5TKmN83afz2fj9z3fQjU8vaYE) — compatibility protocol and trusted local runner reference.
+- [Radicle Heartwood](https://github.com/radicle-dev/heartwood) — collaborative-object storage and signing reference consumed through pinned crates.
+- [SecretSpec](https://secretspec.dev/) — declared secret-provider interface consumed through the pinned `0.19.0` CLI.
 - [Cairn](https://github.com/OnixResearch/cairn) — lifecycle and gate-interchange producer at revision `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`. Kiln retains CI identity, process policy, gate composition, and state authority.
 - [Mantle](https://github.com/OnixResearch/mantle) — build-interchange producer at revision `0bbab77e23ab95caa4e4184b9945cfaa5c8040e2`. Kiln retains candidate truth, required-product meaning, CI state, retry policy, and release authority.
 - [Bounded Exec](https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git) — bounded process mechanism at revision `29dac88ecded94457572db3fdfaaaab95fa91525`. Kiln retains executable authorization, output meaning, evidence, and retry policy.
