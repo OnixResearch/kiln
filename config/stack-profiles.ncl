@@ -12,6 +12,14 @@ let Profile = {
 {
   profiles | Array Profile = [
     {
+      id = "nix-eval-jobs-v1",
+      role = "discovery",
+      source_revision = "a0cd02231c58974a6b5aaa3712069b071047162e",
+      capabilities = ["discover", "observe", "cancel", "reconcile", "gc_root_handoff"],
+      unsupported_capabilities = ["build", "cache_truth", "floating_source", "onix_nix", "release"],
+      authority_boundary = "nix-eval-jobs owns evaluator observations; Kiln owns task admission, CI state, and build dispatch",
+    },
+    {
       id = "mantle-build-v1",
       role = "build",
       source_revision = "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",

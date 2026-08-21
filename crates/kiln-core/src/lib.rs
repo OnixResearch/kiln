@@ -4,6 +4,7 @@ extern crate alloc;
 
 pub mod build;
 pub mod cob;
+pub mod discovery;
 pub mod domain;
 pub mod gating;
 pub mod hosting;

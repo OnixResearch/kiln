@@ -1,0 +1,35 @@
+[package]
+name = "kiln-adapter-nix-eval"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[features]
+fixture-process = []
+
+[[bin]]
+name = "kiln-nix-eval-fixture"
+path = "src/bin/nix_eval_fixture.rs"
+required-features = ["fixture-process"]
+
+[[test]]
+name = "fixture_process"
+path = "tests/fixture_process.rs"
+required-features = ["fixture-process"]
+
+[dependencies]
+blake3.workspace = true
+bounded-exec.workspace = true
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+kiln-conformance = { path = "../kiln-conformance" }
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

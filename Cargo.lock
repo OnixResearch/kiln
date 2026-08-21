@@ -463,6 +463,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-nix-eval"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "bounded-exec",
+ "kiln-conformance",
+ "kiln-core",
+ "kiln-provider-api",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-opentelemetry"
 version = "0.1.0"
 dependencies = [
@@ -570,6 +584,7 @@ dependencies = [
 name = "kiln-core"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "serde",
 ]
 

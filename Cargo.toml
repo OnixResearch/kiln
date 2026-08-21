@@ -11,6 +11,7 @@ members = [
   "crates/kiln-adapter-lattice",
   "crates/kiln-adapter-cairn",
   "crates/kiln-adapter-mantle",
+  "crates/kiln-adapter-nix-eval",
   "crates/kiln-adapter-remote",
   "crates/kiln-adapter-cdevents",
   "crates/kiln-adapter-opentelemetry",
@@ -50,6 +51,7 @@ kiln-adapter-git = { path = "crates/kiln-adapter-git" }
 kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
 kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
 kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }
+kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
 valence-core = { git = "ssh://git@github.com/OnixResearch/valence.git", rev = "220307a371e7bc4e3309447b09447d0fe6c4db5f", package = "valence-core" }
 

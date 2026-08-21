@@ -380,6 +380,26 @@
     "stack": {
       "profiles": [
         {
+          "authority_boundary": "nix-eval-jobs owns evaluator observations; Kiln owns task admission, CI state, and build dispatch",
+          "capabilities": [
+            "discover",
+            "observe",
+            "cancel",
+            "reconcile",
+            "gc_root_handoff"
+          ],
+          "id": "nix-eval-jobs-v1",
+          "role": "discovery",
+          "source_revision": "a0cd02231c58974a6b5aaa3712069b071047162e",
+          "unsupported_capabilities": [
+            "build",
+            "cache_truth",
+            "floating_source",
+            "onix_nix",
+            "release"
+          ]
+        },
+        {
           "authority_boundary": "Mantle owns build and cache observations; Kiln owns CI state only",
           "capabilities": [
             "dispatch",
@@ -469,7 +489,7 @@
       ]
     }
   },
-  "receipt_hash": "4d712e4ade8f4460dd0a297e281e67bb438085c871620da73dd48dd9cb4be28c",
+  "receipt_hash": "e13c4712a502475e8d7109485b94808dbe883f3db61acffe58605f198a516da2",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

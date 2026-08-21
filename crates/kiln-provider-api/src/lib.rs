@@ -1,9 +1,11 @@
 use core::sync::atomic::AtomicBool;
+use std::collections::BTreeSet;
 
 use kiln_core::build::{
     BuildEffectPlan, BuildEvaluationObservation, BuildLogChunk, BuildLogReadRequest,
 };
 use kiln_core::cob::{CobEffectPlan, CobObservation};
+use kiln_core::discovery::{DiscoveryEffectPlan, DiscoveryObservation, TaskProposal};
 use kiln_core::domain::Outcome;
 use kiln_core::gating::{GateEffectPlan, GateEvaluationObservation};
 use kiln_core::operations::{JournalRecord, OutboxRecord};
@@ -12,7 +14,9 @@ use kiln_core::provider::{
     ProviderRole, classify_provider_failure,
 };
 use kiln_core::remote::{RemoteAction, RemoteObservation};
-use kiln_core::types::{Alias, ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, RunId};
+use kiln_core::types::{
+    Alias, ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, RunId, TaskId,
+};
 use kiln_core::workflow::{
     WorkflowControlRequest, WorkflowEffectPlan, WorkflowLogChunk, WorkflowLogReadRequest,
     WorkflowObservation,
@@ -78,6 +82,24 @@ pub trait WorkflowPort {
     fn control(&mut self, request: &WorkflowControlRequest) -> PortResult<WorkflowObservation>;
     fn read_log(&mut self, request: &WorkflowLogReadRequest) -> PortResult<WorkflowLogChunk>;
     fn reconcile(&mut self, effect_id: &EffectId) -> PortResult<WorkflowObservation>;
+}
+
+pub trait DiscoveryPort {
+    fn profile(&self) -> &CapabilityProfile;
+    fn discover(&mut self, plan: &DiscoveryEffectPlan) -> PortResult<DiscoveryObservation>;
+    fn discover_with_cancellation(
+        &mut self,
+        plan: &DiscoveryEffectPlan,
+        cancellation: &AtomicBool,
+    ) -> PortResult<DiscoveryObservation>;
+    fn observe(&mut self, effect_id: &EffectId) -> PortResult<DiscoveryObservation>;
+    fn reconcile(&mut self, plan: &DiscoveryEffectPlan) -> PortResult<DiscoveryObservation>;
+    fn handoff_gc_roots(
+        &mut self,
+        plan: &DiscoveryEffectPlan,
+        durable_tasks: &BTreeSet<TaskId>,
+    ) -> PortResult<Vec<TaskProposal>>;
+    fn cleanup_gc_roots(&mut self, plan: &DiscoveryEffectPlan) -> PortResult<DiscoveryObservation>;
 }
 
 pub trait BuildPort {
@@ -353,6 +375,8 @@ mod tests {
     #[test]
     fn roles_remain_distinct() {
         assert_ne!(ProviderRole::Source, ProviderRole::Collaboration);
+        assert_ne!(ProviderRole::Discovery, ProviderRole::Workflow);
+        assert_ne!(ProviderRole::Discovery, ProviderRole::Build);
         assert_ne!(ProviderRole::Workflow, ProviderRole::Build);
     }
 

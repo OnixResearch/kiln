@@ -2,11 +2,15 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use kiln_core::discovery::{DiscoveryEffectPlan, admit_discovery_observation};
 use kiln_core::domain::Outcome;
-use kiln_core::provider::{Operation, OperationRequest, admit_observation, admit_operation};
+use kiln_core::provider::{
+    Operation, OperationRequest, ProviderRole, admit_observation, admit_operation,
+};
 use kiln_core::types::{CONTRACT_VERSION_V1, CoreResult, Diagnostic};
-use kiln_provider_api::{ProviderPort, ProviderRequest};
+use kiln_provider_api::{DiscoveryPort, ProviderPort, ProviderRequest};
 
+// r[impl kiln.nix_eval_jobs.dependency_boundary]
 pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "aspen::",
     "mantle::",
@@ -21,6 +25,16 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "kiln_adapter_cairn::",
     "kiln-adapter-mantle =",
     "kiln_adapter_mantle::",
+    "kiln-adapter-nix-eval =",
+    "kiln_adapter_nix_eval::",
+    "nix-eval-jobs =",
+    "nix_eval_jobs::",
+    "nix-store =",
+    "nix_store::",
+    "nix-expr =",
+    "nix_expr::",
+    "hydra =",
+    "hydra::",
     "kiln-adapter-cob =",
     "kiln_adapter_cob::",
     "kiln-adapter-jj =",
@@ -136,6 +150,7 @@ pub fn audit_adapter_port_ownership(root: &Path) -> std::io::Result<Vec<Boundary
         "crates/kiln-adapter-lattice",
         "crates/kiln-adapter-cairn",
         "crates/kiln-adapter-mantle",
+        "crates/kiln-adapter-nix-eval",
         "crates/kiln-adapter-remote",
     ] {
         visit(&root.join(relative), &mut |path| {
@@ -168,6 +183,7 @@ pub fn audit_reference_boundary(root: &Path) -> std::io::Result<Vec<BoundaryFind
         "crates/kiln-adapter-lattice",
         "crates/kiln-adapter-cairn",
         "crates/kiln-adapter-mantle",
+        "crates/kiln-adapter-nix-eval",
         "crates/kiln-adapter-remote",
         "crates/kiln-adapter-radicle",
         "crates/kiln-adapter-cob",
@@ -198,6 +214,63 @@ pub struct ProviderConformanceReport {
     pub deterministic_repeat: bool,
     pub deterministic_reconciliation: bool,
     pub supported_operations: BTreeSet<Operation>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DiscoveryConformanceReport {
+    pub deterministic_repeat: bool,
+    pub deterministic_observation: bool,
+    pub deterministic_reconciliation: bool,
+    pub supported_operations: BTreeSet<Operation>,
+}
+
+pub fn run_discovery_conformance<P: DiscoveryPort>(
+    provider: &mut P,
+    plan: &DiscoveryEffectPlan,
+) -> CoreResult<DiscoveryConformanceReport> {
+    let profile = provider.profile().clone();
+    let required_operations = BTreeSet::from([
+        Operation::Discover,
+        Operation::Observe,
+        Operation::Cancel,
+        Operation::Reconcile,
+    ]);
+    for operation in &required_operations {
+        admit_operation(
+            &profile,
+            &OperationRequest {
+                contract_version: CONTRACT_VERSION_V1,
+                selected_profile: plan.provider_profile.clone(),
+                role: ProviderRole::Discovery,
+                operation: *operation,
+                request_bytes: 0,
+                required_outcomes: profile.outcomes.clone(),
+            },
+        )?;
+    }
+    let first = provider.discover(plan).map_err(port_failure_diagnostic)?;
+    admit_discovery_observation(plan, &first)?;
+    let repeated = provider.discover(plan).map_err(port_failure_diagnostic)?;
+    admit_discovery_observation(plan, &repeated)?;
+    let observed = provider
+        .observe(&plan.effect_id)
+        .map_err(port_failure_diagnostic)?;
+    admit_discovery_observation(plan, &observed)?;
+    let reconciled = provider.reconcile(plan).map_err(port_failure_diagnostic)?;
+    admit_discovery_observation(plan, &reconciled)?;
+    if first != repeated || first != observed || first != reconciled {
+        return Err(Diagnostic::new(
+            "nondeterministic_discovery_provider",
+            "provider.discovery",
+            "discovery repeat, observation, or reconciliation changed its admitted result",
+        ));
+    }
+    Ok(DiscoveryConformanceReport {
+        deterministic_repeat: true,
+        deterministic_observation: true,
+        deterministic_reconciliation: true,
+        supported_operations: required_operations,
+    })
 }
 
 pub fn run_provider_conformance<P: ProviderPort>(
@@ -245,6 +318,19 @@ pub fn run_provider_conformance<P: ProviderPort>(
         deterministic_reconciliation: true,
         supported_operations: required_operations.clone(),
     })
+}
+
+fn port_failure_diagnostic(failure: kiln_provider_api::PortFailure) -> Diagnostic {
+    match failure {
+        kiln_provider_api::PortFailure::Domain(diagnostic) => diagnostic,
+        kiln_provider_api::PortFailure::Infrastructure(failure)
+        | kiln_provider_api::PortFailure::Retryable(failure)
+        | kiln_provider_api::PortFailure::TimedOut(failure)
+        | kiln_provider_api::PortFailure::Cancelled(failure)
+        | kiln_provider_api::PortFailure::Unknown(failure) => {
+            Diagnostic::new(&failure.code, "provider.discovery", &failure.message)
+        }
+    }
 }
 
 fn visit(

@@ -12,6 +12,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
 - exact Cairn gate request, process, result, and reconciliation admission;
 - exact Mantle build request, bounded process, product, log, and reconciliation admission;
+- exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
 - Radicle broker compatibility;
@@ -27,7 +28,7 @@ cargo test --workspace
 cargo run -p kiln-cli -- demo
 ```
 
-Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation.
+Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery.
 
 ## Owned boundary
 
@@ -134,3 +135,4 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Pueue](https://github.com/Nukesor/pueue) — operator status, logs, waiting, dependency visibility, local capacity groups, scoped controls, and crash-recovery test patterns. Kiln does not use its scheduler, protocol, runtime, types, or provider model.
 - [Jujutsu](https://github.com/jj-vcs/jj) — source-provider semantics for bookmarks, stable change IDs, exact commit IDs, divergent changes, operation observations, and Git-backed interoperability. Kiln does not treat Jujutsu as a forge or collaboration provider.
 - [Lattice](https://github.com/OnixResearch/lattice) — producer-owned workflow contract and bounded Unix transport at revision `70496e67c7fd4a8b05914161a8e09de2759bebc8`. Kiln retains CI state and outcome authority.
+- [nix-eval-jobs](https://github.com/NixOS/nix-eval-jobs) — optional stock Nix job-discovery provider at revision `a0cd02231c58974a6b5aaa3712069b071047162e`. Kiln retains source admission, task mapping, CI state, build dispatch, and release authority.

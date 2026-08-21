@@ -15,6 +15,7 @@
       url = "git+ssh://git@github.com/OnixResearch/mantle.git?rev=0bbab77e23ab95caa4e4184b9945cfaa5c8040e2";
       flake = false;
     };
+    nix-eval-jobs.url = "github:NixOS/nix-eval-jobs/a0cd02231c58974a6b5aaa3712069b071047162e";
   };
 
   outputs =
@@ -24,6 +25,7 @@
       rust-overlay,
       cairn-gate,
       mantle-build,
+      nix-eval-jobs,
     }:
     let
       systems = [
@@ -31,6 +33,26 @@
         "aarch64-linux"
       ];
       eachSystem = function: nixpkgs.lib.genAttrs systems (system: function system);
+      nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
+      nixEvalJobsCohortManifestFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          package = nixEvalJobsPackageFor system;
+        in
+        pkgs.writeText "kiln-nix-eval-jobs-cohort.json" (
+          builtins.toJSON {
+            schema = "kiln.nix-eval-jobs-cohort.v1";
+            upstream_revision = "a0cd02231c58974a6b5aaa3712069b071047162e";
+            adapter_version = "2.35.0";
+            source_version = "0.1.6";
+            nix_revision = "aa2613fa02ca6199fe0ebf61a0f7f6d781d32a47";
+            nix_version = "2.35.2";
+            nixpkgs_revision = "346dd96ad74dc4457a9db9de4f4f57dab2e5731d";
+            platform = system;
+            executable = "${package}/bin/nix-eval-jobs";
+          }
+        );
       packageFor =
         system:
         let
@@ -92,6 +114,11 @@
             rustc = toolchain;
           };
           package = packageFor system;
+          nixEvalWorkerCount = 1;
+          nixEvalMemoryMebibytes = 512;
+          nixEvalExpectedRecordCount = 3;
+          nixEvalExpectedRootCount = 2;
+          nixEvalOnixRecordCount = 1;
           copySource = ''
             cp -r ${self} source
             chmod -R u+w source
@@ -132,6 +159,29 @@
               touch "$out"
             '';
           };
+          nix-eval-fixture-process = rustPlatform.buildRustPackage {
+            pname = "kiln-nix-eval-fixture-process";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              allowBuiltinFetchGit = true;
+            };
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+            ];
+            buildInputs = [ pkgs.zlib ];
+            buildPhase = ''
+              runHook preBuild
+              cargo test -p kiln-adapter-nix-eval --features fixture-process --test fixture_process --offline
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
           no-std = rustPlatform.buildRustPackage {
             pname = "kiln-no-std";
             version = "0.1.0";
@@ -159,6 +209,7 @@
             nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
+            nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
@@ -171,6 +222,7 @@
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-gate-positive.ncl >/dev/null
             nickel export config/fixtures/mantle-build-positive.ncl >/dev/null
+            nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
@@ -196,22 +248,105 @@
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/contract.ncl
             touch "$out"
           '';
-          mantle-build-cohort = pkgs.runCommand "kiln-mantle-build-cohort" { nativeBuildInputs = [ pkgs.b3sum ]; } ''
-            test '${mantle-build.rev}' = '0bbab77e23ab95caa4e4184b9945cfaa5c8040e2'
-            cmp ${mantle-build}/fixtures/mantle-build-contract/producer/fixtures-v1.json \
-              ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/producer-fixtures-v1.json
-            cmp ${mantle-build}/contracts/mantle-build-contract.ncl \
-              ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/contract.ncl
-            test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-plan.ncl)" = \
-              '2a44f29408b31e620e9247134f0b7b8d55012c8ae286de29199eecef33e10473'
-            test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-policy.ncl)" = \
-              '6a094f32254723850459379582ef03c8d2dad65c25326ca526ba3fe62aa9d726'
-            test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-worker.ncl)" = \
-              '6f66ef1d446ead1d87f37176335a3876e6c98af108febf4ec98600b3a91a8d4e'
-            test "$(b3sum --no-names ${self}/config/fixtures/mantle-store-identity.json)" = \
-              '4bd89c0869c39e8d17e5a6799f977bdac78bbc72c93d7b97cb8348b5d3f69b57'
-            touch "$out"
-          '';
+          mantle-build-cohort =
+            pkgs.runCommand "kiln-mantle-build-cohort" { nativeBuildInputs = [ pkgs.b3sum ]; }
+              ''
+                test '${mantle-build.rev}' = '0bbab77e23ab95caa4e4184b9945cfaa5c8040e2'
+                cmp ${mantle-build}/fixtures/mantle-build-contract/producer/fixtures-v1.json \
+                  ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/producer-fixtures-v1.json
+                cmp ${mantle-build}/contracts/mantle-build-contract.ncl \
+                  ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/contract.ncl
+                test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-plan.ncl)" = \
+                  '2a44f29408b31e620e9247134f0b7b8d55012c8ae286de29199eecef33e10473'
+                test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-policy.ncl)" = \
+                  '6a094f32254723850459379582ef03c8d2dad65c25326ca526ba3fe62aa9d726'
+                test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-worker.ncl)" = \
+                  '6f66ef1d446ead1d87f37176335a3876e6c98af108febf4ec98600b3a91a8d4e'
+                test "$(b3sum --no-names ${self}/config/fixtures/mantle-store-identity.json)" = \
+                  '4bd89c0869c39e8d17e5a6799f977bdac78bbc72c93d7b97cb8348b5d3f69b57'
+                touch "$out"
+              '';
+          nix-eval-jobs-cohort =
+            if system == "x86_64-linux" then
+              pkgs.runCommand "kiln-nix-eval-jobs-cohort"
+                {
+                  nativeBuildInputs = [
+                    (nixEvalJobsPackageFor system)
+                    pkgs.b3sum
+                    pkgs.coreutils
+                    pkgs.gnugrep
+                    pkgs.nix
+                  ];
+                }
+                ''
+                  test '${nix-eval-jobs.rev}' = 'a0cd02231c58974a6b5aaa3712069b071047162e'
+                  executable=${nixEvalJobsPackageFor system}/bin/nix-eval-jobs
+                  manifest=${nixEvalJobsCohortManifestFor system}
+                  test "$executable" = \
+                    '/nix/store/bcv7hkwwpmfjmvxh6i106gdwr956svsp-nix-eval-jobs-2.35.0/bin/nix-eval-jobs'
+                  test "$manifest" = \
+                    '/nix/store/wasviibxqrxh6h8wckaifm2s6lancgpn-kiln-nix-eval-jobs-cohort.json'
+                  test "$(b3sum --no-names "$executable")" = \
+                    'dc42bc0e330c598ec93c2361afbb493417fa5c3364722897bd156d3f2ba9c063'
+                  test "$(b3sum --no-names "$manifest")" = \
+                    '102b4af9a753d00dfb6489e1593dd4b9ac8ffe9eed42518705329c6018e63c31'
+                  grep -F '"nix_version":"2.35.2"' "$manifest" >/dev/null
+                  grep -F '"nix_revision":"aa2613fa02ca6199fe0ebf61a0f7f6d781d32a47"' "$manifest" >/dev/null
+
+                  export HOME=$TMPDIR/home
+                  export NIX_STATE_DIR=$TMPDIR/nix-state
+                  export NIX_STORE_DIR=$TMPDIR/nix-store
+                  export NIX_DATA_DIR=$TMPDIR/nix-data
+                  export NIX_LOG_DIR=$TMPDIR/nix-log
+                  export NIX_CONF_DIR=$TMPDIR/nix-conf
+                  mkdir -p "$HOME" "$NIX_STATE_DIR" "$NIX_STORE_DIR" "$NIX_DATA_DIR" "$NIX_LOG_DIR" "$NIX_CONF_DIR" roots roots-onix
+                  cp -r ${self}/fixtures/nix-eval-jobs/cohort/a0cd02231c58974a6b5aaa3712069b071047162e/jobset jobset
+                  chmod -R u+w jobset
+                  cat > "$NIX_CONF_DIR/nix.conf" <<'EOF'
+                  experimental-features = nix-command flakes
+                  accept-flake-config = false
+                  flake-registry =
+                  substituters =
+                  sandbox = false
+                  EOF
+
+                  "$executable" \
+                    --gc-roots-dir roots \
+                    --workers ${toString nixEvalWorkerCount} \
+                    --max-memory-size ${toString nixEvalMemoryMebibytes} \
+                    --extra-experimental-features 'nix-command flakes' \
+                    --meta \
+                    --show-input-drvs \
+                    --check-cache-status \
+                    --flake "$PWD/jobset#jobs" \
+                    > producer.jsonl
+                  test "$(wc -l < producer.jsonl)" -eq ${toString nixEvalExpectedRecordCount}
+                  test "$(find roots -mindepth 1 -maxdepth 1 | wc -l)" -eq ${toString nixEvalExpectedRootCount}
+                  grep -F '"attr":"job-a"' producer.jsonl >/dev/null
+                  grep -F '"attr":"job-b"' producer.jsonl >/dev/null
+                  grep -F '"attr":"broken"' producer.jsonl >/dev/null
+                  grep -F '"cacheStatus":"notBuilt"' producer.jsonl >/dev/null
+                  grep -F '"inputDrvs"' producer.jsonl >/dev/null
+
+                  "$executable" \
+                    --gc-roots-dir roots-onix \
+                    --workers ${toString nixEvalWorkerCount} \
+                    --max-memory-size ${toString nixEvalMemoryMebibytes} \
+                    --extra-experimental-features 'nix-command flakes' \
+                    --meta \
+                    --show-input-drvs \
+                    --check-cache-status \
+                    --flake "$PWD/jobset#onix-only" \
+                    > onix.jsonl
+                  test "$(wc -l < onix.jsonl)" -eq ${toString nixEvalOnixRecordCount}
+                  grep -F '"attr":"unsupported"' onix.jsonl >/dev/null
+                  grep -F "attribute 'wasm' missing" onix.jsonl >/dev/null
+                  touch "$out"
+                ''
+            else
+              pkgs.runCommand "kiln-nix-eval-jobs-cohort-unsupported" { } ''
+                touch "$out"
+              '';
           release-evidence =
             pkgs.runCommand "kiln-release-evidence"
               {

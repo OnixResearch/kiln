@@ -10,6 +10,7 @@ pub enum ProviderRole {
     Collaboration,
     Trigger,
     Status,
+    Discovery,
     Workflow,
     Build,
     EventStore,

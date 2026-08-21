@@ -15,6 +15,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
 | `kiln-adapter-cairn` | Exact Cairn gate lowering, bounded execution, result admission, and reconciliation. |
 | `kiln-adapter-mantle` | Exact Mantle build lowering, bounded execution, product admission, logs, and reconciliation. |
+| `kiln-adapter-nix-eval` | Exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Radicle broker protocol compatibility. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
@@ -28,7 +29,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 
-`kiln-provider-api` owns the source-repository, collaboration-mutation, workflow-execution, workflow-exchange, gate-evaluation, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
+`kiln-provider-api` owns the source-repository, collaboration-mutation, discovery, workflow, gate, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
 
 Each port returns typed domain or infrastructure failures. Timeout, cancellation, and unknown results stay distinct until an application shell applies retry policy.
 
@@ -49,7 +50,9 @@ Replay folds events through `evolve`. Replay does not return provider effects.
 
 ## Identity
 
-Kiln canonical artifacts use `kiln.packed-preserves.v1`. The codec computes their BLAKE3 identities outside the pure core.
+Kiln canonical artifacts use `kiln.packed-preserves.v1`. The codec computes their BLAKE3 identities.
+
+The pure core computes domain-owned BLAKE3 identities for discovered task mappings. It receives all identity inputs explicitly.
 
 Provider references include a namespace, native kind, and native value. Equal provider text does not make two references equal.
 
