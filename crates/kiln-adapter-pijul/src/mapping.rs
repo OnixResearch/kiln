@@ -11,6 +11,8 @@ use kiln_provider_api::{PijulReadRequest, PijulRepositoryPort, PortFailure, Port
 
 use crate::profile::{PINNED_FORMAT_COHORT, PijulSourceProfile, admit_profile};
 
+const OBSERVATION_IDENTITY_PLACEHOLDER_INPUT: &[u8] = b"pijul-observation-pending";
+
 // r[impl kiln.source.pijul_adapter]
 // r[impl kiln.source.pijul_capabilities]
 pub fn discover_channels<R: PijulRepositoryPort>(
@@ -115,6 +117,7 @@ pub fn resolve_and_acquire<R: PijulRepositoryPort>(
         .into());
     }
     let mut facts = PijulFacts {
+        provider_profile: selected_profile.clone(),
         repository: observation.repository,
         channel: observation.channel,
         state: observation.observed_state_before.clone(),
@@ -123,13 +126,15 @@ pub fn resolve_and_acquire<R: PijulRepositoryPort>(
         change_sequence: observation.change_sequence,
         change_bound: profile.limits.max_changes,
         format_cohort: observation.format_cohort,
-        observation_identity: identity_from_bytes(b"pijul-observation-pending").map_err(|_| {
-            PortFailure::Domain(Diagnostic::new(
-                "pijul_observation_identity",
-                "pijul.observation_identity",
-                "Pijul observation identity could not be initialized",
-            ))
-        })?,
+        observation_identity: identity_from_bytes(OBSERVATION_IDENTITY_PLACEHOLDER_INPUT).map_err(
+            |_| {
+                PortFailure::Domain(Diagnostic::new(
+                    "pijul_observation_identity",
+                    "pijul.observation_identity",
+                    "Pijul observation identity could not be initialized",
+                ))
+            },
+        )?,
     };
     facts.observation_identity = compute_pijul_observation_identity(&facts)?;
     admit_pijul_facts(&facts)?;

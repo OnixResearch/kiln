@@ -179,6 +179,7 @@ fn resolve(repository: &Path) -> io::Result<SourceResolution> {
     resolve_channel(repository, FIXTURE_CHANNEL)
 }
 
+// r[verify kiln.source.pijul_conformance]
 // r[verify kiln.source.pijul_conformance.scenario.native]
 // r[verify kiln.source.pijul_conformance.scenario.repeat]
 #[test]

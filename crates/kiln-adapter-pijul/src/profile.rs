@@ -23,6 +23,11 @@ pub const PINNED_LIBPIJUL_LICENSE: &str = "GPL-2.0-or-later";
 pub const PINNED_REPOSITORY_ADAPTER_LICENSE: &str = "GPL-2.0";
 pub const PINNED_FORMAT_COHORT: &str = "sanakirja-pristine-v1";
 pub const PINNED_PLATFORM: &str = "x86_64-linux";
+const CURRENT_PLATFORM: &str = if cfg!(all(target_arch = "x86_64", target_os = "linux")) {
+    "x86_64-linux"
+} else {
+    "unsupported"
+};
 
 pub const DEFAULT_MAX_CHANNELS: usize = 64;
 pub const DEFAULT_MAX_REPOSITORY_MEMBERS: usize = 65_536;
@@ -172,6 +177,7 @@ pub fn admit_profile(profile: &PijulSourceProfile) -> PortResult<SourceProviderP
         || profile.libpijul_license != PINNED_LIBPIJUL_LICENSE
         || profile.repository_adapter_license != PINNED_REPOSITORY_ADAPTER_LICENSE
         || profile.format_cohort != PINNED_FORMAT_COHORT
+        || CURRENT_PLATFORM != PINNED_PLATFORM
         || profile.platforms != BTreeSet::from([PINNED_PLATFORM.to_string()])
         || profile.capabilities != required_capabilities()
         || profile.allowed_entry_kinds != required_entry_kinds()

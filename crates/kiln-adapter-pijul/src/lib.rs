@@ -13,5 +13,5 @@ pub use profile::{
     PijulSourceProfile, admit_profile, profile_has_forbidden_authority,
 };
 
-#[cfg(test)]
+#[cfg(all(test, target_arch = "x86_64", target_os = "linux"))]
 mod tests;

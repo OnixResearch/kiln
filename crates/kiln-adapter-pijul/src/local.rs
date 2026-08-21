@@ -175,8 +175,8 @@ impl LocalPijulAdapter {
         Ok(repository)
     }
 
-    fn repository_identity(&self) -> PortResult<ExternalRef> {
-        let canonical = self.repository_path.canonicalize().map_err(io_failure)?;
+    fn repository_identity(repository: &Repository) -> PortResult<ExternalRef> {
+        let canonical = repository.path.canonicalize().map_err(io_failure)?;
         let bytes = path_bytes(&canonical)?;
         let identity = identity_from_bytes(bytes).map_err(|_| {
             PortFailure::Domain(Diagnostic::new(
@@ -322,8 +322,8 @@ impl PijulRepositoryPort for LocalPijulAdapter {
 
     fn resolve_and_acquire(&self, request: &PijulReadRequest) -> PortResult<PijulReadObservation> {
         self.validate_request(request)?;
-        let repository_identity = self.repository_identity()?;
         let repository = self.open()?;
+        let repository_identity = Self::repository_identity(&repository)?;
         let read = self.collect_state(&repository, &request.limits)?;
         self.admit_repository_storage(&self.repository_path.join(PIJUL_DOT_DIRECTORY))?;
         Ok(PijulReadObservation {

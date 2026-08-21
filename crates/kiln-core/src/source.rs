@@ -309,6 +309,7 @@ pub struct PijulSnapshotEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PijulFacts {
+    pub provider_profile: ProviderProfileId,
     pub repository: ExternalRef,
     pub channel: ExternalRef,
     pub state: ExternalRef,
@@ -461,6 +462,7 @@ fn validate_pijul_reference(reference: &ExternalRef, kind: &str, path: &str) -> 
 // r[impl kiln.source.pijul_state_identity]
 pub fn compute_pijul_observation_identity(facts: &PijulFacts) -> CoreResult<ContentId> {
     let mut framed = PIJUL_OBSERVATION_TAG.to_vec();
+    append_pijul_framed(&mut framed, facts.provider_profile.as_str().as_bytes())?;
     for fact in [
         &facts.repository,
         &facts.channel,
@@ -589,7 +591,8 @@ pub fn validate_resolution(resolution: &SourceResolution) -> CoreResult<()> {
         }
         SourceNativeFacts::Pijul(facts) => {
             admit_pijul_facts(facts)?;
-            if facts.repository != resolution.repository
+            if facts.provider_profile != resolution.source_provider
+                || facts.repository != resolution.repository
                 || facts.channel != resolution.symbolic_reference
                 || facts.state != resolution.exact_revision
             {
@@ -986,6 +989,8 @@ mod tests {
 
     fn pijul_facts() -> PijulFacts {
         let mut facts = PijulFacts {
+            provider_profile: ProviderProfileId::new("pijul-source-v1")
+                .unwrap_or_else(|_| unreachable!()),
             repository: external("pijul", "repository", "repo"),
             channel: external("pijul", "channel", "main"),
             state: external("pijul", "state", "state"),
@@ -1014,6 +1019,18 @@ mod tests {
         let mut incomplete = facts;
         incomplete.state = external("pijul", "change", "change");
         assert!(admit_pijul_facts(&incomplete).is_err());
+
+        let facts = pijul_facts();
+        let mixed_provider = SourceResolution {
+            source_provider: ProviderProfileId::new("jj-source-v1")
+                .unwrap_or_else(|_| unreachable!()),
+            repository: facts.repository.clone(),
+            symbolic_reference: facts.channel.clone(),
+            exact_revision: facts.state.clone(),
+            canonical_tree: tree(),
+            native_facts: SourceNativeFacts::Pijul(facts),
+        };
+        assert!(validate_resolution(&mixed_provider).is_err());
     }
 
     // r[verify kiln.source.pijul_snapshot.scenario.acquire]
