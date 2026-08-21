@@ -380,6 +380,27 @@
     "stack": {
       "profiles": [
         {
+          "authority_boundary": "Pijul owns native repository observations; Kiln owns bounded source admission and canonical byte identity",
+          "capabilities": [
+            "discover",
+            "resolve_exact",
+            "acquire",
+            "observe_identity"
+          ],
+          "id": "pijul-source-v1",
+          "role": "source",
+          "source_revision": "crates.io:sha256:8a4fc27aa81ee061310d57fce2df9cc45f3149ddb00bdfab2b816beb0359b13d",
+          "unsupported_capabilities": [
+            "credentials",
+            "collaboration",
+            "triggers",
+            "status_publication",
+            "mutation",
+            "remote_availability",
+            "history_trust"
+          ]
+        },
+        {
           "authority_boundary": "nix-eval-jobs owns evaluator observations; Kiln owns task admission, CI state, and build dispatch",
           "capabilities": [
             "discover",
@@ -489,7 +510,7 @@
       ]
     }
   },
-  "receipt_hash": "e13c4712a502475e8d7109485b94808dbe883f3db61acffe58605f198a516da2",
+  "receipt_hash": "8ef2ec8f5a0dffe9c74b1857ebdb8438e48c711bedae9e0728a721e8600baa80",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

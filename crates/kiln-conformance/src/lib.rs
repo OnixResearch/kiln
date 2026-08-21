@@ -11,6 +11,7 @@ use kiln_core::types::{CONTRACT_VERSION_V1, CoreResult, Diagnostic};
 use kiln_provider_api::{DiscoveryPort, ProviderPort, ProviderRequest};
 
 // r[impl kiln.nix_eval_jobs.dependency_boundary]
+// r[impl kiln.source.pijul_capabilities] r[impl kiln.source.pijul_nonclaims]
 pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "aspen::",
     "mantle::",
@@ -43,6 +44,12 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "kiln_adapter_git::",
     "git2 =",
     "git2::",
+    "kiln-adapter-pijul =",
+    "kiln_adapter_pijul::",
+    "libpijul =",
+    "libpijul::",
+    "pijul-repository =",
+    "pijul_repository::",
     "kiln-adapter-radicle =",
     "kiln_adapter_radicle::",
     "kiln-adapter-remote =",
@@ -80,6 +87,7 @@ pub const FORBIDDEN_ADAPTER_PORT_DECLARATIONS: &[&str] = &[
     "pub trait BrokerService",
     "pub trait CobMutationTransport",
     "pub trait JujutsuRepository",
+    "pub trait PijulRepositoryPort",
     "pub trait RemoteLifecycleTransport",
     "pub trait RemoteTransport",
 ];
@@ -146,6 +154,7 @@ pub fn audit_adapter_port_ownership(root: &Path) -> std::io::Result<Vec<Boundary
     for relative in [
         "crates/kiln-adapter-cob",
         "crates/kiln-adapter-jj",
+        "crates/kiln-adapter-pijul",
         "crates/kiln-adapter-radicle",
         "crates/kiln-adapter-lattice",
         "crates/kiln-adapter-cairn",
@@ -180,6 +189,7 @@ pub fn audit_reference_boundary(root: &Path) -> std::io::Result<Vec<BoundaryFind
         "crates/kiln-standalone",
         "crates/kiln-adapter-jj",
         "crates/kiln-adapter-git",
+        "crates/kiln-adapter-pijul",
         "crates/kiln-adapter-lattice",
         "crates/kiln-adapter-cairn",
         "crates/kiln-adapter-mantle",

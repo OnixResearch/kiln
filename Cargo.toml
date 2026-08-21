@@ -8,6 +8,7 @@ members = [
   "crates/kiln-adapter-cob",
   "crates/kiln-adapter-jj",
   "crates/kiln-adapter-git",
+  "crates/kiln-adapter-pijul",
   "crates/kiln-adapter-lattice",
   "crates/kiln-adapter-cairn",
   "crates/kiln-adapter-mantle",
@@ -36,6 +37,11 @@ serde = { version = "1.0.228", default-features = false, features = ["alloc", "d
 serde_json = "1.0.145"
 rusqlite = { version = "=0.40.2", default-features = false, features = ["backup", "bundled"] }
 git2 = { version = "=0.20.2", default-features = false, features = ["vendored-libgit2"] }
+libpijul = { version = "=1.0.0-beta.11", default-features = true }
+pijul-config = "=1.0.0-beta.10"
+pijul-macros = "=1.0.0-beta.11"
+pijul-repository = "=1.0.0-beta.10"
+sanakirja = "=2.0.0-beta"
 lattice-workflow-contract = { git = "ssh://git@github.com/OnixResearch/lattice.git", rev = "70496e67c7fd4a8b05914161a8e09de2759bebc8" }
 lattice-workflow-transport = { git = "ssh://git@github.com/OnixResearch/lattice.git", rev = "70496e67c7fd4a8b05914161a8e09de2759bebc8" }
 cairn-gate-contract = { git = "ssh://git@github.com/OnixResearch/cairn.git", rev = "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f" }
@@ -48,6 +54,7 @@ kiln-adapter-radicle = { path = "crates/kiln-adapter-radicle" }
 kiln-adapter-cob = { path = "crates/kiln-adapter-cob" }
 kiln-adapter-jj = { path = "crates/kiln-adapter-jj" }
 kiln-adapter-git = { path = "crates/kiln-adapter-git" }
+kiln-adapter-pijul = { path = "crates/kiln-adapter-pijul" }
 kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
 kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
 kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }

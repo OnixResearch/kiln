@@ -5,8 +5,9 @@ use git2::{ObjectType, Oid, Repository, Tree};
 use kiln_codec::identity_from_bytes;
 use kiln_core::source::{
     GitEntryKind, GitObjectFormat, GitResolutionFacts, GitSnapshotEntry, GitSnapshotLimits,
-    SourceCapability, SourceProviderProfile, SourceResolution, admit_git_resolution,
-    admit_source_capability, build_git_snapshot_manifest, validate_resolution,
+    SourceCapability, SourceNativeFacts, SourceProviderProfile, SourceResolution,
+    admit_git_resolution, admit_source_capability, build_git_snapshot_manifest,
+    validate_resolution,
 };
 use kiln_core::types::{Alias, Diagnostic, ExternalRef, ProviderProfileId};
 use kiln_provider_api::{
@@ -534,7 +535,7 @@ pub fn resolve_and_acquire(
         symbolic_reference: symbolic,
         exact_revision: exact_commit,
         canonical_tree,
-        jujutsu: None,
+        native_facts: SourceNativeFacts::Git(facts),
     };
     validate_resolution(&resolution)?;
     Ok(resolution)

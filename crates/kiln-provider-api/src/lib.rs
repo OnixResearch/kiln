@@ -14,6 +14,7 @@ use kiln_core::provider::{
     ProviderRole, classify_provider_failure,
 };
 use kiln_core::remote::{RemoteAction, RemoteObservation};
+use kiln_core::source::{PijulSnapshotEntry, PijulSnapshotLimits};
 use kiln_core::types::{
     Alias, ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, RunId, TaskId,
 };
@@ -143,6 +144,29 @@ pub trait SourceRepositoryPort {
     fn observe(&self) -> PortResult<SourceRepositoryObservation>;
     fn resolve(&self, symbolic: &ExternalRef) -> PortResult<SourceResolutionObservation>;
     fn acquire_canonical_manifest(&self, commit: &ExternalRef) -> PortResult<Vec<u8>>;
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PijulReadRequest {
+    pub channel: ExternalRef,
+    pub limits: PijulSnapshotLimits,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PijulReadObservation {
+    pub repository: ExternalRef,
+    pub channel: ExternalRef,
+    pub observed_state_before: ExternalRef,
+    pub observed_state_after: ExternalRef,
+    pub change_sequence: Vec<ExternalRef>,
+    pub format_cohort: ExternalRef,
+    pub entries: Vec<PijulSnapshotEntry>,
+}
+
+// r[impl kiln.source.pijul_adapter]
+pub trait PijulRepositoryPort {
+    fn discover_channels(&self, max_channels: usize) -> PortResult<Vec<ExternalRef>>;
+    fn resolve_and_acquire(&self, request: &PijulReadRequest) -> PortResult<PijulReadObservation>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

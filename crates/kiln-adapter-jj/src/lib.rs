@@ -1,6 +1,7 @@
 use kiln_codec::identity_from_bytes;
 use kiln_core::source::{
-    JujutsuBackend, JujutsuFacts, SourceResolution, admit_jujutsu_facts, validate_resolution,
+    JujutsuBackend, JujutsuFacts, SourceNativeFacts, SourceResolution, admit_jujutsu_facts,
+    validate_resolution,
 };
 use kiln_core::types::{Diagnostic, ExternalRef, ProviderProfileId};
 use kiln_provider_api::{PortFailure, PortResult, SourceRepositoryBackend, SourceRepositoryPort};
@@ -55,7 +56,7 @@ pub fn resolve_and_acquire<R: SourceRepositoryPort>(
         symbolic_reference: resolved.symbolic,
         exact_revision: commit,
         canonical_tree: tree,
-        jujutsu: Some(jujutsu),
+        native_facts: SourceNativeFacts::Jujutsu(jujutsu),
     };
     validate_resolution(&result).map_err(PortFailure::Domain)?;
     Ok(result)

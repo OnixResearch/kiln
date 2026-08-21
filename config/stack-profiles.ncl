@@ -12,6 +12,14 @@ let Profile = {
 {
   profiles | Array Profile = [
     {
+      id = "pijul-source-v1",
+      role = "source",
+      source_revision = "crates.io:sha256:8a4fc27aa81ee061310d57fce2df9cc45f3149ddb00bdfab2b816beb0359b13d",
+      capabilities = ["discover", "resolve_exact", "acquire", "observe_identity"],
+      unsupported_capabilities = ["credentials", "collaboration", "triggers", "status_publication", "mutation", "remote_availability", "history_trust"],
+      authority_boundary = "Pijul owns native repository observations; Kiln owns bounded source admission and canonical byte identity",
+    },
+    {
       id = "nix-eval-jobs-v1",
       role = "discovery",
       source_revision = "a0cd02231c58974a6b5aaa3712069b071047162e",

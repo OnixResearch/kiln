@@ -34,6 +34,48 @@
       ];
       eachSystem = function: nixpkgs.lib.genAttrs systems (system: function system);
       nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
+      pijulCohortVersion = "1.0.0-beta.11";
+      pijulCohortSourceFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        pkgs.fetchurl {
+          name = "pijul-${pijulCohortVersion}.tar.gz";
+          url = "https://static.crates.io/crates/pijul/pijul-${pijulCohortVersion}.crate";
+          hash = "sha256-ik/Ceqge4GExDVf84t+cxF8xSd2wC9+rK4Fr6wNZsT0=";
+        };
+      pijulCohortPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        rustPlatform.buildRustPackage {
+          pname = "pijul";
+          version = pijulCohortVersion;
+          src = pijulCohortSourceFor system;
+          cargoHash = "sha256-IhArTiReUdj49bA+XseQpOiszK801xX5LdLj8vXD8rs=";
+          buildNoDefaultFeatures = true;
+          cargoBuildFlags = [
+            "--bin"
+            "pijul"
+          ];
+          nativeBuildInputs = [ pkgs.pkg-config ];
+          buildInputs = [
+            pkgs.dbus
+            pkgs.libsodium
+            pkgs.openssl
+          ];
+          doCheck = false;
+        };
       nixEvalJobsCohortManifestFor =
         system:
         let
@@ -89,6 +131,7 @@
     {
       packages = eachSystem (system: {
         kiln = packageFor system;
+        pijul-cohort-fixture-producer = pijulCohortPackageFor system;
         default = packageFor system;
       });
 
@@ -119,6 +162,7 @@
           nixEvalExpectedRecordCount = 3;
           nixEvalExpectedRootCount = 2;
           nixEvalOnixRecordCount = 1;
+          pijulSupported = system == "x86_64-linux";
           copySource = ''
             cp -r ${self} source
             chmod -R u+w source
@@ -159,6 +203,71 @@
               touch "$out"
             '';
           };
+          pijul-native-fixtures =
+            if pijulSupported then
+              rustPlatform.buildRustPackage {
+                pname = "kiln-pijul-native-fixtures";
+                version = "0.1.0";
+                src = self;
+                cargoLock = {
+                  lockFile = ./Cargo.lock;
+                  allowBuiltinFetchGit = true;
+                };
+                nativeBuildInputs = [
+                  pkgs.cmake
+                  pkgs.pkg-config
+                ];
+                buildInputs = [ pkgs.zlib ];
+                buildPhase = ''
+                  runHook preBuild
+                  export KILN_PIJUL_EXE=${pijulCohortPackageFor system}/bin/pijul
+                  cargo test -p kiln-adapter-pijul --features native-fixtures --test native_repository --offline
+                  runHook postBuild
+                '';
+                doCheck = false;
+                installPhase = ''
+                  touch "$out"
+                '';
+              }
+            else
+              pkgs.runCommand "kiln-pijul-native-fixtures-unsupported" { } ''
+                touch "$out"
+              '';
+          pijul-cohort =
+            if pijulSupported then
+              pkgs.runCommand "kiln-pijul-cohort"
+                {
+                  nativeBuildInputs = [
+                    pkgs.b3sum
+                    pkgs.coreutils
+                    pkgs.gnutar
+                    pkgs.gzip
+                  ];
+                }
+                ''
+                  source=${pijulCohortSourceFor system}
+                  executable=${pijulCohortPackageFor system}/bin/pijul
+                  lock_context_lines=2
+                  test "$(sha256sum "$source" | cut -d ' ' -f 1)" = \
+                    '8a4fc27aa81ee061310d57fce2df9cc45f3149ddb00bdfab2b816beb0359b13d'
+                  test "$executable" = \
+                    '/nix/store/dm7km3dr8q5jbyakb7bbw8j6v4vz9lck-pijul-1.0.0-beta.11/bin/pijul'
+                  test "$(b3sum --no-names "$executable")" = \
+                    '8000c44ea14cdcca49730073837737339c55852d6af3f4d3703092a944e38f77'
+                  test "$($executable --version)" = 'pijul 1.0.0-beta.11'
+                  tar -xOf "$source" pijul-1.0.0-beta.11/Cargo.lock > producer-Cargo.lock
+                  grep -A "$lock_context_lines" -F 'name = "libpijul"' producer-Cargo.lock | \
+                    grep -F 'version = "1.0.0-beta.11"' >/dev/null
+                  grep -A "$lock_context_lines" -F 'name = "pijul-repository"' producer-Cargo.lock | \
+                    grep -F 'version = "1.0.0-beta.10"' >/dev/null
+                  grep -A "$lock_context_lines" -F 'name = "sanakirja"' producer-Cargo.lock | \
+                    grep -F 'version = "2.0.0-beta"' >/dev/null
+                  b3sum --no-names "$executable" > "$out"
+                ''
+            else
+              pkgs.runCommand "kiln-pijul-cohort-unsupported" { } ''
+                touch "$out"
+              '';
           nix-eval-fixture-process = rustPlatform.buildRustPackage {
             pname = "kiln-nix-eval-fixture-process";
             version = "0.1.0";
@@ -206,6 +315,7 @@
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
             nickel export config/git-source-profile.ncl >/dev/null
+            nickel export config/pijul-source-profile.ncl >/dev/null
             nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
@@ -219,6 +329,7 @@
             nickel export config/sqlite-profile.ncl >/dev/null
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
+            nickel export config/fixtures/pijul-source-positive.ncl >/dev/null
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-gate-positive.ncl >/dev/null
             nickel export config/fixtures/mantle-build-positive.ncl >/dev/null

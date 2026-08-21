@@ -1,0 +1,32 @@
+[package]
+name = "kiln-adapter-pijul"
+version.workspace = true
+edition.workspace = true
+license = "GPL-2.0-only"
+rust-version.workspace = true
+
+[dependencies]
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+kiln-codec.workspace = true
+libpijul.workspace = true
+pijul-config.workspace = true
+pijul-macros.workspace = true
+pijul-repository.workspace = true
+sanakirja.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+anyhow = "1.0"
+tempfile = "3.24.0"
+
+[features]
+native-fixtures = []
+
+[[test]]
+name = "native_repository"
+path = "tests/native_repository.rs"
+required-features = ["native-fixtures"]
+
+[lints]
+workspace = true
