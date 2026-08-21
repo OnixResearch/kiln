@@ -398,6 +398,25 @@
           ]
         },
         {
+          "authority_boundary": "Radicle owns local patch COB storage; Kiln owns declared review payloads, exact-head admission, and canonical CI state",
+          "capabilities": [
+            "review",
+            "observe",
+            "reconcile"
+          ],
+          "id": "radicle-patch-review-v1",
+          "role": "collaboration_mutation",
+          "source_revision": "crates.io:sha256:8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e",
+          "unsupported_capabilities": [
+            "patch_create",
+            "patch_close",
+            "patch_merge",
+            "history_rewrite",
+            "network_peer",
+            "remote_visibility"
+          ]
+        },
+        {
           "authority_boundary": "Pijul owns native repository observations; Kiln owns bounded source admission and canonical byte identity",
           "capabilities": [
             "discover",
@@ -528,7 +547,7 @@
       ]
     }
   },
-  "receipt_hash": "e95f6dff0eaaa7400b042574a5cbf4fdb47b6c5110d98733b5b4122064f91611",
+  "receipt_hash": "6ba830d9926030b8567b9cd17b2adf2c5ceb1dc4cf237224b572b51f049bc394",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

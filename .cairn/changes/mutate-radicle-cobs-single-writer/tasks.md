@@ -18,5 +18,5 @@
 - [x] [depends:mutation-transport] Add native positive and negative repository fixtures created by the pinned cohort, including repeat dispatch, foreign heads, missing signer, oversized payloads, timeout, and reconciliation. r[kiln.radicle.mutation_conformance]
 - [x] [parallel] Add runtime-independence checks that keep Radicle crates outside core and standalone builds. r[kiln.radicle.mutation_conformance]
 - [x] [parallel] Document authority flow, SecretSpec setup, recovery, limits, and non-claims. r[kiln.radicle.shell_mutation] r[kiln.radicle.mutation_scope]
-- [ ] [serial] Run formatting, workspace tests, strict Clippy, `no_std`, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.mutation_conformance]
-- [ ] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.mutation_conformance]
+- [x] [serial] Run formatting, workspace tests, strict Clippy, `no_std`, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.mutation_conformance]
+- [x] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.mutation_conformance]
