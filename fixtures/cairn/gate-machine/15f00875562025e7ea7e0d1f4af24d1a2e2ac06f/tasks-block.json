@@ -1,0 +1,145 @@
+{
+  "schema_version": "cairn.cli-machine.v1",
+  "ok": true,
+  "command": "gate",
+  "exit_class": "success",
+  "result": {
+    "acceptance_ids": [],
+    "change": "add-cairn-gate-adapter",
+    "evidence_summary": {
+      "docs_only": 0,
+      "fixture": 0,
+      "formal": 0,
+      "mode": "advisory",
+      "model": 0,
+      "probe": 0,
+      "property": 0
+    },
+    "input_hash": "70b6531deed80c24affa1eb4720e6de777989510865385b822e30beaff71e647",
+    "issues": [
+      {
+        "code": "cairn.gate.validation",
+        "message": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/tasks.md: unknown requirement reference r[unknown.requirement]",
+        "promoted": "no",
+        "scope": "tasks"
+      },
+      {
+        "code": "cairn.gate.validation",
+        "message": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/tasks.md:26: task missing known requirement reference",
+        "promoted": "no",
+        "scope": "tasks"
+      },
+      {
+        "code": "cairn.gate.validation",
+        "message": "add-cairn-gate-adapter: 1 task(s) missing concurrency markers",
+        "promoted": "no",
+        "scope": "tasks"
+      },
+      {
+        "code": "lifecycle_validation.task_substance.linkage",
+        "message": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/tasks.md:26: lifecycle_validation.task_substance.linkage: checkbox task requires a known r[...] reference or a valid dependency marker",
+        "promoted": "no",
+        "scope": "tasks"
+      }
+    ],
+    "layout": "cairn",
+    "non_claims": [
+      "workflow state proves only the selected policy graph and observed structural artifact facts",
+      "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+      "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+      "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+    ],
+    "policy": "kiln-default",
+    "policy_hash": "be930a118f405d176ea56de5c72ba05b8061ab3a4f996113cde505710cce5c74",
+    "probe_evidence": {
+      "declarations_present": false,
+      "probes": []
+    },
+    "profile_identity_hash": "b6b6c29b8b47cb0da94fad12993ce5cb022bcb02974b6fa0ab3367b9540e2b71",
+    "receipt_hash": "245583d02aa6387caaf85d483977ed0dcc3be46833bfd6cab4ba1140cf2c37f3",
+    "review_receipt_hashes": [],
+    "spec_effect": "delta",
+    "stage": "tasks",
+    "substance": [
+      {
+        "checkbox_tasks": 0,
+        "kind": "design",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/design.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 18,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "proposal",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/proposal.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 15,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "delta_spec",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/specs/cairn-gate-adapter/spec.md",
+        "requirement_blocks": 6,
+        "scenario_blocks": 10,
+        "substantive_lines": 36,
+        "substantive_requirement_blocks": 6,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 14,
+        "kind": "tasks",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/tasks.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 14,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 13,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 14
+      }
+    ],
+    "task_ordering": {
+      "active": false,
+      "edges": [],
+      "issues": [],
+      "nodes": [],
+      "order": [],
+      "ready_tasks": [],
+      "valid": true
+    },
+    "valid": false,
+    "verdict": "FAIL",
+    "workflow_profile": "spec-driven",
+    "workflow_profile_compatibility_fallback": false,
+    "workflow_profile_source": "change_create",
+    "workflow_profile_version": 1
+  },
+  "diagnostics": [],
+  "non_claims": [
+    "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+    "a machine envelope does not prove nested evidence truth or command correctness",
+    "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+    "a machine envelope does not prove lifecycle readiness or release eligibility",
+    "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+  ]
+}

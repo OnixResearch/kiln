@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "cairn-gate": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787289025,
+        "narHash": "sha256-r6maRgum3TeE17B/prR6ixA4R5CuLdEOAN8CWAD+zMg=",
+        "ref": "refs/heads/main",
+        "rev": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+        "revCount": 419,
+        "type": "git",
+        "url": "ssh://git@github.com/OnixResearch/cairn.git"
+      },
+      "original": {
+        "rev": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+        "type": "git",
+        "url": "ssh://git@github.com/OnixResearch/cairn.git"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1785967620,
@@ -18,6 +35,7 @@
     },
     "root": {
       "inputs": {
+        "cairn-gate": "cairn-gate",
         "nixpkgs": "nixpkgs",
         "rust-overlay": "rust-overlay"
       }

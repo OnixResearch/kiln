@@ -7,6 +7,10 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    cairn-gate = {
+      url = "git+ssh://git@github.com/OnixResearch/cairn.git?rev=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f";
+      flake = false;
+    };
   };
 
   outputs =
@@ -14,6 +18,7 @@
       self,
       nixpkgs,
       rust-overlay,
+      cairn-gate,
     }:
     let
       systems = [
@@ -147,6 +152,7 @@
             nickel export config/cob-profiles.ncl >/dev/null
             nickel export config/git-source-profile.ncl >/dev/null
             nickel export config/lattice-workflow-profile.ncl >/dev/null
+            nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
@@ -157,9 +163,12 @@
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
+            nickel export config/fixtures/cairn-gate-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
+            nickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
+            nickel export fixtures/cairn/gate-machine/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
             nickel export evidence/publication-receipt.ncl >/dev/null
             nickel export evidence/release-input.ncl >/dev/null
@@ -169,6 +178,14 @@
                 exit 1
               fi
             done
+            touch "$out"
+          '';
+          cairn-gate-cohort = pkgs.runCommand "kiln-cairn-gate-cohort" { } ''
+            test '${cairn-gate.rev}' = '15f00875562025e7ea7e0d1f4af24d1a2e2ac06f'
+            cmp ${cairn-gate}/fixtures/cairn-gate-contract/producer/fixtures-v1.json \
+              ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/producer-fixtures-v1.json
+            cmp ${cairn-gate}/contracts/cairn-gate-contract.ncl \
+              ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/contract.ncl
             touch "$out"
           '';
           release-evidence =

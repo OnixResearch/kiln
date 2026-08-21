@@ -10,6 +10,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - versioned provider capability admission;
 - bounded read-only source snapshots from local Git repositories;
 - versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
+- exact Cairn gate request, process, result, and reconciliation admission;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
 - Radicle broker compatibility;
@@ -25,7 +26,7 @@ cargo test --workspace
 cargo run -p kiln-cli -- demo
 ```
 
-Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice.
+Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation.
 
 ## Owned boundary
 
@@ -116,7 +117,8 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Radicle CI](https://radicle-ci.liw.fi/) — node-local event filtering, CI-engine adapters, and decentralized operation.
 - [Radicle CI broker architecture](https://radicle-ci-broker.liw.fi/architecture.html) — event normalization and adapter process boundaries.
 - [Radicle native CI](https://radicle.network/nodes/radicle.liw.fi/rad%3Az3qg5TKmN83afz2fj9z3fQjU8vaYE) — compatibility protocol and trusted local runner reference.
-- [Cairn](../cairn) — lifecycle, Radicle COB profiles, typed conflict handling, preview-first mutation, and interoperability evidence reference. Kiln retains CI identity and state authority.
+- [Cairn](https://github.com/OnixResearch/cairn) — lifecycle and gate-interchange producer at revision `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`. Kiln retains CI identity, process policy, gate composition, and state authority.
+- [Bounded Exec](https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git) — bounded process mechanism at revision `29dac88ecded94457572db3fdfaaaab95fa91525`. Kiln retains executable authorization, output meaning, evidence, and retry policy.
 - [Choregraph](../choregraph) — bounded execution-graph and pure transition reference.
 - [Zuul](https://zuul-ci.org/) — exact candidate sets, speculative gates, dependency queues, and frozen repository state.
 - [Concourse](https://concourse-ci.org/) — versioned resource discovery, pinning, acquisition, and mutation separation.

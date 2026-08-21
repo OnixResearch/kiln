@@ -46,10 +46,10 @@ let Profile = {
     {
       id = "cairn-gate-v1",
       role = "gate",
-      source_revision = "837d730799faffe6a088cfd6dc49e08c7e0f1822",
+      source_revision = "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
       capabilities = ["evaluate"],
       unsupported_capabilities = ["ci_state", "merge", "release_execution"],
-      authority_boundary = "Cairn owns lifecycle gates; Kiln owns candidate and CI state only",
+      authority_boundary = "Cairn owns lifecycle gate meaning; Kiln owns candidate identity, process policy, gate composition, and CI state", 
     },
     {
       id = "choregraph-intake-v1",

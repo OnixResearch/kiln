@@ -1,5 +1,6 @@
 use kiln_core::cob::{CobEffectPlan, CobObservation};
 use kiln_core::domain::Outcome;
+use kiln_core::gating::{GateEffectPlan, GateEvaluationObservation};
 use kiln_core::operations::{JournalRecord, OutboxRecord};
 use kiln_core::provider::{
     CapabilityProfile, ProviderFailureClass, ProviderFailureDisposition, ProviderObservation,
@@ -311,7 +312,12 @@ pub trait NotificationPort {
 }
 
 pub trait EvidencePort: ProviderPort {}
-pub trait GatePort: ProviderPort {}
+
+pub trait GatePort {
+    fn profile(&self) -> &CapabilityProfile;
+    fn evaluate(&mut self, plan: &GateEffectPlan) -> PortResult<GateEvaluationObservation>;
+    fn reconcile(&mut self, plan: &GateEffectPlan) -> PortResult<GateEvaluationObservation>;
+}
 
 pub fn role_matches_port(profile: &CapabilityProfile, expected: ProviderRole) -> CoreResult<()> {
     if profile.role != expected {

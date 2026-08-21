@@ -437,13 +437,13 @@
           ]
         },
         {
-          "authority_boundary": "Cairn owns lifecycle gates; Kiln owns candidate and CI state only",
+          "authority_boundary": "Cairn owns lifecycle gate meaning; Kiln owns candidate identity, process policy, gate composition, and CI state",
           "capabilities": [
             "evaluate"
           ],
           "id": "cairn-gate-v1",
           "role": "gate",
-          "source_revision": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
+          "source_revision": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
           "unsupported_capabilities": [
             "ci_state",
             "merge",
@@ -466,7 +466,7 @@
       ]
     }
   },
-  "receipt_hash": "e86a17559646f72bff3eb402d560967fb1a4e3a722f69480c7c8be8d95eba9c7",
+  "receipt_hash": "62fac427538b6cec55b7621038f033b42bfa0189c1e7c8b58cdefc34640943e3",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

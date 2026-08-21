@@ -9,6 +9,7 @@ members = [
   "crates/kiln-adapter-jj",
   "crates/kiln-adapter-git",
   "crates/kiln-adapter-lattice",
+  "crates/kiln-adapter-cairn",
   "crates/kiln-adapter-remote",
   "crates/kiln-adapter-cdevents",
   "crates/kiln-adapter-opentelemetry",
@@ -35,6 +36,8 @@ rusqlite = { version = "=0.40.2", default-features = false, features = ["backup"
 git2 = { version = "=0.20.2", default-features = false, features = ["vendored-libgit2"] }
 lattice-workflow-contract = { git = "ssh://git@github.com/OnixResearch/lattice.git", rev = "70496e67c7fd4a8b05914161a8e09de2759bebc8" }
 lattice-workflow-transport = { git = "ssh://git@github.com/OnixResearch/lattice.git", rev = "70496e67c7fd4a8b05914161a8e09de2759bebc8" }
+cairn-gate-contract = { git = "ssh://git@github.com/OnixResearch/cairn.git", rev = "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f" }
+bounded-exec = { git = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git", rev = "29dac88ecded94457572db3fdfaaaab95fa91525" }
 kiln-core = { path = "crates/kiln-core" }
 kiln-provider-api = { path = "crates/kiln-provider-api" }
 kiln-codec = { path = "crates/kiln-codec" }
@@ -44,6 +47,7 @@ kiln-adapter-cob = { path = "crates/kiln-adapter-cob" }
 kiln-adapter-jj = { path = "crates/kiln-adapter-jj" }
 kiln-adapter-git = { path = "crates/kiln-adapter-git" }
 kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
+kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
 valence-core = { git = "ssh://git@github.com/OnixResearch/valence.git", rev = "220307a371e7bc4e3309447b09447d0fe6c4db5f", package = "valence-core" }
 

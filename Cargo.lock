@@ -77,10 +77,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "bounded-exec"
+version = "0.1.0"
+source = "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525"
+dependencies = [
+ "bounded-exec-core",
+ "nix 0.30.1",
+]
+
+[[package]]
+name = "bounded-exec-core"
+version = "0.1.0"
+source = "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525"
+
+[[package]]
 name = "bytemuck"
 version = "1.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797"
+
+[[package]]
+name = "cairn-gate-contract"
+version = "0.1.0"
+source = "git+ssh://git@github.com/OnixResearch/cairn.git?rev=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f#15f00875562025e7ea7e0d1f4af24d1a2e2ac06f"
+dependencies = [
+ "blake3",
+ "serde",
+]
 
 [[package]]
 name = "cc"
@@ -359,6 +382,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-cairn"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "bounded-exec",
+ "cairn-gate-contract",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-cdevents"
 version = "0.1.0"
 dependencies = [
@@ -559,7 +597,7 @@ dependencies = [
  "base64 0.22.1",
  "blake3",
  "lattice-workflow-contract",
- "nix",
+ "nix 0.31.3",
  "serde",
  "serde_json",
 ]
@@ -642,6 +680,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "nix"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
+dependencies = [
+ "bitflags",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
 ]
 
 [[package]]

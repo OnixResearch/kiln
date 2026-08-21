@@ -3,8 +3,8 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::types::{
-    CandidateId, ContentId, CoreResult, Diagnostic, ExternalRef, PipelineRevisionId, PolicyId,
-    ProviderProfileId,
+    BoundedText, CandidateId, ContentId, CoreResult, Diagnostic, EffectId, ExternalRef,
+    PipelineRevisionId, PolicyId, ProviderProfileId,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -262,8 +262,188 @@ pub fn admit_merge(
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LifecycleGateStage {
+    Proposal,
+    Design,
+    Tasks,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GateTarget {
+    pub change: ExternalRef,
+    pub stage: LifecycleGateStage,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GateEffectPlan {
+    pub effect_id: EffectId,
+    pub idempotency_key: ContentId,
+    pub candidate: CandidateSet,
+    pub candidate_root: ContentId,
+    pub pipeline_revision: PipelineRevisionId,
+    pub policy_identity: ContentId,
+    pub evidence_identities: Vec<ContentId>,
+    pub provider_profile: ProviderProfileId,
+    pub target: GateTarget,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GateEvaluationOutcome {
+    Passed,
+    Blocked,
+    PolicyError,
+    ProviderError,
+    TimedOut,
+    Cancelled,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GateFinding {
+    pub code: BoundedText,
+    pub message: BoundedText,
+    pub scope: BoundedText,
+    pub promoted: BoundedText,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GateEvaluationObservation {
+    pub effect_id: EffectId,
+    pub idempotency_key: ContentId,
+    pub candidate_id: CandidateId,
+    pub candidate_root: ContentId,
+    pub pipeline_revision: PipelineRevisionId,
+    pub policy_identity: ContentId,
+    pub evidence_identities: Vec<ContentId>,
+    pub provider_profile: ProviderProfileId,
+    pub target: GateTarget,
+    pub outcome: GateEvaluationOutcome,
+    pub result_identity: Option<ContentId>,
+    pub receipt_identity: Option<ContentId>,
+    pub findings: Vec<GateFinding>,
+}
+
+// r[impl kiln.cairn_gate.request]
+pub fn validate_gate_effect_plan(
+    plan: &GateEffectPlan,
+    max_changes: usize,
+    max_edges: usize,
+    max_evidence: usize,
+) -> CoreResult<()> {
+    validate_candidate_set(&plan.candidate, max_changes, max_edges)?;
+    plan.target.change.validate()?;
+    if plan.evidence_identities.len() > max_evidence {
+        return Err(Diagnostic::new(
+            "gate_evidence_bound",
+            "gate.evidence_identities",
+            "gate evidence count exceeds its named bound",
+        ));
+    }
+    let mut previous = None;
+    for identity in &plan.evidence_identities {
+        if previous.is_some_and(|previous| previous >= identity) {
+            return Err(Diagnostic::new(
+                "gate_evidence_order",
+                "gate.evidence_identities",
+                "gate evidence identities must be sorted and unique",
+            ));
+        }
+        previous = Some(identity);
+    }
+    if plan
+        .candidate
+        .ordered_changes
+        .iter()
+        .any(|change| change.pipeline_revision != plan.pipeline_revision)
+    {
+        return Err(Diagnostic::new(
+            "gate_pipeline_revision",
+            "gate.pipeline_revision",
+            "gate pipeline revision differs from a candidate change",
+        ));
+    }
+    Ok(())
+}
+
+// r[impl kiln.cairn_gate.result]
+pub fn admit_gate_evaluation(
+    plan: &GateEffectPlan,
+    observation: &GateEvaluationObservation,
+) -> CoreResult<()> {
+    if observation.effect_id != plan.effect_id
+        || observation.idempotency_key != plan.idempotency_key
+        || observation.candidate_id != plan.candidate.id
+        || observation.candidate_root != plan.candidate_root
+        || observation.pipeline_revision != plan.pipeline_revision
+        || observation.policy_identity != plan.policy_identity
+        || observation.evidence_identities != plan.evidence_identities
+        || observation.provider_profile != plan.provider_profile
+        || observation.target != plan.target
+    {
+        return Err(Diagnostic::new(
+            "gate_observation_substitution",
+            "gate.observation",
+            "gate observation does not apply to the exact effect plan",
+        ));
+    }
+    let has_result = observation.result_identity.is_some();
+    let has_receipt = observation.receipt_identity.is_some();
+    match observation.outcome {
+        GateEvaluationOutcome::Passed
+            if has_result && has_receipt && observation.findings.is_empty() => {}
+        GateEvaluationOutcome::Blocked
+            if has_result && has_receipt && !observation.findings.is_empty() => {}
+        GateEvaluationOutcome::PolicyError
+        | GateEvaluationOutcome::ProviderError
+        | GateEvaluationOutcome::TimedOut
+        | GateEvaluationOutcome::Cancelled
+        | GateEvaluationOutcome::Unknown
+            if !has_result && !has_receipt => {}
+        GateEvaluationOutcome::Passed
+        | GateEvaluationOutcome::Blocked
+        | GateEvaluationOutcome::PolicyError
+        | GateEvaluationOutcome::ProviderError
+        | GateEvaluationOutcome::TimedOut
+        | GateEvaluationOutcome::Cancelled
+        | GateEvaluationOutcome::Unknown => {
+            return Err(Diagnostic::new(
+                "gate_observation_contradiction",
+                "gate.observation.outcome",
+                "gate outcome contradicts its receipt or finding facts",
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub fn gate_result_from_evaluation(
+    plan: &GateEffectPlan,
+    observation: &GateEvaluationObservation,
+) -> CoreResult<Option<GateResult>> {
+    admit_gate_evaluation(plan, observation)?;
+    let passed = match observation.outcome {
+        GateEvaluationOutcome::Passed => true,
+        GateEvaluationOutcome::Blocked => false,
+        GateEvaluationOutcome::PolicyError
+        | GateEvaluationOutcome::ProviderError
+        | GateEvaluationOutcome::TimedOut
+        | GateEvaluationOutcome::Cancelled
+        | GateEvaluationOutcome::Unknown => return Ok(None),
+    };
+    Ok(Some(GateResult {
+        candidate_id: plan.candidate.id.clone(),
+        policy_id: plan.candidate.policy_id.clone(),
+        passed,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use super::*;
 
     const FLOOR: usize = 1;
@@ -313,5 +493,166 @@ mod tests {
             result.candidate_id,
             CandidateId::new("candidate-b").unwrap_or_else(|_| unreachable!())
         );
+    }
+
+    const MAX_CHANGES: usize = 8;
+    const MAX_EDGES: usize = 16;
+    const MAX_EVIDENCE: usize = 8;
+    const IDENTITY_HEX_BYTES: usize = 64;
+
+    fn content(character: char) -> ContentId {
+        ContentId::from_blake3_hex(character.to_string().repeat(IDENTITY_HEX_BYTES))
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    fn candidate() -> CandidateSet {
+        let pipeline_revision =
+            PipelineRevisionId::new("pipeline-a").unwrap_or_else(|_| unreachable!());
+        let change =
+            ExternalRef::new("source", "change", "change-a").unwrap_or_else(|_| unreachable!());
+        CandidateSet {
+            id: CandidateId::new("candidate-a").unwrap_or_else(|_| unreachable!()),
+            ordered_changes: alloc::vec![CandidateChange {
+                change: change.clone(),
+                target_revision: ExternalRef::new("source", "revision", "revision-a")
+                    .unwrap_or_else(|_| unreachable!()),
+                source_snapshot: content('a'),
+                pipeline_revision,
+                collaboration_provider: ProviderProfileId::new("collaboration-a")
+                    .unwrap_or_else(|_| unreachable!()),
+            }],
+            dependencies: Vec::new(),
+            frozen_sources: BTreeMap::from([(change, content('a'))]),
+            policy_id: PolicyId::new("policy-a").unwrap_or_else(|_| unreachable!()),
+        }
+    }
+
+    fn gate_plan() -> GateEffectPlan {
+        GateEffectPlan {
+            effect_id: EffectId::new("gate-effect-a").unwrap_or_else(|_| unreachable!()),
+            idempotency_key: content('b'),
+            candidate: candidate(),
+            candidate_root: content('c'),
+            pipeline_revision: PipelineRevisionId::new("pipeline-a")
+                .unwrap_or_else(|_| unreachable!()),
+            policy_identity: content('d'),
+            evidence_identities: alloc::vec![content('e'), content('f')],
+            provider_profile: ProviderProfileId::new("cairn-gate-v1")
+                .unwrap_or_else(|_| unreachable!()),
+            target: GateTarget {
+                change: ExternalRef::new("cairn", "change", "change-a")
+                    .unwrap_or_else(|_| unreachable!()),
+                stage: LifecycleGateStage::Tasks,
+            },
+        }
+    }
+
+    fn gate_observation(outcome: GateEvaluationOutcome) -> GateEvaluationObservation {
+        let plan = gate_plan();
+        let has_receipt = matches!(
+            outcome,
+            GateEvaluationOutcome::Passed | GateEvaluationOutcome::Blocked
+        );
+        GateEvaluationObservation {
+            effect_id: plan.effect_id,
+            idempotency_key: plan.idempotency_key,
+            candidate_id: plan.candidate.id,
+            candidate_root: plan.candidate_root,
+            pipeline_revision: plan.pipeline_revision,
+            policy_identity: plan.policy_identity,
+            evidence_identities: plan.evidence_identities,
+            provider_profile: plan.provider_profile,
+            target: plan.target,
+            outcome,
+            result_identity: has_receipt.then(|| content('1')),
+            receipt_identity: has_receipt.then(|| content('2')),
+            findings: if outcome == GateEvaluationOutcome::Blocked {
+                alloc::vec![GateFinding {
+                    code: BoundedText::new("cairn.gate.blocked", 128, "finding.code")
+                        .unwrap_or_else(|_| unreachable!()),
+                    message: BoundedText::new("gate blocked", 128, "finding.message")
+                        .unwrap_or_else(|_| unreachable!()),
+                    scope: BoundedText::new("lifecycle", 128, "finding.scope")
+                        .unwrap_or_else(|_| unreachable!()),
+                    promoted: BoundedText::new("gate", 128, "finding.promoted")
+                        .unwrap_or_else(|_| unreachable!()),
+                }]
+            } else {
+                Vec::new()
+            },
+        }
+    }
+
+    // r[verify kiln.cairn_gate.request.scenario.valid]
+    #[test]
+    fn exact_gate_plan_is_admitted() {
+        assert_eq!(
+            validate_gate_effect_plan(&gate_plan(), MAX_CHANGES, MAX_EDGES, MAX_EVIDENCE),
+            Ok(())
+        );
+    }
+
+    // r[verify kiln.cairn_gate.request.scenario.evidence]
+    #[test]
+    fn gate_plan_rejects_noncanonical_evidence_and_pipeline_drift() {
+        let mut evidence = gate_plan();
+        evidence.evidence_identities.reverse();
+        assert!(
+            validate_gate_effect_plan(&evidence, MAX_CHANGES, MAX_EDGES, MAX_EVIDENCE).is_err()
+        );
+
+        let mut pipeline = gate_plan();
+        pipeline.pipeline_revision =
+            PipelineRevisionId::new("pipeline-b").unwrap_or_else(|_| unreachable!());
+        assert!(
+            validate_gate_effect_plan(&pipeline, MAX_CHANGES, MAX_EDGES, MAX_EVIDENCE).is_err()
+        );
+    }
+
+    // r[verify kiln.cairn_gate.result.scenario.pass]
+    #[test]
+    fn exact_pass_and_block_map_to_candidate_results() {
+        let plan = gate_plan();
+        let pass = gate_observation(GateEvaluationOutcome::Passed);
+        let block = gate_observation(GateEvaluationOutcome::Blocked);
+        assert_eq!(admit_gate_evaluation(&plan, &pass), Ok(()));
+        assert_eq!(admit_gate_evaluation(&plan, &block), Ok(()));
+        assert_eq!(
+            gate_result_from_evaluation(&plan, &pass)
+                .map(|result| result.map(|value| value.passed)),
+            Ok(Some(true))
+        );
+        assert_eq!(
+            gate_result_from_evaluation(&plan, &block)
+                .map(|result| result.map(|value| value.passed)),
+            Ok(Some(false))
+        );
+    }
+
+    // r[verify kiln.cairn_gate.result.scenario.stale]
+    // r[verify kiln.cairn_gate.reconciliation.scenario.policy]
+    #[test]
+    fn substituted_candidate_policy_and_receipt_facts_fail_closed() {
+        let plan = gate_plan();
+        let mut candidate = gate_observation(GateEvaluationOutcome::Passed);
+        candidate.candidate_root = content('9');
+        assert!(admit_gate_evaluation(&plan, &candidate).is_err());
+
+        let mut policy = gate_observation(GateEvaluationOutcome::Passed);
+        policy.policy_identity = content('9');
+        assert!(admit_gate_evaluation(&plan, &policy).is_err());
+
+        let mut contradiction = gate_observation(GateEvaluationOutcome::Unknown);
+        contradiction.receipt_identity = Some(content('9'));
+        assert!(admit_gate_evaluation(&plan, &contradiction).is_err());
+    }
+
+    // r[verify kiln.cairn_gate.reconciliation.scenario.unknown]
+    #[test]
+    fn unknown_outcome_never_becomes_a_gate_result() {
+        let plan = gate_plan();
+        let unknown = gate_observation(GateEvaluationOutcome::Unknown);
+        assert_eq!(admit_gate_evaluation(&plan, &unknown), Ok(()));
+        assert_eq!(gate_result_from_evaluation(&plan, &unknown), Ok(None));
     }
 }

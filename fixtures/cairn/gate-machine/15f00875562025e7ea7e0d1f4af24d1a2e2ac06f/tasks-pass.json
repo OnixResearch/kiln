@@ -1,0 +1,120 @@
+{
+  "schema_version": "cairn.cli-machine.v1",
+  "ok": true,
+  "command": "gate",
+  "exit_class": "success",
+  "result": {
+    "acceptance_ids": [],
+    "change": "add-cairn-gate-adapter",
+    "evidence_summary": {
+      "docs_only": 0,
+      "fixture": 0,
+      "formal": 0,
+      "mode": "advisory",
+      "model": 0,
+      "probe": 0,
+      "property": 0
+    },
+    "input_hash": "a4ed8512c7870669a7f5d4059495ea409db3629167e52fd1f050379250a506b3",
+    "issues": [],
+    "layout": "cairn",
+    "non_claims": [
+      "workflow state proves only the selected policy graph and observed structural artifact facts",
+      "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+      "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+      "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+    ],
+    "policy": "kiln-default",
+    "policy_hash": "be930a118f405d176ea56de5c72ba05b8061ab3a4f996113cde505710cce5c74",
+    "probe_evidence": {
+      "declarations_present": false,
+      "probes": []
+    },
+    "profile_identity_hash": "048fc6f2b4bd8d5837e744c3d73a92c4c9a7114e5cdb69db3f6fed6c6636f54b",
+    "receipt_hash": "ae357e312384b06bd6102c949ba39ef4fb5cf68d7ec74e37595f0c0dd5636828",
+    "review_receipt_hashes": [],
+    "spec_effect": "delta",
+    "stage": "tasks",
+    "substance": [
+      {
+        "checkbox_tasks": 0,
+        "kind": "design",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/design.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 18,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "proposal",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/proposal.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 15,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "delta_spec",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/specs/cairn-gate-adapter/spec.md",
+        "requirement_blocks": 6,
+        "scenario_blocks": 10,
+        "substantive_lines": 36,
+        "substantive_requirement_blocks": 6,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 13,
+        "kind": "tasks",
+        "malformed_dependency_markers": 0,
+        "path": "/tmp/kiln-cairn-machine-fixture/.cairn/changes/add-cairn-gate-adapter/tasks.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 13,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 13,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 13
+      }
+    ],
+    "task_ordering": {
+      "active": false,
+      "edges": [],
+      "issues": [],
+      "nodes": [],
+      "order": [],
+      "ready_tasks": [],
+      "valid": true
+    },
+    "valid": true,
+    "verdict": "PASS",
+    "workflow_profile": "spec-driven",
+    "workflow_profile_compatibility_fallback": false,
+    "workflow_profile_source": "change_create",
+    "workflow_profile_version": 1
+  },
+  "diagnostics": [],
+  "non_claims": [
+    "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+    "a machine envelope does not prove nested evidence truth or command correctness",
+    "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+    "a machine envelope does not prove lifecycle readiness or release eligibility",
+    "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+  ]
+}

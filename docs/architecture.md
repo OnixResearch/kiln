@@ -13,6 +13,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-jj` | Jujutsu source-provider compatibility. |
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
 | `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
+| `kiln-adapter-cairn` | Exact Cairn gate lowering, bounded execution, result admission, and reconciliation. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Radicle broker protocol compatibility. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
@@ -26,7 +27,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 
-`kiln-provider-api` owns the source-repository, collaboration-mutation, workflow-execution, workflow-exchange, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
+`kiln-provider-api` owns the source-repository, collaboration-mutation, workflow-execution, workflow-exchange, gate-evaluation, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
 
 Each port returns typed domain or infrastructure failures. Timeout, cancellation, and unknown results stay distinct until an application shell applies retry policy.
 
@@ -56,6 +57,8 @@ Provider references include a namespace, native kind, and native value. Equal pr
 Source discovery, exact resolution, acquisition, and mutation use separate operations. An evaluation keeps its exact resolved revision and tree identity.
 
 A candidate set binds ordered changes, dependencies, target revisions, snapshots, pipeline revisions, and gate policy. A moved target creates a new candidate.
+
+A gate effect binds the candidate root, pipeline revision, policy identity, sorted evidence set, provider profile, effect, and native target. The core admits exact provider observations before it maps pass or block into a candidate result.
 
 A merge result creates only a collaboration effect request. The collaboration provider keeps merge authority.
 
