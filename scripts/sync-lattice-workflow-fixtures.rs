@@ -9,7 +9,7 @@ const EXPECTED_CHECK_ARGUMENT_COUNT: usize = 3;
 const SOURCE_ARGUMENT_INDEX: usize = 1;
 const MODE_ARGUMENT_INDEX: usize = 2;
 const CHECK_MODE: &str = "--check";
-const EXPECTED_REVISION: &str = "e3148ec59fa12081c270d9800a060d94214b9405";
+const EXPECTED_REVISION: &str = "70496e67c7fd4a8b05914161a8e09de2759bebc8";
 const SOURCE_URL: &str = "ssh://git@github.com/OnixResearch/lattice.git";
 const SOURCE_FIXTURE: &str = "crates/lattice-workflow-contract/fixtures/producer-fixtures-v1.json";
 const SOURCE_TRANSPORT_FIXTURE: &str =
@@ -20,7 +20,7 @@ const SOURCE_LICENSE: &str = "crates/lattice-workflow-contract/LICENSE";
 const SOURCE_MANIFEST: &str = "crates/lattice-workflow-contract/Cargo.toml";
 const SOURCE_TRANSPORT_MANIFEST: &str = "crates/lattice-workflow-contract/transport/Cargo.toml";
 const DESTINATION_DIRECTORY: &str =
-    "fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405";
+    "fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8";
 const DESTINATION_FIXTURE: &str = "producer-fixtures-v1.json";
 const DESTINATION_TRANSPORT_FIXTURE: &str = "transport-producer-fixtures-v1.json";
 const DESTINATION_RECOVERY_FIXTURE: &str = "recovery-fixtures-v1.json";

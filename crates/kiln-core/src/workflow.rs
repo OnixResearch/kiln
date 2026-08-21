@@ -53,6 +53,13 @@ pub struct WorkflowBounds {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct WorkflowSourceContext {
+    pub provider: Alias,
+    pub repository: ExternalRef,
+    pub revision: ExternalRef,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkflowEffectPlan {
     pub effect_id: EffectId,
     pub attempt_id: AttemptId,
@@ -62,6 +69,7 @@ pub struct WorkflowEffectPlan {
     pub provider_profile: ProviderProfileId,
     pub idempotency_key: ContentId,
     pub platform: Alias,
+    pub source: Option<WorkflowSourceContext>,
     pub nodes: Vec<WorkflowNode>,
     pub edges: Vec<WorkflowEdge>,
     pub controls: WorkflowControls,

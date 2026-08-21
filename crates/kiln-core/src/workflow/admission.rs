@@ -37,6 +37,21 @@ pub fn validate_workflow_plan(plan: &WorkflowEffectPlan) -> CoreResult<()> {
             "workflow graph exceeds its named bounds",
         ));
     }
+    if let Some(source) = &plan.source {
+        source.repository.validate()?;
+        source.revision.validate()?;
+        if source.repository.provider_namespace.as_str() != source.provider.as_str()
+            || source.revision.provider_namespace.as_str() != source.provider.as_str()
+            || source.repository.native_kind.as_str() != "repository"
+            || source.revision.native_kind.as_str() != "revision"
+        {
+            return Err(error(
+                "workflow_source_context",
+                "workflow.source",
+                "workflow source context has inconsistent provider or native kinds",
+            ));
+        }
+    }
     if !ordered_by(&plan.nodes, |node| &node.id) || !ordered(&plan.edges) {
         return Err(error(
             "workflow_graph_order",

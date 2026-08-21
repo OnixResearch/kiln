@@ -10,7 +10,7 @@ let Source = {
 ({
   schema = "kiln.lattice-workflow-fixture-source.v1",
   repository = "ssh://git@github.com/OnixResearch/lattice.git",
-  revision = "e3148ec59fa12081c270d9800a060d94214b9405",
+  revision = "70496e67c7fd4a8b05914161a8e09de2759bebc8",
   crate = "lattice-workflow-contract",
   license = "MIT",
   fixture = "producer-fixtures-v1.json",

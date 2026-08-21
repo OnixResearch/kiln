@@ -3,13 +3,13 @@ use std::collections::BTreeMap;
 use kiln_codec::identity_from_bytes;
 use kiln_core::domain::Outcome;
 use kiln_core::types::{
-    Alias, AttemptId, CandidateId, ContentId, EffectId, PipelineRevisionId, PolicyId,
+    Alias, AttemptId, CandidateId, ContentId, EffectId, ExternalRef, PipelineRevisionId, PolicyId,
     ProviderProfileId,
 };
 use kiln_core::workflow::{
     WorkflowBounds, WorkflowControlAction, WorkflowControlRequest, WorkflowControls, WorkflowEdge,
     WorkflowEffectClass, WorkflowEffectPlan, WorkflowLogReadRequest, WorkflowLogStream,
-    WorkflowNode, WorkflowState,
+    WorkflowNode, WorkflowSourceContext, WorkflowState,
 };
 use kiln_provider_api::{
     InfrastructureFailure, PortFailure, PortResult, WorkflowExchangeOperation,
@@ -210,6 +210,7 @@ fn plan() -> WorkflowEffectPlan {
         provider_profile: ProviderProfileId::new("lattice-v1").unwrap_or_else(|_| unreachable!()),
         idempotency_key: content('0'),
         platform: alias(PINNED_LATTICE_PLATFORM),
+        source: None,
         nodes: vec![
             WorkflowNode {
                 id: alias("build"),
@@ -352,6 +353,30 @@ fn request_lowering_is_deterministic() {
 
 // r[verify kiln.lattice.profile.scenario.node]
 #[test]
+fn source_context_preserves_mixed_case_provider_identity() {
+    let profile = profile();
+    let mut plan = plan();
+    plan.source = Some(WorkflowSourceContext {
+        provider: alias("radicle"),
+        repository: ExternalRef::new("radicle", "repository", "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE")
+            .unwrap_or_else(|_| unreachable!()),
+        revision: ExternalRef::new(
+            "radicle",
+            "revision",
+            "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+        )
+        .unwrap_or_else(|_| unreachable!()),
+    });
+
+    let request = lower_request(&profile, &plan).unwrap_or_else(|_| unreachable!());
+    let source = request.source.unwrap_or_else(|| unreachable!());
+    assert_eq!(
+        source.repository.as_str(),
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+    );
+}
+
+#[test]
 fn unsupported_node_fails_before_transport() {
     let mut plan = plan();
     let Some(node) = plan.nodes.first_mut() else {
@@ -382,6 +407,28 @@ fn dispatch_and_observe_preserve_linkage_and_complete() {
 }
 
 // r[verify kiln.lattice.reconciliation.scenario.disconnect]
+// r[verify kiln.lattice.transport_recovery]
+#[test]
+fn recovery_only_dispatch_never_sends_a_new_dispatch() {
+    let plan = plan();
+    let profile = profile();
+    let request = lower_request(&profile, &plan).unwrap_or_else(|_| unreachable!());
+    let accepted = accepted(&request);
+    let mut transport = FixtureTransport::default();
+    transport
+        .requests
+        .insert(request.identity.as_str().to_string(), (request, accepted));
+    let mut adapter = LatticeAdapter::new(profile, transport).unwrap_or_else(|_| unreachable!());
+
+    let recovered = adapter.recover_dispatch(&plan);
+
+    assert!(recovered.is_ok());
+    assert_eq!(
+        adapter.transport().exchanges,
+        vec![WorkflowExchangeOperation::RecoverDispatch]
+    );
+}
+
 #[test]
 fn disconnect_after_acceptance_stays_unknown_with_execution_identity() {
     let plan = plan();
@@ -510,7 +557,7 @@ struct RejectedProducerFixtures {
 #[test]
 fn pinned_producer_fixtures_pass_independent_consumer_admission() {
     let fixtures: ProducerFixtures = serde_json::from_str(include_str!(
-        "../../../fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405/producer-fixtures-v1.json"
+        "../../../fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/producer-fixtures-v1.json"
     ))
     .unwrap_or_else(|_| unreachable!());
     assert_eq!(

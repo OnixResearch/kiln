@@ -117,6 +117,33 @@ impl<T: WorkflowExchangePort> LatticeAdapter<T> {
         })
     }
 
+    fn remember_acceptance(
+        &mut self,
+        plan: &WorkflowEffectPlan,
+        request: WorkflowRequest,
+        response: WorkflowExchangeResponse,
+    ) -> PortResult<WorkflowObservation> {
+        let accepted: WorkflowAccepted = self.decode(&response.body)?;
+        let observation = accepted_observation(
+            plan,
+            &request,
+            &accepted,
+            response.disconnected_after_acceptance,
+        )?;
+        self.executions.insert(
+            plan.effect_id.clone(),
+            ExecutionRecord {
+                plan: plan.clone(),
+                request,
+                accepted,
+                last_sequence: 0,
+                last_observation_identity: None,
+                last_observation: observation.clone(),
+            },
+        );
+        Ok(observation)
+    }
+
     fn exchange_observation(
         &mut self,
         effect_id: &EffectId,
@@ -212,25 +239,24 @@ impl<T: WorkflowExchangePort> WorkflowPort for LatticeAdapter<T> {
             }
             Err(failure) => return Err(failure),
         };
-        let accepted: WorkflowAccepted = self.decode(&response.body)?;
-        let observation = accepted_observation(
-            plan,
-            &request,
-            &accepted,
-            response.disconnected_after_acceptance,
-        )?;
-        self.executions.insert(
-            plan.effect_id.clone(),
-            ExecutionRecord {
-                plan: plan.clone(),
-                request,
-                accepted,
-                last_sequence: 0,
-                last_observation_identity: None,
-                last_observation: observation.clone(),
-            },
-        );
-        Ok(observation)
+        self.remember_acceptance(plan, request, response)
+    }
+
+    // r[impl kiln.lattice.transport_recovery]
+    fn recover_dispatch(&mut self, plan: &WorkflowEffectPlan) -> PortResult<WorkflowObservation> {
+        let request = lower_request(&self.profile, plan)?;
+        if let Some(record) = self.executions.get(&plan.effect_id) {
+            if record.plan != *plan || record.request.identity != request.identity {
+                return Err(domain(
+                    "lattice_recovery_conflict",
+                    "lattice.request",
+                    "dispatch recovery differs from the accepted request",
+                ));
+            }
+            return Ok(record.last_observation.clone());
+        }
+        let response = self.exchange(WorkflowExchangeOperation::RecoverDispatch, &request)?;
+        self.remember_acceptance(plan, request, response)
     }
 
     fn observe(&mut self, effect_id: &EffectId) -> PortResult<WorkflowObservation> {

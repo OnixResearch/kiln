@@ -425,10 +425,15 @@ dependencies = [
 name = "kiln-adapter-radicle"
 version = "0.1.0"
 dependencies = [
+ "kiln-adapter-lattice",
+ "kiln-codec",
  "kiln-core",
  "kiln-provider-api",
+ "lattice-workflow-transport",
+ "rusqlite",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -540,7 +545,7 @@ dependencies = [
 [[package]]
 name = "lattice-workflow-contract"
 version = "0.1.0"
-source = "git+ssh://git@github.com/OnixResearch/lattice.git?rev=e3148ec59fa12081c270d9800a060d94214b9405#e3148ec59fa12081c270d9800a060d94214b9405"
+source = "git+ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67c7fd4a8b05914161a8e09de2759bebc8"
 dependencies = [
  "blake3",
  "serde",
@@ -549,7 +554,7 @@ dependencies = [
 [[package]]
 name = "lattice-workflow-transport"
 version = "0.1.0"
-source = "git+ssh://git@github.com/OnixResearch/lattice.git?rev=e3148ec59fa12081c270d9800a060d94214b9405#e3148ec59fa12081c270d9800a060d94214b9405"
+source = "git+ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67c7fd4a8b05914161a8e09de2759bebc8"
 dependencies = [
  "base64 0.22.1",
  "blake3",

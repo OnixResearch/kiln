@@ -147,6 +147,7 @@
             nickel export config/cob-profiles.ncl >/dev/null
             nickel export config/git-source-profile.ncl >/dev/null
             nickel export config/lattice-workflow-profile.ncl >/dev/null
+            nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
             nickel export config/opentelemetry-profile.ncl >/dev/null
@@ -156,8 +157,9 @@
             nickel export config/fixtures/positive.ncl >/dev/null
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
+            nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
-            nickel export fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405/source.ncl >/dev/null
+            nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
             nickel export evidence/publication-receipt.ncl >/dev/null
             nickel export evidence/release-input.ncl >/dev/null

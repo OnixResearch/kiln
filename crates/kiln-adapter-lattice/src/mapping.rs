@@ -10,8 +10,9 @@ use kiln_provider_api::{PortFailure, PortResult};
 use lattice_workflow_contract::{
     ExecutionObservation, ExecutionState, GRAPH_SCHEMA, Identity, KilnLinkage, Label, LogReference,
     LogStream, NodeObservation, NodeState, ObservationPolicy, REQUEST_SCHEMA, RequestedControls,
-    WorkflowAccepted, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowRequest, graph_identity,
-    profile_identity, request_identity, validate_accepted, validate_observation, validate_request,
+    SourceContext, SourceValue, WorkflowAccepted, WorkflowEdge, WorkflowGraph, WorkflowNode,
+    WorkflowRequest, graph_identity, profile_identity, request_identity, validate_accepted,
+    validate_observation, validate_request,
 };
 
 use crate::profile::LatticeProfile;
@@ -75,6 +76,17 @@ pub fn lower_request(
             pipeline_revision_identity: text_identity(plan.pipeline_revision_id.as_str())?,
             workflow_policy_identity: text_identity(plan.workflow_policy_id.as_str())?,
         },
+        source: plan
+            .source
+            .as_ref()
+            .map(|source| -> PortResult<SourceContext> {
+                Ok(SourceContext {
+                    provider: label(source.provider.as_str())?,
+                    repository: source_value(source.repository.native_id.as_str())?,
+                    revision: source_value(source.revision.native_id.as_str())?,
+                })
+            })
+            .transpose()?,
         graph,
         controls: RequestedControls {
             cancel: plan.controls.cancel,
@@ -341,6 +353,16 @@ fn zero_identity() -> PortResult<Identity> {
         infrastructure(
             "lattice_zero_identity",
             "Lattice placeholder identity is invalid",
+        )
+    })
+}
+
+fn source_value(value: &str) -> PortResult<SourceValue> {
+    SourceValue::new(value.to_string()).map_err(|_| {
+        domain(
+            "lattice_source_value",
+            "lattice.request.source",
+            "source value exceeds the contract bound or contains control bytes",
         )
     })
 }

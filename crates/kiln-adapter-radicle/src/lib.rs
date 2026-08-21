@@ -1,3 +1,12 @@
+pub mod defelo;
+mod profile;
+mod replay;
+mod workflow;
+
+pub use profile::*;
+pub use replay::*;
+pub use workflow::*;
+
 use kiln_core::trigger::{admit_trigger_poll_bound, admit_trigger_run_observation};
 use kiln_core::types::{Alias, CONTRACT_VERSION_V1, CoreResult, Diagnostic, ExternalRef};
 use kiln_provider_api::{
@@ -277,5 +286,22 @@ mod tests {
     fn rejects_stdout_noise_fields() {
         let input = PUSH.replace("\"patch\":null", "\"patch\":null,\"noise\":true");
         assert!(parse_trigger_line(&input).is_err());
+    }
+
+    // r[verify kiln.radicle.nonclaims]
+    // r[verify kiln.radicle.native_runner.scenario.shell]
+    #[test]
+    fn production_composition_has_no_fixture_direct_nix_or_core_provider_edge() {
+        let main_source = include_str!("main.rs");
+        let core_manifest = include_str!("../../kiln-core/Cargo.toml");
+        let provider_manifest = include_str!("../../kiln-provider-api/Cargo.toml");
+
+        assert!(!main_source.contains("LocalFixtureService"));
+        assert!(!main_source.contains("NixCheckService"));
+        assert!(!main_source.contains("std::process::Command"));
+        assert!(!core_manifest.contains("kiln-adapter-radicle"));
+        assert!(!core_manifest.contains("radicle-cob"));
+        assert!(!provider_manifest.contains("kiln-adapter-radicle"));
+        assert!(!provider_manifest.contains("radicle-cob"));
     }
 }

@@ -15,9 +15,9 @@ use lattice_workflow_contract::{
 use serde::{Deserialize, Serialize};
 
 pub const PINNED_LATTICE_SOURCE: &str = "ssh://git@github.com/OnixResearch/lattice.git";
-pub const PINNED_LATTICE_REVISION: &str = "e3148ec59fa12081c270d9800a060d94214b9405";
+pub const PINNED_LATTICE_REVISION: &str = "70496e67c7fd4a8b05914161a8e09de2759bebc8";
 pub const PINNED_LATTICE_CONTRACT_LICENSE: &str = "MIT";
-pub const PINNED_LATTICE_CONTRACT_SCHEMA: &str = "lattice.workflow-request.v1";
+pub const PINNED_LATTICE_CONTRACT_SCHEMA: &str = "lattice.workflow-request.v2";
 pub const PINNED_LATTICE_OBSERVATION_SCHEMA: &str = "lattice.workflow-observation.v1";
 pub const PINNED_LATTICE_GRAPH_SCHEMA: &str = GRAPH_SCHEMA;
 pub const PINNED_LATTICE_PLATFORM: &str = "linux-x86_64";

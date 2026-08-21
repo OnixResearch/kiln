@@ -67,6 +67,7 @@ pub trait WorkflowExchangePort {
 pub trait WorkflowPort {
     fn profile(&self) -> &CapabilityProfile;
     fn dispatch(&mut self, plan: &WorkflowEffectPlan) -> PortResult<WorkflowObservation>;
+    fn recover_dispatch(&mut self, plan: &WorkflowEffectPlan) -> PortResult<WorkflowObservation>;
     fn observe(&mut self, effect_id: &EffectId) -> PortResult<WorkflowObservation>;
     fn control(&mut self, request: &WorkflowControlRequest) -> PortResult<WorkflowObservation>;
     fn read_log(&mut self, request: &WorkflowLogReadRequest) -> PortResult<WorkflowLogChunk>;

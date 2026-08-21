@@ -14,11 +14,11 @@ let ExactSource = std.contract.from_predicate (fun value =>
   value == "ssh://git@github.com/OnixResearch/lattice.git"
 ) in
 let ExactRevision = std.contract.from_predicate (fun value =>
-  value == "e3148ec59fa12081c270d9800a060d94214b9405"
+  value == "70496e67c7fd4a8b05914161a8e09de2759bebc8"
 ) in
 let ExactLicense = std.contract.from_predicate (fun value => value == "MIT") in
 let RequestSchema = std.contract.from_predicate (fun value =>
-  value == "lattice.workflow-request.v1"
+  value == "lattice.workflow-request.v2"
 ) in
 let ObservationSchema = std.contract.from_predicate (fun value =>
   value == "lattice.workflow-observation.v1"
@@ -86,9 +86,9 @@ let TransportUserId = 1000 in
 
   profile | Profile = {
     source = "ssh://git@github.com/OnixResearch/lattice.git",
-    revision = "e3148ec59fa12081c270d9800a060d94214b9405",
+    revision = "70496e67c7fd4a8b05914161a8e09de2759bebc8",
     license = "MIT",
-    request_schema = "lattice.workflow-request.v1",
+    request_schema = "lattice.workflow-request.v2",
     observation_schema = "lattice.workflow-observation.v1",
     graph_schema = "lattice.workflow-graph.v1",
     endpoint_profile = "lattice-local-v1",

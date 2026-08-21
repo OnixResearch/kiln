@@ -35,6 +35,7 @@ fn plan() -> WorkflowEffectPlan {
         provider_profile: ProviderProfileId::new("lattice-v1").unwrap_or_else(|_| unreachable!()),
         idempotency_key: content('0'),
         platform: alias("linux-x86_64"),
+        source: None,
         nodes: vec![
             WorkflowNode {
                 id: alias("build"),

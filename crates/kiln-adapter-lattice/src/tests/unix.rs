@@ -147,7 +147,7 @@ struct RecoveryFixtures {
 #[test]
 fn pinned_recovery_fixtures_pass_producer_admission() {
     let fixtures: RecoveryFixtures = serde_json::from_str(include_str!(
-        "../../../../fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405/recovery-fixtures-v1.json"
+        "../../../../fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/recovery-fixtures-v1.json"
     ))
     .unwrap_or_else(|_| unreachable!());
     assert_eq!(

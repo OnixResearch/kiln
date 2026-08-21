@@ -5,7 +5,7 @@
 ## Pinned contract
 
 - Repository: `ssh://git@github.com/OnixResearch/lattice.git`
-- Revision: `e3148ec59fa12081c270d9800a060d94214b9405`
+- Revision: `70496e67c7fd4a8b05914161a8e09de2759bebc8`
 - Crates: `lattice-workflow-contract` and `lattice-workflow-transport`
 - License: `MIT`
 - Request: `lattice.workflow-request.v1`
@@ -14,7 +14,7 @@
 
 Cargo uses this exact Git revision. It does not use an ambient sibling checkout.
 
-The producer fixtures are under `fixtures/lattice/workflow-contract/e3148ec59fa12081c270d9800a060d94214b9405/`.
+The producer fixtures are under `fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/`.
 
 Refresh and check it with:
 
