@@ -3,13 +3,13 @@
 ## ADDED Requirements
 
 ### Requirement: Concrete Radicle shell profile
-r[kiln.radicle.shell_profile] Kiln MUST provide separate versioned Radicle profiles for source, trigger, status, and collaboration capabilities.
+r[kiln.radicle.shell_profile] Kiln MUST provide separate versioned Radicle profiles for source and trigger capabilities.
 
-#### Scenario: Deployment enables status only
+#### Scenario: Deployment enables source only
 r[kiln.radicle.shell_profile.scenario.narrow]
-- GIVEN a valid Radicle status profile without collaboration capability
+- GIVEN a valid Radicle source profile without trigger capability
 - WHEN provider admission runs
-- THEN Kiln MUST admit status operations and reject collaboration mutation.
+- THEN Kiln MUST admit source operations and reject trigger intake.
 
 #### Scenario: Production selects the fixture service
 r[kiln.radicle.shell_profile.scenario.fixture]
@@ -46,36 +46,6 @@ r[kiln.radicle.shell_trigger.scenario.replay]
 - GIVEN an admitted native event identity that arrives again
 - WHEN trigger intake runs
 - THEN Kiln MUST reject or classify the duplicate without creating another command.
-
-### Requirement: Rebuildable Radicle status
-r[kiln.radicle.shell_status] Radicle status publication MUST remain an idempotent rebuildable projection without canonical CI state authority.
-
-#### Scenario: Status write succeeds
-r[kiln.radicle.shell_status.scenario.success]
-- GIVEN a status effect bound to one exact attempt and idempotency key
-- WHEN the provider records the status
-- THEN Kiln MUST retain the native reference as a provider observation.
-
-#### Scenario: Connection fails after acceptance
-r[kiln.radicle.shell_status.scenario.unknown]
-- GIVEN a status request accepted before the connection fails
-- WHEN outcome classification runs
-- THEN Kiln MUST record an unknown outcome and require reconciliation.
-
-### Requirement: Explicit Radicle mutation authority
-r[kiln.radicle.shell_mutation] Collaboration mutation MUST use a fresh expected-head preflight and an explicitly supplied signer capability.
-
-#### Scenario: Expected heads match
-r[kiln.radicle.shell_mutation.scenario.authorized]
-- GIVEN an authorized plan whose expected heads still match
-- WHEN the shell reloads and dispatches the mutation
-- THEN it MAY sign and write the exact admitted operation.
-
-#### Scenario: Signer is ambient
-r[kiln.radicle.shell_mutation.scenario.ambient]
-- GIVEN a mutation plan without an explicit signer capability
-- WHEN mutation preflight runs
-- THEN Kiln MUST reject the effect before signing or writing.
 
 ### Requirement: Radicle shell conformance and non-claims
 r[kiln.radicle.shell_conformance] Maintained conformance MUST cover every enabled capability with positive and negative local fixtures.

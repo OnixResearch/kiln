@@ -4,16 +4,16 @@
 
 Kiln publishes Radicle broker-compatible messages, but the binary uses `LocalFixtureService`. That fixture returns success without a real Kiln run or provider observation.
 
-Radicle is Kiln's canonical repository host. Kiln needs a concrete shell for local Radicle source, trigger, status, and collaboration operations.
+Radicle is Kiln's canonical repository host. Kiln needs a concrete shell for local Radicle source and trigger operations.
+
+Status publication and collaboration mutation moved to the dedicated changes `publish-radicle-ci-status` and `mutate-radicle-cobs-single-writer`. This change keeps source acquisition, trigger intake, the shared capability profiles, and conformance.
 
 ## What Changes
 
 - Replace the fixture-only runtime path with an optional concrete Radicle shell.
-- Keep source, trigger, status, and collaboration capabilities in separate profiles.
+- Keep source and trigger capabilities in separate versioned profiles.
 - Bind source reads to exact repository, signed-reference, revision, and canonical tree identities.
 - Bind trigger intake to exact event, actor, repository, revision, and replay facts.
-- Publish status only as a rebuildable provider projection.
-- Require explicit operator authority for every collaboration mutation.
 - Preserve unknown outcomes after ambiguous transport or process failure.
 - Add typed Nickel profiles, named bounds, reconciliation, and conformance fixtures.
 - Keep `LocalFixtureService` only in test and example surfaces.
