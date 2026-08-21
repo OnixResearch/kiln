@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+pub mod build;
 pub mod cob;
 pub mod domain;
 pub mod gating;

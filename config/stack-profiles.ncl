@@ -14,8 +14,8 @@ let Profile = {
     {
       id = "mantle-build-v1",
       role = "build",
-      source_revision = "5dd6e8826e2934709e0b584ccf445a6fc5c57ba1",
-      capabilities = ["dispatch", "completion", "products", "metrics"],
+      source_revision = "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+      capabilities = ["dispatch", "observe", "cancel", "read_logs", "reconcile", "products", "metrics"],
       unsupported_capabilities = ["merge", "release"],
       authority_boundary = "Mantle owns build and cache observations; Kiln owns CI state only",
     },

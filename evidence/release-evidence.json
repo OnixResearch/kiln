@@ -383,13 +383,16 @@
           "authority_boundary": "Mantle owns build and cache observations; Kiln owns CI state only",
           "capabilities": [
             "dispatch",
-            "completion",
+            "observe",
+            "cancel",
+            "read_logs",
+            "reconcile",
             "products",
             "metrics"
           ],
           "id": "mantle-build-v1",
           "role": "build",
-          "source_revision": "5dd6e8826e2934709e0b584ccf445a6fc5c57ba1",
+          "source_revision": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
           "unsupported_capabilities": [
             "merge",
             "release"
@@ -466,7 +469,7 @@
       ]
     }
   },
-  "receipt_hash": "62fac427538b6cec55b7621038f033b42bfa0189c1e7c8b58cdefc34640943e3",
+  "receipt_hash": "4d712e4ade8f4460dd0a297e281e67bb438085c871620da73dd48dd9cb4be28c",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

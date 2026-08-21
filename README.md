@@ -11,6 +11,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - bounded read-only source snapshots from local Git repositories;
 - versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
 - exact Cairn gate request, process, result, and reconciliation admission;
+- exact Mantle build request, bounded process, product, log, and reconciliation admission;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
 - Radicle broker compatibility;
@@ -118,6 +119,7 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Radicle CI broker architecture](https://radicle-ci-broker.liw.fi/architecture.html) — event normalization and adapter process boundaries.
 - [Radicle native CI](https://radicle.network/nodes/radicle.liw.fi/rad%3Az3qg5TKmN83afz2fj9z3fQjU8vaYE) — compatibility protocol and trusted local runner reference.
 - [Cairn](https://github.com/OnixResearch/cairn) — lifecycle and gate-interchange producer at revision `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`. Kiln retains CI identity, process policy, gate composition, and state authority.
+- [Mantle](https://github.com/OnixResearch/mantle) — build-interchange producer at revision `0bbab77e23ab95caa4e4184b9945cfaa5c8040e2`. Kiln retains candidate truth, required-product meaning, CI state, retry policy, and release authority.
 - [Bounded Exec](https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git) — bounded process mechanism at revision `29dac88ecded94457572db3fdfaaaab95fa91525`. Kiln retains executable authorization, output meaning, evidence, and retry policy.
 - [Choregraph](../choregraph) — bounded execution-graph and pure transition reference.
 - [Zuul](https://zuul-ci.org/) — exact candidate sets, speculative gates, dependency queues, and frozen repository state.

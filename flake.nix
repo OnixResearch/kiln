@@ -11,6 +11,10 @@
       url = "git+ssh://git@github.com/OnixResearch/cairn.git?rev=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f";
       flake = false;
     };
+    mantle-build = {
+      url = "git+ssh://git@github.com/OnixResearch/mantle.git?rev=0bbab77e23ab95caa4e4184b9945cfaa5c8040e2";
+      flake = false;
+    };
   };
 
   outputs =
@@ -19,6 +23,7 @@
       nixpkgs,
       rust-overlay,
       cairn-gate,
+      mantle-build,
     }:
     let
       systems = [
@@ -153,6 +158,7 @@
             nickel export config/git-source-profile.ncl >/dev/null
             nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/cairn-gate-profile.ncl >/dev/null
+            nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
             nickel export config/cdevents-profile.ncl >/dev/null
@@ -164,11 +170,13 @@
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-gate-positive.ncl >/dev/null
+            nickel export config/fixtures/mantle-build-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-machine/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
+            nickel export fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/source.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
             nickel export evidence/publication-receipt.ncl >/dev/null
             nickel export evidence/release-input.ncl >/dev/null
@@ -186,6 +194,22 @@
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/producer-fixtures-v1.json
             cmp ${cairn-gate}/contracts/cairn-gate-contract.ncl \
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/contract.ncl
+            touch "$out"
+          '';
+          mantle-build-cohort = pkgs.runCommand "kiln-mantle-build-cohort" { nativeBuildInputs = [ pkgs.b3sum ]; } ''
+            test '${mantle-build.rev}' = '0bbab77e23ab95caa4e4184b9945cfaa5c8040e2'
+            cmp ${mantle-build}/fixtures/mantle-build-contract/producer/fixtures-v1.json \
+              ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/producer-fixtures-v1.json
+            cmp ${mantle-build}/contracts/mantle-build-contract.ncl \
+              ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/contract.ncl
+            test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-plan.ncl)" = \
+              '2a44f29408b31e620e9247134f0b7b8d55012c8ae286de29199eecef33e10473'
+            test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-policy.ncl)" = \
+              '6a094f32254723850459379582ef03c8d2dad65c25326ca526ba3fe62aa9d726'
+            test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-worker.ncl)" = \
+              '6f66ef1d446ead1d87f37176335a3876e6c98af108febf4ec98600b3a91a8d4e'
+            test "$(b3sum --no-names ${self}/config/fixtures/mantle-store-identity.json)" = \
+              '4bd89c0869c39e8d17e5a6799f977bdac78bbc72c93d7b97cb8348b5d3f69b57'
             touch "$out"
           '';
           release-evidence =

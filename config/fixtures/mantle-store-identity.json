@@ -1,0 +1,5 @@
+{
+  "schema": "mantle-store-state-v1",
+  "logical_prefix": "/mantle/store",
+  "trust_policy_id": "mantle-store-overlay-trust-v2"
+}

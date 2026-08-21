@@ -14,6 +14,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
 | `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
 | `kiln-adapter-cairn` | Exact Cairn gate lowering, bounded execution, result admission, and reconciliation. |
+| `kiln-adapter-mantle` | Exact Mantle build lowering, bounded execution, product admission, logs, and reconciliation. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Radicle broker protocol compatibility. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |

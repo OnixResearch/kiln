@@ -1,3 +1,8 @@
+use core::sync::atomic::AtomicBool;
+
+use kiln_core::build::{
+    BuildEffectPlan, BuildEvaluationObservation, BuildLogChunk, BuildLogReadRequest,
+};
 use kiln_core::cob::{CobEffectPlan, CobObservation};
 use kiln_core::domain::Outcome;
 use kiln_core::gating::{GateEffectPlan, GateEvaluationObservation};
@@ -75,7 +80,18 @@ pub trait WorkflowPort {
     fn reconcile(&mut self, effect_id: &EffectId) -> PortResult<WorkflowObservation>;
 }
 
-pub trait BuildPort: ProviderPort {}
+pub trait BuildPort {
+    fn profile(&self) -> &CapabilityProfile;
+    fn dispatch(&mut self, plan: &BuildEffectPlan) -> PortResult<BuildEvaluationObservation>;
+    fn dispatch_with_cancellation(
+        &mut self,
+        plan: &BuildEffectPlan,
+        cancellation: &AtomicBool,
+    ) -> PortResult<BuildEvaluationObservation>;
+    fn observe(&mut self, effect_id: &EffectId) -> PortResult<BuildEvaluationObservation>;
+    fn read_log(&mut self, request: &BuildLogReadRequest) -> PortResult<BuildLogChunk>;
+    fn reconcile(&mut self, plan: &BuildEffectPlan) -> PortResult<BuildEvaluationObservation>;
+}
 
 // r[impl kiln.providers.port_ownership]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]

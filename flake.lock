@@ -17,6 +17,23 @@
         "url": "ssh://git@github.com/OnixResearch/cairn.git"
       }
     },
+    "mantle-build": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787295942,
+        "narHash": "sha256-wbxOOf78rb1fN/gxifOF0Me/XwndgNVsStaz9IZyOck=",
+        "ref": "refs/heads/main",
+        "rev": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+        "revCount": 2607,
+        "type": "git",
+        "url": "ssh://git@github.com/OnixResearch/mantle.git"
+      },
+      "original": {
+        "rev": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+        "type": "git",
+        "url": "ssh://git@github.com/OnixResearch/mantle.git"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1785967620,
@@ -36,6 +53,7 @@
     "root": {
       "inputs": {
         "cairn-gate": "cairn-gate",
+        "mantle-build": "mantle-build",
         "nixpkgs": "nixpkgs",
         "rust-overlay": "rust-overlay"
       }
