@@ -1,7 +1,7 @@
 # Blocker: remaining Radicle capability contracts
 
 Recorded: 2026-08-20
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 ## Completed prerequisites
 
@@ -9,19 +9,25 @@ Lattice publishes request schema version 2, bounded Unix transport, dispatch rec
 
 Kiln pins that revision. The Radicle executable now has a source-bound trigger-to-Lattice path with deterministic identities, durable SQLite replay admission, recovery-only restart behavior, and no direct Nix execution.
 
-## Remaining blockers
+## Completed capability splits
 
-The active change also requires concrete optional Radicle source, status, and collaboration capabilities.
+`publish-radicle-ci-status` now provides bounded `xyz.radicle.ci-job` publication through a SecretSpec-resolved signer.
 
-No reviewed immutable contract currently defines the exact Radicle signed-reference observation used for source acquisition.
+`mutate-radicle-cobs-single-writer` now provides declared, exact-head patch review mutation under the same signer boundary.
 
-No reviewed immutable contract currently defines Radicle CI job status mutation, idempotency, acceptance, and reconciliation for the pinned broker cohort.
+Both capabilities use separate profiles. Neither capability widens trigger authority.
 
-Collaboration mutation also lacks an operator-selected signer profile, expected-head policy, and mutation authority. Kiln will not infer these values or load an ambient signer.
+## Remaining blocker
+
+The active change now requires only the optional Radicle source capability.
+
+No reviewed immutable contract defines the exact signed-reference observation, revision identity, and acquisition evidence for Radicle source snapshots.
 
 ## Current safe state
 
-The production profile enables trigger intake only. It rejects source, status, and collaboration capability selection before effects.
+The production trigger profile enables trigger intake only. It rejects source capability selection before effects.
+
+Separate status and patch-review profiles remain opt-in and require exact target allowlists.
 
 `LocalFixtureService` is absent from the executable. Fixture services remain test-only.
 
@@ -29,11 +35,9 @@ Unknown dispatch outcomes use `RecoverDispatch` and never cause automatic redisp
 
 ## Unblock criteria
 
-Publish exact source and status contracts for the selected Radicle cohort.
+Publish an exact source-observation and acquisition contract for the selected Radicle cohort.
 
-Select explicit signer and expected-head authority for collaboration mutation.
-
-Then implement and test each capability as a separate profile without widening trigger authority.
+Then implement and test the source capability as a separate profile without widening trigger, status, or patch-review authority.
 
 ## Non-claims
 
