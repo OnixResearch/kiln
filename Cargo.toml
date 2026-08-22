@@ -20,6 +20,7 @@ members = [
   "crates/kiln-adapter-valence",
   "crates/kiln-adapter-webhook",
   "crates/kiln-adapter-sqlite",
+  "crates/kiln-adapter-celld",
   "crates/kiln-conformance",
   "crates/kiln-cli",
 ]

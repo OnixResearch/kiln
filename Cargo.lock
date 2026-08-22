@@ -1440,6 +1440,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-celld"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "hmac 0.12.1",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "zeroize",
+]
+
+[[package]]
 name = "kiln-adapter-cob"
 version = "0.1.0"
 dependencies = [
