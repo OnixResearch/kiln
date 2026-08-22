@@ -12,6 +12,14 @@ let Profile = {
 {
   profiles | Array Profile = [
     {
+      id = "radicle-source-v1",
+      role = "source",
+      source_revision = "0a5924dd2092243a0fe5df94d43008f0402e46f6",
+      capabilities = ["discover", "resolve_exact", "acquire", "observe_identity"],
+      unsupported_capabilities = ["network", "credentials", "signing", "mutation", "collaboration", "remote_availability", "history_trust"],
+      authority_boundary = "Radicle supplies local signed-reference facts; Kiln owns exact request admission, bounded acquisition, and canonical tree identity",
+    },
+    {
       id = "radicle-status-v1",
       role = "status",
       source_revision = "crates.io:sha256:8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e",

@@ -1,9 +1,9 @@
 {
   "depends_on": [
     "establish-neutral-ci-control-plane",
-    "add-lattice-workflow-adapter"
+    "add-lattice-workflow-adapter",
+    "publish-radicle-source-contract"
   ],
-  "status": "blocked",
   "workflow_profile": {
     "id": "spec-driven",
     "source": "change_create",

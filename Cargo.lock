@@ -1549,9 +1549,11 @@ dependencies = [
  "kiln-codec",
  "kiln-core",
  "kiln-provider-api",
+ "kiln-radicle-source-contract",
  "lattice-workflow-transport",
  "nonempty",
  "radicle-cob",
+ "radicle-core",
  "radicle-crypto",
  "radicle-git-ref-format",
  "radicle-oid",
@@ -2372,6 +2374,21 @@ dependencies = [
  "radicle-oid",
  "serde",
  "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "radicle-core"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "077e01c4da810fed233fa67ce87b94fe0dd6ffa03b6640e3b71caa9769a5ec9f"
+dependencies = [
+ "git2 0.21.0",
+ "multibase",
+ "radicle-crypto",
+ "radicle-oid",
+ "schemars",
+ "serde",
  "thiserror 2.0.20",
 ]
 

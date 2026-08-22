@@ -362,6 +362,7 @@
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
+            nickel export config/radicle-source-profile.ncl >/dev/null
             nickel export config/radicle-status-profile.ncl >/dev/null
             nickel export config/radicle-mutation-profile.ncl >/dev/null
             nickel export config/stack-profiles.ncl >/dev/null
@@ -378,6 +379,7 @@
             nickel export config/fixtures/mantle-build-positive.ncl >/dev/null
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
+            nickel export config/fixtures/radicle-source-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-status-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-mutation-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
@@ -510,6 +512,35 @@
               pkgs.runCommand "kiln-nix-eval-jobs-cohort-unsupported" { } ''
                 touch "$out"
               '';
+          radicle-source-native-fixtures =
+            if system == "x86_64-linux" then
+              rustPlatform.buildRustPackage {
+                pname = "kiln-radicle-source-native-fixtures";
+                version = "0.1.0";
+                src = self;
+                cargoLock = {
+                  lockFile = ./Cargo.lock;
+                  allowBuiltinFetchGit = true;
+                };
+                nativeBuildInputs = [
+                  pkgs.cmake
+                  pkgs.pkg-config
+                ];
+                buildInputs = [ pkgs.zlib ];
+                buildPhase = ''
+                  runHook preBuild
+                  cargo test -p kiln-adapter-radicle --features source-native-fixtures --test source_native --offline
+                  runHook postBuild
+                '';
+                doCheck = false;
+                installPhase = ''
+                  touch "$out"
+                '';
+              }
+            else
+              pkgs.runCommand "kiln-radicle-source-native-fixtures-unsupported" { } ''
+                touch "$out"
+              '';
           radicle-status-native-fixtures =
             if system == "x86_64-linux" then
               rustPlatform.buildRustPackage {
@@ -588,6 +619,10 @@
                     'c15ea6408e2ff98fd976507a2ae5bec3cb99ef5580ce7342ba92eb465d9b28a6'
                   grep -A "$lock_context_lines" -F 'name = "radicle-cob"' ${self}/Cargo.lock | \
                     grep -F 'version = "0.21.1"' >/dev/null
+                  grep -A "$lock_context_lines" -F 'name = "radicle-core"' ${self}/Cargo.lock | \
+                    grep -F 'version = "0.4.1"' >/dev/null
+                  grep -F 'radicle-core = { version = "=0.4.1", default-features = false, features = ["std", "git2", "serde"] }' ${self}/Cargo.toml >/dev/null
+                  grep -F '0a5924dd2092243a0fe5df94d43008f0402e46f6' ${self}/config/radicle-source-profile.ncl >/dev/null
                   grep -A "$lock_context_lines" -F 'name = "radicle-crypto"' ${self}/Cargo.lock | \
                     grep -F 'version = "0.19.0"' >/dev/null
                   grep -A "$lock_context_lines" -F 'name = "radicle-oid"' ${self}/Cargo.lock | \

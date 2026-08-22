@@ -15,7 +15,9 @@ The executable contains no Nix executor and no workflow fallback.
 
 ## Profile
 
-`config/radicle-workflow-shell.ncl` defines the typed production profile. The current profile enables only trigger intake. Source, status, and collaboration capabilities fail closed.
+`config/radicle-workflow-shell.ncl` defines the typed production profile. This profile enables only trigger intake.
+
+Source, status, and collaboration capabilities fail closed in this profile. They use separate profiles and authority boundaries.
 
 Export the runtime JSON:
 
@@ -70,15 +72,13 @@ An exact duplicate never sends a new dispatch. It sends only `RecoverDispatch` f
 
 A changed request cannot reuse the same event identity. Unknown and timed-out outcomes remain recoverable and never become success without a linked Lattice observation.
 
-## Remaining disabled capabilities
+## Capability separation
 
-The current production profile rejects these capabilities:
+The trigger profile rejects source acquisition, status publication, and collaboration mutation.
 
-- direct Radicle source acquisition;
-- Radicle status COB publication; and
-- collaboration mutation.
+Use `config/radicle-source-profile.ncl` for exact local source reads. Use the dedicated status and patch-review profiles for their declared operations.
 
-They require separate pinned provider contracts. Collaboration also requires explicit signer authority and fresh expected heads.
+No profile inherits another profile's repository, signer, workflow, or mutation authority.
 
 ## Non-claims
 

@@ -9,6 +9,7 @@ publish = false
 [features]
 default = []
 status-native-fixtures = []
+source-native-fixtures = []
 
 [[bin]]
 name = "secretspec_fixture"
@@ -19,10 +20,12 @@ required-features = ["status-native-fixtures"]
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
 kiln-codec.workspace = true
+kiln-radicle-source-contract.workspace = true
 kiln-adapter-lattice.workspace = true
 lattice-workflow-transport.workspace = true
 rusqlite.workspace = true
 radicle-cob.workspace = true
+radicle-core.workspace = true
 radicle-crypto.workspace = true
 radicle-oid.workspace = true
 radicle-git-ref-format.workspace = true

@@ -15,7 +15,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
-- Radicle broker compatibility, an exact source acquisition contract, bounded CI status publication, and declared single-writer patch reviews;
+- Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - typed Nickel configuration and Nix checks.
 
 Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. The published `main` and `candidate` branches identify validated commit `36984e367eafd44c22d2b4f4f47121deb51eece3`.
@@ -28,7 +28,7 @@ cargo test --workspace
 cargo run -p kiln-cli -- demo
 ```
 
-Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary.
+Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary.
 
 ## Owned boundary
 

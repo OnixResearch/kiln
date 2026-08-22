@@ -2,6 +2,7 @@ pub mod defelo;
 pub mod mutation;
 mod profile;
 mod replay;
+pub mod source;
 pub mod status;
 mod workflow;
 
@@ -292,6 +293,7 @@ mod tests {
 
     // r[verify kiln.radicle.nonclaims]
     // r[verify kiln.radicle.native_runner.scenario.shell]
+    // r[verify kiln.radicle.shell_conformance.scenario.fixture_only]
     #[test]
     fn production_composition_has_no_fixture_direct_nix_or_core_provider_edge() {
         let main_source = include_str!("main.rs");

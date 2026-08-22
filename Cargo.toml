@@ -42,6 +42,7 @@ git2 = { version = "=0.20.2", default-features = false, features = ["vendored-li
 cob-git2 = { package = "git2", version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
 nonempty = "0.9"
 radicle-cob = { version = "=0.21.1", default-features = false, features = ["git2"] }
+radicle-core = { version = "=0.4.1", default-features = false, features = ["std", "git2", "serde"] }
 radicle-crypto = { version = "=0.19.0", default-features = false, features = ["ssh", "alloc", "multibase"] }
 radicle-oid = { version = "=0.2.2", default-features = false, features = ["serde", "std"] }
 radicle-git-ref-format = { version = "=0.2.0", default-features = false }

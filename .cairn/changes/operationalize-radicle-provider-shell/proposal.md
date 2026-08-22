@@ -13,7 +13,7 @@ Status publication and collaboration mutation moved to the dedicated changes `pu
 - Replace the fixture-only runtime path with an optional concrete Radicle shell.
 - Keep source and trigger capabilities in separate versioned profiles.
 - Bind source reads to exact repository, signed-reference, revision, and canonical tree identities.
-- Bind trigger intake to exact event, actor, repository, revision, and replay facts.
+- Bind trigger intake to exact broker event, repository, revision, and replay facts without inferring an actor signature.
 - Preserve unknown outcomes after ambiguous transport or process failure.
 - Add typed Nickel profiles, named bounds, reconciliation, and conformance fixtures.
 - Keep `LocalFixtureService` only in test and example surfaces.

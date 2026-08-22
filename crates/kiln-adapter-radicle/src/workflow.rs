@@ -50,6 +50,7 @@ impl<W, R> RadicleWorkflowService<W, R> {
 impl<W: WorkflowPort, R: ReplayStore> TriggerIntakePort for RadicleWorkflowService<W, R> {
     // r[impl kiln.radicle.trigger]
     // r[impl kiln.radicle.lifecycle]
+    // r[impl kiln.radicle.shell_trigger]
     fn accept(&mut self, trigger: TriggerRequest) -> PortResult<TriggerRun> {
         let record = plan_trigger(&self.config, trigger)?;
         match self.replay.reserve(record)? {
@@ -444,6 +445,7 @@ mod tests {
 
     // r[verify kiln.radicle.protocol]
     // r[verify kiln.radicle.native_runner.scenario.shell]
+    // r[verify kiln.radicle.shell_profile.scenario.fixture]
     #[test]
     fn profile_admits_trigger_only_and_rejects_fixture_or_collaboration() {
         let directory = tempdir().unwrap_or_else(|_| unreachable!());
@@ -461,6 +463,8 @@ mod tests {
 
     // r[verify kiln.radicle.result.scenario.unknown]
     // r[verify kiln.radicle.fixtures]
+    // r[verify kiln.radicle.shell_trigger.scenario.valid]
+    // r[verify kiln.radicle.shell_trigger.scenario.replay]
     #[test]
     fn uncertain_dispatch_recovers_without_redispatch_after_restart() {
         let directory = tempdir().unwrap_or_else(|_| unreachable!());

@@ -32,14 +32,14 @@ r[kiln.radicle.shell_source.scenario.moved]
 - WHEN consistency admission runs
 - THEN Kiln MUST reject the mixed source observation.
 
-### Requirement: Authenticated Radicle trigger intake
-r[kiln.radicle.shell_trigger] Trigger intake MUST preserve native event, actor, repository, revision, signature, and replay facts.
+### Requirement: Bounded Radicle broker trigger intake
+r[kiln.radicle.shell_trigger] Trigger intake MUST preserve the exact broker event, repository, revision, and durable replay facts without inferring actor-signature evidence absent from the broker schema.
 
 #### Scenario: Valid event arrives once
 r[kiln.radicle.shell_trigger.scenario.valid]
-- GIVEN one valid signed event for an admitted repository and revision
+- GIVEN one valid local broker event for an admitted repository and revision
 - WHEN trigger intake runs
-- THEN Kiln MAY create one bounded trigger observation.
+- THEN Kiln MAY create one bounded trigger observation without claiming an authenticated actor.
 
 #### Scenario: Event is replayed
 r[kiln.radicle.shell_trigger.scenario.replay]
