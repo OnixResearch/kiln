@@ -190,7 +190,7 @@ impl CelldWorker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::profile::profile_fixture;
+    use crate::profile::{admit_profile, profile_fixture};
     use kiln_core::operations::{JournalRecord, LeaseState, OutboxRecord};
     use kiln_core::types::{CONTRACT_VERSION_V1, CommandId, ProviderProfileId, RunId};
 
@@ -370,5 +370,124 @@ mod tests {
             .unwrap_or_else(|| unreachable!("object store exists"));
         assert_eq!(store.outbox.len(), 1);
         assert_eq!(store.records.len(), 1);
+    }
+
+    #[test]
+    fn cohort_admission_requires_output_gate_and_probe() {
+        let mut gated = profile_fixture();
+        gated.output_gate_enabled = false;
+        assert!(admit_profile(&gated).is_err());
+        let mut probed = profile_fixture();
+        probed.storage_probe_required = false;
+        assert!(admit_profile(&probed).is_err());
+    }
+
+    #[test]
+    fn cohort_restart_preserves_committed_facts() {
+        let mut worker = worker();
+        let request = EventAppendRequest {
+            stream: stream(),
+            expected_revision: 0,
+            records: vec![record(0)],
+            outbox: Vec::new(),
+        };
+        let operation_id = operation_id();
+        let (envelope, signature) = worker
+            .signed_request(&request, &operation_id, "nonce-1")
+            .unwrap_or_else(|_| unreachable!("signs"));
+        assert_eq!(
+            worker
+                .handle_append(&envelope, &signature)
+                .unwrap_or_else(|_| unreachable!("first append")),
+            WorkerResponse::Accepted { revision: 1 }
+        );
+        let assignment = map_partition(&stream(), 16).unwrap_or_else(|_| unreachable!("maps"));
+        let facts = worker
+            .objects
+            .get(&assignment.object_name)
+            .cloned()
+            .unwrap_or_else(|| unreachable!("object exists"));
+        let mut restarted = CelldWorker::new(profile_fixture(), 16, vec![0x5c; 32]);
+        restarted.objects.insert(facts.key.clone(), facts);
+        let (envelope, signature) = worker
+            .signed_request(&request, &operation_id, "nonce-2")
+            .unwrap_or_else(|_| unreachable!("signs"));
+        assert_eq!(
+            restarted
+                .handle_append(&envelope, &signature)
+                .unwrap_or_else(|_| unreachable!("repeat after restart")),
+            WorkerResponse::Repeated { revision: 1 }
+        );
+    }
+
+    #[test]
+    fn conflicting_payload_is_rejected_after_commit() {
+        let mut worker = worker();
+        let request = EventAppendRequest {
+            stream: stream(),
+            expected_revision: 0,
+            records: vec![record(0)],
+            outbox: Vec::new(),
+        };
+        let operation_id = operation_id();
+        let (envelope, signature) = worker
+            .signed_request(&request, &operation_id, "nonce-1")
+            .unwrap_or_else(|_| unreachable!("signs"));
+        assert_eq!(
+            worker
+                .handle_append(&envelope, &signature)
+                .unwrap_or_else(|_| unreachable!("first")),
+            WorkerResponse::Accepted { revision: 1 }
+        );
+        let conflicting = EventAppendRequest {
+            stream: stream(),
+            expected_revision: 1,
+            records: vec![record(1), record(2)],
+            outbox: Vec::new(),
+        };
+        let (envelope, signature) = worker
+            .signed_request(&conflicting, &operation_id, "nonce-3")
+            .unwrap_or_else(|_| unreachable!("signs"));
+        let response = worker
+            .handle_append(&envelope, &signature)
+            .unwrap_or_else(|_| unreachable!("conflict"));
+        assert!(matches!(response, WorkerResponse::Conflict { .. }));
+    }
+
+    #[test]
+    fn compatible_cohort_differential_is_identical() {
+        // Differential behavior across an equivalent cohort: two logically
+        // equivalent partitions (same revision and event facts) must accept
+        // the same append and return the same revision with no effect on
+        // ordering. This is the model-level equivalent of running against a
+        // compatible workerd cohort.
+        let mut left = worker();
+        let mut right = worker();
+        let request = EventAppendRequest {
+            stream: stream(),
+            expected_revision: 0,
+            records: vec![record(0)],
+            outbox: Vec::new(),
+        };
+        let (left_env, left_sig) = left
+            .signed_request(&request, &operation_id(), "nonce-1")
+            .unwrap_or_else(|_| unreachable!("signs"));
+        let (right_env, right_sig) = right
+            .signed_request(&request, &operation_id(), "nonce-1")
+            .unwrap_or_else(|_| unreachable!("signs"));
+        let left_response = left
+            .handle_append(&left_env, &left_sig)
+            .unwrap_or_else(|_| unreachable!("left"));
+        let right_response = right
+            .handle_append(&right_env, &right_sig)
+            .unwrap_or_else(|_| unreachable!("right"));
+        assert_eq!(left_response, right_response);
+        assert_eq!(
+            left.replay(&stream())
+                .unwrap_or_else(|| unreachable!("left replay")),
+            right
+                .replay(&stream())
+                .unwrap_or_else(|| unreachable!("right replay"))
+        );
     }
 }

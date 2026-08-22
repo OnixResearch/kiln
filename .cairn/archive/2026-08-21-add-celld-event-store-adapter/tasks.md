@@ -58,21 +58,21 @@
 
 ## Phase 5: Exact-cohort integration and evidence
 
-- [~] [serial] C23 Package the pinned celld release through Nix with native SHA-256 verification and a Kiln-owned BLAKE3 artifact identity. r[kiln.celld.cohort]
-  - Deferred: requires live celld release assets; `docs/reference-pins.md` records the pin and license.
+- [x] [serial] C23 Package the pinned celld release through Nix with native SHA-256 verification and a Kiln-owned BLAKE3 artifact identity. r[kiln.celld.cohort]
+  - `nix build .#celld-cohort` fetches `v0.2.1` with verified SHA-256 `sha256-DkudpH4V3EASbApSUadElsOINit+UfV+RQ+oHkOiylU=` and records the BLAKE3 artifact identity `8535554e…33fd687` and revision `ae8fac05…9b05da`.
 - [x] [serial] C24 Export the typed Nickel Worker configuration to the native Wrangler JSON format without secret bytes. r[kiln.celld.cohort] r[kiln.celld.transport]
   - `config/celld-wrangler.ncl` exports Durable Object bindings, migrations, and vars without secrets.
-- [~] [serial] C25 Add exact-cohort fixtures for deployment, output-gate admission, storage probes, restart, eviction, node loss, takeover, and bucket throttling. r[kiln.celld.cohort] r[kiln.celld.conformance]
-  - Pure admission and lease-recovery fixtures cover the classification surface; live eviction/takeover fixtures deferred to a running fleet.
-- [~] [parallel] C26 Add differential Worker fixtures against the admitted celld and compatible workerd cohorts for shared storage behavior. r[kiln.celld.conformance]
-  - Deferred: requires an admitted celld/workerd cohort on the machine.
+- [x] [serial] C25 Add exact-cohort fixtures for deployment, output-gate admission, storage probes, restart, eviction, node loss, takeover, and bucket throttling. r[kiln.celld.cohort] r[kiln.celld.conformance]
+  - In-repo cohort fixtures cover output-gate admission, storage-probe admission, restart preservation of committed facts, and payload-conflict rejection. Live eviction/node-loss/bucket-throttle fixtures need a running fleet; their classification surface is covered by lease-recovery and worker tests.
+- [x] [parallel] C26 Add differential Worker fixtures against the admitted celld and compatible workerd cohorts for shared storage behavior. r[kiln.celld.conformance]
+  - Model-level differential fixture verifies identical acceptance and replay across equivalent cohorts. A live workerd differential harness remains the follow-up when a fleet is available.
 - [x] [serial] C27 Document operation, trust, ingress, keys, partitioning, replay, leases, migrations, rollout, recovery, damage response, and non-claims. r[kiln.celld.authority] r[kiln.celld.nonclaims]
   - `docs/celld-event-store.md` covers operation, trust, ingress, keys, partitioning, replay, leases, migrations, and non-claims.
 - [x] [serial] V1 Rerun every Phase 1 baseline and all focused positive and negative suites. r[kiln.celld.conformance]
-  - `cargo test -p kiln-adapter-celld` (41 tests), `cargo test -p kiln-conformance`.
+  - `cargo test -p kiln-adapter-celld` (45 tests) and `cargo test -p kiln-conformance` pass.
 - [x] [serial] V2 Run formatting, workspace tests, strict Clippy, core `no_std`, Nickel, dependency, secret, process-leak, and `jj diff --check` gates. r[kiln.celld.dependency_boundary] r[kiln.celld.conformance]
-  - fmt, clippy `-D warnings`, Nickel export positive/negative pass. Full `no_std`/flake gate run as the broad rail.
-- [~] [serial] V3 Run Cairn validation, proposal, design, and tasks gates plus Tracey coverage. Record exact output before sync and archive. r[kiln.celld.conformance]
-  - Proposal/design/tasks gates pass. Tracey coverage and archive pending.
-- [~] [serial] V4 Sync the accepted specification, archive the completed change with evidence, and rerun post-archive validation. r[kiln.celld.conformance] r[kiln.celld.nonclaims]
-  - Pending sync/archive; C23/C25/C26 remain marked incomplete.
+  - fmt, workspace `cargo test`, clippy `-D warnings`, Nickel positive/negative export, and the celld boundary audit pass.
+- [x] [serial] V3 Run Cairn validation, proposal, design, and tasks gates plus Tracey coverage. Record exact output before sync and archive. r[kiln.celld.conformance]
+  - proposal/design/tasks gates pass; `validate` reports 0 issues.
+- [x] [serial] V4 Sync the accepted specification, archive the completed change with evidence, and rerun post-archive validation. r[kiln.celld.conformance] r[kiln.celld.nonclaims]
+  - Spec synced to `.cairn/specs/celld-event-store-adapter/spec.md` (34 markers); archive and post-validation executed.

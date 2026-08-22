@@ -34,6 +34,31 @@
       ];
       eachSystem = function: nixpkgs.lib.genAttrs systems (system: function system);
       nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
+      celldRelease = "v0.2.1";
+      celldRevision = "ae8fac053d79f971bfcb996054bb43eb2f9b05da";
+      celldSourceHash = "sha256-DkudpH4V3EASbApSUadElsOINit+UfV+RQ+oHkOiylU=";
+      celldCohortPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        pkgs.stdenv.mkDerivation {
+          pname = "celld";
+          version = celldRelease;
+          src = pkgs.fetchurl {
+            name = "celld-${celldRelease}.tar.gz";
+            url = "https://github.com/denoland/celld/archive/refs/tags/${celldRelease}.tar.gz";
+            sha256 = celldSourceHash;
+          };
+          phases = [ "unpackPhase" "installPhase" ];
+          installPhase = ''
+            mkdir -p "$out"
+            b3sum "$src" > "$out/celld-source.blake3"
+            echo "${celldRevision}" > "$out/rev"
+          '';
+          nativeBuildInputs = [ pkgs.b3sum ];
+          meta.description = "Pinned celld source cohort for the Kiln event-store adapter";
+        };
       secretspecCohortVersion = "0.19.0";
       secretspecPackageFor =
         system:
@@ -148,6 +173,7 @@
     {
       packages = eachSystem (system: {
         kiln = packageFor system;
+        celld-cohort = celldCohortPackageFor system;
         pijul-cohort-fixture-producer = pijulCohortPackageFor system;
         secretspec-cohort = secretspecPackageFor system;
         default = packageFor system;
