@@ -52,12 +52,14 @@ The iroh shell performs no command intake. Controls are a later change through t
 
 ## Cross-stack evaluation and reuse
 
-Two sibling components are evaluated, not assumed:
+Sibling reuse follows the OnixResearch owner grant: public license conflicts do not block reuse of source the stack exclusively controls. Third-party notices and vendored material remain documented and preserved.
 
-- `host-control-core` (MIT OR Apache-2.0) is a candidate for observation wire-contract framing (snapshot-first streams, bounded observations). Its current DTOs are host and pane shaped; adoption blocks only the wire-format freeze, and the outcome applies equally to the HTTP leg, which owns the shared contract.
-- `ucan-core` (pinned, MPL-2.0) is the planned capability-token provider behind a versioned observation-authn port. Peer principals align to `did:key` Ed25519 so iroh public keys and capability-token principals share one identity model. The AGPL-3.0 `ucan` shell and `basalt` are not consumed unless network-license policy explicitly accepts AGPL.
+- `host-control-core` is adopted as the wire-contract framing substrate shared with the HTTP leg: snapshot-first streams, bounded observations, selectors, waits, and feature negotiation. CI content stays in Kiln-owned payloads.
+- Observation authority uses the basalt boundary with ucan enforcement behind the observation-authn port. Peer principals align to `did:key` Ed25519 so iroh public keys and capability principals share one identity model.
+- `molten` (aspen) is the stack's runtime and transport owner and is evaluated as an alternative transport home for this leg. Adoption is not assumed: its `iroh_sam_dataspace` still carries unestablished tracey debt, so the committed plan keeps the pinned n0 cohort behind the transport port, and molten may replace the transport only on passing evaluation evidence.
+- `valence` (through the existing adapter) may record each served view as `recorded_only` evidence.
 
-Recorded pins and license notices follow the accepted-spec discipline. The n0 cohort pins remain independent of any sibling component.
+The n0 cohort pins remain independent of any sibling component.
 
 ## Configuration
 

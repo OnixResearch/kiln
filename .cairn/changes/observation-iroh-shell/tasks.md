@@ -1,6 +1,7 @@
 ## Phase 1: Pinned cohort and profile
 
 - [ ] [serial] Pin the consumed n0 cohort: `iroh`, `iroh-blobs`, and `bao-tree` with exact versions and revisions, and record the `kiln.observe.v1` ALPN identity. r[kiln.observe.iroh.profile]
+- [ ] [parallel] Evaluate molten (aspen) as the transport home; adopt only on passing evidence, otherwise keep the pinned n0 cohort behind the transport port. r[kiln.observe.iroh.profile]
 - [ ] [serial] Add typed Nickel iroh observation profiles with positive and negative profile fixtures. r[kiln.observe.iroh.profile]
 - [ ] [parallel] Reject cohort drift, missing bounds, and unadmitted endpoints before serving. r[kiln.observe.iroh.profile] r[kiln.observe.iroh.serve]
 
@@ -13,7 +14,7 @@
 ## Phase 3: Identity, trust, and verified streaming
 
 - [ ] [depends:iroh-observe-serving] Implement stable node identity, peer alias allowlist, and explicit revocation. r[kiln.observe.iroh.peer]
-- [ ] [depends:iroh-observe-serving] Align peer principals with capability-token principals (`did:key` Ed25519) behind the versioned observation-authn port. r[kiln.observe.iroh.peer]
+- [ ] [depends:iroh-observe-serving] Align peer principals with capability principals (`did:key` Ed25519) under the basalt observation-authority contract. r[kiln.observe.iroh.peer]
 - [ ] [depends:iroh-observe-serving] Stream log and record ranges as content-addressed payloads over the `iroh-blobs` and `bao-tree` path. r[kiln.observe.iroh.verify]
 - [ ] [parallel] Verify declared BLAKE3 identities before claiming delivery, and reject or refetch corrupted payloads. r[kiln.observe.iroh.verify]
 - [ ] [parallel] Deny unknown and revoked peers under the declared policy. r[kiln.observe.iroh.peer]

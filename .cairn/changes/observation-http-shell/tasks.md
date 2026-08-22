@@ -1,6 +1,6 @@
 ## Phase 1: Profile and admission
 
-- [ ] [serial] Evaluate sibling reuse before the wire-format freeze: confirm product-neutral fit of `host-control-core` and evaluate `ucan-core` as the observation-authn capability-token provider, recording pins and license notices. r[kiln.observe.http.profile]
+- [ ] [serial] Confirm the host-control wire-contract adoption scope, bind observation authority to the basalt contract with ucan enforcement, and record pins and third-party notices before the wire-format freeze. r[kiln.observe.http.profile]
 - [ ] [serial] Define the bounded HTTP observation profile: registered origin, TLS policy, auth admission, content and SSE contracts, and named bounds. r[kiln.observe.http.profile]
 - [ ] [serial] Add typed Nickel HTTP observation profiles with positive and negative profile fixtures. r[kiln.observe.http.profile]
 - [ ] [parallel] Reject profile drift, unknown view kinds, and non-registered origins before serving. r[kiln.observe.http.profile] r[kiln.observe.http.serve]

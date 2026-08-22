@@ -40,7 +40,7 @@ Rejected alternative: deriving live facts from a mutable projection cache. A cac
 
 Every request is admitted against the profile auth policy before any projection runs. Auth failure returns a bounded rejection. Consumers retain nonce, clock, replay, and transport authority.
 
-Planned reference implementation: capability tokens through a versioned observation-authn port, with `ucan-core` (pinned, MPL-2.0) as the admitted provider and scope caveats for project and tenant. The spec keeps the requirement policy-neutral; the technology choice is a design fact subject to the cross-stack evaluation below.
+Planned reference implementation: observation authority through a versioned observation-authn port using the basalt boundary contract with ucan enforcement. Nickel policy declares who may observe which project and tenant scope; UCAN capabilities grant bounded observation rights; principals are `did:key` Ed25519. The spec keeps the requirement policy-neutral; the technology choice is a design fact subject to the cross-stack evaluation below.
 
 ### Decision: Rejections are bounded and specific
 
@@ -52,12 +52,13 @@ The HTTP shell performs no command intake. Controls are a later change through t
 
 ## Cross-stack evaluation and reuse
 
-Two sibling components are evaluated, not assumed:
+Sibling reuse follows the OnixResearch owner grant: public license conflicts do not block reuse of source the stack exclusively controls. Third-party notices and vendored material (including n0 crates, celld, and the vendored verified-logic snapshot) remain documented and preserved.
 
-- `host-control-core` (MIT OR Apache-2.0, `#![no_std]`) provides snapshot-first streams and bounded observations and is already consumed by tile through `tile-host-control-adapter`. It is a candidate for the observation wire-contract framing. Adoption requires confirming product-neutral fit: its current observation DTOs are host and pane shaped, not CI shaped. The outcome of this evaluation gates the wire-format freeze for this leg, not the pure projection core.
-- `ucan-core` (MPL-2.0) is the planned capability-token provider behind the observation-authn port. The AGPL-3.0 `ucan` shell and `basalt` are not consumed unless network-license policy explicitly accepts AGPL.
+- `host-control-core` provides snapshot-first streams and bounded observations and is already consumed by tile through `tile-host-control-adapter`. It is adopted as the wire-contract framing substrate for this leg; CI content stays in Kiln-owned payloads under the host-control product-neutral boundary. Adoption scope is confirmed by an evaluation milestone that gates the wire-format freeze, never the pure projection core.
+- Observation authority uses the basalt boundary with ucan enforcement behind the observation-authn port as described in the auth decision above.
+- `valence` (through the existing adapter) may record each served view as `recorded_only` evidence bound to its `kiln.observe.view.v1` identity.
 
-Recorded pins and license notices follow the existing accepted-spec discipline (see the valence-core MPL precedent).
+Recorded pins follow the existing accepted-spec discipline.
 
 ## Configuration
 
