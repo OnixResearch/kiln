@@ -1,0 +1,11 @@
+{
+  "depends_on": [
+    "establish-neutral-ci-control-plane",
+    "align-provider-port-ownership"
+  ],
+  "workflow_profile": {
+    "id": "spec-driven",
+    "source": "change_create",
+    "version": 1
+  }
+}
