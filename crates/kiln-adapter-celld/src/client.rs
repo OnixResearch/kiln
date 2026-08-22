@@ -304,4 +304,78 @@ mod tests {
         assert!(matches!(error, PortFailure::Domain(_)));
         assert_eq!(runtime.observed, 0);
     }
+
+    #[test]
+    fn append_classifies_a_disconnection() {
+        let mut runtime = FixtureRuntime {
+            outcome: DispatchOutcome::Disconnected,
+            observed: 0,
+        };
+        let mut store = CelldEventStore::new(profile_fixture(), key_reference(), &mut runtime);
+        let error = store
+            .append(&request())
+            .err()
+            .unwrap_or_else(|| unreachable!("disconnect"));
+        assert!(matches!(error, PortFailure::Retryable(_)));
+    }
+
+    #[test]
+    fn append_classifies_a_malformed_response() {
+        let mut runtime = FixtureRuntime {
+            outcome: DispatchOutcome::Malformed,
+            observed: 0,
+        };
+        let mut store = CelldEventStore::new(profile_fixture(), key_reference(), &mut runtime);
+        let error = store
+            .append(&request())
+            .err()
+            .unwrap_or_else(|| unreachable!("malformed"));
+        assert!(matches!(error, PortFailure::Domain(_)));
+    }
+
+    #[test]
+    fn append_classifies_a_redirect() {
+        let mut runtime = FixtureRuntime {
+            outcome: DispatchOutcome::Redirected,
+            observed: 0,
+        };
+        let mut store = CelldEventStore::new(profile_fixture(), key_reference(), &mut runtime);
+        let error = store
+            .append(&request())
+            .err()
+            .unwrap_or_else(|| unreachable!("redirect"));
+        let message = match error {
+            PortFailure::Domain(diagnostic) => diagnostic.message,
+            _ => unreachable!("redirect is a domain rejection"),
+        };
+        assert!(message.contains("redirect"));
+    }
+
+    #[test]
+    fn append_classifies_a_tls_failure() {
+        let mut runtime = FixtureRuntime {
+            outcome: DispatchOutcome::TlsFailure,
+            observed: 0,
+        };
+        let mut store = CelldEventStore::new(profile_fixture(), key_reference(), &mut runtime);
+        let error = store
+            .append(&request())
+            .err()
+            .unwrap_or_else(|| unreachable!("tls"));
+        assert!(matches!(error, PortFailure::Infrastructure(_)));
+    }
+
+    #[test]
+    fn append_classifies_a_key_mismatch() {
+        let mut runtime = FixtureRuntime {
+            outcome: DispatchOutcome::KeyMismatch,
+            observed: 0,
+        };
+        let mut store = CelldEventStore::new(profile_fixture(), key_reference(), &mut runtime);
+        let error = store
+            .append(&request())
+            .err()
+            .unwrap_or_else(|| unreachable!("key mismatch"));
+        assert!(matches!(error, PortFailure::Domain(_)));
+    }
 }
