@@ -106,6 +106,24 @@ let JsonContentType = std.contract.from_predicate (fun value =>
 let WebhookAuthKind = std.contract.from_predicate (fun value =>
   std.is_string value && std.array.elem value ["none", "bearer", "blake3_signature"]
 ) in
+let CelldRelease = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "v0.2.1"
+) in
+let CelldRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "ae8fac053d79f971bfcb996054bb43eb2f9b05da"
+) in
+let TrustDomain = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "single"
+) in
+let HmacSha256Auth = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "hmac-sha256"
+) in
+let RedirectsDisabled = std.contract.from_predicate (fun value =>
+  std.is_bool value && value == true
+) in
+let TrueOnly = std.contract.from_predicate (fun value =>
+  std.is_bool value && value == true
+) in
 let EmptyString = std.contract.from_predicate (fun value =>
   std.is_string value && std.string.length value == 0
 ) in
@@ -257,6 +275,34 @@ let TrueOnly = std.contract.from_predicate (fun value =>
       max_envelope_bytes | Positive,
       max_text_bytes | Positive,
       max_fields | Positive,
+    },
+    non_claims | Array NonEmptyString,
+  },
+  CelldProfile = {
+    celld_release | CelldRelease,
+    celld_revision | CelldRevision,
+    license | ApacheLicense,
+    worker_protocol_version | VersionOne,
+    schema_version | VersionOne,
+    origin | HttpsScheme,
+    path | NonEmptyString,
+    tls_policy | HttpsScheme,
+    auth_profile | HmacSha256Auth,
+    redirects_disabled | RedirectsDisabled,
+    trust_domain | TrustDomain,
+    output_gate_enabled | TrueOnly,
+    storage_probe_required | TrueOnly,
+    bounds | {
+      max_request_bytes | Positive,
+      max_response_bytes | Positive,
+      max_replay_page_bytes | Positive,
+      max_events_per_append | Positive,
+      max_outbox_records | Positive,
+      max_event_bytes | Positive,
+      max_partition_count | Positive,
+      max_lease_ticks | Positive,
+      max_migration_steps | Positive,
+      timeout_millis | Positive,
     },
     non_claims | Array NonEmptyString,
   },

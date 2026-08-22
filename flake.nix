@@ -371,7 +371,9 @@
             nickel export config/valence-profile.ncl >/dev/null
             nickel export config/webhook-profile.ncl >/dev/null
             nickel export config/sqlite-profile.ncl >/dev/null
-            nickel export config/fixtures/positive.ncl >/dev/null
+            nickel export config/celld-profile.ncl >/dev/null
+            nickel export config/celld-wrangler.ncl >/dev/null
+            nickel export config/fixtures/celld-positive.ncl >/dev/null
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
             nickel export config/fixtures/pijul-source-positive.ncl >/dev/null
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
@@ -665,6 +667,29 @@
               fi
               if grep -E 'git2|rusqlite|bounded-exec|radicle-(cob|core|crypto|git|oid)|kiln-(core|provider-api|codec)' source-contract-tree.txt >/dev/null; then
                 echo 'Provider runtime dependency entered the Radicle source contract' >&2
+                exit 1
+              fi
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
+          celld-boundaries = rustPlatform.buildRustPackage {
+            pname = "kiln-celld-boundaries";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              allowBuiltinFetchGit = true;
+            };
+            buildPhase = ''
+              runHook preBuild
+              cargo tree -p kiln-core --edges normal > core-tree.txt
+              cargo tree -p kiln-provider-api --edges normal > provider-api-tree.txt
+              if grep -E 'kiln-adapter-celld|celld|workerd|wrangler|v8|object-store|object_store' core-tree.txt provider-api-tree.txt >/dev/null; then
+                echo 'celld, Worker, or object-store runtime entered a core or application contract crate' >&2
                 exit 1
               fi
               runHook postBuild

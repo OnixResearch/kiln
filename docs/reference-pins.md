@@ -28,11 +28,14 @@ The review date is 2026-08-08. These references inform bounded Kiln contracts an
 | OpenTelemetry CI/CD | Semantic conventions development status, review date 2026-08-08 | Apache-2.0 | Rebuildable telemetry projections | Telemetry as lifecycle authority |
 | Buildbot | `e055ebda6b4800b4762e45088b23b736e046cecf` | GPL-2.0-or-later | Source, scheduler, request, worker, reporter split | Buildbot runtime dependency |
 | Pueue | `b3fe223ef0a3c51d95d5c6128700b79442c54af7` | MIT | Status, logs, wait, capacity groups, scoped controls | Scheduler, daemon, protocol, provider, or runtime integration |
+| celld | release `v0.2.1`, revision `ae8fac053d79f971bfcb996054bb43eb2f9b05da` | Apache-2.0 | Durable Object SQLite transactions, one-writer fencing, conditional write, output gate | Workflow, build, placement, fairness, or release authority |
 
 ## Maturity and non-claims
 
 Hydra, Concourse, Buildbot, Jujutsu, and the Remote Execution API are mature references. Their maturity does not transfer to Kiln.
 
 Radicle CI and its native adapter remain active ecosystem references. Passing compatibility fixtures does not prove node, broker, or runner correctness.
+
+celld is the initial distributed event-store reference. A celld acknowledgement or storage-probe result does not prove object-store durability, hostile tenant isolation, or external effect execution.
 
 The standards define interchange shapes. They do not grant source, builder, signer, gate, or release authority.
