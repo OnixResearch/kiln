@@ -2,6 +2,11 @@ use alloc::string::ToString;
 
 use super::*;
 
+// r[verify kiln.radicle.source_contract.boundary.scenario.standalone]
+// r[verify kiln.radicle.source_contract.request.scenario.exact]
+// r[verify kiln.radicle.source_contract.sigrefs.scenario.stable]
+// r[verify kiln.radicle.source_contract.snapshot.scenario.accepted]
+// r[verify kiln.radicle.source_contract.linkage.scenario.match]
 #[test]
 fn accepts_exact_parent_level_receipt() {
     let request = fixture_request();
@@ -11,6 +16,7 @@ fn accepts_exact_parent_level_receipt() {
     assert_eq!(admit_receipt(&receipt), Ok(()));
 }
 
+// r[verify kiln.radicle.source_contract.request.scenario.floating]
 #[test]
 fn rejects_floating_or_malformed_request_facts() {
     let mut request = fixture_request();
@@ -62,6 +68,7 @@ fn rejects_zero_and_inconsistent_bounds() {
     );
 }
 
+// r[verify kiln.radicle.source_contract.sigrefs.scenario.moved]
 #[test]
 fn rejects_moved_or_unexpected_signed_refs() {
     let mut receipt = fixture_receipt();
@@ -82,6 +89,7 @@ fn rejects_moved_or_unexpected_signed_refs() {
     );
 }
 
+// r[verify kiln.radicle.source_contract.sigrefs.scenario.downgrade]
 #[test]
 fn rejects_feature_and_verification_downgrades() {
     let mut receipt = fixture_receipt();
@@ -98,6 +106,7 @@ fn rejects_feature_and_verification_downgrades() {
     );
 }
 
+// r[verify kiln.radicle.source_contract.linkage.scenario.signer]
 #[test]
 fn rejects_identity_and_revision_substitution() {
     let mut receipt = fixture_receipt();
@@ -119,6 +128,7 @@ fn rejects_identity_and_revision_substitution() {
     );
 }
 
+// r[verify kiln.radicle.source_contract.snapshot.scenario.bound]
 #[test]
 fn rejects_digest_and_snapshot_bound_failures() {
     let mut receipt = fixture_receipt();
@@ -146,6 +156,36 @@ fn rejects_digest_and_snapshot_bound_failures() {
         Err(AdmissionError::SnapshotBound {
             field: "snapshot.total_bytes"
         })
+    );
+}
+
+// r[verify kiln.radicle.source_contract.boundary.scenario.runtime]
+#[test]
+fn contract_manifest_has_no_provider_runtime_dependency() {
+    let manifest = include_str!("../Cargo.toml");
+    for forbidden in [
+        "git2",
+        "radicle-crypto",
+        "radicle-core",
+        "radicle-oid",
+        "rusqlite",
+        "bounded-exec",
+        "kiln-core",
+        "kiln-provider-api",
+    ] {
+        assert!(!manifest.contains(forbidden));
+    }
+}
+
+// r[verify kiln.radicle.source_contract.nonclaims]
+// r[verify kiln.radicle.source_contract.nonclaims.scenario.accepted]
+#[test]
+fn contract_publishes_explicit_non_claims() {
+    assert!(SOURCE_NON_CLAIMS.iter().all(|claim| !claim.is_empty()));
+    assert!(
+        SOURCE_NON_CLAIMS
+            .iter()
+            .any(|claim| claim.contains("release readiness"))
     );
 }
 

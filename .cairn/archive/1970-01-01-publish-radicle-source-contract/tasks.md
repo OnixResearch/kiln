@@ -13,5 +13,5 @@
 ## Phase 3: Gates and publication
 
 - [x] [serial] Add dependency and wasm gates that keep provider runtime crates outside the contract graph. r[kiln.radicle.source_contract.boundary]
-- [ ] [serial] Run formatting, focused tests, workspace tests, strict Clippy, wasm, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.source_contract.boundary] r[kiln.radicle.source_contract.linkage]
-- [ ] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.source_contract.nonclaims]
+- [x] [serial] Run formatting, focused tests, workspace tests, strict Clippy, wasm, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.source_contract.boundary] r[kiln.radicle.source_contract.linkage]
+- [x] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.source_contract.nonclaims]

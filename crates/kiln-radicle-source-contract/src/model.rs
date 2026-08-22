@@ -3,6 +3,17 @@ use serde::{Deserialize, Serialize};
 
 pub const CONTRACT_SCHEMA_VERSION: u16 = 1;
 
+pub const SOURCE_NON_CLAIMS: &[&str] = &[
+    "receipt admission does not prove repository trust",
+    "receipt admission does not prove global freshness",
+    "receipt admission does not prove complete history",
+    "receipt admission does not prove peer convergence",
+    "receipt admission does not prove remote availability",
+    "equal trees do not prove equal history or authority",
+    "receipt admission does not prove build correctness",
+    "receipt admission does not prove release readiness",
+];
+
 const FIXTURE_PROFILE: &str = "radicle-source-v1";
 const FIXTURE_RID: &str = "rad:zFixtureRepository";
 const FIXTURE_SIGNER: &str = "z6MkFixtureSigner";
