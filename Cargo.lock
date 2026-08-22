@@ -1658,6 +1658,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-radicle-source-contract"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kiln-standalone"
 version = "0.1.0"
 dependencies = [

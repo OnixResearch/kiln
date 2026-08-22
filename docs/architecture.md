@@ -10,6 +10,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-provider-api` | Narrow versioned provider ports. |
 | `kiln-codec` | Packed Preserves encoding and BLAKE3 identity. |
 | `kiln-standalone` | Reference journal, outbox, log store, and recovery shell. |
+| `kiln-radicle-source-contract` | Pure `no_std + alloc` signed-reference request, observation, snapshot, and receipt admission. |
 | `kiln-adapter-jj` | Jujutsu source-provider compatibility. |
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
 | `kiln-adapter-pijul` | Exact Pijul state observation and bounded local snapshot acquisition. |
@@ -34,7 +35,9 @@ The core has no filesystem, process, network, clock, credential, or provider-run
 
 Each port returns typed domain or infrastructure failures. Timeout, cancellation, and unknown results stay distinct until an application shell applies retry policy.
 
-The Radicle status and mutation shells use `radicle-cob` behind adapter-owned storage traits. SecretSpec and Radicle crates do not enter `kiln-core` or standalone builds.
+The Radicle source contract has no provider runtime dependencies. Source, status, and mutation shells keep Radicle crates behind adapter-owned boundaries.
+
+SecretSpec and Radicle crates do not enter `kiln-core` or standalone builds.
 
 The application composition root selects each concrete adapter. The core and adapters do not select fallback providers.
 

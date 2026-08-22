@@ -320,8 +320,31 @@
             cargoBuildFlags = [
               "-p"
               "kiln-core"
+              "-p"
+              "kiln-radicle-source-contract"
               "--target=wasm32-unknown-unknown"
             ];
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
+          radicle-source-contract-fixtures = rustPlatform.buildRustPackage {
+            pname = "kiln-radicle-source-contract-fixtures";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              allowBuiltinFetchGit = true;
+            };
+            nativeBuildInputs = [ pkgs.coreutils ];
+            buildPhase = ''
+              runHook preBuild
+              cargo test -p kiln-radicle-source-contract --offline
+              cargo run -q -p kiln-radicle-source-contract --example emit-fixtures --offline > generated.json
+              cmp generated.json fixtures/radicle-source-contract/producer/fixtures-v1.json
+              runHook postBuild
+            '';
             doCheck = false;
             installPhase = ''
               touch "$out"
@@ -358,6 +381,13 @@
             nickel export config/fixtures/radicle-status-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-mutation-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
+            nickel export fixtures/radicle-source-contract/positive/receipt.ncl >/dev/null
+            for fixture in fixtures/radicle-source-contract/negative/*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative Radicle source contract fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-machine/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
@@ -593,8 +623,13 @@
               runHook preBuild
               cargo tree -p kiln-core --edges normal > core-tree.txt
               cargo tree -p kiln-standalone --edges normal > standalone-tree.txt
+              cargo tree -p kiln-radicle-source-contract --edges normal | tail -n +2 > source-contract-tree.txt
               if grep -E 'radicle|secretspec' core-tree.txt standalone-tree.txt >/dev/null; then
                 echo 'Radicle or SecretSpec entered a runtime-independent crate' >&2
+                exit 1
+              fi
+              if grep -E 'git2|rusqlite|bounded-exec|radicle-(cob|core|crypto|git|oid)|kiln-(core|provider-api|codec)' source-contract-tree.txt >/dev/null; then
+                echo 'Provider runtime dependency entered the Radicle source contract' >&2
                 exit 1
               fi
               runHook postBuild

@@ -4,6 +4,7 @@ members = [
   "crates/kiln-provider-api",
   "crates/kiln-codec",
   "crates/kiln-standalone",
+  "crates/kiln-radicle-source-contract",
   "crates/kiln-adapter-radicle",
   "crates/kiln-adapter-cob",
   "crates/kiln-adapter-jj",
@@ -57,6 +58,7 @@ kiln-core = { path = "crates/kiln-core" }
 kiln-provider-api = { path = "crates/kiln-provider-api" }
 kiln-codec = { path = "crates/kiln-codec" }
 kiln-standalone = { path = "crates/kiln-standalone" }
+kiln-radicle-source-contract = { path = "crates/kiln-radicle-source-contract" }
 kiln-adapter-radicle = { path = "crates/kiln-adapter-radicle" }
 kiln-adapter-cob = { path = "crates/kiln-adapter-cob" }
 kiln-adapter-jj = { path = "crates/kiln-adapter-jj" }
