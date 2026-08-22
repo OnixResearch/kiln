@@ -18,5 +18,5 @@
 
 - [x] [serial] Add local producer and independent consumer fixtures for every enabled capability. r[kiln.radicle.shell_conformance]
 - [x] [serial] Document setup, authority, recovery, limits, and non-claims. r[kiln.radicle.shell_profile] r[kiln.radicle.shell_nonclaims]
-- [ ] [serial] Run formatting, workspace tests, Clippy, `no_std`, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.shell_conformance]
-- [ ] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.shell_conformance] r[kiln.radicle.shell_nonclaims]
+- [x] [serial] Run formatting, workspace tests, Clippy, `no_std`, Nickel, dependency, Cairn, Tracey, and focused Nix gates. r[kiln.radicle.shell_conformance]
+- [x] [serial] Record evidence, sync accepted specs, archive the change, and rerun validation. r[kiln.radicle.shell_conformance] r[kiln.radicle.shell_nonclaims]

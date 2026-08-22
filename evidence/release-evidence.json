@@ -380,6 +380,27 @@
     "stack": {
       "profiles": [
         {
+          "authority_boundary": "Radicle supplies local signed-reference facts; Kiln owns exact request admission, bounded acquisition, and canonical tree identity",
+          "capabilities": [
+            "discover",
+            "resolve_exact",
+            "acquire",
+            "observe_identity"
+          ],
+          "id": "radicle-source-v1",
+          "role": "source",
+          "source_revision": "0a5924dd2092243a0fe5df94d43008f0402e46f6",
+          "unsupported_capabilities": [
+            "network",
+            "credentials",
+            "signing",
+            "mutation",
+            "collaboration",
+            "remote_availability",
+            "history_trust"
+          ]
+        },
+        {
           "authority_boundary": "Radicle owns local COB storage and signatures; Kiln owns CI state, target admission, and single-writer policy",
           "capabilities": [
             "publish",
@@ -547,7 +568,7 @@
       ]
     }
   },
-  "receipt_hash": "6ba830d9926030b8567b9cd17b2adf2c5ceb1dc4cf237224b572b51f049bc394",
+  "receipt_hash": "e7ef3769bd39c953c9525efecdc003444916149cb54a2d41120f0358c2efa19d",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",
