@@ -38,7 +38,9 @@ Rejected alternative: deriving live facts from a mutable projection cache. A cac
 
 ### Decision: Auth before projection
 
-Every request is admitted against the profile auth policy before any projection runs. Auth failure returns a bounded rejection. Auth uses the existing credential-reference discipline; no ambient credential authority.
+Every request is admitted against the profile auth policy before any projection runs. Auth failure returns a bounded rejection. Consumers retain nonce, clock, replay, and transport authority.
+
+Planned reference implementation: capability tokens through a versioned observation-authn port, with `ucan-core` (pinned, MPL-2.0) as the admitted provider and scope caveats for project and tenant. The spec keeps the requirement policy-neutral; the technology choice is a design fact subject to the cross-stack evaluation below.
 
 ### Decision: Rejections are bounded and specific
 
@@ -47,6 +49,15 @@ Unknown view kinds, unknown targets, oversized requests, TLS failures, and timeo
 ### Decision: No write authority
 
 The HTTP shell performs no command intake. Controls are a later change through the existing command and outbox path.
+
+## Cross-stack evaluation and reuse
+
+Two sibling components are evaluated, not assumed:
+
+- `host-control-core` (MIT OR Apache-2.0, `#![no_std]`) provides snapshot-first streams and bounded observations and is already consumed by tile through `tile-host-control-adapter`. It is a candidate for the observation wire-contract framing. Adoption requires confirming product-neutral fit: its current observation DTOs are host and pane shaped, not CI shaped. The outcome of this evaluation gates the wire-format freeze for this leg, not the pure projection core.
+- `ucan-core` (MPL-2.0) is the planned capability-token provider behind the observation-authn port. The AGPL-3.0 `ucan` shell and `basalt` are not consumed unless network-license policy explicitly accepts AGPL.
+
+Recorded pins and license notices follow the existing accepted-spec discipline (see the valence-core MPL precedent).
 
 ## Configuration
 

@@ -50,6 +50,15 @@ Dropped, delayed, relayed, or failed payloads are transport observations. They n
 
 The iroh shell performs no command intake. Controls are a later change through the existing command and outbox path.
 
+## Cross-stack evaluation and reuse
+
+Two sibling components are evaluated, not assumed:
+
+- `host-control-core` (MIT OR Apache-2.0) is a candidate for observation wire-contract framing (snapshot-first streams, bounded observations). Its current DTOs are host and pane shaped; adoption blocks only the wire-format freeze, and the outcome applies equally to the HTTP leg, which owns the shared contract.
+- `ucan-core` (pinned, MPL-2.0) is the planned capability-token provider behind a versioned observation-authn port. Peer principals align to `did:key` Ed25519 so iroh public keys and capability-token principals share one identity model. The AGPL-3.0 `ucan` shell and `basalt` are not consumed unless network-license policy explicitly accepts AGPL.
+
+Recorded pins and license notices follow the accepted-spec discipline. The n0 cohort pins remain independent of any sibling component.
+
 ## Configuration
 
 Typed Nickel profiles declare the cohort pins, ALPN identity, endpoint and relay policy, peer identity and trust policy, named bounds, and non-claims. Positive and negative profile fixtures validate the contract.

@@ -13,6 +13,7 @@
 ## Phase 3: Identity, trust, and verified streaming
 
 - [ ] [depends:iroh-observe-serving] Implement stable node identity, peer alias allowlist, and explicit revocation. r[kiln.observe.iroh.peer]
+- [ ] [depends:iroh-observe-serving] Align peer principals with capability-token principals (`did:key` Ed25519) behind the versioned observation-authn port. r[kiln.observe.iroh.peer]
 - [ ] [depends:iroh-observe-serving] Stream log and record ranges as content-addressed payloads over the `iroh-blobs` and `bao-tree` path. r[kiln.observe.iroh.verify]
 - [ ] [parallel] Verify declared BLAKE3 identities before claiming delivery, and reject or refetch corrupted payloads. r[kiln.observe.iroh.verify]
 - [ ] [parallel] Deny unknown and revoked peers under the declared policy. r[kiln.observe.iroh.peer]
