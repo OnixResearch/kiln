@@ -22,6 +22,7 @@ kiln-provider-api.workspace = true
 kiln-codec.workspace = true
 kiln-radicle-source-contract.workspace = true
 kiln-adapter-lattice.workspace = true
+kiln-adapter-aspen.workspace = true
 lattice-workflow-transport.workspace = true
 rusqlite.workspace = true
 radicle-cob.workspace = true

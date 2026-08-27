@@ -1,0 +1,410 @@
+#![feature(register_tool)]
+#![register_tool(tigerstyle)]
+
+#[path = "__ASPEN_ROOT__/tests/nativesystemextension/support.rs"]
+mod aspen_support;
+
+use aspen_support::Cohort;
+use kiln_adapter_aspen::profile::{
+    AspenPortBinding, KILN_EXTENSION_ID, KILN_EXTENSION_SERVICE_ID, admit_profile,
+    profile_fixture,
+};
+use kiln_adapter_aspen::protocol::{
+    CALLBACK_OUTCOME_SCHEMA, HOSTED_CALLBACK_INPUT_SCHEMA, CallbackCommand, CallbackDecision,
+    HostedCallbackInput, decode_callback_outcome, encode_hosted_callback_input,
+};
+use kiln_adapter_aspen::transport::{IngressSource, build_ingress};
+use kiln_provider_api::{TriggerEventKind, TriggerRequest};
+use molten::fabric::*;
+use molten::system_extension::*;
+
+const KILN_EFFECT_OPERATION: &str = "kiln-provider-effect-v2";
+const START_TICK: u64 = 10;
+const ACCEPT_TICK: u64 = 20;
+const COMPLETION_TICK: u64 = 30;
+const REJECT_TICK: u64 = 40;
+const CHECKPOINT_TICK: u64 = 50;
+const RESTART_TICK: u64 = 60;
+const DRAIN_TICK: u64 = 70;
+const STOP_TICK: u64 = 80;
+const MAX_CALLBACKS: u64 = 1;
+const MAX_QUEUE: u64 = 16;
+const MAX_BYTES: u64 = 1_048_576;
+const MAX_STREAMS: u64 = 1;
+const MAX_TIMERS: u64 = 1;
+const MAX_EFFECTS: u64 = 64;
+const CALLBACK_DEADLINE: u64 = 100;
+const SHUTDOWN_GRACE: u64 = 100;
+const MAX_RESTARTS: u64 = 2;
+
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), String> {
+    let profile = admit_profile(&profile_fixture()).map_err(|error| error.message)?;
+    let mut cohort = Cohort::new();
+    let admitted = kiln_manifest(&profile.profile.ports)?;
+    bind_kiln_manifest(&mut cohort, admitted);
+    let manifest_ref = cohort.admitted.manifest_ref().to_string();
+    let executable_bytes_ref = cohort.executable.executable.executable_bytes_ref.clone();
+    let profile_identity = profile.profile_identity.as_str().to_string();
+    let mut service = cohort.install();
+    service.start(START_TICK).map_err(debug)?;
+
+    let accepted_ingress = build_ingress(&profile, IngressSource::Radicle, trigger(false))
+        .map_err(debug)?;
+    let accepted = service
+        .ingress(
+            &native_ingress(&profile, &cohort, accepted_ingress)?,
+            ACCEPT_TICK,
+        )
+        .map_err(debug)?;
+    let (accepted_receipt, accepted_core) = accepted
+        .dispatch
+        .require_executed("Kiln accepted trigger")
+        .map_err(|error| error.to_string())?;
+    let accepted_output = callback_output(&cohort, &profile, &accepted_core)?;
+    if accepted_output.decision != CallbackDecision::Accepted
+        || accepted_receipt.approved_effects.len() != 1
+    {
+        return Err("accepted trigger did not produce one admitted provider effect".to_string());
+    }
+
+    let mut effects = RecordingEffectPort::default();
+    let completions = service
+        .route_effects(&accepted_receipt, &mut effects)
+        .map_err(debug)?;
+    if effects.routed != 1 || completions.len() != 1 {
+        return Err("Aspen did not route the exact Kiln provider effect".to_string());
+    }
+    let completion = service
+        .deliver_effect_completion(&completions[0], COMPLETION_TICK)
+        .map_err(debug)?;
+    let (_completion_receipt, completion_core) = completion
+        .require_executed("Kiln effect completion")
+        .map_err(|error| error.to_string())?;
+    let completion_output = callback_output(&cohort, &profile, &completion_core)?;
+    if completion_output.decision != CallbackDecision::Reconciled
+        || !completion_output.state.unresolved_effects.is_empty()
+    {
+        return Err("Kiln did not reconcile the Aspen effect completion".to_string());
+    }
+
+    let rejected_ingress = build_ingress(&profile, IngressSource::Radicle, trigger(true))
+        .map_err(debug)?;
+    let rejected = service
+        .ingress(
+            &native_ingress(&profile, &cohort, rejected_ingress)?,
+            REJECT_TICK,
+        )
+        .map_err(debug)?;
+    let (_rejected_receipt, rejected_core) = rejected
+        .dispatch
+        .require_executed("Kiln rejected trigger")
+        .map_err(|error| error.to_string())?;
+    let rejected_output = callback_output(&cohort, &profile, &rejected_core)?;
+    if rejected_output.decision != CallbackDecision::Rejected || !rejected_core.effects.is_empty() {
+        return Err("rejected trigger released a provider effect".to_string());
+    }
+
+    service.checkpoint(CHECKPOINT_TICK).map_err(debug)?;
+    let instance_id = service.instance().map_err(debug)?.instance_id;
+    drop(service);
+    let restored = cohort
+        .journal
+        .lock()
+        .map_err(|_| "Aspen journal lock failed".to_string())?
+        .latest_instance(&instance_id)
+        .map_err(debug)?
+        .ok_or_else(|| "Aspen journal omitted the Kiln instance".to_string())?;
+    let mut recovered = cohort.recovered(restored);
+    recovered.restart(RESTART_TICK).map_err(debug)?;
+    recovered.drain(DRAIN_TICK).map_err(debug)?;
+    recovered.stop(STOP_TICK).map_err(debug)?;
+
+    let receipt = serde_json::json!({
+        "schema": "kiln.aspen-runtime.cross-repo-host-evidence.v1",
+        "aspen_revision": "171f25b5a9e878390af8f20b9797f6096cca5097",
+        "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+        "manifest_ref": manifest_ref,
+        "extension_executable_bytes_ref": executable_bytes_ref,
+        "kiln_profile_identity": profile_identity,
+        "accepted_decision": "accepted",
+        "rejected_decision": "rejected",
+        "completion_decision": "reconciled",
+        "provider_effects_routed": effects.routed,
+        "restart": "passed",
+        "drain": "passed",
+        "stop": "passed",
+        "claim_level": "local-live-materialized-values-pilot",
+        "verdict": "PASS"
+    });
+    println!("{}", serde_json::to_string_pretty(&receipt).map_err(|error| error.to_string())?);
+    Ok(())
+}
+
+fn kiln_manifest(
+    ports: &[AspenPortBinding],
+) -> Result<CanonicalAdmittedSystemExtensionManifest, String> {
+    let descriptors = ports.iter().map(descriptor).collect::<Vec<_>>();
+    let requirements = ports.iter().map(requirement).collect::<Vec<_>>();
+    let tier = canonical_extension_tier_admission(&ExtensionTierRequest {
+        tier: ExtensionTier::SystemExtension,
+        requested_authorities: vec![
+            FabricAuthority::Execution,
+            FabricAuthority::Resources,
+            FabricAuthority::Supervision,
+            FabricAuthority::Evidence,
+        ],
+        admission_evidence: REQUIRED_SYSTEM_EXTENSION_EVIDENCE.to_vec(),
+    })
+    .map_err(debug)?;
+    canonical_admit_system_extension_manifest(
+        &SystemExtensionManifestInput {
+            schema: SYSTEM_EXTENSION_MANIFEST_SCHEMA.to_string(),
+            extension_id: KILN_EXTENSION_ID.to_string(),
+            service_id: KILN_EXTENSION_SERVICE_ID.to_string(),
+            implementation_ref: aspen_support::HASH_E.to_string(),
+            callback_groups: vec![
+                "initialize".to_string(),
+                "start".to_string(),
+                "request".to_string(),
+                "message".to_string(),
+                "health".to_string(),
+                "checkpoint".to_string(),
+                "recover".to_string(),
+                "drain".to_string(),
+                "shutdown".to_string(),
+            ],
+            required_ports: requirements,
+            optional_ports: Vec::new(),
+            capability_refs: vec![aspen_support::HASH_B.to_string()],
+            policy_refs: vec![aspen_support::HASH_C.to_string()],
+            provenance_refs: vec![aspen_support::HASH_D.to_string()],
+            resources: ResourceEnvelope {
+                max_concurrent_callbacks: MAX_CALLBACKS,
+                max_queued_events: MAX_QUEUE,
+                max_inflight_bytes: MAX_BYTES,
+                max_open_streams: MAX_STREAMS,
+                max_timers: MAX_TIMERS,
+                max_effect_requests: MAX_EFFECTS,
+                callback_deadline_ticks: CALLBACK_DEADLINE,
+                shutdown_grace_ticks: SHUTDOWN_GRACE,
+                max_restart_attempts: MAX_RESTARTS,
+                overload_policy: OverloadPolicy::UpstreamBackpressure,
+            },
+            execution_profile: ExecutionProfile::NativeProcess,
+            state_schema: "kiln.aspen-extension.state.v2".to_string(),
+            compatible_state_schemas: vec!["kiln.aspen-extension.state.v2".to_string()],
+            evidence_profile_ref: aspen_support::HASH_E.to_string(),
+            initial_generation: aspen_support::GENERATION,
+            non_claims: REQUIRED_SYSTEM_EXTENSION_NON_CLAIMS.to_vec(),
+        },
+        &descriptors,
+        &tier,
+        &[ExecutionProfile::NativeProcess],
+    )
+    .map_err(debug)
+}
+
+fn descriptor(binding: &AspenPortBinding) -> FabricPortDescriptor {
+    FabricPortDescriptor {
+        schema: FABRIC_PORT_DESCRIPTOR_SCHEMA.to_string(),
+        port_id: binding.port_id.clone(),
+        version: binding.version.clone(),
+        class: FabricPortClass::Evidence,
+        operation_classes: vec![KILN_EFFECT_OPERATION.to_string()],
+        input_schema_refs: vec![binding.input_schema.clone()],
+        output_schema_refs: vec![binding.output_schema.clone()],
+        authority_requirements: vec![FabricAuthority::Evidence],
+        resource_requirements: vec![FabricResource::Diagnostics],
+        determinism: DeterminismClass::ExternalEffect,
+        replay: ReplayClass::RecordedEffectRequired,
+        implementation_profile: "kiln-cross-repo-evidence-v2".to_string(),
+        conformance_refs: vec![aspen_support::HASH_A.to_string()],
+        non_claims: REQUIRED_FABRIC_NON_CLAIMS.to_vec(),
+        enabled: true,
+    }
+}
+
+fn requirement(binding: &AspenPortBinding) -> FabricPortRequirement {
+    FabricPortRequirement {
+        port_id: binding.port_id.clone(),
+        version: binding.version.clone(),
+        class: FabricPortClass::Evidence,
+        operation_classes: vec![KILN_EFFECT_OPERATION.to_string()],
+        input_schema_refs: vec![binding.input_schema.clone()],
+        output_schema_refs: vec![binding.output_schema.clone()],
+        allowed_authorities: vec![FabricAuthority::Evidence],
+        available_resources: vec![FabricResource::Diagnostics],
+        expected_determinism: DeterminismClass::ExternalEffect,
+        expected_replay: ReplayClass::RecordedEffectRequired,
+        expected_profile: "kiln-cross-repo-evidence-v2".to_string(),
+    }
+}
+
+fn bind_kiln_manifest(
+    cohort: &mut Cohort,
+    admitted: CanonicalAdmittedSystemExtensionManifest,
+) {
+    let manifest_ref = admitted.manifest_ref().to_string();
+    let instance_id = native_identity_ref(&[
+        "native-instance-v2",
+        KILN_EXTENSION_ID,
+        KILN_EXTENSION_SERVICE_ID,
+        &manifest_ref,
+    ]);
+    cohort.executable.executable.manifest_ref = manifest_ref.clone();
+    cohort.executable.executable.port_binding_refs =
+        admitted.all_binding_refs().map(str::to_string).collect();
+    cohort.template.admitted = admitted.clone();
+    cohort.template.executable = cohort.executable.clone();
+    cohort.template.context.manifest_ref = manifest_ref;
+    cohort.template.context.instance_id = instance_id;
+    cohort.template.context.extension_id = KILN_EXTENSION_ID.to_string();
+    cohort.template.context.service_id = KILN_EXTENSION_SERVICE_ID.to_string();
+    cohort.template.context.port_binding_refs =
+        admitted.all_binding_refs().map(str::to_string).collect();
+    cohort.template.request.extension_id = KILN_EXTENSION_ID.to_string();
+    cohort.template.request.service_id = KILN_EXTENSION_SERVICE_ID.to_string();
+    cohort.template.authority.extension_id = KILN_EXTENSION_ID.to_string();
+    cohort.template.authority.service_id = KILN_EXTENSION_SERVICE_ID.to_string();
+    cohort.admitted = admitted;
+}
+
+fn native_ingress(
+    profile: &kiln_adapter_aspen::profile::AdmittedAspenRuntimeProfile,
+    cohort: &Cohort,
+    ingress: kiln_adapter_aspen::transport::AspenServiceIngress,
+) -> Result<NativeIngressEnvelope, String> {
+    let hosted = HostedCallbackInput {
+        schema: HOSTED_CALLBACK_INPUT_SCHEMA.to_string(),
+        protocol_schema: profile.profile.extension_protocol_schema.clone(),
+        profile_identity: profile.profile_identity.clone(),
+        operation_id: ingress.operation_id.clone(),
+        authority_ref: ingress.authority_ref.clone(),
+        policy_ref: profile.profile.policy_ref.clone(),
+        resource_ref: ingress.resource_ref.clone(),
+        command: CallbackCommand::SubmitTrigger {
+            trigger: Box::new(ingress.trigger),
+            trigger_identity: ingress.trigger_identity,
+            idempotency_key: ingress.idempotency_key,
+        },
+    };
+    let payload = encode_hosted_callback_input(
+        &hosted,
+        profile.profile.bounds.max_materialized_value_bytes,
+    )
+    .map_err(|error| error.to_string())?;
+    let payload_ref = molten::preserves_rail::content_ref_from_bytes(&payload);
+    let accounted_bytes = u64::try_from(payload.len())
+        .map_err(|_| "Kiln ingress byte count does not fit u64".to_string())?;
+    Ok(NativeIngressEnvelope {
+        schema: NATIVE_INGRESS_SCHEMA.to_string(),
+        request_ref: molten::preserves_rail::content_ref_from_bytes(
+            hosted.operation_id.native_id.as_str().as_bytes(),
+        ),
+        endpoint_ref: aspen_support::HASH_B.to_string(),
+        peer_ref: aspen_support::HASH_C.to_string(),
+        service_id: KILN_EXTENSION_SERVICE_ID.to_string(),
+        manifest_ref: cohort.admitted.manifest_ref().to_string(),
+        generation: profile.profile.generation,
+        authority_ref: aspen_support::HASH_D.to_string(),
+        policy_ref: aspen_support::HASH_E.to_string(),
+        resource_ref: aspen_support::HASH_F.to_string(),
+        transport_profile_ref: aspen_support::HASH_C.to_string(),
+        alpn: NATIVE_ALPN.to_string(),
+        framing: NATIVE_FRAMING.to_string(),
+        payload: NativeCallbackValue {
+            value_ref: payload_ref,
+            bytes: payload,
+        },
+        accounted_bytes,
+    })
+}
+
+fn callback_output(
+    cohort: &Cohort,
+    profile: &kiln_adapter_aspen::profile::AdmittedAspenRuntimeProfile,
+    outcome: &CallbackOutcome,
+) -> Result<kiln_adapter_aspen::protocol::CallbackOutcome, String> {
+    let output_ref = outcome
+        .output_refs
+        .first()
+        .ok_or_else(|| "Aspen callback omitted the Kiln output".to_string())?;
+    let value = cohort
+        .values
+        .lock()
+        .map_err(|_| "Aspen value lock failed".to_string())?
+        .materialize(
+            output_ref,
+            u64::try_from(profile.profile.bounds.max_materialized_value_bytes)
+                .map_err(|_| "Kiln value bound does not fit u64".to_string())?,
+        )
+        .map_err(debug)?;
+    let output = decode_callback_outcome(
+        &value.bytes,
+        profile.profile.bounds.max_materialized_value_bytes,
+        profile.profile.bounds.max_effects,
+    )
+    .map_err(|error| error.to_string())?;
+    if output.schema != CALLBACK_OUTCOME_SCHEMA {
+        return Err("Kiln callback output schema drifted".to_string());
+    }
+    Ok(output)
+}
+
+#[derive(Default)]
+struct RecordingEffectPort {
+    routed: u64,
+}
+
+impl FabricEffectPort for RecordingEffectPort {
+    fn route(
+        &mut self,
+        _binding: &CanonicalFabricPortBinding,
+        effect: &TypedEffectRequest,
+    ) -> FabricPortResult<PortEffectOutput> {
+        if effect.operation != KILN_EFFECT_OPERATION {
+            return Err(FabricPortError::malformed("Kiln effect operation drifted"));
+        }
+        self.routed = self
+            .routed
+            .checked_add(1)
+            .ok_or_else(|| FabricPortError::malformed("effect count overflow"))?;
+        Ok(PortEffectOutput {
+            output_schema_ref: effect.output_schema_ref.clone(),
+            output_ref: molten::preserves_rail::content_ref_from_bytes(b"kiln-provider-observation"),
+        })
+    }
+}
+
+fn trigger(same_revision: bool) -> TriggerRequest {
+    let after = external("radicle", "oid", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    TriggerRequest {
+        repository: external("radicle", "rid", "rad:kiln-aspen-host"),
+        actor: external("radicle", "did", "did:key:kiln-aspen-host"),
+        before: Some(if same_revision {
+            after.clone()
+        } else {
+            external("radicle", "oid", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        }),
+        after,
+        branch: None,
+        patch: None,
+        event: TriggerEventKind::Push,
+    }
+}
+
+fn external(namespace: &str, kind: &str, value: &str) -> kiln_core::types::ExternalRef {
+    kiln_core::types::ExternalRef::new(namespace, kind, value)
+        .unwrap_or_else(|_| unreachable!("static external reference"))
+}
+
+fn debug(error: impl std::fmt::Debug) -> String {
+    format!("{error:?}")
+}

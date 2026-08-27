@@ -6,6 +6,7 @@ use kiln_adapter_aspen::protocol::{
 use kiln_adapter_aspen::service::{CallbackInvocationError, HostedCallback};
 
 mod decision;
+mod native;
 
 use decision::*;
 

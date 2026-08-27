@@ -4,9 +4,9 @@
 
 `kiln-adapter-aspen` consumes the static frame and checks `consumer-expected.json` without invoking the producer.
 
-The fixture binds Aspen revision `7fb4c9de293f815654e1e3b954f4fee3678ac87f`. Regenerate it with:
+The fixture binds Aspen revision `171f25b5a9e878390af8f20b9797f6096cca5097`. Regenerate it with:
 
 ```console
 nix develop path:$PWD -c cargo run -q -p kiln-aspen-extension --example emitcallbackfixture > \
-  fixtures/aspen/runtime/7fb4c9de293f815654e1e3b954f4fee3678ac87f/producer-callback-request.preserves
+  fixtures/aspen/runtime/171f25b5a9e878390af8f20b9797f6096cca5097/producer-callback-request.preserves
 ```

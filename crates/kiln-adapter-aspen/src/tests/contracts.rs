@@ -10,6 +10,17 @@ fn exact_profile_admits_and_drift_fails_without_fallback() {
     let first = admit_profile(&profile).unwrap_or_else(|_| unreachable!("profile admits"));
     let second = admit_profile(&profile).unwrap_or_else(|_| unreachable!("profile admits"));
     assert_eq!(first.profile_identity, second.profile_identity);
+    let document = profile_document_fixture();
+    assert_eq!(
+        document
+            .clone()
+            .into_runtime_profile()
+            .unwrap_or_else(|_| unreachable!("profile document")),
+        profile,
+    );
+    let mut bad_document = document;
+    bad_document.port_count = bad_document.port_count.saturating_add(1);
+    assert!(bad_document.into_runtime_profile().is_err());
 
     let mut revision_drift = profile.clone();
     revision_drift.source_revision = "mutable-head".to_string();
@@ -113,7 +124,7 @@ fn runtime_composition_is_explicit_and_never_falls_back() {
     ));
 
     let aspen = compose_application(
-        RuntimeSelection::AspenV1,
+        RuntimeSelection::AspenV2,
         Some(profile_fixture()),
         Some(exact_availability()),
     )
@@ -124,7 +135,7 @@ fn runtime_composition_is_explicit_and_never_falls_back() {
     unavailable.endpoint_available = false;
     assert!(
         compose_application(
-            RuntimeSelection::AspenV1,
+            RuntimeSelection::AspenV2,
             Some(profile_fixture()),
             Some(unavailable),
         )
@@ -146,10 +157,10 @@ struct ExpectedProducerFixture {
 #[test]
 fn independent_consumer_accepts_the_static_producer_fixture() {
     const PRODUCER: &[u8] = include_bytes!(
-        "../../../../fixtures/aspen/runtime/7fb4c9de293f815654e1e3b954f4fee3678ac87f/producer-callback-request.preserves"
+        "../../../../fixtures/aspen/runtime/171f25b5a9e878390af8f20b9797f6096cca5097/producer-callback-request.preserves"
     );
     const EXPECTED: &str = include_str!(
-        "../../../../fixtures/aspen/runtime/7fb4c9de293f815654e1e3b954f4fee3678ac87f/consumer-expected.json"
+        "../../../../fixtures/aspen/runtime/171f25b5a9e878390af8f20b9797f6096cca5097/consumer-expected.json"
     );
     let expected: ExpectedProducerFixture =
         serde_json::from_str(EXPECTED).unwrap_or_else(|_| unreachable!("expected fixture"));

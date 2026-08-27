@@ -1,6 +1,6 @@
 # Radicle workflow shell
 
-Kiln can accept one bounded Radicle CI broker trigger and dispatch one exact source-bound workflow through Lattice.
+Kiln can accept one bounded Radicle CI broker trigger through an explicitly selected Lattice or Aspen runtime path.
 
 ## Published cohorts
 
@@ -10,8 +10,9 @@ The shell pins these inputs:
 - Radicle CI broker: `a688afde1f730ef60402a809d9cdadc55e8dd749`
 - Lattice contract, transport, handler, and source binding: `70496e67c7fd4a8b05914161a8e09de2759bebc8`
 - Lattice request schema: `lattice.workflow-request.v2`
+- Aspen native-host cohort: `171f25b5a9e878390af8f20b9797f6096cca5097`
 
-The executable contains no Nix executor and no workflow fallback.
+The executable contains no Nix executor and no workflow fallback. Runtime selection is mandatory and never falls back.
 
 ## Profile
 
@@ -32,7 +33,7 @@ The profile binds these values:
 - one Lattice Unix socket and peer policy;
 - finite request, response, connection, poll, and replay bounds;
 - one exact workflow graph and operation identity;
-- one durable SQLite replay database;
+- one durable SQLite replay database for the direct Lattice path;
 - exact upstream revisions and licenses; and
 - explicit non-claims.
 
@@ -48,17 +49,32 @@ The Lattice route must bind the same profile identity, graph identity, operation
 
 ## Broker command
 
-Use the deployed broker protocol by default:
+Select the direct Lattice runtime explicitly:
 
 ```console
-kiln-adapter-radicle --profile /etc/kiln/radicle-workflow.json
+kiln-adapter-radicle \
+  --profile /etc/kiln/radicle-workflow.json \
+  --runtime lattice
 ```
+
+Select Aspen only with its exact exported v2 profile and deployed Unix endpoint:
+
+```console
+kiln-adapter-radicle \
+  --profile /etc/kiln/radicle-workflow.json \
+  --runtime aspen \
+  --aspen-profile /etc/kiln/aspen-runtime.json \
+  --aspen-socket /run/kiln/aspen.sock
+```
+
+If the selected Aspen socket or any exact profile fact is unavailable, the command fails. It does not dispatch directly through Lattice.
 
 Use the original line-JSON compatibility protocol only when the broker configuration selects it explicitly:
 
 ```console
 kiln-adapter-radicle \
   --profile /etc/kiln/radicle-workflow.json \
+  --runtime lattice \
   --protocol native
 ```
 
@@ -66,7 +82,9 @@ Diagnostics go to standard error. Standard output contains only protocol respons
 
 ## Durable replay and recovery
 
-Kiln reserves the deterministic trigger identity in SQLite before dispatch.
+On the direct Lattice path, Kiln reserves the deterministic trigger identity in SQLite before dispatch.
+
+On the Aspen path, the native extension owns the same replay decision over Aspen-hosted state. The broker does not also reserve or dispatch through SQLite.
 
 An exact duplicate never sends a new dispatch. It sends only `RecoverDispatch` for an unresolved request. If Lattice cannot find an acceptance, Kiln preserves an unknown outcome.
 

@@ -1573,6 +1573,7 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "git2 0.21.0",
+ "kiln-adapter-aspen",
  "kiln-adapter-cob",
  "kiln-adapter-lattice",
  "kiln-codec",

@@ -1,9 +1,11 @@
 let Contracts = import "contracts.ncl" in
 let InitialGeneration = 1 in
 let PortCount = 7 in
-let NonClaimCount = 10 in
+let NonClaimCount = 12 in
 let MaxCallbackInputBytes = 1048576 in
 let MaxCallbackOutputBytes = 1048576 in
+let MaxMaterializedValueBytes = 262144 in
+let MaxMaterializedValues = 64 in
 let MaxContentBytes = 16777216 in
 let MaxLogBytes = 262144 in
 let MaxEffects = 64 in
@@ -12,25 +14,26 @@ let CallbackTimeoutMillis = 30000 in
 let AuthorityRef = "kiln-aspen-authority-v1" in
 let ResourceRef = "kiln-aspen-resources-v1" in
 ({
-  schema = "kiln.aspen-runtime.profile.v1",
-  profile_id = "aspen-runtime-v1",
+  schema = "kiln.aspen-runtime.profile.v2",
+  profile_id = "aspen-runtime-v2",
   cohort = {
     source = "ssh://git@github.com/OnixResearch/aspen.git",
-    revision = "7fb4c9de293f815654e1e3b954f4fee3678ac87f",
+    revision = "171f25b5a9e878390af8f20b9797f6096cca5097",
     bounded_exec_source = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
     bounded_exec_revision = "29dac88ecded94457572db3fdfaaaab95fa91525",
   },
   native_host = {
-    profile_schema = "molten.system-extension.native-host-profile.v1",
-    callback_envelope_schema = "molten.system-extension.native-callback-envelope.v1",
-    callback_outcome_schema = "molten.system-extension.native-callback-outcome.v1",
-    ingress_schema = "molten.system-extension.native-ingress.v1",
-    extension_protocol_schema = "kiln.aspen-extension.protocol.v1",
-    extension_id = "kiln-aspen-extension-v1",
-    service_id = "kiln-ci-control-plane-v1",
-    execution_profile = "native-host-local-pilot-v1",
-    alpn = "molten/system-extension/native/v1",
-    framing = "preserves-packed-single-frame-v1",
+    profile_schema = "molten.system-extension.native-host-profile.v2",
+    callback_envelope_schema = "molten.system-extension.native-callback-envelope.v2",
+    callback_outcome_schema = "molten.system-extension.native-callback-outcome.v2",
+    instance_schema = "molten.system-extension.native-instance-state.v2",
+    ingress_schema = "molten.system-extension.native-ingress.v2",
+    extension_protocol_schema = "kiln.aspen-extension.protocol.v2",
+    extension_id = "kiln-aspen-extension-v2",
+    service_id = "kiln-ci-control-plane-v2",
+    execution_profile = "native-host-local-pilot-v2",
+    alpn = "molten/system-extension/native/v2",
+    framing = "preserves-packed-materialized-values-v2",
     generation = InitialGeneration,
   },
   endpoint_ref = "kiln-aspen-local-endpoint-v1",
@@ -38,7 +41,7 @@ let ResourceRef = "kiln-aspen-resources-v1" in
   policy_ref = "kiln-aspen-policy-v1",
   authority_ref = AuthorityRef,
   resource_ref = ResourceRef,
-  claim_level = "local-live-pilot",
+  claim_level = "local-live-materialized-values-pilot",
   ports = [
     {
       purpose = "durability",
@@ -108,6 +111,8 @@ let ResourceRef = "kiln-aspen-resources-v1" in
   bounds = {
     max_callback_input_bytes = MaxCallbackInputBytes,
     max_callback_output_bytes = MaxCallbackOutputBytes,
+    max_materialized_value_bytes = MaxMaterializedValueBytes,
+    max_materialized_values = MaxMaterializedValues,
     max_content_bytes = MaxContentBytes,
     max_log_bytes = MaxLogBytes,
     max_effects = MaxEffects,
@@ -126,6 +131,8 @@ let ResourceRef = "kiln-aspen-resources-v1" in
     "runtime evidence does not prove release eligibility",
     "equal digest text does not merge identity roles",
     "provider observations require Kiln admission",
+    "value identity does not prove application meaning",
+    "in-memory conformance does not prove value durability",
   ],
   non_claim_count = NonClaimCount,
 }

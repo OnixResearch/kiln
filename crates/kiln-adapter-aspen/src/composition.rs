@@ -14,7 +14,7 @@ pub const CAIRN_GATE_OWNER: &str = "cairn-gate-v1";
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeSelection {
     Standalone,
-    AspenV1,
+    AspenV2,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -51,7 +51,7 @@ pub fn compose_application(
         RuntimeSelection::Standalone => RuntimeComposition::Standalone {
             profile_id: STANDALONE_RUNTIME_PROFILE_ID.to_string(),
         },
-        RuntimeSelection::AspenV1 => {
+        RuntimeSelection::AspenV2 => {
             let profile = aspen_profile.ok_or_else(|| {
                 Diagnostic::new(
                     "aspen_composition_missing_profile",

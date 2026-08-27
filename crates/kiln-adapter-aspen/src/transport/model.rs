@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::profile::AdmittedAspenRuntimeProfile;
 
-pub const SERVICE_INGRESS_SCHEMA: &str = "kiln.aspen-runtime.service-ingress.v1";
-pub const SERVICE_ACK_SCHEMA: &str = "kiln.aspen-runtime.service-ack.v1";
+pub const SERVICE_INGRESS_SCHEMA: &str = "kiln.aspen-runtime.service-ingress.v2";
+pub const SERVICE_ACK_SCHEMA: &str = "kiln.aspen-runtime.service-ack.v2";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -56,7 +56,7 @@ pub struct AspenServiceAck {
     pub receipt_ref: ExternalRef,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ServiceTransportOutcome {
     Acknowledged(AspenServiceAck),
     Rejected(AspenServiceAck),

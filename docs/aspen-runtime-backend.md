@@ -4,9 +4,9 @@
 
 The Aspen backend gives Kiln a workload-neutral runtime substrate. Kiln still owns CI commands, events, candidates, attempts, policy, retries, provider selection, outcomes, and release meaning.
 
-The reviewed runtime cohort is Aspen/Molten revision `7fb4c9de293f815654e1e3b954f4fee3678ac87f`. Its bounded process mechanism is Bounded Exec revision `29dac88ecded94457572db3fdfaaaab95fa91525`.
+The reviewed runtime cohort is Aspen/Molten revision `171f25b5a9e878390af8f20b9797f6096cca5097`. Its bounded process mechanism is Bounded Exec revision `29dac88ecded94457572db3fdfaaaab95fa91525`.
 
-The initial claim level is `local-live-pilot`. It is not a production claim.
+The initial claim level is `local-live-materialized-values-pilot`. It is not a production claim.
 
 ## Components
 
@@ -20,6 +20,7 @@ The initial claim level is `local-live-pilot`. It is not a production claim.
 - Lattice workflow exchange through an Aspen transport-session port;
 - remote lifecycle mapping;
 - Radicle and operator trigger ingress;
+- a bounded Unix client for the deployed Aspen service endpoint;
 - fail-closed runtime composition;
 - local durability, content, service, restart, and reconciliation fixtures.
 
@@ -45,12 +46,14 @@ The profile binds these facts:
 - service, extension, endpoint, transport, policy, authority, and resource identities;
 - ALPN and packed-Preserves framing;
 - durability, content, execution, transport, time, scheduling, and evidence ports;
-- callback, content, log, effect, record, and deadline bounds;
+- callback-frame, materialized-value, content, log, effect, record, and deadline bounds;
 - service generation and local claim level;
 - all required non-claims;
 - `fallback = "none"`.
 
 If one fact drifts or one port is unavailable, Aspen selection fails. It does not fall back to SQLite, standalone execution, or direct Lattice dispatch.
+
+The deployed Unix adapter uses `kiln.aspen-runtime.unix-request.v2` and `kiln.aspen-runtime.unix-response.v2`. A disconnect after request write remains `Unknown` until exact operation reconciliation.
 
 ## Request flow
 
@@ -69,6 +72,8 @@ Radicle or operator trigger
 ```
 
 The callback emits effect plans only after Kiln admission. It does not execute provider effects.
+
+A deployed Aspen manifest admits operation `kiln-provider-effect-v2` on each selected exact port. The request body is the identity-checked Kiln effect plan.
 
 ## Port mappings
 
@@ -100,7 +105,9 @@ A conflicting revision changes nothing. A timeout or cancellation before commit 
 
 ## Callback protocol
 
-The callback uses one bounded packed-Preserves frame on standard input and one bounded frame on standard output. The frame contains a versioned Kiln request or outcome payload.
+The callback consumes Aspen's exact v2 packed-Preserves envelope. The envelope includes identity-checked payload and prior-state bytes.
+
+The callback returns Aspen's exact v2 outcome. The outcome includes output, effect-request, next-state, and checkpoint bytes with matching BLAKE3 references.
 
 The callback executable uses a cleared environment in the Aspen execution profile. It performs deterministic state and effect planning only.
 
@@ -148,22 +155,21 @@ Run the focused checks:
 ```console
 nix develop path:$PWD -c cargo test -p kiln-adapter-aspen -p kiln-aspen-extension
 nix develop path:$PWD -c cargo clippy -p kiln-adapter-aspen -p kiln-aspen-extension --all-targets -- -D warnings
-nix build path:$PWD#checks.x86_64-linux.nickel -L
+nix build path:$PWD#checks.x86_64-linux.aspen-runtime-profile -L
+nix build path:$PWD#checks.x86_64-linux.aspen-runtime-octet-deny-all -L
 ```
 
 The conformance suite covers exact profile admission, positive and negative callback execution, atomic conflicts, timeout, cancellation, post-accept disconnect, content loss and corruption, restart, replay, stale completion, reconciliation, explicit runtime selection, and a separate callback process.
 
-## Current integration blocker
+## Hosted conformance
 
-Aspen revision `7fb4c9de293f815654e1e3b954f4fee3678ac87f` passes callback references, but it does not materialize application bytes for the native process.
+Aspen revision `171f25b5a9e878390af8f20b9797f6096cca5097` supplies bounded, identity-checked payload, prior-state, effect-completion, effect-request, next-state, output, and checkpoint bytes.
 
-The native envelope contains `event_ref`, optional `payload_ref`, and optional `state_ref`. Its outcome contains output, effect, state, and checkpoint references. It does not carry the canonical Kiln command, prior state, effect body, completion body, or next state bytes.
+The parent-observed cross-repository fixture runs the real Aspen `NativeSystemExtensionService`. It executes `kiln-aspen-extension` as a separate bounded process.
 
-Kiln cannot reconstruct CI commands or replay state from BLAKE3 references alone. Precomputing the decision in the ingress client would move CI authority outside the hosted callback. Treating the local model as Aspen would create false completion.
+The fixture covers activation, accepted and rejected triggers, effect routing, completion, checkpoint, restart, recovery, drain, and stop. It also covers malformed input, missing values, publication uncertainty, and stale generations.
 
-An Aspen follow-up contract must add bounded, identity-checked value materialization for ingress, prior state, effect completion, effect bodies, and callback state. It must preserve intent-before-effect ordering and use a new exact protocol version without fallback.
-
-Until that contract is accepted, the adapter contracts and simulations are usable for local design validation only. The hosted end-to-end gate remains incomplete.
+`LocalAspenService` remains a model. It is not used as hosted evidence.
 
 ## Rollout gates
 
@@ -189,6 +195,7 @@ This backend does not prove:
 - process sandboxing or hermeticity;
 - exact-once delivery;
 - source trust;
+- application value meaning or deployment value durability;
 - global durability;
 - network delivery;
 - production availability;

@@ -78,6 +78,47 @@ fn binding(
 }
 
 #[must_use]
+pub fn profile_document_fixture() -> AspenRuntimeProfileDocument {
+    let profile = profile_fixture();
+    AspenRuntimeProfileDocument {
+        schema: profile.schema.clone(),
+        profile_id: profile.profile_id.clone(),
+        cohort: AspenSourceCohort {
+            source: profile.source.clone(),
+            revision: profile.source_revision.clone(),
+            bounded_exec_source: profile.bounded_exec_source.clone(),
+            bounded_exec_revision: profile.bounded_exec_revision.clone(),
+        },
+        native_host: AspenNativeHostCohort {
+            profile_schema: profile.native_host_schema.clone(),
+            callback_envelope_schema: profile.native_callback_envelope_schema.clone(),
+            callback_outcome_schema: profile.native_callback_outcome_schema.clone(),
+            instance_schema: profile.native_instance_schema.clone(),
+            ingress_schema: profile.native_ingress_schema.clone(),
+            extension_protocol_schema: profile.extension_protocol_schema.clone(),
+            extension_id: profile.extension_id.clone(),
+            service_id: profile.service_id.clone(),
+            execution_profile: profile.execution_profile.clone(),
+            alpn: profile.alpn.clone(),
+            framing: profile.framing.clone(),
+            generation: profile.generation,
+        },
+        endpoint_ref: profile.endpoint_ref.clone(),
+        transport_profile_ref: profile.transport_profile_ref.clone(),
+        policy_ref: profile.policy_ref.clone(),
+        authority_ref: profile.authority_ref.clone(),
+        resource_ref: profile.resource_ref.clone(),
+        claim_level: profile.claim_level.clone(),
+        port_count: profile.ports.len(),
+        ports: profile.ports.clone(),
+        bounds: profile.bounds.clone(),
+        fallback: "none".to_string(),
+        non_claim_count: profile.non_claims.len(),
+        non_claims: profile.non_claims,
+    }
+}
+
+#[must_use]
 pub fn profile_fixture() -> AspenRuntimeProfile {
     AspenRuntimeProfile {
         schema: ASPEN_RUNTIME_PROFILE_SCHEMA.to_string(),
@@ -108,6 +149,8 @@ pub fn profile_fixture() -> AspenRuntimeProfile {
         bounds: AspenRuntimeBounds {
             max_callback_input_bytes: DEFAULT_MAX_CALLBACK_INPUT_BYTES,
             max_callback_output_bytes: DEFAULT_MAX_CALLBACK_OUTPUT_BYTES,
+            max_materialized_value_bytes: DEFAULT_MAX_MATERIALIZED_VALUE_BYTES,
+            max_materialized_values: DEFAULT_MAX_MATERIALIZED_VALUES,
             max_content_bytes: DEFAULT_MAX_CONTENT_BYTES,
             max_log_bytes: DEFAULT_MAX_LOG_BYTES,
             max_effects: DEFAULT_MAX_EFFECTS,

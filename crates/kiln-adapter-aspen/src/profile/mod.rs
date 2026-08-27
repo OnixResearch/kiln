@@ -168,6 +168,8 @@ fn require_bounds(bounds: &AspenRuntimeBounds) -> CoreResult<()> {
     let values = [
         bounds.max_callback_input_bytes,
         bounds.max_callback_output_bytes,
+        bounds.max_materialized_value_bytes,
+        bounds.max_materialized_values,
         bounds.max_content_bytes,
         bounds.max_log_bytes,
         bounds.max_effects,
@@ -178,6 +180,15 @@ fn require_bounds(bounds: &AspenRuntimeBounds) -> CoreResult<()> {
             "aspen_profile_zero_bound",
             "profile.bounds",
             "Aspen runtime profile bounds must be nonzero",
+        ));
+    }
+    if bounds.max_materialized_value_bytes > bounds.max_callback_input_bytes
+        || bounds.max_materialized_value_bytes > bounds.max_callback_output_bytes
+    {
+        return Err(Diagnostic::new(
+            "aspen_profile_value_bound",
+            "profile.bounds.max_materialized_value_bytes",
+            "Aspen value bound must fit both callback frame bounds",
         ));
     }
     if bounds.max_log_bytes > bounds.max_content_bytes {

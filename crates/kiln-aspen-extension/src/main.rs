@@ -2,7 +2,6 @@ use std::io::{Read, Write};
 use std::process::ExitCode;
 
 use kiln_adapter_aspen::profile::{admit_profile, profile_fixture};
-use kiln_adapter_aspen::service::HostedCallback;
 use kiln_aspen_extension::KilnAspenCallback;
 
 const READ_OVERFLOW_SENTINEL_BYTES: usize = 1;
@@ -41,10 +40,10 @@ fn run() -> Result<(), String> {
         return Err("callback input exceeds its named byte bound".to_string());
     }
     let maximum_output_bytes = admitted.profile.bounds.max_callback_output_bytes;
-    let mut callback = KilnAspenCallback::new(admitted);
+    let callback = KilnAspenCallback::new(admitted);
     let output = callback
-        .invoke(&input, maximum_output_bytes)
-        .map_err(|error| format!("callback denied: {error:?}"))?;
+        .invoke_aspen_native(&input)
+        .map_err(|error| format!("callback denied: {error}"))?;
     if output.len() > maximum_output_bytes {
         return Err("callback output exceeds its named byte bound".to_string());
     }

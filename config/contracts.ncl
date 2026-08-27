@@ -152,43 +152,46 @@ let TrueOnly = std.contract.from_predicate (fun value =>
   std.is_bool value && value == true
 ) in
 let AspenProfileSchema = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "kiln.aspen-runtime.profile.v1"
+  std.is_string value && value == "kiln.aspen-runtime.profile.v2"
 ) in
 let AspenProfileId = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "aspen-runtime-v1"
+  std.is_string value && value == "aspen-runtime-v2"
 ) in
 let AspenRevision = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "7fb4c9de293f815654e1e3b954f4fee3678ac87f"
+  std.is_string value && value == "171f25b5a9e878390af8f20b9797f6096cca5097"
 ) in
 let BoundedExecRevision = std.contract.from_predicate (fun value =>
   std.is_string value && value == "29dac88ecded94457572db3fdfaaaab95fa91525"
 ) in
 let NativeHostSchema = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "molten.system-extension.native-host-profile.v1"
+  std.is_string value && value == "molten.system-extension.native-host-profile.v2"
 ) in
 let NativeEnvelopeSchema = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "molten.system-extension.native-callback-envelope.v1"
+  std.is_string value && value == "molten.system-extension.native-callback-envelope.v2"
 ) in
 let NativeOutcomeSchema = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "molten.system-extension.native-callback-outcome.v1"
+  std.is_string value && value == "molten.system-extension.native-callback-outcome.v2"
+) in
+let NativeInstanceSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "molten.system-extension.native-instance-state.v2"
 ) in
 let NativeIngressSchema = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "molten.system-extension.native-ingress.v1"
+  std.is_string value && value == "molten.system-extension.native-ingress.v2"
 ) in
 let KilnExtensionSchema = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "kiln.aspen-extension.protocol.v1"
+  std.is_string value && value == "kiln.aspen-extension.protocol.v2"
 ) in
 let NativeAlpn = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "molten/system-extension/native/v1"
+  std.is_string value && value == "molten/system-extension/native/v2"
 ) in
 let NativeFraming = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "preserves-packed-single-frame-v1"
+  std.is_string value && value == "preserves-packed-materialized-values-v2"
 ) in
 let AspenPortCount = std.contract.from_predicate (fun value =>
   std.is_number value && value == 7
 ) in
 let AspenNonClaimCount = std.contract.from_predicate (fun value =>
-  std.is_number value && value == 10
+  std.is_number value && value == 12
 ) in
 let NoRuntimeFallback = std.contract.from_predicate (fun value =>
   std.is_string value && value == "none"
@@ -207,6 +210,7 @@ let NoRuntimeFallback = std.contract.from_predicate (fun value =>
       profile_schema | NativeHostSchema,
       callback_envelope_schema | NativeEnvelopeSchema,
       callback_outcome_schema | NativeOutcomeSchema,
+      instance_schema | NativeInstanceSchema,
       ingress_schema | NativeIngressSchema,
       extension_protocol_schema | KilnExtensionSchema,
       extension_id | NonEmptyString,
@@ -235,6 +239,8 @@ let NoRuntimeFallback = std.contract.from_predicate (fun value =>
     bounds | {
       max_callback_input_bytes | Positive,
       max_callback_output_bytes | Positive,
+      max_materialized_value_bytes | Positive,
+      max_materialized_values | Positive,
       max_content_bytes | Positive,
       max_log_bytes | Positive,
       max_effects | Positive,

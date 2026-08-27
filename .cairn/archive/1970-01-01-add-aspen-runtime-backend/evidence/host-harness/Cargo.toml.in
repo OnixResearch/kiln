@@ -1,0 +1,12 @@
+[package]
+name = "kiln-aspen-host-harness"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+molten = { path = "__ASPEN_ROOT__" }
+kiln-adapter-aspen = { path = "__KILN_ROOT__/crates/kiln-adapter-aspen" }
+kiln-provider-api = { path = "__KILN_ROOT__/crates/kiln-provider-api" }
+kiln-core = { path = "__KILN_ROOT__/crates/kiln-core" }
+serde_json = "1.0"

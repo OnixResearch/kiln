@@ -8,7 +8,9 @@ use kiln_adapter_aspen::profile::{
     KILN_EXTENSION_PROTOCOL_SCHEMA, admit_profile, profile_fixture,
 };
 use kiln_adapter_aspen::protocol::{
-    CALLBACK_REQUEST_SCHEMA, CallbackCommand, CallbackRequest, CallbackState,
+    AspenMaterializedValue, AspenNativeCallbackEnvelope, CALLBACK_REQUEST_SCHEMA, CallbackCommand,
+    CallbackRequest, CallbackState, HOSTED_CALLBACK_INPUT_SCHEMA, HostedCallbackInput,
+    aspen_content_ref, encode_aspen_native_envelope, encode_hosted_callback_input,
 };
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_provider_api::{TriggerEventKind, TriggerRequest};
@@ -68,6 +70,58 @@ pub fn request(
         prior_state: state,
         command,
     }
+}
+
+pub fn native_request_frame(
+    profile: &AdmittedAspenRuntimeProfile,
+    request: &CallbackRequest,
+) -> Vec<u8> {
+    let hosted = HostedCallbackInput {
+        schema: HOSTED_CALLBACK_INPUT_SCHEMA.to_string(),
+        protocol_schema: profile.profile.extension_protocol_schema.clone(),
+        profile_identity: profile.profile_identity.clone(),
+        operation_id: request.operation_id.clone(),
+        authority_ref: request.authority_ref.clone(),
+        policy_ref: request.policy_ref.clone(),
+        resource_ref: request.resource_ref.clone(),
+        command: request.command.clone(),
+    };
+    let payload_bytes =
+        encode_hosted_callback_input(&hosted, profile.profile.bounds.max_materialized_value_bytes)
+            .unwrap_or_else(|_| unreachable!("hosted input"));
+    let state_bytes =
+        serde_json::to_vec(&request.prior_state).unwrap_or_else(|_| unreachable!("state bytes"));
+    let manifest_ref = aspen_content_ref(b"kiln-host-manifest-v2");
+    let executable_ref = aspen_content_ref(b"kiln-host-executable-v2");
+    let event_ref = aspen_content_ref(request.operation_id.native_id.as_str().as_bytes());
+    let resource_ref = aspen_content_ref(b"kiln-host-resources-v2");
+    let policy_ref = aspen_content_ref(b"kiln-host-policy-v2");
+    let port_ref = aspen_content_ref(b"kiln-host-port-v2");
+    let envelope = AspenNativeCallbackEnvelope {
+        manifest_ref,
+        executable_ref,
+        instance_id: "kiln-host-instance-v2".to_string(),
+        extension_id: profile.profile.extension_id.clone(),
+        service_id: profile.profile.service_id.clone(),
+        generation: request.generation,
+        callback: "request".to_string(),
+        sequence: request.sequence,
+        event_ref,
+        payload: Some(AspenMaterializedValue::exact(payload_bytes)),
+        logical_tick: 1,
+        deadline_tick: request.deadline_tick,
+        state: Some(AspenMaterializedValue::exact(state_bytes)),
+        policy_refs: vec![policy_ref],
+        resource_ref,
+        port_binding_refs: vec![port_ref],
+    };
+    encode_aspen_native_envelope(
+        &envelope,
+        profile.profile.bounds.max_callback_input_bytes,
+        profile.profile.bounds.max_materialized_value_bytes,
+        profile.profile.bounds.max_materialized_values,
+    )
+    .unwrap_or_else(|_| unreachable!("native envelope"))
 }
 
 pub fn submit_request(

@@ -9,7 +9,39 @@ use super::*;
 use crate::profile::{ASPEN_NATIVE_CALLBACK_OUTCOME_SCHEMA, KILN_EXTENSION_PROTOCOL_SCHEMA};
 
 const CALLBACK_RECORD_FIELD_COUNT: usize = 3;
-const CALLBACK_PROTOCOL_VERSION: u64 = 1;
+const CALLBACK_PROTOCOL_VERSION: u64 = 2;
+
+// r[impl kiln.aspen_runtime.callback]
+pub fn encode_hosted_callback_input(
+    input: &HostedCallbackInput,
+    maximum_bytes: usize,
+) -> Result<Vec<u8>, ProtocolError> {
+    encode_record(
+        HOSTED_CALLBACK_INPUT_RECORD,
+        HOSTED_CALLBACK_INPUT_SCHEMA,
+        input,
+        maximum_bytes,
+    )
+}
+
+// r[impl kiln.aspen_runtime.callback]
+pub fn decode_hosted_callback_input(
+    bytes: &[u8],
+    maximum_bytes: usize,
+) -> Result<HostedCallbackInput, ProtocolError> {
+    let input: HostedCallbackInput = decode_record(
+        HOSTED_CALLBACK_INPUT_RECORD,
+        HOSTED_CALLBACK_INPUT_SCHEMA,
+        bytes,
+        maximum_bytes,
+    )?;
+    if input.schema != HOSTED_CALLBACK_INPUT_SCHEMA
+        || input.protocol_schema != KILN_EXTENSION_PROTOCOL_SCHEMA
+    {
+        return Err(ProtocolError::Schema);
+    }
+    Ok(input)
+}
 
 // r[impl kiln.aspen_runtime.callback]
 pub fn encode_callback_request(

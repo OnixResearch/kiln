@@ -7,18 +7,22 @@ use kiln_provider_api::TriggerRequest;
 use serde::{Deserialize, Serialize};
 
 mod codec;
+mod native;
 
 pub use codec::*;
+pub use native::*;
 
-pub const CALLBACK_REQUEST_SCHEMA: &str = "kiln.aspen-extension.callback-request.v1";
-pub const CALLBACK_OUTCOME_SCHEMA: &str = "kiln.aspen-extension.callback-outcome.v1";
-pub const CALLBACK_STATE_SCHEMA: &str = "kiln.aspen-extension.state.v1";
-pub const CALLBACK_CHECKPOINT_SCHEMA: &str = "kiln.aspen-extension.checkpoint.v1";
-pub const CALLBACK_STATUS_SCHEMA: &str = "kiln.aspen-extension.status.v1";
-pub const CALLBACK_EFFECT_SCHEMA: &str = "kiln.aspen-extension.effect.v1";
-pub const CALLBACK_COMPLETION_SCHEMA: &str = "kiln.aspen-extension.completion.v1";
-pub const CALLBACK_REQUEST_RECORD: &str = "kiln-aspen-callback-request-v1";
-pub const CALLBACK_OUTCOME_RECORD: &str = "kiln-aspen-callback-outcome-v1";
+pub const CALLBACK_REQUEST_SCHEMA: &str = "kiln.aspen-extension.callback-request.v2";
+pub const CALLBACK_OUTCOME_SCHEMA: &str = "kiln.aspen-extension.callback-outcome.v2";
+pub const CALLBACK_STATE_SCHEMA: &str = "kiln.aspen-extension.state.v2";
+pub const CALLBACK_CHECKPOINT_SCHEMA: &str = "kiln.aspen-extension.checkpoint.v2";
+pub const CALLBACK_STATUS_SCHEMA: &str = "kiln.aspen-extension.status.v2";
+pub const CALLBACK_EFFECT_SCHEMA: &str = "kiln.aspen-extension.effect.v2";
+pub const CALLBACK_COMPLETION_SCHEMA: &str = "kiln.aspen-extension.completion.v2";
+pub const HOSTED_CALLBACK_INPUT_SCHEMA: &str = "kiln.aspen-extension.hosted-input.v2";
+pub const CALLBACK_REQUEST_RECORD: &str = "kiln-aspen-callback-request-v2";
+pub const HOSTED_CALLBACK_INPUT_RECORD: &str = "kiln-aspen-hosted-input-v2";
+pub const CALLBACK_OUTCOME_RECORD: &str = "kiln-aspen-callback-outcome-v2";
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -155,6 +159,18 @@ impl CallbackState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct HostedCallbackInput {
+    pub schema: String,
+    pub protocol_schema: String,
+    pub profile_identity: ContentId,
+    pub operation_id: ExternalRef,
+    pub authority_ref: String,
+    pub policy_ref: String,
+    pub resource_ref: String,
+    pub command: CallbackCommand,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CallbackRequest {
     pub schema: String,
     pub protocol_schema: String,
@@ -225,6 +241,7 @@ pub enum ProtocolError {
     BoundExceeded,
     Parse(String),
     NonCanonical,
+    Identity,
     Shape,
     Schema,
     Json(String),
@@ -239,6 +256,9 @@ impl Display for ProtocolError {
             Self::Parse(message) => write!(formatter, "packed Preserves parse failed: {message}"),
             Self::NonCanonical => {
                 formatter.write_str("callback frame is not canonical packed Preserves")
+            }
+            Self::Identity => {
+                formatter.write_str("callback value identity does not match its bytes")
             }
             Self::Shape => formatter.write_str("callback frame has an unsupported Preserves shape"),
             Self::Schema => {

@@ -68,9 +68,9 @@ let Profile = {
       authority_boundary = "Lattice owns workflow execution; Kiln owns CI state only",
     },
     {
-      id = "aspen-runtime-v1",
+      id = "aspen-runtime-v2",
       role = "runtime",
-      source_revision = "7fb4c9de293f815654e1e3b954f4fee3678ac87f",
+      source_revision = "171f25b5a9e878390af8f20b9797f6096cca5097",
       capabilities = ["service_hosting", "durable_state", "content_store", "bounded_execution", "transport", "time", "scheduling", "evidence"],
       unsupported_capabilities = ["ci_state", "provider_success", "release", "sandboxing", "exact_once_delivery"],
       authority_boundary = "Aspen owns admitted runtime mechanisms; Kiln owns CI commands, events, policy, provider selection, and outcomes",
