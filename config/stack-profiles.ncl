@@ -70,10 +70,10 @@ let Profile = {
     {
       id = "aspen-runtime-v1",
       role = "runtime",
-      source_revision = "08e4dfa5443737c81577f6691c673ab1ad78db4d",
-      capabilities = ["service_hosting"],
-      unsupported_capabilities = ["ci_state", "release"],
-      authority_boundary = "Aspen owns runtime transport and persistence; Kiln owns CI state only",
+      source_revision = "7fb4c9de293f815654e1e3b954f4fee3678ac87f",
+      capabilities = ["service_hosting", "durable_state", "content_store", "bounded_execution", "transport", "time", "scheduling", "evidence"],
+      unsupported_capabilities = ["ci_state", "provider_success", "release", "sandboxing", "exact_once_delivery"],
+      authority_boundary = "Aspen owns admitted runtime mechanisms; Kiln owns CI commands, events, policy, provider selection, and outcomes",
     },
     {
       id = "valence-evidence-v1",
@@ -89,7 +89,7 @@ let Profile = {
       source_revision = "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
       capabilities = ["evaluate"],
       unsupported_capabilities = ["ci_state", "merge", "release_execution"],
-      authority_boundary = "Cairn owns lifecycle gate meaning; Kiln owns candidate identity, process policy, gate composition, and CI state", 
+      authority_boundary = "Cairn owns lifecycle gate meaning; Kiln owns candidate identity, process policy, gate composition, and CI state",
     },
     {
       id = "choregraph-intake-v1",

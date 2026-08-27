@@ -1,0 +1,16 @@
+[package]
+name = "kiln-aspen-extension"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+blake3.workspace = true
+kiln-adapter-aspen.workspace = true
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+serde.workspace = true
+serde_json.workspace = true

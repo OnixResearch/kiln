@@ -151,7 +151,100 @@ let SqliteSynchronous = std.contract.from_predicate (fun value =>
 let TrueOnly = std.contract.from_predicate (fun value =>
   std.is_bool value && value == true
 ) in
+let AspenProfileSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "kiln.aspen-runtime.profile.v1"
+) in
+let AspenProfileId = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "aspen-runtime-v1"
+) in
+let AspenRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "7fb4c9de293f815654e1e3b954f4fee3678ac87f"
+) in
+let BoundedExecRevision = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "29dac88ecded94457572db3fdfaaaab95fa91525"
+) in
+let NativeHostSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "molten.system-extension.native-host-profile.v1"
+) in
+let NativeEnvelopeSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "molten.system-extension.native-callback-envelope.v1"
+) in
+let NativeOutcomeSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "molten.system-extension.native-callback-outcome.v1"
+) in
+let NativeIngressSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "molten.system-extension.native-ingress.v1"
+) in
+let KilnExtensionSchema = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "kiln.aspen-extension.protocol.v1"
+) in
+let NativeAlpn = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "molten/system-extension/native/v1"
+) in
+let NativeFraming = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "preserves-packed-single-frame-v1"
+) in
+let AspenPortCount = std.contract.from_predicate (fun value =>
+  std.is_number value && value == 7
+) in
+let AspenNonClaimCount = std.contract.from_predicate (fun value =>
+  std.is_number value && value == 10
+) in
+let NoRuntimeFallback = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "none"
+) in
 {
+  AspenRuntimeProfile = {
+    schema | AspenProfileSchema,
+    profile_id | AspenProfileId,
+    cohort | {
+      source | NonEmptyString,
+      revision | AspenRevision,
+      bounded_exec_source | NonEmptyString,
+      bounded_exec_revision | BoundedExecRevision,
+    },
+    native_host | {
+      profile_schema | NativeHostSchema,
+      callback_envelope_schema | NativeEnvelopeSchema,
+      callback_outcome_schema | NativeOutcomeSchema,
+      ingress_schema | NativeIngressSchema,
+      extension_protocol_schema | KilnExtensionSchema,
+      extension_id | NonEmptyString,
+      service_id | NonEmptyString,
+      execution_profile | NonEmptyString,
+      alpn | NativeAlpn,
+      framing | NativeFraming,
+      generation | Positive,
+    },
+    endpoint_ref | NonEmptyString,
+    transport_profile_ref | NonEmptyString,
+    policy_ref | NonEmptyString,
+    authority_ref | NonEmptyString,
+    resource_ref | NonEmptyString,
+    claim_level | NonEmptyString,
+    ports | Array {
+      purpose | NonEmptyString,
+      port_id | NonEmptyString,
+      version | NonEmptyString,
+      input_schema | NonEmptyString,
+      output_schema | NonEmptyString,
+      authority_ref | NonEmptyString,
+      resource_ref | NonEmptyString,
+    },
+    port_count | AspenPortCount,
+    bounds | {
+      max_callback_input_bytes | Positive,
+      max_callback_output_bytes | Positive,
+      max_content_bytes | Positive,
+      max_log_bytes | Positive,
+      max_effects | Positive,
+      max_records | Positive,
+      callback_timeout_millis | Positive,
+    },
+    fallback | NoRuntimeFallback,
+    non_claims | Array NonEmptyString,
+    non_claim_count | AspenNonClaimCount,
+  },
   SQLiteProfile = {
     database_path | NonEmptyString,
     open_mode | NonEmptyString,

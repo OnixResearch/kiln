@@ -141,6 +141,18 @@ End-to-end tests cover one accepted trigger, one rejected trigger, restart after
 
 Architecture tests reject Aspen imports in core crates, ambient callback effects, raw provider handles, unpinned dependencies, and hidden fallback branches.
 
+## Implementation blocker found during conformance
+
+The accepted Aspen native-host revision cannot yet implement this design's value-bearing callback boundary.
+
+Its native callback envelope carries `event_ref`, optional `payload_ref`, and optional `state_ref`. Its callback outcome carries output, effect, state, and checkpoint references. Neither contract materializes the canonical application bytes behind those references for the one-shot process.
+
+Kiln requires the canonical command, prior state, effect-completion body, journal and outbox values, and next state bytes. A BLAKE3 reference cannot reconstruct those values. Precomputing the transition in the ingress client would move CI authority out of the hosted callback. Treating the Kiln local service model as Aspen would produce false end-to-end evidence.
+
+A new Aspen prerequisite must provide bounded value materialization with exact reference-to-byte verification for ingress, prior state, effect completions, effect request bodies, state, and checkpoints. It must preserve durable intent before content publication or provider effects. It must publish a new exact protocol version and deny fallback to the reference-only profile.
+
+The current implementation therefore completes pure mappings, local simulation, process conformance, and exact profile checks. It does not complete the hosted callback, deployed ingress, visible Aspen composition root, or exact cross-repository end-to-end fixture.
+
 ## Risks and Trade-offs
 
 - A native callback process adds startup cost. The initial profile favors a reviewable boundary over throughput.

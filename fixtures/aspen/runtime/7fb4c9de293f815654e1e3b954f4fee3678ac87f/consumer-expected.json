@@ -1,0 +1,8 @@
+{
+  "callback_command": "status",
+  "callback_request_schema": "kiln.aspen-extension.callback-request.v1",
+  "generation": 1,
+  "operation_native_id": "producer-fixture-status",
+  "protocol_schema": "kiln.aspen-extension.protocol.v1",
+  "source_revision": "7fb4c9de293f815654e1e3b954f4fee3678ac87f"
+}

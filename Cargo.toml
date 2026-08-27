@@ -21,6 +21,8 @@ members = [
   "crates/kiln-adapter-webhook",
   "crates/kiln-adapter-sqlite",
   "crates/kiln-adapter-celld",
+  "crates/kiln-adapter-aspen",
+  "crates/kiln-aspen-extension",
   "crates/kiln-conformance",
   "crates/kiln-cli",
 ]
@@ -71,6 +73,8 @@ kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
 kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }
 kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
+kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
+kiln-aspen-extension = { path = "crates/kiln-aspen-extension" }
 valence-core = { git = "ssh://git@github.com/OnixResearch/valence.git", rev = "220307a371e7bc4e3309447b09447d0fe6c4db5f", package = "valence-core" }
 
 [workspace.lints.rust]

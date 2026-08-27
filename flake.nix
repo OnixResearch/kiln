@@ -7,6 +7,10 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    octet = {
+      url = "github:OnixResearch/octet/cf04e894e53eb0947230118a086ef6066ddba38c";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     cairn-gate = {
       url = "git+ssh://git@github.com/OnixResearch/cairn.git?rev=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f";
       flake = false;
@@ -23,6 +27,7 @@
       self,
       nixpkgs,
       rust-overlay,
+      octet,
       cairn-gate,
       mantle-build,
       nix-eval-jobs,
@@ -212,6 +217,64 @@
             chmod -R u+w source
             cd source
           '';
+          aspenRuntimeOctetWorkspace =
+            pkgs.runCommand "kiln-aspen-runtime-octet-workspace" { }
+              ''
+                mkdir -p \
+                  "$out/crates/kiln-adapter-aspen" \
+                  "$out/crates/kiln-aspen-extension" \
+                  "$out/crates/kiln-core" \
+                  "$out/crates/kiln-provider-api" \
+                  "$out/crates/kiln-codec" \
+                  "$out/fixtures/aspen/runtime"
+                cp ${./checks/aspen-runtime-octet/Cargo.toml} "$out/Cargo.toml"
+                cp ${./checks/aspen-runtime-octet/Cargo.lock} "$out/Cargo.lock"
+                cp ${./checks/aspen-runtime-octet/dylint.toml} "$out/dylint.toml"
+                cp ${./crates/kiln-adapter-aspen/Cargo.toml} \
+                  "$out/crates/kiln-adapter-aspen/Cargo.toml"
+                cp ${./crates/kiln-aspen-extension/Cargo.toml} \
+                  "$out/crates/kiln-aspen-extension/Cargo.toml"
+                cp ${./crates/kiln-core/Cargo.toml} "$out/crates/kiln-core/Cargo.toml"
+                cp ${./crates/kiln-provider-api/Cargo.toml} \
+                  "$out/crates/kiln-provider-api/Cargo.toml"
+                cp ${./crates/kiln-codec/Cargo.toml} "$out/crates/kiln-codec/Cargo.toml"
+                cp -R ${./crates/kiln-adapter-aspen/src} \
+                  "$out/crates/kiln-adapter-aspen/src"
+                cp -R ${./crates/kiln-aspen-extension/src} \
+                  "$out/crates/kiln-aspen-extension/src"
+                cp -R ${./crates/kiln-aspen-extension/tests} \
+                  "$out/crates/kiln-aspen-extension/tests"
+                cp -R ${./crates/kiln-aspen-extension/examples} \
+                  "$out/crates/kiln-aspen-extension/examples"
+                cp -R ${./fixtures/aspen/runtime}/* "$out/fixtures/aspen/runtime/"
+                chmod -R u+w "$out"
+                cat ${./checks/aspen-runtime-octet/adapter-header.rs} \
+                  "$out/crates/kiln-adapter-aspen/src/lib.rs" \
+                  > "$out/crates/kiln-adapter-aspen/src/lib.rs.combined"
+                mv "$out/crates/kiln-adapter-aspen/src/lib.rs.combined" \
+                  "$out/crates/kiln-adapter-aspen/src/lib.rs"
+                cat ${./checks/aspen-runtime-octet/extension-header.rs} \
+                  "$out/crates/kiln-aspen-extension/src/lib.rs" \
+                  > "$out/crates/kiln-aspen-extension/src/lib.rs.combined"
+                mv "$out/crates/kiln-aspen-extension/src/lib.rs.combined" \
+                  "$out/crates/kiln-aspen-extension/src/lib.rs"
+                prepend_header() {
+                  header="$1"
+                  target="$2"
+                  cat "$header" "$target" > "$target.combined"
+                  mv "$target.combined" "$target"
+                }
+                prepend_header ${./checks/aspen-runtime-octet/target-header.rs} \
+                  "$out/crates/kiln-aspen-extension/src/main.rs"
+                prepend_header ${./checks/aspen-runtime-octet/target-header.rs} \
+                  "$out/crates/kiln-aspen-extension/examples/emitcallbackfixture.rs"
+                prepend_header ${./checks/aspen-runtime-octet/test-header.rs} \
+                  "$out/crates/kiln-aspen-extension/tests/callback.rs"
+                prepend_header ${./checks/aspen-runtime-octet/test-header.rs} \
+                  "$out/crates/kiln-aspen-extension/tests/hosted.rs"
+                substituteInPlace "$out/Cargo.toml" \
+                  --replace-fail '@KILN_SOURCE@' '${self}'
+              '';
         in
         {
           inherit package;
@@ -355,6 +418,23 @@
               touch "$out"
             '';
           };
+          aspen-runtime-octet-deny-all =
+            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octet.lib.mkConsumerCheck {
+              inherit system;
+              src = aspenRuntimeOctetWorkspace;
+              packages = [
+                "kiln-adapter-aspen"
+                "kiln-aspen-extension"
+              ];
+              cargoExtraArgs = "--all-targets --all-features";
+              cargoLock = ./checks/aspen-runtime-octet/Cargo.lock;
+              nativeBuildInputs = [ pkgs.cmake ];
+              buildInputs = [ pkgs.zlib ];
+            }).overrideAttrs
+              (_previous: {
+                DYLINT_RUSTFLAGS = "--deny warnings";
+              });
           radicle-source-contract-fixtures = rustPlatform.buildRustPackage {
             pname = "kiln-radicle-source-contract-fixtures";
             version = "0.1.0";
@@ -376,6 +456,24 @@
               touch "$out"
             '';
           };
+          aspen-runtime-profile =
+            pkgs.runCommand "kiln-aspen-runtime-profile" { nativeBuildInputs = [ pkgs.nickel ]; }
+              ''
+                ${copySource}
+                nickel format --check \
+                  config/aspen-runtime-profile.ncl \
+                  config/fixtures/aspen-runtime-positive.ncl \
+                  config/fixtures/negative-aspen-runtime-*.ncl
+                nickel export config/aspen-runtime-profile.ncl >/dev/null
+                nickel export config/fixtures/aspen-runtime-positive.ncl >/dev/null
+                for fixture in config/fixtures/negative-aspen-runtime-*.ncl; do
+                  if nickel export "$fixture" >/dev/null 2>&1; then
+                    echo "negative Aspen runtime fixture passed: $fixture" >&2
+                    exit 1
+                  fi
+                done
+                touch "$out"
+              '';
           nickel = pkgs.runCommand "kiln-nickel" { nativeBuildInputs = [ pkgs.nickel ]; } ''
             ${copySource}
             nickel export config/default.ncl >/dev/null
@@ -397,9 +495,11 @@
             nickel export config/valence-profile.ncl >/dev/null
             nickel export config/webhook-profile.ncl >/dev/null
             nickel export config/sqlite-profile.ncl >/dev/null
+            nickel export config/aspen-runtime-profile.ncl >/dev/null
             nickel export config/celld-profile.ncl >/dev/null
             nickel export config/celld-wrangler.ncl >/dev/null
             nickel export config/fixtures/celld-positive.ncl >/dev/null
+            nickel export config/fixtures/aspen-runtime-positive.ncl >/dev/null
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
             nickel export config/fixtures/pijul-source-positive.ncl >/dev/null
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null

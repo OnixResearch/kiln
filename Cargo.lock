@@ -1416,6 +1416,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-aspen"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "preserves",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-cairn"
 version = "0.1.0"
 dependencies = [
@@ -1617,6 +1631,18 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "kiln-aspen-extension"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "kiln-adapter-aspen",
  "kiln-core",
  "kiln-provider-api",
  "serde",
