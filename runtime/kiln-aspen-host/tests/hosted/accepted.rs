@@ -1,7 +1,11 @@
 use super::*;
 
+const ACCEPTED_TEST_MAXIMUM_CONNECTIONS: u32 = 3;
+const EXPECTED_OBSERVATION_WAITS: usize = 2;
+
 // r[verify kiln.aspen_host.composition.accepted]
 // r[verify kiln.aspen_host.lattice.accepted]
+// r[verify kiln.aspen_host.lattice_poll_pacing.accepted]
 // r[verify kiln.aspen_host.completion.accepted]
 // r[verify kiln.aspen_host.nonclaims.accepted]
 #[test]
@@ -16,11 +20,14 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
     let listener =
         UnixListener::bind(&lattice_socket).unwrap_or_else(|_| unreachable!("Lattice listener"));
     let user_id = nix::unistd::getuid().as_raw();
-    let config = radicle_config(lattice_socket.clone(), replay_path.clone(), user_id);
+    let mut config = radicle_config(lattice_socket.clone(), replay_path.clone(), user_id);
+    config.transport_limits.maximum_connections = ACCEPTED_TEST_MAXIMUM_CONNECTIONS;
     let admitted_radicle = admit_config(config).unwrap_or_else(|_| unreachable!("Radicle profile"));
     let server_profile = admitted_radicle.transport.clone();
     let lattice_server = std::thread::spawn(move || {
-        let mut service = WorkflowExchangeService::new(TerminalHandler);
+        let mut service = WorkflowExchangeService::new(TerminalHandler {
+            pending_observations_remaining: DELAYED_OBSERVATION_COUNT,
+        });
         serve_listener(&listener, &server_profile, &mut service)
     });
     let profile =
@@ -44,13 +51,18 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
         },
     )
     .unwrap_or_else(|error| unreachable!("Aspen cohort: {error}"));
-    let effects = LatticeEffectPort::new(
-        profile.clone(),
-        admitted_radicle.shell,
+    let observation_pacer = Arc::new(CountingObservationPacer::default());
+    let effects = LatticeEffectPort::new(LatticeEffectPortOptions {
+        profile: profile.clone(),
+        radicle: admitted_radicle.shell,
         lattice,
-        cohort.values.clone(),
-        cohort.ledger.clone(),
-    )
+        values: cohort.values.clone(),
+        ledger: cohort.ledger.clone(),
+        observation_poll_interval: std::time::Duration::from_millis(
+            TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
+        ),
+        observation_pacer: observation_pacer.clone(),
+    })
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
         .unwrap_or_else(|_| unreachable!("Aspen host runtime starts"));
@@ -86,6 +98,7 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
     .unwrap_or_else(|_| unreachable!("Aspen Unix client"));
 
     let result = client.submit(&profile, &ingress);
+    assert_eq!(observation_pacer.wait_count(), EXPECTED_OBSERVATION_WAITS);
     let ServiceTransportOutcome::Acknowledged(ack) = result else {
         unreachable!("terminal acknowledgement");
     };
@@ -110,7 +123,10 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
         .join()
         .unwrap_or_else(|_| unreachable!("Lattice server join"))
         .unwrap_or_else(|_| unreachable!("Lattice server report"));
-    assert_eq!(report.completed_exchanges, TEST_MAXIMUM_CONNECTIONS);
+    assert_eq!(
+        report.completed_exchanges,
+        ACCEPTED_TEST_MAXIMUM_CONNECTIONS,
+    );
 
     let recovered_radicle = admit_config(radicle_config(lattice_socket, replay_path, user_id))
         .unwrap_or_else(|_| unreachable!("recovered Radicle profile"));
@@ -133,13 +149,17 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
         },
     )
     .unwrap_or_else(|error| unreachable!("recovered Aspen cohort: {error}"));
-    let recovered_effects = LatticeEffectPort::new(
-        profile.clone(),
-        recovered_radicle.shell,
-        recovered_lattice,
-        recovered_cohort.values.clone(),
-        recovered_cohort.ledger.clone(),
-    )
+    let recovered_effects = LatticeEffectPort::new(LatticeEffectPortOptions {
+        profile: profile.clone(),
+        radicle: recovered_radicle.shell,
+        lattice: recovered_lattice,
+        values: recovered_cohort.values.clone(),
+        ledger: recovered_cohort.ledger.clone(),
+        observation_poll_interval: std::time::Duration::from_millis(
+            TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
+        ),
+        observation_pacer: Arc::new(ThreadObservationPacer),
+    })
     .unwrap_or_else(|_| unreachable!("recovered Lattice effect port"));
     let mut recovered_runtime = KilnAspenHostRuntime::start(recovered_cohort, recovered_effects)
         .unwrap_or_else(|error| unreachable!("recovered Aspen runtime: {error}"));

@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use kiln_adapter_aspen::effects::admit_effect_plan;
 use kiln_adapter_aspen::profile::AdmittedAspenRuntimeProfile;
@@ -16,6 +17,40 @@ mod completion;
 mod port;
 mod workflow;
 
+pub trait ObservationPacer: std::fmt::Debug + Send + Sync {
+    fn wait(&self, interval: Duration);
+}
+
+#[derive(Debug, Default)]
+pub struct ThreadObservationPacer;
+
+impl ObservationPacer for ThreadObservationPacer {
+    fn wait(&self, interval: Duration) {
+        std::thread::sleep(interval);
+    }
+}
+
+pub struct LatticeEffectPortOptions {
+    pub profile: AdmittedAspenRuntimeProfile,
+    pub radicle: RadicleShellConfig,
+    pub lattice: LatticeAdapter<UnixWorkflowExchange>,
+    pub values: SharedNativeCallbackValuePort,
+    pub ledger: Arc<Mutex<OperationLedger>>,
+    pub observation_poll_interval: Duration,
+    pub observation_pacer: Arc<dyn ObservationPacer>,
+}
+
+impl std::fmt::Debug for LatticeEffectPortOptions {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("LatticeEffectPortOptions")
+            .field("profile_identity", &self.profile.profile_identity)
+            .field("maximum_polls", &self.radicle.maximum_polls)
+            .field("observation_poll_interval", &self.observation_poll_interval)
+            .finish_non_exhaustive()
+    }
+}
+
 pub struct LatticeEffectPort {
     profile: AdmittedAspenRuntimeProfile,
     radicle: RadicleShellConfig,
@@ -23,6 +58,8 @@ pub struct LatticeEffectPort {
     values: SharedNativeCallbackValuePort,
     ledger: Arc<Mutex<OperationLedger>>,
     maximum_polls: usize,
+    observation_poll_interval: Duration,
+    observation_pacer: Arc<dyn ObservationPacer>,
 }
 
 impl std::fmt::Debug for LatticeEffectPort {
@@ -34,21 +71,29 @@ impl std::fmt::Debug for LatticeEffectPort {
                 &self.profile.profile.workflow_provider_profile,
             )
             .field("maximum_polls", &self.maximum_polls)
+            .field("observation_poll_interval", &self.observation_poll_interval)
             .finish_non_exhaustive()
     }
 }
 
 impl LatticeEffectPort {
-    pub fn new(
-        profile: AdmittedAspenRuntimeProfile,
-        radicle: RadicleShellConfig,
-        lattice: LatticeAdapter<UnixWorkflowExchange>,
-        values: SharedNativeCallbackValuePort,
-        ledger: Arc<Mutex<OperationLedger>>,
-    ) -> Result<Self> {
-        if radicle.maximum_replay_records == 0 || radicle.maximum_polls == 0 {
+    pub fn new(options: LatticeEffectPortOptions) -> Result<Self> {
+        let LatticeEffectPortOptions {
+            profile,
+            radicle,
+            lattice,
+            values,
+            ledger,
+            observation_poll_interval,
+            observation_pacer,
+        } = options;
+        if radicle.maximum_replay_records == 0
+            || radicle.maximum_polls == 0
+            || observation_poll_interval.is_zero()
+        {
             return Err(HostBridgeError::Admission(
-                "Lattice effect adapter requires positive trigger and poll bounds".to_string(),
+                "Lattice effect adapter requires positive trigger, poll, and pacing bounds"
+                    .to_string(),
             ));
         }
         if radicle.workflow.provider_profile_id != profile.profile.workflow_provider_profile {
@@ -63,7 +108,13 @@ impl LatticeEffectPort {
             lattice,
             values,
             ledger,
+            observation_poll_interval,
+            observation_pacer,
         })
+    }
+
+    pub(super) fn wait_for_next_observation(&self) {
+        self.observation_pacer.wait(self.observation_poll_interval);
     }
 
     // r[impl kiln.aspen_host.lattice]

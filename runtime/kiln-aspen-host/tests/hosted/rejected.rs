@@ -33,13 +33,17 @@ fn denied_trigger_releases_no_lattice_connection() {
         },
     )
     .unwrap_or_else(|error| unreachable!("Aspen cohort: {error}"));
-    let effects = LatticeEffectPort::new(
-        profile.clone(),
-        admitted_radicle.shell,
+    let effects = LatticeEffectPort::new(LatticeEffectPortOptions {
+        profile: profile.clone(),
+        radicle: admitted_radicle.shell,
         lattice,
-        cohort.values.clone(),
-        cohort.ledger.clone(),
-    )
+        values: cohort.values.clone(),
+        ledger: cohort.ledger.clone(),
+        observation_poll_interval: std::time::Duration::from_millis(
+            TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
+        ),
+        observation_pacer: Arc::new(ThreadObservationPacer),
+    })
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
         .unwrap_or_else(|_| unreachable!("Aspen host runtime starts"));

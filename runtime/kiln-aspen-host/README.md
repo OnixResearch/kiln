@@ -36,10 +36,11 @@ kiln-aspen-host \
   --extension /nix/store/EXACT-kiln-aspen-extension \
   --state-root /var/lib/kiln-aspen \
   --max-requests 64 \
-  --timeout-ms 30000
+  --timeout-ms 30000 \
+  --poll-interval-ms 100
 ```
 
-Every argument is required. Paths must be explicit. Bounds must be positive. The host never selects another runtime or provider.
+Every argument is required. Paths must be explicit. Bounds must be positive. The poll interval paces each non-terminal Lattice observation. Deployment policy must make the finite poll horizon cover the provider timeout and teardown bound. The host never selects another runtime or provider.
 
 The state root must exist before start. The host creates bounded `operation-ledger`, `native-journal`, and `callback-values` directories on the first start. It publishes `host-state.json` only after the stores open. Later starts require the exact marker and every durable component. Missing, changed, truncated, corrupt, or symlinked state fails closed.
 

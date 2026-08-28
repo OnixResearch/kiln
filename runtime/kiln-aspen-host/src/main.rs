@@ -15,7 +15,9 @@ use kiln_adapter_aspen::profile::{AspenRuntimeProfileDocument, admit_profile};
 use kiln_adapter_lattice::{LatticeAdapter, UnixWorkflowExchange};
 use kiln_adapter_radicle::{RadicleShellConfig, admit_config};
 use kiln_aspen_host::cohort::{HostCohort, HostPaths};
-use kiln_aspen_host::effect::LatticeEffectPort;
+use kiln_aspen_host::effect::{
+    LatticeEffectPort, LatticeEffectPortOptions, ThreadObservationPacer,
+};
 use kiln_aspen_host::error::{HostBridgeError, Result};
 use kiln_aspen_host::runtime::KilnAspenHostRuntime;
 use kiln_aspen_host::server::{ServerConfig, serve};
@@ -30,7 +32,20 @@ const EXTENSION_ARGUMENT: &str = "--extension";
 const STATE_ROOT_ARGUMENT: &str = "--state-root";
 const MAXIMUM_REQUESTS_ARGUMENT: &str = "--max-requests";
 const TIMEOUT_MILLISECONDS_ARGUMENT: &str = "--timeout-ms";
-const MAXIMUM_ARGUMENT_PAIRS: usize = 7;
+const POLL_INTERVAL_MILLISECONDS_ARGUMENT: &str = "--poll-interval-ms";
+const MAXIMUM_ARGUMENT_PAIRS: usize = 8;
+
+#[derive(Debug, Default)]
+struct ArgumentFields {
+    aspen_profile: Option<std::path::PathBuf>,
+    radicle_profile: Option<std::path::PathBuf>,
+    socket: Option<std::path::PathBuf>,
+    extension: Option<std::path::PathBuf>,
+    state_root: Option<std::path::PathBuf>,
+    maximum_requests: Option<usize>,
+    timeout_milliseconds: Option<u64>,
+    poll_interval_milliseconds: Option<u64>,
+}
 
 #[derive(Debug)]
 struct Arguments {
@@ -41,6 +56,7 @@ struct Arguments {
     state_root: std::path::PathBuf,
     maximum_requests: usize,
     timeout_milliseconds: u64,
+    poll_interval_milliseconds: u64,
 }
 
 #[allow(
@@ -95,13 +111,17 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             workspace: state_root,
         },
     )?;
-    let effects = LatticeEffectPort::new(
-        profile.clone(),
-        radicle.shell,
+    let effects = LatticeEffectPort::new(LatticeEffectPortOptions {
+        profile: profile.clone(),
+        radicle: radicle.shell,
         lattice,
-        cohort.values.clone(),
-        cohort.ledger.clone(),
-    )?;
+        values: cohort.values.clone(),
+        ledger: cohort.ledger.clone(),
+        observation_poll_interval: std::time::Duration::from_millis(
+            arguments.poll_interval_milliseconds,
+        ),
+        observation_pacer: std::sync::Arc::new(ThreadObservationPacer),
+    })?;
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)?;
     let maximum_frame_bytes = profile
         .profile
@@ -121,13 +141,7 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
 }
 
 fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Arguments> {
-    let mut aspen_profile = None;
-    let mut radicle_profile = None;
-    let mut socket = None;
-    let mut extension = None;
-    let mut state_root = None;
-    let mut maximum_requests = None;
-    let mut timeout_milliseconds = None;
+    let mut fields = ArgumentFields::default();
     for _argument_index in 0..MAXIMUM_ARGUMENT_PAIRS {
         let Some(argument) = arguments.next() else {
             break;
@@ -136,25 +150,36 @@ fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Argume
             .next()
             .ok_or_else(|| HostBridgeError::Protocol(format!("{argument} requires a value")))?;
         match argument.as_str() {
-            PROFILE_ARGUMENT => set_path(&mut aspen_profile, value, PROFILE_ARGUMENT)?,
+            PROFILE_ARGUMENT => set_path(&mut fields.aspen_profile, value, PROFILE_ARGUMENT)?,
             RADICLE_PROFILE_ARGUMENT => {
-                set_path(&mut radicle_profile, value, RADICLE_PROFILE_ARGUMENT)?;
+                set_path(&mut fields.radicle_profile, value, RADICLE_PROFILE_ARGUMENT)?;
             }
-            SOCKET_ARGUMENT => set_path(&mut socket, value, SOCKET_ARGUMENT)?,
+            SOCKET_ARGUMENT => set_path(&mut fields.socket, value, SOCKET_ARGUMENT)?,
             EXTENSION_ARGUMENT => {
-                set_path(&mut extension, value, EXTENSION_ARGUMENT)?;
+                set_path(&mut fields.extension, value, EXTENSION_ARGUMENT)?;
             }
             STATE_ROOT_ARGUMENT => {
-                set_path(&mut state_root, value, STATE_ROOT_ARGUMENT)?;
+                set_path(&mut fields.state_root, value, STATE_ROOT_ARGUMENT)?;
             }
             MAXIMUM_REQUESTS_ARGUMENT => {
-                set_usize(&mut maximum_requests, &value, MAXIMUM_REQUESTS_ARGUMENT)?;
+                set_usize(
+                    &mut fields.maximum_requests,
+                    &value,
+                    MAXIMUM_REQUESTS_ARGUMENT,
+                )?;
             }
             TIMEOUT_MILLISECONDS_ARGUMENT => {
                 set_u64(
-                    &mut timeout_milliseconds,
+                    &mut fields.timeout_milliseconds,
                     &value,
                     TIMEOUT_MILLISECONDS_ARGUMENT,
+                )?;
+            }
+            POLL_INTERVAL_MILLISECONDS_ARGUMENT => {
+                set_u64(
+                    &mut fields.poll_interval_milliseconds,
+                    &value,
+                    POLL_INTERVAL_MILLISECONDS_ARGUMENT,
                 )?;
             }
             _ => {
@@ -169,14 +194,22 @@ fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Argume
             "argument count exceeds the closed host interface".to_string(),
         ));
     }
+    finish_arguments(fields)
+}
+
+fn finish_arguments(fields: ArgumentFields) -> Result<Arguments> {
     Ok(Arguments {
-        aspen_profile: required(aspen_profile, PROFILE_ARGUMENT)?,
-        radicle_profile: required(radicle_profile, RADICLE_PROFILE_ARGUMENT)?,
-        socket: required(socket, SOCKET_ARGUMENT)?,
-        extension: required(extension, EXTENSION_ARGUMENT)?,
-        state_root: required(state_root, STATE_ROOT_ARGUMENT)?,
-        maximum_requests: required(maximum_requests, MAXIMUM_REQUESTS_ARGUMENT)?,
-        timeout_milliseconds: required(timeout_milliseconds, TIMEOUT_MILLISECONDS_ARGUMENT)?,
+        aspen_profile: required(fields.aspen_profile, PROFILE_ARGUMENT)?,
+        radicle_profile: required(fields.radicle_profile, RADICLE_PROFILE_ARGUMENT)?,
+        socket: required(fields.socket, SOCKET_ARGUMENT)?,
+        extension: required(fields.extension, EXTENSION_ARGUMENT)?,
+        state_root: required(fields.state_root, STATE_ROOT_ARGUMENT)?,
+        maximum_requests: required(fields.maximum_requests, MAXIMUM_REQUESTS_ARGUMENT)?,
+        timeout_milliseconds: required(fields.timeout_milliseconds, TIMEOUT_MILLISECONDS_ARGUMENT)?,
+        poll_interval_milliseconds: required(
+            fields.poll_interval_milliseconds,
+            POLL_INTERVAL_MILLISECONDS_ARGUMENT,
+        )?,
     })
 }
 

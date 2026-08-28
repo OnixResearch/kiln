@@ -73,13 +73,17 @@ fn accepted_but_unacknowledged_lattice_work_recovers_without_dispatch() {
         },
     )
     .unwrap_or_else(|error| unreachable!("first Aspen cohort: {error}"));
-    let first_effects = LatticeEffectPort::new(
-        profile.clone(),
-        first_radicle.shell,
-        first_lattice,
-        first_cohort.values.clone(),
-        first_cohort.ledger.clone(),
-    )
+    let first_effects = LatticeEffectPort::new(LatticeEffectPortOptions {
+        profile: profile.clone(),
+        radicle: first_radicle.shell,
+        lattice: first_lattice,
+        values: first_cohort.values.clone(),
+        ledger: first_cohort.ledger.clone(),
+        observation_poll_interval: std::time::Duration::from_millis(
+            TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
+        ),
+        observation_pacer: Arc::new(ThreadObservationPacer),
+    })
     .unwrap_or_else(|_| unreachable!("first effect port"));
     let mut first_runtime = KilnAspenHostRuntime::start(first_cohort, first_effects)
         .unwrap_or_else(|error| unreachable!("first runtime: {error}"));
@@ -129,13 +133,17 @@ fn accepted_but_unacknowledged_lattice_work_recovers_without_dispatch() {
         },
     )
     .unwrap_or_else(|error| unreachable!("second Aspen cohort: {error}"));
-    let second_effects = LatticeEffectPort::new(
-        profile.clone(),
-        second_radicle.shell,
-        second_lattice,
-        second_cohort.values.clone(),
-        second_cohort.ledger.clone(),
-    )
+    let second_effects = LatticeEffectPort::new(LatticeEffectPortOptions {
+        profile: profile.clone(),
+        radicle: second_radicle.shell,
+        lattice: second_lattice,
+        values: second_cohort.values.clone(),
+        ledger: second_cohort.ledger.clone(),
+        observation_poll_interval: std::time::Duration::from_millis(
+            TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
+        ),
+        observation_pacer: Arc::new(ThreadObservationPacer),
+    })
     .unwrap_or_else(|_| unreachable!("second effect port"));
     let mut second_runtime = KilnAspenHostRuntime::start(second_cohort, second_effects)
         .unwrap_or_else(|error| unreachable!("second runtime: {error}"));

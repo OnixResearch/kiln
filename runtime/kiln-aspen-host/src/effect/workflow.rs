@@ -72,10 +72,12 @@ impl LatticeEffectPort {
                 return Err(map_provider_failure(error));
             }
         };
+        // r[impl kiln.aspen_host.lattice_poll_pacing]
         for _poll in 0..self.maximum_polls {
             if observation.terminal {
                 return self.persist_observation(&host_operation_id, observation);
             }
+            self.wait_for_next_observation();
             observation = match self.lattice.observe(&record.plan.effect_id) {
                 Ok(observation) => observation,
                 Err(error) => {
@@ -156,10 +158,12 @@ impl LatticeEffectPort {
                 return Ok(None);
             }
         };
+        // r[impl kiln.aspen_host.lattice_poll_pacing]
         for _poll in 0..self.maximum_polls {
             if observation.terminal {
                 break;
             }
+            self.wait_for_next_observation();
             observation = match self.lattice.observe(&intent.plan.effect_id) {
                 Ok(observation) => observation,
                 Err(error) => {
