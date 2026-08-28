@@ -1,0 +1,53 @@
+{
+  "schema": "kiln.aspen-host.real-lattice-evidence.v1",
+  "verdict": "PASS",
+  "claim_level": "local-live-real-lattice-process-canary",
+  "observed_at": "2026-08-28",
+  "cohort": {
+    "kiln_protocol_revision": "42eabcb21385a436ddc044fb7034b8cdaec7b8a0",
+    "aspen_revision": "22f8ded26ca1907c29948e08b53f35df23080733",
+    "lattice_contract_revision": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+    "lattice_runtime_revision": "c513d94d89e901ffa56ae67f375f973e55958e42",
+    "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525"
+  },
+  "route": {
+    "profile_identity": "b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5",
+    "graph_identity": "b3:a5af82f6dc0f5b094624022825ba048775cc4892bfdd12473bb57945e8745426",
+    "workflow_revision": "b3:1377fce07f3426f87ab7c61d6a716d3f1fc95be71f91ab87699e13f56dbd35b3",
+    "workflow_source_blake3": "ccaae6dc7411208111a5ca1020f14458696bbd534a5b7660b59db28de09b2dae",
+    "handler_source_blake3": "d393d7b839a6245deccdc7c815c4b984a2e0575b6d5dd787f3216724be91e145"
+  },
+  "profile_artifacts": {
+    "aspen_profile_blake3": "a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0",
+    "radicle_profile_blake3": "4914b7e07d452e81340fcedcf2952d8f770ca1a246a4c0d5bb39f3af44c1cd2c"
+  },
+  "observations": {
+    "real_aspen_native_service": true,
+    "bounded_extension_process": true,
+    "real_lattice_application_service": true,
+    "accepted_terminal": "success",
+    "accepted_output_blake3": "884a5f1f9c49392bf839fe7fb7e28888c808cfd2706e05bb5ad56f4c9d45fe77",
+    "replay_output_blake3": "884a5f1f9c49392bf839fe7fb7e28888c808cfd2706e05bb5ad56f4c9d45fe77",
+    "replay_is_exact": true,
+    "rejected_terminal": "denied",
+    "rejected_output_blake3": "301ae4db3c79729497aa0269d6b298bcbc180388b227d847cd8be3a9f7b38dbf",
+    "disconnect_after_write_terminal": "unknown",
+    "disconnect_output_blake3": "73e746c3989ce172c189118d72a881edcf4a4da63b3b7d72c4d1140cdede632c",
+    "disconnect_replay_output_blake3": "73e746c3989ce172c189118d72a881edcf4a4da63b3b7d72c4d1140cdede632c",
+    "disconnect_replay_is_exact": true,
+    "automatic_fallback_observed": false
+  },
+  "compatibility": {
+    "lattice_contract_paths_changed_between_contract_and_runtime": false,
+    "lattice_handler_paths_changed_between_contract_and_runtime": false,
+    "lattice_runtime_binary_built": true
+  },
+  "non_claims": [
+    "local process evidence does not prove production availability",
+    "process-local callback values do not prove active-operation durability",
+    "a passing workflow does not prove CI correctness",
+    "bounded process execution does not prove host sandboxing",
+    "provider observation does not prove external effect truth",
+    "local conformance does not establish release eligibility"
+  ]
+}

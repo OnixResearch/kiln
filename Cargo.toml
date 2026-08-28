@@ -26,6 +26,7 @@ members = [
   "crates/kiln-conformance",
   "crates/kiln-cli",
 ]
+exclude = ["runtime/kiln-aspen-host"]
 resolver = "3"
 
 [workspace.package]

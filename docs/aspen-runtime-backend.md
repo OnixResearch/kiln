@@ -28,6 +28,8 @@ The initial claim level is `local-live-materialized-values-pilot`. It is not a p
 
 `LocalAspenService` is a deterministic model fixture. It is not an implementation of Aspen's native host.
 
+`runtime/kiln-aspen-host` is the deployable composition shell. It installs the real Aspen native service, runs the exact Kiln extension as a bounded process, serves the Kiln Unix protocol, and routes provider effects through the concrete Lattice exchange adapter. Its standalone lock binds Kiln protocol revision `42eabcb21385a436ddc044fb7034b8cdaec7b8a0` and Aspen revision `22f8ded26ca1907c29948e08b53f35df23080733`.
+
 Aspen owns only the selected mechanisms. Lattice still owns workflow execution. Mantle still owns builds. Cairn still owns lifecycle-gate evaluation. Valence still owns evidence identity and linkage.
 
 ## Configuration
@@ -157,6 +159,8 @@ nix develop path:$PWD -c cargo test -p kiln-adapter-aspen -p kiln-aspen-extensio
 nix develop path:$PWD -c cargo clippy -p kiln-adapter-aspen -p kiln-aspen-extension --all-targets -- -D warnings
 nix build path:$PWD#checks.x86_64-linux.aspen-runtime-profile -L
 nix build path:$PWD#checks.x86_64-linux.aspen-runtime-octet-deny-all -L
+nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-package -L
+nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-octet-deny-all -L
 ```
 
 The conformance suite covers exact profile admission, positive and negative callback execution, atomic conflicts, timeout, cancellation, post-accept disconnect, content loss and corruption, restart, replay, stale completion, reconciliation, explicit runtime selection, and a separate callback process.
@@ -170,6 +174,8 @@ The parent-observed cross-repository fixture runs the real Aspen `NativeSystemEx
 The fixture covers activation, accepted and rejected triggers, effect routing, completion, checkpoint, restart, recovery, drain, and stop. It also covers malformed input, missing values, publication uncertainty, and stale generations.
 
 `LocalAspenService` remains a model. It is not used as hosted evidence.
+
+The standalone host integration runs the real Aspen service and bounded extension process. Its focused fixture uses a closed terminal Lattice handler. Separate cross-process evidence also runs the real Lattice application service at runtime revision `c513d94d89e901ffa56ae67f375f973e55958e42`, which preserves the reviewed `70496e67...` exchange contract.
 
 ## Rollout gates
 

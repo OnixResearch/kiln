@@ -631,6 +631,23 @@
         "type": "github"
       }
     },
+    "kamacite-build-support": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785176269,
+        "narHash": "sha256-Z6+dLkP2cziybjrAiRznP1cHUASyekhOwGl5ErWzZJc=",
+        "ref": "refs/heads/main",
+        "rev": "d76fe4abe543724d8fc0ac4b362187caf2e27622",
+        "revCount": 88,
+        "type": "git",
+        "url": "ssh://git@github.com/OnixResearch/kamacite.git"
+      },
+      "original": {
+        "rev": "d76fe4abe543724d8fc0ac4b362187caf2e27622",
+        "type": "git",
+        "url": "ssh://git@github.com/OnixResearch/kamacite.git"
+      }
+    },
     "lean4-src": {
       "flake": false,
       "locked": {
@@ -985,6 +1002,7 @@
     "root": {
       "inputs": {
         "cairn-gate": "cairn-gate",
+        "kamacite-build-support": "kamacite-build-support",
         "mantle-build": "mantle-build",
         "nix-eval-jobs": "nix-eval-jobs",
         "nixpkgs": "nixpkgs_2",
