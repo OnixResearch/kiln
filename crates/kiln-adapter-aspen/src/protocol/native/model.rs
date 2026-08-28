@@ -50,6 +50,7 @@ pub struct AspenEffectCompletion {
     pub request_ref: String,
     pub generation: u64,
     pub output_ref: String,
+    pub output: Option<AspenMaterializedValue>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

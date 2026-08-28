@@ -107,6 +107,11 @@ fn require_host_cohort(profile: &AspenRuntimeProfile) -> CoreResult<()> {
             profile.execution_profile.as_str(),
             KILN_NATIVE_EXECUTION_PROFILE,
         ),
+        (
+            "profile.workflow_provider_profile",
+            profile.workflow_provider_profile.as_str(),
+            KILN_WORKFLOW_PROVIDER_PROFILE,
+        ),
         ("profile.alpn", profile.alpn.as_str(), ASPEN_NATIVE_ALPN),
         (
             "profile.framing",

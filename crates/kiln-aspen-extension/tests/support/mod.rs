@@ -12,6 +12,7 @@ use kiln_adapter_aspen::protocol::{
     CallbackRequest, CallbackState, HOSTED_CALLBACK_INPUT_SCHEMA, HostedCallbackInput,
     aspen_content_ref, encode_aspen_native_envelope, encode_hosted_callback_input,
 };
+use kiln_adapter_aspen::transport::canonical_trigger_identity;
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_provider_api::{TriggerEventKind, TriggerRequest};
 
@@ -44,10 +45,12 @@ pub fn trigger(same_revision: bool) -> TriggerRequest {
     }
 }
 
-pub fn identity_of<T: serde::Serialize>(value: &T) -> ContentId {
-    let bytes = serde_json::to_vec(value).unwrap_or_else(|_| unreachable!("encode"));
-    ContentId::from_blake3_hex(blake3::hash(&bytes).to_hex().to_string())
-        .unwrap_or_else(|_| unreachable!("identity"))
+pub fn identity_of(value: &TriggerRequest) -> ContentId {
+    canonical_trigger_identity(
+        value,
+        kiln_adapter_aspen::profile::DEFAULT_MAX_CALLBACK_INPUT_BYTES,
+    )
+    .unwrap_or_else(|_| unreachable!("identity"))
 }
 
 pub fn request(

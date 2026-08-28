@@ -158,7 +158,7 @@ let AspenProfileId = std.contract.from_predicate (fun value =>
   std.is_string value && value == "aspen-runtime-v2"
 ) in
 let AspenRevision = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "171f25b5a9e878390af8f20b9797f6096cca5097"
+  std.is_string value && value == "22f8ded26ca1907c29948e08b53f35df23080733"
 ) in
 let BoundedExecRevision = std.contract.from_predicate (fun value =>
   std.is_string value && value == "29dac88ecded94457572db3fdfaaaab95fa91525"
@@ -196,6 +196,9 @@ let AspenNonClaimCount = std.contract.from_predicate (fun value =>
 let NoRuntimeFallback = std.contract.from_predicate (fun value =>
   std.is_string value && value == "none"
 ) in
+let AspenWorkflowProvider = std.contract.from_predicate (fun value =>
+  std.is_string value && value == "lattice-v1"
+) in
 {
   AspenRuntimeProfile = {
     schema | AspenProfileSchema,
@@ -226,6 +229,7 @@ let NoRuntimeFallback = std.contract.from_predicate (fun value =>
     authority_ref | NonEmptyString,
     resource_ref | NonEmptyString,
     claim_level | NonEmptyString,
+    workflow_provider_profile | AspenWorkflowProvider,
     ports | Array {
       purpose | NonEmptyString,
       port_id | NonEmptyString,

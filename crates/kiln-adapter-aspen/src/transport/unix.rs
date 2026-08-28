@@ -11,32 +11,78 @@ use serde::{Deserialize, Serialize};
 use super::{AspenServiceIngress, AspenServiceTransport, ServiceTransportOutcome};
 use crate::profile::AdmittedAspenRuntimeProfile;
 
-const EXCHANGE_REQUEST_SCHEMA: &str = "kiln.aspen-runtime.unix-request.v2";
-const EXCHANGE_RESPONSE_SCHEMA: &str = "kiln.aspen-runtime.unix-response.v2";
+pub const EXCHANGE_REQUEST_SCHEMA: &str = "kiln.aspen-runtime.unix-request.v2";
+pub const EXCHANGE_RESPONSE_SCHEMA: &str = "kiln.aspen-runtime.unix-response.v2";
 const READ_OVERFLOW_SENTINEL_BYTES: usize = 1;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum ExchangeOperation {
+pub enum AspenUnixOperation {
     Submit,
     Reconcile,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-struct ExchangeRequest {
-    schema: String,
-    operation: ExchangeOperation,
-    profile_identity: ContentId,
-    ingress: Option<AspenServiceIngress>,
-    operation_id: ExternalRef,
+#[serde(deny_unknown_fields)]
+pub struct AspenUnixRequest {
+    pub schema: String,
+    pub operation: AspenUnixOperation,
+    pub profile_identity: ContentId,
+    pub ingress: Option<AspenServiceIngress>,
+    pub operation_id: ExternalRef,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-struct ExchangeResponse {
-    schema: String,
-    profile_identity: ContentId,
-    operation_id: ExternalRef,
-    outcome: ServiceTransportOutcome,
+#[serde(deny_unknown_fields)]
+pub struct AspenUnixResponse {
+    pub schema: String,
+    pub profile_identity: ContentId,
+    pub operation_id: ExternalRef,
+    pub outcome: ServiceTransportOutcome,
+}
+
+// r[impl kiln.aspen_host.transport]
+pub fn decode_aspen_unix_request(
+    bytes: &[u8],
+    maximum_frame_bytes: usize,
+) -> Result<AspenUnixRequest, &'static str> {
+    if maximum_frame_bytes == 0 || bytes.len() > maximum_frame_bytes {
+        return Err("Aspen Unix request exceeds its positive frame bound");
+    }
+    let request: AspenUnixRequest =
+        serde_json::from_slice(bytes).map_err(|_| "Aspen Unix request JSON is invalid")?;
+    if request.schema != EXCHANGE_REQUEST_SCHEMA || request.operation_id.validate().is_err() {
+        return Err("Aspen Unix request schema or operation identity is invalid");
+    }
+    match (&request.operation, &request.ingress) {
+        (AspenUnixOperation::Submit, Some(ingress))
+            if ingress.operation_id == request.operation_id
+                && ingress.profile_identity == request.profile_identity => {}
+        (AspenUnixOperation::Reconcile, None) => {}
+        (AspenUnixOperation::Submit | AspenUnixOperation::Reconcile, _) => {
+            return Err("Aspen Unix request operation and body do not match");
+        }
+    }
+    Ok(request)
+}
+
+// r[impl kiln.aspen_host.transport]
+pub fn encode_aspen_unix_response(
+    response: &AspenUnixResponse,
+    maximum_frame_bytes: usize,
+) -> Result<Vec<u8>, &'static str> {
+    if maximum_frame_bytes == 0
+        || response.schema != EXCHANGE_RESPONSE_SCHEMA
+        || response.operation_id.validate().is_err()
+    {
+        return Err("Aspen Unix response schema, identity, or frame bound is invalid");
+    }
+    let bytes =
+        serde_json::to_vec(response).map_err(|_| "Aspen Unix response JSON encoding failed")?;
+    if bytes.len() > maximum_frame_bytes {
+        return Err("Aspen Unix response exceeds its frame bound");
+    }
+    Ok(bytes)
 }
 
 #[derive(Clone, Debug)]
@@ -76,7 +122,7 @@ impl UnixAspenServiceTransport {
     fn exchange(
         &self,
         profile: &AdmittedAspenRuntimeProfile,
-        request: &ExchangeRequest,
+        request: &AspenUnixRequest,
     ) -> ServiceTransportOutcome {
         let request_bytes = match serde_json::to_vec(request) {
             Ok(bytes) if bytes.len() <= self.maximum_frame_bytes => bytes,
@@ -116,7 +162,7 @@ impl UnixAspenServiceTransport {
         if response_bytes.len() > self.maximum_frame_bytes {
             return ServiceTransportOutcome::Malformed;
         }
-        let response: ExchangeResponse = match serde_json::from_slice(&response_bytes) {
+        let response: AspenUnixResponse = match serde_json::from_slice(&response_bytes) {
             Ok(response) => response,
             Err(_) => return ServiceTransportOutcome::Malformed,
         };
@@ -139,9 +185,9 @@ impl AspenServiceTransport for UnixAspenServiceTransport {
     ) -> ServiceTransportOutcome {
         self.exchange(
             profile,
-            &ExchangeRequest {
+            &AspenUnixRequest {
                 schema: EXCHANGE_REQUEST_SCHEMA.to_string(),
-                operation: ExchangeOperation::Submit,
+                operation: AspenUnixOperation::Submit,
                 profile_identity: profile.profile_identity.clone(),
                 ingress: Some(request.clone()),
                 operation_id: request.operation_id.clone(),
@@ -156,9 +202,9 @@ impl AspenServiceTransport for UnixAspenServiceTransport {
     ) -> ServiceTransportOutcome {
         self.exchange(
             profile,
-            &ExchangeRequest {
+            &AspenUnixRequest {
                 schema: EXCHANGE_REQUEST_SCHEMA.to_string(),
-                operation: ExchangeOperation::Reconcile,
+                operation: AspenUnixOperation::Reconcile,
                 profile_identity: profile.profile_identity.clone(),
                 ingress: None,
                 operation_id: operation_id.clone(),
@@ -167,27 +213,12 @@ impl AspenServiceTransport for UnixAspenServiceTransport {
     }
 }
 
-fn unknown_after_write(request: &ExchangeRequest) -> ServiceTransportOutcome {
-    if request.operation == ExchangeOperation::Submit {
+fn unknown_after_write(request: &AspenUnixRequest) -> ServiceTransportOutcome {
+    if request.operation == AspenUnixOperation::Submit {
         ServiceTransportOutcome::DisconnectedAfterAcceptance {
             operation_id: request.operation_id.clone(),
         }
     } else {
         ServiceTransportOutcome::Unavailable
     }
-}
-
-#[cfg(test)]
-pub(crate) fn encode_exchange_response(
-    profile_identity: ContentId,
-    operation_id: ExternalRef,
-    outcome: ServiceTransportOutcome,
-) -> Vec<u8> {
-    serde_json::to_vec(&ExchangeResponse {
-        schema: EXCHANGE_RESPONSE_SCHEMA.to_string(),
-        profile_identity,
-        operation_id,
-        outcome,
-    })
-    .unwrap_or_else(|_| unreachable!("static Aspen Unix response"))
 }

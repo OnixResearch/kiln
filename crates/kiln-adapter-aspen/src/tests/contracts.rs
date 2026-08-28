@@ -34,6 +34,10 @@ fn exact_profile_admits_and_drift_fails_without_fallback() {
     missing_non_claim.non_claims.pop();
     assert!(admit_profile(&missing_non_claim).is_err());
 
+    let mut provider_drift = profile.clone();
+    provider_drift.workflow_provider_profile = "unreviewed-provider".to_string();
+    assert!(admit_profile(&provider_drift).is_err());
+
     let mut missing_port = profile;
     missing_port.ports.pop();
     assert!(admit_profile(&missing_port).is_err());
@@ -157,10 +161,10 @@ struct ExpectedProducerFixture {
 #[test]
 fn independent_consumer_accepts_the_static_producer_fixture() {
     const PRODUCER: &[u8] = include_bytes!(
-        "../../../../fixtures/aspen/runtime/171f25b5a9e878390af8f20b9797f6096cca5097/producer-callback-request.preserves"
+        "../../../../fixtures/aspen/runtime/22f8ded26ca1907c29948e08b53f35df23080733/producer-callback-request.preserves"
     );
     const EXPECTED: &str = include_str!(
-        "../../../../fixtures/aspen/runtime/171f25b5a9e878390af8f20b9797f6096cca5097/consumer-expected.json"
+        "../../../../fixtures/aspen/runtime/22f8ded26ca1907c29948e08b53f35df23080733/consumer-expected.json"
     );
     let expected: ExpectedProducerFixture =
         serde_json::from_str(EXPECTED).unwrap_or_else(|_| unreachable!("expected fixture"));

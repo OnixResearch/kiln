@@ -6,13 +6,10 @@ use kiln_adapter_aspen::protocol::{
     CALLBACK_CHECKPOINT_SCHEMA, CALLBACK_COMPLETION_SCHEMA, CALLBACK_REQUEST_SCHEMA,
     CALLBACK_STATE_SCHEMA, CALLBACK_STATUS_SCHEMA, CallbackEffectCompletion, CallbackEffectPlan,
     CallbackEffectTerminal, CallbackRequest, CallbackState, CallbackStatus, HostedRunPhase,
-    HostedRunState,
+    HostedRunState, hosted_run_id,
 };
 use kiln_core::domain::Outcome;
-use kiln_core::types::{ContentId, Diagnostic, EffectId, ExternalRef, ProviderProfileId, RunId};
-
-const WORKFLOW_PROVIDER_PROFILE: &str = "lattice-workflow-v1";
-const RUN_ID_PREFIX: &str = "kiln-aspen-run-";
+use kiln_core::types::{ContentId, Diagnostic, EffectId, ExternalRef, ProviderProfileId};
 const EFFECT_ID_PREFIX: &str = "kiln-aspen-effect-";
 
 pub(crate) fn validate_request(
@@ -55,7 +52,8 @@ pub(crate) fn workflow_effect(
     let operation_id = ExternalRef::new("molten", "transport-operation-blake3", &digest)
         .map_err(diagnostic_string)?;
     let provider_profile =
-        ProviderProfileId::new(WORKFLOW_PROVIDER_PROFILE).map_err(diagnostic_string)?;
+        ProviderProfileId::new(profile.profile.workflow_provider_profile.clone())
+            .map_err(diagnostic_string)?;
     map_provider_effect(
         profile,
         &EffectMappingInput {
@@ -79,11 +77,7 @@ pub(crate) fn hosted_run(
     phase: HostedRunPhase,
     provider_effect: Option<EffectId>,
 ) -> Result<HostedRunState, String> {
-    let digest =
-        blake3::hash(format!("kiln.aspen.run.v1\0{}", trigger_identity.as_str()).as_bytes())
-            .to_hex()
-            .to_string();
-    let run_id = RunId::new(format!("{RUN_ID_PREFIX}{digest}")).map_err(diagnostic_string)?;
+    let run_id = hosted_run_id(trigger_identity).map_err(diagnostic_string)?;
     Ok(HostedRunState {
         run_id,
         trigger_identity: trigger_identity.clone(),
@@ -163,11 +157,6 @@ pub(crate) fn checkpoint_ref(state: &CallbackState) -> Result<ExternalRef, Strin
         .map_err(|error| error.to_string())?;
     let digest = blake3::hash(&bytes).to_hex().to_string();
     ExternalRef::new("kiln", "aspen-checkpoint-blake3", &digest).map_err(diagnostic_string)
-}
-
-pub(crate) fn identity_of<T: serde::Serialize>(value: &T) -> Result<ContentId, String> {
-    let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
-    ContentId::from_blake3_hex(blake3::hash(&bytes).to_hex().to_string()).map_err(diagnostic_string)
 }
 
 pub(crate) fn status(state: &CallbackState) -> CallbackStatus {

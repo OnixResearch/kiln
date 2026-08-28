@@ -2,15 +2,17 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 
 use kiln_core::domain::Outcome;
-use kiln_core::types::{ContentId, EffectId, ExternalRef, ProviderProfileId, RunId};
+use kiln_core::types::{ContentId, Diagnostic, EffectId, ExternalRef, ProviderProfileId, RunId};
 use kiln_provider_api::TriggerRequest;
 use serde::{Deserialize, Serialize};
 
 mod codec;
 mod native;
+mod provider;
 
 pub use codec::*;
 pub use native::*;
+pub use provider::*;
 
 pub const CALLBACK_REQUEST_SCHEMA: &str = "kiln.aspen-extension.callback-request.v2";
 pub const CALLBACK_OUTCOME_SCHEMA: &str = "kiln.aspen-extension.callback-outcome.v2";
@@ -23,6 +25,16 @@ pub const HOSTED_CALLBACK_INPUT_SCHEMA: &str = "kiln.aspen-extension.hosted-inpu
 pub const CALLBACK_REQUEST_RECORD: &str = "kiln-aspen-callback-request-v2";
 pub const HOSTED_CALLBACK_INPUT_RECORD: &str = "kiln-aspen-hosted-input-v2";
 pub const CALLBACK_OUTCOME_RECORD: &str = "kiln-aspen-callback-outcome-v2";
+const HOSTED_RUN_ID_PREFIX: &str = "kiln-aspen-run-";
+
+// r[impl kiln.aspen_host.transport]
+pub fn hosted_run_id(trigger_identity: &ContentId) -> Result<RunId, Diagnostic> {
+    let digest =
+        blake3::hash(format!("kiln.aspen.run.v1\0{}", trigger_identity.as_str()).as_bytes())
+            .to_hex()
+            .to_string();
+    RunId::new(format!("{HOSTED_RUN_ID_PREFIX}{digest}"))
+}
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

@@ -2,8 +2,8 @@ use kiln_core::types::ExternalRef;
 
 use crate::profile::AdmittedAspenRuntimeProfile;
 use crate::protocol::{
-    CALLBACK_REQUEST_SCHEMA, CallbackCommand, CallbackOutcome, CallbackRequest, ProtocolError,
-    decode_callback_outcome, encode_callback_request,
+    CALLBACK_REQUEST_SCHEMA, CallbackCommand, CallbackDecision, CallbackOutcome, CallbackRequest,
+    HostedRunPhase, ProtocolError, decode_callback_outcome, encode_callback_request, hosted_run_id,
 };
 use crate::transport::{
     AspenServiceAck, AspenServiceDecision, AspenServiceIngress, AspenServiceTransport,
@@ -122,7 +122,7 @@ impl<C: HostedCallback> LocalAspenService<C> {
         if validate_outcome(&request, &outcome).is_err() {
             return ServiceTransportOutcome::Malformed;
         }
-        let Some(ack) = build_ack(ingress, &outcome, &output_bytes) else {
+        let Ok(ack) = build_service_ack(ingress, &outcome, &output_bytes) else {
             return ServiceTransportOutcome::Malformed;
         };
         {
@@ -196,26 +196,29 @@ fn validate_outcome(
     Ok(())
 }
 
-fn build_ack(
+// r[impl kiln.aspen_host.transport] r[impl kiln.aspen_host.completion]
+pub fn build_service_ack(
     ingress: &AspenServiceIngress,
     outcome: &CallbackOutcome,
     output_bytes: &[u8],
-) -> Option<AspenServiceAck> {
-    let run_id = outcome
-        .state
-        .runs
-        .get(ingress.trigger_identity.as_str())
-        .map(|run| run.run_id.clone());
+) -> Result<AspenServiceAck, ProtocolError> {
+    let run = outcome.state.runs.get(ingress.trigger_identity.as_str());
+    let run_id = run
+        .map(|state| state.run_id.clone())
+        .map_or_else(|| hosted_run_id(&ingress.trigger_identity), Ok)
+        .map_err(|_| ProtocolError::Identity)?;
     let decision = match outcome.decision {
-        crate::protocol::CallbackDecision::Accepted => AspenServiceDecision::Accepted,
-        crate::protocol::CallbackDecision::Rejected => AspenServiceDecision::Rejected,
-        crate::protocol::CallbackDecision::Replay => AspenServiceDecision::Replay,
-        crate::protocol::CallbackDecision::Reconciled
-        | crate::protocol::CallbackDecision::Checkpointed
-        | crate::protocol::CallbackDecision::Recovered
-        | crate::protocol::CallbackDecision::Status
-        | crate::protocol::CallbackDecision::Draining => AspenServiceDecision::Accepted,
-        crate::protocol::CallbackDecision::Stopped => AspenServiceDecision::Completed,
+        CallbackDecision::Rejected => AspenServiceDecision::Rejected,
+        CallbackDecision::Replay => AspenServiceDecision::Replay,
+        CallbackDecision::Stopped => AspenServiceDecision::Completed,
+        CallbackDecision::Accepted
+        | CallbackDecision::Reconciled
+        | CallbackDecision::Checkpointed
+        | CallbackDecision::Recovered
+        | CallbackDecision::Status
+        | CallbackDecision::Draining => run.map_or(AspenServiceDecision::Accepted, |state| {
+            decision_for_phase(state.phase)
+        }),
     };
     let receipt_material = [
         ingress.operation_id.native_id.as_str().as_bytes(),
@@ -223,14 +226,29 @@ fn build_ack(
     ]
     .concat();
     let receipt_digest = blake3::hash(&receipt_material).to_hex().to_string();
-    let receipt_ref = ExternalRef::new("molten", "service-receipt-blake3", &receipt_digest).ok()?;
-    Some(AspenServiceAck {
+    let receipt_ref = ExternalRef::new("molten", "service-receipt-blake3", &receipt_digest)
+        .map_err(|_| ProtocolError::Identity)?;
+    Ok(AspenServiceAck {
         schema: SERVICE_ACK_SCHEMA.to_string(),
         operation_id: ingress.operation_id.clone(),
         generation: ingress.generation,
         trigger_identity: ingress.trigger_identity.clone(),
-        run_id,
+        run_id: Some(run_id),
         decision,
         receipt_ref,
     })
+}
+
+const fn decision_for_phase(phase: HostedRunPhase) -> AspenServiceDecision {
+    match phase {
+        HostedRunPhase::Accepted | HostedRunPhase::DispatchPending | HostedRunPhase::Running => {
+            AspenServiceDecision::Accepted
+        }
+        HostedRunPhase::Completed => AspenServiceDecision::Completed,
+        HostedRunPhase::Failed => AspenServiceDecision::Failed,
+        HostedRunPhase::Denied => AspenServiceDecision::Denied,
+        HostedRunPhase::Cancelled => AspenServiceDecision::Cancelled,
+        HostedRunPhase::TimedOut => AspenServiceDecision::TimedOut,
+        HostedRunPhase::Unknown => AspenServiceDecision::Unknown,
+    }
 }

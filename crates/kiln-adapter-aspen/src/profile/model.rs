@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 pub const ASPEN_RUNTIME_PROFILE_SCHEMA: &str = "kiln.aspen-runtime.profile.v2";
 pub const ASPEN_RUNTIME_PROFILE_ID: &str = "aspen-runtime-v2";
-pub const ASPEN_SOURCE: &str = "ssh://git@github.com/OnixResearch/aspen.git";
-pub const ASPEN_REVISION: &str = "171f25b5a9e878390af8f20b9797f6096cca5097";
+pub const ASPEN_SOURCE: &str = "ssh://git@github.com/brittonr/aspen.git";
+pub const ASPEN_REVISION: &str = "22f8ded26ca1907c29948e08b53f35df23080733";
 pub const BOUNDED_EXEC_SOURCE: &str = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git";
 pub const BOUNDED_EXEC_REVISION: &str = "29dac88ecded94457572db3fdfaaaab95fa91525";
 pub const ASPEN_NATIVE_HOST_PROFILE_SCHEMA: &str = "molten.system-extension.native-host-profile.v2";
@@ -20,6 +20,9 @@ pub const KILN_EXTENSION_PROTOCOL_SCHEMA: &str = "kiln.aspen-extension.protocol.
 pub const KILN_EXTENSION_SERVICE_ID: &str = "kiln-ci-control-plane-v2";
 pub const KILN_EXTENSION_ID: &str = "kiln-aspen-extension-v2";
 pub const KILN_NATIVE_EXECUTION_PROFILE: &str = "native-host-local-pilot-v2";
+pub const KILN_WORKFLOW_PROVIDER_PROFILE: &str = "lattice-v1";
+pub const KILN_WORKFLOW_EFFECT_INPUT_SCHEMA: &str = "kiln.aspen-extension.effect.v2";
+pub const KILN_WORKFLOW_COMPLETION_SCHEMA: &str = "kiln.aspen-provider-completion.v1";
 pub const LOCAL_CLAIM_LEVEL: &str = "local-live-materialized-values-pilot";
 
 pub const DEFAULT_MAX_CALLBACK_INPUT_BYTES: usize = 1_048_576;
@@ -123,6 +126,7 @@ pub struct AspenRuntimeProfileDocument {
     pub authority_ref: String,
     pub resource_ref: String,
     pub claim_level: String,
+    pub workflow_provider_profile: String,
     pub ports: Vec<AspenPortBinding>,
     pub port_count: usize,
     pub bounds: AspenRuntimeBounds,
@@ -168,6 +172,7 @@ impl AspenRuntimeProfileDocument {
             authority_ref: self.authority_ref,
             resource_ref: self.resource_ref,
             claim_level: self.claim_level,
+            workflow_provider_profile: self.workflow_provider_profile,
             ports: self.ports,
             bounds: self.bounds,
             non_claims: self.non_claims,
@@ -201,6 +206,7 @@ pub struct AspenRuntimeProfile {
     pub authority_ref: String,
     pub resource_ref: String,
     pub claim_level: String,
+    pub workflow_provider_profile: String,
     pub ports: Vec<AspenPortBinding>,
     pub bounds: AspenRuntimeBounds,
     pub non_claims: Vec<String>,

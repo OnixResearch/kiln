@@ -526,7 +526,7 @@
           ],
           "id": "aspen-runtime-v2",
           "role": "runtime",
-          "source_revision": "171f25b5a9e878390af8f20b9797f6096cca5097",
+          "source_revision": "22f8ded26ca1907c29948e08b53f35df23080733",
           "unsupported_capabilities": [
             "ci_state",
             "provider_success",
@@ -578,7 +578,7 @@
       ]
     }
   },
-  "receipt_hash": "faa138f1332a3bd18419ee790db33a5499ab62bf6a242c87871f7ec43d70faf5",
+  "receipt_hash": "0a7432bbe87bb3658be8dbc5912d5b082660d65be305feeb6b547033abdeaf83",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

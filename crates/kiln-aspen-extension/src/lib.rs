@@ -4,6 +4,7 @@ use kiln_adapter_aspen::protocol::{
     HostedRunPhase, decode_callback_request, encode_callback_outcome,
 };
 use kiln_adapter_aspen::service::{CallbackInvocationError, HostedCallback};
+use kiln_adapter_aspen::transport::canonical_trigger_identity;
 
 mod decision;
 mod native;
@@ -33,7 +34,11 @@ impl KilnAspenCallback {
                 trigger_identity,
                 idempotency_key,
             } => {
-                let observed_identity = identity_of(trigger)?;
+                let observed_identity = canonical_trigger_identity(
+                    trigger,
+                    self.profile.profile.bounds.max_callback_input_bytes,
+                )
+                .map_err(|error| format!("{error:?}"))?;
                 if &observed_identity != trigger_identity {
                     return Err(
                         "trigger identity does not match canonical trigger bytes".to_string()

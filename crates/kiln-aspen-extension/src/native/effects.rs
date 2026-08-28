@@ -2,8 +2,9 @@ use kiln_adapter_aspen::effects::admit_effect_plan;
 use kiln_adapter_aspen::profile::{AdmittedAspenRuntimeProfile, AspenPortPurpose};
 use kiln_adapter_aspen::protocol::{
     AspenEffectKind, AspenMaterializedValue, AspenNativeCallbackEnvelope, AspenNativeEffect,
-    CallbackCommand, CallbackEffectCompletion, CallbackEffectPlan, CallbackEffectTerminal,
-    CallbackState, aspen_content_ref, decode_aspen_effect_completion,
+    CallbackCommand, CallbackEffectCompletion, CallbackEffectPlan, CallbackState,
+    admit_hosted_provider_completion, aspen_content_ref, decode_aspen_effect_completion,
+    decode_hosted_provider_completion,
 };
 use kiln_core::types::ExternalRef;
 
@@ -39,18 +40,28 @@ pub(super) fn completion_command(
     }
     let effect = matched_effect
         .ok_or_else(|| "Aspen completion does not name an unresolved Kiln effect".to_string())?;
-    let output_hex = completion
-        .output_ref
+    let output = completion.output.as_ref().ok_or_else(|| {
+        "Aspen effect completion omits its materialized provider output".to_string()
+    })?;
+    let provider_completion = decode_hosted_provider_completion(
+        &output.bytes,
+        profile.profile.bounds.max_materialized_value_bytes,
+    )
+    .map_err(protocol_string)?;
+    let terminal =
+        admit_hosted_provider_completion(effect, &provider_completion).map_err(protocol_string)?;
+    let output_hex = output
+        .value_ref
         .strip_prefix("blake3:")
         .ok_or_else(|| "Aspen completion output identity is malformed".to_string())?;
-    let observation_ref = ExternalRef::new("molten", "effect-output-blake3", output_hex)
+    let observation_ref = ExternalRef::new("lattice", "observation-blake3", output_hex)
         .map_err(|error| format!("{}: {}", error.code, error.message))?;
     Ok(CallbackCommand::CompleteEffect(CallbackEffectCompletion {
         schema: kiln_adapter_aspen::protocol::CALLBACK_COMPLETION_SCHEMA.to_string(),
         effect_id: effect.effect_id.clone(),
         operation_id: effect.operation_id.clone(),
         generation: completion.generation,
-        terminal: CallbackEffectTerminal::Unknown,
+        terminal,
         observation_ref,
     }))
 }

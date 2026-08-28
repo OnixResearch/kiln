@@ -17,8 +17,8 @@ let ResourceRef = "kiln-aspen-resources-v1" in
   schema = "kiln.aspen-runtime.profile.v2",
   profile_id = "aspen-runtime-v2",
   cohort = {
-    source = "ssh://git@github.com/OnixResearch/aspen.git",
-    revision = "171f25b5a9e878390af8f20b9797f6096cca5097",
+    source = "ssh://git@github.com/brittonr/aspen.git",
+    revision = "22f8ded26ca1907c29948e08b53f35df23080733",
     bounded_exec_source = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
     bounded_exec_revision = "29dac88ecded94457572db3fdfaaaab95fa91525",
   },
@@ -42,6 +42,7 @@ let ResourceRef = "kiln-aspen-resources-v1" in
   authority_ref = AuthorityRef,
   resource_ref = ResourceRef,
   claim_level = "local-live-materialized-values-pilot",
+  workflow_provider_profile = "lattice-v1",
   ports = [
     {
       purpose = "durability",
@@ -74,8 +75,8 @@ let ResourceRef = "kiln-aspen-resources-v1" in
       purpose = "transport",
       port_id = "molten.fabric.transport.session",
       version = "v1",
-      input_schema = "molten.fabric.transport.request.v1",
-      output_schema = "molten.fabric.transport.observation.v1",
+      input_schema = "kiln.aspen-extension.effect.v2",
+      output_schema = "kiln.aspen-provider-completion.v1",
       authority_ref = AuthorityRef,
       resource_ref = ResourceRef,
     },

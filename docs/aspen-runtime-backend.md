@@ -4,7 +4,7 @@
 
 The Aspen backend gives Kiln a workload-neutral runtime substrate. Kiln still owns CI commands, events, candidates, attempts, policy, retries, provider selection, outcomes, and release meaning.
 
-The reviewed runtime cohort is Aspen/Molten revision `171f25b5a9e878390af8f20b9797f6096cca5097`. Its bounded process mechanism is Bounded Exec revision `29dac88ecded94457572db3fdfaaaab95fa91525`.
+The reviewed runtime cohort is Aspen/Molten revision `22f8ded26ca1907c29948e08b53f35df23080733`. Its bounded process mechanism is Bounded Exec revision `29dac88ecded94457572db3fdfaaaab95fa91525`.
 
 The initial claim level is `local-live-materialized-values-pilot`. It is not a production claim.
 
@@ -163,7 +163,7 @@ The conformance suite covers exact profile admission, positive and negative call
 
 ## Hosted conformance
 
-Aspen revision `171f25b5a9e878390af8f20b9797f6096cca5097` supplies bounded, identity-checked payload, prior-state, effect-completion, effect-request, next-state, output, and checkpoint bytes.
+Aspen revision `22f8ded26ca1907c29948e08b53f35df23080733` supplies bounded, identity-checked payload, prior-state, effect-completion, effect-request, next-state, output, and checkpoint bytes.
 
 The parent-observed cross-repository fixture runs the real Aspen `NativeSystemExtensionService`. It executes `kiln-aspen-extension` as a separate bounded process.
 

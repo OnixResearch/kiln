@@ -30,8 +30,8 @@ pub fn expected_ports() -> BTreeSet<AspenPortBinding> {
             AspenPortPurpose::Transport,
             "molten.fabric.transport.session",
             "v1",
-            "molten.fabric.transport.request.v1",
-            "molten.fabric.transport.observation.v1",
+            KILN_WORKFLOW_EFFECT_INPUT_SCHEMA,
+            KILN_WORKFLOW_COMPLETION_SCHEMA,
         ),
         binding(
             AspenPortPurpose::Time,
@@ -109,6 +109,7 @@ pub fn profile_document_fixture() -> AspenRuntimeProfileDocument {
         authority_ref: profile.authority_ref.clone(),
         resource_ref: profile.resource_ref.clone(),
         claim_level: profile.claim_level.clone(),
+        workflow_provider_profile: profile.workflow_provider_profile.clone(),
         port_count: profile.ports.len(),
         ports: profile.ports.clone(),
         bounds: profile.bounds.clone(),
@@ -145,6 +146,7 @@ pub fn profile_fixture() -> AspenRuntimeProfile {
         authority_ref: "kiln-aspen-authority-v1".to_string(),
         resource_ref: "kiln-aspen-resources-v1".to_string(),
         claim_level: LOCAL_CLAIM_LEVEL.to_string(),
+        workflow_provider_profile: KILN_WORKFLOW_PROVIDER_PROFILE.to_string(),
         ports: expected_ports().into_iter().collect(),
         bounds: AspenRuntimeBounds {
             max_callback_input_bytes: DEFAULT_MAX_CALLBACK_INPUT_BYTES,

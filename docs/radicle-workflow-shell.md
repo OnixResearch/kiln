@@ -10,7 +10,7 @@ The shell pins these inputs:
 - Radicle CI broker: `a688afde1f730ef60402a809d9cdadc55e8dd749`
 - Lattice contract, transport, handler, and source binding: `70496e67c7fd4a8b05914161a8e09de2759bebc8`
 - Lattice request schema: `lattice.workflow-request.v2`
-- Aspen native-host cohort: `171f25b5a9e878390af8f20b9797f6096cca5097`
+- Aspen native-host cohort: `22f8ded26ca1907c29948e08b53f35df23080733`
 
 The executable contains no Nix executor and no workflow fallback. Runtime selection is mandatory and never falls back.
 

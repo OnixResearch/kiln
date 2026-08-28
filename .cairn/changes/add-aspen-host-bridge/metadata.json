@@ -1,0 +1,10 @@
+{
+  "groups": [
+    "feature:aspen-host-bridge"
+  ],
+  "workflow_profile": {
+    "id": "spec-driven",
+    "source": "change_create",
+    "version": 1
+  }
+}

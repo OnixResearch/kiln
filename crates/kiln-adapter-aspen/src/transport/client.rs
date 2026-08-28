@@ -88,6 +88,22 @@ impl<T: AspenServiceTransport> TriggerIntakePort for AspenTriggerClient<T> {
 }
 
 // r[impl kiln.aspen_runtime.ingress] r[impl kiln.aspen_runtime.identity]
+pub fn canonical_trigger_identity(
+    trigger: &TriggerRequest,
+    maximum_bytes: usize,
+) -> PortResult<ContentId> {
+    kiln_codec::encode_and_identify(trigger, maximum_bytes)
+        .map(|(_bytes, identity)| identity)
+        .map_err(|_| {
+            PortFailure::Domain(kiln_core::types::Diagnostic::new(
+                "aspen_ingress_encoding",
+                "aspen.ingress.trigger",
+                "canonical trigger encoding failed or exceeded its admitted bound",
+            ))
+        })
+}
+
+// r[impl kiln.aspen_runtime.ingress] r[impl kiln.aspen_runtime.identity]
 pub fn build_ingress(
     profile: &AdmittedAspenRuntimeProfile,
     source: IngressSource,
@@ -102,23 +118,8 @@ pub fn build_ingress(
     if let Some(patch) = &trigger.patch {
         patch.validate().map_err(PortFailure::Domain)?;
     }
-    let trigger_bytes = serde_json::to_vec(&trigger).map_err(|_| {
-        PortFailure::Domain(kiln_core::types::Diagnostic::new(
-            "aspen_ingress_encoding",
-            "aspen.ingress.trigger",
-            "canonical trigger encoding failed",
-        ))
-    })?;
-    if trigger_bytes.len() > profile.profile.bounds.max_callback_input_bytes {
-        return Err(PortFailure::Domain(kiln_core::types::Diagnostic::new(
-            "aspen_ingress_bound",
-            "aspen.ingress.trigger",
-            "trigger exceeds the admitted callback input bound",
-        )));
-    }
     let trigger_identity =
-        ContentId::from_blake3_hex(blake3::hash(&trigger_bytes).to_hex().to_string())
-            .map_err(PortFailure::Domain)?;
+        canonical_trigger_identity(&trigger, profile.profile.bounds.max_callback_input_bytes)?;
     let source_name = match source {
         IngressSource::Radicle => "radicle",
         IngressSource::Operator => "operator",

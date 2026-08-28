@@ -70,7 +70,7 @@ let Profile = {
     {
       id = "aspen-runtime-v2",
       role = "runtime",
-      source_revision = "171f25b5a9e878390af8f20b9797f6096cca5097",
+      source_revision = "22f8ded26ca1907c29948e08b53f35df23080733",
       capabilities = ["service_hosting", "durable_state", "content_store", "bounded_execution", "transport", "time", "scheduling", "evidence"],
       unsupported_capabilities = ["ci_state", "provider_success", "release", "sandboxing", "exact_once_delivery"],
       authority_boundary = "Aspen owns admitted runtime mechanisms; Kiln owns CI commands, events, policy, provider selection, and outcomes",
