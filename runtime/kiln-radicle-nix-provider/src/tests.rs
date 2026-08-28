@@ -17,6 +17,8 @@ const TEST_TEARDOWN_MILLISECONDS: u64 = 1_000;
 const TEST_COLLISION_ATTEMPTS: usize = 4;
 const TEST_FLOOD_ITERATIONS: usize = 4_096;
 const TEST_WRAPPER_MODE: u32 = 0o700;
+const TEST_REPORT_MODE: u32 = 0o640;
+const PERMISSION_MODE_MASK: u32 = 0o777;
 const TEST_REVISION: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 fn write_wrapper(root: &Path, body: &str) -> PathBuf {
@@ -96,6 +98,21 @@ printf 'provider-ok'
     assert_eq!(first, repeated);
     assert_eq!(first.outcome, HostedProviderOutcome::Success);
     assert!(first.log_url.ends_with(".log"));
+    let run_leaf = first
+        .run_identity
+        .strip_prefix("b3:")
+        .unwrap_or_else(|| unreachable!());
+    for extension in ["log", "json"] {
+        let path = profile
+            .report_root
+            .join(&profile.report_namespace)
+            .join(format!("{run_leaf}.{extension}"));
+        let mode = std::fs::metadata(path)
+            .unwrap_or_else(|_| unreachable!())
+            .mode()
+            & PERMISSION_MODE_MASK;
+        assert_eq!(mode, TEST_REPORT_MODE);
+    }
 }
 
 #[test]

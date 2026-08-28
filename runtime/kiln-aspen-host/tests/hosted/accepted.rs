@@ -12,14 +12,11 @@ use super::*;
 fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
     let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!("temporary directory"));
     let lattice_socket = directory.path().join("lattice.sock");
+    let replay_path = directory.path().join("replay.sqlite");
     let listener =
         UnixListener::bind(&lattice_socket).unwrap_or_else(|_| unreachable!("Lattice listener"));
     let user_id = nix::unistd::getuid().as_raw();
-    let config = radicle_config(
-        lattice_socket,
-        directory.path().join("replay.sqlite"),
-        user_id,
-    );
+    let config = radicle_config(lattice_socket.clone(), replay_path.clone(), user_id);
     let admitted_radicle = admit_config(config).unwrap_or_else(|_| unreachable!("Radicle profile"));
     let server_profile = admitted_radicle.transport.clone();
     let lattice_server = std::thread::spawn(move || {
@@ -46,12 +43,13 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
             workspace: directory.path().to_path_buf(),
         },
     )
-    .unwrap_or_else(|_| unreachable!("Aspen cohort"));
+    .unwrap_or_else(|error| unreachable!("Aspen cohort: {error}"));
     let effects = LatticeEffectPort::new(
         profile.clone(),
         admitted_radicle.shell,
         lattice,
         cohort.values.clone(),
+        cohort.ledger.clone(),
     )
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
@@ -113,4 +111,44 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
         .unwrap_or_else(|_| unreachable!("Lattice server join"))
         .unwrap_or_else(|_| unreachable!("Lattice server report"));
     assert_eq!(report.completed_exchanges, TEST_MAXIMUM_CONNECTIONS);
+
+    let recovered_radicle = admit_config(radicle_config(lattice_socket, replay_path, user_id))
+        .unwrap_or_else(|_| unreachable!("recovered Radicle profile"));
+    let recovered_transport = UnixWorkflowExchange::new(
+        recovered_radicle.shell.socket_path.clone(),
+        recovered_radicle.transport,
+        recovered_radicle.lattice.contract.clone(),
+        recovered_radicle.shell.maximum_replay_records,
+    )
+    .unwrap_or_else(|_| unreachable!("recovered Lattice transport"));
+    let recovered_lattice = LatticeAdapter::new(recovered_radicle.lattice, recovered_transport)
+        .unwrap_or_else(|_| unreachable!("recovered Lattice adapter"));
+    let recovered_cohort = HostCohort::build(
+        profile.clone(),
+        &HostPaths {
+            extension_executable: std::path::PathBuf::from(env!(
+                "CARGO_BIN_EXE_kiln-aspen-host-extension-fixture"
+            )),
+            workspace: directory.path().to_path_buf(),
+        },
+    )
+    .unwrap_or_else(|error| unreachable!("recovered Aspen cohort: {error}"));
+    let recovered_effects = LatticeEffectPort::new(
+        profile.clone(),
+        recovered_radicle.shell,
+        recovered_lattice,
+        recovered_cohort.values.clone(),
+        recovered_cohort.ledger.clone(),
+    )
+    .unwrap_or_else(|_| unreachable!("recovered Lattice effect port"));
+    let mut recovered_runtime = KilnAspenHostRuntime::start(recovered_cohort, recovered_effects)
+        .unwrap_or_else(|error| unreachable!("recovered Aspen runtime: {error}"));
+    let ServiceTransportOutcome::Acknowledged(recovered_ack) =
+        recovered_runtime.submit(&profile, &ingress)
+    else {
+        unreachable!("durable replay acknowledgement");
+    };
+    assert_eq!(recovered_ack.run_id, ack.run_id);
+    assert_eq!(recovered_ack.receipt_ref, ack.receipt_ref);
+    assert!(recovered_runtime.shutdown().is_ok());
 }

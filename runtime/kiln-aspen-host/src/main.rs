@@ -100,6 +100,7 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         radicle.shell,
         lattice,
         cohort.values.clone(),
+        cohort.ledger.clone(),
     )?;
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)?;
     let maximum_frame_bytes = profile

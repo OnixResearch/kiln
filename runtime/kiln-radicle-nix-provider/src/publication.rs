@@ -10,7 +10,7 @@ use rustix::fs::{Mode, OFlags, openat};
 
 use super::model::{HostedProviderError, HostedProviderResult};
 
-const REPORT_FILE_MODE: u32 = 0o600;
+const REPORT_FILE_MODE: u32 = 0o640;
 
 #[derive(Debug)]
 struct BoundedStageNames {

@@ -38,13 +38,17 @@ unwrap_used = "deny"
 
 [dependencies]
 blake3 = "=1.8.5"
-kiln-adapter-aspen = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/add-aspen-host-bridge-20260827" }
-kiln-adapter-lattice = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/add-aspen-host-bridge-20260827" }
-kiln-adapter-radicle = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/add-aspen-host-bridge-20260827" }
-kiln-aspen-extension = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/add-aspen-host-bridge-20260827", optional = true }
-kiln-core = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/add-aspen-host-bridge-20260827" }
-kiln-provider-api = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/add-aspen-host-bridge-20260827" }
+durable-file-publication = { git = "https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git", rev = "8e05e74e24b45f752d77145c4455385daaf6d6ab" }
+kiln-adapter-aspen = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/productionize-aspen-radicle-host-20260828" }
+kiln-adapter-lattice = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/productionize-aspen-radicle-host-20260828" }
+kiln-adapter-radicle = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/productionize-aspen-radicle-host-20260828" }
+kiln-aspen-extension = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/productionize-aspen-radicle-host-20260828", optional = true }
+kiln-core = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/productionize-aspen-radicle-host-20260828" }
+kiln-provider-api = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/change/productionize-aspen-radicle-host-20260828" }
 molten = { git = "https://github.com/brittonr/aspen.git", rev = "22f8ded26ca1907c29948e08b53f35df23080733" }
+preserves = "=5.0.0-rc.8"
+rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled"] }
+rustix = { version = "1.1", features = ["fs"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 

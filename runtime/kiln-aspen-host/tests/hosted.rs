@@ -44,8 +44,8 @@ use lattice_workflow_contract::{
     NodeObservation, NodeState, OBSERVATION_SCHEMA, WorkflowAccepted, observation_identity,
 };
 use lattice_workflow_transport::{
-    ExchangeCommand, ExchangeSuccess, HandlerError, TransportLimits, WorkflowExchangeHandler,
-    WorkflowExchangeService, serve_listener,
+    ExchangeCommand, ExchangeRequest, ExchangeSuccess, HandlerError, TransportLimits,
+    WorkflowExchangeHandler, WorkflowExchangeService, read_frame, serve_listener,
 };
 
 const TEST_MAXIMUM_NODES: usize = 8;
@@ -244,6 +244,8 @@ fn identity(digit: char) -> Result<Identity, HandlerError> {
 
 #[path = "hosted/accepted.rs"]
 mod accepted_test;
+#[path = "hosted/recovery.rs"]
+mod recovery_test;
 #[path = "hosted/rejected.rs"]
 mod rejected_test;
 #[path = "hosted/uncertain.rs"]

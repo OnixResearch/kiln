@@ -1,11 +1,11 @@
 ## Phase 1: Durable host core and adapters
 
-- [ ] [serial] Define the durable hosted-operation states, transitions, invariants, and negative corruption cases. r[kiln.aspen_host.production_durability]
-- [ ] [serial] Add a durable operation ledger that reserves ingress before effects and binds terminal or uncertain outcomes atomically. r[kiln.aspen_host.production_durability]
-- [ ] [serial] Compose Aspen's durable native journal and a capability-rooted durable callback value adapter. r[kiln.aspen_host.production_durability]
-- [ ] [serial] Restore the native service, trigger links, acknowledgements, uncertainty, and logical sequence after restart. r[kiln.aspen_host.production_recovery]
-- [ ] [serial] Reconcile pending and uncertain Lattice operations without provider redispatch. r[kiln.aspen_host.production_recovery]
-- [ ] [serial] Add positive restart/replay tests and negative missing, changed, truncated, and corrupted-state tests. r[kiln.aspen_host.production_recovery]
+- [x] [serial] Define the durable hosted-operation states, transitions, invariants, and negative corruption cases. r[kiln.aspen_host.production_durability]
+- [x] [serial] Add a durable operation ledger that reserves ingress before effects and binds terminal or uncertain outcomes atomically. r[kiln.aspen_host.production_durability]
+- [x] [serial] Compose Aspen's durable native journal and a capability-rooted durable callback value adapter. r[kiln.aspen_host.production_durability]
+- [x] [serial] Restore the native service, trigger links, acknowledgements, uncertainty, and logical sequence after restart. r[kiln.aspen_host.production_recovery]
+- [x] [serial] Reconcile pending and uncertain Lattice operations without provider redispatch. r[kiln.aspen_host.production_recovery]
+- [x] [serial] Add positive restart/replay tests and negative missing, changed, truncated, and corrupted-state tests. r[kiln.aspen_host.production_recovery]
 
 ## Phase 2: Bounded production provider
 

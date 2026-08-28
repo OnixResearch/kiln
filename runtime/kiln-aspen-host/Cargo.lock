@@ -1698,6 +1698,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
+name = "durable-file-publication"
+version = "0.1.0"
+source = "git+https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e24b45f752d77145c4455385daaf6d6ab"
+dependencies = [
+ "rustix",
+]
+
+[[package]]
 name = "dyn-clone"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3505,7 +3513,7 @@ dependencies = [
 [[package]]
 name = "kiln-adapter-aspen"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "blake3",
  "kiln-codec",
@@ -3519,7 +3527,7 @@ dependencies = [
 [[package]]
 name = "kiln-adapter-lattice"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "kiln-codec",
  "kiln-core",
@@ -3533,7 +3541,7 @@ dependencies = [
 [[package]]
 name = "kiln-adapter-radicle"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "blake3",
  "bounded-exec",
@@ -3561,7 +3569,7 @@ dependencies = [
 [[package]]
 name = "kiln-aspen-extension"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "blake3",
  "kiln-adapter-aspen",
@@ -3576,6 +3584,7 @@ name = "kiln-aspen-host"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "durable-file-publication",
  "kiln-adapter-aspen",
  "kiln-adapter-lattice",
  "kiln-adapter-radicle",
@@ -3586,6 +3595,9 @@ dependencies = [
  "lattice-workflow-transport",
  "molten",
  "nix 0.30.1",
+ "preserves 5.0.0-rc.8",
+ "rusqlite",
+ "rustix",
  "serde",
  "serde_json",
  "tempfile",
@@ -3594,7 +3606,7 @@ dependencies = [
 [[package]]
 name = "kiln-codec"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "blake3",
  "kiln-core",
@@ -3606,7 +3618,7 @@ dependencies = [
 [[package]]
 name = "kiln-core"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "blake3",
  "serde",
@@ -3615,7 +3627,7 @@ dependencies = [
 [[package]]
 name = "kiln-provider-api"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "kiln-core",
  "serde",
@@ -3624,7 +3636,7 @@ dependencies = [
 [[package]]
 name = "kiln-radicle-source-contract"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fadd-aspen-host-bridge-20260827#42eabcb21385a436ddc044fb7034b8cdaec7b8a0"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
 dependencies = [
  "serde",
 ]

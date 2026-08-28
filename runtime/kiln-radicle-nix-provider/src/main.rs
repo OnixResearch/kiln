@@ -4,11 +4,6 @@
     tigerstyle::non_trait_imports,
     reason = "the binary composition root keeps explicit provider inputs and output ownership visible"
 )]
-#![allow(
-    tigerstyle::ambient_env,
-    reason = "the binary shell captures argv once and passes explicit values into provider orchestration"
-)]
-
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -32,7 +27,7 @@ struct Arguments {
 }
 
 fn parse_arguments() -> Result<Arguments, &'static str> {
-    let mut values = std::env::args().skip(1);
+    let mut values = process_arguments();
     let mut profile = None;
     let mut repository = None;
     let mut revision = None;
@@ -55,6 +50,15 @@ fn parse_arguments() -> Result<Arguments, &'static str> {
         repository: repository.ok_or("--repository is required")?,
         revision: revision.ok_or("--revision is required")?,
     })
+}
+
+#[allow(
+    unknown_lints,
+    tigerstyle::ambient_env,
+    reason = "the binary composition root captures argv once before pure argument admission"
+)]
+fn process_arguments() -> impl Iterator<Item = String> {
+    std::env::args().skip(1)
 }
 
 fn set_once(

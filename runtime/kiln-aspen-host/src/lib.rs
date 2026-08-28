@@ -10,6 +10,7 @@
 )]
 
 pub mod cohort;
+pub mod durability;
 pub mod effect;
 pub mod error;
 pub mod runtime;

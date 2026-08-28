@@ -21,7 +21,7 @@ The provider pins:
 - Nix Octet deny-all check: PASS, zero findings;
 - Nickel positive profile and negative zero-user fixture: PASS.
 
-The tests cover exact arguments, a cleared child environment, successful durable replay, failed exit, output flood, timeout, wrong repository, wrong user, wrapper identity drift, malformed JSON, and unknown profile fields.
+The tests cover exact arguments, a cleared child environment, successful durable replay, group-readable `0640` report publication, failed exit, output flood, timeout, wrong repository, wrong user, wrapper identity drift, malformed JSON, and unknown profile fields.
 
 ## Claim boundary
 

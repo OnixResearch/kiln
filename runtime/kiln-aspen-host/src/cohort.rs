@@ -6,6 +6,9 @@ use kiln_adapter_aspen::profile::{
 use molten::fabric_execution::*;
 use molten::system_extension::*;
 
+use crate::durability::{
+    HostDurability, HostJournal, HostStateMode, OperationLedger, SharedHostJournal,
+};
 use crate::error::{HostBridgeError, Result};
 
 mod execution;
@@ -15,7 +18,6 @@ use execution::{TemplateInput, executable_evidence, execution_template};
 use profile::{admitted_manifest, execution_profile_descriptor, native_profile};
 
 pub type HostExecutionPort = LiveExecutionAdapter<HashingOutputPublisher>;
-pub type HostJournal = InMemoryNativeHostJournal;
 pub type HostService = NativeSystemExtensionService<HostExecutionPort, HostJournal>;
 
 #[derive(Clone, Debug)]
@@ -30,9 +32,13 @@ pub struct HostCohort {
     pub admitted: CanonicalAdmittedSystemExtensionManifest,
     pub executable: AdmittedNativeExecutable,
     pub execution_profile: CanonicalExecutionProfile,
+    pub native_profile: AdmittedNativeHostProfile,
     pub template: NativeExecutionTemplate,
-    pub journal: Arc<Mutex<HostJournal>>,
+    pub journal: SharedHostJournal,
     pub values: SharedNativeCallbackValuePort,
+    pub ledger: Arc<Mutex<OperationLedger>>,
+    pub state_mode: HostStateMode,
+    instance_id: String,
     refs: RoleRefs,
 }
 
@@ -43,6 +49,7 @@ impl std::fmt::Debug for HostCohort {
             .field("profile_identity", &self.profile.profile_identity)
             .field("manifest_ref", &self.admitted.manifest_ref())
             .field("executable_ref", &self.executable.executable.executable_ref)
+            .field("state_mode", &self.state_mode)
             .finish_non_exhaustive()
     }
 }
@@ -85,38 +92,95 @@ impl HostCohort {
             executable: &executable,
             execution: &execution_profile,
             paths,
-            instance_id,
+            instance_id: instance_id.clone(),
             admitted: &admitted,
             refs: &refs,
         })?;
+        let cohort_identity = native_identity_ref(&[
+            "kiln-aspen-host-cohort-v1",
+            profile.profile_identity.as_str(),
+            admitted.manifest_ref(),
+            &executable.executable.executable_ref,
+            &execution_profile.profile.descriptor.profile_ref,
+        ]);
+        let durability = HostDurability::open(&paths.workspace, &profile, &cohort_identity)?;
         Ok(Self {
             profile,
             admitted,
             executable,
             execution_profile,
+            native_profile,
             template,
-            journal: Arc::new(Mutex::new(HostJournal::default())),
-            values: shared_native_callback_value_port(InMemoryNativeCallbackValuePort::default()),
+            journal: durability.journal,
+            values: durability.values,
+            ledger: durability.ledger,
+            state_mode: durability.mode,
+            instance_id,
             refs,
         })
     }
 
-    pub fn install(&self) -> Result<HostService> {
+    pub fn open_service(&self) -> Result<HostService> {
         let port =
             LiveExecutionAdapter::new(self.execution_profile.clone(), HashingOutputPublisher)
                 .map_err(|error| {
                     HostBridgeError::Admission(format!("live execution adapter: {error:?}"))
                 })?;
-        NativeSystemExtensionService::install(
-            self.template.host_profile.clone(),
-            self.executable.clone(),
-            self.admitted.clone(),
-            port,
-            self.journal.clone(),
-            self.values.clone(),
-            self.template.clone(),
-        )
-        .map_err(|error| HostBridgeError::Admission(format!("native service install: {error:?}")))
+        match self.state_mode {
+            HostStateMode::Fresh => NativeSystemExtensionService::install(
+                self.native_profile.clone(),
+                self.executable.clone(),
+                self.admitted.clone(),
+                port,
+                self.journal.clone(),
+                self.values.clone(),
+                self.template.clone(),
+            )
+            .map_err(|error| {
+                HostBridgeError::Admission(format!("native service install: {error:?}"))
+            }),
+            HostStateMode::Recovered => {
+                let instance = self
+                    .journal
+                    .lock()
+                    .map_err(|_| {
+                        HostBridgeError::State(
+                            "native journal lock is unavailable during recovery".to_string(),
+                        )
+                    })?
+                    .latest_instance(&self.instance_id)
+                    .map_err(|error| {
+                        HostBridgeError::State(format!("read latest native instance: {error:?}"))
+                    })?
+                    .ok_or_else(|| {
+                        HostBridgeError::State(
+                            "durable native journal has no cohort instance".to_string(),
+                        )
+                    })?;
+                let instance = Arc::new(Mutex::new(instance));
+                let executor = NativeProcessSystemExtensionExecutor::new(
+                    port,
+                    self.journal.clone(),
+                    self.values.clone(),
+                    instance.clone(),
+                    self.template.clone(),
+                )
+                .map_err(|error| {
+                    HostBridgeError::State(format!("recover native executor: {error:?}"))
+                })?;
+                NativeSystemExtensionService::from_recovered(
+                    self.native_profile.clone(),
+                    self.executable.clone(),
+                    self.admitted.clone(),
+                    executor,
+                    self.journal.clone(),
+                    instance,
+                )
+                .map_err(|error| {
+                    HostBridgeError::State(format!("recover native service: {error:?}"))
+                })
+            }
+        }
     }
 
     pub fn native_ingress(

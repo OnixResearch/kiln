@@ -31,12 +31,13 @@ fn unavailable_lattice_is_retained_as_unknown_without_redispatch() {
             workspace: directory.path().to_path_buf(),
         },
     )
-    .unwrap_or_else(|_| unreachable!("Aspen cohort"));
+    .unwrap_or_else(|error| unreachable!("Aspen cohort: {error}"));
     let effects = LatticeEffectPort::new(
         profile.clone(),
         admitted_radicle.shell,
         lattice,
         cohort.values.clone(),
+        cohort.ledger.clone(),
     )
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
@@ -50,7 +51,7 @@ fn unavailable_lattice_is_retained_as_unknown_without_redispatch() {
         runtime.reconcile(&profile, &ingress.operation_id),
         &ingress.operation_id,
     );
-    assert!(runtime.shutdown().is_err());
+    assert!(runtime.shutdown().is_ok());
 }
 
 fn assert_unknown(outcome: ServiceTransportOutcome, operation_id: &ExternalRef) {

@@ -32,12 +32,13 @@ fn denied_trigger_releases_no_lattice_connection() {
             workspace: directory.path().to_path_buf(),
         },
     )
-    .unwrap_or_else(|_| unreachable!("Aspen cohort"));
+    .unwrap_or_else(|error| unreachable!("Aspen cohort: {error}"));
     let effects = LatticeEffectPort::new(
         profile.clone(),
         admitted_radicle.shell,
         lattice,
         cohort.values.clone(),
+        cohort.ledger.clone(),
     )
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
