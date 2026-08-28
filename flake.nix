@@ -225,11 +225,43 @@
             "--all-features"
           ];
         };
+      kilnRadicleNixProviderPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./runtime/kiln-radicle-nix-provider/rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        rustPlatform.buildRustPackage {
+          pname = "kiln-radicle-nix-provider";
+          version = "0.1.0";
+          src = ./runtime/kiln-radicle-nix-provider;
+          cargoLock = {
+            lockFile = ./runtime/kiln-radicle-nix-provider/Cargo.lock;
+            allowBuiltinFetchGit = true;
+          };
+          cargoBuildFlags = [
+            "--bin"
+            "kiln-radicle-nix-provider"
+          ];
+          cargoTestFlags = [
+            "--workspace"
+            "--all-targets"
+            "--all-features"
+          ];
+        };
     in
     {
       packages = eachSystem (system: {
         kiln = packageFor system;
         kiln-aspen-host = kilnAspenHostPackageFor system;
+        kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
         celld-cohort = celldCohortPackageFor system;
         pijul-cohort-fixture-producer = pijulCohortPackageFor system;
         secretspec-cohort = secretspecPackageFor system;
@@ -259,6 +291,7 @@
           };
           package = packageFor system;
           hostPackage = kilnAspenHostPackageFor system;
+          radicleNixProviderPackage = kilnRadicleNixProviderPackageFor system;
           nixEvalWorkerCount = 1;
           nixEvalMemoryMebibytes = 512;
           nixEvalExpectedRecordCount = 3;
@@ -353,7 +386,7 @@
             buildInputs = [ pkgs.zlib ];
             buildPhase = ''
               runHook preBuild
-              cargo clippy --workspace --all-targets -- -D warnings
+              cargo clippy --workspace --all-targets --all-features -- -D warnings
               runHook postBuild
             '';
             doCheck = false;
@@ -361,6 +394,19 @@
               touch "$out"
             '';
           };
+          kiln-radicle-nix-provider-package = radicleNixProviderPackage;
+          kiln-radicle-nix-provider-octet-deny-all =
+            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octet.lib.mkConsumerCheck {
+              inherit system;
+              src = ./runtime/kiln-radicle-nix-provider;
+              packages = [ "kiln-radicle-nix-provider" ];
+              cargoExtraArgs = "--all-targets --all-features";
+              cargoLock = ./runtime/kiln-radicle-nix-provider/Cargo.lock;
+            }).overrideAttrs
+              (_previous: {
+                DYLINT_RUSTFLAGS = "--deny warnings";
+              });
           pijul-native-fixtures =
             if pijulSupported then
               rustPlatform.buildRustPackage {
@@ -578,6 +624,10 @@
               '';
           nickel = pkgs.runCommand "kiln-nickel" { nativeBuildInputs = [ pkgs.nickel ]; } ''
             ${copySource}
+            nickel format --check \
+              config/radicle-nix-provider.ncl \
+              config/fixtures/radicle-nix-provider-positive.ncl \
+              config/fixtures/negative-radicle-nix-provider-zero-user.ncl
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
@@ -612,6 +662,7 @@
             nickel export config/fixtures/radicle-source-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-status-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-mutation-positive.ncl >/dev/null
+            nickel export config/fixtures/radicle-nix-provider-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/radicle-source-contract/positive/receipt.ncl >/dev/null
             for fixture in fixtures/radicle-source-contract/negative/*.ncl; do
