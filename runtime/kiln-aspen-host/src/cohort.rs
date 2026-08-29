@@ -20,9 +20,13 @@ use profile::{admitted_manifest, execution_profile_descriptor, native_profile};
 pub type HostExecutionPort = LiveExecutionAdapter<HashingOutputPublisher>;
 pub type HostService = NativeSystemExtensionService<HostExecutionPort, HostJournal>;
 
+pub const EXTENSION_RUNTIME_PROFILE_ARGUMENT: &str = "--runtime-profile";
+pub const EXTENSION_RUNTIME_PROFILE_IDENTITY_ARGUMENT: &str = "--runtime-profile-identity";
+
 #[derive(Clone, Debug)]
 pub struct HostPaths {
     pub extension_executable: std::path::PathBuf,
+    pub runtime_profile: std::path::PathBuf,
     pub workspace: std::path::PathBuf,
 }
 

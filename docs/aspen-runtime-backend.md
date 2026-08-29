@@ -24,7 +24,7 @@ The initial claim level is `local-live-materialized-values-pilot`. It is not a p
 - fail-closed runtime composition;
 - local durability, content, service, restart, and reconciliation fixtures.
 
-`kiln-aspen-extension` owns the deterministic callback core and the one-shot callback executable. The core reads no files, sockets, process state, environment, database, credentials, or clock.
+`kiln-aspen-extension` owns the deterministic callback core and the one-shot callback executable. The executable shell admits the explicit runtime profile path and its expected BLAKE3 identity. The core receives that admitted profile and reads no files, sockets, process state, environment, database, credentials, or clock.
 
 `LocalAspenService` is a deterministic model fixture. It is not an implementation of Aspen's native host.
 
@@ -113,7 +113,7 @@ The callback consumes Aspen's exact v2 packed-Preserves envelope. The envelope i
 
 The callback returns Aspen's exact v2 outcome. The outcome includes output, effect-request, next-state, and checkpoint bytes with matching BLAKE3 references.
 
-The callback executable uses a cleared environment in the Aspen execution profile. It performs deterministic state and effect planning only.
+The callback executable uses a cleared environment in the Aspen execution profile. The host supplies `--runtime-profile` and `--runtime-profile-identity` from the same profile it admitted for ingress. The executable rejects changed profile bytes or an identity mismatch before callback handling. It performs deterministic state and effect planning only.
 
 The callback rejects these inputs before visible effects:
 
@@ -165,7 +165,7 @@ nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-package -L
 nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-octet-deny-all -L
 ```
 
-The conformance suite covers exact profile admission, positive and negative callback execution, atomic conflicts, timeout, cancellation, post-accept disconnect, content loss and corruption, restart, replay, stale completion, reconciliation, explicit runtime selection, and a separate callback process.
+The conformance suite covers exact non-default profile binding, profile drift rejection, positive and negative callback execution, atomic conflicts, timeout, cancellation, post-accept disconnect, content loss and corruption, restart, replay, stale completion, reconciliation, explicit runtime selection, and a separate callback process.
 
 ## Hosted conformance
 

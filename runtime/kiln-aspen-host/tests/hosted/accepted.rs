@@ -41,16 +41,8 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
     .unwrap_or_else(|_| unreachable!("Lattice transport"));
     let lattice = LatticeAdapter::new(admitted_radicle.lattice, transport)
         .unwrap_or_else(|_| unreachable!("Lattice adapter"));
-    let cohort = HostCohort::build(
-        profile.clone(),
-        &HostPaths {
-            extension_executable: std::path::PathBuf::from(env!(
-                "CARGO_BIN_EXE_kiln-aspen-host-extension-fixture"
-            )),
-            workspace: directory.path().to_path_buf(),
-        },
-    )
-    .unwrap_or_else(|error| unreachable!("Aspen cohort: {error}"));
+    let cohort = HostCohort::build(profile.clone(), &host_paths(&directory))
+        .unwrap_or_else(|error| unreachable!("Aspen cohort: {error}"));
     let observation_pacer = Arc::new(CountingObservationPacer::default());
     let effects = LatticeEffectPort::new(LatticeEffectPortOptions {
         profile: profile.clone(),
@@ -139,16 +131,8 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
     .unwrap_or_else(|_| unreachable!("recovered Lattice transport"));
     let recovered_lattice = LatticeAdapter::new(recovered_radicle.lattice, recovered_transport)
         .unwrap_or_else(|_| unreachable!("recovered Lattice adapter"));
-    let recovered_cohort = HostCohort::build(
-        profile.clone(),
-        &HostPaths {
-            extension_executable: std::path::PathBuf::from(env!(
-                "CARGO_BIN_EXE_kiln-aspen-host-extension-fixture"
-            )),
-            workspace: directory.path().to_path_buf(),
-        },
-    )
-    .unwrap_or_else(|error| unreachable!("recovered Aspen cohort: {error}"));
+    let recovered_cohort = HostCohort::build(profile.clone(), &host_paths(&directory))
+        .unwrap_or_else(|error| unreachable!("recovered Aspen cohort: {error}"));
     let recovered_effects = LatticeEffectPort::new(LatticeEffectPortOptions {
         profile: profile.clone(),
         radicle: recovered_radicle.shell,

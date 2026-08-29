@@ -8,7 +8,10 @@ use super::profile::{
     CALLBACK_POLL_INTERVAL_MS, CALLBACK_TEARDOWN_TIMEOUT_MS, CONCURRENCY_UNITS,
     EXTENSION_STATE_SCHEMA, QUEUE_UNITS,
 };
-use super::{HostBridgeError, HostPaths, Result, RoleRefs, role_ref, to_u64};
+use super::{
+    EXTENSION_RUNTIME_PROFILE_ARGUMENT, EXTENSION_RUNTIME_PROFILE_IDENTITY_ARGUMENT,
+    HostBridgeError, HostPaths, Result, RoleRefs, role_ref, to_u64,
+};
 
 const LOGICAL_DEADLINE_TICKS: u64 = 10_000;
 const ACCEPTED_EXIT_CODE: i32 = 0;
@@ -65,6 +68,29 @@ pub(super) fn execution_template(input: TemplateInput<'_>) -> Result<NativeExecu
         admitted,
         refs,
     } = input;
+    let runtime_profile = paths.runtime_profile.to_str().ok_or_else(|| {
+        HostBridgeError::Admission("runtime profile path is not valid UTF-8".to_string())
+    })?;
+    let has_unsafe_component = paths.runtime_profile.components().any(|component| {
+        matches!(
+            component,
+            std::path::Component::CurDir | std::path::Component::ParentDir
+        )
+    });
+    if !paths.runtime_profile.is_absolute()
+        || paths.runtime_profile.file_name().is_none()
+        || has_unsafe_component
+    {
+        return Err(HostBridgeError::Admission(
+            "runtime profile requires a safe absolute file path".to_string(),
+        ));
+    }
+    let extension_arguments = vec![
+        EXTENSION_RUNTIME_PROFILE_ARGUMENT.to_string(),
+        runtime_profile.to_string(),
+        EXTENSION_RUNTIME_PROFILE_IDENTITY_ARGUMENT.to_string(),
+        profile.profile_identity.as_str().to_string(),
+    ];
     let input_bound = to_u64(
         profile.profile.bounds.max_callback_input_bytes,
         "execution input bound",
@@ -96,7 +122,7 @@ pub(super) fn execution_template(input: TemplateInput<'_>) -> Result<NativeExecu
             profile_ref: execution.profile.descriptor.profile_ref.clone(),
             executable_artifact_ref: executable.executable.executable_ref.clone(),
             executable_identity_ref: executable.executable.executable_bytes_ref.clone(),
-            arguments: Vec::new(),
+            arguments: extension_arguments,
             environment: Vec::new(),
             environment_mode: ExecutionEnvironmentMode::Clear,
             invocation_mode: ExecutionInvocationMode::Direct,

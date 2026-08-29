@@ -63,16 +63,8 @@ fn accepted_but_unacknowledged_lattice_work_recovers_without_dispatch() {
     .unwrap_or_else(|_| unreachable!("first Lattice transport"));
     let first_lattice = LatticeAdapter::new(first_radicle.lattice, first_transport)
         .unwrap_or_else(|_| unreachable!("first Lattice adapter"));
-    let first_cohort = HostCohort::build(
-        profile.clone(),
-        &HostPaths {
-            extension_executable: std::path::PathBuf::from(env!(
-                "CARGO_BIN_EXE_kiln-aspen-host-extension-fixture"
-            )),
-            workspace: directory.path().to_path_buf(),
-        },
-    )
-    .unwrap_or_else(|error| unreachable!("first Aspen cohort: {error}"));
+    let first_cohort = HostCohort::build(profile.clone(), &host_paths(&directory))
+        .unwrap_or_else(|error| unreachable!("first Aspen cohort: {error}"));
     let first_effects = LatticeEffectPort::new(LatticeEffectPortOptions {
         profile: profile.clone(),
         radicle: first_radicle.shell,
@@ -123,16 +115,8 @@ fn accepted_but_unacknowledged_lattice_work_recovers_without_dispatch() {
     .unwrap_or_else(|_| unreachable!("second Lattice transport"));
     let second_lattice = LatticeAdapter::new(second_radicle.lattice, second_transport)
         .unwrap_or_else(|_| unreachable!("second Lattice adapter"));
-    let second_cohort = HostCohort::build(
-        profile.clone(),
-        &HostPaths {
-            extension_executable: std::path::PathBuf::from(env!(
-                "CARGO_BIN_EXE_kiln-aspen-host-extension-fixture"
-            )),
-            workspace: directory.path().to_path_buf(),
-        },
-    )
-    .unwrap_or_else(|error| unreachable!("second Aspen cohort: {error}"));
+    let second_cohort = HostCohort::build(profile.clone(), &host_paths(&directory))
+        .unwrap_or_else(|error| unreachable!("second Aspen cohort: {error}"));
     let second_effects = LatticeEffectPort::new(LatticeEffectPortOptions {
         profile: profile.clone(),
         radicle: second_radicle.shell,

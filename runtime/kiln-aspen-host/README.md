@@ -40,7 +40,7 @@ kiln-aspen-host \
   --poll-interval-ms 100
 ```
 
-Every argument is required. Paths must be explicit. Bounds must be positive. The poll interval paces each non-terminal Lattice observation. Deployment policy must make the finite poll horizon cover the provider timeout and teardown bound. The host never selects another runtime or provider.
+Every argument is required. Paths must be explicit. Bounds must be positive. The host canonicalizes the Aspen profile path and binds that path plus its admitted BLAKE3 identity into every extension process. The extension rejects missing, changed, malformed, or identity-mismatched profile input. The poll interval paces each non-terminal Lattice observation. Deployment policy must make the finite poll horizon cover the provider timeout and teardown bound. The host never selects another profile, runtime, or provider.
 
 The state root must exist before start. The host creates bounded `operation-ledger`, `native-journal`, and `callback-values` directories on the first start. It publishes `host-state.json` only after the stores open. Later starts require the exact marker and every durable component. Missing, changed, truncated, corrupt, or symlinked state fails closed.
 
@@ -49,7 +49,7 @@ The state root must exist before start. The host creates bounded `operation-ledg
 The host performs this sequence:
 
 1. Admit the exact Aspen and Radicle profiles.
-2. Bind the exact extension executable bytes.
+2. Bind the exact extension executable bytes, runtime profile path, and profile identity.
 3. Open the Kiln operation ledger, Aspen Redb journal, and callback value store.
 4. Install, start, and checkpoint a fresh Aspen service, or restart its exact recovered instance.
 5. Bind the reviewed Lattice transport effect port.
@@ -78,7 +78,7 @@ nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-package --no-link -L
 nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-octet-deny-all --no-link -L
 ```
 
-The package check runs all-target and all-feature tests. Positive tests route one real Aspen-hosted callback through Lattice, restart from durable state, replay exact acknowledgements, and reconcile accepted uncertainty without dispatch. Negative tests deny bad admission and reject missing, changed, truncated, or corrupt state.
+The package check runs all-target and all-feature tests. Positive tests bind the host profile into extension argv, route one real Aspen-hosted callback through Lattice, restart from durable state, replay exact acknowledgements, and reconcile accepted uncertainty without dispatch. Negative tests deny bad admission and reject missing, changed, truncated, corrupt, or identity-mismatched state and profile input.
 
 ## Non-claims
 

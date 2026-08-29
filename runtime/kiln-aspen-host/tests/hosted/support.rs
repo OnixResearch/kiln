@@ -23,6 +23,21 @@ pub(super) const SOCKET_READY_DELAY_MILLISECONDS: u64 = 10;
 const TEST_IDENTITY_DIGITS: usize = 64;
 const OPERATION_IDENTITY: &str = "1111111111111111111111111111111111111111111111111111111111111111";
 
+pub(super) fn host_paths(directory: &tempfile::TempDir) -> HostPaths {
+    let runtime_profile = directory.path().join("runtime-profile.json");
+    let profile_bytes = serde_json::to_vec(&profile_document_fixture())
+        .unwrap_or_else(|_| unreachable!("runtime profile fixture must encode"));
+    std::fs::write(&runtime_profile, profile_bytes)
+        .unwrap_or_else(|_| unreachable!("runtime profile fixture must write"));
+    HostPaths {
+        extension_executable: std::path::PathBuf::from(env!(
+            "CARGO_BIN_EXE_kiln-aspen-host-extension-fixture"
+        )),
+        runtime_profile,
+        workspace: directory.path().to_path_buf(),
+    }
+}
+
 #[derive(Debug, Default)]
 pub(super) struct CountingObservationPacer {
     waits: AtomicUsize,

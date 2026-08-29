@@ -31,6 +31,7 @@ fn fixture() -> (tempfile::TempDir, AdmittedAspenRuntimeProfile, HostPaths) {
         extension_executable: std::path::PathBuf::from(env!(
             "CARGO_BIN_EXE_kiln-aspen-host-extension-fixture"
         )),
+        runtime_profile: directory.path().join("runtime-profile.json"),
         workspace: directory.path().to_path_buf(),
     };
     let cohort = HostCohort::build(profile.clone(), &paths)

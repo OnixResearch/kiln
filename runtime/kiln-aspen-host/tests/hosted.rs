@@ -19,7 +19,7 @@ use std::os::unix::net::UnixListener;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use kiln_adapter_aspen::profile::{admit_profile, profile_fixture};
+use kiln_adapter_aspen::profile::{admit_profile, profile_document_fixture, profile_fixture};
 use kiln_adapter_aspen::transport::{
     AspenServiceDecision, AspenServiceTransport, IngressSource, ServiceTransportOutcome,
     UnixAspenServiceTransport, build_ingress,

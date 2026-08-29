@@ -35,26 +35,42 @@ impl KilnAspenHostRuntime {
             }
             return self.current_outcome(&ingress.operation_id);
         }
-        if self.reserve_ingress(ingress).is_err() || self.effects.validate_ingress(ingress).is_err()
-        {
+        if let Err(error) = self.reserve_ingress(ingress) {
+            eprintln!("Kiln Aspen host ingress reservation failed: {error}");
             return ServiceTransportOutcome::Malformed;
+        }
+        if let Err(error) = self.effects.validate_ingress(ingress) {
+            eprintln!("Kiln Aspen host reserved-ingress validation failed: {error}");
+            return self.retain_unknown(&ingress.operation_id);
         }
         let native_ingress = match self.cohort.native_ingress(ingress) {
             Ok(native_ingress) => native_ingress,
-            Err(_) => return ServiceTransportOutcome::Malformed,
+            Err(error) => {
+                eprintln!("Kiln Aspen host native-ingress construction failed: {error}");
+                return self.retain_unknown(&ingress.operation_id);
+            }
         };
         let ingress_tick = match self.next_tick() {
             Ok(tick) => tick,
-            Err(_) => return ServiceTransportOutcome::Unavailable,
+            Err(error) => {
+                eprintln!("Kiln Aspen host ingress tick failed: {error}");
+                return self.retain_unknown(&ingress.operation_id);
+            }
         };
         let native_result = match self.service.ingress(&native_ingress, ingress_tick) {
             Ok(result) => result,
-            Err(_) => return self.retain_unknown(&ingress.operation_id),
+            Err(error) => {
+                eprintln!("Kiln Aspen host native ingress failed: {error:?}");
+                return self.retain_unknown(&ingress.operation_id);
+            }
         };
         let (callback_receipt, mut callback_outcome, mut output_bytes) =
             match self.decode_dispatch(native_result.dispatch) {
                 Ok(result) => result,
-                Err(_) => return ServiceTransportOutcome::Malformed,
+                Err(error) => {
+                    eprintln!("Kiln Aspen host callback dispatch decoding failed: {error}");
+                    return self.retain_unknown(&ingress.operation_id);
+                }
             };
         if !callback_receipt.approved_effects.is_empty() {
             let callback_record = self
@@ -80,7 +96,10 @@ impl KilnAspenHostRuntime {
         }
         let ack = match build_service_ack(ingress, &callback_outcome, &output_bytes) {
             Ok(ack) => ack,
-            Err(_) => return ServiceTransportOutcome::Malformed,
+            Err(error) => {
+                eprintln!("Kiln Aspen host acknowledgement construction failed: {error:?}");
+                return self.retain_unknown(&ingress.operation_id);
+            }
         };
         let persisted = self
             .ledger

@@ -1648,6 +1648,7 @@ dependencies = [
  "kiln-provider-api",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
