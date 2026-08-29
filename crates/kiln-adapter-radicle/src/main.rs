@@ -10,10 +10,12 @@ use kiln_adapter_aspen::composition::{
 use kiln_adapter_aspen::profile::AspenRuntimeProfileDocument;
 use kiln_adapter_aspen::transport::{AspenTriggerClient, IngressSource, UnixAspenServiceTransport};
 use kiln_adapter_lattice::{LatticeAdapter, UnixWorkflowExchange};
-use kiln_adapter_radicle::defelo::{MAX_DEFELO_REQUEST_BYTES, run_defelo_protocol_with_policy};
+use kiln_adapter_radicle::defelo::{
+    MAX_DEFELO_REQUEST_BYTES, parse_defelo_request, run_defelo_protocol_with_policy,
+};
 use kiln_adapter_radicle::{
     MAX_TRIGGER_LINE_BYTES, RadicleShellConfig, RadicleWorkflowService, SqliteReplayStore,
-    admit_config, run_protocol_with_policy,
+    admit_config, parse_trigger_line, run_protocol_with_policy,
 };
 use kiln_provider_api::{PortFailure, TriggerLifecyclePolicy, TriggerWaitMode};
 use serde::de::DeserializeOwned;
@@ -172,19 +174,33 @@ fn report_error(error: &PortFailure) {
     }
 }
 
+fn admit_protocol_input(protocol: Protocol, input: &str) -> Result<(), PortFailure> {
+    match protocol {
+        Protocol::Defelo => {
+            parse_defelo_request(input)?;
+        }
+        Protocol::Native => {
+            parse_trigger_line(input)?;
+        }
+    }
+    Ok(())
+}
+
 fn run() -> Result<Vec<String>, PortFailure> {
     let arguments = parse_arguments().map_err(argument_error)?;
+    let maximum_input = match arguments.protocol {
+        Protocol::Defelo => MAX_DEFELO_REQUEST_BYTES,
+        Protocol::Native => MAX_TRIGGER_LINE_BYTES,
+    };
+    let input = read_stdin_bound(maximum_input).map_err(argument_error)?;
+    admit_protocol_input(arguments.protocol, &input)?;
+
     let config: RadicleShellConfig = load_profile(&arguments.profile).map_err(argument_error)?;
     let admitted = admit_config(config)?;
     let policy = TriggerLifecyclePolicy {
         mode: TriggerWaitMode::Wait,
         max_polls: admitted.shell.maximum_polls,
     };
-    let maximum_input = match arguments.protocol {
-        Protocol::Defelo => MAX_DEFELO_REQUEST_BYTES,
-        Protocol::Native => MAX_TRIGGER_LINE_BYTES,
-    };
-    let input = read_stdin_bound(maximum_input).map_err(argument_error)?;
     match arguments.runtime {
         Runtime::Lattice => run_lattice(arguments.protocol, &input, admitted, policy),
         Runtime::Aspen => run_aspen(arguments, &input, admitted, policy),
@@ -294,6 +310,18 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const PUBLISHED_BROKER_TRIGGER: &str =
+        include_str!("../../../fixtures/radicle-ci-broker/0.31.0/trigger.json");
+
+    // r[verify kiln.radicle.broker_031_wire.accepted]
+    // r[verify kiln.radicle.broker_031_wire.rejected]
+    #[test]
+    fn protocol_preflight_accepts_published_wire_and_rejects_malformed_input() {
+        assert!(admit_protocol_input(Protocol::Defelo, PUBLISHED_BROKER_TRIGGER).is_ok());
+        assert!(admit_protocol_input(Protocol::Defelo, "not-json").is_err());
+        assert!(admit_protocol_input(Protocol::Native, "not-json").is_err());
+    }
 
     #[test]
     fn runtime_selection_is_explicit_and_aspen_requires_exact_paths() {

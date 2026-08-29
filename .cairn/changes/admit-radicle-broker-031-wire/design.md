@@ -32,7 +32,7 @@ The mapped actor remains the explicit `broker` boundary identity. Push `before` 
 
 ## Failure Boundary
 
-Missing or changed request kind, wrong version, unknown event kind, malformed JSON, empty input, overbound input, or no selected commit fails before host transport. Extra metadata never supplies a missing authoritative field.
+Missing or changed request kind, wrong version, unknown event kind, malformed JSON, empty input, overbound input, or no selected commit fails before profile access or host transport. The process shell runs this pure admission before Aspen or Lattice composition. Extra metadata never supplies a missing authoritative field.
 
 ## Tests
 

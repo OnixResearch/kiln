@@ -22,10 +22,12 @@ The producer source commit is `88076f8679e3114e30975aa824bf75d83caaca85`. The fi
 
 Kiln now requires request kind `trigger` and protocol version `1`. It accepts producer-owned descriptive metadata but projects only event kind, repository ID, first push or patch commit, and branch. The mapped actor remains the explicit `broker` boundary, and push `before` remains absent because broker `0.31` can project the tip as both `before` and `after`.
 
+The process shell now admits protocol input before it reads the runtime profile, observes a socket, opens replay state, or constructs Aspen or Lattice transport. Invalid input therefore returns its protocol diagnostic without backend effects.
+
 ## Verification
 
 - `cargo fmt --all -- --check`: PASS.
-- `cargo test -p kiln-adapter-radicle --all-targets --all-features`: PASS, including 39 library tests and positive and negative broker-wire cases.
+- `cargo test -p kiln-adapter-radicle --all-targets --all-features`: PASS, including 39 library tests, 2 binary tests, and positive and negative broker-wire cases.
 - `cargo test --workspace --all-targets --all-features --exclude kiln-adapter-pijul`: PASS.
 - `cargo clippy --workspace --all-targets --all-features -- -D warnings`: PASS.
 - `nix build path:$PWD#packages.x86_64-linux.kiln --no-link -L --builders ''`: PASS.
