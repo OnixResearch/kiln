@@ -359,6 +359,39 @@
             substituteInPlace "$out/Cargo.toml" \
               --replace-fail '@KILN_SOURCE@' '${self}'
           '';
+          radicleBrokerWireOctetWorkspace = pkgs.runCommand "kiln-radicle-broker-wire-octet-workspace" { } ''
+            mkdir -p \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/defelo" \
+              "$out/fixtures/radicle-ci-broker/0.31.0"
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const MAX_LOG_URL_BYTES: usize = 2048;' \
+              ${./crates/kiln-adapter-radicle/src/lib.rs}
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const MAX_LOG_URL_BYTES: usize = 2048;' \
+              ${./checks/radicle-broker-wire-octet/lib.rs}
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const DEFAULT_MAX_POLLS: usize = 64;' \
+              ${./crates/kiln-adapter-radicle/src/lib.rs}
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const DEFAULT_MAX_POLLS: usize = 64;' \
+              ${./checks/radicle-broker-wire-octet/lib.rs}
+            cp ${./checks/radicle-broker-wire-octet/Cargo.toml} "$out/Cargo.toml"
+            cp ${./checks/radicle-broker-wire-octet/Cargo.lock} "$out/Cargo.lock"
+            cp ${./checks/radicle-broker-wire-octet/dylint.toml} "$out/dylint.toml"
+            cp ${./checks/radicle-broker-wire-octet/crate-Cargo.toml} \
+              "$out/crates/kiln-radicle-broker-wire-octet/Cargo.toml"
+            cp ${./checks/radicle-broker-wire-octet/lib.rs} \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/lib.rs"
+            cp ${./crates/kiln-adapter-radicle/src/defelo.rs} \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/defelo.rs"
+            cp ${./crates/kiln-adapter-radicle/src/defelo/tests.rs} \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/defelo/tests.rs"
+            cp ${./fixtures/radicle-ci-broker/0.31.0/trigger.json} \
+              "$out/fixtures/radicle-ci-broker/0.31.0/trigger.json"
+            chmod -R u+w "$out"
+            substituteInPlace "$out/Cargo.toml" \
+              --replace-fail '@KILN_SOURCE@' '${self}'
+          '';
         in
         {
           inherit package;
@@ -579,6 +612,18 @@
               cargoLock = ./checks/aspen-runtime-octet/Cargo.lock;
               nativeBuildInputs = [ pkgs.cmake ];
               buildInputs = [ pkgs.zlib ];
+            }).overrideAttrs
+              (_previous: {
+                DYLINT_RUSTFLAGS = "--deny warnings";
+              });
+          radicle-broker-wire-octet-deny-all =
+            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octet.lib.mkConsumerCheck {
+              inherit system;
+              src = radicleBrokerWireOctetWorkspace;
+              packages = [ "kiln-radicle-broker-wire-octet" ];
+              cargoExtraArgs = "--all-targets --all-features";
+              cargoLock = ./checks/radicle-broker-wire-octet/Cargo.lock;
             }).overrideAttrs
               (_previous: {
                 DYLINT_RUSTFLAGS = "--deny warnings";

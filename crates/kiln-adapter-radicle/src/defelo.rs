@@ -11,6 +11,13 @@ use serde::{Deserialize, Serialize};
 use crate::{DEFAULT_MAX_POLLS, MAX_LOG_URL_BYTES};
 
 pub const MAX_DEFELO_REQUEST_BYTES: usize = 1_048_576;
+pub const DEFELO_PROTOCOL_VERSION: u16 = 1;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DefeloRequestKind {
+    Trigger,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -20,21 +27,20 @@ pub enum DefeloEvent {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct DefeloRepository {
     pub id: String,
     pub name: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct DefeloPatch {
     pub commits: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct DefeloRequest {
+    pub request: DefeloRequestKind,
+    pub version: u16,
     pub event_type: DefeloEvent,
     pub repository: DefeloRepository,
     pub commits: Option<Vec<String>>,
@@ -50,13 +56,21 @@ pub fn parse_defelo_request(input: &str) -> CoreResult<DefeloRequest> {
             "broker input is empty or exceeds its named request bound",
         ));
     }
-    serde_json::from_str(input).map_err(|_| {
+    let request: DefeloRequest = serde_json::from_str(input).map_err(|_| {
         Diagnostic::new(
             "radicle_json",
             "stdin",
             "broker input is not a supported deployed broker request",
         )
-    })
+    })?;
+    if request.request != DefeloRequestKind::Trigger || request.version != DEFELO_PROTOCOL_VERSION {
+        return Err(Diagnostic::new(
+            "radicle_version",
+            "stdin.version",
+            "broker request kind or protocol version is unsupported",
+        ));
+    }
+    Ok(request)
 }
 
 fn resolve_revision(request: &DefeloRequest) -> Option<&str> {
@@ -191,99 +205,5 @@ pub fn run_defelo_protocol_with_policy<S: TriggerIntakePort>(
 }
 
 #[cfg(test)]
-mod tests {
-    use kiln_core::types::RunId;
-    use kiln_provider_api::{TriggerRun, TriggerWaitMode};
-
-    use super::*;
-
-    const PUSH: &str = r#"{
-      "event_type": "push",
-      "repository": { "id": "rad:zrepo", "name": "kiln" },
-      "commits": ["abc123"],
-      "branch": "main"
-    }"#;
-
-    struct FixtureService {
-        terminal: TriggerTerminal,
-        accept_calls: usize,
-    }
-
-    impl TriggerIntakePort for FixtureService {
-        fn accept(&mut self, _trigger: TriggerRequest) -> PortResult<TriggerRun> {
-            self.accept_calls = self.accept_calls.saturating_add(1);
-            Ok(TriggerRun {
-                run_id: RunId::new("kiln-defelo-run")?,
-                terminal: self.terminal,
-                log_url: None,
-            })
-        }
-
-        fn observe(
-            &mut self,
-            accepted: &TriggerRun,
-            _policy: TriggerLifecyclePolicy,
-        ) -> PortResult<TriggerRun> {
-            Ok(accepted.clone())
-        }
-    }
-
-    // r[verify kiln.radicle.trigger.scenario.push]
-    // r[verify kiln.radicle.lifecycle.scenario.triggered]
-    #[test]
-    fn deployed_push_maps_and_emits_exact_protocol_lines() {
-        let mut service = FixtureService {
-            terminal: TriggerTerminal::Success,
-            accept_calls: 0,
-        };
-        let lines = run_defelo_protocol(PUSH, &mut service).unwrap_or_default();
-        assert_eq!(service.accept_calls, 1);
-        assert_eq!(lines.len(), 2);
-        assert!(
-            lines
-                .first()
-                .is_some_and(|line| line.contains("\"response\":\"triggered\""))
-        );
-        assert!(
-            lines
-                .last()
-                .is_some_and(|line| line.contains("\"result\":\"success\""))
-        );
-    }
-
-    #[test]
-    fn malformed_missing_revision_and_unknown_outcome_fail_closed() {
-        assert!(parse_defelo_request("not-json").is_err());
-        assert!(
-            map_defelo_request(&DefeloRequest {
-                event_type: DefeloEvent::Push,
-                repository: DefeloRepository {
-                    id: "rad:zrepo".to_string(),
-                    name: None,
-                },
-                commits: Some(Vec::new()),
-                patch: None,
-                branch: None,
-            })
-            .is_err()
-        );
-        let mut service = FixtureService {
-            terminal: TriggerTerminal::Unknown,
-            accept_calls: 0,
-        };
-        let lines = run_defelo_protocol_with_policy(
-            PUSH,
-            &mut service,
-            TriggerLifecyclePolicy {
-                mode: TriggerWaitMode::Poll,
-                max_polls: 1,
-            },
-        )
-        .unwrap_or_default();
-        assert!(
-            lines
-                .last()
-                .is_some_and(|line| line.contains("\"result\":\"failure\""))
-        );
-    }
-}
+#[path = "defelo/tests.rs"]
+mod tests;

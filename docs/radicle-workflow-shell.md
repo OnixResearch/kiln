@@ -80,6 +80,12 @@ kiln-adapter-radicle \
 
 Diagnostics go to standard error. Standard output contains only protocol response lines.
 
+### Broker 0.31 envelope
+
+The default `defelo` protocol requires broker request kind `trigger` and version `1`. Kiln projects only event kind, repository ID, first push or patch commit, and branch. Repository description, visibility, delegates, pusher, `before`, and `after` remain producer-owned metadata and do not gain CI authority.
+
+`fixtures/radicle-ci-broker/0.31.0/trigger.json` is the published producer fixture. Malformed envelopes, wrong versions, unknown events, and missing commits fail before runtime dispatch.
+
 ## Durable replay and recovery
 
 On the direct Lattice path, Kiln reserves the deterministic trigger identity in SQLite before dispatch.
