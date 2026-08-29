@@ -37,6 +37,18 @@ The process shell now admits protocol input before it reads the runtime profile,
 
 Repository-wide traceability coverage still fails on unrelated accepted-spec gaps. The two new scenario markers remain dangling until this change is synced. No complete traceability claim is made before sync.
 
+## Live consumer evidence
+
+Onix closure `/nix/store/rmh24zzr047wxx5pwbwqa1jwa7y56h7x-nixos-system-britton-desktop-26.11.20260819.afe3d8a` used Kiln `8c9338e5c10a0e16ee3042d11583ccccf6efe7e9` for a real broker `0.31` default-branch event at Seaglass commit `b3ae3847242af5b8a1c7da0df488ccb9a050d809`.
+
+Broker run `fee612ad-fe27-44a3-add4-a4dceaccbb09` returned adapter exit code `0`, Kiln run `kiln-aspen-run-3c99b17178e0644b00af32da98a6b8e43969b490eafc4e48ee919b3fa96b0605`, and terminal failure. The provider reached Nix and reported the known Seaglass fixed-output hash mismatch. Report run `b3:878aa29f23b1750b882a66ae29570adc323e8ff55e053a3820bf242c5baa169a` used mode `0640`.
+
+Immediate and post-restart replays returned the same run in `10,683,275` and `16,873,415` nanoseconds. Report, log, Lattice state, operation record hash, and service receipt did not change. No second provider dispatch appeared.
+
+Local Radicle job `235f50cb19802b8a8c9f316ed42d21a8415d754f` persisted `Finished: Failed`. Network announcement failed, so no remote status claim is made.
+
+The full consumer record is `.cairn/archive/1970-01-01-promote-kiln-aspen-radicle-ci/evidence/broker-wire-cutover-live.md` in Onix commit `1edd71f6`.
+
 ## Non-claims
 
-Fixture admission does not prove broker availability, source trust, provider truth, CI correctness, status publication, distributed exactly-once execution, cutover readiness, or release eligibility. A second cutover requires all static gates and another real event.
+This evidence proves bounded broker-wire admission, one machine-local provider-backed event, and exact local replay. It does not prove CI correctness, source trust, external provider truth, remote status propagation, distributed exactly-once execution, production availability, or release eligibility.

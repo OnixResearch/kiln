@@ -13,5 +13,5 @@
 ## Phase 3: Evidence and publication
 
 - [x] [serial] Run baseline and changed tests, strict Clippy, Octet, Cairn, and Nix checks. r[kiln.radicle.broker_031_wire]
-- [ ] [serial] Publish an immutable Kiln revision and prove a real broker event after explicit cutover. r[kiln.radicle.broker_031_wire.accepted]
-- [ ] [serial] Sync and archive after the live event and rollback evidence pass. r[kiln.radicle.broker_031_wire]
+- [x] [serial] Publish an immutable Kiln revision and prove a real broker event after explicit cutover. r[kiln.radicle.broker_031_wire.accepted]
+- [x] [serial] Sync and archive after the live event and rollback evidence pass. r[kiln.radicle.broker_031_wire]

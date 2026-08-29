@@ -1,6 +1,6 @@
 # Radicle CI Compatibility Specification Delta
 
-## Added Requirements
+## ADDED Requirements
 
 ### Requirement: Broker 0.31 request projection
 
