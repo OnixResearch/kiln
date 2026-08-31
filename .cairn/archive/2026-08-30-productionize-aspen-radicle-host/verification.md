@@ -22,11 +22,12 @@ A direct nested Cargo run from the root development shell was rejected because t
 
 ## Publication sequence
 
-1. Publish this verified root provider candidate as one immutable Radicle revision.
-2. Replace every nested host branch reference with that revision.
-3. Regenerate the nested host lock with Cargo.
-4. Rerun host package and Octet checks.
-5. Complete Cairn gates, archive, and publish the final cohort.
+- Published root provider revision: `69afc2697f4330005797256135ae81b2722a125c`.
+- Every nested host Kiln dependency now pins that exact revision.
+- Cargo regenerated `runtime/kiln-aspen-host/Cargo.lock`; the branch-qualified source is absent.
+- Rebuilt host package: `/nix/store/mckdrpwhy30j4mxqv62qab505nwfgq35-kiln-aspen-host-0.1.0`.
+- Rebuilt host Octet deny-all check: `/nix/store/fq0vsz5n78ximpi81csz323rdzlxpwy3-octet-consumer-check`, with zero findings.
+- The rebuilt host passed 2 core, 3 CLI, 3 admission, 5 durability, and 6 hosted integration tests.
 
 ## Non-claims
 

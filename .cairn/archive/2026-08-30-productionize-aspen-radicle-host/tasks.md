@@ -19,5 +19,5 @@
 - [x] [serial] Run all-target/all-feature tests, strict Clippy, Octet deny-all, and Nix package checks. r[kiln.aspen_host.production_evidence]
 - [x] [serial] Run real-process restart, corruption, provider teardown, bounded load, backup/restore, and rollback fixtures. r[kiln.aspen_host.production_evidence]
 - [x] [serial] Record exact receipts and preserve all durability, workflow, provider, host, and release non-claims. r[kiln.aspen_host.production_evidence]
-- [ ] [serial] Publish the immutable root provider revision, update the nested host lock, and publish the final host cohort. r[kiln.aspen_host.production_evidence]
-- [ ] [serial] Sync and archive only after every production gate passes. r[kiln.aspen_host.production_evidence]
+- [x] [serial] Publish the immutable root provider revision, update the nested host lock, and publish the final host cohort. r[kiln.aspen_host.production_evidence]
+- [x] [serial] Sync and archive only after every production gate passes. r[kiln.aspen_host.production_evidence]

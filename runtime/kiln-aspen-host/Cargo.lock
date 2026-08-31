@@ -1881,7 +1881,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3513,7 +3513,7 @@ dependencies = [
 [[package]]
 name = "kiln-adapter-aspen"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "blake3",
  "kiln-codec",
@@ -3527,7 +3527,7 @@ dependencies = [
 [[package]]
 name = "kiln-adapter-lattice"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "kiln-codec",
  "kiln-core",
@@ -3541,7 +3541,7 @@ dependencies = [
 [[package]]
 name = "kiln-adapter-radicle"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "blake3",
  "bounded-exec",
@@ -3569,7 +3569,7 @@ dependencies = [
 [[package]]
 name = "kiln-aspen-extension"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "blake3",
  "kiln-adapter-aspen",
@@ -3606,7 +3606,7 @@ dependencies = [
 [[package]]
 name = "kiln-codec"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "blake3",
  "kiln-core",
@@ -3618,7 +3618,7 @@ dependencies = [
 [[package]]
 name = "kiln-core"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "blake3",
  "serde",
@@ -3627,7 +3627,7 @@ dependencies = [
 [[package]]
 name = "kiln-provider-api"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "kiln-core",
  "serde",
@@ -3636,7 +3636,7 @@ dependencies = [
 [[package]]
 name = "kiln-radicle-source-contract"
 version = "0.1.0"
-source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=refs%2Fnamespaces%2Fz6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx%2Frefs%2Fheads%2Fchange%2Fproductionize-aspen-radicle-host-20260828#9ad8447f8025331917cf5c40ad956a8df40d225a"
+source = "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c"
 dependencies = [
  "serde",
 ]
@@ -4555,7 +4555,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5964,7 +5964,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6032,7 +6032,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7032,7 +7032,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7041,7 +7041,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -8401,7 +8401,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
