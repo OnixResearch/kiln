@@ -14,6 +14,7 @@ pub const DISCOVERY_TASK_SCHEMA: &str = "kiln.discovery-task.v1";
 pub const DISCOVERY_OBSERVATION_SCHEMA: &str = "kiln.discovery-observation.v1";
 const TASK_ID_PREFIX: &str = "discovered:";
 const ADJACENT_PAIR_ITEMS: usize = 2;
+const MAX_EVALUATOR_COMPONENTS: usize = 16;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum DiscoverySourceMode {
@@ -43,6 +44,26 @@ pub struct DiscoveryBounds {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DiscoveryEvaluatorComponent {
+    pub library: ExternalRef,
+    pub identity: ContentId,
+}
+
+/// Exact candidate facts for a non-stock evaluator. Stock rejects these facts;
+/// a future non-stock shell must bind them to a pinned profile before launch.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DiscoveryEvaluatorCohort {
+    pub kind: Alias,
+    pub executable_identity: ContentId,
+    pub manifest_identity: ContentId,
+    pub host_abi: Alias,
+    pub features: Vec<Alias>,
+    pub plugin_identity: ContentId,
+    pub components: Vec<DiscoveryEvaluatorComponent>,
+    pub plugin: ExternalRef,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DiscoveryEffectPlan {
     pub effect_id: EffectId,
     pub evaluation_id: EvaluationId,
@@ -50,6 +71,8 @@ pub struct DiscoveryEffectPlan {
     pub pipeline_revision_id: PipelineRevisionId,
     pub discovery_policy_id: PolicyId,
     pub provider_profile: ProviderProfileId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evaluator_cohort: Option<DiscoveryEvaluatorCohort>,
     pub build_provider_profile: ProviderProfileId,
     pub idempotency_key: ContentId,
     pub source_identity: ContentId,
@@ -193,6 +216,32 @@ pub struct DiscoveryObservation {
 
 // r[impl kiln.nix_eval_jobs.input_admission]
 pub fn validate_discovery_plan(plan: &DiscoveryEffectPlan) -> CoreResult<()> {
+    if let Some(cohort) = &plan.evaluator_cohort {
+        cohort.plugin.validate()?;
+        if cohort.components.len() > MAX_EVALUATOR_COMPONENTS {
+            return Err(Diagnostic::new(
+                "discovery_evaluator_components",
+                "discovery.evaluator_cohort.components",
+                "evaluator component count exceeds its bound",
+            ));
+        }
+        for component in &cohort.components {
+            component.library.validate()?;
+        }
+        if cohort.features.is_empty()
+            || cohort.features.windows(ADJACENT_PAIR_ITEMS).any(|pair| {
+                pair.first()
+                    .zip(pair.get(1))
+                    .is_some_and(|(left, right)| left >= right)
+            })
+        {
+            return Err(Diagnostic::new(
+                "discovery_evaluator_features",
+                "discovery.evaluator_cohort.features",
+                "evaluator feature names must be nonempty, sorted, and unique",
+            ));
+        }
+    }
     plan.source.validate()?;
     if plan.options.workers == 0 || plan.options.max_memory_mebibytes == 0 {
         return Err(Diagnostic::new(
@@ -455,6 +504,59 @@ pub fn compute_discovery_observation_identity(
         plan.bounds.max_dependencies_per_job,
     );
     update_usize(&mut hasher, "max_tasks", plan.bounds.max_tasks);
+    if let Some(cohort) = &plan.evaluator_cohort {
+        update_field(
+            &mut hasher,
+            "evaluator_kind",
+            cohort.kind.as_str().as_bytes(),
+        );
+        update_field(
+            &mut hasher,
+            "evaluator_executable",
+            cohort.executable_identity.as_str().as_bytes(),
+        );
+        update_field(
+            &mut hasher,
+            "evaluator_manifest",
+            cohort.manifest_identity.as_str().as_bytes(),
+        );
+        update_field(
+            &mut hasher,
+            "evaluator_host_abi",
+            cohort.host_abi.as_str().as_bytes(),
+        );
+        update_usize(
+            &mut hasher,
+            "evaluator_feature_count",
+            cohort.features.len(),
+        );
+        for feature in &cohort.features {
+            update_field(
+                &mut hasher,
+                "evaluator_feature",
+                feature.as_str().as_bytes(),
+            );
+        }
+        update_field(
+            &mut hasher,
+            "evaluator_plugin_identity",
+            cohort.plugin_identity.as_str().as_bytes(),
+        );
+        update_external_ref(&mut hasher, "evaluator_plugin", &cohort.plugin);
+        update_usize(
+            &mut hasher,
+            "evaluator_component_count",
+            cohort.components.len(),
+        );
+        for component in &cohort.components {
+            update_external_ref(&mut hasher, "evaluator_component", &component.library);
+            update_field(
+                &mut hasher,
+                "evaluator_component_identity",
+                component.identity.as_str().as_bytes(),
+            );
+        }
+    }
     update_field(&mut hasher, "terminal", terminal_label(terminal).as_bytes());
     for job in jobs {
         update_field(
@@ -1110,6 +1212,7 @@ mod tests {
                 .unwrap_or_else(|_| unreachable!()),
             provider_profile: ProviderProfileId::new("nix-discovery-one")
                 .unwrap_or_else(|_| unreachable!()),
+            evaluator_cohort: None,
             build_provider_profile: ProviderProfileId::new("mantle-build-v1")
                 .unwrap_or_else(|_| unreachable!()),
             idempotency_key: id("1"),
@@ -1302,6 +1405,146 @@ mod tests {
         assert_eq!(
             decide_gc_root_handoff(&observation, &BTreeSet::from([task_id]), TASK_BOUND,),
             Ok(GcRootDecision::Release)
+        );
+    }
+    #[test]
+    fn evaluator_cohort_drift_changes_observation_identity() {
+        let mut cohort_plan = plan();
+        cohort_plan.evaluator_cohort = Some(DiscoveryEvaluatorCohort {
+            kind: Alias::new("onix-nix").unwrap_or_else(|_| unreachable!()),
+            executable_identity: id("3"),
+            manifest_identity: id("4"),
+            host_abi: Alias::new("nix_wasm_init_v1").unwrap_or_else(|_| unreachable!()),
+            features: vec![
+                Alias::new("flakes").unwrap_or_else(|_| unreachable!()),
+                Alias::new("nix-command").unwrap_or_else(|_| unreachable!()),
+                Alias::new("wasm-builtin").unwrap_or_else(|_| unreachable!()),
+            ],
+            plugin_identity: id("5"),
+            plugin: ExternalRef::new("nix", "store-path", "/nix/store/example/plugin.wasm")
+                .unwrap_or_else(|_| unreachable!()),
+            components: vec![DiscoveryEvaluatorComponent {
+                library: ExternalRef::new(
+                    "nix",
+                    "shared-library",
+                    "/nix/store/example/lib/libnixexpr.so",
+                )
+                .unwrap_or_else(|_| unreachable!()),
+                identity: id("8"),
+            }],
+        });
+        assert_eq!(validate_discovery_plan(&cohort_plan), Ok(()));
+        let completion = DiscoveryCompletionFacts {
+            stream_complete: false,
+            stream_valid: true,
+            stderr_within_bound: true,
+            gc_roots_ready: false,
+            fatal_job_error: false,
+            process: ProcessCompletionFact::Unknown,
+        };
+        let roots = GcRootObservation {
+            directory: None,
+            derivations: Vec::new(),
+            state: GcRootState::NotRequested,
+        };
+        let identity = |plan: &DiscoveryEffectPlan| {
+            compute_discovery_observation_identity(
+                plan,
+                DiscoveryTerminal::Unknown,
+                &[],
+                &[],
+                &[],
+                completion,
+                &roots,
+            )
+        };
+        let bound = identity(&cohort_plan);
+        assert_eq!(bound, identity(&cohort_plan));
+        assert_ne!(bound, identity(&plan()));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .executable_identity = id("6");
+        assert_ne!(bound, identity(&changed));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .manifest_identity = id("7");
+        assert_ne!(bound, identity(&changed));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .host_abi = Alias::new("other-abi").unwrap_or_else(|_| unreachable!());
+        assert_ne!(bound, identity(&changed));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .plugin_identity = id("6");
+        assert_ne!(bound, identity(&changed));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .features
+            .pop();
+        assert_ne!(bound, identity(&changed));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .plugin = ExternalRef::new("nix", "store-path", "/nix/store/other/plugin.wasm")
+            .unwrap_or_else(|_| unreachable!());
+        assert_ne!(bound, identity(&changed));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .components
+            .get_mut(0)
+            .unwrap_or_else(|| unreachable!())
+            .identity = id("9");
+        assert_ne!(bound, identity(&changed));
+
+        let mut changed = cohort_plan.clone();
+        changed
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .components
+            .get_mut(0)
+            .unwrap_or_else(|| unreachable!())
+            .library = ExternalRef::new("nix", "shared-library", "/nix/store/other/libnixexpr.so")
+            .unwrap_or_else(|_| unreachable!());
+        assert_ne!(bound, identity(&changed));
+
+        let mut invalid = cohort_plan.clone();
+        invalid
+            .evaluator_cohort
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .features
+            .reverse();
+        assert_eq!(
+            validate_discovery_plan(&invalid).map_err(|error| error.code),
+            Err("discovery_evaluator_features".to_string())
         );
     }
 }

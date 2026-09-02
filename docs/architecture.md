@@ -20,12 +20,14 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-nix-eval` | Exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Exact local signed-source acquisition, trigger compatibility, bounded ci-job status publication, and declared single-writer patch reviews. |
+| `kiln-adapter-github` | Signed push/PR admission, profile-bound SQLite replay/lifecycle shell, exact HTTPS source job, SecretSpec resolution, and bounded commit-status publication through reviewed Lattice dispatch. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
 | `kiln-adapter-cdevents` | Bounded CDEvents and CloudEvents interchange. |
 | `kiln-adapter-opentelemetry` | Rebuildable telemetry projection and bounded OTLP shell. |
 | `kiln-adapter-valence` | Recorded-only Valence Evidence IR projection and import. |
 | `kiln-adapter-webhook` | Registered-endpoint notification delivery with bounded authority. |
 | `kiln-adapter-sqlite` | Durable local event, outbox, lease, snapshot, migration, and backup storage. |
+| `kiln-adapter-celld` | Optional pinned Celld Worker event store with authenticated bounded HTTPS, one-object SQLite journal/outbox, and conditional lease/schema plans. |
 | `kiln-conformance` | Shared positive and negative provider gates. |
 | `kiln-cli` | Local operator shell. |
 
@@ -81,6 +83,36 @@ The journal uses expected revisions. The outbox uses effect identities, leases, 
 An expired or ambiguous lease enters reconciliation. Kiln does not treat it as work that never started.
 
 Tenant ordering uses integer cross multiplication. Weighted-scalar and dominant-share strategies reject unsupported dimensions.
+
+## GitHub effect boundary
+
+`kiln-adapter-github` is a provider shell, not a new workflow runtime or CI-state
+authority. HMAC-SHA256 authenticates the bounded original webhook body before
+JSON parsing or durable admission. Exact repository/candidate/pipeline facts
+bind immutable run identities; delivery IDs alone do not establish freshness.
+SQLite reserves dispatch and status writes before external effects, binds the
+database to the admitted service profile, and fails closed on record exhaustion.
+Recovery uses the original Lattice request and exact status lookup rather than
+blind redispatch or repeating an ambiguous POST. Unknown stays distinct from
+failure and success. Provider observations are admitted through existing Kiln
+workflow and CI transitions; publication cannot override a CI outcome.
+
+The separate `kiln-github-job` binary verifies BLAKE3 of original job-profile
+JSON bytes, consumes Lattice's three fixed source-context keys, acquires an exact
+GitHub commit via HTTPS, admits its bounded Git snapshot, materializes a temporary
+checkout without Git metadata, and runs fixed reviewed argv. Source credentials
+are not command environment. The Lattice saved workflow, operation identities,
+exact route/revision/node mapping, and `shell_environment` binding remain
+operator-reviewed prerequisites. Neither a temporary checkout nor bounded
+execution is host confinement; separate worker identity and isolation are
+operator responsibilities. Fork execution is denied by the Nickel contract.
+
+Kiln maintainers own adapter compatibility and the local repeatability rail;
+operators own HTTPS ingress, live tokens, route installation, replay retention,
+and deployment. Test-only local Git and loopback status transports require the
+explicit `protocol-fixtures` feature, absent from normal packages. See the
+[GitHub operator procedure](operator.md#github-ci-adapter) for real configuration
+inputs and the local-evidence claim boundary.
 
 ## Claim boundary
 

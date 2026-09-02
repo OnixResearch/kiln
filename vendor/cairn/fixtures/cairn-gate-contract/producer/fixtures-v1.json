@@ -1,0 +1,131 @@
+{
+  "block_result": {
+    "applicability": {
+      "candidate_identity": "b3:4444444444444444444444444444444444444444444444444444444444444444",
+      "candidate_root_identity": "b3:5555555555555555555555555555555555555555555555555555555555555555",
+      "effect_identity": "b3:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_identities": [
+        "b3:8888888888888888888888888888888888888888888888888888888888888888",
+        "b3:9999999999999999999999999999999999999999999999999999999999999999"
+      ],
+      "pipeline_revision_identity": "b3:6666666666666666666666666666666666666666666666666666666666666666",
+      "policy_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+      "provider_profile_identity": "b3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "identity": "b3:74ec4946c7cc3154dfbd4cecef96803cb46c6310adcff85979ae88c00496d957",
+    "non_claims": [
+      "gate binding does not prove candidate facts describe the evaluated filesystem",
+      "gate binding does not prove source correctness",
+      "gate binding does not prove test completeness",
+      "gate binding does not prove process reliability",
+      "gate binding does not authorize merge or publication",
+      "gate binding does not execute a release",
+      "gate binding does not prove deployment success",
+      "gate binding does not establish future applicability"
+    ],
+    "observation": {
+      "change": "demo-change",
+      "findings": [
+        {
+          "code": "cairn.gate.blocked",
+          "message": "required lifecycle evidence is missing",
+          "promoted": "gate",
+          "scope": "lifecycle"
+        }
+      ],
+      "input_identity": "b3:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "policy_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+      "receipt_identity": "b3:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "schema": "cairn.native-gate-observation.v1",
+      "stage": "tasks",
+      "valid": false,
+      "verdict": "block"
+    },
+    "request_identity": "b3:d3472e0b9e7e94165b3a5f24a0405d399d2a9e9cdb9b07b8109f125ae6c2a1ed",
+    "schema": "cairn.gate-result.v1",
+    "tool": {
+      "diagnostic_schema": "cairn.cli-machine-diagnostic.v1",
+      "executable_identity": "b3:2222222222222222222222222222222222222222222222222222222222222222",
+      "gate_receipt_schema": "cairn.gate-receipt.v1",
+      "machine_schema": "cairn.cli-machine.v1",
+      "policy_schema": "cairn.policy-schema.v1",
+      "source_revision": "bfa88df5b2ac5f05e4a977bb8d4b8248d4511449"
+    }
+  },
+  "pass_result": {
+    "applicability": {
+      "candidate_identity": "b3:4444444444444444444444444444444444444444444444444444444444444444",
+      "candidate_root_identity": "b3:5555555555555555555555555555555555555555555555555555555555555555",
+      "effect_identity": "b3:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_identities": [
+        "b3:8888888888888888888888888888888888888888888888888888888888888888",
+        "b3:9999999999999999999999999999999999999999999999999999999999999999"
+      ],
+      "pipeline_revision_identity": "b3:6666666666666666666666666666666666666666666666666666666666666666",
+      "policy_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+      "provider_profile_identity": "b3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "identity": "b3:783e49468c0a04aa8290a35a8f87adf7fedee9678c5340dcdb45c9f0813c6e33",
+    "non_claims": [
+      "gate binding does not prove candidate facts describe the evaluated filesystem",
+      "gate binding does not prove source correctness",
+      "gate binding does not prove test completeness",
+      "gate binding does not prove process reliability",
+      "gate binding does not authorize merge or publication",
+      "gate binding does not execute a release",
+      "gate binding does not prove deployment success",
+      "gate binding does not establish future applicability"
+    ],
+    "observation": {
+      "change": "demo-change",
+      "findings": [],
+      "input_identity": "b3:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "policy_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+      "receipt_identity": "b3:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "schema": "cairn.native-gate-observation.v1",
+      "stage": "tasks",
+      "valid": true,
+      "verdict": "pass"
+    },
+    "request_identity": "b3:d3472e0b9e7e94165b3a5f24a0405d399d2a9e9cdb9b07b8109f125ae6c2a1ed",
+    "schema": "cairn.gate-result.v1",
+    "tool": {
+      "diagnostic_schema": "cairn.cli-machine-diagnostic.v1",
+      "executable_identity": "b3:2222222222222222222222222222222222222222222222222222222222222222",
+      "gate_receipt_schema": "cairn.gate-receipt.v1",
+      "machine_schema": "cairn.cli-machine.v1",
+      "policy_schema": "cairn.policy-schema.v1",
+      "source_revision": "bfa88df5b2ac5f05e4a977bb8d4b8248d4511449"
+    }
+  },
+  "request": {
+    "applicability": {
+      "candidate_identity": "b3:4444444444444444444444444444444444444444444444444444444444444444",
+      "candidate_root_identity": "b3:5555555555555555555555555555555555555555555555555555555555555555",
+      "effect_identity": "b3:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_identities": [
+        "b3:8888888888888888888888888888888888888888888888888888888888888888",
+        "b3:9999999999999999999999999999999999999999999999999999999999999999"
+      ],
+      "pipeline_revision_identity": "b3:6666666666666666666666666666666666666666666666666666666666666666",
+      "policy_identity": "b3:7777777777777777777777777777777777777777777777777777777777777777",
+      "provider_profile_identity": "b3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+    "identity": "b3:d3472e0b9e7e94165b3a5f24a0405d399d2a9e9cdb9b07b8109f125ae6c2a1ed",
+    "schema": "cairn.gate-request.v1",
+    "target": {
+      "change": "demo-change",
+      "stage": "tasks"
+    },
+    "tool": {
+      "diagnostic_schema": "cairn.cli-machine-diagnostic.v1",
+      "executable_identity": "b3:2222222222222222222222222222222222222222222222222222222222222222",
+      "gate_receipt_schema": "cairn.gate-receipt.v1",
+      "machine_schema": "cairn.cli-machine.v1",
+      "policy_schema": "cairn.policy-schema.v1",
+      "source_revision": "bfa88df5b2ac5f05e4a977bb8d4b8248d4511449"
+    }
+  },
+  "schema": "cairn.gate-producer-fixtures.v1"
+}

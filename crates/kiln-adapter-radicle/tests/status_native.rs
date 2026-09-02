@@ -2,14 +2,18 @@
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+use std::str::FromStr as _;
 
 use kiln_adapter_radicle::status::{
-    PINNED_SECRETSPEC_VERSION, PinnedSecretSpecExecutable, RadicleStatusProfile,
-    RadicleStatusShell, SecretSpecDeclaration, StatusDispatch, StatusOutcome, StatusPlan,
-    StatusUnknownObservation, StatusWriteObservation,
+    CI_JOB_TYPE_NAME, PINNED_SECRETSPEC_VERSION, PinnedSecretSpecExecutable, RadicleStatusProfile,
+    RadicleStatusShell, ResolvedSigner, SecretSpecDeclaration, StatusDispatch, StatusOutcome,
+    StatusPlan, StatusUnknownObservation, StatusWriteObservation,
 };
 use kiln_core::types::{ExternalRef, RunId};
 use kiln_provider_api::{PortFailure, PortResult};
+use nonempty::NonEmpty;
+use onix_radicle_cob_git_store::GitCobStore;
+use radicle_cob::{TypeName, change::Storage as _};
 
 const FIXTURE_RID: &str = "rad:zFixtureRepository";
 const PRIMARY_PROVIDER: &str = "fixture-primary";
@@ -114,6 +118,24 @@ fn shell(temporary: &tempfile::TempDir, provider: &str) -> (RadicleStatusShell, 
     (shell, executable)
 }
 
+fn existing_status_reference(repository: &cob_git2::Repository) -> (String, cob_git2::Oid) {
+    let mut references = repository
+        .references_glob("refs/namespaces/*/refs/cobs/xyz.radicle.ci-job/*")
+        .unwrap_or_else(|_| unreachable!());
+    let reference = references
+        .next()
+        .unwrap_or_else(|| unreachable!())
+        .unwrap_or_else(|_| unreachable!());
+    (
+        reference
+            .name()
+            .unwrap_or_else(|_| unreachable!())
+            .to_string(),
+        reference.target().unwrap_or_else(|| unreachable!()),
+    )
+}
+
+// r[verify kiln.radicle.status_store_fixtures]
 // r[verify kiln.radicle.status_conformance]
 // r[verify kiln.radicle.status_conformance.scenario.repeat]
 // r[verify kiln.radicle.shell_status.scenario.success]
@@ -142,6 +164,7 @@ fn native_first_write_repeat_and_reconcile_are_equal() {
     assert_eq!(reconciled, first);
 }
 
+// r[verify kiln.radicle.status_store_fixtures]
 #[test]
 fn exact_object_update_is_repeatable() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
@@ -274,6 +297,130 @@ fn object_discovery_enforces_its_named_bound() {
     third.idempotency_key = external("kiln", "idempotency-key", "status-third-object");
     let error = port_error(limited.publish(&third, "enforce scan bound"));
     assert_eq!(domain_code(error), "radicle_object_scan_bound");
+}
+
+#[test]
+fn authenticated_two_namespace_heads_reject_single_writer_not_object_bound() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, executable) = shell(&temporary, PRIMARY_PROVIDER);
+    let first = written(port_ok(shell.publish(&plan(), "create branch source")));
+    let repository = cob_git2::Repository::open(temporary.path().join("storage").join(FIXTURE_RID))
+        .unwrap_or_else(|_| unreachable!());
+    let (_, target) = existing_status_reference(&repository);
+    let mut config = repository
+        .config()
+        .unwrap_or_else(|_| unreachable!())
+        .open_level(cob_git2::ConfigLevel::Local)
+        .unwrap_or_else(|_| unreachable!());
+    config
+        .set_str("user.name", "COB fixture")
+        .unwrap_or_else(|_| unreachable!());
+    config
+        .set_str("user.email", "fixture@example.invalid")
+        .unwrap_or_else(|_| unreachable!());
+    let foreign = ResolvedSigner::from_resolved_secret(
+        "0202020202020202020202020202020202020202020202020202020202020202",
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let branch = GitCobStore::new(&repository)
+        .store(
+            None,
+            Vec::new(),
+            foreign.signing_key(),
+            radicle_cob::change::Template {
+                tips: vec![target.into()],
+                type_name: TypeName::from_str(CI_JOB_TYPE_NAME).unwrap_or_else(|_| unreachable!()),
+                message: "independent authenticated head".to_string(),
+                embeds: Vec::new(),
+                contents: NonEmpty::new(b"other branch".to_vec()),
+            },
+        )
+        .unwrap_or_else(|_| unreachable!());
+    repository
+        .reference(
+            &format!(
+                "refs/namespaces/{}/refs/cobs/{CI_JOB_TYPE_NAME}/{}",
+                foreign.public_key(),
+                first.object_id.native_id.as_str()
+            ),
+            branch.id.into(),
+            false,
+            "authenticated second namespace",
+        )
+        .unwrap_or_else(|_| unreachable!());
+
+    let mut limited_profile = profile(temporary.path(), &executable, PRIMARY_PROVIDER);
+    limited_profile.max_objects_scanned = 1;
+    let limited =
+        RadicleStatusShell::new_fixture(temporary.path().join("storage"), limited_profile)
+            .unwrap_or_else(|_| unreachable!());
+    let mut replay = plan();
+    replay.run_id = RunId::new("run-two-heads").unwrap_or_else(|_| unreachable!());
+    replay.idempotency_key = external("kiln", "idempotency-key", "status-two-heads");
+    let error = port_error(limited.publish(&replay, "reject multi-head not bound"));
+    assert_eq!(domain_code(error), "status_multi_head");
+}
+
+#[test]
+fn malformed_status_ref_is_rejected_before_replay() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let _ = port_ok(shell.publish(&plan(), "create source ref"));
+    let repository = cob_git2::Repository::open(temporary.path().join("storage").join(FIXTURE_RID))
+        .unwrap_or_else(|_| unreachable!());
+    let (existing_ref, target) = existing_status_reference(&repository);
+    let (prefix, _) = existing_ref
+        .rsplit_once('/')
+        .unwrap_or_else(|| unreachable!());
+    repository
+        .reference(
+            &format!("{prefix}/bad-cob-id"),
+            target,
+            false,
+            "invalid fixture ref",
+        )
+        .unwrap_or_else(|_| unreachable!());
+
+    let mut replay = plan();
+    replay.run_id = RunId::new("run-malformed-ref").unwrap_or_else(|_| unreachable!());
+    replay.idempotency_key = external("kiln", "idempotency-key", "status-malformed-ref");
+    let error = port_error(shell.publish(&replay, "deny invalid COB ref"));
+    assert_eq!(domain_code(error), "radicle_ref_unparsable");
+}
+
+#[test]
+fn signed_author_namespace_mismatch_is_unreadable() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let _ = port_ok(shell.publish(&plan(), "create signed source ref"));
+    let repository = cob_git2::Repository::open(temporary.path().join("storage").join(FIXTURE_RID))
+        .unwrap_or_else(|_| unreachable!());
+    let (existing_ref, target) = existing_status_reference(&repository);
+    let object_id = existing_ref
+        .rsplit_once('/')
+        .unwrap_or_else(|| unreachable!())
+        .1;
+    let foreign = ResolvedSigner::from_resolved_secret(
+        "0202020202020202020202020202020202020202020202020202020202020202",
+    )
+    .unwrap_or_else(|_| unreachable!());
+    repository
+        .reference(
+            &format!(
+                "refs/namespaces/{}/refs/cobs/xyz.radicle.ci-job/{object_id}",
+                foreign.public_key()
+            ),
+            target,
+            false,
+            "mismatched signed author fixture",
+        )
+        .unwrap_or_else(|_| unreachable!());
+
+    let mut replay = plan();
+    replay.run_id = RunId::new("run-mismatched-author").unwrap_or_else(|_| unreachable!());
+    replay.idempotency_key = external("kiln", "idempotency-key", "status-mismatched-author");
+    let error = port_error(shell.publish(&replay, "deny mismatched author"));
+    assert_eq!(domain_code(error), "radicle_refs_unreadable");
 }
 
 // r[verify kiln.radicle.shell_status.scenario.unknown]

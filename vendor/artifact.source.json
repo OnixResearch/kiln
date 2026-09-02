@@ -1,0 +1,25 @@
+{
+  "source_repository": "ssh://git@github.com/OnixResearch/onix-artifact.git",
+  "source_commit": "e41340bec587b6d049b5cc518ec7db925dde84be",
+  "full_archive_format": "git archive --format=tar <source_commit>",
+  "full_archive_blake3": "8fc65f3d7968d76af419f08ac972955514c8256f8aa5ed90815d8bdcced28113",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+    "NOTICE",
+    "provenance",
+    "docs/source-inventory.md",
+    "crates/artifact-auth-core"
+  ],
+  "archive_blake3": "40817d2709fd99888a8aae951fca1c233c4a105a2f292e82ee755a987e54f109",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {
+    "artifact-auth-core": "MIT OR Apache-2.0"
+  },
+  "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+}

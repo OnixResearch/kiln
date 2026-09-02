@@ -1,0 +1,18 @@
+{
+  "schema": "valence.receipt-transcript.v1",
+  "scenario_identity": "malformed-artifact",
+  "inputs": {
+    "artifact_json": "{ not json"
+  },
+  "verifier_action": "evidence_ir_check",
+  "expected_report": {
+    "valid": false,
+    "issue_codes": [
+      "malformed_json"
+    ]
+  },
+  "expected_hashes": {},
+  "non_claims": [
+    "transcripts prove fixture behavior for checked inputs only, not general correctness, verifier soundness, or requirement satisfaction"
+  ]
+}

@@ -1,11 +1,19 @@
 mod adapter;
 mod mapping;
+mod onix;
 mod profile;
 mod runtime;
 mod wire;
 
 pub use adapter::NixEvalAdapter;
 pub use mapping::{CohortManifest, admit_cohort_manifest, admit_plan, gc_root_directory};
+pub use onix::{
+    ONIX_API_PATCH_BLAKE3, ONIX_CANDIDATE_PROFILE, ONIX_DERIVATIONS_PATCH_BLAKE3,
+    ONIX_EVALUATOR_KIND, ONIX_EVALUATOR_NAR_HASH, ONIX_EVALUATOR_REVISION, ONIX_EXECUTABLE_BLAKE3,
+    ONIX_EXECUTABLE_PATH, ONIX_FORK_NAR_HASH, ONIX_FORK_REVISION, ONIX_HOST_ABI_SOURCE_SYMBOL,
+    ONIX_LINKED_COMPONENTS, ONIX_PLUGIN_BLAKE3, ONIX_PLUGIN_PATH, ONIX_REQUIRED_FEATURES,
+    admit_onix_candidate, verify_onix_candidate_files,
+};
 pub use profile::{
     COHORT_MANIFEST_SCHEMA, NixEvalLimits, NixEvalPolicy, NixEvalProfile, NixEvalRuntimeBinding,
     PINNED_ADAPTER_VERSION, PINNED_BOUNDED_EXEC_LICENSE, PINNED_BOUNDED_EXEC_REVISION,

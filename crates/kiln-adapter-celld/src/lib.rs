@@ -3,8 +3,8 @@
 //! This crate implements Kiln's application-owned [`EventStorePort`] on top of
 //! a versioned Kiln Worker deployed to the `denoland/celld` cohort. Pure
 //! admission, partition, append, replay, lease, migration, and ambiguity
-//! decisions stay in value-based functions. A thin runtime trait owns secrets,
-//! transport, timing, and dispatch so tests run without a live worker.
+//! decisions stay in value-based functions. A concrete HTTPS runtime owns
+//! shell-supplied secrets, strict TLS, authenticated reads, and dispatch.
 //!
 //! Core and application contracts contain no celld, V8, Worker, or
 //! object-store types.
@@ -13,15 +13,15 @@
 //!
 //! - [`mod protocol`] owns the bounded authenticated request/response
 //!   envelope and the Worker wire response model.
-//! - [`mod worker`] owns the versioned Worker model: a stateless router that
-//!   maps one partition to one named object and applies one SQLite-style
-//!   atomic transaction per operation.
-//! - [`mod client`] owns the [`EventStorePort`] surface over the runtime
-//!   trait, response admission, and unknown-outcome classification.
+//! - [`mod worker`] owns an in-memory protocol model, not persisted evidence.
+//! - [`mod client`] owns the [`EventStorePort`] surface and exact operation
+//!   reconciliation.
+//! - [`mod http`] owns bounded authenticated HTTPS and strict TLS.
 //! - crate root re-exports the reusable pure decisions (profile admission,
 //!   partition mapping, append/replay/lease/migration admission, ambiguity).
 
 pub mod client;
+pub mod http;
 pub mod protocol;
 pub mod worker;
 
@@ -30,15 +30,18 @@ mod partition;
 mod profile;
 
 pub use admission::{
-    AppendPlan, DurableLease, MigrationPlan, OperationMatch, ReplayIntent, admit_append_batch,
-    classify_repeat, lease_recovery_action, parse_lease_state, plan_lease_claim, plan_migration,
-    plan_replay_page, replay_checked,
+    AppendPlan, CURRENT_SCHEMA_IDENTITY, DurableLease, EMPTY_SCHEMA_IDENTITY, MigrationPlan,
+    OperationMatch, ReplayIntent, StoredLease, StoredSchema, admit_append_batch, classify_repeat,
+    lease_recovery_action, parse_lease_state, plan_lease_claim, plan_lease_reconciled_completion,
+    plan_migration, plan_replay_page, replay_checked,
 };
-pub use client::{CelldEventStore, CelldRuntime, DispatchOutcome};
+pub use client::{CelldEventStore, CelldRuntime, DispatchOutcome, OperationObservation};
+pub use http::HttpCelldRuntime;
 pub use partition::map_partition;
 pub use profile::{
-    CELLD_TRUST_DOMAIN_HOSTILE, CELLD_TRUST_DOMAIN_SINGLE, CelldProfile, CelldProfileBounds,
-    admit_profile,
+    CELLD_TRUST_DOMAIN_HOSTILE, CELLD_TRUST_DOMAIN_SINGLE, COHORT_OBSERVATION_MAX_AGE_SECONDS,
+    CelldCohortIdentity, CelldCohortObservation, CelldProfile, CelldProfileBounds, admit_profile,
+    admit_profile_at,
 };
 pub use protocol::{
     CELLD_OPERATION_KIND, CELLD_PARTITION_KIND, CELLD_PARTITION_NAMESPACE, CELLD_PAYLOAD_KIND,

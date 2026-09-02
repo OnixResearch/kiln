@@ -138,7 +138,6 @@ checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 [[package]]
 name = "artifact-auth-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/OnixResearch/onix-artifact.git?rev=e41340bec587b6d049b5cc518ec7db925dde84be#e41340bec587b6d049b5cc518ec7db925dde84be"
 dependencies = [
  "blake3",
  "serde",
@@ -291,7 +290,6 @@ dependencies = [
 [[package]]
 name = "bounded-exec"
 version = "0.1.0"
-source = "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525"
 dependencies = [
  "bounded-exec-core",
  "nix 0.30.1",
@@ -300,7 +298,6 @@ dependencies = [
 [[package]]
 name = "bounded-exec-core"
 version = "0.1.0"
-source = "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525"
 
 [[package]]
 name = "bs58"
@@ -339,7 +336,6 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 [[package]]
 name = "cairn-gate-contract"
 version = "0.1.0"
-source = "git+ssh://git@github.com/OnixResearch/cairn.git?rev=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f#15f00875562025e7ea7e0d1f4af24d1a2e2ac06f"
 dependencies = [
  "blake3",
  "serde",
@@ -532,9 +528,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-mac"
-version = "0.11.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1d1a86f49236c215f271d40892d5fc950490551400b02ef360692c29815c714"
+checksum = "25fab6889090c8133f3deb8f73ba3c65a7f456f66436fc012a1b1e272b1e103e"
 dependencies = [
  "generic-array",
  "subtle",
@@ -1083,6 +1079,8 @@ dependencies = [
  "libc",
  "libgit2-sys",
  "log",
+ "openssl-probe",
+ "openssl-sys",
  "url",
 ]
 
@@ -1444,13 +1442,17 @@ name = "kiln-adapter-celld"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "getrandom 0.3.4",
  "hmac 0.12.1",
  "kiln-codec",
  "kiln-core",
  "kiln-provider-api",
+ "rustls",
+ "rustls-pemfile",
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "ureq",
  "zeroize",
 ]
 
@@ -1472,6 +1474,32 @@ dependencies = [
  "kiln-core",
  "kiln-provider-api",
  "serde",
+]
+
+[[package]]
+name = "kiln-adapter-github"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "blake3",
+ "bounded-exec",
+ "git2 0.20.2",
+ "hmac 0.12.1",
+ "kiln-adapter-git",
+ "kiln-adapter-lattice",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "lattice-workflow-transport",
+ "nix 0.30.1",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "signal-hook",
+ "tempfile",
+ "ureq",
+ "zeroize",
 ]
 
 [[package]]
@@ -1520,6 +1548,7 @@ dependencies = [
  "kiln-conformance",
  "kiln-core",
  "kiln-provider-api",
+ "libc",
  "serde",
  "serde_json",
  "tempfile",
@@ -1567,6 +1596,7 @@ dependencies = [
  "kiln-radicle-source-contract",
  "lattice-workflow-transport",
  "nonempty",
+ "onix-radicle-cob-git-store",
  "radicle-cob",
  "radicle-core",
  "radicle-crypto",
@@ -1697,7 +1727,6 @@ dependencies = [
 [[package]]
 name = "lattice-workflow-contract"
 version = "0.1.0"
-source = "git+ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67c7fd4a8b05914161a8e09de2759bebc8"
 dependencies = [
  "blake3",
  "serde",
@@ -1706,7 +1735,6 @@ dependencies = [
 [[package]]
 name = "lattice-workflow-transport"
 version = "0.1.0"
-source = "git+ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67c7fd4a8b05914161a8e09de2759bebc8"
 dependencies = [
  "base64 0.22.1",
  "blake3",
@@ -1740,6 +1768,7 @@ dependencies = [
  "cc",
  "libc",
  "libz-sys",
+ "openssl-sys",
  "pkg-config",
 ]
 
@@ -2050,10 +2079,42 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "onix-radicle-cob-git-store"
+version = "0.2.0"
+dependencies = [
+ "git2 0.21.0",
+ "nonempty",
+ "radicle-cob",
+ "radicle-crypto",
+ "radicle-git-ref-format",
+ "radicle-oid",
+ "tempfile",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
+
+[[package]]
+name = "openssl-probe"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
+
+[[package]]
+name = "openssl-sys"
+version = "0.9.117"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b47e7e6bb2c38cd930d25a23b40fa52e068c10e85f3e03a7f5ba5aaca5713695"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+ "vcpkg",
+]
 
 [[package]]
 name = "p256"
@@ -2661,6 +2722,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ring"
+version = "0.17.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "getrandom 0.2.17",
+ "libc",
+ "untrusted",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "rlimit"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2736,6 +2811,50 @@ dependencies = [
  "libc",
  "linux-raw-sys 0.12.1",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "rustls"
+version = "0.23.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0283386ce02abc0151e1761d08802dfe86c173b0b494af5cbc086574e453da06"
+dependencies = [
+ "log",
+ "once_cell",
+ "ring",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dce314e5fee3f39953d46bb63bb8a46d40c2f8fb7cc5a3b6cab2bde9721d6e50"
+dependencies = [
+ "rustls-pki-types",
+]
+
+[[package]]
+name = "rustls-pki-types"
+version = "1.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f4925028c7eb5d1fcdaf196971378ed9d2c1c4efc7dc5d011256f76c99c0a96"
+dependencies = [
+ "zeroize",
+]
+
+[[package]]
+name = "rustls-webpki"
+version = "0.103.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2"
+dependencies = [
+ "ring",
+ "rustls-pki-types",
+ "untrusted",
 ]
 
 [[package]]
@@ -2950,6 +3069,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
+name = "signal-hook"
+version = "0.3.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d881a16cf4426aa584979d30bd82cb33429027e42122b169753d6ef1085ed6e2"
+dependencies = [
+ "libc",
+ "signal-hook-registry",
+]
+
+[[package]]
+name = "signal-hook-registry"
+version = "1.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b"
+dependencies = [
+ "errno",
+ "libc",
+]
+
+[[package]]
 name = "signature"
 version = "1.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3084,9 +3223,9 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "subtle"
-version = "2.4.1"
+version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
+checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
@@ -3292,6 +3431,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "untrusted"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
+
+[[package]]
+name = "ureq"
+version = "2.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02d1a66277ed75f640d608235660df48c8e3c19f3b4edb6a263315626cc3c01d"
+dependencies = [
+ "base64 0.22.1",
+ "log",
+ "once_cell",
+ "rustls",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "url",
+ "webpki-roots 0.26.11",
+]
+
+[[package]]
 name = "url"
 version = "2.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3312,7 +3474,6 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 [[package]]
 name = "valence-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/OnixResearch/valence.git?rev=220307a371e7bc4e3309447b09447d0fe6c4db5f#220307a371e7bc4e3309447b09447d0fe6c4db5f"
 dependencies = [
  "artifact-auth-core",
  "blake3",
@@ -3413,6 +3574,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ef64dbcc55df09c7e5a46182d181c2cfa3e925f3da937ea764728b4bbb9dcbf"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.26.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
+dependencies = [
+ "webpki-roots 1.0.9",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dcd9d09a39985f5344844e66b0c530a33843579125f23e21e9f0f220850f22a"
+dependencies = [
+ "rustls-pki-types",
 ]
 
 [[package]]
@@ -3533,6 +3712,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9"
 dependencies = [
  "windows-targets 0.48.5",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
+dependencies = [
+ "windows-targets 0.52.6",
 ]
 
 [[package]]

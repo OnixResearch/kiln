@@ -1,0 +1,44 @@
+[package]
+name = "kiln-adapter-github"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[features]
+default = []
+protocol-fixtures = []
+
+[[bin]]
+name = "kiln-adapter-github"
+path = "src/main.rs"
+
+[[bin]]
+name = "kiln-github-job"
+path = "src/bin/github-job.rs"
+
+[dependencies]
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+kiln-codec.workspace = true
+kiln-adapter-git.workspace = true
+kiln-adapter-lattice.workspace = true
+lattice-workflow-transport.workspace = true
+bounded-exec.workspace = true
+rusqlite.workspace = true
+blake3.workspace = true
+zeroize.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+hmac = "0.12.1"
+sha2 = "0.10.9"
+ureq = { version = "=2.12.1", default-features = false, features = ["tls", "json"] }
+git2 = { workspace = true, features = ["https"] }
+base64 = "0.22.1"
+tempfile = "3.27.0"
+signal-hook = "0.3.18"
+nix = { version = "=0.30.1", features = ["process", "signal"] }
+
+[lints]
+workspace = true

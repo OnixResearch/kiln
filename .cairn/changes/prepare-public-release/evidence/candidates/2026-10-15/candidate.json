@@ -1,0 +1,109 @@
+{
+  "authority": {
+    "announced": false,
+    "governance_mutated": false,
+    "local_candidate_preparation_authorized": true,
+    "mirrors_mutated": false,
+    "new_publication_authorized": false,
+    "pushed": false,
+    "signed": false,
+    "synchronized": false
+  },
+  "hosting": {
+    "profile_export": "hosting-profile.json",
+    "profile_export_blake3": "31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82",
+    "profile_scope": "unchanged existing hosting policy; published state describes the historical repository, not this candidate",
+    "profile_source": "config/hosting-profile.ncl",
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "rollback_revision": "b16f8792849cd3e2f2802c9a5063d5567a68f389"
+  },
+  "licenses": {
+    "distribution_scope": "source archive only; no combined binary distribution clearance",
+    "exhaustive_compatibility_clearance": false,
+    "imported_terms_include": [
+      "AGPL-3.0-or-later",
+      "MPL-2.0",
+      "MIT",
+      "MIT OR Apache-2.0"
+    ],
+    "map": "LICENSES.md",
+    "map_blake3": "8b851f8918de59426e5d34baed77e5404bbac44f1b0950c173b8af6d262c0c43",
+    "owner_specific_grants_extended": false,
+    "package_exceptions": [
+      {
+        "license": "GPL-2.0-only",
+        "package": "kiln-adapter-pijul"
+      }
+    ],
+    "workspace_default": "MIT OR Apache-2.0"
+  },
+  "lifecycle": {
+    "clean_source_receipts": [
+      {
+        "receipt_hash": "e9dd53e18867196d9ac0ddcefc3ebff7a995dd2d203220921630c3c498bfaf7d",
+        "stage": "strict-validation"
+      },
+      {
+        "receipt_hash": "0c21573e14165b8b0a44064cc6b1e060902cfbc6b3e3125a25a9e6f422a12d18",
+        "stage": "traceability"
+      },
+      {
+        "receipt_hash": "5438c5a7c7f870173527c35dd94923966fa9afbaa185206e6c7530825ae1ca81",
+        "stage": "proposal-gate"
+      },
+      {
+        "receipt_hash": "da343030d6276c73cf03dfaee03bbcf1db4a6c2156d4675859203b12877a3f87",
+        "stage": "design-gate"
+      },
+      {
+        "receipt_hash": "51725972c6e520c306edc3b602ffcd3cfbd816c1258a1b65f53e3b300fced792",
+        "stage": "tasks-gate"
+      }
+    ],
+    "policy": "cairn-policy/generated/cairn-policy.json",
+    "policy_blake3": "a4da8d09199898c2ddc887c538e3dcb0415b3e13abe594cc80c642ea65649ccd",
+    "state": "structural-gates-passed; product-verification-recorded-separately"
+  },
+  "non_claims": [
+    "This is a source-bound local candidate; pair it with its fresh verification observations before publication review",
+    "The deterministic USTAR archive is not the historical git-archive-tar format and must not be compared as if their bytes were identical",
+    "Source and evidence live in separate revisions; this file is not inside the source archive it identifies",
+    "Historical publication and release receipts retain their original meaning",
+    "No new canonical publication, signature, release authority, or license-compatibility certification is established"
+  ],
+  "owner": "Kiln maintainers",
+  "schema": "kiln.local-publication-candidate.v1",
+  "selection": {
+    "excluded_paths": [
+      ".cairn/changes/add-onix-nix-evaluator-cohort",
+      "crates/kiln-adapter-nix-eval/Cargo.toml",
+      "crates/kiln-adapter-nix-eval/src/lib.rs",
+      "crates/kiln-adapter-nix-eval/src/mapping.rs",
+      "crates/kiln-adapter-nix-eval/src/onix.rs",
+      "crates/kiln-adapter-nix-eval/src/tests.rs",
+      "crates/kiln-core/src/discovery.rs",
+      "docs/nix-eval-jobs-adapter.md"
+    ],
+    "preserved_operator_snapshot": "4e9f2e15ecd372ad80dd5a5e8e9ef9213d1269ee",
+    "unfinished_onix_work_preserved": true
+  },
+  "source": {
+    "archive": {
+      "blake3": "6183ebf53ec4831d3f3d355ee30bc41d769af02c68998673534608c03a9b99df",
+      "bytes": 6051840,
+      "filename": "kiln-source.tar",
+      "format": "ustar",
+      "recipe": "GNU tar; LC_ALL=C; lexically sorted jj-tracked paths; no directory recursion; mtime/uid/gid zero; numeric owner; mode u=rwX,go=rX; no Git/Jujutsu metadata"
+    },
+    "base_revision": "e1e09fded0c58ba75904c4d7556f1b5cc77ce86e",
+    "change": "oqmvwlmzvqpynkzysvluzrwtvvnquutp",
+    "local_bookmark": "publication-candidate-2026-10-15",
+    "manifest": {
+      "blake3": "c6af763f216cec8e79278e2ce564be5c63f3969f5eb2baac2e2f7f5f48a4f2a8",
+      "encoding": "UTF-8 compact sorted-key JSON array, no trailing newline",
+      "entries": 719,
+      "path": "source-manifest.json"
+    },
+    "revision": "fba69f04b4daa9174b42278ef0842520fe4ec0c5"
+  }
+}

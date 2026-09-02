@@ -1,0 +1,22 @@
+{
+  "source_repository": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+  "source_commit": "29dac88ecded94457572db3fdfaaaab95fa91525",
+  "full_archive_format": "git archive --format=tar <source_commit>",
+  "full_archive_blake3": "4fbbf8f0749262469f00748e04c775180488dba800303f139172656d25931927",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "crates"
+  ],
+  "archive_blake3": "d75d4f6f0df36c6b70080a37c0a88d5319035097aa4aecd0fab7cd25e571c33d",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {
+    "bounded-exec": "AGPL-3.0-or-later",
+    "bounded-exec-core": "AGPL-3.0-or-later"
+  },
+  "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln.",
+  "repository_id": "rad:z2CpqLFpdP36fZXYUK5ZNWxMibpCo"
+}

@@ -1,0 +1,171 @@
+{
+  "api_writes": [
+    {
+      "context": "kiln/ci",
+      "description": "Kiln run 97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35 state pending",
+      "fixture_revision": "552e0d9ed7cf33781d4b36cd99de9c801a28e044",
+      "id": 1,
+      "state": "pending",
+      "url": "https://api.github.com/repos/example/project/statuses/552e0d9ed7cf33781d4b36cd99de9c801a28e044"
+    },
+    {
+      "context": "kiln/ci",
+      "description": "Kiln run 97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35 state success",
+      "fixture_revision": "552e0d9ed7cf33781d4b36cd99de9c801a28e044",
+      "id": 2,
+      "state": "success",
+      "url": "https://api.github.com/repos/example/project/statuses/552e0d9ed7cf33781d4b36cd99de9c801a28e044"
+    },
+    {
+      "context": "kiln/ci",
+      "description": "Kiln run af8fda07dacba7749970e2e5f4eaf896f0118662002e97ad56505fa424422b60 state pending",
+      "fixture_revision": "0f59f983c0d8cb044150432417cb4cdce53ebc67",
+      "id": 3,
+      "state": "pending",
+      "url": "https://api.github.com/repos/example/project/statuses/0f59f983c0d8cb044150432417cb4cdce53ebc67"
+    },
+    {
+      "context": "kiln/ci",
+      "description": "Kiln run af8fda07dacba7749970e2e5f4eaf896f0118662002e97ad56505fa424422b60 state failure",
+      "fixture_revision": "0f59f983c0d8cb044150432417cb4cdce53ebc67",
+      "id": 4,
+      "state": "failure",
+      "url": "https://api.github.com/repos/example/project/statuses/0f59f983c0d8cb044150432417cb4cdce53ebc67"
+    }
+  ],
+  "branch_tip": "0f59f983c0d8cb044150432417cb4cdce53ebc67",
+  "duplicate": {
+    "accepted": true,
+    "duplicate": true,
+    "run_identity": "97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35"
+  },
+  "fork_denied_http": 400,
+  "invalid_signature_http": 400,
+  "job_executions": 2,
+  "pull_request": {
+    "error_code": null,
+    "outcome": "DomainFailure",
+    "phase": "terminal",
+    "run_id": "github-run-af8fda07dacba7749970e2e5f4eaf896f0118662002e97ad56505fa424422b60",
+    "run_identity": "af8fda07dacba7749970e2e5f4eaf896f0118662002e97ad56505fa424422b60",
+    "schema": "kiln.github-run-status.v1",
+    "source": {
+      "provider": "github",
+      "repository": {
+        "contract_version": 1,
+        "native_id": "example/project",
+        "native_kind": "repository",
+        "provider_namespace": "github"
+      },
+      "revision": {
+        "contract_version": 1,
+        "native_id": "0f59f983c0d8cb044150432417cb4cdce53ebc67",
+        "native_kind": "revision",
+        "provider_namespace": "github"
+      }
+    },
+    "statuses": [
+      {
+        "error_code": null,
+        "phase": "published",
+        "plan": {
+          "context": "kiln/ci",
+          "owner": "example",
+          "repository": "project",
+          "revision": "0f59f983c0d8cb044150432417cb4cdce53ebc67",
+          "run_identity": "af8fda07dacba7749970e2e5f4eaf896f0118662002e97ad56505fa424422b60",
+          "state": "pending"
+        },
+        "publication": {
+          "request_identity": "4721632cdf9c1ec9baf2d8ecc72135d865e03a5f9522af6741270936ede76921",
+          "status_id": 3
+        }
+      },
+      {
+        "error_code": null,
+        "phase": "published",
+        "plan": {
+          "context": "kiln/ci",
+          "owner": "example",
+          "repository": "project",
+          "revision": "0f59f983c0d8cb044150432417cb4cdce53ebc67",
+          "run_identity": "af8fda07dacba7749970e2e5f4eaf896f0118662002e97ad56505fa424422b60",
+          "state": "failure"
+        },
+        "publication": {
+          "request_identity": "9fd5c06ed393dbf9005b585e9e76ccc568a7b74046c9cf85a0d5fd9f1c1503ce",
+          "status_id": 4
+        }
+      }
+    ],
+    "workflow_polls": 3
+  },
+  "push": {
+    "error_code": null,
+    "outcome": "Success",
+    "phase": "terminal",
+    "run_id": "github-run-97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35",
+    "run_identity": "97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35",
+    "schema": "kiln.github-run-status.v1",
+    "source": {
+      "provider": "github",
+      "repository": {
+        "contract_version": 1,
+        "native_id": "example/project",
+        "native_kind": "repository",
+        "provider_namespace": "github"
+      },
+      "revision": {
+        "contract_version": 1,
+        "native_id": "552e0d9ed7cf33781d4b36cd99de9c801a28e044",
+        "native_kind": "revision",
+        "provider_namespace": "github"
+      }
+    },
+    "statuses": [
+      {
+        "error_code": null,
+        "phase": "published",
+        "plan": {
+          "context": "kiln/ci",
+          "owner": "example",
+          "repository": "project",
+          "revision": "552e0d9ed7cf33781d4b36cd99de9c801a28e044",
+          "run_identity": "97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35",
+          "state": "pending"
+        },
+        "publication": {
+          "request_identity": "b55c3dd70c9595af568e20c678f2c0bda14fa85512f6d0e43d192b21e0285033",
+          "status_id": 1
+        }
+      },
+      {
+        "error_code": null,
+        "phase": "published",
+        "plan": {
+          "context": "kiln/ci",
+          "owner": "example",
+          "repository": "project",
+          "revision": "552e0d9ed7cf33781d4b36cd99de9c801a28e044",
+          "run_identity": "97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35",
+          "state": "success"
+        },
+        "publication": {
+          "request_identity": "de404b2d6547968702c1fab149dbdbe4e22f3ae06b8d1c944d1604f3e681f3f0",
+          "status_id": 2
+        }
+      }
+    ],
+    "workflow_polls": 5
+  },
+  "restarted_duplicate": {
+    "accepted": true,
+    "duplicate": true,
+    "run_identity": "97d511483c768d25345ff6ab2ea90eb2b4fdb12837d9d8faa8c4c6f98274cf35"
+  },
+  "schema": "kiln.github-local-runtime-smoke.v1",
+  "scope": "actual Kiln HTTP/SQLite/Lattice Unix client + actual Lattice runtime + actual exact-source job; local Git, synthetic SecretSpec and loopback GitHub API only",
+  "selected_commit": "552e0d9ed7cf33781d4b36cd99de9c801a28e044",
+  "status_posts": 4,
+  "status_reconciliation_gets": 1
+}

@@ -156,6 +156,7 @@ impl RadicleStatusProfile {
     }
 }
 
+// r[impl kiln.radicle.status_store_nonclaims]
 const REQUIRED_NON_CLAIMS: [&str; 7] = [
     "status writes do not complete Kiln attempts or mutate canonical state",
     "status writes do not prove peer convergence or remote visibility",
@@ -204,6 +205,7 @@ fn rid_is_admitted(rid: &str) -> bool {
         })
 }
 
+// r[impl kiln.radicle.status_store_pin]
 // r[impl kiln.radicle.status_signer]
 // r[impl kiln.radicle.status_allowlist]
 pub fn admit_profile(profile: &RadicleStatusProfile) -> PortResult<BTreeSet<String>> {

@@ -7,14 +7,6 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    cairn-gate = {
-      url = "git+ssh://git@github.com/OnixResearch/cairn.git?rev=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f";
-      flake = false;
-    };
-    mantle-build = {
-      url = "git+ssh://git@github.com/OnixResearch/mantle.git?rev=0bbab77e23ab95caa4e4184b9945cfaa5c8040e2";
-      flake = false;
-    };
     nix-eval-jobs.url = "github:NixOS/nix-eval-jobs/a0cd02231c58974a6b5aaa3712069b071047162e";
   };
 
@@ -23,8 +15,6 @@
       self,
       nixpkgs,
       rust-overlay,
-      cairn-gate,
-      mantle-build,
       nix-eval-jobs,
     }:
     let
@@ -33,6 +23,10 @@
         "aarch64-linux"
       ];
       eachSystem = function: nixpkgs.lib.genAttrs systems (system: function system);
+      cairnGateSource = ./vendor/cairn;
+      cairnGateRevision = (builtins.fromJSON (builtins.readFile ./vendor/cairn.source.json)).source_commit;
+      mantleBuildSource = ./vendor/mantle;
+      mantleBuildRevision = (builtins.fromJSON (builtins.readFile ./vendor/mantle.source.json)).source_commit;
       nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
       celldRelease = "v0.2.1";
       celldRevision = "ae8fac053d79f971bfcb996054bb43eb2f9b05da";
@@ -105,6 +99,13 @@
           version = pijulCohortVersion;
           src = pijulCohortSourceFor system;
           cargoHash = "sha256-IhArTiReUdj49bA+XseQpOiszK801xX5LdLj8vXD8rs=";
+          # zstd-seekable enumerates native sources in filesystem order.
+          # Patch only the writable vendor copy; the registry input stays pinned.
+          postPatch = ''
+            patch --batch --fuzz=0 -p1 \
+              -d "$cargoDepsCopy/source-registry-0/zstd-seekable-0.1.23" \
+              < ${./patches/zstd-seekable-sort-sources.patch}
+          '';
           buildNoDefaultFeatures = true;
           cargoBuildFlags = [
             "--bin"
@@ -156,13 +157,12 @@
           src = self;
           cargoLock = {
             lockFile = ./Cargo.lock;
-            allowBuiltinFetchGit = true;
           };
           nativeBuildInputs = [
             pkgs.cmake
             pkgs.pkg-config
           ];
-          buildInputs = [ pkgs.zlib ];
+          buildInputs = [ pkgs.zlib pkgs.openssl ];
           cargoBuildFlags = [
             "--workspace"
             "--all-targets"
@@ -184,6 +184,16 @@
           type = "app";
           program = "${packageFor system}/bin/kiln";
           meta.description = "Run the Kiln local operator CLI";
+        };
+        kiln-adapter-github = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-adapter-github";
+          meta.description = "Run the Kiln GitHub webhook and recovery service";
+        };
+        kiln-github-job = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-github-job";
+          meta.description = "Run a pinned exact-source GitHub CI job";
         };
         default = self.apps.${system}.kiln;
       });
@@ -220,7 +230,8 @@
           runtime-independence = package;
           format = pkgs.runCommand "kiln-format" { nativeBuildInputs = [ toolchain ]; } ''
             ${copySource}
-            cargo fmt --all -- --check
+            # Check every member, not the pristine partial producer workspaces.
+            cargo fmt -- --check
             touch "$out"
           '';
           clippy = rustPlatform.buildRustPackage {
@@ -229,17 +240,41 @@
             src = self;
             cargoLock = {
               lockFile = ./Cargo.lock;
-              allowBuiltinFetchGit = true;
             };
             nativeBuildInputs = [
               pkgs.clippy
               pkgs.cmake
               pkgs.pkg-config
             ];
-            buildInputs = [ pkgs.zlib ];
+            buildInputs = [ pkgs.zlib pkgs.openssl ];
             buildPhase = ''
               runHook preBuild
               cargo clippy --workspace --all-targets -- -D warnings
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
+          github-protocol-fixtures = rustPlatform.buildRustPackage {
+            pname = "kiln-github-protocol-fixtures";
+            version = "0.1.0";
+            src = self;
+            cargoLock.lockFile = ./Cargo.lock;
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+              pkgs.nickel
+              pkgs.git
+              pkgs.b3sum
+            ];
+            buildInputs = [ pkgs.zlib pkgs.openssl ];
+            buildPhase = ''
+              runHook preBuild
+              nickel export --format json fixtures/github/service-profile.ncl > github-service.json
+              nickel export --format json fixtures/github/job-profile.ncl > github-job.json
+              cargo test --locked -p kiln-adapter-github --features protocol-fixtures --offline
               runHook postBuild
             '';
             doCheck = false;
@@ -255,7 +290,6 @@
                 src = self;
                 cargoLock = {
                   lockFile = ./Cargo.lock;
-                  allowBuiltinFetchGit = true;
                 };
                 nativeBuildInputs = [
                   pkgs.cmake
@@ -295,9 +329,9 @@
                   test "$(sha256sum "$source" | cut -d ' ' -f 1)" = \
                     '8a4fc27aa81ee061310d57fce2df9cc45f3149ddb00bdfab2b816beb0359b13d'
                   test "$executable" = \
-                    '/nix/store/dm7km3dr8q5jbyakb7bbw8j6v4vz9lck-pijul-1.0.0-beta.11/bin/pijul'
+                    '/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul'
                   test "$(b3sum --no-names "$executable")" = \
-                    '8000c44ea14cdcca49730073837737339c55852d6af3f4d3703092a944e38f77'
+                    '9b8d58a1ced03ceb73347e4ed4818d17cdbff2de66d9024d4ec9b87327a4f934'
                   test "$($executable --version)" = 'pijul 1.0.0-beta.11'
                   tar -xOf "$source" pijul-1.0.0-beta.11/Cargo.lock > producer-Cargo.lock
                   grep -A "$lock_context_lines" -F 'name = "libpijul"' producer-Cargo.lock | \
@@ -318,7 +352,6 @@
             src = self;
             cargoLock = {
               lockFile = ./Cargo.lock;
-              allowBuiltinFetchGit = true;
             };
             nativeBuildInputs = [
               pkgs.cmake
@@ -341,7 +374,6 @@
             src = self;
             cargoLock = {
               lockFile = ./Cargo.lock;
-              allowBuiltinFetchGit = true;
             };
             cargoBuildFlags = [
               "-p"
@@ -361,7 +393,6 @@
             src = self;
             cargoLock = {
               lockFile = ./Cargo.lock;
-              allowBuiltinFetchGit = true;
             };
             nativeBuildInputs = [ pkgs.coreutils ];
             buildPhase = ''
@@ -388,6 +419,11 @@
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
+            nickel typecheck config/github-contracts.ncl
+            nickel typecheck config/github-ci.ncl
+            nickel typecheck config/github-job.ncl
+            nickel export --format json fixtures/github/service-profile.ncl >/dev/null
+            nickel export --format json fixtures/github/job-profile.ncl >/dev/null
             nickel export config/radicle-source-profile.ncl >/dev/null
             nickel export config/radicle-status-profile.ncl >/dev/null
             nickel export config/radicle-mutation-profile.ncl >/dev/null
@@ -434,20 +470,20 @@
             touch "$out"
           '';
           cairn-gate-cohort = pkgs.runCommand "kiln-cairn-gate-cohort" { } ''
-            test '${cairn-gate.rev}' = '15f00875562025e7ea7e0d1f4af24d1a2e2ac06f'
-            cmp ${cairn-gate}/fixtures/cairn-gate-contract/producer/fixtures-v1.json \
+            test '${cairnGateRevision}' = '15f00875562025e7ea7e0d1f4af24d1a2e2ac06f'
+            cmp ${cairnGateSource}/fixtures/cairn-gate-contract/producer/fixtures-v1.json \
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/producer-fixtures-v1.json
-            cmp ${cairn-gate}/contracts/cairn-gate-contract.ncl \
+            cmp ${cairnGateSource}/contracts/cairn-gate-contract.ncl \
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/contract.ncl
             touch "$out"
           '';
           mantle-build-cohort =
             pkgs.runCommand "kiln-mantle-build-cohort" { nativeBuildInputs = [ pkgs.b3sum ]; }
               ''
-                test '${mantle-build.rev}' = '0bbab77e23ab95caa4e4184b9945cfaa5c8040e2'
-                cmp ${mantle-build}/fixtures/mantle-build-contract/producer/fixtures-v1.json \
+                test '${mantleBuildRevision}' = '0bbab77e23ab95caa4e4184b9945cfaa5c8040e2'
+                cmp ${mantleBuildSource}/fixtures/mantle-build-contract/producer/fixtures-v1.json \
                   ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/producer-fixtures-v1.json
-                cmp ${mantle-build}/contracts/mantle-build-contract.ncl \
+                cmp ${mantleBuildSource}/contracts/mantle-build-contract.ncl \
                   ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/contract.ncl
                 test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-plan.ncl)" = \
                   '2a44f29408b31e620e9247134f0b7b8d55012c8ae286de29199eecef33e10473'
@@ -548,7 +584,6 @@
                 src = self;
                 cargoLock = {
                   lockFile = ./Cargo.lock;
-                  allowBuiltinFetchGit = true;
                 };
                 nativeBuildInputs = [
                   pkgs.cmake
@@ -577,7 +612,6 @@
                 src = self;
                 cargoLock = {
                   lockFile = ./Cargo.lock;
-                  allowBuiltinFetchGit = true;
                 };
                 nativeBuildInputs = [
                   pkgs.cmake
@@ -606,7 +640,6 @@
                 src = self;
                 cargoLock = {
                   lockFile = ./Cargo.lock;
-                  allowBuiltinFetchGit = true;
                 };
                 nativeBuildInputs = [
                   pkgs.cmake
@@ -675,7 +708,6 @@
             src = self;
             cargoLock = {
               lockFile = ./Cargo.lock;
-              allowBuiltinFetchGit = true;
             };
             nativeBuildInputs = [
               pkgs.cmake
@@ -708,16 +740,10 @@
             src = self;
             cargoLock = {
               lockFile = ./Cargo.lock;
-              allowBuiltinFetchGit = true;
             };
             buildPhase = ''
               runHook preBuild
-              cargo tree -p kiln-core --edges normal > core-tree.txt
-              cargo tree -p kiln-provider-api --edges normal > provider-api-tree.txt
-              if grep -E 'kiln-adapter-celld|celld|workerd|wrangler|v8|object-store|object_store' core-tree.txt provider-api-tree.txt >/dev/null; then
-                echo 'celld, Worker, or object-store runtime entered a core or application contract crate' >&2
-                exit 1
-              fi
+              sh tests/celld-boundaries.sh
               runHook postBuild
             '';
             doCheck = false;
@@ -756,11 +782,13 @@
           default = pkgs.mkShell {
             packages = [
               toolchain
+              pkgs.b3sum
               pkgs.cmake
               pkgs.nickel
               pkgs.nixfmt
               pkgs.pkg-config
               pkgs.zlib
+              pkgs.openssl
             ];
           };
         }

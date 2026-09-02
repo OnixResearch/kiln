@@ -41,6 +41,8 @@ The process shell uses Bounded Exec from the canonical Radicle publication:
 
 This owner grant does not change the public license. It does not apply to third-party material or other recipients.
 
+`cairn-gate-contract` is a linked permissive library, while `cairn-cli` is an external executable reached through the machine protocol. Bounded Exec is different: `kiln-adapter-cairn` links its Rust library and `bounded-exec-core`; it is not just invoking an independent AGPL command. The adapter's own `MIT OR Apache-2.0` declaration does not change those dependencies' public terms or make a combined output permissive-only. Public recipients must use the public licenses and satisfy the applicable copyleft obligations; they cannot rely on the owner-specific grant. See the repository [license map](../LICENSES.md) and included [AGPL version 3 text](../LICENSE-AGPL-3.0).
+
 Bounded Exec owns explicit argv, clear environment setup, deadlines, cancellation, bounded output capture, process-group termination, and owned teardown. Kiln retains executable authorization, output parsing, evidence meaning, and retry policy.
 
 ## Request planning

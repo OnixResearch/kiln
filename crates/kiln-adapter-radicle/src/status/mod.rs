@@ -4,7 +4,6 @@ pub mod profile;
 mod resolver;
 mod secret;
 pub mod shell;
-pub mod storage;
 
 pub use plan::{
     HeadAuthor, ObservedHeads, StatusOutcome, StatusPlan, admit_expected_head,

@@ -15,9 +15,17 @@ The admitted cohort is exact:
 
 The Pijul `1.0.0-beta.11` lock file selects this exact library cohort. Later Pijul releases use `pijul-core`. They are outside this profile.
 
-The Nix fixture producer is `/nix/store/dm7km3dr8q5jbyakb7bbw8j6v4vz9lck-pijul-1.0.0-beta.11/bin/pijul`. Its BLAKE3 identity is `8000c44ea14cdcca49730073837737339c55852d6af3f4d3703092a944e38f77`.
+The Nix fixture producer is `/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul`. Its BLAKE3 identity is `9b8d58a1ced03ceb73347e4ed4818d17cdbff2de66d9024d4ec9b87327a4f934`.
+
+The recipe applies [`zstd-seekable-sort-sources.patch`](../patches/zstd-seekable-sort-sources.patch) only to the writable Cargo vendor copy. Upstream `zstd-seekable` 0.1.23 enumerates C sources in filesystem order, which changed archive member and executable function order between clean builds of the same recipe. Sorting the existing source paths removes that observed nondeterminism; the immutable crates.io archive and producer library cohort remain unchanged. A fresh local Nix build and `--rebuild` produced identical complete outputs before this executable identity was admitted. This is bounded same-host reproducibility evidence, not a guarantee for every build environment.
 
 The supported platform is `x86_64-linux`. The adapter crate uses `GPL-2.0-only` because the selected repository wrapper declares `GPL-2.0`.
+
+## License scope
+
+The adapter links the Pijul libraries; this is not merely invocation of a separately installed GPL executable. Its `GPL-2.0-only` package declaration is an exception to the workspace's default `MIT OR Apache-2.0` declaration. The fixture-producing Pijul executable and each linked library retain their own upstream terms. The legacy `GPL-2.0` spelling above is the repository wrapper's declaration, not a new grant of later-version rights.
+
+Distribution of this adapter and binaries incorporating it must account for the applicable GPL terms, notices, and corresponding-source obligations. This does not relicense unrelated Kiln packages or prohibit publishing this source. See the repository [license map](../LICENSES.md) and included [GPL version 2 text](../LICENSE-GPL-2.0); do not assume that every combination with other copyleft adapters is distributable under one license.
 
 ## Profile
 

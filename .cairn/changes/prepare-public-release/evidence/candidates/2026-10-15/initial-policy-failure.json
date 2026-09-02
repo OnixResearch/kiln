@@ -1,0 +1,18 @@
+{
+  "name": "cairn-policy-fixtures",
+  "source_revision": "fba69f04b4daa9174b42278ef0842520fe4ec0c5",
+  "archive_blake3": "6183ebf53ec4831d3f3d355ee30bc41d769af02c68998673534608c03a9b99df",
+  "command": [
+    "nix",
+    "develop",
+    "path:/tmp/kiln-public-candidate-k9030vr9/clean",
+    "--no-write-lock-file",
+    "-c",
+    "bash",
+    "tests/cairn-workflow-policy.sh"
+  ],
+  "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean",
+  "exit_code": 4,
+  "stdout": "policy fresh: cairn-policy/generated/cairn-policy.json\n",
+  "stderr": "error: change not found: add-onix-nix-evaluator-cohort\n"
+}

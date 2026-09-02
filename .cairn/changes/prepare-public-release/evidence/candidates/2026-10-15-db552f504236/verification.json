@@ -1,0 +1,1285 @@
+{
+  "schema": "kiln.local-candidate-verification.v1",
+  "state": "PASS-local-only-publication-not-authorized",
+  "observed_at_utc": "2026-10-15T18:06:44.965320+00:00",
+  "owner": "Kiln maintainers",
+  "source": {
+    "revision": "db552f504236b3e330be46618e2fd29fb864f190",
+    "change": "txsnymryzqurqsoxvwwysmwvsvluqnnt",
+    "local_bookmark": "publication-candidate-2026-10-15",
+    "archive_blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+    "archive_bytes": 6051840,
+    "archive_format": "ustar",
+    "manifest": "source-manifest.json",
+    "manifest_blake3": "b2910c76b9c20eeb8d3b0b81730e22a6ee10c6401ff19dc969e521ad2f7ad93e",
+    "entries": 719
+  },
+  "binding": {
+    "source": "candidate.ncl",
+    "source_blake3": "b5365cfdb93df14cab5f5ffbfafae0361f799a46617d69d9906b1ae4b6021a17",
+    "export": "candidate.json",
+    "export_blake3": "8406ac0e44e38ee3e874fcd4781a4196b30ac45c4aaab7a1f5cc8731552f3c5c"
+  },
+  "environment": {
+    "cleared_before_commands": true,
+    "variables": {
+      "PATH": "/run/current-system/sw/bin:/usr/bin:/bin",
+      "HOME": "/tmp/kiln-public-candidate-k9030vr9/home-db552f504236",
+      "USER": "brittonr",
+      "LOGNAME": "brittonr",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "NO_COLOR": "1",
+      "TMPDIR": "/tmp/kiln-public-candidate-k9030vr9/tmp",
+      "CARGO_HOME": "/tmp/kiln-public-candidate-k9030vr9/home-db552f504236/cargo",
+      "CARGO_TARGET_DIR": "/tmp/kiln-public-candidate-k9030vr9/target",
+      "CARGO_BUILD_JOBS": "4",
+      "GIT_TERMINAL_PROMPT": "0",
+      "GIT_CONFIG_NOSYSTEM": "1",
+      "GIT_CONFIG_GLOBAL": "/dev/null",
+      "GIT_ALLOW_PROTOCOL": "https",
+      "XDG_CACHE_HOME": "/tmp/kiln-public-candidate-k9030vr9/home-db552f504236/.cache",
+      "XDG_CONFIG_HOME": "/tmp/kiln-public-candidate-k9030vr9/home-db552f504236/.config",
+      "XDG_DATA_HOME": "/tmp/kiln-public-candidate-k9030vr9/home-db552f504236/.local/share",
+      "NIX_CONFIG": "experimental-features = nix-command flakes\nsubstituters = https://cache.nixos.org\nbuilders =\naccept-flake-config = false\nsandbox = true\nmax-jobs = 2\ncores = 4\n"
+    },
+    "home_created_empty": true,
+    "cargo_home_created_empty": true,
+    "agent_and_secret_variables_present": [],
+    "clean_source_contains_vcs_metadata": false,
+    "all_resolved_local_manifests_within_clean_source": true,
+    "nix_store_scope": "Ordinary daemon store reused; only https://cache.nixos.org admitted as a binary substituter; remote builders disabled; build sandbox enabled."
+  },
+  "checks": [
+    {
+      "name": "cairn-policy-fixtures",
+      "command": [
+        "nix",
+        "develop",
+        "path:/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+        "--no-write-lock-file",
+        "-c",
+        "bash",
+        "tests/cairn-workflow-policy.sh"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "stdout": "policy fresh: cairn-policy/generated/cairn-policy.json\nCairn accepts the selected spec-driven profile and denies missing outcome-machine\n",
+      "stderr": ""
+    },
+    {
+      "name": "worker-sqlite-fixtures",
+      "command": [
+        "/home/brittonr/.hermes/node/bin/node",
+        "--test",
+        "tests/celld-worker.test.mjs"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.362,
+      "stdout": "\u2714 signed Worker append persists event, outbox, revision and exact idempotency (34.797709ms)\n\u2714 pre-ledger schema-1 history cannot silently acquire identity through append (12.186449ms)\n\u2714 real SQLite abort after event insert rolls back linked outbox and operation (11.010351ms)\n\u2714 a nonce/operation boundary collision cannot reuse another signed envelope (5.42222ms)\n\u2714 signature, nonce, stale revision and private route fail at correct boundaries (14.401507ms)\n\u2714 declared batch and request bounds reject before SQLite mutation (66.269814ms)\n\u2714 stored schema mismatch blocks new mutations despite a valid signature (16.460613ms)\n\u2714 signed read and exact operation lookup use durable SQL, not a fabricated snapshot (22.238541ms)\n\u2714 bounded replay reads ordered committed SQLite rows (13.051983ms)\n\u2714 signed lease claim retains planned facts and evidence across SQLite reopen (34.278914ms)\n\u2714 signed 0-to-1 empty schema migration retains exact identity and ledger (19.75076ms)\n\u2714 migration identity, edge and injected ledger failure cannot partially change schema (19.815873ms)\n\u2714 signed requests reject incompatible, missing or disabled declared cohorts before object resolution (6.639124ms)\n\u2714 authenticated Worker response binds the observed deployment, revision and schema (4.787949ms)\n\u2714 lease ledger write failure rolls back conditional lease and nonce together (11.333377ms)\n\u2714 invalid signatures and nonempty prior schema reject before admitted migration (9.541844ms)\n\u2139 tests 16\n\u2139 suites 0\n\u2139 pass 16\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 342.372456\n",
+      "stderr": ""
+    },
+    {
+      "name": "strict-validation",
+      "command": [
+        "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json",
+        "--strict"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.011,
+      "receipt": {
+        "change_issues": [],
+        "changes": 4,
+        "cross_repo_dependencies": [],
+        "cross_repo_evidence_issues": [],
+        "findings": [],
+        "issues": [],
+        "layout": "cairn",
+        "policy": "kiln-default",
+        "policy_selection": {
+          "blake3": "a4da8d09199898c2ddc887c538e3dcb0415b3e13abe594cc80c642ea65649ccd",
+          "installation_receipt": false,
+          "locator": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "profile_issues": [],
+        "receipt_hash": "e9dd53e18867196d9ac0ddcefc3ebff7a995dd2d203220921630c3c498bfaf7d",
+        "resolution": {
+          "diagnostics": [],
+          "locator_consulted": false,
+          "registry_lookup": "local_locator_only",
+          "selected": {
+            "project_identity": null,
+            "root": ".",
+            "source": "explicit_root",
+            "store_id": null,
+            "store_identity": null
+          },
+          "valid": true
+        },
+        "spec_findings": [],
+        "spec_issues": [],
+        "spec_substance": [
+          {
+            "path": "./.cairn/changes/observation-http-shell/specs/observation-http-shell/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/changes/observation-iroh-shell/specs/observation-iroh-shell/spec.md",
+            "requirement_blocks": 7,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 7
+          },
+          {
+            "path": "./.cairn/changes/observation-projection/specs/observation-projection/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+            "requirement_blocks": 3,
+            "scenario_blocks": 6,
+            "substantive_requirement_blocks": 3
+          },
+          {
+            "path": "./.cairn/specs/cairn-gate-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/cdevents-interchange-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/celld-event-store-adapter/spec.md",
+            "requirement_blocks": 12,
+            "scenario_blocks": 24,
+            "substantive_requirement_blocks": 12
+          },
+          {
+            "path": "./.cairn/specs/change-gating/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/ci-domain/spec.md",
+            "requirement_blocks": 9,
+            "scenario_blocks": 9,
+            "substantive_requirement_blocks": 9
+          },
+          {
+            "path": "./.cairn/specs/durable-operations/spec.md",
+            "requirement_blocks": 13,
+            "scenario_blocks": 13,
+            "substantive_requirement_blocks": 13
+          },
+          {
+            "path": "./.cairn/specs/git-source-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/interchange-projections/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/lattice-workflow-adapter/spec.md",
+            "requirement_blocks": 9,
+            "scenario_blocks": 15,
+            "substantive_requirement_blocks": 9
+          },
+          {
+            "path": "./.cairn/specs/mantle-build-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/nix-eval-jobs-adapter/spec.md",
+            "requirement_blocks": 12,
+            "scenario_blocks": 25,
+            "substantive_requirement_blocks": 12
+          },
+          {
+            "path": "./.cairn/specs/opentelemetry-projection-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/provider-ports/spec.md",
+            "requirement_blocks": 15,
+            "scenario_blocks": 15,
+            "substantive_requirement_blocks": 15
+          },
+          {
+            "path": "./.cairn/specs/radicle-ci-compatibility/spec.md",
+            "requirement_blocks": 13,
+            "scenario_blocks": 16,
+            "substantive_requirement_blocks": 13
+          },
+          {
+            "path": "./.cairn/specs/radicle-cob-support/spec.md",
+            "requirement_blocks": 12,
+            "scenario_blocks": 22,
+            "substantive_requirement_blocks": 12
+          },
+          {
+            "path": "./.cairn/specs/radicle-mutation/spec.md",
+            "requirement_blocks": 4,
+            "scenario_blocks": 7,
+            "substantive_requirement_blocks": 4
+          },
+          {
+            "path": "./.cairn/specs/radicle-source-contract/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/radicle-status/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 14,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/remote-execution-compatibility/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/repository-hosting/spec.md",
+            "requirement_blocks": 14,
+            "scenario_blocks": 14,
+            "substantive_requirement_blocks": 14
+          },
+          {
+            "path": "./.cairn/specs/repository-lifecycle/spec.md",
+            "requirement_blocks": 1,
+            "scenario_blocks": 3,
+            "substantive_requirement_blocks": 1
+          },
+          {
+            "path": "./.cairn/specs/source-collaboration/spec.md",
+            "requirement_blocks": 18,
+            "scenario_blocks": 34,
+            "substantive_requirement_blocks": 18
+          },
+          {
+            "path": "./.cairn/specs/sqlite-event-store-adapter/spec.md",
+            "requirement_blocks": 7,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 7
+          },
+          {
+            "path": "./.cairn/specs/task-operations/spec.md",
+            "requirement_blocks": 13,
+            "scenario_blocks": 24,
+            "substantive_requirement_blocks": 13
+          },
+          {
+            "path": "./.cairn/specs/valence-evidence-adapter/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 8,
+            "substantive_requirement_blocks": 5
+          },
+          {
+            "path": "./.cairn/specs/webhook-notification-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          }
+        ],
+        "specs_validated": 30,
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 23,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/specs/observation-http-shell/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_lines": 36,
+            "substantive_requirement_blocks": 6,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 16,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 16,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 16
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 23,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 17,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/specs/observation-iroh-shell/spec.md",
+            "requirement_blocks": 7,
+            "scenario_blocks": 12,
+            "substantive_lines": 43,
+            "substantive_requirement_blocks": 7,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 21,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 21,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 21,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 21
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 22,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 17,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/specs/observation-projection/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 12,
+            "substantive_lines": 42,
+            "substantive_requirement_blocks": 6,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 15,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 15,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 15,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 15
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+            "requirement_blocks": 3,
+            "scenario_blocks": 6,
+            "substantive_lines": 21,
+            "substantive_requirement_blocks": 3,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 11,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 22,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 11,
+            "task_done": 7,
+            "task_in_progress": 0,
+            "task_todo": 4
+          }
+        ],
+        "substance_findings": [],
+        "substance_issues": [],
+        "valid": true,
+        "workflow_profiles": [
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "17d6b033bed3d3131e610bdf8bbe633e9aa6bcca36735e91cf547588590c84b0",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "1071a9e4ec7f83856d7bd2d5e02513fd7d5c956fa61cc7586d10c6b79f4c851b",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "140803fac70a646f678ef0e977e9664d2cb6b43368afcc5aece79173ba86bab4",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "1f431e4266d9e948538bdaffc7bffc612b2abb20f6c928e0b3a93a10173bc08a",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "traceability",
+      "command": [
+        "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.011,
+      "receipt": {
+        "command": "traceability coverage",
+        "dangling": [],
+        "input_hash": "ad23019301d43caf8ffe223591e2152aa4c4c51aac66bdb257f1bf63722dfd4c",
+        "missing": [],
+        "policy": "kiln-default",
+        "policy_hash": "4260d86df8c297ff00650f992ef60eb1ead498200423787faae672889ec0afd5",
+        "profile": {
+          "anchor_kind": "exact_marker_bytes",
+          "assurance_level": "declared",
+          "evidence_sources": [
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "crates",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "ncl"
+              ],
+              "root": "crates",
+              "source_kind": "nickel_source"
+            },
+            {
+              "extensions": [
+                "rs",
+                "ncl"
+              ],
+              "root": "tools",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs"
+              ],
+              "root": "src",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs",
+                "sh"
+              ],
+              "root": "tests",
+              "source_kind": "tool_source"
+            }
+          ],
+          "id": "cairn-default",
+          "marker_verbs": [
+            "impl",
+            "verify",
+            "depends",
+            "related"
+          ],
+          "requirement_sources": [
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/specs",
+              "source_kind": "accepted_specs"
+            }
+          ]
+        },
+        "profile_id": "cairn-default",
+        "receipt_hash": "f5ba76eb8b4a36ab7b9439c9584d17cb84b9528d397cef9bb8c19ee08a0609a9",
+        "referenced": 567,
+        "requirements": 567,
+        "root": ".",
+        "source_summary": {
+          "evidence_files": 125,
+          "evidence_manifest_hash": "c889be065439bc2a62d1f0e610dbc456ce8bddace7c8bd7bbc79cb1eba87fedb",
+          "requirement_files": 26,
+          "requirement_manifest_hash": "6bb4b670152445555512977568bbef2500917491914cc6510eda7e786136c178"
+        },
+        "valid": true,
+        "verdict": "pass"
+      }
+    },
+    {
+      "name": "proposal-gate",
+      "command": [
+        "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+        "gate",
+        "proposal",
+        "prepare-public-release",
+        "--root",
+        ".",
+        "--policy",
+        "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.006,
+      "receipt": {
+        "acceptance_ids": [],
+        "change": "prepare-public-release",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "364e6ef67aa50bcfeee8875780db30261e33da890d941ba59484646a1b141b5a",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4260d86df8c297ff00650f992ef60eb1ead498200423787faae672889ec0afd5",
+        "policy_selection": {
+          "blake3": "a4da8d09199898c2ddc887c538e3dcb0415b3e13abe594cc80c642ea65649ccd",
+          "installation_receipt": false,
+          "locator": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": null,
+        "profile_identity_hash": "1f431e4266d9e948538bdaffc7bffc612b2abb20f6c928e0b3a93a10173bc08a",
+        "receipt_hash": "5438c5a7c7f870173527c35dd94923966fa9afbaa185206e6c7530825ae1ca81",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "proposal",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "design-gate",
+      "command": [
+        "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+        "gate",
+        "design",
+        "prepare-public-release",
+        "--root",
+        ".",
+        "--policy",
+        "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.006,
+      "receipt": {
+        "acceptance_ids": [],
+        "change": "prepare-public-release",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "fc251581014327fb0bc7dd8948bcddd38a785a53e4c96de465b36194a2435144",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4260d86df8c297ff00650f992ef60eb1ead498200423787faae672889ec0afd5",
+        "policy_selection": {
+          "blake3": "a4da8d09199898c2ddc887c538e3dcb0415b3e13abe594cc80c642ea65649ccd",
+          "installation_receipt": false,
+          "locator": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": null,
+        "profile_identity_hash": "1f431e4266d9e948538bdaffc7bffc612b2abb20f6c928e0b3a93a10173bc08a",
+        "receipt_hash": "da343030d6276c73cf03dfaee03bbcf1db4a6c2156d4675859203b12877a3f87",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "design",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+            "requirement_blocks": 3,
+            "scenario_blocks": 6,
+            "substantive_lines": 21,
+            "substantive_requirement_blocks": 3,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "tasks-gate",
+      "command": [
+        "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+        "gate",
+        "tasks",
+        "prepare-public-release",
+        "--root",
+        ".",
+        "--policy",
+        "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.007,
+      "receipt": {
+        "acceptance_ids": [],
+        "change": "prepare-public-release",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "8a076cc0ea74047b4fbc4a1ad275cd372d82304ca96c95bd7f98e60ed5cd63d9",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4260d86df8c297ff00650f992ef60eb1ead498200423787faae672889ec0afd5",
+        "policy_selection": {
+          "blake3": "a4da8d09199898c2ddc887c538e3dcb0415b3e13abe594cc80c642ea65649ccd",
+          "installation_receipt": false,
+          "locator": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236/cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": {
+          "declarations_present": false,
+          "probes": []
+        },
+        "profile_identity_hash": "1f431e4266d9e948538bdaffc7bffc612b2abb20f6c928e0b3a93a10173bc08a",
+        "receipt_hash": "51725972c6e520c306edc3b602ffcd3cfbd816c1258a1b65f53e3b300fced792",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "tasks",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+            "requirement_blocks": 3,
+            "scenario_blocks": 6,
+            "substantive_lines": 21,
+            "substantive_requirement_blocks": 3,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 11,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 22,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 11,
+            "task_done": 7,
+            "task_in_progress": 0,
+            "task_todo": 4
+          }
+        ],
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        },
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "credential-isolated-cargo-fetch",
+      "command": [
+        "nix",
+        "develop",
+        "path:/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+        "--no-write-lock-file",
+        "-c",
+        "cargo",
+        "fetch",
+        "--locked"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 4.67,
+      "fresh_cargo_home": true,
+      "stdout_excerpts": [
+        "Updating crates.io index",
+        "Downloading crates ...",
+        "Downloaded serde_bytes v0.11.19",
+        "Downloaded serde_derive v1.0.229"
+      ],
+      "scope": "Completed background tool result; registry source archives downloaded into the new candidate-specific CARGO_HOME with credentials absent."
+    },
+    {
+      "name": "locked-offline-cargo-metadata",
+      "command": [
+        "nix",
+        "develop",
+        "path:/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+        "--no-write-lock-file",
+        "-c",
+        "cargo",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--format-version",
+        "1"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 1.804,
+      "workspace_members": 24,
+      "resolved_packages": 403,
+      "registry_packages": 372,
+      "git_packages": [],
+      "local_manifests_within_clean_source": true
+    },
+    {
+      "name": "credential-isolated-flake-source-archive",
+      "command": [
+        "nix",
+        "flake",
+        "archive",
+        "path:/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+        "--no-write-lock-file",
+        "--json"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.061,
+      "acquired_nodes": 8,
+      "receipt": {
+        "inputs": {
+          "nix-eval-jobs": {
+            "inputs": {
+              "flake-parts": {
+                "inputs": {},
+                "path": "/nix/store/pqjppkj5kcs4001j5svlsz1595hcja0y-source"
+              },
+              "nix": {
+                "inputs": {},
+                "path": "/nix/store/mxqs2kx71n63lrrc1cgh037q9f862r3y-source"
+              },
+              "nixpkgs": {
+                "inputs": {},
+                "path": "/nix/store/qs19c087rpasj7p8h8l8z8y80gxz9pwi-source"
+              },
+              "treefmt-nix": {
+                "inputs": {},
+                "path": "/nix/store/j2wzjpy3yyr56yv1klygrm7mya0kb2f0-source"
+              }
+            },
+            "path": "/nix/store/xx7385j23r97ra2x4j9mdh6lcs4pnwcq-source"
+          },
+          "nixpkgs": {
+            "inputs": {},
+            "path": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source"
+          },
+          "rust-overlay": {
+            "inputs": {},
+            "path": "/nix/store/gjx3mziwj0g4azg30z4irhkl8jsw8y26-source"
+          }
+        },
+        "path": "/nix/store/mr2y81xjdz3l4a4dwxm4qwlp0nnr6k6m-source"
+      },
+      "scope": "Fresh HOME/XDG caches and no credentials; ordinary daemon store and public binary cache reused, not a cold-store bootstrap."
+    },
+    {
+      "name": "full-flake-check",
+      "command": [
+        "nix",
+        "flake",
+        "check",
+        "path:/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+        "--no-write-lock-file",
+        "-L"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 150.69,
+      "system": "x86_64-linux",
+      "omitted_incompatible_systems": [
+        "aarch64-linux"
+      ],
+      "verdict": "PASS",
+      "checks": {
+        "boundaries": "/nix/store/yhga5pg26lfq63ywlzpjnvpc1xf85q8a-kiln-0.1.0.drv",
+        "cairn-gate-cohort": "/nix/store/mpnjn77z07nayz0v57dg2gvbdxyy4pqi-kiln-cairn-gate-cohort.drv",
+        "celld-boundaries": "/nix/store/hykc9pzzjxfhqfk8046c7sf12a0wifsf-kiln-celld-boundaries-0.1.0.drv",
+        "clippy": "/nix/store/5m6v3nfs5hmpcva3zd806fqcjnjf6mwm-kiln-clippy-0.1.0.drv",
+        "format": "/nix/store/pl8krbn1ghnzwq3xqqnzddrliii0l2g4-kiln-format.drv",
+        "mantle-build-cohort": "/nix/store/fl78ymw7lzq7y0psmawri8mwwnhx656k-kiln-mantle-build-cohort.drv",
+        "nickel": "/nix/store/ix7jmqixvqyqnxknm4wwgn2d12a3y6g8-kiln-nickel.drv",
+        "nix-eval-fixture-process": "/nix/store/fhhx5msyk0z03r2kr5mvkmvss27jbqp6-kiln-nix-eval-fixture-process-0.1.0.drv",
+        "nix-eval-jobs-cohort": "/nix/store/19z3sfdfxdx0k68l9098gj2clinrm29c-kiln-nix-eval-jobs-cohort.drv",
+        "no-std": "/nix/store/qy936ajgjqy49jzsw4kyjvsm6af4qn94-kiln-no-std-0.1.0.drv",
+        "package": "/nix/store/yhga5pg26lfq63ywlzpjnvpc1xf85q8a-kiln-0.1.0.drv",
+        "pijul-cohort": "/nix/store/izyrnvxq04mz2hxnrpp112jf81rhxfh5-kiln-pijul-cohort.drv",
+        "pijul-native-fixtures": "/nix/store/392pib32yw15x59a019nkpqjybr8cifx-kiln-pijul-native-fixtures-0.1.0.drv",
+        "radicle-mutation-native-fixtures": "/nix/store/n1xkcbkpvf425f5664kvf6is4x49bnjf-kiln-radicle-mutation-native-fixtures-0.1.0.drv",
+        "radicle-source-contract-fixtures": "/nix/store/2q4chjz23ybyrp5aqqdy22ksg8y93ja0-kiln-radicle-source-contract-fixtures-0.1.0.drv",
+        "radicle-source-native-fixtures": "/nix/store/jk2kqqpp9x8iv389vnh06a8xd7x07y7x-kiln-radicle-source-native-fixtures-0.1.0.drv",
+        "radicle-status-boundaries": "/nix/store/1pzxs9z9vz7jlmhrs2c15rmp9ri3yq6h-kiln-radicle-status-boundaries-0.1.0.drv",
+        "radicle-status-cohort": "/nix/store/5gl29x4bf20297abp7y2m2p8n60xsc8s-kiln-radicle-status-cohort.drv",
+        "radicle-status-native-fixtures": "/nix/store/sx0knas7rbifg823z3vf5wzaqzb7ap2b-kiln-radicle-status-native-fixtures-0.1.0.drv",
+        "release-evidence": "/nix/store/w7imckly873lz36fsl02k6zcwnkl6ypf-kiln-release-evidence.drv",
+        "runtime-independence": "/nix/store/yhga5pg26lfq63ywlzpjnvpc1xf85q8a-kiln-0.1.0.drv",
+        "tests": "/nix/store/yhga5pg26lfq63ywlzpjnvpc1xf85q8a-kiln-0.1.0.drv"
+      },
+      "workspace_tests": {
+        "passed": 325,
+        "failed": 0,
+        "ignored": 2
+      },
+      "package_derivation": "/nix/store/yhga5pg26lfq63ywlzpjnvpc1xf85q8a-kiln-0.1.0.drv",
+      "package_output": "/nix/store/5xvdvsgx0mwvdryrlgy4jdsyqga8i9aw-kiln-0.1.0",
+      "scope": "All host-compatible flake checks passed; the release-evidence attribute checks historical rendering only, not this candidate by itself."
+    },
+    {
+      "name": "packaged-cli-demo",
+      "command": [
+        "nix",
+        "run",
+        "path:/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236#kiln",
+        "--no-write-lock-file",
+        "--",
+        "demo"
+      ],
+      "cwd": "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "exit_code": 0,
+      "seconds": 0.49,
+      "output": {
+        "revision": 1,
+        "runs": {
+          "demo-run": {
+            "active_attempt": "demo-attempt",
+            "outcome": "Pending"
+          }
+        },
+        "attempts": {
+          "demo-attempt": {
+            "run_id": "demo-run",
+            "provider_profile": "standalone-build-v1",
+            "outcome": "Pending",
+            "external_reference": null,
+            "products": [],
+            "metrics": []
+          }
+        },
+        "holds": [],
+        "seen_commands": [
+          "demo-start"
+        ]
+      }
+    },
+    {
+      "name": "source-and-archive-stability",
+      "source_entries": 719,
+      "post_check_files_unchanged": true,
+      "reexported_archive_blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+      "archive_blake3_matches": true,
+      "exit_code": 0
+    }
+  ],
+  "workspace_tests": {
+    "passed": 325,
+    "failed": 0,
+    "ignored": 2
+  },
+  "flake_check_attributes": 22,
+  "logs": [
+    {
+      "path": "workspace-build.log",
+      "blake3": "40eeac8d675166d592c22795d140d4ca03ade5486af53522124bbbde95d103dd",
+      "kind": "native Nix package build/test log"
+    },
+    {
+      "path": "flake-check.log",
+      "blake3": "54ec24e1614e72d9b01ffe445b8bca0cf113c54546347cc135d527f3e8df0d10",
+      "kind": "complete captured final flake-check tool output"
+    }
+  ],
+  "archive_reproduction": {
+    "argv_prefix": [
+      "tar",
+      "--create",
+      "--file",
+      "-",
+      "--directory",
+      "/tmp/kiln-public-candidate-k9030vr9/clean-db552f504236",
+      "--format=ustar",
+      "--sort=name",
+      "--mtime=@0",
+      "--owner=0",
+      "--group=0",
+      "--numeric-owner",
+      "--mode=u=rwX,go=rX",
+      "--no-recursion",
+      "--"
+    ],
+    "path_arguments_from": "source-manifest.json entries in lexical order",
+    "lc_all": "C",
+    "reexported_blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+    "same_bytes": true
+  },
+  "rollback": {
+    "revision": "b16f8792849cd3e2f2802c9a5063d5567a68f389",
+    "local_object_present": true,
+    "description": "",
+    "runtime_rollback_exercised": false
+  },
+  "historical_evidence_preserved": {
+    "evidence/publication-candidate.ncl": "df1513f4d20a59b11ee6adab0fbc789a7624d40fc936a0b44948138269f21112",
+    "evidence/publication-receipt.ncl": "59dfb99050f968f6ef7aa6566152f2324f002dc86f21086beaad561eb18c479f",
+    "evidence/release-input.ncl": "e44e358220aa3efe9f5dfb5fa6a2b5fbd903f24763d2e462988e8cd1ded7ce13",
+    "evidence/release-evidence.json": "67eb7312aa9ab9b5baba06ef30a51188a35a1a4acb481b3263535672cd1c6cf2"
+  },
+  "superseded_attempt": {
+    "revision": "fba69f04b4daa9174b42278ef0842520fe4ec0c5",
+    "record": "../2026-10-15/attempt.json",
+    "policy_failure": "../2026-10-15/initial-policy-failure.json",
+    "scope": "The initial candidate failed because the policy fixture named the excluded Onix draft. The fixture target was corrected before final archive/checks. The initial full flake check was cancelled, not reported as passing."
+  },
+  "authority": {
+    "local_preparation_authorized": true,
+    "new_publication_authorized": false,
+    "signing_performed": false,
+    "push_performed": false,
+    "synchronization_performed": false,
+    "announcement_performed": false,
+    "governance_mutation_performed": false,
+    "mirror_publication_performed": false,
+    "specification_sync_or_lifecycle_archive_performed": false
+  },
+  "non_claims": [
+    "No new canonical publication or signed-reference acquisition receipt is established.",
+    "aarch64-linux was omitted as incompatible, not built or reported passing.",
+    "The two opt-in live Celld tests were ignored; no live deployment is claimed.",
+    "Fresh credential-isolated source acquisition is not a cold bootstrap of every toolchain/native dependency.",
+    "No exhaustive history secret audit, exhaustive license-compatibility clearance, or binary-distribution authorization is claimed.",
+    "Local gates and tests do not prove external provider correctness or future availability.",
+    "These final observations belong to a later evidence-only revision, not to the source archive they identify."
+  ]
+}

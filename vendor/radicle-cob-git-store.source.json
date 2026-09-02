@@ -1,0 +1,17 @@
+{
+  "package": "onix-radicle-cob-git-store",
+  "version": "0.2.0",
+  "license": "MIT OR Apache-2.0",
+  "source_commit": "a87ca01412fb62e69171925d79d2d6b0a23a7e72",
+  "archive_format": "git archive --format=tar",
+  "archive_blake3": "7c2902aee85ebcc923b1e7f9004d6235b550ddf18053194dd6c9286ef05859e6",
+  "importer": "scripts/import-radicle-cob-git-store.sh",
+  "upstream_cohort": {
+    "radicle-cob": "0.21.1",
+    "radicle-crypto": "0.19.0",
+    "git2": "0.21.0",
+    "radicle-oid": "0.2.2",
+    "radicle-git-ref-format": "0.2.0"
+  },
+  "nonclaims": "A local archive digest does not establish remote publication, source authority, actor trust, or distributed consistency."
+}

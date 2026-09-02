@@ -8,12 +8,16 @@ rust-version.workspace = true
 [dependencies]
 blake3.workspace = true
 hmac = "=0.12.1"
+getrandom = "=0.3.4"
 sha2 = "=0.10.9"
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+rustls = { version = "=0.23.43", default-features = false, features = ["ring", "std"] }
+rustls-pemfile = "=2.2.0"
+ureq = { version = "=2.12.1", default-features = false, features = ["tls"] }
 zeroize.workspace = true
 
 [dev-dependencies]

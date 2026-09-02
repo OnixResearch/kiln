@@ -1,0 +1,302 @@
+{
+  "schema": "kiln.authorized-candidate-ref-push.v1",
+  "state": "PASS-exact-delegate-ref-push-and-observed-readback",
+  "recorded_at_utc": "2026-10-15T18:34:13.080189+00:00",
+  "owner": "Kiln maintainers",
+  "authority": {
+    "basis": "Operator explicitly requested push after the frozen candidate and evidence revisions were reported.",
+    "scope": "Only the two frozen candidate/evidence refs; exclude unfinished operator working-copy changes.",
+    "main_promotion_requested": false,
+    "governance_change_requested": false,
+    "binary_distribution_authorized": false
+  },
+  "target": {
+    "remote": "rad",
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "delegate": "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+    "namespace_read_url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+    "refs": {
+      "refs/heads/publication-candidate-2026-10-15": "db552f504236b3e330be46618e2fd29fb864f190",
+      "refs/heads/publication-evidence-2026-10-15": "9e6f565789744a65fd2173b8800755a2f7061d79"
+    }
+  },
+  "push": {
+    "observation_source": "Successful push command and tool output retained in the operator conversation before this receipt.",
+    "command": [
+      "jj",
+      "--ignore-working-copy",
+      "--config",
+      "signing.behavior=\"drop\"",
+      "git",
+      "push",
+      "--remote",
+      "rad",
+      "--bookmark",
+      "exact:publication-candidate-2026-10-15",
+      "--bookmark",
+      "exact:publication-evidence-2026-10-15"
+    ],
+    "exit_code": 0,
+    "reported_seed_sync_count": 3,
+    "reported_actions": [
+      {
+        "bookmark": "publication-candidate-2026-10-15",
+        "action": "add",
+        "revision": "db552f504236b3e330be46618e2fd29fb864f190"
+      },
+      {
+        "bookmark": "publication-evidence-2026-10-15",
+        "action": "add",
+        "revision": "9e6f565789744a65fd2173b8800755a2f7061d79"
+      }
+    ],
+    "reported_candidate_url": "https://app.radicle.xyz/nodes/iris.radicle.xyz/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/db552f504236b3e330be46618e2fd29fb864f190",
+    "reported_evidence_url": "https://app.radicle.xyz/nodes/iris.radicle.xyz/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/9e6f565789744a65fd2173b8800755a2f7061d79"
+  },
+  "governance": {
+    "before": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "before_observation_source": "Pre-push rad inspect --identity output in the operator conversation.",
+    "after": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "after_command": {
+      "command": [
+        "rad",
+        "inspect",
+        "--identity"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"payload\": {\n    \"xyz.radicle.project\": {\n      \"defaultBranch\": \"main\",\n      \"description\": \"Provider-neutral CI control plane\",\n      \"name\": \"Kiln\"\n    }\n  },\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    "unchanged": true,
+    "sigrefs": {
+      "before": "33f81572c6f508e8a4475d67ca2d7bba4049d312",
+      "before_observation_source": "Pre-push rad inspect --sigrefs output in the operator conversation.",
+      "after": "3f75ae151e913d09f78b4909bc31d5e7719d9905",
+      "feature": "parent",
+      "after_command": {
+        "command": [
+          "rad",
+          "inspect",
+          "--sigrefs"
+        ],
+        "exit_code": 0,
+        "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 3f75ae151e913d09f78b4909bc31d5e7719d9905 parent\n",
+        "stderr": ""
+      }
+    },
+    "main": {
+      "selected_for_push": false,
+      "observed_after": "5d99f4e9bb954743443e340baece31256b4c53f1"
+    }
+  },
+  "namespace_readback": {
+    "https": [
+      {
+        "url": "https://iris.radicle.xyz/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "method": "GET via read tool",
+        "result": "JSON namespace response received",
+        "response_excerpt": {
+          "id": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+          "delegate": true,
+          "heads": {
+            "publication-candidate-2026-10-15": "db552f504236b3e330be46618e2fd29fb864f190",
+            "publication-evidence-2026-10-15": "9e6f565789744a65fd2173b8800755a2f7061d79",
+            "main": "5d99f4e9bb954743443e340baece31256b4c53f1"
+          }
+        },
+        "scope": "Selected fields copied from the observed read-tool JSON response; not a separately signature-verified server statement."
+      },
+      {
+        "url": "https://rosa.radicle.xyz/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "method": "GET via read tool",
+        "result": "JSON namespace response received",
+        "response_excerpt": {
+          "id": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+          "delegate": true,
+          "heads": {
+            "publication-candidate-2026-10-15": "db552f504236b3e330be46618e2fd29fb864f190",
+            "publication-evidence-2026-10-15": "9e6f565789744a65fd2173b8800755a2f7061d79",
+            "main": "5d99f4e9bb954743443e340baece31256b4c53f1"
+          }
+        },
+        "scope": "Selected fields copied from the observed read-tool JSON response; not a separately signature-verified server statement."
+      },
+      {
+        "url": "https://seed.radicle.garden/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "method": "GET via read tool",
+        "result": "JSON namespace response received",
+        "response_excerpt": {
+          "id": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+          "delegate": true,
+          "heads": {
+            "publication-candidate-2026-10-15": "db552f504236b3e330be46618e2fd29fb864f190",
+            "publication-evidence-2026-10-15": "9e6f565789744a65fd2173b8800755a2f7061d79",
+            "main": "5d99f4e9bb954743443e340baece31256b4c53f1"
+          }
+        },
+        "scope": "Selected fields copied from the observed read-tool JSON response; not a separately signature-verified server statement."
+      }
+    ],
+    "native": {
+      "command": [
+        "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+        "--ignore-working-copy",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "publication-candidate-2026-10-15",
+        "--branch",
+        "publication-evidence-2026-10-15",
+        "--branch",
+        "main",
+        "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "/tmp/kiln-push-verify-8zb5b_bb/native-explicit"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/tmp/kiln-push-verify-8zb5b_bb/native-explicit\"\nbookmark: main@origin                             [new] untracked\nbookmark: publication-candidate-2026-10-15@origin [new] untracked\nbookmark: publication-evidence-2026-10-15@origin  [new] untracked\n",
+      "inspection_command": [
+        "jj",
+        "--ignore-working-copy",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "log",
+        "--no-graph",
+        "-r",
+        "remote_bookmarks()",
+        "-T",
+        "commit_id ++ \" \" ++ bookmarks ++ \"\\n\""
+      ],
+      "observed_bookmarks": {
+        "publication-candidate-2026-10-15": "db552f504236b3e330be46618e2fd29fb864f190",
+        "publication-evidence-2026-10-15": "9e6f565789744a65fd2173b8800755a2f7061d79",
+        "main": "5d99f4e9bb954743443e340baece31256b4c53f1"
+      },
+      "storage_scope": "Existing local Radicle storage; this native clone is not a fresh peer-to-peer network acquisition."
+    }
+  },
+  "source_readback": {
+    "revision": "db552f504236b3e330be46618e2fd29fb864f190",
+    "manifest": "candidates/2026-10-15-db552f504236/source-manifest.json",
+    "manifest_blake3": "b2910c76b9c20eeb8d3b0b81730e22a6ee10c6401ff19dc969e521ad2f7ad93e",
+    "matched_entries": 719,
+    "matched_facts": [
+      "exact tracked path set",
+      "regular-file type",
+      "byte length",
+      "executable flag",
+      "BLAKE3 file content identity"
+    ],
+    "checkout_command": [
+      "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "--config",
+      "signing.behavior=\"drop\"",
+      "git",
+      "clone",
+      "--no-colocate",
+      "--branch",
+      "publication-candidate-2026-10-15",
+      "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "/tmp/kiln-push-verify-8zb5b_bb/native-checked"
+    ],
+    "checkout_exit_code": 0,
+    "checkout_stdout": "",
+    "checkout_stderr": "Fetching into new repo in \"/tmp/kiln-push-verify-8zb5b_bb/native-checked\"\nbookmark: publication-candidate-2026-10-15@origin [new] untracked\nWorking copy  (@) now at: vzsqqsyn c7dbc505 (empty) (no description set)\nParent commit (@-)      : txsnymry db552f50 publication-candidate-2026-10-15@origin | Keep public-candidate policy fixtures independent of unfinished Onix work\nAdded 719 files, modified 0 files, removed 0 files\n",
+    "archive": {
+      "format": "ustar",
+      "bytes": 6051840,
+      "blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+      "matches_frozen_binding": true,
+      "command_prefix": [
+        "tar",
+        "--create",
+        "--file",
+        "/tmp/kiln-push-verify-8zb5b_bb/native-candidate-source.tar",
+        "--directory",
+        "/tmp/kiln-push-verify-8zb5b_bb/native-checked",
+        "--format=ustar",
+        "--sort=name",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--"
+      ],
+      "path_arguments": "source manifest entries in lexical order",
+      "lc_all": "C",
+      "exit_code": 0
+    },
+    "product_checks": "Not rerun for a ref-only push; prior exact-source checks remain in candidates/2026-10-15-db552f504236/verification.json."
+  },
+  "transport_limits": [
+    {
+      "probe": "Direct rad:// namespace clone with Jujutsu 0.45.1",
+      "result": "Failed: RID lowercased in local storage lookup.",
+      "exit_code": 1,
+      "error_excerpt": "failed to resolve path '/home/brittonr/.radicle/storage/z2wsvxm5s2sjgvuv1k5jhiwi1pbke': No such file or directory",
+      "resolution": "The exercised rad::rad:// explicit helper syntax preserves the case-sensitive RID."
+    },
+    {
+      "probe": "Post-push fetch of the two branch names through the unqualified rad remote canonical view",
+      "result": "The local remote-tracking entries were reported deleted/untracked because these heads were not advertised in that canonical view.",
+      "resolution": "Native namespace clone and public HTTPS namespace responses independently showed both actual delegate heads at the pushed revisions."
+    },
+    {
+      "probe": "Anonymous HTTPS Git clone of https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git selecting both publication branches and main",
+      "exit_code": 0,
+      "result": "Only main advertised; publication branch patterns did not match.",
+      "warning_excerpt": "Warning: No matching branches found on remote: publication-candidate-2026-10-15, publication-evidence-2026-10-15",
+      "checked_out_main": "5d99f4e9bb954743443e340baece31256b4c53f1",
+      "credential_scope": "Fresh HOME; environment cleared except the explicitly supplied executable path, identity labels, locale, and Git noninteractive/HTTPS-only settings.",
+      "scope": "Does not prove HTTPS Git byte acquisition of the new candidate."
+    }
+  ],
+  "verification_probe_corrections": [
+    "An initial scratch clone used --ignore-working-copy. Materializing it with jj new was rejected as stale; a fresh clone without that flag successfully materialized all 719 files.",
+    "An initial throwaway comparison incorrectly required Jujutsu traversal order to equal the lexically sorted archive manifest. Both sets contained exactly the same 719 paths; comparison was corrected to sort the acquired list before hashing and archive reconstruction."
+  ],
+  "receipt_scope": {
+    "local_only": true,
+    "included_in_pushed_evidence_revision": false,
+    "frozen_candidate_and_evidence_revisions_unchanged": true,
+    "historical_publication_receipt_unchanged": true,
+    "unfinished_onix_changes_selected_for_push": false
+  },
+  "non_claims": [
+    "This records a delegate-ref push, not default-branch promotion or a new complete canonical-publication receipt.",
+    "Three reported synchronized seeds and three responding HTTPS origins are not proof of three independent physical replicas.",
+    "HTTPS API ref observations are not a fresh HTTPS Git archive acquisition or a separate cryptographic verification of server claims.",
+    "The native clone reads existing local Radicle storage and does not establish fresh peer-to-peer acquisition.",
+    "Source identity does not prove source correctness, runtime behavior, license compatibility of combined binaries, release eligibility, seed trust, or future availability.",
+    "No governance change, mirror publication, binary release, lifecycle archive, or fresh product-check run is claimed."
+  ]
+}

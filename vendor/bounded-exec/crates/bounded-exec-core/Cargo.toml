@@ -1,0 +1,12 @@
+[package]
+name = "bounded-exec-core"
+description = "Deterministic no-std validation and outcome classification for bounded child-process execution."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

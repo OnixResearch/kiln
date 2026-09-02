@@ -19,6 +19,7 @@ use kiln_core::types::{
 };
 use kiln_provider_api::{CollaborationMutationOutcome, CollaborationMutationPort, PortFailure};
 use nonempty::NonEmpty;
+use onix_radicle_cob_git_store::GitCobStore;
 use radicle_cob::object::collaboration;
 use radicle_cob::{Create, Entry, ObjectId, TypeName, Update, Version};
 use radicle_crypto::PublicKey;
@@ -95,7 +96,7 @@ fn initialize_fixture() -> Fixture {
     let signer =
         ResolvedSigner::from_resolved_secret(PRIMARY_SEED).unwrap_or_else(|_| unreachable!());
     let namespace = PublicKey::from_str(signer.public_key()).unwrap_or_else(|_| unreachable!());
-    let store = kiln_adapter_radicle::status::storage::CobRepository::new(&repository);
+    let store = GitCobStore::new(&repository);
     let revision = format!(
         "{{\"type\":\"revision\",\"description\":\"Fixture revision\",\"base\":\"{BASE_OID}\",\"oid\":\"{BASE_OID}\"}}"
     )
@@ -206,13 +207,10 @@ fn append_foreign_head(fixture: &Fixture) -> String {
         .unwrap_or_else(|_| unreachable!());
     let secondary =
         ResolvedSigner::from_resolved_secret(SECONDARY_SEED).unwrap_or_else(|_| unreachable!());
-    let namespace =
+    let primary_namespace =
         PublicKey::from_str(fixture.signer.public_key()).unwrap_or_else(|_| unreachable!());
-    let expected = radicle_oid::Oid::from_str(&fixture.head_id).unwrap_or_else(|_| unreachable!());
-    let store = kiln_adapter_radicle::status::storage::CobRepository::with_expected_ref(
-        &repository,
-        expected,
-    );
+    let namespace = PublicKey::from_str(secondary.public_key()).unwrap_or_else(|_| unreachable!());
+    let store = GitCobStore::new(&repository);
     let payload = format!(
         "{{\"type\":\"review\",\"revision\":\"{}\",\"summary\":\"Foreign review\",\"verdict\":\"reject\"}}",
         fixture.revision_id
@@ -233,6 +231,16 @@ fn append_foreign_head(fixture: &Fixture) -> String {
         },
     )
     .unwrap_or_else(|_| unreachable!());
+    let type_name = TypeName::from_str(PATCH_TYPE_NAME).unwrap_or_else(|_| unreachable!());
+    let object_id = ObjectId::from_str(&fixture.object_id).unwrap_or_else(|_| unreachable!());
+    let primary_ref = store
+        .ref_name(&primary_namespace, &type_name, &object_id)
+        .unwrap_or_else(|_| unreachable!());
+    repository
+        .find_reference(&primary_ref)
+        .unwrap_or_else(|_| unreachable!())
+        .delete()
+        .unwrap_or_else(|_| unreachable!());
     updated.head.to_string()
 }
 

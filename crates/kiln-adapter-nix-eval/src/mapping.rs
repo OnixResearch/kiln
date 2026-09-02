@@ -68,6 +68,7 @@ pub fn admit_cohort_manifest(profile: &NixEvalProfile, bytes: &[u8]) -> PortResu
 pub fn admit_plan(profile: &NixEvalProfile, plan: &DiscoveryEffectPlan) -> PortResult<()> {
     validate_discovery_plan(plan).map_err(PortFailure::Domain)?;
     if plan.provider_profile != profile.provider.profile_id
+        || plan.evaluator_cohort.is_some()
         || plan.source_mode != DiscoverySourceMode::Flake
         || plan.system.as_str() != profile.platform
         || plan.options.partial_admission != profile.policy.partial_admission

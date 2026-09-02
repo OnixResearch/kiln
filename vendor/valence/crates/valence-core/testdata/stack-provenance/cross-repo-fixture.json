@@ -1,0 +1,70 @@
+{
+  "binary_bytes": "valence-built-binary-fixture",
+  "binary_hash": "6c6b50f32058af2bad4e7e4aad2dd2a62725bb31e84e9978c974fea205f2a5f6",
+  "octet_export": {
+    "schema_version": "octet-valence-provenance-export/v1",
+    "artifact_dir": "target/octet-artifact",
+    "verification_status": "valid",
+    "artifacts": [
+      {
+        "artifact": "status.json",
+        "blake3": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "artifact": "results.jsonl",
+        "blake3": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ],
+    "provenance_records": [
+      {
+        "source_id": "octet.standards.formal-proof",
+        "checker_id": "octet-artifact-verifier",
+        "evidence_tier": "formal_proof",
+        "artifact": "status.json",
+        "blake3": "2222222222222222222222222222222222222222222222222222222222222222",
+        "checked_scope": "standards/proof-claims/catalog.ncl",
+        "verifier_identity": "octet-verus-rail",
+        "proof_artifact_identity": "3333333333333333333333333333333333333333333333333333333333333333",
+        "human_action": null,
+        "parent_artifacts": [
+          "results.jsonl"
+        ]
+      }
+    ],
+    "proof_cards": [
+      {
+        "proof_or_property_id": "octet.no-unwrap-proof",
+        "source_requirement_or_policy_id": "r[octet.policy.no_unwrap]",
+        "policy_id": "octet.standards.formal-proof",
+        "rail_index": 0,
+        "receipt_path": "status.json",
+        "artifact_blake3_identities": [
+          {
+            "artifact": "status.json",
+            "blake3": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "evidence_tier": "formal_proof",
+        "evidence_origin": "octet_verified_receipt",
+        "status": "valid",
+        "non_claims": [
+          "stack provenance proves identity and linkage only; it does not prove behavioral correctness, semantic equivalence, whole-program safety, or requirement satisfaction"
+        ],
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [],
+    "non_claims": [
+      "stack provenance proves identity and linkage only; it does not prove behavioral correctness, semantic equivalence, whole-program safety, or requirement satisfaction"
+    ]
+  },
+  "expected_source_ids": [
+    "octet.standards.formal-proof"
+  ],
+  "expected_requirement_ids": [
+    "r[octet.policy.no_unwrap]"
+  ],
+  "non_claims": [
+    "stack provenance proves identity and linkage only; it does not prove behavioral correctness, semantic equivalence, whole-program safety, or requirement satisfaction"
+  ]
+}

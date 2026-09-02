@@ -1,0 +1,12 @@
+# kind	path	expected value or marker
+workspace-package-set	Cargo.toml	strict
+package	crates/cairn-core/Cargo.toml	MIT OR Apache-2.0
+package	crates/cairn-cli/Cargo.toml	AGPL-3.0-or-later
+artifact	LICENSES/MIT.txt	MIT License
+artifact	LICENSES/Apache-2.0.txt	Apache License
+artifact	LICENSES/AGPL-3.0-or-later.txt	GNU AFFERO GENERAL PUBLIC LICENSE
+artifact	crates/cairn-core/LICENSE-MIT	MIT License
+artifact	crates/cairn-core/LICENSE-APACHE	Apache License
+artifact	crates/cairn-cli/LICENSE	GNU AFFERO GENERAL PUBLIC LICENSE
+contains	docs/licensing.md	Copying a reusable template does not by itself apply the CLI license
+forbid	crates/cairn-core/Cargo.toml	cairn-cli

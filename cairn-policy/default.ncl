@@ -8,6 +8,8 @@ let KilnTraceabilityProfile = {
     { root = "crates", source_kind = "rust_source", extensions = ["rs"] },
     { root = "crates", source_kind = "nickel_source", extensions = ["ncl"] },
     { root = "tools", source_kind = "tool_source", extensions = ["rs", "ncl"] },
+    { root = "src", source_kind = "tool_source", extensions = ["mjs"] },
+    { root = "tests", source_kind = "tool_source", extensions = ["mjs", "sh"] },
   ],
   marker_verbs = ["impl", "verify", "depends", "related"],
   assurance_level = "declared",

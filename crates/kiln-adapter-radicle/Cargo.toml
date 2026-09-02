@@ -25,6 +25,7 @@ kiln-adapter-lattice.workspace = true
 lattice-workflow-transport.workspace = true
 rusqlite.workspace = true
 radicle-cob.workspace = true
+onix-radicle-cob-git-store.workspace = true
 radicle-core.workspace = true
 radicle-crypto.workspace = true
 radicle-oid.workspace = true

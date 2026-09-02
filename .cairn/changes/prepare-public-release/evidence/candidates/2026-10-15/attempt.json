@@ -1,0 +1,16 @@
+{
+  "schema": "kiln.local-candidate-attempt.v1",
+  "state": "superseded-policy-fixture-failed",
+  "source_revision": "fba69f04b4daa9174b42278ef0842520fe4ec0c5",
+  "archive_blake3": "6183ebf53ec4831d3f3d355ee30bc41d769af02c68998673534608c03a9b99df",
+  "superseded_by": "db552f504236b3e330be46618e2fd29fb864f190",
+  "policy_fixture_exit_code": 4,
+  "failure_record": "initial-policy-failure.json",
+  "cause": "The policy fixture referenced the intentionally excluded unfinished Onix change package. Both positive and negative fixture commands now use prepare-public-release.",
+  "full_flake_check": "cancelled when the candidate was superseded; no PASS claimed",
+  "cold_cargo_fetch": {
+    "exit_code": 0,
+    "seconds": 4.99
+  },
+  "remote_mutation_performed": false
+}

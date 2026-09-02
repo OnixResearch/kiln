@@ -23,6 +23,7 @@ required-features = ["fixture-process"]
 blake3.workspace = true
 bounded-exec.workspace = true
 kiln-core.workspace = true
+libc = "0.2.189"
 kiln-provider-api.workspace = true
 serde.workspace = true
 serde_json.workspace = true

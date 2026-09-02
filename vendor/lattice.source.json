@@ -1,0 +1,18 @@
+{
+  "source_repository": "ssh://git@github.com/OnixResearch/lattice.git",
+  "source_commit": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+  "full_archive_format": "git archive --format=tar <source_commit>",
+  "full_archive_blake3": "f82d880fcc9ceb2de385e34d3929e40f15f51a011eafe2dc3550760a3f248102",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "crates/lattice-workflow-contract"
+  ],
+  "archive_blake3": "65c2190700bf8a5e6760116267935b151082be97ed2b0a2b62036e4917c0392d",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {
+    "lattice-workflow-contract": "MIT",
+    "lattice-workflow-transport": "MIT"
+  },
+  "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+}

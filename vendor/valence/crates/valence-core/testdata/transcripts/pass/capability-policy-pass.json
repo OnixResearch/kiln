@@ -1,0 +1,36 @@
+{
+  "schema": "valence.receipt-transcript.v1",
+  "scenario_identity": "capability-policy-pass",
+  "inputs": {
+    "capabilities": {
+      "schema": "valence.verifier-capabilities.v1",
+      "capabilities": [
+        {
+          "kind": "pure",
+          "detail": null
+        }
+      ],
+      "non_claims": [
+        "capability labels are receipt evidence unless a sandboxed runner enforces them, and labels do not prove verifier soundness or requirement satisfaction"
+      ]
+    },
+    "policy": {
+      "denied": [
+        {
+          "kind": "network",
+          "detail": null
+        }
+      ],
+      "replay_safe": []
+    }
+  },
+  "verifier_action": "capability_policy_check",
+  "expected_report": {
+    "valid": true,
+    "issue_codes": []
+  },
+  "expected_hashes": {},
+  "non_claims": [
+    "transcripts prove fixture behavior for checked inputs only, not general correctness, verifier soundness, or requirement satisfaction"
+  ]
+}

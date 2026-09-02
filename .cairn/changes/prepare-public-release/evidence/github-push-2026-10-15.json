@@ -1,0 +1,237 @@
+{
+  "schema": "kiln.authorized-github-projection-push.v1",
+  "state": "PASS-frozen-ref-push-and-authenticated-readback",
+  "recorded_at_utc": "2026-10-15T18:50:14.090202+00:00",
+  "owner": "Kiln maintainers",
+  "authority": {
+    "operator_request": "push it here too. git@github.com:OnixResearch/kiln.git",
+    "scope": "Push the same exact frozen candidate and evidence refs; do not select unfinished working-copy changes.",
+    "visibility_change_requested": false,
+    "default_branch_change_requested": false,
+    "automatic_mirroring_requested": false
+  },
+  "target": {
+    "remote": "github",
+    "url": "git@github.com:OnixResearch/kiln.git",
+    "direction": "One-way snapshot projection of the previously frozen Radicle source/evidence refs to GitHub.",
+    "canonical_rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "canonical_authority": "Radicle; unchanged",
+    "refs": {
+      "refs/heads/publication-evidence-2026-10-15": "9e6f565789744a65fd2173b8800755a2f7061d79",
+      "refs/heads/publication-candidate-2026-10-15": "db552f504236b3e330be46618e2fd29fb864f190"
+    }
+  },
+  "source_resolution": {
+    "initial_local_bookmark_lookup": "The local frozen bookmark names were absent; both exact source commit objects resolved successfully.",
+    "selection_method": "Jujutsu --named bookmark=exact-revision arguments with --ignore-working-copy; no mutable working-copy selection.",
+    "main_selected_for_push": false,
+    "unfinished_onix_changes_selected_for_push": false
+  },
+  "preflight": {
+    "command": [
+      "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "--ignore-working-copy",
+      "--config",
+      "signing.behavior=\"drop\"",
+      "--config",
+      "git.abandon-unreachable-commits=false",
+      "git",
+      "fetch",
+      "--remote",
+      "github",
+      "--branch",
+      "publication-candidate-2026-10-15",
+      "--branch",
+      "publication-evidence-2026-10-15",
+      "--branch",
+      "main"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Warning: No matching branches found on any specified/configured remote: publication-candidate-2026-10-15, publication-evidence-2026-10-15, main\nNothing changed.\n"
+  },
+  "dry_run": {
+    "command": [
+      "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "--ignore-working-copy",
+      "--config",
+      "signing.behavior=\"drop\"",
+      "git",
+      "push",
+      "--dry-run",
+      "--remote",
+      "github",
+      "--named",
+      "publication-candidate-2026-10-15=db552f504236b3e330be46618e2fd29fb864f190",
+      "--named",
+      "publication-evidence-2026-10-15=9e6f565789744a65fd2173b8800755a2f7061d79"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Changes to push to github:\n  bookmark: publication-candidate-2026-10-15 [add to db552f504236]\n  bookmark: publication-evidence-2026-10-15 [add to 9e6f56578974]\nDry-run requested, not pushing.\n"
+  },
+  "push": {
+    "command": [
+      "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "--ignore-working-copy",
+      "--config",
+      "signing.behavior=\"drop\"",
+      "git",
+      "push",
+      "--remote",
+      "github",
+      "--named",
+      "publication-candidate-2026-10-15=db552f504236b3e330be46618e2fd29fb864f190",
+      "--named",
+      "publication-evidence-2026-10-15=9e6f565789744a65fd2173b8800755a2f7061d79"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Changes to push to github:\n  bookmark: publication-candidate-2026-10-15 [add to db552f504236]\n  bookmark: publication-evidence-2026-10-15 [add to 9e6f56578974]\n"
+  },
+  "ssh_transport": {
+    "batch_mode": true,
+    "strict_host_key_checking": true,
+    "connection_timeout_seconds": 15
+  },
+  "readback": {
+    "clone": {
+      "command": [
+        "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "publication-candidate-2026-10-15",
+        "--branch",
+        "publication-evidence-2026-10-15",
+        "git@github.com:OnixResearch/kiln.git",
+        "/tmp/kiln-github-push-verify-7mwhxis8/checkout"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/tmp/kiln-github-push-verify-7mwhxis8/checkout\"\nbookmark: publication-candidate-2026-10-15@origin [new] tracked\nbookmark: publication-evidence-2026-10-15@origin  [new] untracked\nSetting the revset alias `trunk()` to `publication-candidate-2026-10-15@origin`.\nWorking copy  (@) now at: qnvyxtoo c205174f (empty) (no description set)\nParent commit (@-)      : txsnymry db552f50 publication-candidate-2026-10-15 | Keep public-candidate policy fixtures independent of unfinished Onix work\nAdded 719 files, modified 0 files, removed 0 files\n"
+    },
+    "refs": {
+      "command": [
+        "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+        "--ignore-working-copy",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "log",
+        "--no-graph",
+        "-r",
+        "publication-candidate-2026-10-15@origin | publication-evidence-2026-10-15@origin",
+        "-T",
+        "commit_id ++ \" \" ++ bookmarks ++ \"\\n\""
+      ],
+      "exit_code": 0,
+      "stdout": "9e6f565789744a65fd2173b8800755a2f7061d79 publication-evidence-2026-10-15@origin\ndb552f504236b3e330be46618e2fd29fb864f190 publication-candidate-2026-10-15\n",
+      "stderr": ""
+    },
+    "observed_refs": {
+      "publication-evidence-2026-10-15": "9e6f565789744a65fd2173b8800755a2f7061d79",
+      "publication-candidate-2026-10-15": "db552f504236b3e330be46618e2fd29fb864f190"
+    },
+    "authentication": "Existing operator SSH configuration/agent; credentials are not included in this receipt."
+  },
+  "source_readback": {
+    "revision": "db552f504236b3e330be46618e2fd29fb864f190",
+    "manifest": "candidates/2026-10-15-db552f504236/source-manifest.json",
+    "manifest_blake3": "b2910c76b9c20eeb8d3b0b81730e22a6ee10c6401ff19dc969e521ad2f7ad93e",
+    "matched_entries": 719,
+    "matched_facts": [
+      "regular-file type",
+      "byte length",
+      "executable flag",
+      "BLAKE3 file content identity"
+    ],
+    "archive": {
+      "format": "ustar",
+      "bytes": 6051840,
+      "blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+      "matches_frozen_binding": true,
+      "command_prefix": [
+        "tar",
+        "--create",
+        "--file",
+        "/tmp/kiln-github-push-verify-7mwhxis8/github-candidate-source.tar",
+        "--directory",
+        "/tmp/kiln-github-push-verify-7mwhxis8/checkout",
+        "--format=ustar",
+        "--sort=name",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--"
+      ],
+      "path_arguments": "Frozen source manifest entries in lexical order",
+      "lc_all": "C",
+      "exit_code": 0
+    },
+    "product_checks": "No product build or test rerun for this ref-only push; prior exact-source observations remain in candidates/2026-10-15-db552f504236/verification.json."
+  },
+  "access": {
+    "anonymous_api": {
+      "url": "https://api.github.com/repos/OnixResearch/kiln",
+      "result": "read tool returned HTTP 404"
+    },
+    "gh_metadata": {
+      "command": [
+        "/run/current-system/sw/bin/gh",
+        "repo",
+        "view",
+        "github.com/OnixResearch/kiln",
+        "--json",
+        "nameWithOwner,visibility,defaultBranchRef,isEmpty,url"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "HTTP 401: Requires authentication (https://api.github.com/graphql)\nTry authenticating with:  gh auth login -h github.com\n"
+    },
+    "anonymous_https_clone": {
+      "command": [
+        "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+        "--ignore-working-copy",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "publication-candidate-2026-10-15",
+        "--branch",
+        "publication-evidence-2026-10-15",
+        "https://github.com/OnixResearch/kiln.git",
+        "/tmp/kiln-github-push-verify-7mwhxis8/anonymous-checkout"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\nFetching into new repo in \"/tmp/kiln-github-push-verify-7mwhxis8/anonymous-checkout\"\nError: Git process failed: External git program failed:\nfatal: could not read Username for 'https://github.com': terminal prompts disabled\n\n"
+    },
+    "anonymous_environment_scope": "Fresh HOME; PATH, identity labels, locale, and noninteractive HTTPS-only Git settings supplied explicitly; no operator credentials or agent variables passed.",
+    "public_access_established": false,
+    "visibility": "Not established from the available observations.",
+    "visibility_settings_mutated": false
+  },
+  "receipt_scope": {
+    "local_only": true,
+    "included_in_either_pushed_revision": false,
+    "frozen_source_revision": "db552f504236b3e330be46618e2fd29fb864f190",
+    "frozen_evidence_revision": "9e6f565789744a65fd2173b8800755a2f7061d79",
+    "historical_publication_receipts_unchanged": true
+  },
+  "non_claims": [
+    "This is an authorized source/evidence snapshot push to a GitHub projection, not a change of canonical hosting or governance.",
+    "Authenticated SSH push and clone do not prove anonymous GitHub access or a particular GitHub visibility setting.",
+    "No main ref was selected for the push; no default-branch or visibility settings were explicitly changed.",
+    "No automatic mirror synchronization, GitHub CI configuration, binary publication, new product-check run, or release eligibility is established.",
+    "Matching source identities do not prove source correctness, runtime behavior, future hosting availability, or combined-binary license compatibility.",
+    "This later local verification receipt was not included in either immutable ref already pushed."
+  ]
+}

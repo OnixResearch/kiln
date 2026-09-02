@@ -1,0 +1,42 @@
+[workspace]
+members = [
+  "crates/valence-core",
+  "crates/valence-cli",
+  "crates/valence-radicle",
+  "pilots/shared-identity",
+]
+resolver = "2"
+exclude = [
+  "crates/valence-radicle-native",
+  "pilots/canonical-json-preserve-order",
+]
+
+# r[impl valence.strict_rust_admission.consumer_scope.production]
+[workspace.metadata.octet]
+default_scope = ["-p", "valence-shared-identity-pilot"]
+cargo_check_args = ["--lib"]
+
+[workspace.package]
+edition = "2024"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/OnixResearch/valence"
+homepage = "https://github.com/OnixResearch/valence"
+version = "0.1.0"
+
+[workspace.dependencies]
+artifact-auth-core = { git = "ssh://git@github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", version = "0.1.0" }
+artifact-auth-ed25519 = { git = "ssh://git@github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", version = "0.1.0" }
+blake3 = "1"
+cap-std = "4.0.2"
+git2 = { version = "=0.20.4", default-features = false, features = ["vendored-libgit2"] }
+iddqd = "0.4.5"
+nonempty = "=0.9.0"
+radicle-cob = { version = "=0.20.0", features = ["git2"] }
+radicle-crypto = { version = "=0.17.0", features = ["ssh"] }
+radicle-oid = "=0.2.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_path_to_error = "0.1"
+thiserror = "2"
+hegeltest = { version = "0.14.12", features = ["native"] }
+valence-core = { path = "crates/valence-core" }

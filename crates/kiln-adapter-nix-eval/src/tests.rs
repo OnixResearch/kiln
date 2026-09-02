@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 use kiln_core::discovery::{
-    DiscoveryBounds, DiscoveryEffectPlan, DiscoveryOptions, DiscoverySourceMode, DiscoveryTerminal,
-    GcRootState, admit_discovery_observation,
+    DiscoveryBounds, DiscoveryEffectPlan, DiscoveryEvaluatorCohort, DiscoveryEvaluatorComponent,
+    DiscoveryOptions, DiscoverySourceMode, DiscoveryTerminal, GcRootState,
+    admit_discovery_observation,
 };
 use kiln_core::types::{
     Alias, BLAKE3_HEX_BYTES, ContentId, EffectId, EvaluationId, ExternalRef, PipelineRevisionId,
@@ -235,6 +236,7 @@ fn plan() -> DiscoveryEffectPlan {
         discovery_policy_id: PolicyId::new("nix-discovery-policy-one")
             .unwrap_or_else(|_| unreachable!()),
         provider_profile: profile().provider.profile_id,
+        evaluator_cohort: None,
         build_provider_profile: ProviderProfileId::new("mantle-build-v1")
             .unwrap_or_else(|_| unreachable!()),
         idempotency_key: repeated_id('1'),
@@ -601,6 +603,128 @@ fn executable_manifest_source_and_cohort_drift_fail_before_launch() {
     floating.source = ExternalRef::new("kiln-source", "nix-store-path", "github:NixOS/nixpkgs")
         .unwrap_or_else(|_| unreachable!());
     assert!(admit_plan(&profile(), &floating).is_err());
+}
+
+// r[verify kiln.nix_eval_jobs.onix_boundary]
+#[test]
+fn stock_profile_rejects_onix_cohort_before_process_launch() {
+    let mut attempted = plan();
+    attempted.evaluator_cohort = Some(DiscoveryEvaluatorCohort {
+        kind: Alias::new("onix-nix").unwrap_or_else(|_| unreachable!()),
+        executable_identity: repeated_id('3'),
+        manifest_identity: repeated_id('4'),
+        host_abi: Alias::new("nix_wasm_init_v1").unwrap_or_else(|_| unreachable!()),
+        features: vec![
+            Alias::new("flakes").unwrap_or_else(|_| unreachable!()),
+            Alias::new("nix-command").unwrap_or_else(|_| unreachable!()),
+            Alias::new("wasm-builtin").unwrap_or_else(|_| unreachable!()),
+        ],
+        plugin_identity: repeated_id('5'),
+        components: Vec::new(),
+        plugin: ExternalRef::new("nix", "store-path", "/nix/store/example/plugin.wasm")
+            .unwrap_or_else(|_| unreachable!()),
+    });
+    let runtime = FakeRuntime::new(Vec::new());
+    let mut adapter = NixEvalAdapter::new(profile(), runtime).unwrap_or_else(|_| unreachable!());
+    let denied = adapter.discover(&attempted);
+    assert!(matches!(
+        &denied,
+        Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_plan_profile"
+    ));
+    assert_eq!(adapter.runtime().run_count, 0);
+    assert!(adapter.runtime().prepared.is_empty());
+}
+
+#[test]
+fn named_onix_candidate_rejects_unpublished_source_and_measured_drift() {
+    let mut candidate = plan();
+    candidate.provider_profile =
+        ProviderProfileId::new(ONIX_CANDIDATE_PROFILE).unwrap_or_else(|_| unreachable!());
+    candidate.evaluator_cohort = Some(DiscoveryEvaluatorCohort {
+        kind: Alias::new(ONIX_EVALUATOR_KIND).unwrap_or_else(|_| unreachable!()),
+        executable_identity: content_id(ONIX_EXECUTABLE_BLAKE3),
+        // The stock manifest is deliberately not an Onix publication authority.
+        manifest_identity: content_id(PINNED_COHORT_MANIFEST_BLAKE3),
+        host_abi: Alias::new(ONIX_HOST_ABI_SOURCE_SYMBOL).unwrap_or_else(|_| unreachable!()),
+        features: ONIX_REQUIRED_FEATURES
+            .iter()
+            .map(|feature| Alias::new(*feature).unwrap_or_else(|_| unreachable!()))
+            .collect(),
+        plugin_identity: content_id(ONIX_PLUGIN_BLAKE3),
+        plugin: ExternalRef::new("nix", "store-path", ONIX_PLUGIN_PATH)
+            .unwrap_or_else(|_| unreachable!()),
+        components: ONIX_LINKED_COMPONENTS
+            .iter()
+            .map(|(path, identity)| DiscoveryEvaluatorComponent {
+                library: ExternalRef::new("nix", "shared-library", path)
+                    .unwrap_or_else(|_| unreachable!()),
+                identity: content_id(identity),
+            })
+            .collect(),
+    });
+    assert!(matches!(
+        admit_onix_candidate(&candidate),
+        Err(PortFailure::Domain(reason)) if reason.code == "onix_source_unpublished"
+    ));
+
+    let mut missing_feature = candidate.clone();
+    if let Some(cohort) = &mut missing_feature.evaluator_cohort {
+        cohort.features.pop();
+    }
+    assert!(matches!(
+        admit_onix_candidate(&missing_feature),
+        Err(PortFailure::Domain(reason)) if reason.code == "onix_feature_drift"
+    ));
+    let mut wrong_plugin = candidate.clone();
+    if let Some(cohort) = &mut wrong_plugin.evaluator_cohort {
+        cohort.plugin_identity = repeated_id('5');
+    }
+    assert!(matches!(
+        admit_onix_candidate(&wrong_plugin),
+        Err(PortFailure::Domain(reason)) if reason.code == "onix_plugin_drift"
+    ));
+    let mut wrong_library = candidate.clone();
+    if let Some(cohort) = &mut wrong_library.evaluator_cohort {
+        cohort
+            .components
+            .get_mut(0)
+            .unwrap_or_else(|| unreachable!())
+            .identity = repeated_id('6');
+    }
+    assert!(matches!(
+        admit_onix_candidate(&wrong_library),
+        Err(PortFailure::Domain(reason)) if reason.code == "onix_component_drift"
+    ));
+    let mut wrong_abi = candidate.clone();
+    if let Some(cohort) = &mut wrong_abi.evaluator_cohort {
+        cohort.host_abi = Alias::new("other-abi").unwrap_or_else(|_| unreachable!());
+    }
+    assert!(matches!(
+        admit_onix_candidate(&wrong_abi),
+        Err(PortFailure::Domain(reason)) if reason.code == "onix_host_abi_drift"
+    ));
+    let mut traversal_source = candidate.clone();
+    traversal_source.source = ExternalRef::new(
+        "kiln-source",
+        "nix-store-path",
+        "/nix/store/../tmp/dirty-source",
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert!(matches!(
+        admit_onix_candidate(&traversal_source),
+        Err(PortFailure::Domain(reason)) if reason.code == "onix_source_unpublished"
+    ));
+    let mut wrong_source_identity = candidate.clone();
+    wrong_source_identity.source_identity = repeated_id('9');
+    assert!(matches!(
+        admit_onix_candidate(&wrong_source_identity),
+        Err(PortFailure::Domain(reason)) if reason.code == "onix_source_unpublished"
+    ));
+    // Candidate fact-checking never gives the stock adapter authority to launch it.
+    assert!(matches!(
+        admit_plan(&profile(), &candidate),
+        Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_plan_profile"
+    ));
 }
 
 // r[verify kiln.nix_eval_jobs.gc_root_handoff]
