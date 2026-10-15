@@ -31,8 +31,8 @@ occurred.
 
 ## Phase 4: Immutable local candidate
 
-- [ ] [serial] Freeze completed release contents in a separate local Jujutsu candidate while preserving unfinished Onix work in the original workspace. r[kiln.public_release.claims]
-- [ ] [serial] Bind exact revision, deterministic source archive, license terms, lifecycle evidence, hosting profile, and rollback identity without rewriting historical receipts. r[kiln.public_release.claims]
-- [ ] [serial] Exercise required checks from the clean candidate archive without sibling repositories or operator credentials. r[kiln.public_release.sources] r[kiln.public_release.gates]
-- [ ] [serial] Record fresh candidate-bound observations in a separate evidence revision and stop before signing, push, synchronization, or publication. r[kiln.public_release.claims]
+- [x] [serial] Freeze completed release contents in a separate local Jujutsu candidate while preserving unfinished Onix work in the original workspace. r[kiln.public_release.claims]
+- [x] [serial] Bind exact revision, deterministic source archive, license terms, lifecycle evidence, hosting profile, and rollback identity without rewriting historical receipts. r[kiln.public_release.claims]
+- [x] [serial] Exercise required checks from the clean candidate archive without sibling repositories or operator credentials. r[kiln.public_release.sources] r[kiln.public_release.gates]
+- [x] [serial] Record fresh candidate-bound observations in a separate evidence revision and stop before signing, push, synchronization, or publication. r[kiln.public_release.claims]
 

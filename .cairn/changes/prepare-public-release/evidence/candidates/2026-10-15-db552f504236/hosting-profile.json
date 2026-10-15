@@ -1,0 +1,43 @@
+{
+  "acquisition_routes": [
+    {
+      "kind": "radicle-native",
+      "route": "rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE@z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo",
+      "writable": false
+    },
+    {
+      "kind": "https-git",
+      "route": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "writable": false
+    }
+  ],
+  "canonical_branch": "main",
+  "delegates": [
+    "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+  ],
+  "freeze": false,
+  "license": "MIT OR Apache-2.0",
+  "mirrors": [
+    {
+      "authority": "read_only_projection",
+      "route": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git"
+    }
+  ],
+  "non_claims": [
+    "publication observations do not prove indefinite availability",
+    "mirror observations do not grant repository authority",
+    "replica agreement does not prove source or CI correctness"
+  ],
+  "required_replica_observations": 1,
+  "required_replicas": 1,
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "rollback_revision": "b16f8792849cd3e2f2802c9a5063d5567a68f389",
+  "seeds": [
+    "z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo"
+  ],
+  "signed_ref_features": [
+    "parent"
+  ],
+  "state": "published",
+  "threshold": 1
+}

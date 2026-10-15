@@ -150,3 +150,42 @@ governance mutation, specification sync, or lifecycle archive was performed.
 The historical receipt for `36984e367eafd44c22d2b4f4f47121deb51eece3`
 retains its original meaning. A new canonical publication needs separate
 operator authorization and a consistent exact-revision receipt.
+
+## Frozen local candidate
+
+The later release selection freezes source revision
+`db552f504236b3e330be46618e2fd29fb864f190` at local bookmark
+`publication-candidate-2026-10-15`. It excludes the unfinished Onix evaluator
+changes retained in the operator workspace, so it is not the earlier 721-file
+preparation payload. The 719-file clean source manifest and normalized USTAR
+archive are recorded in the [candidate binding](candidates/2026-10-15-db552f504236/candidate.ncl).
+
+Fresh checks against that exact extracted archive passed: all 22
+`x86_64-linux` flake attributes, 325 workspace tests (two opt-in live tests
+ignored), 16 Worker/SQLite fixtures, policy positive/negative fixtures, strict
+Cairn validation and proposal/design/tasks gates, and 567/567 traceability with
+no missing or dangling markers. The newly built packaged CLI accepted
+`demo-start`. Cold Cargo acquisition used a newly created HOME/CARGO_HOME;
+locked offline resolution admitted 403 packages with zero Git dependencies and
+all local manifests inside the extracted source. The checks used no sibling
+repository inputs or operator credentials. Nix builds were sandboxed;
+host-side source acquisition and fixtures used the recorded cleared environment.
+The normal Nix store and public binary cache were reused; this is not a fresh
+toolchain bootstrap or an `aarch64-linux` build.
+
+The source files were unchanged after checks. Re-exporting the checked source
+reproduced archive BLAKE3
+`5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5`.
+The [fresh observations and log identities](candidates/2026-10-15-db552f504236/verification.json)
+belong to the later local `publication-evidence-2026-10-15` revision, not to the
+source revision they identify. Historical publication/release files remain
+byte-identical.
+
+The initial candidate `fba69f04b4daa9174b42278ef0842520fe4ec0c5` failed the
+policy fixture because it named the excluded Onix draft. Both fixture commands
+now target this preparation change; the positive and negative policy cases
+passed before final admission. The [failed attempt](candidates/2026-10-15/attempt.json)
+is retained rather than relabeled PASS. Its full flake run was cancelled when
+superseded. No remote publication authority or binary-license compatibility
+clearance is claimed.
+

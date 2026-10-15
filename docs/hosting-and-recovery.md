@@ -31,6 +31,30 @@ The `release-evidence` Nix check verifies deterministic rendering of the histori
 
 A new canonical publication requires a separately authorized operation and a new consistent receipt: candidate/archive, hosting profile, governed signed refs, native and HTTPS acquisition, and required replica observations must all refer to the same revision. Do not rewrite the original receipt to imply that local preparation signed, pushed, synchronized, or published new source.
 
+## Verified local candidate
+
+The local source candidate is `db552f504236b3e330be46618e2fd29fb864f190`,
+named by local bookmark `publication-candidate-2026-10-15`. Its deterministic
+USTAR source archive BLAKE3 is
+`5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5`.
+
+The [typed candidate binding](../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/candidate.ncl)
+records the exact license-map, lifecycle, hosting-profile, rollback, and source
+identities. [Fresh clean-archive observations](../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/verification.json)
+retain commands, cleared-environment scope, logs, failures, and non-claims.
+Kiln maintainers own this repeatable preparation path.
+
+Unfinished Onix evaluator work remains in the operator workspace and is excluded
+from the candidate. Source and evidence are separate: local bookmark
+`publication-evidence-2026-10-15` names the later receipt/documentation revision,
+not a new tested source candidate. The original publication files remain
+unchanged. Nothing was signed, pushed, synchronized, announced, or published.
+
+This archive uses the declared normalized USTAR recipe, not the historical
+`git-archive-tar` byte format. Any later native/HTTPS acquisition comparison must
+reconstruct this candidate's declared recipe before comparing its archive hash.
+
+
 
 ## Mirrors
 

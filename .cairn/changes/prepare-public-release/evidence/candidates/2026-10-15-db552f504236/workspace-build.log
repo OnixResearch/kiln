@@ -1,0 +1,1028 @@
+Running phase: unpackPhase
+@nix { "action": "setPhase", "phase": "unpackPhase" }
+unpacking source archive /nix/store/mr2y81xjdz3l4a4dwxm4qwlp0nnr6k6m-source
+source root is source
+Executing cargoSetupPostUnpackHook
+Finished cargoSetupPostUnpackHook
+Running phase: patchPhase
+@nix { "action": "setPhase", "phase": "patchPhase" }
+Executing cargoSetupPostPatchHook
+Validating consistency between /build/source/Cargo.lock and /build/cargo-vendor-dir/Cargo.lock
+Finished cargoSetupPostPatchHook
+Running phase: updateAutotoolsGnuConfigScriptsPhase
+@nix { "action": "setPhase", "phase": "updateAutotoolsGnuConfigScriptsPhase" }
+Running phase: configurePhase
+@nix { "action": "setPhase", "phase": "configurePhase" }
+Running phase: buildPhase
+@nix { "action": "setPhase", "phase": "buildPhase" }
+Executing cargoBuildHook
+cargoBuildHook flags: -j 4 --target x86_64-unknown-linux-gnu --offline --profile release --workspace --all-targets
+[1m[32m   Compiling[0m proc-macro2 v1.0.107
+[1m[32m   Compiling[0m unicode-ident v1.0.24
+[1m[32m   Compiling[0m quote v1.0.47
+[1m[32m   Compiling[0m cfg-if v1.0.4
+[1m[32m   Compiling[0m serde_core v1.0.229
+[1m[32m   Compiling[0m libc v0.2.189
+[1m[32m   Compiling[0m syn v2.0.119
+[1m[32m   Compiling[0m syn v3.0.3
+[1m[32m   Compiling[0m jobserver v0.1.35
+[1m[32m   Compiling[0m shlex v2.0.1
+[1m[32m   Compiling[0m find-msvc-tools v0.1.10
+[1m[32m   Compiling[0m cc v1.4.2
+[1m[32m   Compiling[0m serde v1.0.229
+[1m[32m   Compiling[0m version_check v0.9.5
+[1m[32m   Compiling[0m generic-array v0.14.7
+[1m[32m   Compiling[0m typenum v1.20.1
+[1m[32m   Compiling[0m memchr v2.8.3
+[1m[32m   Compiling[0m blake3 v1.8.6
+[1m[32m   Compiling[0m serde_derive v1.0.229
+[1m[32m   Compiling[0m arrayvec v0.7.8
+[1m[32m   Compiling[0m constant_time_eq v0.4.2
+[1m[32m   Compiling[0m subtle v2.6.1
+[1m[32m   Compiling[0m arrayref v0.3.9
+[1m[32m   Compiling[0m cpufeatures v0.3.0
+[1m[32m   Compiling[0m zmij v1.0.23
+[1m[32m   Compiling[0m serde_json v1.0.151
+[1m[32m   Compiling[0m zeroize_derive v1.5.0
+[1m[32m   Compiling[0m itoa v1.0.18
+[1m[32m   Compiling[0m autocfg v1.5.1
+[1m[32m   Compiling[0m zeroize v1.9.0
+[1m[32m   Compiling[0m crypto-common v0.1.7
+[1m[32m   Compiling[0m libm v0.2.16
+[1m[32m   Compiling[0m num-traits v0.2.19
+[1m[32m   Compiling[0m spin v0.9.9
+[1m[32m   Compiling[0m lazy_static v1.5.0
+[1m[32m   Compiling[0m const-oid v0.9.6
+[1m[32m   Compiling[0m kiln-core v0.1.0 (/build/source/crates/kiln-core)
+[1m[32m   Compiling[0m getrandom v0.2.17
+[1m[32m   Compiling[0m block-buffer v0.10.4
+[1m[32m   Compiling[0m bitflags v2.13.1
+[1m[32m   Compiling[0m cpufeatures v0.2.17
+[1m[32m   Compiling[0m digest v0.10.7
+[1m[32m   Compiling[0m num-integer v0.1.46
+[1m[32m   Compiling[0m aho-corasick v1.1.5
+[1m[32m   Compiling[0m regex-syntax v0.8.11
+[1m[32m   Compiling[0m smallvec v1.15.2
+[1m[32m   Compiling[0m serde_bytes v0.11.19
+[1m[32m   Compiling[0m rand_core v0.6.4
+[1m[32m   Compiling[0m pkg-config v0.3.34
+[1m[32m   Compiling[0m num-bigint v0.4.8
+[1m[32m   Compiling[0m regex-automata v0.4.18
+[1m[32m   Compiling[0m kiln-provider-api v0.1.0 (/build/source/crates/kiln-provider-api)
+[1m[32m   Compiling[0m bytemuck v1.25.2
+[1m[32m   Compiling[0m base64 v0.13.1
+[1m[32m   Compiling[0m dtoa v0.4.8
+[1m[32m   Compiling[0m log v0.4.33
+[1m[32m   Compiling[0m zerocopy v0.8.56
+[1m[32m   Compiling[0m vcpkg v0.2.15
+[1m[32m   Compiling[0m regex v1.13.1
+[1m[32m   Compiling[0m preserves v5.0.0-rc.7
+[1m[32m   Compiling[0m ppv-lite86 v0.2.21
+[1m[32m   Compiling[0m kiln-codec v0.1.0 (/build/source/crates/kiln-codec)
+[1m[32m   Compiling[0m sha2 v0.10.9
+[1m[32m   Compiling[0m opaque-debug v0.3.1
+[1m[32m   Compiling[0m once_cell v1.21.4
+[1m[32m   Compiling[0m der v0.7.10
+[1m[32m   Compiling[0m block-padding v0.3.3
+[1m[32m   Compiling[0m inout v0.1.4
+[1m[32m   Compiling[0m hmac v0.12.1
+[1m[32m   Compiling[0m synstructure v0.13.2
+[1m[32m   Compiling[0m semver v1.0.28
+[1m[32m   Compiling[0m rustc_version v0.4.1
+[1m[32m   Compiling[0m cipher v0.4.4
+[1m[32m   Compiling[0m rand_chacha v0.3.1
+[1m[32m   Compiling[0m fastrand v2.5.0
+[1m[32m   Compiling[0m byteorder v1.5.0
+[1m[32m   Compiling[0m rand v0.8.7
+[1m[32m   Compiling[0m curve25519-dalek v4.1.3
+[1m[32m   Compiling[0m spki v0.7.3
+[1m[32m   Compiling[0m zerofrom-derive v0.1.7
+[1m[32m   Compiling[0m signature v2.2.0
+[1m[32m   Compiling[0m ff v0.13.1
+[1m[32m   Compiling[0m base16ct v0.2.0
+[1m[32m   Compiling[0m getrandom v0.4.3
+[1m[32m   Compiling[0m thiserror v2.0.20
+[1m[32m   Compiling[0m cfg_aliases v0.2.2
+[1m[32m   Compiling[0m rustix v1.1.4
+[1m[32m   Compiling[0m sec1 v0.7.3
+[1m[32m   Compiling[0m zerofrom v0.1.8
+[1m[32m   Compiling[0m group v0.13.0
+[1m[32m   Compiling[0m yoke-derive v0.8.2
+[1m[32m   Compiling[0m libz-sys v1.1.29
+[1m[32m   Compiling[0m crypto-bigint v0.5.5
+[1m[32m   Compiling[0m curve25519-dalek-derive v0.1.1
+[1m[32m   Compiling[0m thiserror-impl v2.0.20
+[1m[32m   Compiling[0m linux-raw-sys v0.12.1
+[1m[32m   Compiling[0m stable_deref_trait v1.2.1
+[1m[32m   Compiling[0m yoke v0.8.3
+[1m[32m   Compiling[0m elliptic-curve v0.13.8
+[1m[32m   Compiling[0m universal-hash v0.5.1
+[1m[32m   Compiling[0m rfc6979 v0.4.0
+[1m[32m   Compiling[0m libgit2-sys v0.18.7+1.9.6
+[1m[32m   Compiling[0m zerovec-derive v0.11.5
+[1m[32m   Compiling[0m data-encoding v2.11.1
+[1m[32m   Compiling[0m tempfile v3.27.0
+[1m[32m   Compiling[0m zerovec v0.11.8
+[1m[32m   Compiling[0m polyval v0.6.2
+[1m[32m   Compiling[0m ecdsa v0.16.9
+[1m[32m   Compiling[0m primeorder v0.13.6
+[1m[32m   Compiling[0m displaydoc v0.2.7
+[1m[32m   Compiling[0m base64ct v1.8.3
+[1m[32m   Compiling[0m num-bigint-dig v0.8.6
+[1m[32m   Compiling[0m pem-rfc7468 v0.7.0
+[1m[32m   Compiling[0m ghash v0.5.1
+[1m[32m   Compiling[0m pkcs8 v0.10.2
+[1m[32m   Compiling[0m ctr v0.9.2
+[1m[32m   Compiling[0m aes v0.8.4
+[1m[32m   Compiling[0m num-iter v0.1.46
+[1m[32m   Compiling[0m aead v0.5.2
+[1m[32m   Compiling[0m aes-gcm v0.10.3
+[1m[32m   Compiling[0m pkcs1 v0.7.5
+[1m[32m   Compiling[0m ssh-encoding v0.2.0
+[1m[32m   Compiling[0m poly1305 v0.8.0
+[1m[32m   Compiling[0m ed25519 v2.2.3
+[1m[32m   Compiling[0m blowfish v0.9.1
+[1m[32m   Compiling[0m chacha20 v0.9.1
+[1m[32m   Compiling[0m cbc v0.1.2
+[1m[32m   Compiling[0m pbkdf2 v0.12.2
+[1m[32m   Compiling[0m bcrypt-pbkdf v0.10.0
+[1m[32m   Compiling[0m ssh-cipher v0.2.0
+[1m[32m   Compiling[0m data-encoding-macro-internal v0.1.19
+[1m[32m   Compiling[0m ed25519-dalek v2.2.0
+[1m[32m   Compiling[0m rsa v0.9.10
+[1m[32m   Compiling[0m tinystr v0.8.4
+[1m[32m   Compiling[0m p384 v0.13.1
+[1m[32m   Compiling[0m p521 v0.13.3
+[1m[32m   Compiling[0m p256 v0.13.2
+[1m[32m   Compiling[0m nix v0.30.1
+[1m[32m   Compiling[0m match-lookup v0.1.2
+[1m[32m   Compiling[0m const-str v0.4.3
+[1m[32m   Compiling[0m base64 v0.22.1
+[1m[32m   Compiling[0m litemap v0.8.3
+[1m[32m   Compiling[0m writeable v0.6.4
+[1m[32m   Compiling[0m base256emoji v1.0.2
+[1m[32m   Compiling[0m icu_locale_core v2.3.0
+[1m[32m   Compiling[0m ssh-key v0.6.7
+[1m[32m   Compiling[0m data-encoding-macro v0.1.21
+[1m[32m   Compiling[0m zerotrie v0.2.5
+[1m[32m   Compiling[0m potential_utf v0.1.6
+[1m[32m   Compiling[0m secrecy v0.10.3
+[1m[32m   Compiling[0m icu_normalizer_data v2.3.0
+[1m[32m   Compiling[0m icu_properties_data v2.3.0
+[1m[32m   Compiling[0m utf8_iter v1.0.4
+[1m[32m   Compiling[0m base45 v3.2.0
+[1m[32m   Compiling[0m base-x v0.2.11
+[1m[32m   Compiling[0m multibase v0.9.3
+[1m[32m   Compiling[0m icu_collections v2.3.0
+[1m[32m   Compiling[0m ssh-agent-lib v0.6.0
+[1m[32m   Compiling[0m icu_provider v2.3.0
+[1m[32m   Compiling[0m memoffset v0.9.1
+[1m[32m   Compiling[0m bounded-exec-core v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec-core)
+[1m[32m   Compiling[0m bounded-exec v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec)
+[1m[32m   Compiling[0m radicle-crypto v0.19.0
+[1m[32m   Compiling[0m nix v0.31.3
+[1m[32m   Compiling[0m libsqlite3-sys v0.38.2
+[1m[32m   Compiling[0m icu_properties v2.3.0
+[1m[32m   Compiling[0m icu_normalizer v2.3.0
+[1m[32m   Compiling[0m radicle-git-metadata v0.2.1
+[1m[32m   Compiling[0m radicle-git-ref-format v0.2.0
+[1m[32m   Compiling[0m radicle-dag v0.10.0
+[1m[32m   Compiling[0m nonempty v0.9.0
+[1m[32m   Compiling[0m ref-cast v1.0.27
+[1m[32m   Compiling[0m idna_adapter v1.2.2
+[1m[32m   Compiling[0m lattice-workflow-contract v0.1.0 (/build/source/vendor/lattice/crates/lattice-workflow-contract)
+[1m[32m   Compiling[0m ref-cast-impl v1.0.27
+[1m[32m   Compiling[0m serde_derive_internals v0.30.0
+[1m[32m   Compiling[0m fallible-streaming-iterator v0.1.9
+[1m[32m   Compiling[0m fallible-iterator v0.3.0
+[1m[32m   Compiling[0m percent-encoding v2.3.2
+[1m[32m   Compiling[0m form_urlencoded v1.2.2
+[1m[32m   Compiling[0m schemars_derive v1.2.2
+[1m[32m   Compiling[0m lattice-workflow-transport v0.1.0 (/build/source/vendor/lattice/crates/lattice-workflow-contract/transport)
+[1m[32m   Compiling[0m idna v1.1.0
+[1m[32m   Compiling[0m kiln-radicle-source-contract v0.1.0 (/build/source/crates/kiln-radicle-source-contract)
+[1m[32m   Compiling[0m dyn-clone v1.0.20
+[1m[32m   Compiling[0m allocator-api2 v0.2.21
+[1m[32m   Compiling[0m hashbrown v0.17.1
+[1m[32m   Compiling[0m schemars v1.2.2
+[1m[32m   Compiling[0m url v2.5.8
+[1m[32m   Compiling[0m equivalent v1.0.2
+[1m[32m   Compiling[0m getrandom v0.3.4
+[1m[32m   Compiling[0m kiln-adapter-lattice v0.1.0 (/build/source/crates/kiln-adapter-lattice)
+[1m[32m   Compiling[0m getrandom v0.1.16
+[1m[32m   Compiling[0m kiln-adapter-cob v0.1.0 (/build/source/crates/kiln-adapter-cob)
+[1m[32m   Compiling[0m rustls-pki-types v1.15.1
+[1m[32m   Compiling[0m ring v0.17.14
+[1m[32m   Compiling[0m crossbeam-utils v0.8.22
+[1m[32m   Compiling[0m rand_core v0.5.1
+[1m[32m   Compiling[0m digest v0.9.0
+[1m[32m   Compiling[0m scopeguard v1.2.0
+[1m[32m   Compiling[0m thiserror v1.0.69
+[1m[32m   Compiling[0m crossbeam-epoch v0.9.20
+[1m[32m   Compiling[0m parking_lot_core v0.8.6
+[1m[32m   Compiling[0m rustix v0.38.44
+[1m[32m   Compiling[0m crc32fast v1.5.0
+[1m[32m   Compiling[0m untrusted v0.9.0
+[1m[32m   Compiling[0m lock_api v0.4.14
+[1m[32m   Compiling[0m bincode v1.3.3
+[1m[32m   Compiling[0m indexmap v2.14.0
+[1m[32m   Compiling[0m kiln-standalone v0.1.0 (/build/source/crates/kiln-standalone)
+[1m[32m   Compiling[0m toml_datetime v0.6.11
+[1m[32m   Compiling[0m serde_spanned v0.6.9
+[1m[32m   Compiling[0m thiserror-impl v1.0.69
+[1m[32m   Compiling[0m instant v0.1.13
+[1m[32m   Compiling[0m crossbeam-deque v0.8.7
+[1m[32m   Compiling[0m winnow v0.7.15
+[1m[32m   Compiling[0m linux-raw-sys v0.4.15
+[1m[32m   Compiling[0m toml_write v0.1.2
+[1m[32m   Compiling[0m parking_lot_core v0.9.12
+[1m[32m   Compiling[0m rustls v0.23.43
+[1m[32m   Compiling[0m toml_edit v0.22.27
+[1m[32m   Compiling[0m rustls-webpki v0.103.15
+[1m[32m   Compiling[0m zstd-seekable v0.1.23
+[1m[32m   Compiling[0m rand_chacha v0.2.2
+[1m[32m   Compiling[0m webpki-roots v1.0.9
+[1m[32m   Compiling[0m rand_core v0.9.5
+[1m[32m   Compiling[0m crypto-mac v0.11.0
+[1m[32m   Compiling[0m cipher v0.3.0
+[1m[32m   Compiling[0m block-buffer v0.9.0
+[1m[32m   Compiling[0m bstr v1.13.1
+[1m[32m   Compiling[0m num_cpus v1.17.0
+[1m[32m   Compiling[0m unicode-width v0.2.2
+[1m[32m   Compiling[0m anyhow v1.0.104
+[1m[32m   Compiling[0m signature v1.6.4
+[1m[32m   Compiling[0m foldhash v0.1.5
+[1m[32m   Compiling[0m same-file v1.0.6
+[1m[32m   Compiling[0m walkdir v2.5.0
+[1m[32m   Compiling[0m hashbrown v0.15.5
+[1m[32m   Compiling[0m ed25519 v1.5.3
+[1m[32m   Compiling[0m console v0.15.11
+[1m[32m   Compiling[0m globset v0.4.20
+[1m[32m   Compiling[0m threadpool v1.8.1
+[1m[32m   Compiling[0m ctr v0.8.0
+[1m[32m   Compiling[0m sha2 v0.9.9
+[1m[32m   Compiling[0m rand_chacha v0.9.0
+[1m[32m   Compiling[0m webpki-roots v0.26.11
+[1m[32m   Compiling[0m rand v0.7.3
+[1m[32m   Compiling[0m sanakirja-core v2.0.0-beta.1
+[1m[32m   Compiling[0m fs4 v0.6.6
+[1m[32m   Compiling[0m parking_lot v0.11.2
+[1m[32m   Compiling[0m rusqlite v0.40.2
+[1m[32m   Compiling[0m toml v0.8.23
+[1m[32m   Compiling[0m curve25519-dalek v3.2.0
+[1m[32m   Compiling[0m kiln-adapter-jj v0.1.0 (/build/source/crates/kiln-adapter-jj)
+[1m[32m   Compiling[0m kiln-adapter-remote v0.1.0 (/build/source/crates/kiln-adapter-remote)
+[1m[32m   Compiling[0m memmap2 v0.9.11
+[1m[32m   Compiling[0m dirs-sys-next v0.1.2
+[1m[32m   Compiling[0m encoding_rs v0.8.35
+[1m[32m   Compiling[0m jiff-core v0.1.0
+[1m[32m   Compiling[0m shell-words v1.1.1
+[1m[32m   Compiling[0m minimal-lexical v0.2.1
+[1m[32m   Compiling[0m rlimit v0.10.2
+[1m[32m   Compiling[0m foldhash v0.2.0
+[1m[32m   Compiling[0m linked-hash-map v0.5.6
+[1m[32m   Compiling[0m static_assertions v1.1.0
+[1m[32m   Compiling[0m twox-hash v1.6.3
+[1m[32m   Compiling[0m lru-cache v0.1.2
+[1m[32m   Compiling[0m iddqd v0.4.6
+[1m[32m   Compiling[0m nom v7.1.3
+[1m[32m   Compiling[0m dialoguer v0.10.4
+[1m[32m   Compiling[0m jiff v0.2.35
+[1m[32m   Compiling[0m chardetng v0.1.17
+[1m[32m   Compiling[0m dirs-next v2.0.0
+[1m[32m   Compiling[0m sanakirja v2.0.0-beta
+[1m[32m   Compiling[0m ed25519-dalek v1.0.1
+[1m[32m   Compiling[0m parking_lot v0.12.5
+[1m[32m   Compiling[0m ureq v2.12.1
+[1m[32m   Compiling[0m ignore v0.4.33
+[1m[32m   Compiling[0m git2 v0.21.0
+[1m[32m   Compiling[0m git2 v0.20.2
+[1m[32m   Compiling[0m rand v0.9.5
+[1m[32m   Compiling[0m aes v0.7.5
+[1m[32m   Compiling[0m imara-diff v0.1.8
+[1m[32m   Compiling[0m radicle-oid v0.2.2
+[1m[32m   Compiling[0m radicle-cob v0.21.1
+[1m[32m   Compiling[0m radicle-core v0.4.1
+[1m[32m   Compiling[0m onix-radicle-cob-git-store v0.2.0 (/build/source/vendor/radicle-cob-git-store)
+[1m[32m   Compiling[0m kiln-adapter-radicle v0.1.0 (/build/source/crates/kiln-adapter-radicle)
+[1m[32m   Compiling[0m kiln-adapter-git v0.1.0 (/build/source/crates/kiln-adapter-git)
+[1m[32m   Compiling[0m pbkdf2 v0.9.0
+[1m[32m   Compiling[0m hmac v0.11.0
+[1m[32m   Compiling[0m rustls-pemfile v2.2.0
+[1m[32m   Compiling[0m artifact-auth-core v0.1.0 (/build/source/vendor/artifact/crates/artifact-auth-core)
+[1m[32m   Compiling[0m pijul-macros v1.0.0-beta.11
+[1m[32m   Compiling[0m adler32 v1.2.0
+[1m[32m   Compiling[0m path-slash v0.2.1
+[1m[32m   Compiling[0m whoami v1.6.1
+[1m[32m   Compiling[0m canonical-path v2.0.2
+[1m[32m   Compiling[0m bs58 v0.4.0
+[1m[32m   Compiling[0m diffs v0.5.1
+[1m[32m   Compiling[0m libpijul v1.0.0-beta.11
+[1m[32m   Compiling[0m pijul-config v1.0.0-beta.10
+[1m[32m   Compiling[0m valence-core v0.1.0 (/build/source/vendor/valence/crates/valence-core)
+[1m[32m   Compiling[0m kiln-conformance v0.1.0 (/build/source/crates/kiln-conformance)
+[1m[32m   Compiling[0m kiln-adapter-celld v0.1.0 (/build/source/crates/kiln-adapter-celld)
+[1m[32m   Compiling[0m pijul-repository v1.0.0-beta.10
+[1m[32m   Compiling[0m cairn-gate-contract v0.1.0 (/build/source/vendor/cairn/crates/cairn-gate-contract)
+[1m[32m   Compiling[0m kiln-adapter-opentelemetry v0.1.0 (/build/source/crates/kiln-adapter-opentelemetry)
+[1m[32m   Compiling[0m kiln-adapter-valence v0.1.0 (/build/source/crates/kiln-adapter-valence)
+[1m[32m   Compiling[0m kiln-adapter-cairn v0.1.0 (/build/source/crates/kiln-adapter-cairn)
+[1m[32m   Compiling[0m kiln-adapter-pijul v0.1.0 (/build/source/crates/kiln-adapter-pijul)
+[1m[32m   Compiling[0m kiln-adapter-nix-eval v0.1.0 (/build/source/crates/kiln-adapter-nix-eval)
+[1m[32m   Compiling[0m kiln-adapter-sqlite v0.1.0 (/build/source/crates/kiln-adapter-sqlite)
+[1m[32m   Compiling[0m kiln-cli v0.1.0 (/build/source/crates/kiln-cli)
+[1m[32m   Compiling[0m kiln-adapter-mantle v0.1.0 (/build/source/crates/kiln-adapter-mantle)
+[1m[32m   Compiling[0m kiln-adapter-webhook v0.1.0 (/build/source/crates/kiln-adapter-webhook)
+[1m[32m   Compiling[0m kiln-adapter-cdevents v0.1.0 (/build/source/crates/kiln-adapter-cdevents)
+[1m[32m    Finished[0m `release` profile [optimized] target(s) in 2m 21s
+Executing cargoInstallPostBuildHook
+Finished cargoInstallPostBuildHook
+Finished cargoBuildHook
+buildPhase completed in 2 minutes 23 seconds
+Running phase: checkPhase
+@nix { "action": "setPhase", "phase": "checkPhase" }
+Executing cargoCheckHook
+cargoCheckHook flags: -j 4 --profile release --target x86_64-unknown-linux-gnu --offline --workspace --
+[1m[32m    Finished[0m `release` profile [optimized] target(s) in 0.09s
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_cairn-1c30ae8933fe1295)
+
+running 14 tests
+test tests::core_and_provider_manifests_do_not_import_cairn_or_bounded_exec ... ok
+test tests::controlled_policy_error_preserves_diagnostic_class ... ok
+test tests::exact_machine_fixture_admits_pass_repeat_and_reconciliation ... ok
+test tests::executable_substitution_fails_before_process_execution ... ok
+test tests::exact_machine_fixture_preserves_blocked_findings ... ok
+test tests::malformed_and_truncated_outputs_are_provider_errors ... ok
+test tests::independent_consumer_accepts_producer_fixture_and_rejects_substitution ... ok
+test tests::profile_rejects_revision_schema_and_limit_drift ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::repeated_effect_rejects_candidate_and_policy_substitution ... ok
+test tests::tampered_native_receipt_identity_is_rejected ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_rerun ... ok
+test tests::bounded_runtime_hashes_exact_file_and_rejects_missing_executable ... ok
+test tests::bounded_runtime_preserves_timeout_and_cancellation ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_cdevents-5264ce8b57d9340a)
+
+running 6 tests
+test tests::lossy_profile_is_rejected ... ok
+test tests::imported_success_is_observational_and_duplicates_are_explicit ... ok
+test tests::missing_correlation_rejects_without_canonical_action ... ok
+test tests::independent_fixture_decodes_with_the_pinned_profile ... ok
+test tests::task_run_round_trip_preserves_declared_fields ... ok
+test tests::unknown_event_type_and_missing_fields_fail_closed ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_celld-d6ca00cadf8ceafc)
+
+running 54 tests
+test admission::tests::ambiguous_provider_outcome_requires_reconciliation ... ok
+test admission::tests::checked_replay_rejects_corrupted_identity_before_evolution ... ok
+test admission::tests::admits_one_batch_at_the_expected_revision ... ok
+test admission::tests::checked_replay_evolves_valid_history_without_provider_dispatch ... ok
+test admission::tests::classifies_repeats_and_conflicts ... ok
+test admission::tests::completed_lease_requires_no_action ... ok
+test admission::tests::leases_move_unclaimed_to_leased ... ok
+test admission::tests::expired_lease_requires_reconcile ... ok
+test admission::tests::plans_a_known_migration ... ok
+test admission::tests::rejects_a_migration_cycle ... ok
+test admission::tests::rejects_a_duplicate_event_identity ... ok
+test admission::tests::rejects_a_migration_exceeding_the_step_bound ... ok
+test admission::tests::rejects_a_non_contiguous_append ... ok
+test admission::tests::rejects_a_stale_expected_revision ... ok
+test admission::tests::rejects_an_empty_append ... ok
+test admission::tests::rejects_an_unknown_migration_edge ... ok
+test client::tests::a_missing_authenticated_read_never_fabricates_an_empty_journal ... ok
+test client::tests::append_classifies_a_key_mismatch ... ok
+test client::tests::append_classifies_a_disconnection ... ok
+test client::tests::append_classifies_a_malformed_response ... ok
+test client::tests::append_classifies_a_redirect ... ok
+test client::tests::append_classifies_a_tls_failure ... ok
+test client::tests::append_classifies_a_timeout ... ok
+test client::tests::append_rejects_a_second_partition_before_transport ... ok
+test client::tests::append_classifies_an_unknown_outcome ... ok
+test client::tests::append_commits_on_acceptance ... ok
+test client::tests::append_rejects_a_stale_request_before_dispatch ... ok
+test partition::tests::maps_a_partition_deterministically ... ok
+test partition::tests::maps_different_streams_within_the_partition_policy ... ok
+test partition::tests::rejects_zero_partition_count ... ok
+test profile::tests::local_sqlite_only_cannot_admit_an_unobserved_runtime ... ok
+test profile::tests::rejects_hostile_tenants_on_the_alpha_cohort ... ok
+test profile::tests::rejects_drifted_release ... ok
+test profile::tests::rejects_output_gate_disabled ... ok
+test profile::tests::rejects_private_route_and_untrusted_origin_before_worker_dispatch ... ok
+test profile::tests::rejects_stale_cohort_observations_and_observed_disabled_storage ... ok
+test profile::tests::rejects_storage_probe_disabled ... ok
+test profile::tests::rejects_undeclared_trust_domain ... ok
+test profile::tests::rejects_zero_bounds ... ok
+test profile::tests::rejects_unobserved_artifact_deployment_storage_and_ingress_changes ... ok
+test protocol::tests::classifies_accepted_and_rejected_responses ... ok
+test protocol::tests::rejects_a_wrong_signature ... ok
+test protocol::tests::length_framing_rejects_equal_legacy_nonce_and_operation_bytes ... ok
+test protocol::tests::signs_and_verifies_an_envelope ... ok
+test protocol::tests::rejects_an_empty_nonce ... ok
+test worker::tests::cohort_admission_requires_output_gate_and_probe ... ok
+test worker::tests::worker_commits_one_append ... ok
+test worker::tests::cohort_restart_preserves_committed_facts ... ok
+test worker::tests::conflicting_payload_is_rejected_after_commit ... ok
+test worker::tests::compatible_cohort_differential_is_identical ... ok
+test worker::tests::worker_does_not_commit_past_a_rejection ... ok
+test worker::tests::worker_rejects_a_bad_signature ... ok
+test worker::tests::worker_commits_outbox_and_event_together ... ok
+test worker::tests::worker_replays_equal_operation_without_mutation ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/live_control.rs (target/x86_64-unknown-linux-gnu/release/deps/live_control-e856c45beefe37c7)
+
+running 1 test
+test actual_worker_controls ... ignored, requires the pinned loopback Celld HTTPS cohort runner
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/live_worker.rs (target/x86_64-unknown-linux-gnu/release/deps/live_worker-7ee95bbbee72f81c)
+
+running 1 test
+test actual_worker_persists_event_outbox_and_reconciles_a_lost_append_response ... ignored, requires the loopback Celld cohort runner tests/celld-live-cohort.sh
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_cob-ede8e409394250cb)
+
+running 5 tests
+test tests::every_cairn_profile_has_a_read_only_adapter ... ok
+test tests::registry_requires_all_cairn_profiles ... ok
+test tests::dispatch_orders_observation_signer_preview_and_effect ... ok
+test tests::stale_observation_and_missing_signer_block_effects ... ok
+test tests::unknown_profile_has_no_implicit_adapter ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_git-87a43e3ff2fea4d1)
+
+running 8 tests
+test tests::adapter_exposes_no_network_or_mutation_surface ... ok
+test tests::missing_repository_and_unsupported_features_fail_closed ... ok
+test tests::pinned_profile_is_read_only ... ok
+test tests::missing_commit_object_fails_closed ... ok
+test tests::profile_rejects_network_and_format_drift ... ok
+test tests::moved_reference_is_rejected_before_identity_return ... ok
+test tests::detached_commit_annotated_tag_and_empty_tree_are_supported ... ok
+test tests::real_repository_resolves_and_acquires_repeatably ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_jj-479c358ff63608dd)
+
+running 2 tests
+test tests::rejects_divergent_change_before_acquisition ... ok
+test tests::resolves_exact_commit_and_tree ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_lattice-caca8f552e240218)
+
+running 19 tests
+test tests::disconnect_after_acceptance_stays_unknown_with_execution_identity ... ok
+test tests::dispatch_and_observe_preserve_linkage_and_complete ... ok
+test tests::cancellation_returns_a_linked_terminal_observation ... ok
+test tests::pinned_profile_is_exact_and_admitted ... ok
+test tests::profile_rejects_missing_operation_and_capability_drift ... ok
+test tests::pause_and_log_operations_are_bounded ... ok
+test tests::pinned_producer_fixtures_pass_independent_consumer_admission ... ok
+test tests::recovery_only_dispatch_never_sends_a_new_dispatch ... ok
+test tests::source_context_preserves_mixed_case_provider_identity ... ok
+test tests::request_lowering_is_deterministic ... ok
+test tests::unavailable_provider_fails_without_fallback ... ok
+test tests::stale_execution_is_rejected_without_state_change ... ok
+test tests::unix::pinned_recovery_fixtures_pass_producer_admission ... ok
+test tests::unix::unavailable_socket_fails_without_fallback ... ok
+test tests::unrequested_control_fails_before_transport ... ok
+test tests::unsupported_node_fails_before_transport ... ok
+test tests::unix::not_found_recovery_remains_unknown_without_retry_authority ... ok
+test tests::unix::unknown_dispatch_recovers_acceptance_without_redispatch ... ok
+test tests::unix::concrete_socket_client_covers_every_exchange_operation ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_mantle-ae7ed6d369d2c9fc)
+
+running 9 tests
+test tests::core_and_provider_manifests_do_not_import_mantle_or_bounded_exec ... ok
+test tests::bounded_runtime_hashes_files_and_enforces_log_bounds ... ok
+test tests::profile_and_file_identity_drift_fail_before_dispatch ... ok
+test tests::independent_consumer_accepts_exact_producer_fixtures ... ok
+test tests::cache_cannot_hide_a_missing_required_product ... ok
+test tests::exact_native_report_admits_success_repeat_logs_and_reconciliation ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::repeated_effect_rejects_candidate_and_plan_substitution ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_redispatch ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_nix_eval-3a8ca9028e6d60ea)
+
+running 13 tests
+test tests::core_and_standalone_manifests_do_not_import_nix_or_adapter_code ... ok
+test tests::executable_manifest_source_and_cohort_drift_fail_before_launch ... ok
+test tests::explicit_cancellation_uses_the_cancellation_path ... ok
+test tests::bounded_runtime_hashes_files_and_rejects_non_root_entries ... ok
+test tests::duplicate_jobs_oversized_lines_and_gc_root_loss_fail_closed ... ok
+test tests::complete_stream_maps_tasks_and_preserves_job_error ... ok
+test tests::gc_roots_require_complete_handoff_and_preserve_cleanup_failure ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::spawn_failure_cleans_the_private_gc_root_directory ... ok
+test tests::malformed_truncated_and_conflicting_cache_streams_fail_closed ... ok
+test tests::shared_discovery_conformance_accepts_the_exact_adapter ... ok
+test tests::timeout_cancellation_crash_and_unknown_remain_distinct ... ok
+test tests::incremental_decoder_is_invariant_across_chunk_boundaries ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_opentelemetry-116f65db025d0f52)
+
+running 7 tests
+test tests::profile_drift_and_authority_promotion_fail_closed ... ok
+test tests::independent_fixture_preserves_batch_identity_and_all_signals ... ok
+test tests::backend_acceptance_does_not_create_ci_success ... ok
+test tests::backend_loss_does_not_change_canonical_state ... ok
+test tests::projection_is_deterministic_and_keeps_kiln_links ... ok
+test tests::unregistered_metric_name_is_rejected ... ok
+test tests::secret_is_redacted_before_batch_encoding ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_pijul-d7924cbebaeac65f)
+
+running 10 tests
+test archive::tests::archive_accepts_regular_file_and_rejects_special_permissions ... ok
+test tests::concrete_shell_uses_native_library_without_mutation_or_network_surface ... ok
+test tests::core_standalone_and_cli_remain_independent_of_pijul_runtime ... ok
+test tests::missing_busy_and_damaged_provider_failures_remain_distinct ... ok
+test tests::exact_native_observation_resolves_repeatably ... ok
+test tests::equal_snapshots_do_not_collapse_distinct_pijul_histories ... ok
+test tests::moving_or_substituted_state_fails_without_partial_success ... ok
+test tests::pinned_profile_is_exact_and_read_only ... ok
+test tests::profile_rejects_version_format_capability_and_bound_drift ... ok
+test tests::malformed_and_bounded_snapshots_fail_closed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_radicle-c5f7e83b2cc8d032)
+
+running 38 tests
+test mutation::tests::rendered_review_matches_the_pinned_radicle_shape ... ok
+test mutation::tests::pinned_profile_and_declared_plan_are_admitted ... ok
+test mutation::tests::undeclared_target_and_action_are_rejected ... ok
+test defelo::tests::deployed_push_maps_and_emits_exact_protocol_lines ... ok
+test defelo::tests::malformed_missing_revision_and_unknown_outcome_fail_closed ... ok
+test mutation::tests::write_outcomes_keep_timeout_and_unknown_distinct ... ok
+test mutation::tests::zero_deadline_executable_substitution_and_merge_authority_are_rejected ... ok
+test source::tests::authority_contract_and_cohort_drift_fail_closed ... ok
+test source::tests::pinned_source_profile_is_narrow_and_admitted ... ok
+test status::tests::authority_expansion_is_rejected ... ok
+test source::tests::malformed_native_identities_fail_before_repository_access ... ok
+test status::tests::empty_resolution_reason_fails_before_executable_access ... ok
+test status::tests::exact_expected_head_is_admitted_and_stale_head_is_rejected ... ok
+test status::tests::first_write_and_own_single_head_are_admitted ... ok
+test status::tests::foreign_and_multiple_heads_are_rejected ... ok
+test status::tests::executable_identity_drift_fails_closed ... ok
+test status::tests::foreign_repository_is_rejected ... ok
+test status::tests::malformed_and_zero_signers_are_rejected ... ok
+test status::tests::missing_secret_declaration_is_rejected ... ok
+test status::tests::oversized_payload_fails_before_signer_or_storage_access ... ok
+test status::tests::pinned_profile_and_allowed_plan_are_admitted ... ok
+test status::tests::production_profile_rejects_executable_substitution ... ok
+test status::tests::replayed_key_requires_equal_run_and_outcome ... ok
+test status::tests::terminal_outcomes_are_classified_and_unknown_is_rejected ... ok
+test status::tests::unlisted_object_type_is_rejected ... ok
+test status::tests::zero_profile_bound_is_rejected ... ok
+test status::tests::status_dispatch_round_trips_and_rejects_unknown_fields ... ok
+test tests::maps_push_and_emits_two_protocol_lines ... ok
+test tests::maps_patch_and_preserves_failure ... ok
+test tests::production_composition_has_no_fixture_direct_nix_or_core_provider_edge ... ok
+test status::tests::resolved_signer_debug_is_redacted ... ok
+test tests::rejects_run_substitution_and_preserves_timeout_failure ... ok
+test tests::rejects_unknown_version ... ok
+test tests::rejects_zero_poll_bound_before_provider_calls ... ok
+test tests::rejects_stdout_noise_fields ... ok
+test workflow::tests::profile_admits_trigger_only_and_rejects_fixture_or_collaboration ... ok
+test replay::tests::sqlite_replay_reserves_once_and_rejects_conflicting_transition ... ok
+test workflow::tests::uncertain_dispatch_recovers_without_redispatch_after_restart ... ok
+
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+[1m[32m     Running[0m unittests src/main.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_radicle-c0ce9b91c20dc8d8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/mutation_native.rs (target/x86_64-unknown-linux-gnu/release/deps/mutation_native-216d2c6e2d6ea507)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/source_native.rs (target/x86_64-unknown-linux-gnu/release/deps/source_native-4264f67baf07e4c0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/status_native.rs (target/x86_64-unknown-linux-gnu/release/deps/status_native-ee371054d6e17fe1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_remote-055ce475b3774f8b)
+
+running 3 tests
+test tests::missing_digest_fails_before_upload ... ok
+test tests::disconnect_after_acceptance_stays_unknown ... ok
+test tests::observation_mode_admission_blocks_unsupported_wait ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_sqlite-2ac4621743ab16a8)
+
+running 9 tests
+test tests::interrupted_transaction_exposes_neither_side ... ok
+test tests::committed_events_and_outbox_replay_after_restart ... ok
+test tests::explicit_migration_accepts_known_edge_and_rejects_unknown_version ... ok
+test tests::pure_append_model_rejects_stale_duplicate_and_gap_inputs ... ok
+test tests::damaged_event_bytes_stop_replay ... ok
+test tests::unsafe_profile_is_rejected_without_durability_claim ... ok
+test tests::lease_survives_restart_and_expiry_requires_reconciliation ... ok
+test tests::retention_preserves_stream_revision_and_replays_from_exact_snapshot ... ok
+test tests::lock_backup_snapshot_and_bounds_are_explicit ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_valence-9fbec7fc81f407d3)
+
+running 7 tests
+test tests::missing_nonclaim_and_malformed_span_are_rejected ... ok
+test tests::profile_drift_and_kiln_builder_promotion_fail_closed ... ok
+test tests::pinned_producer_fixture_passes_independent_import ... ok
+test tests::attempt_projection_is_valid_recorded_only_evidence ... ok
+test tests::imported_success_does_not_change_canonical_state ... ok
+test tests::stale_subject_is_rejected ... ok
+test tests::unavailable_provider_does_not_promote_or_mutate_state ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_adapter_webhook-39e1668af3647a7a)
+
+running 8 tests
+test tests::blake3_signature_is_deterministic_and_redacted ... ok
+test tests::dynamic_destination_and_oversized_body_stop_before_effects ... ok
+test tests::private_address_stops_before_secret_access ... ok
+test tests::accepted_receiver_is_bounded_and_secret_debug_is_redacted ... ok
+test tests::rate_limit_tls_and_response_bounds_are_explicit ... ok
+test tests::redirect_and_definite_rejection_are_not_followed ... ok
+test tests::timeout_after_possible_acceptance_is_unknown_without_unsafe_retry ... ok
+test tests::request_projection_is_deterministic_and_exact ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/main.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln-ebc7710fcfdb8794)
+
+running 3 tests
+test tests::evidence_identity_is_deterministic ... ok
+test tests::evidence_rejects_missing_input ... ok
+test tests::demo_emits_canonical_state ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_codec-df61a0ea7295c7fb)
+
+running 2 tests
+test tests::rejects_output_above_bound ... ok
+test tests::equal_values_have_equal_packed_identity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_conformance-51ec98aa2c27cd03)
+
+running 9 tests
+test tests::dependency_boundaries_reject_provider_runtime ... ok
+test tests::conformance_rejects_provider_substitution ... ok
+test tests::dependency_boundaries_reject_every_forbidden_edge ... ok
+test tests::dependency_boundaries_reject_reference_runtime ... ok
+test tests::provider_contract_gate_rejects_adapter_owned_ports ... ok
+test tests::reusable_provider_conformance_covers_repeat_cancel_timeout_and_reconcile ... ok
+test tests::dependency_boundaries_accept_current_core ... ok
+test tests::provider_contracts_have_one_application_owner ... ok
+test tests::reference_boundary_allows_docs_and_rejects_product_integration ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m     Running[0m tests/core_contracts.rs (target/x86_64-unknown-linux-gnu/release/deps/core_contracts-4d1ede730f85a004)
+
+running 10 tests
+test cursor_gap_is_explicit ... ok
+test consistent_publication_bundle_passes ... ok
+test cob_profile_and_fresh_plan_pass ... ok
+test cyclic_or_reversed_dependency_fails ... ok
+test exact_candidate_and_merge_preflight_pass ... ok
+test rollback_sequence_fails ... ok
+test unknown_cob_schema_fails_closed ... ok
+test status_filter_covers_every_exact_selection_dimension ... ok
+test unsupported_pause_dispatches_nothing ... ok
+test wait_predicate_is_read_only ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/provider_contract.rs (target/x86_64-unknown-linux-gnu/release/deps/provider_contract-f34b1be12ffeea2e)
+
+running 2 tests
+test declared_lifecycle_is_admitted ... ok
+test undeclared_pause_fails_closed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_core-0fe7aacdc7d9da99)
+
+running 61 tests
+test build::tests::stale_candidate_and_missing_products_are_rejected ... ok
+test build::tests::exact_build_observation_is_admitted ... ok
+test cob::tests::detects_missing_initial_profile ... ok
+test cob::tests::complete_resolution_rejects_partial_heads ... ok
+test discovery::tests::terminal_classification_preserves_uncertainty ... ok
+test discovery::tests::duplicate_derivations_and_cycles_fail_closed ... ok
+test discovery::tests::exact_jobs_map_deterministically_with_dependencies ... ok
+test domain::tests::rejects_terminal_mutation ... ok
+test discovery::tests::observation_identity_and_gc_handoff_bind_exact_facts ... ok
+test domain::tests::starts_run_deterministically ... ok
+test domain::tests::unknown_outcome_is_not_terminal_success ... ok
+test gating::tests::exact_gate_plan_is_admitted ... ok
+test gating::tests::exact_pass_and_block_map_to_candidate_results ... ok
+test gating::tests::gate_plan_rejects_noncanonical_evidence_and_pipeline_drift ... ok
+test gating::tests::failed_candidate_shrinks_window ... ok
+test gating::tests::serial_admission_never_speculates ... ok
+test gating::tests::speculative_admission_is_bounded_by_candidate_count ... ok
+test gating::tests::stale_result_does_not_apply ... ok
+test gating::tests::unknown_outcome_never_becomes_a_gate_result ... ok
+test gating::tests::substituted_candidate_policy_and_receipt_facts_fail_closed ... ok
+test hosting::tests::published_profile_requires_rid ... ok
+test hosting::tests::readonly_mirror_rejects_write ... ok
+test interchange::tests::builder_and_control_plane_are_distinct ... ok
+test interchange::tests::projections_cannot_promote_authority ... ok
+test interchange::tests::imported_success_has_no_state_authority ... ok
+test operations::tests::dominant_share_rejects_missing_capacity ... ok
+test operations::tests::larger_share_ranks_first_for_equal_usage ... ok
+test provider::tests::failure_translation_preserves_each_class ... ok
+test provider::tests::admits_declared_operation ... ok
+test provider::tests::rejects_hidden_fallback ... ok
+test provider::tests::rejects_observation_from_substituted_profile ... ok
+test remote::tests::cache_hit_without_output_is_not_success ... ok
+test remote::tests::capability_admission_is_value_based ... ok
+test remote::tests::disconnect_after_acceptance_is_unknown ... ok
+test remote::tests::equal_native_text_keeps_distinct_kinds ... ok
+test source::tests::admits_exact_jujutsu_commit ... ok
+test source::tests::admits_stable_local_git_resolution ... ok
+test source::tests::git_snapshot_manifest_is_deterministic ... ok
+test source::tests::git_snapshot_rejects_unsafe_duplicate_and_gitlink_entries ... ok
+test source::tests::narrow_source_profile_does_not_gain_forge_authority ... ok
+test source::tests::local_git_profile_has_no_network_or_mutation_authority ... ok
+test source::tests::native_source_profiles_keep_distinct_identity_namespaces ... ok
+test source::tests::pijul_facts_bind_complete_stable_state ... ok
+test source::tests::pijul_snapshot_is_deterministic_and_rejects_invalid_entries ... ok
+test source::tests::rejects_ambiguous_jujutsu_revision ... ok
+test source::tests::rejects_moved_or_unsupported_git_resolution ... ok
+test source::tests::replayed_or_invalidly_signed_trigger_fails_closed ... ok
+test task_ops::tests::admits_ready_task ... ok
+test task_ops::tests::denies_delayed_task_without_time ... ok
+test task_ops::tests::redacts_secret_value ... ok
+test trigger::tests::admits_matching_bounded_observation ... ok
+test trigger::tests::rejects_substitution_and_oversized_log_url ... ok
+test trigger::tests::rejects_zero_poll_bound ... ok
+test types::tests::accepts_namespaced_external_identity ... ok
+test types::tests::rejects_malformed_content_identity ... ok
+test types::tests::rejects_oversized_identifier ... ok
+test workflow::tests::ordered_acyclic_plan_is_admitted ... ok
+test workflow::tests::linked_completion_maps_to_success ... ok
+test workflow::tests::cyclic_plan_is_rejected ... ok
+test workflow::tests::paused_execution_cannot_claim_terminal_success ... ok
+test workflow::tests::stale_attempt_is_rejected ... ok
+
+test result: ok. 61 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_provider_api-36632926de340f26)
+
+running 2 tests
+test tests::infrastructure_outcomes_remain_distinct ... ok
+test tests::roles_remain_distinct ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_radicle_source_contract-a3b17744fbb9cbb2)
+
+running 10 tests
+test tests::contract_manifest_has_no_provider_runtime_dependency ... ok
+test tests::accepts_exact_parent_level_receipt ... ok
+test tests::contract_publishes_explicit_non_claims ... ok
+test tests::rejects_digest_and_snapshot_bound_failures ... ok
+test tests::rejects_feature_and_verification_downgrades ... ok
+test tests::rejects_floating_or_malformed_request_facts ... ok
+test tests::rejects_identity_and_revision_substitution ... ok
+test tests::rejects_moved_or_unexpected_signed_refs ... ok
+test tests::rejects_zero_and_inconsistent_bounds ... ok
+test tests::rejects_unknown_wire_fields ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/producer_fixtures.rs (target/x86_64-unknown-linux-gnu/release/deps/producer_fixtures-bfe8515ec85fdaad)
+
+running 1 test
+test producer_fixtures_match_independent_admission ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_standalone-ca0160edd7e320ec)
+
+running 9 tests
+test tests::client_deadline_does_not_change_attempt_outcome ... ok
+test tests::hold_wires_to_canonical_command_without_provider_effect ... ok
+test tests::bounded_log_survives_store_clone ... ok
+test tests::event_and_outbox_commit_together ... ok
+test tests::interruption_commits_nothing ... ok
+test tests::machine_status_output_is_versioned_and_bounded ... ok
+test tests::recovery_rejects_partial_log_metadata ... ok
+test tests::reference_profile_completes_accepted_and_rejected_runs ... ok
+test tests::unknown_outcome_survives_recovery ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/onix_radicle_cob_git_store-5e007811fd09e96e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/git_store.rs (target/x86_64-unknown-linux-gnu/release/deps/git_store-c2b3bd4293720bdd)
+
+running 4 tests
+test signed_cob_roundtrip_with_borrowed_repository_and_exact_update ... ok
+test stale_exact_head_is_rejected_even_when_operation_ancestry_matches_current ... ok
+test bounded_scan_counts_distinct_ids_not_valid_namespace_refs ... ok
+test malformed_symbolic_foreign_author_and_tampered_signatures_fail_closed ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m   Doc-tests[0m kiln_adapter_cairn
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_cdevents
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_celld
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_cob
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_git
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_jj
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_lattice
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_mantle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_nix_eval
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_opentelemetry
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_pijul
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_radicle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_remote
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_sqlite
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_valence
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_adapter_webhook
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_codec
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_conformance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_provider_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_radicle_source_contract
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m kiln_standalone
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m   Doc-tests[0m onix_radicle_cob_git_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+Finished cargoCheckHook
+Running phase: installPhase
+@nix { "action": "setPhase", "phase": "installPhase" }
+Executing cargoInstallHook
+Finished cargoInstallHook
+Running phase: fixupPhase
+@nix { "action": "setPhase", "phase": "fixupPhase" }
+shrinking RPATHs of ELF executables and libraries in /nix/store/5xvdvsgx0mwvdryrlgy4jdsyqga8i9aw-kiln-0.1.0
+shrinking /nix/store/5xvdvsgx0mwvdryrlgy4jdsyqga8i9aw-kiln-0.1.0/bin/kiln-adapter-radicle
+shrinking /nix/store/5xvdvsgx0mwvdryrlgy4jdsyqga8i9aw-kiln-0.1.0/bin/kiln
+checking for references to /build/ in /nix/store/5xvdvsgx0mwvdryrlgy4jdsyqga8i9aw-kiln-0.1.0...
+patching script interpreter paths in /nix/store/5xvdvsgx0mwvdryrlgy4jdsyqga8i9aw-kiln-0.1.0
+stripping (with command strip and flags -S -p) in  /nix/store/5xvdvsgx0mwvdryrlgy4jdsyqga8i9aw-kiln-0.1.0/bin
