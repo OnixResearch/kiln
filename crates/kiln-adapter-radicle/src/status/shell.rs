@@ -5,6 +5,7 @@ use std::str::FromStr;
 use cob_git2 as git2;
 use kiln_core::types::{Diagnostic, ExternalRef};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
+use onix_radicle_cob_git_store::{GitCobStore, GitCobStoreError};
 use radicle_cob::change::Storage as _;
 use radicle_cob::object::Storage as _;
 use radicle_cob::object::collaboration;
@@ -22,7 +23,6 @@ use super::profile::admit_fixture_profile;
 use super::profile::{RadicleStatusProfile, admit_profile};
 use super::resolver::SignerResolver;
 use super::secret::ResolvedSigner;
-use super::storage::{CobRepository, StorageError};
 
 const COMMIT_AUTHOR_NAME: &str = "Kiln Status";
 const COMMIT_AUTHOR_EMAIL: &str = "status@kiln.invalid";
@@ -140,6 +140,7 @@ impl RadicleStatusShell {
         &self.profile
     }
 
+    // r[impl kiln.radicle.status_store_boundary]
     // r[impl kiln.radicle.status_signer.scenario.resolved]
     // r[impl kiln.radicle.status_signer.scenario.missing]
     // r[impl kiln.radicle.status_allowlist.scenario.admitted]
@@ -153,7 +154,7 @@ impl RadicleStatusShell {
         let namespace = public_key_of(&signer)?;
         let opened = self.open_repository(&plan.repository)?;
         let repo = opened.repository();
-        let repository = CobRepository::new(repo);
+        let repository = GitCobStore::new(repo);
         let target = self.resolve_target(&repository, plan, &signer_identity)?;
 
         if let TargetState::Existing {
@@ -177,7 +178,7 @@ impl RadicleStatusShell {
         let message = format!("kiln status {}", plan.idempotency_key.native_id.as_str());
         match target {
             TargetState::New => {
-                let created = collaboration::create::<CiJobStatus, CobRepository>(
+                let created = collaboration::create::<CiJobStatus, GitCobStore>(
                     &repository,
                     signer.signing_key(),
                     None,
@@ -209,8 +210,9 @@ impl RadicleStatusShell {
                 current_head,
                 projected: None,
             } => {
-                let write_repository = CobRepository::with_expected_ref(repo, current_head);
-                let updated = collaboration::update::<CiJobStatus, CobRepository>(
+                // r[impl kiln.radicle.status_store_concurrency]
+                let write_repository = GitCobStore::with_expected_ref(repo, current_head);
+                let updated = collaboration::update::<CiJobStatus, GitCobStore>(
                     &write_repository,
                     signer.signing_key(),
                     None,
@@ -254,7 +256,7 @@ impl RadicleStatusShell {
         let signer_identity = signer_identity(&signer)?;
         let opened = self.open_repository(&plan.repository)?;
         let repo = opened.repository();
-        let repository = CobRepository::new(repo);
+        let repository = GitCobStore::new(repo);
         let target = self.resolve_target(&repository, plan, &signer_identity)?;
         match target {
             TargetState::New => Ok(None),
@@ -292,9 +294,10 @@ impl RadicleStatusShell {
         Ok(())
     }
 
+    // r[impl kiln.radicle.status_store_scan]
     fn resolve_target(
         &self,
-        repository: &CobRepository<'_>,
+        repository: &GitCobStore<'_>,
         plan: &StatusPlan,
         signer_identity: &ExternalRef,
     ) -> PortResult<TargetState> {
@@ -401,18 +404,17 @@ impl RadicleStatusShell {
 }
 
 fn read_projected(
-    repository: &CobRepository<'_>,
+    repository: &GitCobStore<'_>,
     plan: &StatusPlan,
     object_id: ObjectId,
 ) -> PortResult<Option<ProjectedOutcome>> {
     let type_name = CiJobStatus::type_name_static();
-    let object =
-        collaboration::get::<CiJobStatus, CobRepository>(repository, type_name, &object_id)
-            .map_err(retrieve_failure)?;
+    let object = collaboration::get::<CiJobStatus, GitCobStore>(repository, type_name, &object_id)
+        .map_err(retrieve_failure)?;
     Ok(object.and_then(|entry| entry.object().projected(plan).cloned()))
 }
 
-fn read_heads(repository: &CobRepository<'_>, object_id: ObjectId) -> PortResult<ObservedHeads> {
+fn read_heads(repository: &GitCobStore<'_>, object_id: ObjectId) -> PortResult<ObservedHeads> {
     let type_name = CiJobStatus::type_name_static();
     let refs = repository
         .objects(type_name, &object_id)
@@ -543,8 +545,24 @@ fn non_empty_payload(payload: Vec<u8>) -> PortResult<Contents> {
     Ok(NonEmpty::new(payload))
 }
 
-fn storage_failure(error: StorageError) -> PortFailure {
-    PortFailure::Domain(error.into())
+fn storage_failure(error: GitCobStoreError) -> PortFailure {
+    let code = match &error {
+        GitCobStoreError::ZeroObjectScanBound
+        | GitCobStoreError::ObjectScanBoundExceeded { .. } => "radicle_object_scan_bound",
+        GitCobStoreError::NonUtf8Reference | GitCobStoreError::RefFormat(_) => {
+            "radicle_ref_name_invalid"
+        }
+        GitCobStoreError::InvalidCobReference { .. } => "radicle_ref_unparsable",
+        GitCobStoreError::Git(_)
+        | GitCobStoreError::Reference(_)
+        | GitCobStoreError::InvalidCobChange { .. }
+        | GitCobStoreError::ReferenceDrift { .. } => "radicle_refs_unreadable",
+    };
+    PortFailure::Domain(Diagnostic::new(
+        code,
+        "radicle_status.refs",
+        &error.to_string(),
+    ))
 }
 
 fn commit_config_failure(error: git2::Error) -> PortFailure {

@@ -1,0 +1,22 @@
+{
+  "source_repository": "ssh://git@github.com/OnixResearch/valence.git",
+  "source_commit": "220307a371e7bc4e3309447b09447d0fe6c4db5f",
+  "full_archive_format": "git archive --format=tar <source_commit>",
+  "full_archive_blake3": "dcca7eb5db94c23200ec76ff08b993b663543c59067dd436a3aa5bc00dd217ac",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "Cargo.toml",
+    "README.md",
+    "LICENSES",
+    "license-policy.tsv",
+    "docs/licensing.md",
+    "crates/valence-core"
+  ],
+  "archive_blake3": "219c641cbdc074054809bbc906b9cfce853c0691ea8b4119ca654f1a0c520572",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {
+    "valence-core": "MPL-2.0"
+  },
+  "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+}

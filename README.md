@@ -18,17 +18,34 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - typed Nickel configuration and Nix checks.
 
-Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. The published `main` and `candidate` branches identify validated commit `36984e367eafd44c22d2b4f4f47121deb51eece3`.
+Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
 
 ## Quick start
 
+Acquire the read-only HTTPS projection without a Radicle node:
+
 ```console
-nix develop path:$PWD
-cargo test --workspace
-cargo run -p kiln-cli -- demo
+jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git kiln
+cd kiln
 ```
 
+Select and verify the intended exact revision before building; `main` is a moving reference.
+
+```console
+nix develop path:$PWD
+cargo test --locked --workspace
+cargo run --locked -p kiln-cli -- demo
+```
+
+The committed, revision-verified imports cover direct and transitive Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports.
+
 Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary.
+
+The status and patch-review shells use the separately pinned v0.2.0 shared Git COB store imported into this repository, not a sibling checkout. See `docs/radicle-status.md` for its immutable source digest and drift-refusing import procedure.
+
+## Licensing
+
+Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.
 
 ## Owned boundary
 
@@ -86,7 +103,7 @@ Mirrors are projections. They cannot replace Radicle governance without an expli
 
 Publication records these items:
 
-- the `MIT OR Apache-2.0` license decision;
+- the package-specific license decision, including the `MIT OR Apache-2.0` workspace default and the GPL/AGPL integrations described in `LICENSES.md`;
 - the exact immutable candidate and archive BLAKE3 identity;
 - explicit operator authority;
 - the delegate, threshold, and parent-feature signed references;

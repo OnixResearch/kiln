@@ -11,6 +11,7 @@ use kiln_provider_api::{
     PortResult,
 };
 use nonempty::NonEmpty;
+use onix_radicle_cob_git_store::{GitCobStore, GitCobStoreError};
 use radicle_cob::change::Storage as _;
 use radicle_cob::object::Storage as _;
 use radicle_cob::object::collaboration;
@@ -18,7 +19,6 @@ use radicle_cob::{Entry, ObjectId, TypeName, Update};
 use radicle_crypto::PublicKey;
 use radicle_oid::Oid;
 
-use crate::status::storage::CobRepository;
 use crate::status::{ResolvedSigner, SignerResolver};
 
 #[cfg(feature = "status-native-fixtures")]
@@ -149,11 +149,12 @@ impl RadicleMutationTransport {
         &self.profile
     }
 
+    // r[impl kiln.radicle.status_store_boundary]
     fn observe_bounded(&self, plan: &CobEffectPlan) -> PortResult<ObservedMutation> {
         let started = Instant::now();
         let _action = admit_mutation_plan(&self.profile, plan).map_err(PortFailure::Domain)?;
         let opened = self.open_repository(&plan.repository)?;
-        let repository = CobRepository::new(opened.repository());
+        let repository = GitCobStore::new(opened.repository());
         let object_id = parse_object_id(plan)?;
         let type_name = patch_type_name()?;
         let refs = repository
@@ -329,9 +330,9 @@ impl CollaborationMutationPort for RadicleMutationTransport {
         })?;
         let object_id = parse_object_id(plan)?;
         let type_name = patch_type_name()?;
-        let repository = CobRepository::with_expected_ref(opened.repository(), observed.head);
+        let repository = GitCobStore::with_expected_ref(opened.repository(), observed.head);
         let message = operation_message(plan);
-        let result = collaboration::update::<NonEmpty<Entry>, CobRepository>(
+        let result = collaboration::update::<NonEmpty<Entry>, GitCobStore>(
             &repository,
             signer.signing_key(),
             Some(observed.resource),
@@ -437,7 +438,7 @@ fn open_repository(path: &Path) -> PortResult<OpenedRepository> {
 }
 
 fn load_history_bounded(
-    repository: &CobRepository<'_>,
+    repository: &GitCobStore<'_>,
     head: Oid,
     max_entries: usize,
     max_bytes: usize,
@@ -728,7 +729,7 @@ fn update_failure(error: collaboration::error::Update) -> PortFailure {
     })
 }
 
-fn storage_failure(error: crate::status::storage::StorageError) -> PortFailure {
+fn storage_failure(error: GitCobStoreError) -> PortFailure {
     PortFailure::Infrastructure(InfrastructureFailure {
         code: "radicle_mutation_refs".to_string(),
         message: error.to_string(),

@@ -26,6 +26,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-valence` | Recorded-only Valence Evidence IR projection and import. |
 | `kiln-adapter-webhook` | Registered-endpoint notification delivery with bounded authority. |
 | `kiln-adapter-sqlite` | Durable local event, outbox, lease, snapshot, migration, and backup storage. |
+| `kiln-adapter-celld` | Optional pinned Celld Worker event store with authenticated bounded HTTPS, one-object SQLite journal/outbox, and conditional lease/schema plans. |
 | `kiln-conformance` | Shared positive and negative provider gates. |
 | `kiln-cli` | Local operator shell. |
 

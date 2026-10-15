@@ -73,6 +73,7 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.celld.partitioning.scenario.stable]
     fn maps_a_partition_deterministically() {
         let first = map_partition(&stream(), 16).unwrap_or_else(|_| unreachable!("maps"));
         let second = map_partition(&stream(), 16).unwrap_or_else(|_| unreachable!("maps"));

@@ -8,20 +8,29 @@ A publication candidate binds these facts:
 
 - exact source revision;
 - source-archive BLAKE3 identity;
-- `MIT OR Apache-2.0` license;
+- package and artifact-specific license terms from `LICENSES.md`;
 - lifecycle evidence identity;
 - rollback revision;
 - hosting-profile identity.
 
 Candidate validation performs no signing, push, synchronization, announcement, or mirror mutation.
 
-## Publication receipt
+## Historical publication receipt
 
 The operator published exact candidate `36984e367eafd44c22d2b4f4f47121deb51eece3`. Its source archive BLAKE3 identity is `ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2`.
 
 The publication uses one delegate, threshold one, and parent-feature signed refs. Native acquisition from Rosa and HTTPS acquisition from `seed.radicle.garden` reproduced the exact commit and archive identity.
 
-See `evidence/publication-receipt.ncl` for the bounded publication facts and non-claims.
+See `evidence/publication-receipt.ncl` for those historical bounded publication facts and non-claims. `evidence/publication-candidate.ncl`, `evidence/release-input.ncl`, and `evidence/release-evidence.json` belong to that original candidate; their check declarations do not validate later source.
+
+## Current local preparation
+
+Record fresh checks against one exact source revision or explicitly identified source payload. Keep the source manifest and observed results together, distinguish the validated payload from a later evidence-only record, and retain failures rather than copying historical PASS declarations.
+
+The `release-evidence` Nix check verifies deterministic rendering of the historical input. It does not execute those declared checks, rehash current source files, or establish a new candidate's readiness.
+
+A new canonical publication requires a separately authorized operation and a new consistent receipt: candidate/archive, hosting profile, governed signed refs, native and HTTPS acquisition, and required replica observations must all refer to the same revision. Do not rewrite the original receipt to imply that local preparation signed, pushed, synchronized, or published new source.
+
 
 ## Mirrors
 

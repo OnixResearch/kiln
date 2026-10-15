@@ -1,0 +1,43 @@
+[workspace]
+members = [
+  "crates/cairn-core",
+  "crates/cairn-cli",
+  "crates/cairn-gate-contract",
+  "crates/cairn-radicle-cob",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/onixresearch/cairn"
+version = "0.1.0"
+
+[workspace.dependencies]
+artifact-auth-core = { git = "ssh://git@github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", default-features = false }
+artifact-auth-ed25519 = { git = "ssh://git@github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", default-features = false }
+blake3 = "1.5"
+bounded-tree-core = { path = "vendor/bounded-tree-core" }
+bounded-tree-cap = { path = "vendor/bounded-tree-cap" }
+cap-std = "4.0.2"
+crossterm = "0.28"
+ed25519-dalek = "2.2"
+git-ref-format-core = "0.6.0"
+git2 = { version = "0.20.4", features = ["vendored-libgit2"], default-features = false }
+iddqd = "0.4.5"
+nickel-export-core = { git = "https://github.com/OnixResearch/nickel-export", rev = "257fafc1c746f1faf156207043a4c826bfb16d49" }
+nonempty = "0.9"
+preserves = "4.996.0"
+radicle-cob = { version = "0.20.0", features = ["git2"] }
+radicle-crypto = { version = "0.17.0", features = ["ssh"] }
+radicle-oid = { version = "0.2.0", features = ["git2", "serde", "sha1", "std"], default-features = false }
+rat-nodegraph = { git = "https://github.com/brittonr/subwayrat.git", rev = "9d68c69f13ad5c4385e8c96ff727bd6a7a1f8dd2" }
+ratatui = "0.30"
+redb = "3.0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2"
+
+[workspace.metadata.slotcar]
+default_scope = ["--workspace"]
+cargo_check_args = ["--all-targets"]

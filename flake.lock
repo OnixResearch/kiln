@@ -1,22 +1,5 @@
 {
   "nodes": {
-    "cairn-gate": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1787289025,
-        "narHash": "sha256-r6maRgum3TeE17B/prR6ixA4R5CuLdEOAN8CWAD+zMg=",
-        "ref": "refs/heads/main",
-        "rev": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
-        "revCount": 419,
-        "type": "git",
-        "url": "ssh://git@github.com/OnixResearch/cairn.git"
-      },
-      "original": {
-        "rev": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
-        "type": "git",
-        "url": "ssh://git@github.com/OnixResearch/cairn.git"
-      }
-    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
@@ -36,23 +19,6 @@
         "owner": "hercules-ci",
         "repo": "flake-parts",
         "type": "github"
-      }
-    },
-    "mantle-build": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1787295942,
-        "narHash": "sha256-wbxOOf78rb1fN/gxifOF0Me/XwndgNVsStaz9IZyOck=",
-        "ref": "refs/heads/main",
-        "rev": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
-        "revCount": 2607,
-        "type": "git",
-        "url": "ssh://git@github.com/OnixResearch/mantle.git"
-      },
-      "original": {
-        "rev": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
-        "type": "git",
-        "url": "ssh://git@github.com/OnixResearch/mantle.git"
       }
     },
     "nix": {
@@ -125,8 +91,6 @@
     },
     "root": {
       "inputs": {
-        "cairn-gate": "cairn-gate",
-        "mantle-build": "mantle-build",
         "nix-eval-jobs": "nix-eval-jobs",
         "nixpkgs": "nixpkgs_2",
         "rust-overlay": "rust-overlay"

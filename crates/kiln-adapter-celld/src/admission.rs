@@ -17,6 +17,7 @@ pub struct AppendPlan {
     pub event_count: usize,
     pub outbox_count: usize,
     pub payload_identity: ContentId,
+    pub encoded_payload: Vec<u8>,
 }
 
 pub fn admit_append_batch(
@@ -92,7 +93,8 @@ pub fn admit_append_batch(
         }
         record.idempotency_key.validate()?;
     }
-    let payload_identity = crate::protocol::payload_identity_of(profile, request)?;
+    let (encoded_payload, payload_identity) =
+        crate::protocol::encode_append_payload(profile, request)?;
     let event_count = u64::try_from(request.records.len()).map_err(|_| {
         Diagnostic::new(
             "celld_revision_overflow",
@@ -112,6 +114,7 @@ pub fn admit_append_batch(
         event_count: request.records.len(),
         outbox_count: request.outbox.len(),
         payload_identity,
+        encoded_payload,
     })
 }
 
@@ -164,7 +167,7 @@ pub fn replay_checked(
 }
 
 // r[impl kiln.celld.leases]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DurableLease {
     pub effect_id: EffectId,
     pub provider_profile: ProviderProfileId,
@@ -173,6 +176,28 @@ pub struct DurableLease {
     pub lease_until: Option<u64>,
     pub attempts: u32,
 }
+
+/// Signed one-object lease state, including evidence which must survive reopen.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct StoredLease {
+    pub lease: DurableLease,
+    pub idempotency_key: ExternalRef,
+    pub completion: Option<ExternalRef>,
+    pub reconciliation: Option<ExternalRef>,
+}
+
+/// Persisted schema cohort and journal revision returned by the signed Worker.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StoredSchema {
+    pub version: u16,
+    pub identity: ContentId,
+    pub revision: u64,
+}
+
+pub const EMPTY_SCHEMA_IDENTITY: &str =
+    "99a279c7fb99170797ff51ed0841ed9bee7957c9fb82926d9d80c87399e210c8";
+pub const CURRENT_SCHEMA_IDENTITY: &str =
+    "9a41ba000f167e6a189136cbda0b62aef8efee9e5533cc4f6cafa8e4923a055b";
 
 pub fn plan_lease_claim(
     current: &DurableLease,
@@ -206,6 +231,35 @@ pub fn plan_lease_claim(
         lease_until: Some(lease_until),
         attempts,
     })
+}
+
+/// Persist an externally observed terminal result after the shell reconciles
+/// provider ambiguity. This function does not contact or redispatch a provider.
+pub fn plan_lease_reconciled_completion(
+    current: &StoredLease,
+    completion: ExternalRef,
+    reconciliation: ExternalRef,
+) -> CoreResult<StoredLease> {
+    completion.validate()?;
+    reconciliation.validate()?;
+    current.idempotency_key.validate()?;
+    if current.lease.state != LeaseState::Leased
+        || current.lease.owner.is_none()
+        || current.lease.lease_until.is_none()
+        || current.completion.is_some()
+        || current.reconciliation.is_some()
+    {
+        return Err(Diagnostic::new(
+            "celld_lease_completion",
+            "celld.lease",
+            "only a leased effect without prior terminal evidence can be reconciled",
+        ));
+    }
+    let mut next = current.clone();
+    next.lease.state = LeaseState::Completed;
+    next.completion = Some(completion);
+    next.reconciliation = Some(reconciliation);
+    Ok(next)
 }
 
 #[must_use]
@@ -373,6 +427,32 @@ mod tests {
         }
     }
 
+    // r[verify kiln.celld.replay.scenario.valid]
+    #[test]
+    fn checked_replay_evolves_valid_history_without_provider_dispatch() {
+        let rebuilt = replay_checked(&profile_fixture(), &State::default(), &[record(0)])
+            .unwrap_or_else(|_| unreachable!("valid replay"));
+        let run_id =
+            kiln_core::types::RunId::new("kiln-run-1").unwrap_or_else(|_| unreachable!("run id"));
+        assert_eq!(rebuilt.revision, 1);
+        assert_eq!(
+            rebuilt.runs.get(&run_id).map(|run| &run.outcome),
+            Some(&kiln_core::domain::Outcome::Pending),
+        );
+    }
+
+    // r[verify kiln.celld.replay.scenario.damage]
+    #[test]
+    fn checked_replay_rejects_corrupted_identity_before_evolution() {
+        let mut damaged = record(0);
+        damaged.event_identity = ExternalRef::new("kiln", "event-blake3", &"0".repeat(64))
+            .unwrap_or_else(|_| unreachable!("valid stored identity shape"));
+        let error = replay_checked(&profile_fixture(), &State::default(), &[damaged])
+            .err()
+            .unwrap_or_else(|| unreachable!("stored bytes differ from identity"));
+        assert_eq!(error.code, "celld_event_identity_mismatch");
+    }
+
     #[test]
     fn admits_one_batch_at_the_expected_revision() {
         let profile = profile_fixture();
@@ -488,6 +568,24 @@ mod tests {
         assert_eq!(
             lease_recovery_action(&lease, 100),
             RecoveryAction::Reconcile
+        );
+    }
+
+    // r[verify kiln.celld.leases.scenario.ambiguous]
+    #[test]
+    fn ambiguous_provider_outcome_requires_reconciliation() {
+        let lease = DurableLease {
+            effect_id: EffectId::new("kiln-effect-1").unwrap_or_else(|_| unreachable!("effect")),
+            provider_profile: ProviderProfileId::new("nix")
+                .unwrap_or_else(|_| unreachable!("provider")),
+            state: LeaseState::Ambiguous,
+            owner: None,
+            lease_until: None,
+            attempts: 1,
+        };
+        assert_eq!(
+            lease_recovery_action(&lease, 100),
+            RecoveryAction::Reconcile,
         );
     }
 

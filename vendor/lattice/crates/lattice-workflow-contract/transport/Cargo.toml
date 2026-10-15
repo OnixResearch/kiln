@@ -1,0 +1,31 @@
+[package]
+name = "lattice-workflow-transport"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.88"
+description = "Bounded Unix workflow exchange transport for Lattice consumers"
+publish = false
+
+[dependencies]
+base64 = "0.22.1"
+blake3 = "1.8.3"
+lattice-workflow-contract = { path = ".." }
+nix = { version = "0.31", default-features = false, features = ["socket", "user"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+
+[dev-dependencies]
+tempfile = "3.27"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+dbg_macro = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"

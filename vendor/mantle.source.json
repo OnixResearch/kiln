@@ -1,0 +1,17 @@
+{
+  "source_repository": "ssh://git@github.com/OnixResearch/mantle.git",
+  "source_commit": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+  "full_archive_format": "git archive --format=tar <source_commit>",
+  "full_archive_blake3": "7644411198b1c7d015ceba387671d024f9b2a3e410879ec793e9931f7da7e325",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "LICENSE",
+    "fixtures/mantle-build-contract",
+    "contracts/mantle-build-contract.ncl"
+  ],
+  "archive_blake3": "ff7c4a11d08625a977b4139367dc619fab5544f54c492080107f20e7e3c42bf5",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {},
+  "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+}

@@ -17,10 +17,17 @@
 3. Run all checks:
 
    ```console
-   cargo test --workspace
-   cargo clippy --workspace --all-targets -- -D warnings
-   nix flake check path:$PWD -L
+   cargo test --locked --workspace
+   cargo clippy --locked --workspace --all-targets -- -D warnings
+   cairn validate --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
+   cairn traceability coverage --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --json
+   nix flake check path:$PWD --no-write-lock-file -L
    ```
+
+Run credential-isolated acquisition separately from a normal operator build: existing Cargo/Nix caches and credential helpers can conceal an inaccessible source input. Use a fresh temporary HOME/source cache with no Git/SSH credentials or global Git configuration, and acquire all direct and transitive sources before claiming the public quick start is reproducible. Consult `LICENSES.md` before combining adapters into a distributed executable.
+
+For release preparation, bind actual command results to the exact validated source payload and retain failures. The original files under `evidence/` are historical publication evidence, not current check receipts. See `hosting-and-recovery.md` for the boundary between local preparation and separately authorized publication.
+
 
 ## Status
 

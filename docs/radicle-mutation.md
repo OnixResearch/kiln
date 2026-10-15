@@ -4,6 +4,8 @@ Kiln can append one declared `review` action to one declared `xyz.radicle.patch`
 
 This shell uses the SQLite-free cohort from `docs/radicle-status.md`. The full Radicle runtime does not enter the product dependency graph.
 
+Its Git COB storage is the same verified, repository-owned v0.2.0 shared source imported for CI status publication; the immutable commit, digest, and guarded update procedure are recorded in `docs/radicle-status.md`. The shared library supplies signed-ref admission, bounded discovery, and exact-reference CAS, not permission to sign, review, or mutate a patch. Kiln retains all patch-specific admission and reconciliation decisions.
+
 The patch action schema comes from Radicle `0.25.1`. Its crate SHA-256 is `fc23b44b518df749486358fef29c4375daa47299eeec32b3659781c1bfd207e4`.
 
 ## Authority flow
@@ -80,6 +82,6 @@ Do not put the seed in Nickel, action JSON, command arguments, logs, observation
 
 ## Evidence boundary
 
-Native fixtures cover authorized review, repeat dispatch, moved and foreign heads, missing signer, undeclared targets, payload bounds, reference failure, timeout, and reconciliation.
+Six native patch-review fixtures cover authorized review, repeat dispatch, moved and authenticated foreign heads, missing signer, reference failure, timeout, and reconciliation. The foreign fixture uses a secondary signer in its own valid namespace, so strict shared signed-author checks remain enforced before the Kiln single-writer review policy rejects the action.
 
 These checks prove bounded local patch-review mutation under one profile. They do not prove peer convergence, remote visibility, actor trust, patch correctness, or merge correctness.

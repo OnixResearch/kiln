@@ -1,0 +1,27 @@
+[package]
+name = "lattice-workflow-contract"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.88"
+description = "Versioned no-std workflow request and observation contract for Lattice consumers"
+publish = false
+
+[dependencies]
+blake3 = { version = "1.8.3", default-features = false, features = ["pure"] }
+serde = { version = "1.0.228", default-features = false, features = ["alloc", "derive"] }
+
+[dev-dependencies]
+serde_json = "1.0.149"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+dbg_macro = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"

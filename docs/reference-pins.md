@@ -30,6 +30,92 @@ The review date is 2026-08-08. These references inform bounded Kiln contracts an
 | Pueue | `b3fe223ef0a3c51d95d5c6128700b79442c54af7` | MIT | Status, logs, wait, capacity groups, scoped controls | Scheduler, daemon, protocol, provider, or runtime integration |
 | celld | release `v0.2.1`, revision `ae8fac053d79f971bfcb996054bb43eb2f9b05da` | Apache-2.0 | Durable Object SQLite transactions, one-writer fencing, conditional write, output gate | Workflow, build, placement, fairness, or release authority |
 
+## Build source acquisition
+
+The design-reference pins above are not the build cohort. Cargo consumes the
+following committed, immutable source imports; no sibling checkout, GitHub SSH
+credential, private HTTPS credential, or running Radicle node is a build input.
+
+| Import | Exact producer revision | Consumed scope | Source record |
+|---|---|---|---|
+| Lattice | `70496e67c7fd4a8b05914161a8e09de2759bebc8` | MIT workflow contract and Unix transport | [`vendor/lattice.source.json`](../vendor/lattice.source.json) |
+| Cairn | `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f` | `MIT OR Apache-2.0` gate contract and pinned producer fixtures | [`vendor/cairn.source.json`](../vendor/cairn.source.json) |
+| Valence | `220307a371e7bc4e3309447b09447d0fe6c4db5f` | MPL-2.0 `valence-core` | [`vendor/valence.source.json`](../vendor/valence.source.json) |
+| Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
+| Bounded Exec | `29dac88ecded94457572db3fdfaaaab95fa91525` | AGPL-3.0-or-later shell and core | [`vendor/bounded-exec.source.json`](../vendor/bounded-exec.source.json) |
+| Mantle | `0bbab77e23ab95caa4e4184b9945cfaa5c8040e2` | Build-contract producer fixtures and Nickel contract only | [`vendor/mantle.source.json`](../vendor/mantle.source.json) |
+
+These are selected upstream Git-object archives, not copies of mutable working
+trees. The imports preserve original source, manifests, license texts, and
+applicable provenance notices byte-for-byte. Root workspace manifests retained
+for inherited Cargo fields do not select the producer applications as dependencies.
+The Artifact Git patch redirects Valence's exact transitive Git dependency to the
+verified local import without changing Valence's upstream manifest. Cargo's
+generated lock has no Git sources. Other Cargo dependencies use the public
+crates.io registry and its locked checksums.
+
+Run `cargo fmt -- --check` from the Kiln workspace root to check every admitted
+workspace member, including the shared COB store. Do not use `--all`: that flag
+also traverses local path dependencies and tries to load unimported applications
+from retained producer workspace manifests. Producer snapshots are verified as
+pristine imports, not reformatted or treated as complete upstream checkouts.
+
+The Cairn and Mantle Nix cohort checks use these same committed source imports,
+not separate private flake inputs. They still require the original exact revisions
+and compare producer fixture and contract bytes against Kiln's frozen cohort.
+The remaining flake inputs and their transitive inputs are public GitHub or
+NixOS HTTPS archives pinned by the generated `flake.lock`.
+
+The retained upstream repository URLs identify provenance, not a promise that
+those URLs admit anonymous acquisition. The exact Cairn, Lattice, Valence, and
+Artifact GitHub pins were unavailable anonymously during release preparation.
+Bounded Exec's admitted read-only adapter returned HTTP 530; its RID remains
+`rad:z2CpqLFpdP36fZXYUK5ZNWxMibpCo`. Kiln deliberately distributes its reviewed
+source snapshot rather than adding an automatic mirror fallback or republishing
+another project's repository. This does not change producer governance.
+
+### Reproducing or updating an import
+
+Normal builds need only the Kiln source archive. To reproduce an import, an
+operator may supply any local Git object store containing the recorded commit:
+
+```console
+scripts/import-pinned-source.sh lattice "$LATTICE_SOURCE"
+scripts/import-pinned-source.sh cairn "$CAIRN_SOURCE"
+scripts/import-pinned-source.sh valence "$VALENCE_SOURCE"
+scripts/import-pinned-source.sh artifact "$ARTIFACT_SOURCE"
+scripts/import-pinned-source.sh bounded-exec "$BOUNDED_EXEC_SOURCE"
+scripts/import-pinned-source.sh mantle "$MANTLE_SOURCE"
+```
+
+The importer runs `git archive --format=tar COMMIT -- PATHS...` in the exact
+`archive_paths` order recorded in each source JSON file, verifies its BLAKE3
+against both the reviewed source record and importer pin, then imports it. If a
+destination already exists, it compares bytes, symlink targets, and executable
+bits and refuses replacement on drift. It does not inspect the checkout's HEAD
+or working tree. Git, Bash, jq, BLAKE3's `b3sum`, GNU tar, and GNU coreutils are
+import-time tools only.
+Each source record additionally retains the BLAKE3 identity of the original full
+`git archive --format=tar COMMIT` as `full_archive_blake3`. That is provenance
+for the whole upstream revision, not an instruction to redistribute it. The
+importer verifies only the explicitly selected archive; unrelated producer
+applications and repository content are not imported.
+
+A source update requires reviewing the new immutable revision, selected archive
+paths, archive digest, upstream licenses and notices, and producer fixtures.
+Update the source record and importer pin together. Review and remove the old
+snapshot explicitly before installing a changed one; there is no force-update
+mode. Regenerate `Cargo.lock` with Cargo and `flake.lock` with Nix, retain producer
+cohort checks, and run the owning Kiln checks before claiming compatibility.
+Do not hand-edit locks or add sibling-path dependencies.
+
+For a fresh anonymous acquisition smoke, use an empty `HOME` and `CARGO_HOME`,
+disable SSH and interactive Git credentials, then run `cargo fetch --locked` and
+`nix flake archive --no-write-lock-file path:$PWD` with empty Nix `access-tokens`
+and `secret-key-files`. This checks acquisition, not build correctness or release
+eligibility. An offline metadata smoke may reuse only the public registry cache;
+it must not reuse Cargo's Git cache.
+
 ## Maturity and non-claims
 
 Hydra, Concourse, Buildbot, Jujutsu, and the Remote Execution API are mature references. Their maturity does not transfer to Kiln.

@@ -20,6 +20,16 @@ These crates use `MIT OR Apache-2.0` terms. The adapter does not link the full `
 
 This boundary avoids a native SQLite cohort conflict. It also keeps node, network, and collaboration authority outside this change.
 
+## Shared Git storage source
+
+The status shell and the declared patch-review transport reuse `onix-radicle-cob-git-store` v0.2.0 for the Radicle 0.21 cohort's local signed COB refs and Git storage traits. The library borrows the already opened Git repository; Kiln owns its ephemeral commit configuration, SecretSpec resolution, RID and actor admission, CI reducer, and provider observations. The older 0.20 v0.1.1 source used by Cairn and Valence is not interchangeable with this pin; v0.2.0 supports namespaced refs only.
+
+Kiln vendors source commit `a87ca01412fb62e69171925d79d2d6b0a23a7e72`, verified against BLAKE3 `7c2902aee85ebcc923b1e7f9004d6235b550ddf18053194dd6c9286ef05859e6` of `git archive --format=tar` for that commit. The checked import lives at `vendor/radicle-cob-git-store/`; `vendor/radicle-cob-git-store.source.json` records its origin. Cargo resolves this in-repository source, never a mutable sibling checkout or a remote. The upstream source repository has no declared publication remote.
+
+To verify or import from an explicitly supplied local source checkout, run `scripts/import-radicle-cob-git-store.sh <checkout>`. The script checks the recorded commit and tar digest, compares every existing vendored file's bytes and executable mode (including symlink targets), and refuses any drift; an identical import is a no-op.
+
+A future upgrade first runs the **old** importer to verify the existing vendor tree against its old recorded archive. Only after that succeeds, review the new cohort/source commit and digest, change the importer and source record together, move the verified old vendor directory aside in a new change, import the new exact archive and compare its files, run consumer tests, then remove the old directory from that change. Never overwrite an unverified vendor tree or update a pin to make existing edits appear valid.
+
 The adapter writes this exact reference layout:
 
 ```text
@@ -122,6 +132,6 @@ Stable diagnostics include these cases:
 
 ## Evidence boundary
 
-Native tests create bare Git repositories with the pinned COB cohort. They cover creation, exact updates, repeats, foreign heads, bounds, drift, redaction, and reconciliation.
+Twelve native status tests call the public `RadicleStatusShell::publish` and `.reconcile` against temporary bare Git repositories with fixture-only signers. They cover creation, exact updates, repeats, authenticated two-namespace heads, malformed and mismatched-author refs, bounds, stale preflight, ambiguous publication, redaction, and reconciliation. Four shared-store fixtures additionally exercise signature rejection, symbolic refs, duplicate-namespace distinct-ID counting, zero/overflow bounds, and exact CAS against a moved ref. Offline Kiln workspace check, test, strict clippy, and formatting checks pass. The import script was exercised with an exact first import, an identical reimport, and refusals for edited bytes, changed executable mode, and a mismatched source record.
 
-These checks prove bounded local writes under one profile. They do not prove peer convergence, remote visibility, actor trust, node availability, or CI correctness.
+These checks prove bounded local writes under one profile. They do not prove a stable filesystem snapshot, universal concurrency safety, peer convergence, remote visibility, actor trust, node availability, CI correctness, or release readiness.

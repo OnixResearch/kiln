@@ -1,0 +1,15 @@
+# kind	path	expected value or marker
+package	crates/valence-core/Cargo.toml	MPL-2.0
+package	crates/valence-cli/Cargo.toml	AGPL-3.0-or-later
+contains	crates/valence-core/Cargo.toml	publish = false
+contains	crates/valence-cli/Cargo.toml	publish = false
+package	pilots/shared-identity/Cargo.toml	AGPL-3.0-or-later
+package	pilots/canonical-json-preserve-order/Cargo.toml	AGPL-3.0-or-later
+artifact	LICENSES/MPL-2.0.txt	Mozilla Public License Version 2.0
+artifact	LICENSES/AGPL-3.0-or-later.txt	GNU AFFERO GENERAL PUBLIC LICENSE
+artifact	crates/valence-core/LICENSE	Mozilla Public License Version 2.0
+artifact	crates/valence-cli/LICENSE	GNU AFFERO GENERAL PUBLIC LICENSE
+artifact	pilots/shared-identity/LICENSE	GNU AFFERO GENERAL PUBLIC LICENSE
+artifact	pilots/canonical-json-preserve-order/LICENSE	GNU AFFERO GENERAL PUBLIC LICENSE
+contains	docs/licensing.md	Package licensing is distribution metadata and is outside canonical Evidence IR identity
+forbid	crates/valence-core/Cargo.toml	valence-cli

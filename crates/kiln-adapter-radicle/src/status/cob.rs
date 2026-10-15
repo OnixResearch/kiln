@@ -3,16 +3,13 @@ use std::fmt;
 use std::str::FromStr;
 
 use kiln_core::types::{CoreResult, Diagnostic};
+use onix_radicle_cob_git_store::GitCobStore;
 use radicle_cob::{Entry, TypeName};
 use radicle_oid::Oid;
 
 use super::plan::{StatusOutcome, StatusPlan};
-use super::storage::CobRepository;
 
-/// Storage-layer error carrying a Kiln diagnostic.
-///
-/// `radicle-cob` traits require `std::error::Error`; this wrapper keeps the
-/// diagnostic intact so the shell can convert it back losslessly.
+/// Reducer error carrying a Kiln diagnostic through `radicle-cob::Evaluate`.
 #[derive(Debug)]
 pub struct CobError {
     pub diagnostic: Diagnostic,
@@ -96,10 +93,10 @@ fn admit_action_key(key: &str) -> CoreResult<()> {
     Ok(())
 }
 
-impl radicle_cob::Evaluate<CobRepository<'_>> for CiJobStatus {
+impl radicle_cob::Evaluate<GitCobStore<'_>> for CiJobStatus {
     type Error = CobError;
 
-    fn init(entry: &Entry, _store: &CobRepository<'_>) -> Result<Self, Self::Error> {
+    fn init(entry: &Entry, _store: &GitCobStore<'_>) -> Result<Self, Self::Error> {
         let mut state = Self::default();
         state.apply_entry(entry)?;
         Ok(state)
@@ -109,7 +106,7 @@ impl radicle_cob::Evaluate<CobRepository<'_>> for CiJobStatus {
         &mut self,
         entry: &Entry,
         _concurrent: I,
-        _store: &CobRepository<'_>,
+        _store: &GitCobStore<'_>,
     ) -> Result<(), Self::Error> {
         self.apply_entry(entry)
     }

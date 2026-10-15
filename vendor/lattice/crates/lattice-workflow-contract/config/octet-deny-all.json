@@ -1,0 +1,30 @@
+{
+  "config": {
+    "lints": [
+      "unknown_lints", "compound_assertion", "function_length", "acronym_style",
+      "numeric_units", "magic_number", "excessive_file_length", "module_file_count",
+      "underscore_in_module_filename", "non_trait_imports", "renamed_imports",
+      "path_segment_repetition", "unbounded_loop", "compound_condition", "verified_purity",
+      "unjustified_allow", "nested_conditionals", "assertion_density", "multi_lock_ordering",
+      "ignored_join_handle", "explicit_defaults", "unbounded_channel",
+      "unbounded_collection_growth", "sentinel_fallback", "usize_in_public_api",
+      "borrowed_argument_types", "deref_polymorphism", "clone_then_borrow",
+      "allocation_in_loop", "too_many_parameters", "fat_trait", "concrete_construction_in_core",
+      "type_accumulation", "negated_predicate", "bool_naming", "ignored_result",
+      "drop_must_use", "fallible_int_fallback", "unchecked_narrowing", "unchecked_division",
+      "contradictory_time", "ambient_clock", "ambient_env", "ambient_random",
+      "global_state_in_core", "impure_call_in_core", "interior_mutability_in_core",
+      "logging_in_core", "missing_const_fn", "mutating_input_in_pure",
+      "nondeterministic_output", "pure_attr_contract", "zero_alloc_attr_contract",
+      "resource_return_from_core", "spawn_in_core", "catch_all_on_enum",
+      "foreign_enum_catch_all", "fragile_exhaustive_enum_match", "state_machine_exhaustiveness",
+      "platform_dependent_cast", "float_for_currency", "ambiguous_params",
+      "primitive_domain_alias", "raw_domain_value", "newtype_invariant_bypass",
+      "raw_arithmetic_overflow", "no_unwrap", "no_panic", "public_unsafe_api",
+      "defaulting_trait_method", "no_todo", "unjustified_no_todo_allow", "no_recursion"
+    ],
+    "mode": "deny-all",
+    "octet_revision": "bac0f3220ada38110c03498ccf2beae5ee83e642",
+    "schema": "lattice-workflow-contract.octet-deny-all.v1"
+  }
+}

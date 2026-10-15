@@ -1,0 +1,29 @@
+Sort native sources before cc::Build constructs the zstd archive.
+
+The zstd-seekable 0.1.23 build script feeds filesystem enumeration order into
+archive member order. Independent builds of the same Pijul derivation produced
+identical symbol names and sizes but different Zstd function layouts and BLAKE3
+identities. Sorting the existing source set fixes the cause without weakening
+Kiln's exact executable admission. Apply only to the Nix build's writable Cargo
+vendor copy; retain the pinned crates.io input unchanged.
+
+--- a/build.rs
++++ b/build.rs
+@@ -17,11 +17,14 @@
+             "zstd/lib/decompress",
+         ] {
+             cc.include(dir);
+-            for entry in std::fs::read_dir(dir).unwrap() {
+-                let entry = entry.unwrap();
+-                let path = entry.path();
++            let mut paths = std::fs::read_dir(dir)
++                .unwrap()
++                .map(|entry| entry.unwrap().path())
++                .collect::<Vec<_>>();
++            paths.sort();
++            for path in paths {
+                 let name = path.file_name();
+                 if let Some(f) = name {
+                     let ext = std::path::Path::new(f)
+                         .extension()
+                         .map(|v| v.to_str().unwrap());

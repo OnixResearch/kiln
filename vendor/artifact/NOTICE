@@ -1,0 +1,6 @@
+Artifact
+Copyright 2026 OnixResearch
+
+This work includes owner-authorized, substantially refactored concepts and implementation patterns from Mantle, Cairn, Molten, Valence, and the former standalone artifact-transfer repository. Exact source revisions, file identities, roles, and material changes are documented in provenance/SOURCE_GRANT.md and docs/source-inventory.md.
+
+Owner-controlled imported material is offered in this workspace under MIT OR Apache-2.0. Third-party dependencies and protocol specifications retain their own terms.

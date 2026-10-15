@@ -11,6 +11,11 @@ pub const CELLD_PARTITION_KIND: &str = "object-blake3";
 pub const CELLD_OPERATION_KIND: &str = "operation";
 pub const CELLD_PAYLOAD_KIND: &str = "payload-blake3";
 pub const MAX_ENVELOPE_BODY_BYTES: usize = 4 * 1024 * 1024;
+const SIGNATURE_DOMAIN: &[u8] = b"kiln-celld-envelope-v1\0";
+pub const READ_PATH: &str = "/v1/read";
+pub const RECONCILE_PATH: &str = "/v1/reconcile";
+pub const LEASE_PATH: &str = "/v1/lease";
+pub const MIGRATE_PATH: &str = "/v1/migrate";
 
 pub fn identity_from_event(event: &Event) -> CoreResult<ContentId> {
     let bytes = serde_json::to_vec(event).map_err(|_| {
@@ -33,6 +38,13 @@ pub fn payload_identity_of(
     profile: &CelldProfile,
     request: &EventAppendRequest,
 ) -> CoreResult<ContentId> {
+    encode_append_payload(profile, request).map(|(_, identity)| identity)
+}
+
+pub(crate) fn encode_append_payload(
+    profile: &CelldProfile,
+    request: &EventAppendRequest,
+) -> CoreResult<(Vec<u8>, ContentId)> {
     let bytes = serde_json::to_vec(request).map_err(|_| {
         Diagnostic::new(
             "celld_payload_encoding",
@@ -47,20 +59,21 @@ pub fn payload_identity_of(
             "operation payload bytes exceed their named bound",
         ));
     }
-    identity_from_bytes(&bytes).map_err(|_| {
+    let identity = identity_from_bytes(&bytes).map_err(|_| {
         Diagnostic::new(
             "celld_payload_identity",
             "celld.payload",
             "operation payload BLAKE3 identity failed",
         )
-    })
+    })?;
+    Ok((bytes, identity))
 }
 
 // r[impl kiln.celld.transport] r[impl kiln.celld.authority]
 /// Bounded authenticated request envelope. The path binds the request to the
 /// exact admitted Worker route; redirects and request-supplied destinations
 /// stay disabled.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct AuthEnvelope {
     pub version: u16,
     pub path: String,
@@ -116,6 +129,12 @@ pub fn build_envelope(
     })
 }
 
+fn authenticate_field(mac: &mut hmac::Hmac<sha2::Sha256>, field: &[u8]) {
+    use hmac::Mac;
+    mac.update(&(field.len() as u64).to_le_bytes());
+    mac.update(field);
+}
+
 pub fn sign_envelope(
     secret: &[u8],
     envelope: &AuthEnvelope,
@@ -128,28 +147,41 @@ pub fn sign_envelope(
             "celld HMAC secret is not a valid key",
         )
     })?;
-    mac.update(envelope.path.as_bytes());
-    mac.update(&envelope.version.to_le_bytes());
-    mac.update(
+    mac.update(SIGNATURE_DOMAIN);
+    authenticate_field(&mut mac, envelope.path.as_bytes());
+    authenticate_field(&mut mac, &envelope.version.to_le_bytes());
+    authenticate_field(
+        &mut mac,
         envelope
             .key_reference
             .provider_namespace
             .as_str()
             .as_bytes(),
     );
-    mac.update(b":");
-    mac.update(envelope.key_reference.native_kind.as_str().as_bytes());
-    mac.update(b":");
-    mac.update(envelope.key_reference.native_id.as_str().as_bytes());
-    mac.update(&envelope.timestamp.to_le_bytes());
-    mac.update(envelope.nonce.as_bytes());
-    mac.update(envelope.operation_id.provider_namespace.as_str().as_bytes());
-    mac.update(b":");
-    mac.update(envelope.operation_id.native_kind.as_str().as_bytes());
-    mac.update(b":");
-    mac.update(envelope.operation_id.native_id.as_str().as_bytes());
-    mac.update(envelope.payload_identity.as_str().as_bytes());
-    mac.update(&envelope.body);
+    authenticate_field(
+        &mut mac,
+        envelope.key_reference.native_kind.as_str().as_bytes(),
+    );
+    authenticate_field(
+        &mut mac,
+        envelope.key_reference.native_id.as_str().as_bytes(),
+    );
+    authenticate_field(&mut mac, &envelope.timestamp.to_le_bytes());
+    authenticate_field(&mut mac, envelope.nonce.as_bytes());
+    authenticate_field(
+        &mut mac,
+        envelope.operation_id.provider_namespace.as_str().as_bytes(),
+    );
+    authenticate_field(
+        &mut mac,
+        envelope.operation_id.native_kind.as_str().as_bytes(),
+    );
+    authenticate_field(
+        &mut mac,
+        envelope.operation_id.native_id.as_str().as_bytes(),
+    );
+    authenticate_field(&mut mac, envelope.payload_identity.as_str().as_bytes());
+    authenticate_field(&mut mac, &envelope.body);
     let digest = mac.finalize().into_bytes();
     let mut output = [0u8; crate::HMAC_DIGEST_BYTES];
     output.copy_from_slice(&digest);
@@ -258,6 +290,49 @@ mod tests {
         let signature =
             sign_envelope(&secret(), &envelope).unwrap_or_else(|_| unreachable!("signs"));
         assert_eq!(verify_envelope(&secret(), &envelope, &signature), Ok(()));
+    }
+
+    #[test]
+    fn length_framing_rejects_equal_legacy_nonce_and_operation_bytes() {
+        let identity =
+            ContentId::from_blake3_hex("a".repeat(64)).unwrap_or_else(|_| unreachable!("identity"));
+        let original_operation = ExternalRef::new("bc", "operation", "op-1")
+            .unwrap_or_else(|_| unreachable!("operation"));
+        let first = build_envelope(
+            "/v1/append",
+            &key_reference(),
+            100,
+            "a",
+            &original_operation,
+            &identity,
+            vec![1, 2, 3],
+        )
+        .unwrap_or_else(|_| unreachable!("envelope"));
+        let mut changed = first.clone();
+        changed.nonce = "ab".to_string();
+        changed.operation_id = ExternalRef::new("c", "operation", "op-1")
+            .unwrap_or_else(|_| unreachable!("operation"));
+        assert_eq!(
+            format!(
+                "{}{}",
+                first.nonce,
+                first.operation_id.provider_namespace.as_str()
+            ),
+            format!(
+                "{}{}",
+                changed.nonce,
+                changed.operation_id.provider_namespace.as_str()
+            ),
+        );
+        let signature = sign_envelope(&secret(), &first).unwrap_or_else(|_| unreachable!("signs"));
+        assert_ne!(
+            signature,
+            sign_envelope(&secret(), &changed).unwrap_or_else(|_| unreachable!("signs"))
+        );
+        let error = verify_envelope(&secret(), &changed, &signature)
+            .err()
+            .unwrap_or_else(|| unreachable!("boundary collision must not authenticate"));
+        assert_eq!(error.code, "celld_signature");
     }
 
     #[test]

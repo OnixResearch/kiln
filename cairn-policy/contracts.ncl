@@ -115,7 +115,7 @@ let WorkflowPathKind = std.contract.from_predicate (fun value =>
 ) in
 
 let WorkflowStructuralAdmission = std.contract.from_predicate (fun value =>
-  std.is_string value && (value == "proposal" || value == "delta_specs" || value == "design" || value == "tasks" || value == "markdown" || value == "acceptance" || value == "risk" || value == "verification" || value == "semantic_review")
+  std.is_string value && (value == "proposal" || value == "delta_specs" || value == "design" || value == "tasks" || value == "markdown" || value == "acceptance" || value == "risk" || value == "verification" || value == "semantic_review" || value == "outcome_machine")
 ) in
 
 let WorkflowSpecEffect = std.contract.from_predicate (fun value =>

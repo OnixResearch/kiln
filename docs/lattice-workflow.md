@@ -12,15 +12,23 @@
 - Observation: `lattice.workflow-observation.v1`
 - Graph: `lattice.workflow-graph.v1`
 
-Cargo uses this exact Git revision. It does not use an ambient sibling checkout.
+Cargo uses the committed immutable import at
+`vendor/lattice/crates/lattice-workflow-contract`, including its `transport`
+package, from this exact revision. The repository URL above is provenance, not
+an acquisition requirement. See [source acquisition](reference-pins.md#build-source-acquisition)
+for the archive BLAKE3 pin and drift-refusing importer. No ambient sibling
+checkout or SSH credential is needed to build Kiln.
 
 The producer fixtures are under `fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/`.
 
-Refresh and check it with:
+The checked-in import also contains the original producer fixtures. Reproducing
+the import checks their exact bytes without running the producer. For an
+intentional fixture update, supply an explicitly reviewed Git checkout at the
+pinned revision (not a build prerequisite):
 
 ```console
-scripts/sync-lattice-workflow-fixtures.rs ../lattice
-scripts/sync-lattice-workflow-fixtures.rs ../lattice --check
+scripts/sync-lattice-workflow-fixtures.rs "$LATTICE_SOURCE"
+scripts/sync-lattice-workflow-fixtures.rs "$LATTICE_SOURCE" --check
 ```
 
 ## Setup
