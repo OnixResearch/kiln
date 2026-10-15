@@ -6,13 +6,13 @@ cd "$root"
 
 cairn policy export --source cairn-policy/default.ncl \
   --output cairn-policy/generated/cairn-policy.json --check
-cairn gate proposal add-onix-nix-evaluator-cohort --root . |
+cairn gate proposal prepare-public-release --root . |
   jq -e '.valid == true and .verdict == "PASS" and .workflow_profile == "spec-driven" and .workflow_profile_compatibility_fallback == false' >/dev/null
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 nickel export cairn-policy/fixtures/negative-missing-outcome-profile.ncl >"$tmp/missing-outcome.json"
-if cairn gate proposal add-onix-nix-evaluator-cohort --root . \
+if cairn gate proposal prepare-public-release --root . \
   --policy "$tmp/missing-outcome.json" >"$tmp/output" 2>"$tmp/error"; then
   printf 'policy without outcome-machine passed a Cairn gate\n' >&2
   exit 1
