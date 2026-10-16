@@ -15,6 +15,8 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
 | `kiln-adapter-pijul` | Exact Pijul state observation and bounded local snapshot acquisition. |
 | `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
+| `kiln-adapter-aspen` | Exact Aspen/Molten runtime profile, identity, atomic durability, content, typed effects, ingress, and bounded Unix transport mapping. |
+| `kiln-aspen-extension` | Deterministic Kiln callback decisions and one-shot native callback executable bound to the host's exact runtime profile. |
 | `kiln-adapter-cairn` | Exact Cairn gate lowering, bounded execution, result admission, and reconciliation. |
 | `kiln-adapter-mantle` | Exact Mantle build lowering, bounded execution, product admission, logs, and reconciliation. |
 | `kiln-adapter-nix-eval` | Exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff. |
@@ -44,6 +46,18 @@ Source, status, and mutation shells keep Radicle crates behind adapter-owned bou
 SecretSpec and Radicle crates do not enter `kiln-core` or standalone builds.
 
 The application composition root selects each concrete adapter. The core and adapters do not select fallback providers.
+
+The standalone `runtime/kiln-aspen-host` composition shell installs or recovers the
+real Aspen native service, invokes `kiln-aspen-extension` as a bounded process, and
+routes admitted typed workflow effects through `kiln-adapter-lattice`. Radicle
+intake explicitly selects `--runtime lattice` or `--runtime aspen`; Aspen requires
+its exact profile and socket and never falls back to direct Lattice dispatch.
+The host reserves ingress and dispatch intent durably, keeps ambiguous effects
+unknown, and recovers through Lattice `RecoverDispatch` and `Observe` rather than
+normal redispatch. Provider completion evidence remains subject to Kiln outcome
+admission. `LocalAspenService` is only a deterministic model fixture, not this
+native host. The separate `runtime/kiln-radicle-nix-provider` shell owns bounded
+Nix execution and durable reports, not CI or release authority.
 
 ## Production transition
 

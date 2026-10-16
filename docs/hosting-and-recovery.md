@@ -31,6 +31,36 @@ The `release-evidence` Nix check verifies deterministic rendering of the histori
 
 A new canonical publication requires a separately authorized operation and a new consistent receipt: candidate/archive, hosting profile, governed signed refs, native and HTTPS acquisition, and required replica observations must all refer to the same revision. Do not rewrite the original receipt to imply that local preparation signed, pushed, synchronized, or published new source.
 
+## Source integration and production eligibility
+
+r[related kiln.aspen_host.production_evidence]
+
+Kiln maintainers and the authorized operator own production-eligibility review.
+It is separate from source-ref publication. A production receipt must bind its
+exact source, executable and profile identities to host, provider, restart,
+corruption, finite-load, backup, rollback, authority and publication evidence.
+The integration does not introduce an automatic production-eligibility validator.
+
+r[related kiln.aspen_host.production_evidence.accepted]
+
+Accept only the bounded local-host behavior actually supported by the exact
+receipt and all required gates. Historical production-host records retain their
+original cohort and date; current source checks do not refresh those records.
+
+r[related kiln.aspen_host.production_evidence.rejected]
+
+Reject a release-review claim that promotes machine-local observations into
+global durability, exactly-once delivery, CI correctness, provider truth, host
+sandboxing, availability, or implied release eligibility. A passing declared
+traceability report links requirements to their owners and evidence locations;
+it is not evidence that every production obligation was executed.
+
+The existing profile-binding and observation-pacing changes retain their pending
+provider-backed Onix shadow and sync/archive tasks. Source integration does not
+mark those tasks complete, run a live workload, or promote their delta specs into
+accepted requirements. Their implemented local paths remain covered by the
+standalone conformance and isolated process checks.
+
 ## Verified local candidate
 
 The local source candidate is `db552f504236b3e330be46618e2fd29fb864f190`,

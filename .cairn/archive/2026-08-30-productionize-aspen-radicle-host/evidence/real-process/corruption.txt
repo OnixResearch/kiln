@@ -1,0 +1,1 @@
+host I/O failed: configure operation ledger durability: file is not a database

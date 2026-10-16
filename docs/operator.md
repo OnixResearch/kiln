@@ -83,6 +83,48 @@ Restore the latest committed journal snapshot. Then classify each outbox lease.
 
 Reconcile expired or ambiguous effects before redispatch. Do not claim exactly-once provider execution.
 
+## Aspen native runtime
+
+Radicle trigger intake requires an explicit runtime selection. Keep the direct
+`--runtime lattice` path for a reviewed Lattice endpoint. Select
+`--runtime aspen --aspen-profile /absolute/aspen-runtime.json --aspen-socket /absolute/aspen.sock`
+only for the exact deployed Aspen v2 profile and endpoint. Both selections also
+require `--profile /absolute/radicle-workflow.json`. A missing or incompatible
+Aspen endpoint never authorizes direct Lattice fallback. GitHub's reviewed
+Lattice path is independent of this Radicle runtime selection.
+
+The native host command, required bounds, profile binding, state layout, and
+recovery procedure are in
+[`runtime/kiln-aspen-host/README.md`](../runtime/kiln-aspen-host/README.md).
+The state root must already exist. Keep the admitted profile and extension
+executable unchanged across recovery; preserve all operation-ledger,
+native-journal, callback-values, and host-state components. Never remove an
+uncertain operation to permit redispatch. Reconcile it through the exact
+persisted Lattice request instead.
+
+The root workspace's source imports and the standalone native host's private
+dependency cohort are separate acquisition boundaries. A passing root check is
+not a native-host build or a hosted-runtime receipt.
+
+For isolated local conformance after acquiring the standalone cohort, run from
+the repository root. The host requires its `nightly-2026-05-26` toolchain (or the
+equivalent Nix-owned host check), not the root stable toolchain:
+
+```console
+cargo +nightly-2026-05-26 test --locked \
+  --manifest-path runtime/kiln-aspen-host/Cargo.toml --features test-fixture --test hosted
+cargo test --locked -p kiln-aspen-extension --test hosted
+```
+
+The host scenarios run the real Aspen native service and the real Kiln callback
+core in a test-only process wrapper, with temporary machine-local durable stores
+and a synthetic Lattice protocol peer. They cover terminal acknowledgement,
+replay and restart, pre-effect denial, accepted uncertainty, bounded observation,
+and profile drift. The extension scenarios separately launch the production
+callback executable and check valid and malformed frames and authority denial.
+These checks use no production credentials or live service, and do not prove
+live Lattice execution, sandboxing, deployment readiness, or global durability.
+
 ## GitHub CI adapter
 
 Kiln maintainers own the GitHub adapter, its typed configuration, and the

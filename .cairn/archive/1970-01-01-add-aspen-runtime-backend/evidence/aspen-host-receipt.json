@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.aspen-runtime.cross-repo-host-evidence.v1",
+  "aspen_revision": "171f25b5a9e878390af8f20b9797f6096cca5097",
+  "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+  "manifest_ref": "blake3:9227e531cf2eb2f39979397846e57542a1ea4966f23856dec69221356d277b66",
+  "extension_executable_bytes_ref": "blake3:2b32a17e4275647932a99b9d5b672993cdd37f4ff8d766d146751cdc85d8946a",
+  "kiln_profile_identity": "93db1799fc99b2bbe66b04045972c241d62330d87bade1d0e6559eda7d82f98a",
+  "accepted_decision": "accepted",
+  "rejected_decision": "rejected",
+  "completion_decision": "reconciled",
+  "provider_effects_routed": 1,
+  "restart": "passed",
+  "drain": "passed",
+  "stop": "passed",
+  "claim_level": "local-live-materialized-values-pilot",
+  "verdict": "PASS"
+}

@@ -22,6 +22,8 @@ members = [
   "crates/kiln-adapter-webhook",
   "crates/kiln-adapter-sqlite",
   "crates/kiln-adapter-celld",
+  "crates/kiln-adapter-aspen",
+  "crates/kiln-aspen-extension",
   "crates/kiln-conformance",
   "crates/kiln-cli",
 ]
@@ -32,6 +34,8 @@ exclude = [
   "vendor/valence",
   "vendor/artifact",
   "vendor/bounded-exec",
+  "runtime/kiln-aspen-host",
+  "runtime/kiln-radicle-nix-provider",
 ]
 resolver = "3"
 
@@ -81,6 +85,8 @@ kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
 kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }
 kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
+kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
+kiln-aspen-extension = { path = "crates/kiln-aspen-extension" }
 valence-core = { path = "vendor/valence/crates/valence-core" }
 
 [workspace.lints.rust]

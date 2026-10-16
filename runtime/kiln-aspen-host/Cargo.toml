@@ -1,0 +1,59 @@
+[workspace]
+members = ["."]
+resolver = "3"
+
+[workspace.metadata.octet]
+default_scope = ["--workspace"]
+cargo_check_args = ["--all-targets", "--all-features"]
+
+[package]
+name = "kiln-aspen-host"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.96"
+publish = false
+
+[features]
+default = []
+test-fixture = ["dep:kiln-aspen-extension"]
+
+[[bin]]
+name = "kiln-aspen-host-extension-fixture"
+path = "src/bin/extensionfixture.rs"
+required-features = ["test-fixture"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+dbg_macro = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+
+[dependencies]
+blake3 = "=1.8.5"
+durable-file-publication = { git = "https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git", rev = "8e05e74e24b45f752d77145c4455385daaf6d6ab" }
+kiln-adapter-aspen = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+kiln-adapter-lattice = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+kiln-adapter-radicle = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+kiln-aspen-extension = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c", optional = true }
+kiln-core = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+kiln-provider-api = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+molten = { git = "https://github.com/brittonr/aspen.git", rev = "22f8ded26ca1907c29948e08b53f35df23080733" }
+preserves = "=5.0.0-rc.8"
+rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled"] }
+rustix = { version = "1.1", features = ["fs"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+
+[dev-dependencies]
+lattice-workflow-contract = { git = "ssh://git@github.com/OnixResearch/lattice.git", rev = "70496e67c7fd4a8b05914161a8e09de2759bebc8" }
+lattice-workflow-transport = { git = "ssh://git@github.com/OnixResearch/lattice.git", rev = "70496e67c7fd4a8b05914161a8e09de2759bebc8" }
+nix = { version = "0.30.1", features = ["user"] }
+tempfile = "3.27.0"

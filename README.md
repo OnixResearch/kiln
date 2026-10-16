@@ -15,11 +15,14 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
+- an exact Aspen/Molten runtime profile, atomic event-store mapping, bounded content and callback contracts, and fail-closed ingress;
+- a standalone `kiln-aspen-host` composition shell that runs the real Aspen native service and concrete Lattice effect adapter;
+- a standalone `kiln-radicle-nix-provider` shell for bounded checks and durable reports under Lattice;
 - Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - authenticated GitHub push/PR intake, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;
 - typed Nickel configuration and Nix checks.
 
-Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
+Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. Use its signed Radicle refs for current branch identities. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
 
 ## Quick start
 
@@ -38,9 +41,9 @@ cargo test --locked --workspace
 cargo run --locked -p kiln-cli -- demo
 ```
 
-The committed, revision-verified imports cover direct and transitive Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports.
+The committed, revision-verified imports cover direct and transitive workspace Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal workspace builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports. Standalone runtime products retain their separately reviewed source cohorts and acquisition boundaries.
 
-Read `docs/architecture.md` for crate boundaries. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary.
+Read `docs/architecture.md` for crate boundaries. Read `runtime/kiln-aspen-host/README.md` for the deployable Aspen host composition and its bounded claims. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-nix-provider.md` for bounded hosted Nix checks and durable reports. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary. Read `docs/aspen-runtime-backend.md` for Aspen setup, ownership, recovery, status, and rollout gates.
 
 The status and patch-review shells use the separately pinned v0.2.0 shared Git COB store imported into this repository, not a sibling checkout. See `docs/radicle-status.md` for its immutable source digest and drift-refusing import procedure.
 
@@ -171,3 +174,4 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Lattice](https://github.com/OnixResearch/lattice) — producer-owned workflow contract and bounded Unix transport at revision `70496e67c7fd4a8b05914161a8e09de2759bebc8`. Kiln retains CI state and outcome authority.
 - [nix-eval-jobs](https://github.com/NixOS/nix-eval-jobs) — optional stock Nix job-discovery provider at revision `a0cd02231c58974a6b5aaa3712069b071047162e`. Kiln retains source admission, task mapping, CI state, build dispatch, and release authority.
 - [Pijul](https://nest.pijul.com/pijul/pijul) — native channel states, content-addressed changes, and bounded local snapshot acquisition. Kiln does not claim source trust, history completeness, or collaboration authority.
+- [Aspen/Molten](https://github.com/brittonr/aspen) — workload-neutral runtime, native system-extension host, durability, content, transport, scheduling, and bounded-execution contracts at revision `22f8ded26ca1907c29948e08b53f35df23080733`. Kiln retains all CI meaning, provider selection, retry, outcome, and release authority.

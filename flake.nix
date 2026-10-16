@@ -23,11 +23,25 @@
         "aarch64-linux"
       ];
       eachSystem = function: nixpkgs.lib.genAttrs systems (system: function system);
+      # Keep private tool/runtime acquisition outside normal root builds. The
+      # content-addressed subflake retains the canonical lock and nixpkgs follow.
+      runtimeBuildCohort = builtins.getFlake (builtins.unsafeDiscardStringContext
+        "path:${./runtime/build-cohort}?narHash=sha256-PcsYctZPpAGWzSNCAqmog3Dvqk7hePUu0TYwvbgpcu8=");
+      octet =
+        assert runtimeBuildCohort.inputs.nixpkgs.rev == nixpkgs.rev;
+        runtimeBuildCohort.inputs.octet;
+      kamacite-build-support = runtimeBuildCohort.inputs.kamacite-build-support;
       cairnGateSource = ./vendor/cairn;
       cairnGateRevision = (builtins.fromJSON (builtins.readFile ./vendor/cairn.source.json)).source_commit;
       mantleBuildSource = ./vendor/mantle;
       mantleBuildRevision = (builtins.fromJSON (builtins.readFile ./vendor/mantle.source.json)).source_commit;
       nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
+      prepareKamaciteBuildSupport = ''
+        mkdir -p "$NIX_BUILD_TOP/adapters/spacewasm-mvp/generated"
+        cp \
+          ${kamacite-build-support}/adapters/spacewasm-mvp/generated/profile.json \
+          "$NIX_BUILD_TOP/adapters/spacewasm-mvp/generated/profile.json"
+      '';
       celldRelease = "v0.2.1";
       celldRevision = "ae8fac053d79f971bfcb996054bb43eb2f9b05da";
       celldSourceHash = "sha256-DkudpH4V3EASbApSUadElsOINit+UfV+RQ+oHkOiylU=";
@@ -44,7 +58,10 @@
             url = "https://github.com/denoland/celld/archive/refs/tags/${celldRelease}.tar.gz";
             sha256 = celldSourceHash;
           };
-          phases = [ "unpackPhase" "installPhase" ];
+          phases = [
+            "unpackPhase"
+            "installPhase"
+          ];
           installPhase = ''
             mkdir -p "$out"
             b3sum "$src" > "$out/celld-source.blake3"
@@ -169,10 +186,80 @@
           ];
           cargoTestFlags = [ "--workspace" ];
         };
+      kilnAspenHostPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./runtime/kiln-aspen-host/rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        rustPlatform.buildRustPackage {
+          pname = "kiln-aspen-host";
+          version = "0.1.0";
+          src = ./runtime/kiln-aspen-host;
+          cargoLock = {
+            lockFile = ./runtime/kiln-aspen-host/Cargo.lock;
+            allowBuiltinFetchGit = true;
+          };
+          nativeBuildInputs = [
+            pkgs.cmake
+            pkgs.pkg-config
+          ];
+          buildInputs = [ pkgs.zlib ];
+          preBuild = prepareKamaciteBuildSupport;
+          cargoBuildFlags = [
+            "--bin"
+            "kiln-aspen-host"
+          ];
+          cargoTestFlags = [
+            "--workspace"
+            "--all-targets"
+            "--all-features"
+          ];
+        };
+      kilnRadicleNixProviderPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./runtime/kiln-radicle-nix-provider/rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        rustPlatform.buildRustPackage {
+          pname = "kiln-radicle-nix-provider";
+          version = "0.1.0";
+          src = ./runtime/kiln-radicle-nix-provider;
+          cargoLock = {
+            lockFile = ./runtime/kiln-radicle-nix-provider/Cargo.lock;
+            allowBuiltinFetchGit = true;
+          };
+          cargoBuildFlags = [
+            "--bin"
+            "kiln-radicle-nix-provider"
+          ];
+          cargoTestFlags = [
+            "--workspace"
+            "--all-targets"
+            "--all-features"
+          ];
+        };
     in
     {
       packages = eachSystem (system: {
         kiln = packageFor system;
+        kiln-aspen-host = kilnAspenHostPackageFor system;
+        kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
         celld-cohort = celldCohortPackageFor system;
         pijul-cohort-fixture-producer = pijulCohortPackageFor system;
         secretspec-cohort = secretspecPackageFor system;
@@ -211,6 +298,8 @@
             rustc = toolchain;
           };
           package = packageFor system;
+          hostPackage = kilnAspenHostPackageFor system;
+          radicleNixProviderPackage = kilnRadicleNixProviderPackageFor system;
           nixEvalWorkerCount = 1;
           nixEvalMemoryMebibytes = 512;
           nixEvalExpectedRecordCount = 3;
@@ -221,6 +310,95 @@
             cp -r ${self} source
             chmod -R u+w source
             cd source
+          '';
+          aspenRuntimeOctetWorkspace = pkgs.runCommand "kiln-aspen-runtime-octet-workspace" { } ''
+            mkdir -p \
+              "$out/crates/kiln-adapter-aspen" \
+              "$out/crates/kiln-aspen-extension" \
+              "$out/crates/kiln-core" \
+              "$out/crates/kiln-provider-api" \
+              "$out/crates/kiln-codec" \
+              "$out/fixtures/aspen/runtime"
+            cp ${./checks/aspen-runtime-octet/Cargo.toml} "$out/Cargo.toml"
+            cp ${./checks/aspen-runtime-octet/Cargo.lock} "$out/Cargo.lock"
+            cp ${./checks/aspen-runtime-octet/dylint.toml} "$out/dylint.toml"
+            cp ${./crates/kiln-adapter-aspen/Cargo.toml} \
+              "$out/crates/kiln-adapter-aspen/Cargo.toml"
+            cp ${./crates/kiln-aspen-extension/Cargo.toml} \
+              "$out/crates/kiln-aspen-extension/Cargo.toml"
+            cp ${./crates/kiln-core/Cargo.toml} "$out/crates/kiln-core/Cargo.toml"
+            cp ${./crates/kiln-provider-api/Cargo.toml} \
+              "$out/crates/kiln-provider-api/Cargo.toml"
+            cp ${./crates/kiln-codec/Cargo.toml} "$out/crates/kiln-codec/Cargo.toml"
+            cp -R ${./crates/kiln-adapter-aspen/src} \
+              "$out/crates/kiln-adapter-aspen/src"
+            cp -R ${./crates/kiln-aspen-extension/src} \
+              "$out/crates/kiln-aspen-extension/src"
+            cp -R ${./crates/kiln-aspen-extension/tests} \
+              "$out/crates/kiln-aspen-extension/tests"
+            cp -R ${./crates/kiln-aspen-extension/examples} \
+              "$out/crates/kiln-aspen-extension/examples"
+            cp -R ${./fixtures/aspen/runtime}/* "$out/fixtures/aspen/runtime/"
+            chmod -R u+w "$out"
+            cat ${./checks/aspen-runtime-octet/adapter-header.rs} \
+              "$out/crates/kiln-adapter-aspen/src/lib.rs" \
+              > "$out/crates/kiln-adapter-aspen/src/lib.rs.combined"
+            mv "$out/crates/kiln-adapter-aspen/src/lib.rs.combined" \
+              "$out/crates/kiln-adapter-aspen/src/lib.rs"
+            cat ${./checks/aspen-runtime-octet/extension-header.rs} \
+              "$out/crates/kiln-aspen-extension/src/lib.rs" \
+              > "$out/crates/kiln-aspen-extension/src/lib.rs.combined"
+            mv "$out/crates/kiln-aspen-extension/src/lib.rs.combined" \
+              "$out/crates/kiln-aspen-extension/src/lib.rs"
+            prepend_header() {
+              header="$1"
+              target="$2"
+              cat "$header" "$target" > "$target.combined"
+              mv "$target.combined" "$target"
+            }
+            prepend_header ${./checks/aspen-runtime-octet/target-header.rs} \
+              "$out/crates/kiln-aspen-extension/src/main.rs"
+            prepend_header ${./checks/aspen-runtime-octet/target-header.rs} \
+              "$out/crates/kiln-aspen-extension/examples/emitcallbackfixture.rs"
+            prepend_header ${./checks/aspen-runtime-octet/test-header.rs} \
+              "$out/crates/kiln-aspen-extension/tests/callback.rs"
+            prepend_header ${./checks/aspen-runtime-octet/test-header.rs} \
+              "$out/crates/kiln-aspen-extension/tests/hosted.rs"
+            substituteInPlace "$out/Cargo.toml" \
+              --replace-fail '@KILN_SOURCE@' '${self}'
+          '';
+          radicleBrokerWireOctetWorkspace = pkgs.runCommand "kiln-radicle-broker-wire-octet-workspace" { } ''
+            mkdir -p \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/defelo" \
+              "$out/fixtures/radicle-ci-broker/0.31.0"
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const MAX_LOG_URL_BYTES: usize = 2048;' \
+              ${./crates/kiln-adapter-radicle/src/lib.rs}
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const MAX_LOG_URL_BYTES: usize = 2048;' \
+              ${./checks/radicle-broker-wire-octet/lib.rs}
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const DEFAULT_MAX_POLLS: usize = 64;' \
+              ${./crates/kiln-adapter-radicle/src/lib.rs}
+            ${pkgs.gnugrep}/bin/grep -Fqx \
+              'pub const DEFAULT_MAX_POLLS: usize = 64;' \
+              ${./checks/radicle-broker-wire-octet/lib.rs}
+            cp ${./checks/radicle-broker-wire-octet/Cargo.toml} "$out/Cargo.toml"
+            cp ${./checks/radicle-broker-wire-octet/Cargo.lock} "$out/Cargo.lock"
+            cp ${./checks/radicle-broker-wire-octet/dylint.toml} "$out/dylint.toml"
+            cp ${./checks/radicle-broker-wire-octet/crate-Cargo.toml} \
+              "$out/crates/kiln-radicle-broker-wire-octet/Cargo.toml"
+            cp ${./checks/radicle-broker-wire-octet/lib.rs} \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/lib.rs"
+            cp ${./crates/kiln-adapter-radicle/src/defelo.rs} \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/defelo.rs"
+            cp ${./crates/kiln-adapter-radicle/src/defelo/tests.rs} \
+              "$out/crates/kiln-radicle-broker-wire-octet/src/defelo/tests.rs"
+            cp ${./fixtures/radicle-ci-broker/0.31.0/trigger.json} \
+              "$out/fixtures/radicle-ci-broker/0.31.0/trigger.json"
+            chmod -R u+w "$out"
+            substituteInPlace "$out/Cargo.toml" \
+              --replace-fail '@KILN_SOURCE@' '${self}'
           '';
         in
         {
@@ -249,7 +427,7 @@
             buildInputs = [ pkgs.zlib pkgs.openssl ];
             buildPhase = ''
               runHook preBuild
-              cargo clippy --workspace --all-targets -- -D warnings
+              cargo clippy --workspace --all-targets --all-features -- -D warnings
               runHook postBuild
             '';
             doCheck = false;
@@ -282,6 +460,19 @@
               touch "$out"
             '';
           };
+          kiln-radicle-nix-provider-package = radicleNixProviderPackage;
+          kiln-radicle-nix-provider-octet-deny-all =
+            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octet.lib.mkConsumerCheck {
+              inherit system;
+              src = ./runtime/kiln-radicle-nix-provider;
+              packages = [ "kiln-radicle-nix-provider" ];
+              cargoExtraArgs = "--all-targets --all-features";
+              cargoLock = ./runtime/kiln-radicle-nix-provider/Cargo.lock;
+            }).overrideAttrs
+              (_previous: {
+                DYLINT_RUSTFLAGS = "--deny warnings";
+              });
           pijul-native-fixtures =
             if pijulSupported then
               rustPlatform.buildRustPackage {
@@ -387,6 +578,86 @@
               touch "$out"
             '';
           };
+          kiln-aspen-host-package = hostPackage;
+          kiln-aspen-host-octet-deny-all =
+            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octet.lib.mkConsumerCheck {
+              inherit system;
+              src = ./runtime/kiln-aspen-host;
+              packages = [ "kiln-aspen-host" ];
+              cargoExtraArgs = "--all-targets --all-features";
+              cargoLock = ./runtime/kiln-aspen-host/Cargo.lock;
+              nativeBuildInputs = [
+                pkgs.cmake
+                pkgs.pkg-config
+              ];
+              buildInputs = [ pkgs.zlib ];
+            }).overrideAttrs
+              (
+                previous:
+                let
+                  octetCommand = "${octet.packages.${system}.cargo-octet}/bin/cargo-octet check";
+                  octetNeedle = builtins.unsafeDiscardStringContext octetCommand;
+                  patchedOctetCommand = ''
+                    first_vendor_directory="$(${pkgs.gnused}/bin/sed -n 's/^directory = "\(.*\)"$/\1/p' "$CARGO_HOME/config.toml" | ${pkgs.coreutils}/bin/head -n 1)"
+                    test -n "$first_vendor_directory"
+                    vendor_directory="$(${pkgs.coreutils}/bin/dirname "$first_vendor_directory")"
+                    patched_vendor="$NIX_BUILD_TOP/cargo-vendor-patched"
+                    ${pkgs.coreutils}/bin/mkdir -p "$patched_vendor"
+                    ${pkgs.coreutils}/bin/cp -rs "$vendor_directory"/. "$patched_vendor"
+                    kamacite_source="$(${pkgs.findutils}/bin/find -L "$vendor_directory" -type d -name kamacite-core-0.1.0 -print -quit)"
+                    test -n "$kamacite_source"
+                    kamacite_vendor_directory="$(${pkgs.coreutils}/bin/dirname "$kamacite_source")"
+                    kamacite_vendor_key="$(${pkgs.coreutils}/bin/basename "$kamacite_vendor_directory")"
+                    ${pkgs.coreutils}/bin/rm "$patched_vendor/$kamacite_vendor_key"
+                    ${pkgs.coreutils}/bin/mkdir -p "$patched_vendor/$kamacite_vendor_key"
+                    ${pkgs.coreutils}/bin/cp -rL "$kamacite_source" "$patched_vendor/$kamacite_vendor_key/kamacite-core-0.1.0"
+                    ${pkgs.coreutils}/bin/mkdir -p "$patched_vendor/adapters/spacewasm-mvp/generated"
+                    ${pkgs.coreutils}/bin/cp \
+                      ${kamacite-build-support}/adapters/spacewasm-mvp/generated/profile.json \
+                      "$patched_vendor/adapters/spacewasm-mvp/generated/profile.json"
+                    ${pkgs.gnused}/bin/sed -i \
+                      "s|$vendor_directory|$patched_vendor|" \
+                      "$CARGO_HOME/config.toml"
+                    ${octetCommand} \
+                  '';
+                in
+                {
+                  DYLINT_RUSTFLAGS = "--deny warnings";
+                  buildCommand =
+                    assert pkgs.lib.hasInfix octetNeedle previous.buildCommand;
+                    builtins.replaceStrings [ octetNeedle ] [ patchedOctetCommand ] previous.buildCommand;
+                }
+              );
+          aspen-runtime-octet-deny-all =
+            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octet.lib.mkConsumerCheck {
+              inherit system;
+              src = aspenRuntimeOctetWorkspace;
+              packages = [
+                "kiln-adapter-aspen"
+                "kiln-aspen-extension"
+              ];
+              cargoExtraArgs = "--all-targets --all-features";
+              cargoLock = ./checks/aspen-runtime-octet/Cargo.lock;
+              nativeBuildInputs = [ pkgs.cmake ];
+              buildInputs = [ pkgs.zlib ];
+            }).overrideAttrs
+              (_previous: {
+                DYLINT_RUSTFLAGS = "--deny warnings";
+              });
+          radicle-broker-wire-octet-deny-all =
+            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octet.lib.mkConsumerCheck {
+              inherit system;
+              src = radicleBrokerWireOctetWorkspace;
+              packages = [ "kiln-radicle-broker-wire-octet" ];
+              cargoExtraArgs = "--all-targets --all-features";
+              cargoLock = ./checks/radicle-broker-wire-octet/Cargo.lock;
+            }).overrideAttrs
+              (_previous: {
+                DYLINT_RUSTFLAGS = "--deny warnings";
+              });
           radicle-source-contract-fixtures = rustPlatform.buildRustPackage {
             pname = "kiln-radicle-source-contract-fixtures";
             version = "0.1.0";
@@ -407,8 +678,30 @@
               touch "$out"
             '';
           };
+          aspen-runtime-profile =
+            pkgs.runCommand "kiln-aspen-runtime-profile" { nativeBuildInputs = [ pkgs.nickel ]; }
+              ''
+                ${copySource}
+                nickel format --check \
+                  config/aspen-runtime-profile.ncl \
+                  config/fixtures/aspen-runtime-positive.ncl \
+                  config/fixtures/negative-aspen-runtime-*.ncl
+                nickel export config/aspen-runtime-profile.ncl >/dev/null
+                nickel export config/fixtures/aspen-runtime-positive.ncl >/dev/null
+                for fixture in config/fixtures/negative-aspen-runtime-*.ncl; do
+                  if nickel export "$fixture" >/dev/null 2>&1; then
+                    echo "negative Aspen runtime fixture passed: $fixture" >&2
+                    exit 1
+                  fi
+                done
+                touch "$out"
+              '';
           nickel = pkgs.runCommand "kiln-nickel" { nativeBuildInputs = [ pkgs.nickel ]; } ''
             ${copySource}
+            nickel format --check \
+              config/radicle-nix-provider.ncl \
+              config/fixtures/radicle-nix-provider-positive.ncl \
+              config/fixtures/negative-radicle-nix-provider-zero-user.ncl
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
@@ -433,9 +726,11 @@
             nickel export config/valence-profile.ncl >/dev/null
             nickel export config/webhook-profile.ncl >/dev/null
             nickel export config/sqlite-profile.ncl >/dev/null
+            nickel export config/aspen-runtime-profile.ncl >/dev/null
             nickel export config/celld-profile.ncl >/dev/null
             nickel export config/celld-wrangler.ncl >/dev/null
             nickel export config/fixtures/celld-positive.ncl >/dev/null
+            nickel export config/fixtures/aspen-runtime-positive.ncl >/dev/null
             nickel export config/fixtures/git-source-positive.ncl >/dev/null
             nickel export config/fixtures/pijul-source-positive.ncl >/dev/null
             nickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null
@@ -446,6 +741,7 @@
             nickel export config/fixtures/radicle-source-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-status-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-mutation-positive.ncl >/dev/null
+            nickel export config/fixtures/radicle-nix-provider-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/radicle-source-contract/positive/receipt.ncl >/dev/null
             for fixture in fixtures/radicle-source-contract/negative/*.ncl; do

@@ -1,0 +1,211 @@
+{
+  "schema": "kiln.canonical-integration-source-acquisition.v1",
+  "recorded_at_utc": "2026-10-16T03:13:54.611Z",
+  "owner": "Kiln maintainers",
+  "scope": "Exact locked standalone and optional cohort acquisition, not builds or tests",
+  "source_input_identities": [
+    {
+      "path": "Cargo.toml",
+      "blake3": "4c4540ba94a5127c9367d8c4a4800c2f2bae598dc6b9aa59e73cd6228ef1b7b0"
+    },
+    {
+      "path": "Cargo.lock",
+      "blake3": "9e8018a766b9770b2bab00f505f5af50e68644187b1e68b8cbbc5c899078ebb1"
+    },
+    {
+      "path": "flake.lock",
+      "blake3": "e33a13a1d814c1d7cc6796b644d22c814c23c485464dc6ed67018448483b141b"
+    },
+    {
+      "path": "runtime/build-cohort/flake.nix",
+      "blake3": "86694d51a0f61149d26becf79f37de4f720913efa5d867a97f0bd80b3bfbd0a0"
+    },
+    {
+      "path": "runtime/build-cohort/flake.lock",
+      "blake3": "775d9b68ccc57572a59fa75f40f0505d9459e150ea2fb592bf95ff5bde551813"
+    },
+    {
+      "path": "runtime/kiln-aspen-host/Cargo.toml",
+      "blake3": "d15f53611f02ebdc3fccabf2382cad60e45e451e9d7d11ebbf7812894fad5973"
+    },
+    {
+      "path": "runtime/kiln-aspen-host/Cargo.lock",
+      "blake3": "f3efbe13adb6728f2b7869aef81e7bc88a45f7fcff56e173f955ed80c0cafa9d"
+    },
+    {
+      "path": "runtime/kiln-radicle-nix-provider/Cargo.toml",
+      "blake3": "2bcdca25ef24d8b399acec7e588ab1e41326f8e20de971d3d90f2c3b796e3a0d"
+    },
+    {
+      "path": "runtime/kiln-radicle-nix-provider/Cargo.lock",
+      "blake3": "3f5125024b91a63385af90018b77e3d21a0c66871f687c23c101b7eafbac8090"
+    }
+  ],
+  "bounded_exec": {
+    "repository_id": "rad:z2CpqLFpdP36fZXYUK5ZNWxMibpCo",
+    "locked_url": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+    "verified_acquisition_url": "https://seed.radicle.garden/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+    "revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+    "full_git_archive_blake3": "4fbbf8f0749262469f00748e04c775180488dba800303f139172656d25931927",
+    "committed_provenance": "vendor/bounded-exec.source.json:2-5,21",
+    "store_path": "/nix/store/42kh9d4vr3zkiixs84f0vrf54n5d3x15-source",
+    "nar_hash": "sha256-BVmqyUYyoNpY6LfOABxwPO3DY88ZtXeKNg3TPoGCcL0=",
+    "observed": [
+      "Direct anonymous exact-revision fetch from the RID projection succeeded with isolated HOME/XDG_CACHE_HOME, disabled global/system Git configuration, disabled terminal prompts, and empty Nix access-tokens and secret-key-files.",
+      "One-command Git URL rewrite seeded original locked URL into the disposable Nix fetcher cache and yielded the same immutable store path.",
+      "A subsequent original-URL exact-revision builtins.fetchGit, without rewrite and without allRefs, succeeded from the disposable cache.",
+      "git archive of the network-acquired object matched the committed full archive BLAKE3 exactly."
+    ]
+  },
+  "explicit_seed_commands": {
+    "seed_original_locked_url": "env HOME=/tmp/kiln-runtime-acquisition.6vAYGMYB XDG_CACHE_HOME=/tmp/kiln-runtime-acquisition.6vAYGMYB/cache GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.https://seed.radicle.garden/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git.insteadOf GIT_CONFIG_VALUE_0=https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git nix eval --option access-tokens '' --option secret-key-files '' --json --expr 'builtins.fetchGit { url = \"https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git\"; rev = \"29dac88ecded94457572db3fdfaaaab95fa91525\"; allRefs = true; }'",
+    "verify_original_url_without_rewrite": "env HOME=/tmp/kiln-runtime-acquisition.6vAYGMYB XDG_CACHE_HOME=/tmp/kiln-runtime-acquisition.6vAYGMYB/cache GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 nix eval --option access-tokens '' --option secret-key-files '' --json --expr 'builtins.fetchGit { url = \"https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git\"; rev = \"29dac88ecded94457572db3fdfaaaab95fa91525\"; }'",
+    "verify_network_archive": "git --git-dir=/tmp/kiln-runtime-acquisition.6vAYGMYB/cache/nix/gitv3/11m4hdgaf4j51zshci95h3rsrisrqxpin5z021qv31qb28bnnw8c archive --format=tar 29dac88ecded94457572db3fdfaaaab95fa91525 | b3sum",
+    "verify_nar": "nix hash path /nix/store/42kh9d4vr3zkiixs84f0vrf54n5d3x15-source",
+    "parent_host_gate_keep_operator_home": "env XDG_CACHE_HOME=/tmp/kiln-runtime-acquisition.6vAYGMYB/cache nix build path:.#kiln-aspen-host --no-link --json --no-write-lock-file --option builders '' -L"
+  },
+  "locked_git_acquisition": [
+    {
+      "url": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+      "rev": "29dac88ecded94457572db3fdfaaaab95fa91525",
+      "narHash": "sha256-BVmqyUYyoNpY6LfOABxwPO3DY88ZtXeKNg3TPoGCcL0=",
+      "storePath": "/nix/store/42kh9d4vr3zkiixs84f0vrf54n5d3x15-source",
+      "status": "success; exact-revision cache reuse after explicit same-RID projection acquisition; see acquisition-receipt.json"
+    },
+    {
+      "url": "https://github.com/brittonr/aspen.git",
+      "rev": "22f8ded26ca1907c29948e08b53f35df23080733",
+      "narHash": "sha256-6n+wft6bTrfpdcSnokpBfbU2a5CVH8zLTxZ5rn7701U=",
+      "storePath": "/nix/store/2cz6m4i1brsvcyjwgb4k5n1m0gj46ql5-source",
+      "status": "success"
+    },
+    {
+      "url": "https://github.com/brittonr/chaoscontrol.git",
+      "rev": "b8c440ea3b19df796542e58e8ee36200e1c3db85",
+      "narHash": "sha256-rFuxBDZY7Z9v1/KDT/C4jZJqXSOxa4XI5AQoC0pgrEU=",
+      "storePath": "/nix/store/h0s0dsvd6lpy725xy96am1kl8sci4gwf-source",
+      "status": "success"
+    },
+    {
+      "url": "https://seed.radicle.garden/z1C4YVMgDGyVdQa72uPNj3UDS5cY.git",
+      "rev": "4fe90e130f2871cf69a6febcdc70785adca98aea",
+      "narHash": "sha256-AnWxKYQTgvQwzLPMyiGmUroVNVuLos6ThjP0cGRiCcs=",
+      "storePath": "/nix/store/gk233i8pfxc53ww6i99xw059a1i5xiam-source",
+      "status": "success"
+    },
+    {
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "rev": "69afc2697f4330005797256135ae81b2722a125c",
+      "narHash": "sha256-6EA4UxXKl6EvCSHL8tZsBaeMCSrKgD1lxHjheT1xhws=",
+      "storePath": "/nix/store/k54dprsddm0j0nms3znfm7brikhdm458-source",
+      "status": "success"
+    },
+    {
+      "url": "https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git",
+      "rev": "8e05e74e24b45f752d77145c4455385daaf6d6ab",
+      "narHash": "sha256-kd74vui4byAC32OnH7Wn1sw9IW4PWjSw/VThvdnd380=",
+      "storePath": "/nix/store/8yhzjhn9my0fs0w7xa9cdz0lw2wc8i59-source",
+      "status": "success"
+    },
+    {
+      "url": "https://seed.radicle.garden/z6gGpUJtzdVBCCtZTzh4cV1skv4H.git",
+      "rev": "2562c8aa38a034061f9af9f3e17280494a5b8de2",
+      "narHash": "sha256-gRrLAZUz+NE17zrRLSkxKMlwOwltF4yvCK0W++V63u0=",
+      "storePath": "/nix/store/x6wgvrmvgdyz6kxjlbjxhjp2akcblwrh-source",
+      "status": "success"
+    },
+    {
+      "url": "https://seed.radicle.garden/zA14jhTdwST4PxPBdsryc4zS7Kpq.git",
+      "rev": "7f55597b5dc879b7601856e8d7fd0dbacaa2a498",
+      "narHash": "sha256-dwcdRV9LBJEczU9fLN6AYT7cpLcke3auJa7ffPHmoyc=",
+      "storePath": "/nix/store/n3asskzah615mh6kxi1crgf00smmj69i-source",
+      "status": "success"
+    },
+    {
+      "url": "https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git",
+      "rev": "b3e08e19750f53bdbcae970cdf58a47a791ed20b",
+      "narHash": "sha256-BO/AlwJBIuW+WXGRQgd2LymvGIYtK0fqd3YYMDtfGBw=",
+      "storePath": "/nix/store/v8h6nyhc04rl657z1l8mdanw42x26dlc-source",
+      "status": "success"
+    },
+    {
+      "url": "ssh://git@github.com/OnixResearch/basalt.git",
+      "rev": "d913dc01e765c9b297df5fcc57dfa06aac39bc74",
+      "narHash": "sha256-x/BGcEFKy9shtjPEPEkHhx591lB2OXLxKdn2SYxMC4M=",
+      "storePath": "/nix/store/n3y9rrrlx86hwbq6hngz09kml0v04sc6-source",
+      "status": "success"
+    },
+    {
+      "url": "ssh://git@github.com/OnixResearch/cairn.git",
+      "rev": "3b4c280b893f2709aebea21fc51a4f9eeba3fe3b",
+      "narHash": "sha256-F1J1IE0gquK3y0F99MPNQGV9gxwNB8TGNKR9FEgB0nw=",
+      "storePath": "/nix/store/n1vb8rasi42x500abrpd1dlgms82m6nh-source",
+      "status": "success"
+    },
+    {
+      "url": "ssh://git@github.com/OnixResearch/kamacite.git",
+      "rev": "d76fe4abe543724d8fc0ac4b362187caf2e27622",
+      "narHash": "sha256-Z6+dLkP2cziybjrAiRznP1cHUASyekhOwGl5ErWzZJc=",
+      "storePath": "/nix/store/j4jgdvkjlvvhh357iwq6i163k07v66bn-source",
+      "status": "success"
+    },
+    {
+      "url": "ssh://git@github.com/OnixResearch/lattice.git",
+      "rev": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+      "narHash": "sha256-Pm6FQ2Jvhl/KBQEXNtPqcwpe80mkwx4d9+Fr8L/+oTs=",
+      "storePath": "/nix/store/hqf16msh3qflssh34k44ikdx4pjjr2ii-source",
+      "status": "success"
+    },
+    {
+      "url": "ssh://git@github.com/OnixResearch/onix-artifact.git",
+      "rev": "c932138d880ddf4c2967f4c024b489b5c0022bf1",
+      "narHash": "sha256-XGQLG60DNeY9FUYcOmn6cfYnhCIJzyqf+VW9yofDYFU=",
+      "storePath": "/nix/store/mpwd34h0cix2hd13hx94hndya8kacv23-source",
+      "status": "success"
+    },
+    {
+      "url": "ssh://git@github.com/OnixResearch/ucan.git",
+      "rev": "2aad993027d48ff148028c537cdaf91f6e5285ca",
+      "narHash": "sha256-Z2Vu9xO9eKYXYo7aqqFm6KrNdQ8yG0ozYFZbrEOXB6s=",
+      "storePath": "/nix/store/xva0y2r13bnz2ylbr0ldqyy3znjxh11v-source",
+      "status": "success"
+    },
+    {
+      "url": "ssh://git@github.com/OnixResearch/valence.git",
+      "rev": "5f1c2ba5072c6f9622fa59b1af20502985f569fd",
+      "narHash": "sha256-ASWqHCXtUIDerN5vG57TbciTs2q2kHx/dyJI6q0veDk=",
+      "storePath": "/nix/store/cwvvgrwfmx17m1n9fwwz92qxdxcfj9lq-source",
+      "status": "success"
+    }
+  ],
+  "optional_cohort": {
+    "command": "env XDG_CACHE_HOME=/tmp/kiln-runtime-acquisition.6vAYGMYB/cache GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND='ssh -o BatchMode=yes -o ConnectTimeout=15' nix flake archive --json --no-write-lock-file path:/home/brittonr/git/OnixResearch/kiln/runtime/build-cohort",
+    "exit_code": 0,
+    "status": "Native archive successfully acquired or reused the complete locked recursive input tree without rewriting the lock.",
+    "direct_inputs": {
+      "octet": {
+        "rev": "cf04e894e53eb0947230118a086ef6066ddba38c",
+        "storePath": "/nix/store/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2-source",
+        "narHash": "sha256-WMNrQL7l+LIabv5k4ekcN5Su5rXnaCYYyzzkNF2+NP0=",
+        "nar_verified_with_nix_hash_path": true
+      },
+      "kamacite-build-support": {
+        "rev": "d76fe4abe543724d8fc0ac4b362187caf2e27622",
+        "storePath": "/nix/store/j4jgdvkjlvvhh357iwq6i163k07v66bn-source",
+        "narHash": "sha256-Z6+dLkP2cziybjrAiRznP1cHUASyekhOwGl5ErWzZJc=",
+        "nar_verified_with_nix_hash_path": true
+      },
+      "nixpkgs": {
+        "rev": "b7c2ada94fe99c15b0dbcf4d11fd7850b957a436",
+        "storePath": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source",
+        "narHash": "sha256-IItrdb7Puk05RqOBWZYFC5X6Wl1sJmCfh5MWVHw5iMM=",
+        "nar_verified_with_nix_hash_path": true
+      }
+    }
+  },
+  "credential_boundary": "Operator HOME retained for the remaining cohort; no anonymous claim for private sources. GIT_TERMINAL_PROMPT=0; GIT_SSH_COMMAND='ssh -o BatchMode=yes -o ConnectTimeout=15'. No global configuration changes.",
+  "non_claims": [
+    "Source acquisition only, not builds/tests/Octet gate success, source authority, deployment, release eligibility, or credential-free private runtime availability. No repository files, reviewed source identities, global configuration, user caches, or remotes changed. No sibling dependencies or arbitrary source substitution. Existing disposable cache remains available for parent gates.",
+    "Machine-local cache and store paths record observations, not durable product dependencies. Repeatable operator commands are in docs/reference-pins.md."
+  ]
+}

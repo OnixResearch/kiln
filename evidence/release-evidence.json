@@ -513,16 +513,26 @@
           ]
         },
         {
-          "authority_boundary": "Aspen owns runtime transport and persistence; Kiln owns CI state only",
+          "authority_boundary": "Aspen owns admitted runtime mechanisms; Kiln owns CI commands, events, policy, provider selection, and outcomes",
           "capabilities": [
-            "service_hosting"
+            "service_hosting",
+            "durable_state",
+            "content_store",
+            "bounded_execution",
+            "transport",
+            "time",
+            "scheduling",
+            "evidence"
           ],
-          "id": "aspen-runtime-v1",
+          "id": "aspen-runtime-v2",
           "role": "runtime",
-          "source_revision": "08e4dfa5443737c81577f6691c673ab1ad78db4d",
+          "source_revision": "22f8ded26ca1907c29948e08b53f35df23080733",
           "unsupported_capabilities": [
             "ci_state",
-            "release"
+            "provider_success",
+            "release",
+            "sandboxing",
+            "exact_once_delivery"
           ]
         },
         {
@@ -568,7 +578,7 @@
       ]
     }
   },
-  "receipt_hash": "e7ef3769bd39c953c9525efecdc003444916149cb54a2d41120f0358c2efa19d",
+  "receipt_hash": "0a7432bbe87bb3658be8dbc5912d5b082660d65be305feeb6b547033abdeaf83",
   "references": {
     "cairn_cob": "837d730799faffe6a088cfd6dc49e08c7e0f1822",
     "details": "docs/reference-pins.md",

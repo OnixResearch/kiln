@@ -5692,6 +5692,27 @@
           },
           {
             "extensions": [
+              "rs"
+            ],
+            "root": "runtime/kiln-aspen-host",
+            "source_kind": "rust_source"
+          },
+          {
+            "extensions": [
+              "rs"
+            ],
+            "root": "runtime/kiln-radicle-nix-provider",
+            "source_kind": "rust_source"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": "docs/hosting-and-recovery.md",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
               "rs",
               "ncl"
             ],
@@ -5728,6 +5749,20 @@
             ],
             "root": ".cairn/specs",
             "source_kind": "accepted_specs"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/bind-aspen-extension-runtime-profile/specs",
+            "source_kind": "requirements_doc"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/pace-aspen-lattice-observation/specs",
+            "source_kind": "requirements_doc"
           }
         ]
       },

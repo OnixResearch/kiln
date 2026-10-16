@@ -3,10 +3,15 @@ let KilnTraceabilityProfile = {
   id = "cairn-default",
   requirement_sources = [
     { root = ".cairn/specs", source_kind = "accepted_specs", extensions = ["md"] },
+    { root = ".cairn/changes/bind-aspen-extension-runtime-profile/specs", source_kind = "requirements_doc", extensions = ["md"] },
+    { root = ".cairn/changes/pace-aspen-lattice-observation/specs", source_kind = "requirements_doc", extensions = ["md"] },
   ],
   evidence_sources = [
     { root = "crates", source_kind = "rust_source", extensions = ["rs"] },
     { root = "crates", source_kind = "nickel_source", extensions = ["ncl"] },
+    { root = "runtime/kiln-aspen-host", source_kind = "rust_source", extensions = ["rs"] },
+    { root = "runtime/kiln-radicle-nix-provider", source_kind = "rust_source", extensions = ["rs"] },
+    { root = "docs/hosting-and-recovery.md", source_kind = "tool_source", extensions = ["md"] },
     { root = "tools", source_kind = "tool_source", extensions = ["rs", "ncl"] },
     { root = "src", source_kind = "tool_source", extensions = ["mjs"] },
     { root = "tests", source_kind = "tool_source", extensions = ["mjs", "sh"] },

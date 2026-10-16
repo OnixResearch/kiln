@@ -32,9 +32,11 @@ The review date is 2026-08-08. These references inform bounded Kiln contracts an
 
 ## Build source acquisition
 
-The design-reference pins above are not the build cohort. Cargo consumes the
-following committed, immutable source imports; no sibling checkout, GitHub SSH
-credential, private HTTPS credential, or running Radicle node is a build input.
+The design-reference pins above are not the build cohort. The root Cargo
+workspace consumes the following committed, immutable source imports; no sibling
+checkout, GitHub SSH credential, private HTTPS credential, or running Radicle node
+is a normal root workspace/default-package build input. The separately pinned
+standalone runtimes and optional Octet gates have the acquisition boundary below.
 
 | Import | Exact producer revision | Consumed scope | Source record |
 |---|---|---|---|
@@ -50,9 +52,10 @@ trees. The imports preserve original source, manifests, license texts, and
 applicable provenance notices byte-for-byte. Root workspace manifests retained
 for inherited Cargo fields do not select the producer applications as dependencies.
 The Artifact Git patch redirects Valence's exact transitive Git dependency to the
-verified local import without changing Valence's upstream manifest. Cargo's
-generated lock has no Git sources. Other Cargo dependencies use the public
-crates.io registry and its locked checksums.
+verified local import without changing Valence's upstream manifest. The root
+workspace's generated lock has no Git sources. Its other Cargo dependencies use
+the public crates.io registry and locked checksums; standalone runtime locks are
+independent and retain their reviewed Git sources.
 
 Run `cargo fmt -- --check` from the Kiln workspace root to check every admitted
 workspace member, including the shared COB store. Do not use `--all`: that flag
@@ -115,6 +118,93 @@ disable SSH and interactive Git credentials, then run `cargo fetch --locked` and
 and `secret-key-files`. This checks acquisition, not build correctness or release
 eligibility. An offline metadata smoke may reuse only the public registry cache;
 it must not reuse Cargo's Git cache.
+
+### Standalone runtime and optional tool cohort
+
+`runtime/kiln-aspen-host` and `runtime/kiln-radicle-nix-provider` remain independent
+Cargo workspaces, excluded from the root workspace alongside the producer imports.
+They retain their own manifests, locks, Rust toolchains, all-target/all-feature
+package checks, and deny-all Octet gates. Selecting them is not a credential-free
+build claim: their exact upstream repositories and private transitive producers
+must be available to the operator. No sibling checkout or fallback is selected.
+
+The host manifest and lock bind Kiln adapters to
+`69afc2697f4330005797256135ae81b2722a125c`, Aspen/Molten to
+`22f8ded26ca1907c29948e08b53f35df23080733`, Lattice contract/transport to
+`70496e67c7fd4a8b05914161a8e09de2759bebc8`, and Durable File Publication to
+`8e05e74e24b45f752d77145c4455385daaf6d6ab`. Both runtimes retain Bounded Exec
+`29dac88ecded94457572db3fdfaaaab95fa91525` and the provider retains that same
+Durable File Publication pin. These independent cohorts are not replaced by root
+workspace imports merely because their package names overlap.
+
+The optional Nix sources are isolated in
+[`runtime/build-cohort/`](../runtime/build-cohort/), with a Nix-generated lock
+preserving the canonical integration parent's producer pins and follows edges:
+
+| Source | Exact revision | NAR identity |
+|---|---|---|
+| Octet | `cf04e894e53eb0947230118a086ef6066ddba38c` | `sha256-WMNrQL7l+LIabv5k4ekcN5Su5rXnaCYYyzzkNF2+NP0=` |
+| Kamacite build support | `d76fe4abe543724d8fc0ac4b362187caf2e27622` | `sha256-Z6+dLkP2cziybjrAiRznP1cHUASyekhOwGl5ErWzZJc=` |
+
+The root loads that content-addressed subflake only when an optional consumer
+needs it. Octet's `nixpkgs` still follows the cohort's root `nixpkgs`, pinned to
+`b7c2ada94fe99c15b0dbcf4d11fd7850b957a436`; the root asserts equality with its
+own `nixpkgs` before selecting Octet. Other producer-owned transitive pins and
+follows remain in the generated cohort lock. The Kamacite input supplies only its
+exact compile-time `adapters/spacewasm-mvp/generated/profile.json` to the existing
+writable build view. No producer source is imported or hand-edited by this
+separation, and upstream licenses and notices still govern optional artifacts.
+
+Normal `cargo fetch --locked`, `nix develop`, and default-package builds do not
+select those optional sources. Full `nix flake check` does select the exported
+runtime/Octet checks and therefore requires their sources. Unavailable sources
+must fail that selected check, not turn it into a skip or success.
+
+```console
+nix flake archive --no-write-lock-file path:$PWD/runtime/build-cohort
+cargo fetch --locked --manifest-path runtime/kiln-aspen-host/Cargo.toml
+cargo fetch --locked --manifest-path runtime/kiln-radicle-nix-provider/Cargo.toml
+nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-package --no-link -L
+nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-octet-deny-all --no-link -L
+nix build path:$PWD#checks.x86_64-linux.kiln-radicle-nix-provider-package --no-link -L
+nix build path:$PWD#checks.x86_64-linux.kiln-radicle-nix-provider-octet-deny-all --no-link -L
+nix build path:$PWD#checks.x86_64-linux.aspen-runtime-octet-deny-all --no-link -L
+nix build path:$PWD#checks.x86_64-linux.radicle-broker-wire-octet-deny-all --no-link -L
+```
+
+The retained Bounded Exec URL returned HTTP 530 during integration verification.
+The declared same-RID projection
+`https://seed.radicle.garden/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git` supplied exact
+revision `29dac88ecded94457572db3fdfaaaab95fa91525` anonymously. Its full
+Git-object archive matched the recorded BLAKE3
+`4fbbf8f0749262469f00748e04c775180488dba800303f139172656d25931927`;
+the observed source NAR was
+`sha256-BVmqyUYyoNpY6LfOABxwPO3DY88ZtXeKNg3TPoGCcL0=`.
+Kiln maintainers can reproduce that explicit acquisition into a disposable Nix
+cache without changing product source URLs, revisions, or global Git configuration:
+
+```console
+cache_root=$(mktemp -d)
+mkdir -p "$cache_root/empty-home"
+export XDG_CACHE_HOME="$cache_root/cache"
+env HOME="$cache_root/empty-home" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
+  GIT_TERMINAL_PROMPT=0 GIT_CONFIG_COUNT=1 \
+  GIT_CONFIG_KEY_0=url.https://seed.radicle.garden/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git.insteadOf \
+  GIT_CONFIG_VALUE_0=https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git \
+  nix eval --option access-tokens '' --option secret-key-files '' --json --expr \
+  'builtins.fetchGit { url = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git"; rev = "29dac88ecded94457572db3fdfaaaab95fa91525"; allRefs = true; }'
+nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-package --no-link -L
+```
+
+The remaining private sources may use the operator's existing read credentials;
+this procedure proves no anonymous access to those sources. The rewrite applies
+only to the explicit cache-seeding command, not to subsequent builds. Source
+acquisition is not a package, conformance, Octet, or deployment verdict.
+
+To change this optional cohort, use Nix to regenerate its lock, review producer
+pins/follows, then run `nix hash path runtime/build-cohort` and update the exact
+subflake NAR identity in root `flake.nix`. Keep the root/cohort `nixpkgs` equality
+and rerun the selected owning checks. Never hand-edit either lockfile.
 
 ## Maturity and non-claims
 
