@@ -1,0 +1,133 @@
+{
+  "schema": "kiln.canonical-integration-independent-readback.v1",
+  "candidate": "d11c5592ff990594d3ad53e8dd80240f6ad8e927",
+  "expected_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+  "results": [
+    {
+      "name": "github-ssh",
+      "url": "git@github.com:OnixResearch/kiln.git",
+      "destination": "/tmp/kiln-integrated-readback-54EjYO/github-ssh",
+      "clone": {
+        "command": [
+          "jj",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "git",
+          "clone",
+          "--no-colocate",
+          "--branch",
+          "main",
+          "git@github.com:OnixResearch/kiln.git",
+          "/tmp/kiln-integrated-readback-54EjYO/github-ssh"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/kiln-integrated-readback-54EjYO/github-ssh\"\nbookmark: main@origin [new] untracked\nWorking copy  (@) now at: mtwwkkqx 8a6104e6 (empty) (no description set)\nParent commit (@-)      : zsvwwpnz cd8b8100 main@origin | Record integrated-source verification and authorized publication exception\nAdded 988 files, modified 0 files, removed 0 files\n"
+      },
+      "inspect": {
+        "command": [
+          "jj",
+          "--ignore-working-copy",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "log",
+          "--no-graph",
+          "-r",
+          "main@origin",
+          "-T",
+          "commit_id"
+        ],
+        "exit_code": 0,
+        "stdout": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+        "stderr": ""
+      },
+      "observed_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "valid": true,
+      "scope": "Authenticated SSH source acquisition; no visibility claim"
+    },
+    {
+      "name": "radicle-native",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "destination": "/tmp/kiln-integrated-readback-54EjYO/radicle-native",
+      "clone": {
+        "command": [
+          "jj",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "git",
+          "clone",
+          "--no-colocate",
+          "--branch",
+          "main",
+          "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+          "/tmp/kiln-integrated-readback-54EjYO/radicle-native"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/kiln-integrated-readback-54EjYO/radicle-native\"\nbookmark: main@origin [new] untracked\nWorking copy  (@) now at: yoyqtsno d6928472 (empty) (no description set)\nParent commit (@-)      : zsvwwpnz cd8b8100 main@origin | Record integrated-source verification and authorized publication exception\nAdded 988 files, modified 0 files, removed 0 files\n"
+      },
+      "inspect": {
+        "command": [
+          "jj",
+          "--ignore-working-copy",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "log",
+          "--no-graph",
+          "-r",
+          "main@origin",
+          "-T",
+          "commit_id"
+        ],
+        "exit_code": 0,
+        "stdout": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+        "stderr": ""
+      },
+      "observed_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "valid": true,
+      "scope": "Existing local Radicle storage, not independent peer-to-peer acquisition"
+    },
+    {
+      "name": "radicle-https",
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "destination": "/tmp/kiln-integrated-readback-54EjYO/radicle-https",
+      "clone": {
+        "command": [
+          "jj",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "git",
+          "clone",
+          "--no-colocate",
+          "--branch",
+          "main",
+          "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+          "/tmp/kiln-integrated-readback-54EjYO/radicle-https"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/kiln-integrated-readback-54EjYO/radicle-https\"\nbookmark: main@origin [new] tracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: kymxwnsu c905f064 (empty) (no description set)\nParent commit (@-)      : zsvwwpnz cd8b8100 main | Record integrated-source verification and authorized publication exception\nAdded 988 files, modified 0 files, removed 0 files\n"
+      },
+      "inspect": {
+        "command": [
+          "jj",
+          "--ignore-working-copy",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "log",
+          "--no-graph",
+          "-r",
+          "main@origin",
+          "-T",
+          "commit_id"
+        ],
+        "exit_code": 0,
+        "stdout": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+        "stderr": ""
+      },
+      "observed_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "valid": true,
+      "scope": "Network HTTPS read-only projection; global/system Git configuration disabled"
+    }
+  ]
+}

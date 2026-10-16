@@ -1,0 +1,43 @@
+{
+  "schema": "kiln.canonical-integration-evidence-only-descendant.v1",
+  "candidate": "d11c5592ff990594d3ad53e8dd80240f6ad8e927",
+  "checked_manifest_blake3": "e41eaf62f46bdbaf47a0e8890c26c059551515bf1f695f9716b1a090aec00d2c",
+  "changed": [
+    ".cairn/changes/integrate-canonical-main/acceptance.md",
+    ".cairn/changes/integrate-canonical-main/reviews/no-spec-classification.json",
+    ".cairn/changes/integrate-canonical-main/tasks.md",
+    "docs/hosting-and-recovery.md"
+  ],
+  "added": [
+    ".cairn/changes/integrate-canonical-main/evidence/acquired-source-verification.json",
+    ".cairn/changes/integrate-canonical-main/evidence/aspen-durable-runtime.json",
+    ".cairn/changes/integrate-canonical-main/evidence/cairn-tasks-gate.json",
+    ".cairn/changes/integrate-canonical-main/evidence/cairn-validation.json",
+    ".cairn/changes/integrate-canonical-main/evidence/contract-preservation.json",
+    ".cairn/changes/integrate-canonical-main/evidence/final-record-gates.json",
+    ".cairn/changes/integrate-canonical-main/evidence/github-runtime.json",
+    ".cairn/changes/integrate-canonical-main/evidence/governance-after.json",
+    ".cairn/changes/integrate-canonical-main/evidence/governance-before.json",
+    ".cairn/changes/integrate-canonical-main/evidence/hosting-profile.json",
+    ".cairn/changes/integrate-canonical-main/evidence/independent-readback.json",
+    ".cairn/changes/integrate-canonical-main/evidence/lattice-authorized-readback.json",
+    ".cairn/changes/integrate-canonical-main/evidence/lattice-readback.json",
+    ".cairn/changes/integrate-canonical-main/evidence/main-push.json",
+    ".cairn/changes/integrate-canonical-main/evidence/nix-check.json",
+    ".cairn/changes/integrate-canonical-main/evidence/nix-check.log",
+    ".cairn/changes/integrate-canonical-main/evidence/policy-check.json",
+    ".cairn/changes/integrate-canonical-main/evidence/prepublication-gates-approved.json",
+    ".cairn/changes/integrate-canonical-main/evidence/prepublication-gates.json",
+    ".cairn/changes/integrate-canonical-main/evidence/publication.json",
+    ".cairn/changes/integrate-canonical-main/evidence/push-preflight.json",
+    ".cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl",
+    ".cairn/changes/integrate-canonical-main/evidence/traceability-coverage.json",
+    ".cairn/changes/integrate-canonical-main/evidence/verification.json",
+    ".cairn/changes/integrate-canonical-main/evidence/verified-source-manifest.json",
+    ".cairn/changes/integrate-canonical-main/evidence/verified-source.json"
+  ],
+  "removed": [],
+  "unexpected": [],
+  "executable_configuration_and_accepted_spec_source_unchanged": true,
+  "scope": "Only integration lifecycle/evidence and hosting documentation differ; this report is written after the source listing"
+}

@@ -1,0 +1,55 @@
+{
+  "schema": "kiln.canonical-integration-governance-after.v1",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "unchanged": true,
+  "before": {
+    "payload": {
+      "xyz.radicle.project": {
+        "defaultBranch": "main",
+        "description": "Provider-neutral CI control plane",
+        "name": "Kiln"
+      }
+    },
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1
+  },
+  "after": {
+    "payload": {
+      "xyz.radicle.project": {
+        "defaultBranch": "main",
+        "description": "Provider-neutral CI control plane",
+        "name": "Kiln"
+      }
+    },
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1
+  },
+  "observations": [
+    {
+      "command": [
+        "rad",
+        "inspect",
+        "--identity",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"payload\": {\n    \"xyz.radicle.project\": {\n      \"defaultBranch\": \"main\",\n      \"description\": \"Provider-neutral CI control plane\",\n      \"name\": \"Kiln\"\n    }\n  },\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "rad",
+        "inspect",
+        "--sigrefs",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 5cd6643f6a6bf8a5b41f7b1812ac1ea6acbf8936 parent\n",
+      "stderr": ""
+    }
+  ]
+}

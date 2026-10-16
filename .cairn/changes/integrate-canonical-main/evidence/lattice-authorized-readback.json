@@ -1,0 +1,97 @@
+{
+  "schema": "kiln.lattice-authorized-publication-readback.v1",
+  "expected_main": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+  "github_ssh": {
+    "name": "github-ssh",
+    "url": "git@github.com:OnixResearch/lattice.git",
+    "destination": "/tmp/lattice-published-readback-F3DD1d/github-ssh",
+    "clone": {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "git@github.com:OnixResearch/lattice.git",
+        "/tmp/lattice-published-readback-F3DD1d/github-ssh"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/tmp/lattice-published-readback-F3DD1d/github-ssh\"\nbookmark: main@origin [new] tracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: omumrynl 9a368e7c (empty) (no description set)\nParent commit (@-)      : tmxzltlm 6339864d main | Fix workflow result propagation and restore release gates\nAdded 4670 files, modified 0 files, removed 0 files\n"
+    },
+    "inspect": {
+      "command": [
+        "jj",
+        "--ignore-working-copy",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "log",
+        "--no-graph",
+        "-r",
+        "main@origin",
+        "-T",
+        "commit_id"
+      ],
+      "exit_code": 0,
+      "stdout": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+      "stderr": ""
+    },
+    "observed_main": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+    "valid": true
+  },
+  "radicle_native": {
+    "destination": "/tmp/lattice-published-readback-F3DD1d/radicle-native",
+    "clone": {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "rad::rad://z2yGPFsQZsUcFNkiyR4Dkj22BuxnC/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "/tmp/lattice-published-readback-F3DD1d/radicle-native"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/tmp/lattice-published-readback-F3DD1d/radicle-native\"\nbookmark: main@origin [new] untracked\nWorking copy  (@) now at: mtwsyopx 550cb494 (empty) (no description set)\nParent commit (@-)      : tmxzltlm 6339864d main@origin | Fix workflow result propagation and restore release gates\nAdded 4670 files, modified 0 files, removed 0 files\n"
+    },
+    "inspect": {
+      "command": [
+        "jj",
+        "--ignore-working-copy",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "log",
+        "--no-graph",
+        "-r",
+        "main@origin",
+        "-T",
+        "commit_id"
+      ],
+      "exit_code": 0,
+      "stdout": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+      "stderr": ""
+    },
+    "observed_main": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+    "valid": true
+  },
+  "hosting_scope": {
+    "rid": "rad:z2yGPFsQZsUcFNkiyR4Dkj22BuxnC",
+    "observed_visibility": "private",
+    "observation_source": "rad inspect --identity rad:z2yGPFsQZsUcFNkiyR4Dkj22BuxnC",
+    "anonymous_probe": "lattice-readback.json retains the failed public HTTPS attempt; Garden and Rosa API reads returned HTTP 404",
+    "visibility_mutation_authorized": false,
+    "visibility_mutated": false
+  },
+  "non_claims": [
+    "Exact authenticated GitHub and existing local Radicle-storage refs only",
+    "Private Lattice hosting does not establish anonymous availability or independent seed replication",
+    "Original Git checkout was not converted to Jujutsu or mutated"
+  ]
+}

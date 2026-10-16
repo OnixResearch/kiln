@@ -73,6 +73,32 @@ retains the failure and the isolated runtime scopes. This exception covers only
 this source and evidence-only descendants; it does not approve production use,
 waive the production obligations, or change the default gate into a PASS.
 
+## Integrated main publication
+
+The source-plus-verification revision `cd8b810028fafd3bcb531e920f5360e1f52f6fda`
+was fast-forwarded to both declared `main` refs. It descends from GitHub main
+`1867f611a7968211e29830f4f1a6d5c4ff568138` and canonical Radicle main
+`5d99f4e9bb954743443e340baece31256b4c53f1`; neither history was replaced.
+
+Fresh GitHub SSH, native Radicle and anonymous Garden HTTPS clones read back
+that exact revision. Each reproduced all 972 entries of the checked source
+candidate and its 8,294,400-byte normalized USTAR archive, BLAKE3
+`5faa879fa3c23087c37819e802bd6fbd5d5bccdf54a896c7b775cffd840b442a`.
+Rosa, Iris and Garden delegate APIs reported the same `main`; governance retained
+the original delegate and threshold. These are bounded observations, not seed
+trust, indefinite availability or production qualification.
+
+The [publication receipt](../.cairn/changes/integrate-canonical-main/evidence/publication.json)
+binds the checked source, archive, hosting profile, signed refs, acquisitions and
+operator exception. It is a later evidence-only descendant of the revision it
+records. Current tips remain moving refs; evidence-only descendants do not imply
+new executable verification. Historical publication records remain unchanged.
+
+Lattice revision `6339864d3c4e5de72ba4f0899b11b5d5b76704b6` was independently
+read back over GitHub SSH and its existing private Radicle namespace. Anonymous
+Lattice acquisition is not claimed, and no repository visibility was changed.
+
+
 ## Verified local candidate
 
 The local source candidate is `db552f504236b3e330be46618e2fd29fb864f190`,

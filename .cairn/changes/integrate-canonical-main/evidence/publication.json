@@ -1,0 +1,100 @@
+{
+  "schema": "kiln.canonical-integration-source-publication.v1",
+  "recorded_at_utc": "2026-10-16T14:40:49.630Z",
+  "owner": "Kiln maintainers",
+  "state": "PASS-source-only-push-and-exact-acquisition",
+  "authority": {
+    "basis": "Operator requested both main publications, chose history-preserving integration and explicitly selected Authorize source-only exception",
+    "scope": "Only the two declared main refs; preserve the three failed production-evidence requirements and pending Onix qualification",
+    "visibility_change_authorized": false,
+    "governance_change_authorized": false,
+    "production_deployment_authorized": false
+  },
+  "source_candidate": "d11c5592ff990594d3ad53e8dd80240f6ad8e927",
+  "published_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+  "source_identity": "verified-source.json",
+  "source_manifest_blake3": "e41eaf62f46bdbaf47a0e8890c26c059551515bf1f695f9716b1a090aec00d2c",
+  "source_archive_blake3": "5faa879fa3c23087c37819e802bd6fbd5d5bccdf54a896c7b775cffd840b442a",
+  "source_archive_bytes": 8294400,
+  "hosting_profile": {
+    "path": "hosting-profile.json",
+    "blake3": "31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82",
+    "export_command": [
+      "nix",
+      "shell",
+      "--offline",
+      "nixpkgs#nickel",
+      "-c",
+      "nickel",
+      "export",
+      "config/hosting-profile.ncl",
+      "--format",
+      "json"
+    ],
+    "scope": "Declared profile from unchanged checked config; does not grant new runtime or release authority"
+  },
+  "history": {
+    "github_parent": "1867f611a7968211e29830f4f1a6d5c4ff568138",
+    "canonical_radicle_parent": "5d99f4e9bb954743443e340baece31256b4c53f1",
+    "both_are_ancestors": true,
+    "force_push_used": false,
+    "preflight": "push-preflight.json"
+  },
+  "targets": [
+    {
+      "name": "github",
+      "url": "git@github.com:OnixResearch/kiln.git",
+      "ref": "refs/heads/main",
+      "revision": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "authority": "Declared projection; no visibility/default-branch/mirroring changes"
+    },
+    {
+      "name": "radicle",
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "ref": "refs/heads/main",
+      "revision": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "authority": "Canonical Radicle governance unchanged"
+    }
+  ],
+  "push": "main-push.json",
+  "independent_readback": "independent-readback.json",
+  "acquired_source": "acquired-source-verification.json",
+  "governance": "governance-after.json",
+  "replica_api_observations": [
+    {
+      "url": "https://rosa.radicle.xyz/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "observation_method": "read tool JSON response",
+      "delegate": true,
+      "observed_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "scope": "Selected observed API fields; not an independently signature-verified server statement"
+    },
+    {
+      "url": "https://iris.radicle.xyz/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "observation_method": "read tool JSON response",
+      "delegate": true,
+      "observed_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "scope": "Selected observed API fields; not an independently signature-verified server statement"
+    },
+    {
+      "url": "https://seed.radicle.garden/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "observation_method": "read tool JSON response",
+      "delegate": true,
+      "observed_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "scope": "Selected observed API fields; not an independently signature-verified server statement"
+    }
+  ],
+  "source_publication_exception": "source-only-exception.ncl",
+  "lattice": {
+    "revision": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+    "readback": "lattice-authorized-readback.json",
+    "anonymous_probe": "lattice-readback.json",
+    "scope": "GitHub SSH and private local Radicle namespace verified; no visibility mutation or anonymous availability claim"
+  },
+  "non_claims": [
+    "The three production-evidence requirements remain unverified and the default traceability gate remains FAIL",
+    "No live Onix shadow, staged-spec acceptance, production deployment, release authority or whole-CI correctness",
+    "The native clone reads existing local Radicle storage, not an independent peer-to-peer path",
+    "Matching seed API heads and anonymous HTTPS acquisition prove only these bounded observations, not indefinite availability or seed trust",
+    "This receipt records the completed published main above; it is a later evidence-only descendant, not self-referential publication evidence"
+  ]
+}

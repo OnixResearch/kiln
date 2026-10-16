@@ -7,4 +7,4 @@
 ## Phase 2: Verification and publication
 
 - [x] [serial] Run existing positive and negative conformance and required workspace, Clippy, Nickel, Cairn, traceability and x86_64 Nix gates; exercise actual local provider/CI shell paths and bind observations to the integrated candidate. Retain the three failed production-evidence traceability obligations under the operator-authorized source-only exception; do not claim they passed. a[integrate-canonical-main.verification]
-- [ ] [serial] Publish a merge descendant to the two declared main refs with guarded ancestry and exact readback; retain scoped archive/hosting/publication evidence and explicit acquisition/deployment limits. a[integrate-canonical-main.publication]
+- [x] [serial] Publish a merge descendant to the two declared main refs with guarded ancestry and exact readback; retain scoped archive/hosting/publication evidence and explicit acquisition/deployment limits in `evidence/publication.json`. a[integrate-canonical-main.publication]

@@ -1,0 +1,111 @@
+{
+  "schema": "kiln.canonical-integration-push-preflight.v1",
+  "candidate": "d11c5592ff990594d3ad53e8dd80240f6ad8e927",
+  "prepared_main": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+  "remote_tips": "1867f611a7968211e29830f4f1a6d5c4ff568138 main@github\n5d99f4e9bb954743443e340baece31256b4c53f1 drain/productionize-aspen-radicle-host-20260830 main@rad",
+  "both_remote_tips_are_ancestors": true,
+  "observations": [
+    {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "bookmark",
+        "set",
+        "main",
+        "-r",
+        "@"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Moved 1 bookmarks to zsvwwpnz cd8b8100 main* | Record integrated-source verification and authorized publication exception\n"
+    },
+    {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--ignore-working-copy",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id"
+      ],
+      "exit_code": 0,
+      "stdout": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--ignore-working-copy",
+        "log",
+        "--no-graph",
+        "-r",
+        "main@github::@ & main@rad::@ & @",
+        "-T",
+        "commit_id"
+      ],
+      "exit_code": 0,
+      "stdout": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--ignore-working-copy",
+        "log",
+        "--no-graph",
+        "-r",
+        "main@github | main@rad",
+        "-T",
+        "commit_id ++ \" \" ++ bookmarks ++ \"\\n\""
+      ],
+      "exit_code": 0,
+      "stdout": "1867f611a7968211e29830f4f1a6d5c4ff568138 main@github\n5d99f4e9bb954743443e340baece31256b4c53f1 drain/productionize-aspen-radicle-host-20260830 main@rad\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--ignore-working-copy",
+        "git",
+        "push",
+        "--dry-run",
+        "--remote",
+        "github",
+        "--bookmark",
+        "exact:main"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to github:\n  bookmark: main [move forward from 1867f611a796 to cd8b810028fa]\nDry-run requested, not pushing.\n"
+    },
+    {
+      "command": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--ignore-working-copy",
+        "git",
+        "push",
+        "--dry-run",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "exact:main"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 5d99f4e9bb95 to cd8b810028fa]\nDry-run requested, not pushing.\n"
+    }
+  ]
+}

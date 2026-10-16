@@ -1,0 +1,74 @@
+{
+  "schema": "kiln.lattice-published-revision-readback.v1",
+  "expected_main": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+  "results": [
+    {
+      "name": "github-ssh",
+      "url": "git@github.com:OnixResearch/lattice.git",
+      "destination": "/tmp/lattice-published-readback-F3DD1d/github-ssh",
+      "clone": {
+        "command": [
+          "jj",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "git",
+          "clone",
+          "--no-colocate",
+          "--branch",
+          "main",
+          "git@github.com:OnixResearch/lattice.git",
+          "/tmp/lattice-published-readback-F3DD1d/github-ssh"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/lattice-published-readback-F3DD1d/github-ssh\"\nbookmark: main@origin [new] tracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: omumrynl 9a368e7c (empty) (no description set)\nParent commit (@-)      : tmxzltlm 6339864d main | Fix workflow result propagation and restore release gates\nAdded 4670 files, modified 0 files, removed 0 files\n"
+      },
+      "inspect": {
+        "command": [
+          "jj",
+          "--ignore-working-copy",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "log",
+          "--no-graph",
+          "-r",
+          "main@origin",
+          "-T",
+          "commit_id"
+        ],
+        "exit_code": 0,
+        "stdout": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+        "stderr": ""
+      },
+      "observed_main": "6339864d3c4e5de72ba4f0899b11b5d5b76704b6",
+      "valid": true
+    },
+    {
+      "name": "radicle-https",
+      "url": "https://seed.radicle.garden/z2yGPFsQZsUcFNkiyR4Dkj22BuxnC.git",
+      "destination": "/tmp/lattice-published-readback-F3DD1d/radicle-https",
+      "clone": {
+        "command": [
+          "jj",
+          "--config",
+          "signing.behavior=\"drop\"",
+          "git",
+          "clone",
+          "--no-colocate",
+          "--branch",
+          "main",
+          "https://seed.radicle.garden/z2yGPFsQZsUcFNkiyR4Dkj22BuxnC.git",
+          "/tmp/lattice-published-readback-F3DD1d/radicle-https"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/lattice-published-readback-F3DD1d/radicle-https\"\nError: Git process failed: External git program failed:\nfatal: unable to access 'https://seed.radicle.garden/z2yGPFsQZsUcFNkiyR4Dkj22BuxnC.git/': The requested URL returned error: 500\n\n"
+      },
+      "valid": false
+    }
+  ],
+  "non_claims": [
+    "Fresh source-ref readback only; no new Lattice build or runtime claim",
+    "Existing original Git checkout was not converted to Jujutsu or mutated"
+  ]
+}
