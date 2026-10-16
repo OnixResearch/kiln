@@ -1,0 +1,94 @@
+{
+  "schema": "kiln.canonical-integration-verification.v1",
+  "recorded_at_utc": "2026-10-16T14:28:31.903Z",
+  "owner": "Kiln maintainers",
+  "candidate": "d11c5592ff990594d3ad53e8dd80240f6ad8e927",
+  "verified_source": "verified-source.json",
+  "verdict": "PASS-for-source-publication-with-explicit-operator-exception",
+  "nix": {
+    "report": "nix-check.json",
+    "log": "nix-check.log",
+    "exit_code": 0,
+    "platform": "x86_64-linux",
+    "checks": [
+      "package",
+      "tests",
+      "boundaries",
+      "runtime-independence",
+      "format",
+      "clippy",
+      "github-protocol-fixtures",
+      "nickel",
+      "kiln-radicle-nix-provider-package",
+      "kiln-radicle-nix-provider-octet-deny-all",
+      "pijul-native-fixtures",
+      "pijul-cohort",
+      "nix-eval-fixture-process",
+      "no-std",
+      "kiln-aspen-host-package",
+      "kiln-aspen-host-octet-deny-all",
+      "aspen-runtime-octet-deny-all",
+      "radicle-broker-wire-octet-deny-all",
+      "radicle-source-contract-fixtures",
+      "aspen-runtime-profile",
+      "cairn-gate-cohort",
+      "mantle-build-cohort",
+      "nix-eval-jobs-cohort",
+      "radicle-source-native-fixtures",
+      "radicle-status-native-fixtures",
+      "radicle-mutation-native-fixtures",
+      "radicle-status-cohort",
+      "radicle-status-boundaries",
+      "celld-boundaries",
+      "release-evidence"
+    ]
+  },
+  "policy": {
+    "report": "policy-check.json",
+    "exit_code": 0
+  },
+  "lifecycle": {
+    "validation": "cairn-validation.json",
+    "tasks_gate": "cairn-tasks-gate.json",
+    "exit_code": 0
+  },
+  "accepted_contracts": {
+    "report": "contract-preservation.json",
+    "requirements": 619,
+    "added": 0,
+    "mismatches": 0
+  },
+  "traceability": {
+    "report": "traceability-coverage.json",
+    "verdict": "FAIL",
+    "exit_code": 1,
+    "requirements": 625,
+    "referenced": 622,
+    "missing": [
+      "kiln.aspen_host.production_evidence",
+      "kiln.aspen_host.production_evidence.accepted",
+      "kiln.aspen_host.production_evidence.rejected"
+    ],
+    "exception": "source-only-exception.ncl"
+  },
+  "runtime_observations": [
+    {
+      "report": "github-runtime.json",
+      "scope": "Real published Lattice runtime, merged Kiln executables and isolated loopback GitHub/Git fixtures; no production GitHub effects"
+    },
+    {
+      "report": "aspen-durable-runtime.json",
+      "scope": "Real native host/current extension/broker, denied callbacks, sixteen replays, restart, backup/restore, corrupt-ledger startup rejection and durable provider uncertainty; no successful Lattice workflow or production qualification claim"
+    }
+  ],
+  "pending_prior_work": [
+    "bind-aspen-extension-runtime-profile: provider-backed Onix shadow and sync/archive",
+    "pace-aspen-lattice-observation: provider-backed Onix shadow and sync/archive"
+  ],
+  "non_claims": [
+    "Nix release-evidence rendering does not refresh the historical declaration",
+    "No aarch64, live deployment, production GitHub, or distributed availability verification",
+    "Runtime-smoke executable cohorts and trace-only annotation timing retain their original reports; they are not silently relabeled as new executables",
+    "Later evidence-only source differences require explicit byte comparison against the checked candidate"
+  ]
+}

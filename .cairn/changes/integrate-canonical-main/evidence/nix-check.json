@@ -1,0 +1,43 @@
+{
+  "capture_command": [
+    "nix",
+    "eval",
+    "--impure",
+    "--raw",
+    "--expr",
+    "let root = \"/home/brittonr/git/OnixResearch/kiln\"; excluded = map (name: root + \"/\" + name) [ \".git\" \".jj\" \"target\" \".direnv\" \"coverage\" \"doc\" \"data\" \".pi\" \".idea\" \".vscode\" ]; in builtins.path { path = root; name = \"kiln-integrated-check-source\"; filter = path: type: !(builtins.elem (toString path) excluded) && builtins.match (root + \"/result.*\") (toString path) == null; }"
+  ],
+  "immutable_source": "/nix/store/02hlp7jzr29m3lp4qq11w2f1lqq2v3jy-kiln-integrated-check-source",
+  "excluded_root_names": [
+    ".git",
+    ".jj",
+    "target",
+    ".direnv",
+    "coverage",
+    "doc",
+    "data",
+    ".pi",
+    ".idea",
+    ".vscode"
+  ],
+  "excluded_root_pattern": "result*",
+  "command": [
+    "nix",
+    "flake",
+    "check",
+    "path:/nix/store/02hlp7jzr29m3lp4qq11w2f1lqq2v3jy-kiln-integrated-check-source",
+    "--no-write-lock-file",
+    "--keep-going",
+    "-L",
+    "--option",
+    "secret-key-files",
+    "",
+    "--option",
+    "builders",
+    ""
+  ],
+  "platform": "x86_64-linux",
+  "acquisition_cache": "/tmp/kiln-runtime-acquisition.6vAYGMYB/cache",
+  "exit_code": 0,
+  "log": "/tmp/kiln-canonical-integration/nix-check.log"
+}

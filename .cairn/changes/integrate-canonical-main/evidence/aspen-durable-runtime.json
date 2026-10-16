@@ -1,0 +1,22 @@
+{
+  "schema": "kiln.integrated-aspen-durable-process-smoke.v1",
+  "command": [
+    "python3",
+    "/tmp/kiln-aspen-integration-smoke.py",
+    "--host",
+    "/tmp/kiln-canonical-integration/aspen-host-for-smoke/bin/kiln-aspen-host",
+    "--extension",
+    "/home/brittonr/.cargo-target/debug/kiln-aspen-extension",
+    "--radicle",
+    "/home/brittonr/.cargo-target/debug/kiln-adapter-radicle",
+    "--aspen-profile",
+    "/tmp/kiln-canonical-integration/aspen-runtime-positive.json",
+    "--radicle-profile",
+    "/tmp/kiln-canonical-integration/radicle-workflow-positive.json"
+  ],
+  "exit_code": 0,
+  "host_derivation": "/nix/store/9x08nhvzf7sixpyykp6j9lymj0k0n811-kiln-aspen-host-0.1.0.drv",
+  "scope": "Real native host and current extension/broker; sixteen replays, same-cohort state backup/restore, corrupt-ledger denial, exact uncertainty retention and fail-closed runtime selection. Host build predates trace-only comment additions; no production or successful Lattice execution claim.",
+  "stdout": "PASS: production callback denial, exact replay, and durable host restart\nPASS: sixteen exact replay acknowledgements, same-cohort backup/restore, and corrupt-ledger startup rejection\nKiln Aspen host Lattice dispatch failed: lattice_transport_connect\nKiln Aspen host workflow routing failed: TransportFailure { message: \"lattice_transport_connect: Lattice transport endpoint is unavailable\" }\nKiln Aspen host effect routing failed: Host(\"invalid harness artifact: system-extension bound fabric-port routing failed\")\nKiln Aspen host Lattice recovery failed: lattice_transport_connect\nKiln Aspen host Lattice recovery failed: lattice_transport_connect\nKiln Aspen host Lattice recovery failed: lattice_transport_connect\nPASS: unavailable Lattice preserves exact durable uncertainty across duplicate and restart\nPASS: missing selected Aspen endpoint and omitted runtime fail closed\n",
+  "stderr": ""
+}

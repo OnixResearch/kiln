@@ -1,0 +1,20 @@
+{
+  "command": [
+    "nix",
+    "shell",
+    "--offline",
+    "nixpkgs#nickel",
+    "-c",
+    "/nix/store/kp30jr43dplxzlrgmkq3f3q380mvdgks-cairn-0.1.0/bin/cairn",
+    "policy",
+    "export",
+    "--source",
+    "cairn-policy/default.ncl",
+    "--output",
+    "cairn-policy/generated/cairn-policy.json",
+    "--check"
+  ],
+  "exit_code": 0,
+  "stdout": "policy fresh: cairn-policy/generated/cairn-policy.json\n",
+  "stderr": ""
+}

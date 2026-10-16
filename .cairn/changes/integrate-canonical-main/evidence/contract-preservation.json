@@ -1,0 +1,14 @@
+{
+  "schema": "kiln.canonical-integration-contract-preservation.v1",
+  "scope": "Exact normalized r-marker body comparison against both captured parent specifications; no semantic-correctness proof",
+  "parents": [
+    "1867f611a7968211e29830f4f1a6d5c4ff568138",
+    "5d99f4e9bb954743443e340baece31256b4c53f1"
+  ],
+  "accepted_files": 29,
+  "parent_union_requirements": 619,
+  "current_accepted_requirements": 619,
+  "added_accepted_requirements": [],
+  "mismatches": [],
+  "valid": true
+}

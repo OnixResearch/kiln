@@ -1,0 +1,44 @@
+{
+  "schema": "kiln.canonical-integration-verified-source.v1",
+  "candidate": "d11c5592ff990594d3ad53e8dd80240f6ad8e927",
+  "verified_snapshot": "/nix/store/02hlp7jzr29m3lp4qq11w2f1lqq2v3jy-kiln-integrated-check-source",
+  "manifest": {
+    "path": "verified-source-manifest.json",
+    "blake3": "e41eaf62f46bdbaf47a0e8890c26c059551515bf1f695f9716b1a090aec00d2c",
+    "entries": 972,
+    "encoding": "UTF-8 compact sorted-key JSON array, no trailing newline"
+  },
+  "archive": {
+    "format": "ustar",
+    "blake3": "5faa879fa3c23087c37819e802bd6fbd5d5bccdf54a896c7b775cffd840b442a",
+    "bytes": 8294400,
+    "reproduction_argv_prefix": [
+      "tar",
+      "--create",
+      "--file",
+      "/tmp/kiln-canonical-integration/verified-source.tar",
+      "--directory",
+      "/nix/store/02hlp7jzr29m3lp4qq11w2f1lqq2v3jy-kiln-integrated-check-source",
+      "--format=ustar",
+      "--sort=name",
+      "--mtime=@0",
+      "--owner=0",
+      "--group=0",
+      "--numeric-owner",
+      "--mode=u=rwX,go=rX",
+      "--hard-dereference",
+      "--no-recursion",
+      "--"
+    ],
+    "path_arguments_from": "manifest paths in lexical order",
+    "lc_all": "C",
+    "hardlink_policy": "Dereference Nix-store hardlink sharing; archive each tracked file independently"
+  },
+  "tracked_membership_matches_checked_snapshot": true,
+  "all_file_bytes_kinds_and_executable_bits_match": true,
+  "symlinks": 0,
+  "non_claims": [
+    "This identifies checked source, not deployment or production qualification",
+    "Later evidence-only descendants must be compared to this source; no automatic freshness claim"
+  ]
+}

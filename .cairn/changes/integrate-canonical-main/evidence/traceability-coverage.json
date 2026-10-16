@@ -1,0 +1,20 @@
+{
+  "command": [
+    "nix",
+    "shell",
+    "--offline",
+    "nixpkgs#nickel",
+    "-c",
+    "/nix/store/kp30jr43dplxzlrgmkq3f3q380mvdgks-cairn-0.1.0/bin/cairn",
+    "traceability",
+    "coverage",
+    "--json",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json"
+  ],
+  "exit_code": 1,
+  "stdout": "{\n  \"command\": \"traceability coverage\",\n  \"dangling\": [],\n  \"input_hash\": \"33da7f19034a81e4674aea2d36f234909f4388716bf90da5d1d75197eabfbc16\",\n  \"missing\": [\n    \"kiln.aspen_host.production_evidence\",\n    \"kiln.aspen_host.production_evidence.accepted\",\n    \"kiln.aspen_host.production_evidence.rejected\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a\",\n  \"profile\": {\n    \"anchor_kind\": \"exact_marker_bytes\",\n    \"assurance_level\": \"declared\",\n    \"evidence_sources\": [\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"ncl\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"nickel_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-aspen-host\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-radicle-nix-provider\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \"docs/hosting-and-recovery.md\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\",\n          \"ncl\"\n        ],\n        \"root\": \"tools\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\"\n        ],\n        \"root\": \"src\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\",\n          \"sh\"\n        ],\n        \"root\": \"tests\",\n        \"source_kind\": \"tool_source\"\n      }\n    ],\n    \"id\": \"cairn-default\",\n    \"marker_verbs\": [\n      \"impl\",\n      \"verify\",\n      \"depends\",\n      \"related\"\n    ],\n    \"requirement_sources\": [\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \".cairn/specs\",\n        \"source_kind\": \"accepted_specs\"\n      },\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \".cairn/changes/bind-aspen-extension-runtime-profile/specs\",\n        \"source_kind\": \"requirements_doc\"\n      },\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \".cairn/changes/pace-aspen-lattice-observation/specs\",\n        \"source_kind\": \"requirements_doc\"\n      }\n    ]\n  },\n  \"profile_id\": \"cairn-default\",\n  \"receipt_hash\": \"2bb5b4ec9da7488cd04e36e695791b554e3564f86fe11c66695fd6e9462f3e1c\",\n  \"referenced\": 622,\n  \"requirements\": 625,\n  \"root\": \".\",\n  \"source_summary\": {\n    \"evidence_files\": 235,\n    \"evidence_manifest_hash\": \"a1d85b19a2edaaa44ff587ba2629c368bf9ed5bb7722655346ef2f74acfcad2c\",\n    \"requirement_files\": 31,\n    \"requirement_manifest_hash\": \"49850ac33c83e02656bd916ef47fbeee2642ff7bcf4576723dc25e638923208a\"\n  },\n  \"valid\": false,\n  \"verdict\": \"fail\"\n}\n",
+  "stderr": "error: traceability coverage failed\n"
+}

@@ -61,6 +61,18 @@ mark those tasks complete, run a live workload, or promote their delta specs int
 accepted requirements. Their implemented local paths remain covered by the
 standalone conformance and isolated process checks.
 
+The operator authorized a bounded [source-only publication exception](../.cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl)
+for checked merge candidate `d11c5592ff990594d3ad53e8dd80240f6ad8e927`.
+All 30 x86_64 Nix checks passed and all 619 accepted parent requirement bodies
+were preserved. Declared traceability remains **FAIL**: 622 of 625 referenced,
+with the three `kiln.aspen_host.production_evidence` obligations still missing
+implementation/verification evidence and no dangling IDs. The six implemented
+staged IDs are declared requirement documents, not newly accepted specs.
+The [candidate-bound verification record](../.cairn/changes/integrate-canonical-main/evidence/verification.json)
+retains the failure and the isolated runtime scopes. This exception covers only
+this source and evidence-only descendants; it does not approve production use,
+waive the production obligations, or change the default gate into a PASS.
+
 ## Verified local candidate
 
 The local source candidate is `db552f504236b3e330be46618e2fd29fb864f190`,

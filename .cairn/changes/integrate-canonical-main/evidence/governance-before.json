@@ -1,0 +1,40 @@
+{
+  "schema": "kiln.canonical-integration-governance-before.v1",
+  "source_revision": "5d99f4e9bb954743443e340baece31256b4c53f1",
+  "identity": {
+    "payload": {
+      "xyz.radicle.project": {
+        "defaultBranch": "main",
+        "description": "Provider-neutral CI control plane",
+        "name": "Kiln"
+      }
+    },
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1
+  },
+  "observations": [
+    {
+      "command": [
+        "rad",
+        "inspect",
+        "--identity"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"payload\": {\n    \"xyz.radicle.project\": {\n      \"defaultBranch\": \"main\",\n      \"description\": \"Provider-neutral CI control plane\",\n      \"name\": \"Kiln\"\n    }\n  },\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "rad",
+        "inspect",
+        "--sigrefs"
+      ],
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 3f75ae151e913d09f78b4909bc31d5e7719d9905 parent\n",
+      "stderr": ""
+    }
+  ],
+  "governance_mutation_authorized": false
+}
