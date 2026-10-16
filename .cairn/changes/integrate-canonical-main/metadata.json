@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Integrate the already accepted Aspen and GitHub parent capabilities without changing normative meaning or stable IDs. Restore the accepted parent-spec union; any necessary normative change requires reclassification before implementation.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

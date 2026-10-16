@@ -1,0 +1,28 @@
+{
+  "schema_version": "cairn.semantic-review.review-receipt.v1",
+  "review_kind": "plan",
+  "decision": "approved",
+  "findings": [],
+  "reviewed_inputs": [
+    {
+      "path": "proposal.md",
+      "hash": "d1e4f48e11075ec376013a855f7ef4f1faeb034509043d610606fb39480b3a8d"
+    },
+    {
+      "path": "design.md",
+      "hash": "cb9f796f9b82f4422d400da189bcf8e5a0e00130151877e1b676ad173b9898ea"
+    },
+    {
+      "path": "acceptance.md",
+      "hash": "b035721ceab98b797c7723a43020787e924876c43a151262db10ab846f73e019"
+    },
+    {
+      "path": "tasks.md",
+      "hash": "f17b0a7536ae9bd8cf003bb881cf7eafce4a3981ad2976ac7c811ee2b8ef8aef"
+    }
+  ],
+  "reviewer": {
+    "id": "omp-integration-plan-review",
+    "source": "agentic"
+  }
+}
