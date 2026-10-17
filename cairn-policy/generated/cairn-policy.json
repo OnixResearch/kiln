@@ -5733,6 +5733,13 @@
             ],
             "root": "tests",
             "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "py"
+            ],
+            "root": "scripts",
+            "source_kind": "tool_source"
           }
         ],
         "id": "cairn-default",
@@ -5762,6 +5769,13 @@
               "md"
             ],
             "root": ".cairn/changes/pace-aspen-lattice-observation/specs",
+            "source_kind": "requirements_doc"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/qualify-live-github-iroh-ci/specs",
             "source_kind": "requirements_doc"
           }
         ]

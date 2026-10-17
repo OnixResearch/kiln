@@ -1,0 +1,220 @@
+{
+  "schema": "kiln.live-ci-retirement.v1",
+  "observed_at_utc": "2026-10-18T17:38:01.055Z",
+  "authority": "Only the new isolated validation webhook, units and temporary forge credential copies; original operator credential and protected state/peer keys are retained.",
+  "operations": [
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-exercise.py",
+        "retire-hook",
+        "--hook-id",
+        "700016192"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"retired_hook_id\": \"700016192\"}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-controller.py",
+        "--host",
+        "root@aspen1.local",
+        "stop",
+        "github"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Certificate invalid: name is not a listed principal\r\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-controller.py",
+        "--host",
+        "root@aspen1.local",
+        "stop",
+        "proxy"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Certificate invalid: name is not a listed principal\r\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-controller.py",
+        "--host",
+        "root@aspen1.local",
+        "stop",
+        "https"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Certificate invalid: name is not a listed principal\r\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-worker.py",
+        "--host",
+        "root@localhost",
+        "stop",
+        "iroh"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-worker.py",
+        "--host",
+        "root@localhost",
+        "stop",
+        "lattice"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-controller.py",
+        "--host",
+        "root@aspen1.local",
+        "cleanup-credentials"
+      ],
+      "exit_code": 0,
+      "stdout": "Controller runtime credential copies retired; remove the private local webhook handoff file separately.\n",
+      "stderr": "Certificate invalid: name is not a listed principal\r\nFailed to stop kiln-live-controller-github.service: Unit kiln-live-controller-github.service not loaded.\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-worker.py",
+        "--host",
+        "root@localhost",
+        "retire-credentials"
+      ],
+      "exit_code": 0,
+      "stdout": "Worker temporary source credential retired\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rm",
+        "--",
+        "/var/tmp/kiln-live-ci-inputs-20261018/webhook-secret"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "verifications": [
+    {
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "root@aspen1.local",
+        "systemctl show kiln-live-controller-github.service kiln-live-controller-proxy.service kiln-live-controller-https.service -p Id -p LoadState -p ActiveState -p SubState && test ! -e /var/tmp/kiln-live-ci-20261018/secrets/.secrets/kiln-live/default/STATUS_TOKEN && test ! -e /var/tmp/kiln-live-ci-20261018/secrets/.secrets/kiln-live/default/WEBHOOK_SECRET && test ! -e /var/tmp/kiln-live-ci-20261018/resolved-secret && stat -c '%a %U %n' /var/tmp/kiln-live-ci-20261018 /var/tmp/kiln-live-ci-20261018/controller.key"
+      ],
+      "exit_code": 0,
+      "stdout": "Id=kiln-live-controller-github.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n\nId=kiln-live-controller-proxy.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n\nId=kiln-live-controller-https.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n700 kiln-live-controller /var/tmp/kiln-live-ci-20261018\n600 kiln-live-controller /var/tmp/kiln-live-ci-20261018/controller.key\n",
+      "stderr": "Certificate invalid: name is not a listed principal\r\n"
+    },
+    {
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "root@localhost",
+        "systemctl show kiln-live-worker-iroh.service kiln-live-worker-lattice.service -p Id -p LoadState -p ActiveState -p SubState && test ! -e /var/tmp/kiln-live-ci-20261018/worker/secrets/.secrets/kiln-live/default/SOURCE_TOKEN && stat -c '%a %U %n' /var/tmp/kiln-live-ci-20261018/worker /var/tmp/kiln-live-ci-20261018/worker/iroh.key"
+      ],
+      "exit_code": 0,
+      "stdout": "Id=kiln-live-worker-iroh.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n\nId=kiln-live-worker-lattice.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n700 kiln-live-build /var/tmp/kiln-live-ci-20261018/worker\n600 kiln-live-build /var/tmp/kiln-live-ci-20261018/worker/iroh.key\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln/git/ref/heads/main"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"ref\":\"refs/heads/main\",\"node_id\":\"REF_kwDOVLWYIK9yZWZzL2hlYWRzL21haW4\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/refs/heads/main\",\"object\":{\"sha\":\"2c529b154d625735c43246cad2178d70813a01c3\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/commits/2c529b154d625735c43246cad2178d70813a01c3\"}}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln",
+        "--jq",
+        "{id,visibility,default_branch,permissions}"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"default_branch\":\"publication-candidate-2026-10-15\",\"id\":1421187104,\"permissions\":{\"admin\":true,\"maintain\":true,\"pull\":true,\"push\":true,\"triage\":true},\"visibility\":\"private\"}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "test",
+        "!",
+        "-e",
+        "/var/tmp/kiln-live-ci-inputs-20261018/webhook-secret"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln/git/ref/heads/publication-candidate-2026-10-15"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"ref\":\"refs/heads/publication-candidate-2026-10-15\",\"node_id\":\"REF_kwDOVLWYINoAK3JlZnMvaGVhZHMvcHVibGljYXRpb24tY2FuZGlkYXRlLTIwMjYtMTAtMTU\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/refs/heads/publication-candidate-2026-10-15\",\"object\":{\"sha\":\"db552f504236b3e330be46618e2fd29fb864f190\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/commits/db552f504236b3e330be46618e2fd29fb864f190\"}}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "jj",
+        "log",
+        "--no-graph",
+        "--revisions",
+        "main@origin",
+        "--template",
+        "commit_id"
+      ],
+      "cwd": "/var/tmp/kiln-live-validation-20261018",
+      "stdout": "2c529b154d625735c43246cad2178d70813a01c3",
+      "stderr": "",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "--include",
+        "repos/OnixResearch/kiln/hooks/700016192"
+      ],
+      "stdout": "HTTP/2.0 404 Not Found\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset, Warning\r\nContent-Security-Policy: default-src 'none'\r\nContent-Type: application/json; charset=utf-8\r\nDate: Sun, 18 Oct 2026 17:40:01 GMT\r\nReferrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin\r\nServer: github.com\r\nStrict-Transport-Security: max-age=31536000; includeSubdomains; preload\r\nVary: Accept-Encoding, Accept, X-Requested-With\r\nX-Accepted-Oauth-Scopes: admin:repo_hook, read:repo_hook, repo, write:repo_hook\r\nX-Content-Type-Options: nosniff\r\nX-Frame-Options: deny\r\nX-Github-Api-Version-Selected: 2022-11-28\r\nX-Github-Edge-Region: iad\r\nX-Github-Media-Type: github.v3; format=json\r\nX-Github-Request-Id: 98D8:2DB34E:1DA1D3B:5FDEC1E:6AD50470\r\nX-Oauth-Client-Id: 178c6fc778ccc68e1d6a\r\nX-Oauth-Scopes: admin:public_key, gist, read:org, repo\r\nX-Ratelimit-Limit: 500\r\nX-Ratelimit-Remaining: 499\r\nX-Ratelimit-Reset: 1792345261\r\nX-Ratelimit-Resource: webhook_deliveries\r\nX-Ratelimit-Used: 1\r\nX-Xss-Protection: 0\r\n\r\n{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/repos/webhooks#get-a-repository-webhook\",\"status\":\"404\"}",
+      "stderr": "gh: Not Found (HTTP 404)\ngh: This API operation needs the \"admin:repo_hook\" scope. To request it, run:  gh auth refresh -h github.com -s admin:repo_hook\n",
+      "exit_code": 1
+    }
+  ],
+  "ref_scope": {
+    "main": "2c529b154d625735c43246cad2178d70813a01c3",
+    "default_branch": "publication-candidate-2026-10-15",
+    "default_revision": "db552f504236b3e330be46618e2fd29fb864f190",
+    "note": "Validation base is the default publication-candidate ref, not main. Main agrees with the isolated checkout remote view; all writes target only the dedicated validation bookmark."
+  },
+  "verdict": "PASS"
+}

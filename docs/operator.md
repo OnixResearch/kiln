@@ -446,3 +446,105 @@ recovery through both bridges. Loopback checks do not establish WAN/NAT/relay
 availability, sandboxing, provider truth, CI correctness, exactly-once effects,
 publication or release authority.
 
+### Bounded combined live CI exercise
+
+The [operated proof](../.cairn/changes/qualify-live-github-iroh-ci/evidence/verification.json)
+uses ordinary default-feature GitHub/job/Iroh binaries, real SecretSpec 0.19.0
+file-provider resolution, a reviewed immutable Lattice producer, and two distinct
+hosts. No protocol-fixtures build or fabricated webhook satisfies this rail.
+The separate worker compiles and runs
+`cargo run --offline --locked -p kiln-standalone --example live_ci_probe` from the exact
+forge revision. Its assertions exercise unresolved Unknown, Pending to terminal
+DomainFailure, and rejection of a later conflicting success. The negative
+revision changes the terminal expectation and really panics; it is not a
+fabricated provider failure.
+
+The observation delay and stdout belong to the `kiln-standalone` imperative shell,
+not the pure `kiln-core` source tree. The existing core-boundary conformance guard
+remains enabled. Superseded initial observations are retained under
+`evidence/initial-core-location`, not presented as the final qualified job.
+
+Immediate result: real success/failure statuses and recovery of the original
+accepted execution after the isolated controller and both Iroh bridges restart.
+The Lattice executor and its job remain running. This does not demonstrate
+continuation after killing Lattice, exactly-once external effects, public-WAN or
+relay availability, arbitrary untrusted-workload confinement, indefinite
+deployment, or release readiness.
+
+Kiln maintainers own the typed `config/live-ci-workflow.ncl` and
+`config/live-ci-worker.ncl` builders, standalone-shell behavior probe, no-effect
+`live_ci_inputs` profile-to-native-input example, and three `scripts/live-ci-*.py`
+operator helpers. These provide a repeatable composition and external-observation
+rail, not a new CI state authority. The repository operator owns forge/host
+authorization, peer enrollment, ingress, workload review, credentials, private
+state, and teardown.
+
+Select immutable executables/source and original exported profile bytes from the
+change's `evidence/cohort.json` and `evidence/runtime-inputs.json`. The latter
+preserves nonsecret `original_utf8` bytes and BLAKE3 identities, not resolved
+credentials. Rebuild/review unavailable store inputs rather than substituting an
+unrecorded producer. Use the GitHub/Iroh setup above and the controller/worker
+helpers' `--help` to provision fresh authorized private roots, explicit peer IDs,
+exact routes, and a real SecretSpec provider. Bootstrap guards refuse unrelated
+existing roots/users/ports rather than overwriting them. Helpers are scoped to
+the recorded validation deployment, not a persistent deployment manager. New
+identities, binaries, or authored inputs require fresh exported profiles and
+recorded hashes; never repair identity fields by hand.
+
+Copy each required Nix store closure to the host that uses it before starting
+the helpers; a path present on the operator workstation or controller does not
+provision the worker. For example,
+`nix copy --to "ssh-ng://$WORKER_HOST" "$KILN_PACKAGE"` stages the complete worker
+package closure. Provision the recorded producer, shell, compiler, vendor, and
+SecretSpec closures on their respective hosts as well; verify executable hashes
+there against the reviewed cohort. Keep explicit GC roots for the operated
+inputs until retirement; an unrooted build output can disappear between setup
+and execution.
+
+The replay database is bound to one exact service profile. A changed job/service
+uses a fresh replay path while preserving the old database; never rewrite its
+profile metadata or canonical outcomes to accept a changed configuration.
+
+The worker helper requires the native socket's live listener to belong to the
+owned unit's `MainPID`; a leftover socket file is not readiness. Use `stop lattice`
+before `start lattice`. Stop waits for that unit, refuses a still-listening
+endpoint, and removes only its owned, non-symlink Unix socket. It preserves the
+Lattice store. This endpoint cleanup does not resume a killed executor or justify
+rewriting an unresolved run; the recorded recovery case restarts only the
+controller and bridges while the original executor remains alive.
+
+Prepare an isolated Jujutsu checkout at the recorded validation base, add the
+reviewed positive `live_ci_probe.rs` as a new commit, and create a tracked
+`kiln-live-ci-validation-*` bookmark at that commit. Review that its remote is the
+authorized repository. After starting the worker's Lattice/Iroh units, controller
+proxy/GitHub units, and isolated HTTPS ingress, use the authorized values:
+
+```console
+python3 scripts/live-ci-exercise.py create-hook --url "$HTTPS_URL/github/webhook" --webhook-file "$PRIVATE_WEBHOOK_FILE" --output "$EVIDENCE/webhook.json"
+python3 scripts/live-ci-exercise.py run --case pass --checkout "$CHECKOUT" --branch "$VALIDATION_BOOKMARK" --hook-id "$HOOK_ID" --output "$EVIDENCE/pass.json"
+python3 scripts/live-ci-exercise.py run --case fail --checkout "$CHECKOUT" --branch "$VALIDATION_BOOKMARK" --hook-id "$HOOK_ID" --output "$EVIDENCE/fail.json"
+python3 scripts/live-ci-exercise.py run --case recovery --checkout "$CHECKOUT" --branch "$VALIDATION_BOOKMARK" --hook-id "$HOOK_ID" --output "$EVIDENCE/recovery.json"
+```
+
+`HOOK_ID` is the real create-hook response. Host defaults are the recorded cohort;
+use explicit host options for another authorized pair. Run cases in that order:
+fail and recovery create their own exact source revisions. The driver requires
+one real worker job per case, matching canonical outcome, Published local intent,
+and exact remote status ID. The failing case requests a genuine forge redelivery
+and requires the same run without another job. Recovery checks the still-running
+executor PID across interruption and retains the accepted execution identity.
+Canonical SQLite state is read-only; the driver never rewrites outcomes/statuses.
+
+The exception in `evidence/operator-authority.json` permits temporary copies of an
+existing broad operator credential only for this bounded validation, not as
+least-privilege production credentials. After proof, retire the new webhook, stop
+only the new controller/worker units, use controller `cleanup-credentials` and
+worker `retire-credentials`, and remove the private local webhook handoff. Release
+only this exercise's GC-root links after its jobs stop; retain protected keys,
+SQLite history, and the native Lattice store for audit. Preserve unrelated
+services/ingress, main, governance, and the original operator credential.
+Exact retirement observations are retained with the proof. Persistent deployment
+needs separately provisioned repository-scoped credentials and its own operator
+authorization.
+
+

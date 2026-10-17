@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.live-ci-authority.v1",
+  "authority": "Operator selected Run isolated live validation in this conversation",
+  "scope": {
+    "repository": "OnixResearch/kiln",
+    "visibility": "private",
+    "dedicated_validation_commits_and_refs": true,
+    "one_validation_webhook": true,
+    "real_commit_statuses": true,
+    "isolated_https_endpoint": true,
+    "main_mutation": false,
+    "existing_ci_or_ingress_mutation": false,
+    "governance_mutation": false,
+    "temporary_existing_broad_github_credential": true,
+    "credential_runtime_copies_removed_after_proof": true
+  },
+  "exception": {
+    "reason": "Bounded three-scenario combined live CI proof using currently authorized GitHub bootstrap access",
+    "recurrence": "Future persistent deployment requires a separately provisioned repository-scoped credential",
+    "revisit_trigger": "Any persistent deployment, additional repository, or expanded credential/workload authority",
+    "owner": "Repository operator",
+    "non_claim": "This temporary credential exception is not least-privilege production credential qualification"
+  }
+}

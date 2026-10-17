@@ -1,0 +1,174 @@
+{
+  "schema": "kiln.live-ci-retirement.v1",
+  "recorded_at_utc": "2026-10-18T18:59:13.605676+00:00",
+  "authority": "Only isolated validation resources; protected replay/native state and peer keys are retained",
+  "verifications": [
+    {
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "root@aspen1.local",
+        "systemctl show kiln-live-controller-github.service kiln-live-controller-proxy.service kiln-live-controller-https.service -p Id -p LoadState -p ActiveState -p SubState && test ! -e /var/tmp/kiln-live-ci-20261018/secrets/.secrets/kiln-live/default/STATUS_TOKEN && test ! -e /var/tmp/kiln-live-ci-20261018/secrets/.secrets/kiln-live/default/WEBHOOK_SECRET && test ! -e /var/tmp/kiln-live-ci-20261018/resolved-secret && stat -c '%a %U %n' /var/tmp/kiln-live-ci-20261018 /var/tmp/kiln-live-ci-20261018/controller.key"
+      ],
+      "exit_code": 0,
+      "stdout": "Id=kiln-live-controller-github.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n\nId=kiln-live-controller-proxy.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n\nId=kiln-live-controller-https.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n700 kiln-live-controller /var/tmp/kiln-live-ci-20261018\n600 kiln-live-controller /var/tmp/kiln-live-ci-20261018/controller.key\n",
+      "stderr": "Certificate invalid: name is not a listed principal\r\n"
+    },
+    {
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "root@localhost",
+        "systemctl show kiln-live-worker-iroh.service kiln-live-worker-lattice.service -p Id -p LoadState -p ActiveState -p SubState && test ! -e /var/tmp/kiln-live-ci-20261018/worker/secrets/.secrets/kiln-live/default/SOURCE_TOKEN && stat -c '%a %U %n' /var/tmp/kiln-live-ci-20261018/worker /var/tmp/kiln-live-ci-20261018/worker/iroh.key && test ! -e /var/tmp/kiln-live-ci-20261018/worker/lattice.sock && test ! -e /var/tmp/kiln-live-ci-20261018/worker/native-job-diagnostic.trace"
+      ],
+      "exit_code": 0,
+      "stdout": "Id=kiln-live-worker-iroh.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n\nId=kiln-live-worker-lattice.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n700 kiln-live-build /var/tmp/kiln-live-ci-20261018/worker\n600 kiln-live-build /var/tmp/kiln-live-ci-20261018/worker/iroh.key\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln/git/ref/heads/main"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"ref\":\"refs/heads/main\",\"node_id\":\"REF_kwDOVLWYIK9yZWZzL2hlYWRzL21haW4\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/refs/heads/main\",\"object\":{\"sha\":\"2c529b154d625735c43246cad2178d70813a01c3\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/commits/2c529b154d625735c43246cad2178d70813a01c3\"}}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln",
+        "--jq",
+        "{id,visibility,default_branch,permissions}"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"default_branch\":\"publication-candidate-2026-10-15\",\"id\":1421187104,\"permissions\":{\"admin\":true,\"maintain\":true,\"pull\":true,\"push\":true,\"triage\":true},\"visibility\":\"private\"}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "test",
+        "!",
+        "-e",
+        "/var/tmp/kiln-live-ci-inputs-20261018/webhook-secret"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln/git/ref/heads/publication-candidate-2026-10-15"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"ref\":\"refs/heads/publication-candidate-2026-10-15\",\"node_id\":\"REF_kwDOVLWYINoAK3JlZnMvaGVhZHMvcHVibGljYXRpb24tY2FuZGlkYXRlLTIwMjYtMTAtMTU\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/refs/heads/publication-candidate-2026-10-15\",\"object\":{\"sha\":\"db552f504236b3e330be46618e2fd29fb864f190\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/commits/db552f504236b3e330be46618e2fd29fb864f190\"}}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "--include",
+        "repos/OnixResearch/kiln/hooks/700030289"
+      ],
+      "exit_code": 1,
+      "stdout": "HTTP/2.0 404 Not Found\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset, Warning\r\nContent-Security-Policy: default-src 'none'\r\nContent-Type: application/json; charset=utf-8\r\nDate: Sun, 18 Oct 2026 18:55:44 GMT\r\nReferrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin\r\nServer: github.com\r\nStrict-Transport-Security: max-age=31536000; includeSubdomains; preload\r\nVary: Accept-Encoding, Accept, X-Requested-With\r\nX-Accepted-Oauth-Scopes: admin:repo_hook, read:repo_hook, repo, write:repo_hook\r\nX-Content-Type-Options: nosniff\r\nX-Frame-Options: deny\r\nX-Github-Api-Version-Selected: 2022-11-28\r\nX-Github-Edge-Region: iad\r\nX-Github-Media-Type: github.v3; format=json\r\nX-Github-Request-Id: 9E02:3B1242:176C9DB:4C1015B:6AD51630\r\nX-Oauth-Client-Id: 178c6fc778ccc68e1d6a\r\nX-Oauth-Scopes: admin:public_key, gist, read:org, repo\r\nX-Ratelimit-Limit: 500\r\nX-Ratelimit-Remaining: 499\r\nX-Ratelimit-Reset: 1792349804\r\nX-Ratelimit-Resource: webhook_deliveries\r\nX-Ratelimit-Used: 1\r\nX-Xss-Protection: 0\r\n\r\n{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/repos/webhooks#get-a-repository-webhook\",\"status\":\"404\"}",
+      "stderr": "gh: Not Found (HTTP 404)\ngh: This API operation needs the \"admin:repo_hook\" scope. To request it, run:  gh auth refresh -h github.com -s admin:repo_hook\n"
+    },
+    {
+      "argv": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln/git/ref/heads/kiln-live-ci-validation-20261018"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"ref\":\"refs/heads/kiln-live-ci-validation-20261018\",\"node_id\":\"REF_kwDOVLWYINoAK3JlZnMvaGVhZHMva2lsbi1saXZlLWNpLXZhbGlkYXRpb24tMjAyNjEwMTg\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/refs/heads/kiln-live-ci-validation-20261018\",\"object\":{\"sha\":\"2bba857fe78760ef6409da4188125dd0bba9a907\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/OnixResearch/kiln/git/commits/2bba857fe78760ef6409da4188125dd0bba9a907\"}}",
+      "stderr": ""
+    }
+  ],
+  "observations": {
+    "five_units_stopped": true,
+    "temporary_credentials_absent": true,
+    "hook_absent": true,
+    "main_and_default_ref_unchanged": true,
+    "original_missing_acceptance_still_unknown": {
+      "error_code": "lattice_transport_not_found",
+      "outcome": "Unknown",
+      "phase": "unknown",
+      "run_id": "github-run-e9ba69174570bd94bb5c077f820a1717ebd9c1eda0e8cd1f3c83cebabbed44df",
+      "run_identity": "e9ba69174570bd94bb5c077f820a1717ebd9c1eda0e8cd1f3c83cebabbed44df",
+      "schema": "kiln.github-run-status.v1",
+      "source": {
+        "provider": "github",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "onixresearch/kiln",
+          "native_kind": "repository",
+          "provider_namespace": "github"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "19b4f0ef56385d3566b5ade94217d683bae84bf9",
+          "native_kind": "revision",
+          "provider_namespace": "github"
+        }
+      },
+      "statuses": [
+        {
+          "error_code": null,
+          "phase": "published",
+          "plan": {
+            "context": "kiln/ci",
+            "owner": "onixresearch",
+            "repository": "kiln",
+            "revision": "19b4f0ef56385d3566b5ade94217d683bae84bf9",
+            "run_identity": "e9ba69174570bd94bb5c077f820a1717ebd9c1eda0e8cd1f3c83cebabbed44df",
+            "state": "pending"
+          },
+          "publication": {
+            "request_identity": "7e035f3ab564b9c8bd57db4d5e4197d4eff22b95dda345992725bfcc5d36dc44",
+            "status_id": 56639556093
+          }
+        }
+      ],
+      "workflow_polls": 3013
+    }
+  },
+  "hook_retirement": {
+    "argv": [
+      "python3",
+      "scripts/live-ci-exercise.py",
+      "retire-hook",
+      "--hook-id",
+      "700030289"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"retired_hook_id\": \"700030289\"}\n"
+  },
+  "preservation": {
+    "validation_ref": "2bba857fe78760ef6409da4188125dd0bba9a907",
+    "main": "2c529b154d625735c43246cad2178d70813a01c3",
+    "default_ref": "db552f504236b3e330be46618e2fd29fb864f190",
+    "private_replay_native_state_and_peer_keys": "retained; no canonical outcome rewritten"
+  },
+  "worker_input_gc_roots": {
+    "argv": [
+      "ssh",
+      "-o",
+      "BatchMode=yes",
+      "root@localhost",
+      "python3 -c 'import os,json\nroots={'\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input'\"'\"': '\"'\"'/nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-10'\"'\"': '\"'\"'/nix/store/84hi6zs6h5srf2898b6p0d3k19z0fz5h-uutils-coreutils-0.11.0'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-11'\"'\"': '\"'\"'/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-12'\"'\"': '\"'\"'/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-2'\"'\"': '\"'\"'/nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-3'\"'\"': '\"'\"'/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-4'\"'\"': '\"'\"'/nix/store/jxryiy3mpskq9zl0qxm6zjknsbammcqm-secretspec-0.19.0'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-5'\"'\"': '\"'\"'/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-6'\"'\"': '\"'\"'/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-7'\"'\"': '\"'\"'/nix/store/pvh84jrqmrcniq1pr1zq89c11i83riy6-source'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-8'\"'\"': '\"'\"'/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15'\"'\"', '\"'\"'/var/tmp/kiln-live-ci-20261018-worker-input-9'\"'\"': '\"'\"'/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0'\"'\"'}\nfor path,target in roots.items():\n assert os.path.islink(path) and os.readlink(path)==target, (path,\"unexpected root target; refusing cleanup\")\nfor path in roots:\n os.unlink(path)\n assert not os.path.lexists(path)\nprint(json.dumps({\"removed\":roots,\"global_gc_run\":False}))'"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"removed\": {\"/var/tmp/kiln-live-ci-20261018-worker-input\": \"/nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0\", \"/var/tmp/kiln-live-ci-20261018-worker-input-10\": \"/nix/store/84hi6zs6h5srf2898b6p0d3k19z0fz5h-uutils-coreutils-0.11.0\", \"/var/tmp/kiln-live-ci-20261018-worker-input-11\": \"/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7\", \"/var/tmp/kiln-live-ci-20261018-worker-input-12\": \"/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0\", \"/var/tmp/kiln-live-ci-20261018-worker-input-2\": \"/nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir\", \"/var/tmp/kiln-live-ci-20261018-worker-input-3\": \"/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0\", \"/var/tmp/kiln-live-ci-20261018-worker-input-4\": \"/nix/store/jxryiy3mpskq9zl0qxm6zjknsbammcqm-secretspec-0.19.0\", \"/var/tmp/kiln-live-ci-20261018-worker-input-5\": \"/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2\", \"/var/tmp/kiln-live-ci-20261018-worker-input-6\": \"/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0\", \"/var/tmp/kiln-live-ci-20261018-worker-input-7\": \"/nix/store/pvh84jrqmrcniq1pr1zq89c11i83riy6-source\", \"/var/tmp/kiln-live-ci-20261018-worker-input-8\": \"/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15\", \"/var/tmp/kiln-live-ci-20261018-worker-input-9\": \"/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0\"}, \"global_gc_run\": false}\n",
+    "stderr": "",
+    "scope": "Only the twelve exact links and targets recorded in input-closure-correction.json; no store deletion or global GC"
+  },
+  "verdict": "PASS"
+}

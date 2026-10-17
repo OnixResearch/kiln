@@ -75,6 +75,14 @@ startup, and recovery](docs/operator.md#iroh-remote-workflow-execution). The
 records actual local execution and exact recovery after both bridges restart,
 not WAN/relay availability or deployment authority.
 
+The [combined live CI proof](.cairn/changes/qualify-live-github-iroh-ci/evidence/verification.json)
+joins genuine GitHub deliveries to exact-source compile/test jobs on a separate
+Iroh worker, canonical passing/failing results, and matching Published GitHub
+statuses. It also records controller/bridge restart recovery of the original
+still-running execution and genuine redelivery suppression. Follow the
+[bounded live exercise](docs/operator.md#bounded-combined-live-ci-exercise) for
+the recorded cohort, repetition, credential retirement, and claim limits.
+
 ## Licensing
 
 Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.

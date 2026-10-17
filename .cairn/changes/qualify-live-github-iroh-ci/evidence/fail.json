@@ -1,0 +1,299 @@
+{
+  "schema": "kiln.live-ci-case.v1",
+  "case": "fail",
+  "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+  "branch": "kiln-live-ci-validation-20261018",
+  "hook_id": "700030289",
+  "verdict": "PASS",
+  "delivery": {
+    "id": 3849040934958268416,
+    "guid": "9e4be674-cb24-11f1-85c3-2370d201f456",
+    "delivered_at": "2026-10-18T18:49:16.719Z",
+    "event": "push",
+    "redelivery": false,
+    "ref": "refs/heads/kiln-live-ci-validation-20261018",
+    "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+    "response_status": 202,
+    "acknowledgement": {
+      "accepted": true,
+      "duplicate": false,
+      "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c"
+    }
+  },
+  "terminal": {
+    "local": {
+      "error_code": null,
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "run_id": "github-run-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "schema": "kiln.github-run-status.v1",
+      "source": {
+        "provider": "github",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "onixresearch/kiln",
+          "native_kind": "repository",
+          "provider_namespace": "github"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+          "native_kind": "revision",
+          "provider_namespace": "github"
+        }
+      },
+      "statuses": [
+        {
+          "error_code": null,
+          "phase": "published",
+          "plan": {
+            "context": "kiln/ci",
+            "owner": "onixresearch",
+            "repository": "kiln",
+            "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+            "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+            "state": "pending"
+          },
+          "publication": {
+            "request_identity": "1998b50394f9f27cbedc39fc1b41fd0820b4a437a2554b256c44d808ecbb7047",
+            "status_id": 56641049077
+          }
+        },
+        {
+          "error_code": null,
+          "phase": "published",
+          "plan": {
+            "context": "kiln/ci",
+            "owner": "onixresearch",
+            "repository": "kiln",
+            "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+            "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+            "state": "failure"
+          },
+          "publication": {
+            "request_identity": "0648f7833eb5f588a28a8c9ee9a0c6a5b39a76aabe57a33ef65a003303468906",
+            "status_id": 56641066607
+          }
+        }
+      ],
+      "workflow_polls": 16
+    },
+    "remote_status": {
+      "id": 56641066607,
+      "node_id": "SC_kwDOVLWYIM8AAAANMBIWbw",
+      "state": "failure",
+      "context": "kiln/ci",
+      "description": "Kiln run eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c state failure",
+      "url": "https://api.github.com/repos/OnixResearch/kiln/statuses/d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+      "created_at": "2026-10-18T18:49:50Z"
+    }
+  },
+  "record": {
+    "schema": "kiln.github-run.v1",
+    "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+    "immutable_identity": "9503096167c3751e54e7693b75bf00bb5588208e81823f9f75250cbd3788b80c",
+    "profile_identity": "9154f9a232a46f86787b7867aa0c7fa2b98aa1e31e12100c70f2b76d0fe5319f",
+    "plan": {
+      "effect_id": "github-effect-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "attempt_id": "github-attempt-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "candidate_id": "github-candidate-6d3b8aa02ee87e5aeff89c3ba7ac1f095ef4b4ae8d1993a4a36829a48a166e7e",
+      "pipeline_revision_id": "github-pipeline-9c0320e631186c01be3302f2d145b1f9f09b33b3a5f65afd7f31b3eb959723bd",
+      "workflow_policy_id": "github-live-20261018",
+      "provider_profile": "lattice-v1",
+      "idempotency_key": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "platform": "linux-x86_64",
+      "source": {
+        "provider": "github",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "github",
+          "native_kind": "repository",
+          "native_id": "onixresearch/kiln"
+        },
+        "revision": {
+          "contract_version": 1,
+          "provider_namespace": "github",
+          "native_kind": "revision",
+          "native_id": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247"
+        }
+      },
+      "nodes": [
+        {
+          "id": "probe",
+          "kind": "test",
+          "effect_class": "Test",
+          "adapter_kind": "local",
+          "operation_identity": "eb669c2693415d283051ba8e5fcc1d02d4d846a7412099c2f0ed4f29357713dc"
+        }
+      ],
+      "edges": [],
+      "controls": {
+        "cancel": true,
+        "pause": false,
+        "resume": false
+      },
+      "bounds": {
+        "max_nodes": 256,
+        "max_edges": 1024,
+        "max_log_references": 256,
+        "max_log_read_bytes": 1048576,
+        "max_total_log_bytes": 16777216
+      }
+    },
+    "run_id": "github-run-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+    "phase": "terminal",
+    "workflow_polls": 16,
+    "observation": {
+      "effect_id": "github-effect-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "attempt_id": "github-attempt-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "candidate_id": "github-candidate-6d3b8aa02ee87e5aeff89c3ba7ac1f095ef4b4ae8d1993a4a36829a48a166e7e",
+      "pipeline_revision_id": "github-pipeline-9c0320e631186c01be3302f2d145b1f9f09b33b3a5f65afd7f31b3eb959723bd",
+      "workflow_policy_id": "github-live-20261018",
+      "provider_profile": "lattice-v1",
+      "idempotency_key": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "workflow": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "workflow",
+        "native_id": "b3:b6df50bdee734c69bcabb9118e6e132442ae7237045b1eb6e1ff8a97cf01ac52"
+      },
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:f5542623a8c4e4df003bbc7d00fe2fe0df5b84777ef70d883c8ca4b7ddd905a3"
+      },
+      "sequence": 2,
+      "state": "Failed",
+      "terminal": true,
+      "successful": false,
+      "outcome": "DomainFailure",
+      "nodes": [
+        {
+          "node_id": "probe",
+          "state": "Failed",
+          "terminal": true,
+          "successful": false,
+          "adapter": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "adapter",
+            "native_id": "b3:dcb937e82d23cf6f54a27846a1891d42cdc29c33ed8bc695044373ba6cde690f"
+          },
+          "receipt": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "receipt",
+            "native_id": "b3:86e9766856f4ccad1e126f55204b4c2edc27fe6a0faf9cb425bd5451eeec19cd"
+          }
+        }
+      ],
+      "logs": [
+        {
+          "node_id": "probe",
+          "stream": "Diagnostic",
+          "reference": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "log",
+            "native_id": "b3:025191999fae3f94d3c57c20a081089583c933d0dd725a875b00f01db8e74caa"
+          },
+          "cursor": 0,
+          "bytes": 7,
+          "truncated": false,
+          "gap_before": false,
+          "retained": true
+        }
+      ],
+      "receipt": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "receipt",
+        "native_id": "b3:d128740e8f2a4241b8b5de1ca51118f34f7b91e94b1328fe3d4a6b75f753f0e8"
+      }
+    },
+    "events": [
+      {
+        "RunStarted": {
+          "command_id": "github-start-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+          "run_id": "github-run-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+          "attempt_id": "github-attempt-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+          "provider_profile": "lattice-v1"
+        }
+      },
+      {
+        "AttemptCompleted": {
+          "command_id": "github-complete-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+          "attempt_id": "github-attempt-eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+          "outcome": "DomainFailure",
+          "external_reference": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "execution",
+            "native_id": "b3:f5542623a8c4e4df003bbc7d00fe2fe0df5b84777ef70d883c8ca4b7ddd905a3"
+          },
+          "products": [],
+          "metrics": []
+        }
+      }
+    ],
+    "statuses": [
+      {
+        "plan": {
+          "owner": "onixresearch",
+          "repository": "kiln",
+          "context": "kiln/ci",
+          "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+          "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+          "state": "pending"
+        },
+        "phase": "published",
+        "publication": {
+          "status_id": 56641049077,
+          "request_identity": "1998b50394f9f27cbedc39fc1b41fd0820b4a437a2554b256c44d808ecbb7047"
+        },
+        "error_code": null
+      },
+      {
+        "plan": {
+          "owner": "onixresearch",
+          "repository": "kiln",
+          "context": "kiln/ci",
+          "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+          "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+          "state": "failure"
+        },
+        "phase": "published",
+        "publication": {
+          "status_id": 56641066607,
+          "request_identity": "0648f7833eb5f588a28a8c9ee9a0c6a5b39a76aabe57a33ef65a003303468906"
+        },
+        "error_code": null
+      }
+    ],
+    "error_code": null
+  },
+  "worker_probe": {
+    "probe.ftFTNxha.log": {
+      "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.05s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n\nthread 'main' panicked at crates/kiln-standalone/examples/live_ci_probe.rs:52:5:\nassertion `left == right` failed\n  left: Some(DomainFailure)\n right: Some(Success)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+      "exit_code": 101,
+      "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n261bc9e2f5b6b8f2815e33647446406354fac7a140d13c173a346efb5bed4e88  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+    }
+  },
+  "replay": {
+    "id": 3849041014469689344,
+    "guid": "9e4be674-cb24-11f1-85c3-2370d201f456",
+    "delivered_at": "2026-10-18T18:49:53.716Z",
+    "event": "push",
+    "redelivery": true,
+    "ref": "refs/heads/kiln-live-ci-validation-20261018",
+    "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+    "response_status": 202,
+    "acknowledgement": {
+      "accepted": true,
+      "duplicate": true,
+      "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c"
+    }
+  }
+}

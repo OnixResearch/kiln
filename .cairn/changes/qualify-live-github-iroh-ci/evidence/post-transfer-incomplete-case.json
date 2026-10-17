@@ -1,0 +1,48 @@
+{
+  "case": {
+    "schema": "kiln.live-ci-case.v1",
+    "case": "pass",
+    "revision": "9e83b558264a34499ee8667725409696890fe09a",
+    "branch": "kiln-live-ci-validation-20261018",
+    "hook_id": "700030289",
+    "verdict": "INCOMPLETE",
+    "delivery": {
+      "id": 3849038915201671168,
+      "guid": "6da910ca-cb22-11f1-9036-14309c2cd6b1",
+      "delivered_at": "2026-10-18T18:33:36.159Z",
+      "event": "push",
+      "redelivery": false,
+      "ref": "refs/heads/kiln-live-ci-validation-20261018",
+      "revision": "9e83b558264a34499ee8667725409696890fe09a",
+      "response_status": 202,
+      "acknowledgement": {
+        "accepted": true,
+        "duplicate": false,
+        "run_identity": "d0c0956a5adfbda8c77bdec8f4cc57850076761f6309841654401ef34daece62"
+      }
+    },
+    "error": "Canonical outcome mismatch: {'error_code': None, 'outcome': 'DomainFailure', 'phase': 'terminal', 'run_id': 'github-run-d0c0956a5adfbda8c77bdec8f4cc57850076761f6309841654401ef34daece62', 'run_identity': 'd0c0956a5adfbda8c77bdec8f4cc57850076761f6309841654401ef34daece62', 'schema': 'kiln.github-run-status.v1', 'source': {'provider': 'github', 'repository': {'contract_version': 1, 'native_id': 'onixresearch/kiln', 'native_kind': 'repository', 'provider_namespace': 'github'}, 'revision': {'contract_version': 1, 'native_id': '9e83b558264a34499ee8667725409696890fe09a', 'native_kind': 'revision', 'provider_namespace': 'github'}}, 'statuses': [{'error_code': None, 'phase': 'published', 'plan': {'context': 'kiln/ci', 'owner': 'onixresearch', 'repository': 'kiln', 'revision': '9e83b558264a34499ee8667725409696890fe09a', 'run_identity': 'd0c0956a5adfbda8c77bdec8f4cc57850076761f6309841654401ef34daece62', 'state': 'pending'}, 'publication': {'request_identity': '4f0dfc16abca91a183a32da9d76aff8d1c88eb0cabbc2802a280277cde92b461', 'status_id': 56640554260}}, {'error_code': None, 'phase': 'published', 'plan': {'context': 'kiln/ci', 'owner': 'onixresearch', 'repository': 'kiln', 'revision': '9e83b558264a34499ee8667725409696890fe09a', 'run_identity': 'd0c0956a5adfbda8c77bdec8f4cc57850076761f6309841654401ef34daece62', 'state': 'failure'}, 'publication': {'request_identity': '37204c1e92de2f2b13d563b8a0f45cb2da43b3ea4828fc257c8b724c6931f56b', 'status_id': 56640555537}}], 'workflow_polls': 1}"
+  },
+  "worker_logs": {
+    "probe.2ZA1oFD7.log": {
+      "output": "   Compiling proc-macro2 v1.0.107\n   Compiling quote v1.0.47\n   Compiling unicode-ident v1.0.24\n   Compiling shlex v2.0.1\n   Compiling find-msvc-tools v0.1.10\n   Compiling serde_core v1.0.229\n   Compiling serde v1.0.229\n   Compiling arrayvec v0.7.8\n   Compiling constant_time_eq v0.4.2\n   Compiling arrayref v0.3.9\n   Compiling cpufeatures v0.3.0\n   Compiling cfg-if v1.0.4\n   Compiling cc v1.4.2\n   Compiling syn v3.0.3\n   Compiling blake3 v1.8.6\n   Compiling serde_derive v1.0.229\n   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.36s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+      "exit_code": 0,
+      "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n969ef311bc7c36447930b66f76b8e5124907618d24dde3e1def543007dc5e767  crates/kiln-core/examples/live_ci_probe.rs\n"
+    },
+    "probe.BAmCsbqu.log": {
+      "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.23s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+      "exit_code": 0,
+      "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n969ef311bc7c36447930b66f76b8e5124907618d24dde3e1def543007dc5e767  crates/kiln-core/examples/live_ci_probe.rs\n"
+    },
+    "probe.WAbAQAzy.log": {
+      "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.27s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n\nthread 'main' panicked at crates/kiln-core/examples/live_ci_probe.rs:49:5:\nassertion `left == right` failed\n  left: Some(DomainFailure)\n right: Some(Success)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+      "exit_code": 101,
+      "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nf9a81af909b82fdec11f520fd38951c1574586453a98769d5800dd86b90a27ba  crates/kiln-core/examples/live_ci_probe.rs\n"
+    },
+    "probe.tSxC9aK2.log": {
+      "output": "error: failed to get `blake3` as a dependency of package `kiln-core v0.1.0 (/build/crates/kiln-core)`\n\nCaused by:\n  failed to load source for dependency `blake3`\n\nCaused by:\n  Unable to update registry `crates-io`\n\nCaused by:\n  failed to update replaced source registry `crates-io`\n\nCaused by:\n  failed to read root of directory source: /nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir\n\nCaused by:\n  No such file or directory (os error 2)\n",
+      "exit_code": 101,
+      "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+    }
+  }
+}

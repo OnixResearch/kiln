@@ -1,0 +1,164 @@
+{
+  "schema": "kiln.live-ci-shell-cutover.v1",
+  "observed_at_utc": "2026-10-18T18:12:24.432Z",
+  "reason": "The actual full workspace check rejected an observation clock under the pure core tree. Move the unchanged probe to the existing imperative shell; keep core and its guard unchanged.",
+  "superseded_observations": "initial-core-location/verification.json",
+  "initial_resources_retired": "initial-core-location/retirement.json",
+  "replacement_webhook": {
+    "id": 700030289,
+    "url": "https://geology-championships-jobs-mens.trycloudflare.com/github/webhook",
+    "note": "Original webhook was retired before this one replacement for the corrected same three-scenario validation. Never two active validation webhooks."
+  },
+  "source_probe": "crates/kiln-standalone/examples/live_ci_probe.rs",
+  "checked_normal_package": "/nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0",
+  "normal_runtime_executable_hash_observation": "9a6dfd73293a115723e52cd940a0f678a9505a0e52b9ab79790d24aec6b9bbae  /nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0/bin/kiln-adapter-github\n7df20186e393ac8e80182f29da7eaad4c7e7fd7f54fcb4adc145843f2feb2366  /nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0/bin/kiln-github-job\n1bedc9a436a7698bea75f0cca89d834a004b316f7b85f60ab2b3d954641a092c  /nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0/bin/kiln-adapter-iroh\n",
+  "repository_checks": "repository-checks.json",
+  "replay_namespace": {
+    "original": "/var/tmp/kiln-live-ci-20261018/github.sqlite",
+    "observed_rejection": "github_store_profile_conflict: GitHub replay state belongs to a different schema or exact service profile",
+    "selected_fresh": "/var/tmp/kiln-live-ci-20261018/github-shell.sqlite",
+    "decision": "Preserve original canonical history. Do not rewrite metadata/outcomes or relax the exact-profile guard."
+  },
+  "restage_operations": [
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-worker.py",
+        "--host",
+        "root@localhost",
+        "bootstrap",
+        "--package",
+        "/nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0",
+        "--lattice",
+        "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--producer-source",
+        "/nix/store/pvh84jrqmrcniq1pr1zq89c11i83riy6-source",
+        "--secretspec",
+        "/nix/store/jxryiy3mpskq9zl0qxm6zjknsbammcqm-secretspec-0.19.0/bin/secretspec",
+        "--shell",
+        "/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin/bash"
+      ],
+      "exit_code": 0,
+      "stdout": "uid=961(kiln-live-build) gid=944(kiln-live-build) groups=944(kiln-live-build)\nbritton-desktop\n486aab8bc242c6b8a9b724f7cdd0c26160f2b4edb32cc20ff1b66799cb344791  /nix/store/jxryiy3mpskq9zl0qxm6zjknsbammcqm-secretspec-0.19.0/bin/secretspec\n700 kiln-live-build /var/tmp/kiln-live-ci-20261018/worker\n600 kiln-live-build /var/tmp/kiln-live-ci-20261018/worker/iroh.key\n600 kiln-live-build /var/tmp/kiln-live-ci-20261018/worker/secrets/.secrets/kiln-live/default/SOURCE_TOKEN\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "-c",
+        "import importlib.util, os, secrets, subprocess\nfrom pathlib import Path\nspec = importlib.util.spec_from_file_location('controller', 'scripts/live-ci-controller.py')\nm = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(m)\nhost = 'root@aspen1.local'\ndata = m.settings(host)\nassert data['root'] == '/var/tmp/kiln-live-ci-20261018'\nfor component in ('github', 'proxy', 'https'):\n    assert m.remote(host, 'systemctl show kiln-live-controller-' + component + '.service -p ActiveState --value').strip() == b'inactive'\nm.remote(host, \"test ! -L /var/tmp/kiln-live-ci-20261018 && test \\\"$(stat -c %a /var/tmp/kiln-live-ci-20261018)\\\" = 700\".replace('\\\"','\"'))\ntoken = subprocess.run(['gh', 'auth', 'token'], check=True, stdout=subprocess.PIPE).stdout.strip()\nassert token and b'\\n' not in token\nhandoff = Path('/var/tmp/kiln-live-ci-inputs-20261018/webhook-secret')\nparent = handoff.parent.stat()\nassert parent.st_uid == os.getuid() and parent.st_mode & 0o077 == 0\nwebhook = secrets.token_hex(32).encode()\nfd = os.open(handoff, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)\nwith os.fdopen(fd, 'wb') as output:\n    output.write(webhook)\nm.put(host, 'secrets/.secrets/kiln-live/default/STATUS_TOKEN', token)\nm.put(host, 'secrets/.secrets/kiln-live/default/WEBHOOK_SECRET', webhook)\ndata['package'] = '/nix/store/pns6mna0zim4y9yp8cj5932dgssc29s4-kiln-0.1.0'\nm.save_settings(host, data)\nprint('Existing owned inactive controller restaged privately for the same corrected three-case proof')\n"
+      ],
+      "exit_code": 0,
+      "stdout": "Existing owned inactive controller restaged privately for the same corrected three-case proof\n"
+    }
+  ],
+  "native_admission": [
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-worker.py",
+        "--host",
+        "root@localhost",
+        "configure",
+        "--native",
+        "/var/tmp/kiln-live-ci-inputs-20261018/service-native.json",
+        "--controller-id",
+        "9bf6b0a017f6b89d3d07e1ea69fdf79ecc634daeaf9cc2a6872f754ef710db32",
+        "--bind",
+        "100.110.43.11:8788",
+        "--exchange-timeout-ms",
+        "30000",
+        "--revision",
+        "b3:d36ffdc33190d3684273c15ea3eb3b8bd076256e0f24a3e0444673363c881bf8",
+        "--lattice-connections",
+        "4096"
+      ],
+      "exit_code": 0,
+      "stdout": "profile admitted\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-controller.py",
+        "--host",
+        "root@aspen1.local",
+        "configure-proxy",
+        "--native",
+        "/var/tmp/kiln-live-ci-inputs-20261018/service-native.json",
+        "--endpoint",
+        "/var/tmp/kiln-live-ci-inputs-20261018/worker-endpoint.json",
+        "--bind",
+        "100.100.103.95:8788",
+        "--exchange-timeout-ms",
+        "30000"
+      ],
+      "exit_code": 0,
+      "stdout": "profile admitted\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-controller.py",
+        "--host",
+        "root@aspen1.local",
+        "stage-github",
+        "--profile",
+        "/var/tmp/kiln-live-ci-inputs-20261018/github-ci.json"
+      ],
+      "exit_code": 0,
+      "stdout": "c887460755209087878b489f182e54102494108e617ec88454dfc1435ac873e0  /var/tmp/kiln-live-ci-20261018/github-ci.json\n"
+    }
+  ],
+  "lattice_start": {
+    "argv": [
+      "python3",
+      "scripts/live-ci-worker.py",
+      "--host",
+      "root@localhost",
+      "start",
+      "lattice"
+    ],
+    "exit_code": 0,
+    "stdout": "kiln-live-worker-lattice.service socket ready\n"
+  },
+  "bridge_starts": [
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-worker.py",
+        "--host",
+        "root@localhost",
+        "start",
+        "iroh"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"id\": \"71842d13555370e3a669baf87f20b43bfa8c86e13d02769b4265d83cb07ea59a\", \"addrs\": [{\"Ip\": \"100.110.43.11:8788\"}, {\"Ip\": \"[::1]:39479\"}]}\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/live-ci-controller.py",
+        "--host",
+        "root@aspen1.local",
+        "start",
+        "proxy"
+      ],
+      "exit_code": 0,
+      "stdout": "kiln-live-controller-proxy.service\nprivate proxy socket ready\n"
+    }
+  ],
+  "github_start": {
+    "argv": [
+      "python3",
+      "scripts/live-ci-controller.py",
+      "--host",
+      "root@aspen1.local",
+      "start",
+      "github"
+    ],
+    "exit_code": 0,
+    "stdout": "kiln-live-controller-github.service\nloopback webhook listener ready\n"
+  }
+}

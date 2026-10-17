@@ -1,0 +1,150 @@
+{
+  "schema": "kiln.live-ci-verification.v1",
+  "observed_at_utc": "2026-10-18T19:02:24.403771+00:00",
+  "verdict": "PASS",
+  "claim_scope": "Only the three genuine operated GitHub-to-separate-Iroh-worker-to-GitHub cases; not persistent deployment, whole-workspace remote CI certification, or release readiness",
+  "capability": {
+    "immediate_outcome": "Real compile/test pass and assertion failure become exact canonical and Published GitHub outcomes; accepted work survives controller/bridge interruption without redispatch",
+    "durable_contribution": "Typed operator composition, exact-source standalone-shell behavior probe, byte-exact nonsecret inputs, and maintained real-forge exercise and observation helpers",
+    "current_consumers": [
+      "kiln-adapter-github",
+      "kiln-github-job",
+      "kiln-adapter-iroh",
+      "native Lattice workflow exchange"
+    ],
+    "maintenance_owner": "Kiln maintainers",
+    "operator_owner": "Repository operator: forge, hosts, enrollment, credentials, isolation, ingress and teardown"
+  },
+  "cases": [
+    {
+      "case": "pass",
+      "verdict": "PASS",
+      "source_revision": "e25b7c1a1faac1e9f4eaea24bd9c7cd916ebb817",
+      "delivery_id": "3849040641484914688",
+      "delivery_guid": "4cc4a28c-cb24-11f1-954f-da3dc0c0cfb3",
+      "run_identity": "920b86afc894bf964376b7d02c7c31f81d8f921d2e39859f66592a7ada50115f",
+      "native_workflow": "b3:718ee6c924c89084a16c23e4c7406896d7327cd07a5548fc25088bff66011b39",
+      "native_execution": "b3:c536876755ad3ee108cb23b8371d11e53a2c7b2b11bc7054255c8c43f9b1a16e",
+      "canonical_outcome": "Success",
+      "published_remote_status": "success",
+      "published_remote_status_id": "56640996399",
+      "worker_exit_code": 0,
+      "evidence": "pass.json"
+    },
+    {
+      "case": "fail",
+      "verdict": "PASS",
+      "source_revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+      "delivery_id": "3849040934958268416",
+      "delivery_guid": "9e4be674-cb24-11f1-85c3-2370d201f456",
+      "run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+      "native_workflow": "b3:b6df50bdee734c69bcabb9118e6e132442ae7237045b1eb6e1ff8a97cf01ac52",
+      "native_execution": "b3:f5542623a8c4e4df003bbc7d00fe2fe0df5b84777ef70d883c8ca4b7ddd905a3",
+      "canonical_outcome": "DomainFailure",
+      "published_remote_status": "failure",
+      "published_remote_status_id": "56641066607",
+      "worker_exit_code": 101,
+      "evidence": "fail.json"
+    },
+    {
+      "case": "recovery",
+      "verdict": "PASS",
+      "source_revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+      "delivery_id": "3849041064138637312",
+      "delivery_guid": "c21f08ba-cb24-11f1-937c-eb523e9b119d",
+      "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "native_workflow": "b3:ed7f5de321c657775985a09fc60330c1bc9ec5743a8e67450283e78da4f26039",
+      "native_execution": "b3:9361b7304625aa841da5a9cf1660d8a5bce140084e4af27f8894974cf6d11bb2",
+      "canonical_outcome": "Success",
+      "published_remote_status": "success",
+      "published_remote_status_id": "56641096656",
+      "worker_exit_code": 0,
+      "evidence": "recovery.json"
+    }
+  ],
+  "duplicate_delivery": {
+    "verdict": "PASS",
+    "delivery_id": "3849041014469689344",
+    "delivery_guid": "9e4be674-cb24-11f1-85c3-2370d201f456",
+    "same_run_identity": "eb2c42d24935a1141aeab7bcfea097d12c5aef677e79cad91542dc168bda8e1c",
+    "no_new_worker_job": true,
+    "evidence": "fail.json"
+  },
+  "controller_bridge_recovery": {
+    "verdict": "PASS",
+    "preserved_executor_pid": "1885421",
+    "same_native_execution": "b3:9361b7304625aa841da5a9cf1660d8a5bce140084e4af27f8894974cf6d11bb2",
+    "worker_job_remained_running": true,
+    "one_new_worker_job": true,
+    "no_additional_job_during_interruption": true,
+    "evidence": "recovery.json"
+  },
+  "repository_checks": {
+    "verdict": "PASS",
+    "scope": "The final Rust code after moving the unchanged time/stdout observation probe from pure core into the existing imperative shell. Later profile/export/receipt edits do not change this Rust code.",
+    "passed": 419,
+    "failed": 0,
+    "ignored": 2,
+    "targets": [
+      "tests",
+      "format",
+      "clippy",
+      "nickel"
+    ],
+    "core_boundary_guard": "dependency_boundaries_accept_current_core ... ok",
+    "evidence": "repository-checks.json"
+  },
+  "native_gates": {
+    "verdict": "PASS",
+    "scope": "Proposal, design, tasks, repository validation, traceability coverage, and policy export freshness; not behavioral correctness or publication authority",
+    "evidence": "native-gates.json"
+  },
+  "references": {
+    "cohort": "cohort.json",
+    "original_nonsecret_profile_bytes": "runtime-inputs.json",
+    "operator_authority_and_temporary_credential_exception": "operator-authority.json",
+    "actual_resource_and_credential_retirement": "retirement.json",
+    "shell_boundary_cutover": "shell-cutover.json",
+    "native_endpoint_restart_correction": "endpoint-restart-correction.json",
+    "operated_input_closure_correction": "input-closure-correction.json",
+    "superseded_initial_observations": "initial-core-location/verification.json"
+  },
+  "preservation": {
+    "earlier_incomplete_candidates": [
+      "bootstrap-diagnostic-case.json",
+      "early-job-failure.json",
+      "post-transfer-incomplete-case.json"
+    ],
+    "original_unresolved_run": "e9ba69174570bd94bb5c077f820a1717ebd9c1eda0e8cd1f3c83cebabbed44df",
+    "original_outcome_remains": "Unknown",
+    "note": "Earlier real observations are retained, never relabeled as the final assertion-failure or passing cases. Changed service/profile identity uses a fresh replay namespace, never rewritten canonical state."
+  },
+  "source": {
+    "kind": "Reviewed current working-file identities, not a source publication or whole-workspace correctness claim",
+    "blake3": {
+      "Cargo.toml": "5c4619d330c1dfc6df7639c803788e1212ccec10f18bccba9830cb66c76b10e1",
+      "Cargo.lock": "bd9f889620defdf09dcb4fa0428ee40d496fb8d48e7b811afe1a1e6c3753bfa4",
+      "flake.nix": "6650cbb59320d741704836a9b68237d0d8dba945902aa23c7619a2a7ea3f7bc6",
+      "flake.lock": "e33a13a1d814c1d7cc6796b644d22c814c23c485464dc6ed67018448483b141b",
+      "scripts/live-ci-controller.py": "fb472c865106df954c39a53b1f5071d398a6548c85e5fe59d1a49e1866ea7da0",
+      "scripts/live-ci-worker.py": "473db2e22aec12345b1cb27f3267e3d8c24ba701c2475e67ab088840db97cdf0",
+      "scripts/live-ci-exercise.py": "a2956c85c46def97486b839c71de090e95c61ed0fd117f54da6e5f1e63d820ac",
+      "config/live-ci-workflow.ncl": "e066f4884f4076c6952ea2c2d00432436e3b04b587da8c7a78b40341f035b148",
+      "config/live-ci-worker.ncl": "2960d5420db9f8a42095436d4b5078ca1572644ba69a375501ae769d0409c350",
+      "crates/kiln-standalone/examples/live_ci_probe.rs": "ac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc",
+      "crates/kiln-adapter-github/examples/live_ci_inputs.rs": "ea5b456bd745ef4f335e088ce92a7831aabacbef223557f901ad4e790aa625d1",
+      "README.md": "39841740438a6f107d4799f5c41e1655fe714941258c5900fd396b64ab5c079a",
+      "docs/operator.md": "2710164379a4c3bb43cb9eb68cf38d547ab99705eb8ad70f0230c09317a32380",
+      "cairn-policy/default.ncl": "630cc07707508814d21a907b16ede7fed91099bc326d35cefc4673d7d377e747",
+      "cairn-policy/generated/cairn-policy.json": "dd4fcb46aa9fd54c6f6cc4df79472e77e0e8934b3a034d2ba6889f237db26dd0",
+      "cairn-policy/PROVENANCE.md": "db67484764f3eabf2190d25b4295fadeb783d39bbc63a6556d52e97adb12c164"
+    },
+    "ordering_note": "Actual evaluated forge revisions and acquired file identities remain in each case receipt. The four repository checks cover final Rust code. Final native gates and documentation precede the completed task checkbox and this aggregate receipt."
+  },
+  "non_claims": [
+    "no main, default branch, governance, existing service or existing ingress mutation",
+    "no source-trust, arbitrary sandbox, public-WAN or relay guarantee",
+    "no automatic continuation after a killed Lattice executor",
+    "no indefinite availability, least-privilege production credential, deployment or release authority"
+  ]
+}

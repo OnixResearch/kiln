@@ -1,0 +1,79 @@
+{
+  "schema": "kiln.live-ci-endpoint-restart-correction.v1",
+  "observed_at_utc": "2026-10-18T18:26:22.926Z",
+  "cause": "The producer binds exclusively and removes its socket only when serve returns. SIGTERM left the owned pathname; the previous helper treated that pathname as readiness even though the unit had exited.",
+  "earlier_incomplete_candidate": {
+    "schema": "kiln.live-ci-case.v1",
+    "case": "pass",
+    "revision": "19b4f0ef56385d3566b5ade94217d683bae84bf9",
+    "branch": "kiln-live-ci-validation-20261018",
+    "hook_id": "700030289",
+    "verdict": "INCOMPLETE",
+    "delivery": {
+      "id": 3849034912854179840,
+      "guid": "16dba374-cb1e-11f1-8742-10cdc3c4262a",
+      "delivered_at": "2026-10-18T18:02:32.439Z",
+      "event": "push",
+      "redelivery": false,
+      "ref": "refs/heads/kiln-live-ci-validation-20261018",
+      "revision": "19b4f0ef56385d3566b5ade94217d683bae84bf9",
+      "response_status": 202,
+      "acknowledgement": {
+        "accepted": true,
+        "duplicate": false,
+        "run_identity": "e9ba69174570bd94bb5c077f820a1717ebd9c1eda0e8cd1f3c83cebabbed44df"
+      }
+    },
+    "error": "matching canonical and Published real GitHub terminal status"
+  },
+  "pre_fix_observation": "final-startup-observation.json",
+  "negative_start": {
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/home/brittonr/git/OnixResearch/kiln/scripts/live-ci-worker.py\", line 301, in <module>\n    main()\n    ~~~~^^\n  File \"/home/brittonr/git/OnixResearch/kiln/scripts/live-ci-worker.py\", line 297, in main\n    globals()[args.action](args)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/home/brittonr/git/OnixResearch/kiln/scripts/live-ci-worker.py\", line 232, in start\n    raise RuntimeError(\"Owned native endpoint remains; run stop lattice before restarting\")\nRuntimeError: Owned native endpoint remains; run stop lattice before restarting\n"
+  },
+  "guarded_stop": {
+    "argv": [
+      "python3",
+      "scripts/live-ci-worker.py",
+      "--host",
+      "root@localhost",
+      "stop",
+      "lattice"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "actual_start": {
+    "argv": [
+      "python3",
+      "scripts/live-ci-worker.py",
+      "--host",
+      "root@localhost",
+      "start",
+      "lattice"
+    ],
+    "exit_code": 0,
+    "stdout": "kiln-live-worker-lattice.service socket ready\n",
+    "stderr": "Running as unit: kiln-live-worker-lattice.service; invocation ID: 27ae2894eec24cb592c62d14bf04a93f\n"
+  },
+  "actual_unit_state": {
+    "argv": [
+      "python3",
+      "scripts/live-ci-worker.py",
+      "--host",
+      "root@localhost",
+      "status"
+    ],
+    "exit_code": 0,
+    "stdout": "Id=kiln-live-worker-lattice.service\nActiveState=active\nSubState=running\nMainPID=1885421\n\nId=kiln-live-worker-iroh.service\nActiveState=active\nSubState=running\nMainPID=1554543\n",
+    "stderr": ""
+  },
+  "source_changes": [
+    "Reject preexisting native endpoint before starting",
+    "On explicit stop, reject live listeners and remove only the owned non-symlink socket",
+    "Readiness requires the kernel listener PID to match the owned unit MainPID"
+  ],
+  "preservation": "No canonical SQLite or Lattice records were rewritten; subsequent candidates use fresh source revisions."
+}

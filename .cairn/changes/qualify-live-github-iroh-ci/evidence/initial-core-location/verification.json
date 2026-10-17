@@ -1,0 +1,123 @@
+{
+  "schema": "kiln.live-ci-verification.v1",
+  "observed_at_utc": "2026-10-18T17:41:25.914753+00:00",
+  "verdict": "SUPERSEDED",
+  "claim_scope": "Only the three genuine operated GitHub-to-separate-Iroh-worker-to-GitHub cases; not persistent deployment or release readiness",
+  "capability": {
+    "immediate_outcome": "Real compile/test pass and assertion failure become exact canonical and Published GitHub outcomes; accepted work survives controller/bridge interruption without redispatch",
+    "durable_contribution": "Typed operator composition, exact-source core behavior probe, byte-exact nonsecret inputs, and maintained real-forge exercise and observation helpers",
+    "current_consumers": [
+      "kiln-adapter-github",
+      "kiln-github-job",
+      "kiln-adapter-iroh",
+      "native Lattice workflow exchange"
+    ],
+    "maintenance_owner": "Kiln maintainers",
+    "operator_owner": "Repository operator: forge, hosts, enrollment, credentials, isolation, ingress and teardown"
+  },
+  "cases": [
+    {
+      "case": "pass",
+      "verdict": "PASS",
+      "source_revision": "c009562296805f373c24f3827708b9c793f7e5b9",
+      "delivery_id": "3849029903661932544",
+      "delivery_guid": "a87e9580-cb18-11f1-9c31-7bf9296c820b",
+      "run_identity": "2bcec824b4befe663e82b7400a3cde43f0fa65521084ee38ede1e8f7d4631ab8",
+      "native_workflow": "b3:21db83428343a2847550f8ecaf97c0308b2c0cff15fcef0eba85f940a4951527",
+      "native_execution": "b3:942d2aa1d3eb3f805d4155006aef043b4d8aa51b047fe9be612ed5c0560d5b41",
+      "canonical_outcome": "Success",
+      "published_remote_status": "success",
+      "published_remote_status_id": "56638372377",
+      "worker_exit_code": 0,
+      "evidence": "pass.json"
+    },
+    {
+      "case": "fail",
+      "verdict": "PASS",
+      "source_revision": "bb811bc0f5a727e5f4645036e5dc88fc51a789e3",
+      "delivery_id": "3849030108744531968",
+      "delivery_guid": "e15fac04-cb18-11f1-9d28-15a3eb6a95cf",
+      "run_identity": "11dfe09be5ae860bf480c0b40a332f1a687fd9226351118251e9b7f8b2635f60",
+      "native_workflow": "b3:3aaf19fde94e01dd8306cae02b826ff030b08ff09212dff45d89a5c682acc951",
+      "native_execution": "b3:dda47739e5ea1c8930de589defa219f6041285efedc838a2a6e9cf83a9c87d99",
+      "canonical_outcome": "DomainFailure",
+      "published_remote_status": "failure",
+      "published_remote_status_id": "56638417380",
+      "worker_exit_code": 101,
+      "evidence": "fail.json"
+    },
+    {
+      "case": "recovery",
+      "verdict": "PASS",
+      "source_revision": "c6778521374d0bd643ff05c3557c823f81a7235d",
+      "delivery_id": "3849030250228875264",
+      "delivery_guid": "08b0eb1a-cb19-11f1-9fa1-28bd8a98f4af",
+      "run_identity": "839b0cd8a2180401c5e99e6c62bd354bc405f1625ca8cc92ba60a9f98ae39271",
+      "native_workflow": "b3:5a926ad4842486fe22a2a6d8ddaeb77aa7f42212fc9730237e2697c0a9c875a6",
+      "native_execution": "b3:d78f421dae3bc36307a2ad6a794330461445423275d37b2d5f712aad909deeea",
+      "canonical_outcome": "Success",
+      "published_remote_status": "success",
+      "published_remote_status_id": "56638450301",
+      "worker_exit_code": 0,
+      "evidence": "recovery.json"
+    }
+  ],
+  "duplicate_delivery": {
+    "verdict": "PASS",
+    "delivery_id": "3849030186093772800",
+    "delivery_guid": "e15fac04-cb18-11f1-9d28-15a3eb6a95cf",
+    "same_run_identity": "11dfe09be5ae860bf480c0b40a332f1a687fd9226351118251e9b7f8b2635f60",
+    "no_new_worker_job": true,
+    "evidence": "fail.json"
+  },
+  "controller_bridge_recovery": {
+    "verdict": "PASS",
+    "preserved_executor_pid": "859994",
+    "same_native_execution": "b3:d78f421dae3bc36307a2ad6a794330461445423275d37b2d5f712aad909deeea",
+    "worker_job_remained_running": true,
+    "one_new_worker_job": true,
+    "evidence": "recovery.json"
+  },
+  "references": {
+    "cohort": "cohort.json",
+    "original_nonsecret_profile_bytes": "runtime-inputs.json",
+    "operator_authority_and_temporary_credential_exception": "operator-authority.json",
+    "actual_resource_and_credential_retirement": "retirement.json"
+  },
+  "non_claims": [
+    "no main, default branch, governance, existing service or existing ingress mutation",
+    "no source-trust, arbitrary sandbox, public-WAN or relay guarantee",
+    "no automatic continuation after a killed Lattice executor",
+    "no indefinite availability, least-privilege production credential, deployment or release authority"
+  ],
+  "source": {
+    "kind": "Reviewed current working-file identities, not a source publication or whole-workspace correctness claim",
+    "blake3": {
+      "Cargo.toml": "5c4619d330c1dfc6df7639c803788e1212ccec10f18bccba9830cb66c76b10e1",
+      "Cargo.lock": "bd9f889620defdf09dcb4fa0428ee40d496fb8d48e7b811afe1a1e6c3753bfa4",
+      "flake.nix": "6650cbb59320d741704836a9b68237d0d8dba945902aa23c7619a2a7ea3f7bc6",
+      "scripts/live-ci-controller.py": "fb472c865106df954c39a53b1f5071d398a6548c85e5fe59d1a49e1866ea7da0",
+      "scripts/live-ci-worker.py": "903c2a0f82a8e8af085a6aa9df180a51c78aad201ac6eee264363894a889f8bf",
+      "scripts/live-ci-exercise.py": "f03534b2e7ad326f7f85f1066a8abae11d2d5bf2f57ce0242d247e52c27c846f",
+      "config/live-ci-workflow.ncl": "e066f4884f4076c6952ea2c2d00432436e3b04b587da8c7a78b40341f035b148",
+      "config/live-ci-worker.ncl": "2960d5420db9f8a42095436d4b5078ca1572644ba69a375501ae769d0409c350",
+      "crates/kiln-core/examples/live_ci_probe.rs": "ac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc",
+      "crates/kiln-adapter-github/examples/live_ci_inputs.rs": "ea5b456bd745ef4f335e088ce92a7831aabacbef223557f901ad4e790aa625d1",
+      "README.md": "39841740438a6f107d4799f5c41e1655fe714941258c5900fd396b64ab5c079a",
+      "docs/operator.md": "a34f250562564e61fac98259f633630ecf3e895298f6bf0e2f6afea251b1b4c7",
+      "cairn-policy/default.ncl": "630cc07707508814d21a907b16ede7fed91099bc326d35cefc4673d7d377e747",
+      "cairn-policy/generated/cairn-policy.json": "dd4fcb46aa9fd54c6f6cc4df79472e77e0e8934b3a034d2ba6889f237db26dd0",
+      "cairn-policy/PROVENANCE.md": "db67484764f3eabf2190d25b4295fadeb783d39bbc63a6556d52e97adb12c164"
+    },
+    "ordering_note": "Current examples are rustfmt-formatted. Actual evaluated forge revisions and acquired file identities remain in each case receipt. Code/docs/policy checks precede final checkbox and aggregate receipt writes."
+  },
+  "superseded_reason": "The real runtime cases passed, but the final workspace conformance guard rejected std::time in an example under the pure kiln-core crate. The unchanged probe is moved into the existing kiln-standalone imperative shell and final job/profile bindings are requalified.",
+  "workspace_failure": {
+    "derivation": "/nix/store/y70irc3rjwamkfsv81rkq36mlxzbr4r9-kiln-0.1.0.drv",
+    "test": "kiln-conformance::tests::dependency_boundaries_accept_current_core",
+    "builder_exit_code": 101,
+    "observed_assertion": "assertion failed: findings.as_ref().is_ok_and(Vec::is_empty)",
+    "guard": "FORBIDDEN_CORE_DEPENDENCIES includes std::time; audit_core scans all Rust/TOML under crates/kiln-core",
+    "correction": "Move only the observation shell example; keep core and boundary guard unchanged"
+  }
+}

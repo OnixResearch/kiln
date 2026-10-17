@@ -1,0 +1,84 @@
+{
+  "schema": "kiln.live-ci-cohort.v1",
+  "scope": "Exact operated validation inputs; not a deployment or release qualification",
+  "maintenance_owner": "Kiln maintainers",
+  "operator_owner": "Repository operator",
+  "repository": {
+    "name": "OnixResearch/kiln",
+    "id": 1421187104,
+    "validation_base": "db552f504236b3e330be46618e2fd29fb864f190",
+    "default_branch": "publication-candidate-2026-10-15",
+    "main_observed_after": "2c529b154d625735c43246cad2178d70813a01c3",
+    "ref_observation": "retirement.json",
+    "branch": "kiln-live-ci-validation-20261018"
+  },
+  "hosts": {
+    "controller": {
+      "hostname": "aspen1",
+      "ssh": "root@aspen1.local",
+      "address": "100.100.103.95:8788",
+      "runtime_uid": 965,
+      "iroh_id": "9bf6b0a017f6b89d3d07e1ea69fdf79ecc634daeaf9cc2a6872f754ef710db32"
+    },
+    "worker": {
+      "hostname": "britton-desktop",
+      "ssh": "root@localhost",
+      "address": "100.110.43.11:8788",
+      "runtime_uid": 961,
+      "iroh_id": "71842d13555370e3a669baf87f20b43bfa8c86e13d02769b4265d83cb07ea59a"
+    }
+  },
+  "kiln": {
+    "package": "/nix/store/nl9hzxgwpi2bd0pygz86grfhzxc2x04x-kiln-0.1.0",
+    "build_features": "default; no protocol-fixtures",
+    "executables": {
+      "kiln-adapter-github": "9a6dfd73293a115723e52cd940a0f678a9505a0e52b9ab79790d24aec6b9bbae",
+      "kiln-github-job": "7df20186e393ac8e80182f29da7eaad4c7e7fd7f54fcb4adc145843f2feb2366",
+      "kiln-adapter-iroh": "1bedc9a436a7698bea75f0cca89d834a004b316f7b85f60ab2b3d954641a092c"
+    }
+  },
+  "lattice": {
+    "executable": "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice",
+    "executable_blake3": "4c3773e852f6b66cb33677e74899d37a2bed0dcf4742698c40d12d0813783aba",
+    "derivation": "/nix/store/mgpl1763wihhgzqf0qm6arwpkxnx51dn-lattice-0.1.0.drv",
+    "source": "/nix/store/pvh84jrqmrcniq1pr1zq89c11i83riy6-source",
+    "source_nar_blake3": "4ed8b22401a13201c572d51ffcd0d39fb5b42a77f805200b0b656a7e521207de",
+    "selection": "Reviewed lattice-workflow-exit-status producer checkout; request.v2 source binding and typed shell-exit admission retained"
+  },
+  "secretspec": {
+    "executable": "/nix/store/jxryiy3mpskq9zl0qxm6zjknsbammcqm-secretspec-0.19.0/bin/secretspec",
+    "executable_blake3": "486aab8bc242c6b8a9b724f7cdd0c26160f2b4edb32cc20ff1b66799cb344791",
+    "version": "0.19.0",
+    "provider": "local alias to real file provider",
+    "temporary_scope_exception": "operator-authority.json",
+    "retirement_required": true
+  },
+  "workload": {
+    "program": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "program_blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb",
+    "compiler": "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin/rustc",
+    "offline_vendor": "/nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir",
+    "command": "cargo run --offline --locked -p kiln-core --example live_ci_probe",
+    "isolation_scope": "Observed explicit user/mount/PID/network namespaces; only store, exact checkout, and dedicated target cache mounted. Not general untrusted-workload confinement qualification."
+  },
+  "profile_identities": {
+    "job_json_blake3": "98cb7b038cb35b1b99531241bdd71f016a7c2d7ccce5a3725b46968b2b38b8a8",
+    "github_json_blake3": "535df2d1468146a785f904cbdf05f253f04ce277b110dd1975ca8681324de48b",
+    "service": "c58643338a99e82daa70d6d1324ed63f94e6014feeca5181b2241d98c5eccff4",
+    "pipeline": "3b502a547638a1fa60d701d7020e9d0550fa54e6103165c3f19ad7a9c2be5866",
+    "native_profile": "b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5",
+    "native_graph": "b3:a54b92277d366be3a1bc620834f5ea66a33e0adc4f95d7014278b6aefe7136a7"
+  },
+  "ingress": {
+    "url": "https://tags-violation-making-logos.trycloudflare.com/github/webhook",
+    "relay_urls": [],
+    "iroh_alpn": "kiln.workflow.v1",
+    "iroh_version": "0.95.1"
+  },
+  "non_claims": [
+    "no main, default branch, governance, existing service or existing ingress mutation",
+    "no source-trust, arbitrary sandbox, public-WAN or relay guarantee",
+    "no automatic continuation after a killed Lattice executor",
+    "no indefinite availability, least-privilege production credential, deployment or release authority"
+  ]
+}

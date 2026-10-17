@@ -1,0 +1,502 @@
+{
+  "schema": "kiln.live-ci-case.v1",
+  "case": "recovery",
+  "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+  "branch": "kiln-live-ci-validation-20261018",
+  "hook_id": "700030289",
+  "verdict": "PASS",
+  "delivery": {
+    "id": 3849041064138637312,
+    "guid": "c21f08ba-cb24-11f1-937c-eb523e9b119d",
+    "delivered_at": "2026-10-18T18:50:16.884Z",
+    "event": "push",
+    "redelivery": false,
+    "ref": "refs/heads/kiln-live-ci-validation-20261018",
+    "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+    "response_status": 202,
+    "acknowledgement": {
+      "accepted": true,
+      "duplicate": false,
+      "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba"
+    }
+  },
+  "interruption": {
+    "before": {
+      "record": {
+        "schema": "kiln.github-run.v1",
+        "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+        "immutable_identity": "a86a452f8dc7342d1ff952f1bfd74e163d7178b108bf106b82cc86fa07dc2966",
+        "profile_identity": "9154f9a232a46f86787b7867aa0c7fa2b98aa1e31e12100c70f2b76d0fe5319f",
+        "plan": {
+          "effect_id": "github-effect-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "attempt_id": "github-attempt-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "candidate_id": "github-candidate-ef7e928b5a6ccf168e0b39070c01f1f21655e7cfd5457b157148fa54fa2fdc28",
+          "pipeline_revision_id": "github-pipeline-9c0320e631186c01be3302f2d145b1f9f09b33b3a5f65afd7f31b3eb959723bd",
+          "workflow_policy_id": "github-live-20261018",
+          "provider_profile": "lattice-v1",
+          "idempotency_key": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "platform": "linux-x86_64",
+          "source": {
+            "provider": "github",
+            "repository": {
+              "contract_version": 1,
+              "provider_namespace": "github",
+              "native_kind": "repository",
+              "native_id": "onixresearch/kiln"
+            },
+            "revision": {
+              "contract_version": 1,
+              "provider_namespace": "github",
+              "native_kind": "revision",
+              "native_id": "2bba857fe78760ef6409da4188125dd0bba9a907"
+            }
+          },
+          "nodes": [
+            {
+              "id": "probe",
+              "kind": "test",
+              "effect_class": "Test",
+              "adapter_kind": "local",
+              "operation_identity": "eb669c2693415d283051ba8e5fcc1d02d4d846a7412099c2f0ed4f29357713dc"
+            }
+          ],
+          "edges": [],
+          "controls": {
+            "cancel": true,
+            "pause": false,
+            "resume": false
+          },
+          "bounds": {
+            "max_nodes": 256,
+            "max_edges": 1024,
+            "max_log_references": 256,
+            "max_log_read_bytes": 1048576,
+            "max_total_log_bytes": 16777216
+          }
+        },
+        "run_id": "github-run-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+        "phase": "active",
+        "workflow_polls": 1,
+        "observation": {
+          "effect_id": "github-effect-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "attempt_id": "github-attempt-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "candidate_id": "github-candidate-ef7e928b5a6ccf168e0b39070c01f1f21655e7cfd5457b157148fa54fa2fdc28",
+          "pipeline_revision_id": "github-pipeline-9c0320e631186c01be3302f2d145b1f9f09b33b3a5f65afd7f31b3eb959723bd",
+          "workflow_policy_id": "github-live-20261018",
+          "provider_profile": "lattice-v1",
+          "idempotency_key": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "workflow": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "workflow",
+            "native_id": "b3:ed7f5de321c657775985a09fc60330c1bc9ec5743a8e67450283e78da4f26039"
+          },
+          "execution": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "execution",
+            "native_id": "b3:9361b7304625aa841da5a9cf1660d8a5bce140084e4af27f8894974cf6d11bb2"
+          },
+          "sequence": 1,
+          "state": "Running",
+          "terminal": false,
+          "successful": false,
+          "outcome": "Pending",
+          "nodes": [
+            {
+              "node_id": "probe",
+              "state": "Pending",
+              "terminal": false,
+              "successful": false,
+              "adapter": {
+                "contract_version": 1,
+                "provider_namespace": "lattice",
+                "native_kind": "adapter",
+                "native_id": "b3:5cf1e3901e5544a8cf2f4afdb3f6d26b8423bef9654660498a45449126060495"
+              },
+              "receipt": null
+            }
+          ],
+          "logs": [],
+          "receipt": null
+        },
+        "events": [
+          {
+            "RunStarted": {
+              "command_id": "github-start-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+              "run_id": "github-run-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+              "attempt_id": "github-attempt-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+              "provider_profile": "lattice-v1"
+            }
+          }
+        ],
+        "statuses": [
+          {
+            "plan": {
+              "owner": "onixresearch",
+              "repository": "kiln",
+              "context": "kiln/ci",
+              "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+              "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+              "state": "pending"
+            },
+            "phase": "published",
+            "publication": {
+              "status_id": 56641080332,
+              "request_identity": "3a9f29661519e8ee06d0fbce4feac67014457ac67954c503efe50f11cf35764f"
+            },
+            "error_code": null
+          }
+        ],
+        "error_code": null
+      },
+      "logs": {
+        "probe.2ZA1oFD7.log": {
+          "output": "   Compiling proc-macro2 v1.0.107\n   Compiling quote v1.0.47\n   Compiling unicode-ident v1.0.24\n   Compiling shlex v2.0.1\n   Compiling find-msvc-tools v0.1.10\n   Compiling serde_core v1.0.229\n   Compiling serde v1.0.229\n   Compiling arrayvec v0.7.8\n   Compiling constant_time_eq v0.4.2\n   Compiling arrayref v0.3.9\n   Compiling cpufeatures v0.3.0\n   Compiling cfg-if v1.0.4\n   Compiling cc v1.4.2\n   Compiling syn v3.0.3\n   Compiling blake3 v1.8.6\n   Compiling serde_derive v1.0.229\n   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.36s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+          "exit_code": 0,
+          "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n969ef311bc7c36447930b66f76b8e5124907618d24dde3e1def543007dc5e767  crates/kiln-core/examples/live_ci_probe.rs\n"
+        },
+        "probe.8xiB9igh.log": {
+          "output": "   Compiling serde_core v1.0.229\n   Compiling autocfg v1.5.1\n   Compiling serde v1.0.229\n   Compiling memchr v2.8.3\n   Compiling regex-syntax v0.8.11\n   Compiling constant_time_eq v0.4.2\n   Compiling zmij v1.0.23\n   Compiling serde_json v1.0.151\n   Compiling bytemuck v1.25.2\n   Compiling dtoa v0.4.8\n   Compiling itoa v1.0.18\n   Compiling base64 v0.13.1\n   Compiling lazy_static v1.5.0\n   Compiling blake3 v1.8.6\n   Compiling num-traits v0.2.19\n   Compiling aho-corasick v1.1.5\n   Compiling num-integer v0.1.46\n   Compiling num-bigint v0.4.8\n   Compiling regex-automata v0.4.18\n   Compiling serde_bytes v0.11.19\n   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling regex v1.13.1\n   Compiling preserves v5.0.0-rc.7\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.09s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+          "exit_code": 0,
+          "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+        },
+        "probe.BAmCsbqu.log": {
+          "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.23s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+          "exit_code": 0,
+          "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n969ef311bc7c36447930b66f76b8e5124907618d24dde3e1def543007dc5e767  crates/kiln-core/examples/live_ci_probe.rs\n"
+        },
+        "probe.GacCvwaY.log": {
+          "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.00s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n",
+          "exit_code": null,
+          "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+        },
+        "probe.WAbAQAzy.log": {
+          "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.27s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n\nthread 'main' panicked at crates/kiln-core/examples/live_ci_probe.rs:49:5:\nassertion `left == right` failed\n  left: Some(DomainFailure)\n right: Some(Success)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+          "exit_code": 101,
+          "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nf9a81af909b82fdec11f520fd38951c1574586453a98769d5800dd86b90a27ba  crates/kiln-core/examples/live_ci_probe.rs\n"
+        },
+        "probe.ftFTNxha.log": {
+          "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.05s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n\nthread 'main' panicked at crates/kiln-standalone/examples/live_ci_probe.rs:52:5:\nassertion `left == right` failed\n  left: Some(DomainFailure)\n right: Some(Success)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+          "exit_code": 101,
+          "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n261bc9e2f5b6b8f2815e33647446406354fac7a140d13c173a346efb5bed4e88  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+        },
+        "probe.tSxC9aK2.log": {
+          "output": "error: failed to get `blake3` as a dependency of package `kiln-core v0.1.0 (/build/crates/kiln-core)`\n\nCaused by:\n  failed to load source for dependency `blake3`\n\nCaused by:\n  Unable to update registry `crates-io`\n\nCaused by:\n  failed to update replaced source registry `crates-io`\n\nCaused by:\n  failed to read root of directory source: /nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir\n\nCaused by:\n  No such file or directory (os error 2)\n",
+          "exit_code": 101,
+          "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+        }
+      }
+    },
+    "during": {
+      "probe.2ZA1oFD7.log": {
+        "output": "   Compiling proc-macro2 v1.0.107\n   Compiling quote v1.0.47\n   Compiling unicode-ident v1.0.24\n   Compiling shlex v2.0.1\n   Compiling find-msvc-tools v0.1.10\n   Compiling serde_core v1.0.229\n   Compiling serde v1.0.229\n   Compiling arrayvec v0.7.8\n   Compiling constant_time_eq v0.4.2\n   Compiling arrayref v0.3.9\n   Compiling cpufeatures v0.3.0\n   Compiling cfg-if v1.0.4\n   Compiling cc v1.4.2\n   Compiling syn v3.0.3\n   Compiling blake3 v1.8.6\n   Compiling serde_derive v1.0.229\n   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.36s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+        "exit_code": 0,
+        "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n969ef311bc7c36447930b66f76b8e5124907618d24dde3e1def543007dc5e767  crates/kiln-core/examples/live_ci_probe.rs\n"
+      },
+      "probe.8xiB9igh.log": {
+        "output": "   Compiling serde_core v1.0.229\n   Compiling autocfg v1.5.1\n   Compiling serde v1.0.229\n   Compiling memchr v2.8.3\n   Compiling regex-syntax v0.8.11\n   Compiling constant_time_eq v0.4.2\n   Compiling zmij v1.0.23\n   Compiling serde_json v1.0.151\n   Compiling bytemuck v1.25.2\n   Compiling dtoa v0.4.8\n   Compiling itoa v1.0.18\n   Compiling base64 v0.13.1\n   Compiling lazy_static v1.5.0\n   Compiling blake3 v1.8.6\n   Compiling num-traits v0.2.19\n   Compiling aho-corasick v1.1.5\n   Compiling num-integer v0.1.46\n   Compiling num-bigint v0.4.8\n   Compiling regex-automata v0.4.18\n   Compiling serde_bytes v0.11.19\n   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling regex v1.13.1\n   Compiling preserves v5.0.0-rc.7\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.09s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+        "exit_code": 0,
+        "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+      },
+      "probe.BAmCsbqu.log": {
+        "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.23s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+        "exit_code": 0,
+        "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n969ef311bc7c36447930b66f76b8e5124907618d24dde3e1def543007dc5e767  crates/kiln-core/examples/live_ci_probe.rs\n"
+      },
+      "probe.GacCvwaY.log": {
+        "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.00s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n",
+        "exit_code": null,
+        "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+      },
+      "probe.WAbAQAzy.log": {
+        "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.27s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n\nthread 'main' panicked at crates/kiln-core/examples/live_ci_probe.rs:49:5:\nassertion `left == right` failed\n  left: Some(DomainFailure)\n right: Some(Success)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+        "exit_code": 101,
+        "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nf9a81af909b82fdec11f520fd38951c1574586453a98769d5800dd86b90a27ba  crates/kiln-core/examples/live_ci_probe.rs\n"
+      },
+      "probe.ftFTNxha.log": {
+        "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.05s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\n\nthread 'main' panicked at crates/kiln-standalone/examples/live_ci_probe.rs:52:5:\nassertion `left == right` failed\n  left: Some(DomainFailure)\n right: Some(Success)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n",
+        "exit_code": 101,
+        "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\n261bc9e2f5b6b8f2815e33647446406354fac7a140d13c173a346efb5bed4e88  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+      },
+      "probe.tSxC9aK2.log": {
+        "output": "error: failed to get `blake3` as a dependency of package `kiln-core v0.1.0 (/build/crates/kiln-core)`\n\nCaused by:\n  failed to load source for dependency `blake3`\n\nCaused by:\n  Unable to update registry `crates-io`\n\nCaused by:\n  failed to update replaced source registry `crates-io`\n\nCaused by:\n  failed to read root of directory source: /nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir\n\nCaused by:\n  No such file or directory (os error 2)\n",
+        "exit_code": 101,
+        "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+      }
+    },
+    "executor_pid": "1885421",
+    "surviving_executor_pid": "1885421",
+    "stop_commands": [
+      "",
+      "",
+      ""
+    ],
+    "start_commands": [
+      "{\"id\": \"71842d13555370e3a669baf87f20b43bfa8c86e13d02769b4265d83cb07ea59a\", \"addrs\": [{\"Ip\": \"100.110.43.11:8788\"}, {\"Ip\": \"[::1]:34726\"}]}\n",
+      "kiln-live-controller-proxy.service\nprivate proxy socket ready\n",
+      "kiln-live-controller-github.service\nloopback webhook listener ready\n"
+    ]
+  },
+  "terminal": {
+    "local": {
+      "error_code": null,
+      "outcome": "Success",
+      "phase": "terminal",
+      "run_id": "github-run-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "schema": "kiln.github-run-status.v1",
+      "source": {
+        "provider": "github",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "onixresearch/kiln",
+          "native_kind": "repository",
+          "provider_namespace": "github"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "2bba857fe78760ef6409da4188125dd0bba9a907",
+          "native_kind": "revision",
+          "provider_namespace": "github"
+        }
+      },
+      "statuses": [
+        {
+          "error_code": null,
+          "phase": "published",
+          "plan": {
+            "context": "kiln/ci",
+            "owner": "onixresearch",
+            "repository": "kiln",
+            "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+            "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+            "state": "pending"
+          },
+          "publication": {
+            "request_identity": "3a9f29661519e8ee06d0fbce4feac67014457ac67954c503efe50f11cf35764f",
+            "status_id": 56641080332
+          }
+        },
+        {
+          "error_code": null,
+          "phase": "published",
+          "plan": {
+            "context": "kiln/ci",
+            "owner": "onixresearch",
+            "repository": "kiln",
+            "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+            "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+            "state": "success"
+          },
+          "publication": {
+            "request_identity": "8ccb932ff8792e25eefa0d545f8ecfcc0e1b62cd83e2fffd9cad786d7d779b6b",
+            "status_id": 56641096656
+          }
+        }
+      ],
+      "workflow_polls": 14
+    },
+    "remote_status": {
+      "id": 56641096656,
+      "node_id": "SC_kwDOVLWYIM8AAAANMBKL0A",
+      "state": "success",
+      "context": "kiln/ci",
+      "description": "Kiln run 26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba state success",
+      "url": "https://api.github.com/repos/OnixResearch/kiln/statuses/2bba857fe78760ef6409da4188125dd0bba9a907",
+      "created_at": "2026-10-18T18:50:49Z"
+    }
+  },
+  "record": {
+    "schema": "kiln.github-run.v1",
+    "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+    "immutable_identity": "a86a452f8dc7342d1ff952f1bfd74e163d7178b108bf106b82cc86fa07dc2966",
+    "profile_identity": "9154f9a232a46f86787b7867aa0c7fa2b98aa1e31e12100c70f2b76d0fe5319f",
+    "plan": {
+      "effect_id": "github-effect-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "attempt_id": "github-attempt-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "candidate_id": "github-candidate-ef7e928b5a6ccf168e0b39070c01f1f21655e7cfd5457b157148fa54fa2fdc28",
+      "pipeline_revision_id": "github-pipeline-9c0320e631186c01be3302f2d145b1f9f09b33b3a5f65afd7f31b3eb959723bd",
+      "workflow_policy_id": "github-live-20261018",
+      "provider_profile": "lattice-v1",
+      "idempotency_key": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "platform": "linux-x86_64",
+      "source": {
+        "provider": "github",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "github",
+          "native_kind": "repository",
+          "native_id": "onixresearch/kiln"
+        },
+        "revision": {
+          "contract_version": 1,
+          "provider_namespace": "github",
+          "native_kind": "revision",
+          "native_id": "2bba857fe78760ef6409da4188125dd0bba9a907"
+        }
+      },
+      "nodes": [
+        {
+          "id": "probe",
+          "kind": "test",
+          "effect_class": "Test",
+          "adapter_kind": "local",
+          "operation_identity": "eb669c2693415d283051ba8e5fcc1d02d4d846a7412099c2f0ed4f29357713dc"
+        }
+      ],
+      "edges": [],
+      "controls": {
+        "cancel": true,
+        "pause": false,
+        "resume": false
+      },
+      "bounds": {
+        "max_nodes": 256,
+        "max_edges": 1024,
+        "max_log_references": 256,
+        "max_log_read_bytes": 1048576,
+        "max_total_log_bytes": 16777216
+      }
+    },
+    "run_id": "github-run-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+    "phase": "terminal",
+    "workflow_polls": 14,
+    "observation": {
+      "effect_id": "github-effect-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "attempt_id": "github-attempt-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "candidate_id": "github-candidate-ef7e928b5a6ccf168e0b39070c01f1f21655e7cfd5457b157148fa54fa2fdc28",
+      "pipeline_revision_id": "github-pipeline-9c0320e631186c01be3302f2d145b1f9f09b33b3a5f65afd7f31b3eb959723bd",
+      "workflow_policy_id": "github-live-20261018",
+      "provider_profile": "lattice-v1",
+      "idempotency_key": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+      "workflow": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "workflow",
+        "native_id": "b3:ed7f5de321c657775985a09fc60330c1bc9ec5743a8e67450283e78da4f26039"
+      },
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:9361b7304625aa841da5a9cf1660d8a5bce140084e4af27f8894974cf6d11bb2"
+      },
+      "sequence": 2,
+      "state": "Completed",
+      "terminal": true,
+      "successful": true,
+      "outcome": "Success",
+      "nodes": [
+        {
+          "node_id": "probe",
+          "state": "Completed",
+          "terminal": true,
+          "successful": true,
+          "adapter": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "adapter",
+            "native_id": "b3:5cf1e3901e5544a8cf2f4afdb3f6d26b8423bef9654660498a45449126060495"
+          },
+          "receipt": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "receipt",
+            "native_id": "b3:b0da7c60135db0818fb7ab0d628660a3b80d6b1a085dd43ce280141c7d04a544"
+          }
+        }
+      ],
+      "logs": [
+        {
+          "node_id": "probe",
+          "stream": "Diagnostic",
+          "reference": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "log",
+            "native_id": "b3:d1738a0b91d65eef7cca4421dcd3a4a79cfdf4b4398c1c548a40e364c95ca5be"
+          },
+          "cursor": 0,
+          "bytes": 10,
+          "truncated": false,
+          "gap_before": false,
+          "retained": true
+        }
+      ],
+      "receipt": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "receipt",
+        "native_id": "b3:7285b7fa9ea60be7e7143e08797831844653f6759e9062f514d0b729349f849a"
+      }
+    },
+    "events": [
+      {
+        "RunStarted": {
+          "command_id": "github-start-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "run_id": "github-run-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "attempt_id": "github-attempt-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "provider_profile": "lattice-v1"
+        }
+      },
+      {
+        "AttemptCompleted": {
+          "command_id": "github-complete-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "attempt_id": "github-attempt-26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "outcome": "Success",
+          "external_reference": {
+            "contract_version": 1,
+            "provider_namespace": "lattice",
+            "native_kind": "execution",
+            "native_id": "b3:9361b7304625aa841da5a9cf1660d8a5bce140084e4af27f8894974cf6d11bb2"
+          },
+          "products": [],
+          "metrics": []
+        }
+      }
+    ],
+    "statuses": [
+      {
+        "plan": {
+          "owner": "onixresearch",
+          "repository": "kiln",
+          "context": "kiln/ci",
+          "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+          "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "state": "pending"
+        },
+        "phase": "published",
+        "publication": {
+          "status_id": 56641080332,
+          "request_identity": "3a9f29661519e8ee06d0fbce4feac67014457ac67954c503efe50f11cf35764f"
+        },
+        "error_code": null
+      },
+      {
+        "plan": {
+          "owner": "onixresearch",
+          "repository": "kiln",
+          "context": "kiln/ci",
+          "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+          "run_identity": "26fa8e68a807401dfc76bd4c76fb6dec5f35b7809bb47b3d4aff75085a0892ba",
+          "state": "success"
+        },
+        "phase": "published",
+        "publication": {
+          "status_id": 56641096656,
+          "request_identity": "8ccb932ff8792e25eefa0d545f8ecfcc0e1b62cd83e2fffd9cad786d7d779b6b"
+        },
+        "error_code": null
+      }
+    ],
+    "error_code": null
+  },
+  "worker_probe": {
+    "probe.GacCvwaY.log": {
+      "output": "   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)\n   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)\n   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)\n   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.00s\n     Running `/target/debug/examples/live_ci_probe`\nkiln live CI: compiling completed; behavior probe started\nkiln live CI: Unknown stays unresolved; terminal failure rejects late success\n",
+      "exit_code": 0,
+      "input_identities": "d666e9809ab903976b4ab291b01bef8e3727e8dc10c36c136fe854b8ebb8a841  Cargo.lock\nc77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs\nac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs\n"
+    }
+  }
+}

@@ -5,6 +5,7 @@ let KilnTraceabilityProfile = {
     { root = ".cairn/specs", source_kind = "accepted_specs", extensions = ["md"] },
     { root = ".cairn/changes/bind-aspen-extension-runtime-profile/specs", source_kind = "requirements_doc", extensions = ["md"] },
     { root = ".cairn/changes/pace-aspen-lattice-observation/specs", source_kind = "requirements_doc", extensions = ["md"] },
+    { root = ".cairn/changes/qualify-live-github-iroh-ci/specs", source_kind = "requirements_doc", extensions = ["md"] },
   ],
   evidence_sources = [
     { root = "crates", source_kind = "rust_source", extensions = ["rs"] },
@@ -15,6 +16,7 @@ let KilnTraceabilityProfile = {
     { root = "tools", source_kind = "tool_source", extensions = ["rs", "ncl"] },
     { root = "src", source_kind = "tool_source", extensions = ["mjs"] },
     { root = "tests", source_kind = "tool_source", extensions = ["mjs", "sh"] },
+    { root = "scripts", source_kind = "tool_source", extensions = ["py"] },
   ],
   marker_verbs = ["impl", "verify", "depends", "related"],
   assurance_level = "declared",
