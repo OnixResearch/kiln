@@ -20,10 +20,7 @@ pub(in super::super) fn state_snapshot(root: &Path) -> BTreeMap<PathBuf, Vec<u8>
         if let Some(directory) = snapshot_entry(root, &root.join(component), &mut files, 0) {
             directories.push(directory);
         }
-        loop {
-            let Some(directory) = directories.last_mut() else {
-                break;
-            };
+        while let Some(directory) = directories.last_mut() {
             let Some(entry) = directory.next() else {
                 assert!(directories.pop().is_some());
                 continue;
