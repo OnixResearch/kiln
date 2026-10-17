@@ -1,0 +1,13 @@
+schema=kiln.radicle-nix-provider.v1
+repository=rad:qualification-exact-source
+revision=a9e67a14178c83654c4bf932bfc84c160ecd749d
+source=git+file:///var/tmp/kiln-qualification.BEA91plo/source?rev=a9e67a14178c83654c4bf932bfc84c160ecd749d
+outcome=Failure
+exit_code=Some(1)
+--- stdout ---
+
+--- stderr ---
+error:
+       … while fetching the input 'git+file:///var/tmp/kiln-qualification.BEA91plo/source?rev=a9e67a14178c83654c4bf932bfc84c160ecd749d'
+
+       error: opening lock file "/home/brittonr/.cache/nix/fetcher-locks/509e58b78c7738d9ea9e47ee9cbfe7f8a942ad429f7fe6bcd80c788b7d7e84fe.lock": Read-only file system

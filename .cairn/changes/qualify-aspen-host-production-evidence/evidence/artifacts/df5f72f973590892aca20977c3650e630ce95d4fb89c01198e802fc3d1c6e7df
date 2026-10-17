@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "durability",
+  "verdict": "passed",
+  "scope": "actual child hosts and native callbacks; closed-transport cases plus separately observed real Lattice/Nix terminal replay",
+  "observed": "Full acknowledgements preserved after SIGKILL; actual Lattice stopped before duplicate and restart.",
+  "bounds": {
+    "native_child_deadline_seconds": 15,
+    "actual_transport_timeout_milliseconds": 30000
+  },
+  "artifacts": [
+    {
+      "name": "host-complete-native-tests-final.log",
+      "blake3": "5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68",
+      "bytes": 280705,
+      "path": "artifacts/5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68"
+    },
+    {
+      "name": "actual-verified-sigkill-recovery.json",
+      "blake3": "e5a748a0ae84072db4b8ee154e4cd85d72a4bba34259295eb1471856c24627df",
+      "bytes": 4773,
+      "path": "artifacts/e5a748a0ae84072db4b8ee154e4cd85d72a4bba34259295eb1471856c24627df"
+    },
+    {
+      "name": "actual-verified-invocation.json",
+      "blake3": "535c249d8b00a959b1492af2232a56b707a8c3401e55259259600975af635485",
+      "bytes": 5870,
+      "path": "artifacts/535c249d8b00a959b1492af2232a56b707a8c3401e55259259600975af635485"
+    }
+  ]
+}

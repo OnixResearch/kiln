@@ -1,0 +1,20 @@
+Script started on 2026-10-17 00:18:39-04:00 [COMMAND="env TMPDIR="/var/tmp" RUSTC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustc" RUSTDOC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustdoc" CARGO_TARGET_DIR="/var/tmp/kiln-qualification.BEA91plo/provider-target" PATH="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin" /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/cargo --config /var/tmp/kiln-qualification.BEA91plo/provider-git-sources.toml test --locked --offline --test process_teardown -- --nocapture" <not executed on terminal>]
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running tests/process_teardown.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/process_teardown-571792b69b211b8d)
+
+running 5 tests
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 947048, group: 947048, start_ticks: 12925397 }, None), (ProcessIdentity { pid: 947056, group: 947048, start_ticks: 12925397 }, None)]
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 947044, group: 947044, start_ticks: 12925397 }, None), (ProcessIdentity { pid: 947062, group: 947044, start_ticks: 12925397 }, None)]
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 947045, group: 947045, start_ticks: 12925397 }, None), (ProcessIdentity { pid: 947055, group: 947045, start_ticks: 12925397 }, None)]
+test actual_provider_success_reaps_descendant_and_publishes_bounded_report ... ok
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 947046, group: 947046, start_ticks: 12925397 }, None), (ProcessIdentity { pid: 947060, group: 947046, start_ticks: 12925397 }, None)]
+test actual_provider_stderr_limit_terminates_owned_descendant ... ok
+test actual_provider_stdout_limit_terminates_owned_descendant ... ok
+test actual_provider_sigterm_cancellation_terminates_owned_descendant ... ok
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 947047, group: 947047, start_ticks: 12925397 }, None), (ProcessIdentity { pid: 947063, group: 947047, start_ticks: 12925398 }, None)]
+test actual_provider_timeout_terminates_owned_descendant ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.05s
+
+
+Script done on 2026-10-17 00:18:43-04:00 [COMMAND_EXIT_CODE="0"]

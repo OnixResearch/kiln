@@ -221,6 +221,8 @@
             "--workspace"
             "--all-targets"
             "--all-features"
+            "--"
+            "--nocapture"
           ];
         };
       kilnRadicleNixProviderPackageFor =
@@ -252,6 +254,8 @@
             "--workspace"
             "--all-targets"
             "--all-features"
+            "--"
+            "--nocapture"
           ];
         };
     in

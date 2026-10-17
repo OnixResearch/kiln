@@ -1,0 +1,45 @@
+{
+  "schema": "kiln.qualification-publication-preflight.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "commands": [
+    {
+      "argv": [
+        "jj",
+        "--ignore-working-copy",
+        "git",
+        "remote",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "github git@github.com:OnixResearch/kiln.git\nrad rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE (push: rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx)\n\"seed.radicle.dev@z6MksmpU5b1dS7oaqF2bHXhQi1DWy2hB7Mh9CuN7y1DN6QSz\" rad://z2wsvxm5s2sjgvuv1k5jhiwi1pbke/z6MksmpU5b1dS7oaqF2bHXhQi1DWy2hB7Mh9CuN7y1DN6QSz\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--identity"
+      ],
+      "exit_code": 1,
+      "stdout": "✗ Error: Current directory is not a Radicle repository\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--sigrefs"
+      ],
+      "exit_code": 1,
+      "stdout": "✗ Error: Current directory is not a Radicle repository\n",
+      "stderr": ""
+    }
+  ],
+  "intended_scope": "new exact-cohort candidate ref on existing canonical rad remote; no main promotion, governance change, binary release or deployment",
+  "manifest": {
+    "path": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/source-manifest.json",
+    "tree_blake3": "4f6d74189c38068dbda4282a4df3c679002c2af585f5e722fb769f96733ef66e",
+    "working_bytes_blake3": "4f6d74189c38068dbda4282a4df3c679002c2af585f5e722fb769f96733ef66e",
+    "included": true
+  }
+}

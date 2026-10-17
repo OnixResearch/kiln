@@ -1,0 +1,130 @@
+{
+  "schema": "kiln.qualification-lifecycle-verdict-correction.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "superseded_observation": {
+    "name": "post-documentation-native-lifecycle.json",
+    "blake3": "cedf55df1d595e1a63b7019b625d1a2713e888a14c2961a1e47b995bb7cda9d3",
+    "bytes": 68533,
+    "path": "artifacts/cedf55df1d595e1a63b7019b625d1a2713e888a14c2961a1e47b995bb7cda9d3"
+  },
+  "actual_native_verdicts": [
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "validate",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "command_ok": true,
+      "valid": false,
+      "issues": [
+        "cairn.workflow.profile.artifact: no-spec-review is blocked",
+        "cairn.workflow.profile.artifact: workflow profile artifact is not structurally complete: no-spec-review (blocked)",
+        "cairn.workflow.profile.review: workflow review is invalid or not approved: no-spec-classification-review"
+      ]
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "gate",
+        "proposal",
+        "qualify-aspen-host-production-evidence",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "command_ok": true,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": []
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "gate",
+        "design",
+        "qualify-aspen-host-production-evidence",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "command_ok": true,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": []
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "gate",
+        "tasks",
+        "qualify-aspen-host-production-evidence",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "command_ok": true,
+      "valid": false,
+      "verdict": "FAIL",
+      "issues": [
+        {
+          "code": "cairn.workflow.profile.artifact",
+          "message": "workflow profile artifact is not structurally complete: no-spec-review (blocked)",
+          "promoted": "no",
+          "scope": "tasks"
+        },
+        {
+          "code": "cairn.workflow.profile.review",
+          "message": "workflow review is invalid or not approved: no-spec-classification-review",
+          "promoted": "no",
+          "scope": "tasks"
+        }
+      ]
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "traceability",
+        "coverage",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "command_ok": true,
+      "valid": true,
+      "verdict": "pass"
+    }
+  ],
+  "correction": "A successful machine-command invocation is not a passing lifecycle verdict. The earlier validation and tasks reports had valid=false; the review bound an older tasks.md. Those earlier outputs and the incomplete receipt remain historical, not completed lifecycle qualification.",
+  "reviewed_current_inputs": [
+    {
+      "path": "proposal.md",
+      "hash": "710686efe1b7200ba7c403270a5a0c7b20cdb11cb29ca110f88bdfe21fbe041b"
+    },
+    {
+      "path": "design.md",
+      "hash": "213573bd79e2d535b1bf1d1b162e6d3bd123ab2b62e68395a9fddf50ff7f39c1"
+    },
+    {
+      "path": "acceptance.md",
+      "hash": "05dfde65b44a4bbd687336324fd56a7948efc2e8af4e8ac565310a72fcf977ea"
+    },
+    {
+      "path": "tasks.md",
+      "hash": "f402f64f7552d19db9a68f16be6c5aa34e60bc8e144486348aad4670c8186c40"
+    }
+  ],
+  "current_semantic_assessment": "The plan still implements existing obligations without a normative spec delta. Checked tasks name exercised native cases; required broad gates remain unchecked and cannot confer qualification. No accepted requirement body, policy, publication, deployment or reviewer-authority scope changes are admitted."
+}

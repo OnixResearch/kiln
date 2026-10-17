@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "provider_teardown",
+  "verdict": "passed",
+  "scope": "actual provider binary and controlled synthetic wrapper/descendant processes; not Nix correctness",
+  "observed": "Success, timeout, stdout flood, stderr flood and SIGTERM cancellation tests passed; retained PID/group/start-time observations report all original processes absent (None), not zombie-as-absence.",
+  "bounds": {
+    "execution_milliseconds": 3000,
+    "cancellation_execution_milliseconds": 30000,
+    "teardown_milliseconds": 1000,
+    "readiness_milliseconds": 2000,
+    "stdout_and_stderr_limit_bytes": 256,
+    "report_limit_bytes": 8192
+  },
+  "artifacts": [
+    {
+      "name": "provider-native-gates-final.log",
+      "blake3": "a4379891c536ccccd2527dd5d31fd9128601bb9b2965c38ee2feaea5ef8092a3",
+      "bytes": 4714,
+      "path": "artifacts/a4379891c536ccccd2527dd5d31fd9128601bb9b2965c38ee2feaea5ef8092a3"
+    },
+    {
+      "name": "provider-teardown-observations.log",
+      "blake3": "2f0aefe3a582113c883af34a4713752840ee5e9716e9a41b675d778f43e0eb48",
+      "bytes": 3081,
+      "path": "artifacts/2f0aefe3a582113c883af34a4713752840ee5e9716e9a41b675d778f43e0eb48"
+    }
+  ]
+}

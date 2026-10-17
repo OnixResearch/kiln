@@ -1,0 +1,18 @@
+{
+  "schema": "kiln.qualification-scoped-static-review.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "owner": "Kiln maintainers",
+  "consumer_review": {
+    "scope": "qualification core, tests, codec and CLI integration",
+    "findings": [],
+    "limit": "static read-only review; no independent executable-gate or observation-truth claim"
+  },
+  "publication_hygiene": {
+    "scope": "qualification evidence and changed source/integration paths",
+    "finding": "required source manifest was untracked due to default 1 MiB new-file bound",
+    "resolution": "explicit file track under a one-command exact-size override; selected candidate bytes match retained working manifest",
+    "manifest_blake3": "4f6d74189c38068dbda4282a4df3c679002c2af585f5e722fb769f96733ef66e",
+    "other_findings": "no actual credential/private-key material or unintended deployed-state payload established",
+    "limit": "bounded source review, not a complete security audit"
+  }
+}

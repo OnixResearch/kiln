@@ -1,0 +1,12 @@
+{
+  "schema": "kiln.qualification-interrupted-gate.v1",
+  "scope": "optional host derivation evaluation before applying documented same-RID source cache seeding",
+  "job": "bg_541",
+  "verdict": "cancelled-not-passed",
+  "log": {
+    "name": "interrupted-broad-nix-gate.log",
+    "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+    "bytes": 0,
+    "path": "artifacts/af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+  }
+}

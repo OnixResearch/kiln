@@ -13,6 +13,8 @@ mod publication;
 pub use admission::load_hosted_provider_profile;
 pub use model::*;
 
+use std::sync::atomic::AtomicBool;
+
 use admission::observe_and_admit;
 use execution::{execute_process, render_log};
 use publication::publish_exact;
@@ -24,6 +26,7 @@ const SOURCE_URI_REVISION_SEPARATOR: &str = "?rev=";
 pub fn execute_hosted_nix_provider(
     profile: &HostedNixProviderProfile,
     request: &HostedProviderRequest,
+    cancellation: &AtomicBool,
 ) -> HostedProviderResult<HostedProviderReceipt> {
     observe_and_admit(profile, request)?;
     let source_uri = format!(
@@ -32,7 +35,7 @@ pub fn execute_hosted_nix_provider(
         request.revision,
     );
     let run_identity = run_identity(profile, request)?;
-    let observation = execute_process(profile, &source_uri)?;
+    let observation = execute_process(profile, &source_uri, cancellation)?;
     let log_bytes = render_log(profile, request, &source_uri, &observation)?;
     let log_blake3 = blake3::hash(&log_bytes).to_hex().to_string();
     let report = HostedProviderReport {

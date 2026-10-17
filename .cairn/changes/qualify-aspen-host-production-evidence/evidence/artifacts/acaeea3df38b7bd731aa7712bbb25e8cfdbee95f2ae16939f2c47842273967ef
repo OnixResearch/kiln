@@ -1,0 +1,258 @@
+{
+  "schema": "kiln.qualification-contract-preservation.v1",
+  "baseline_revision": "2bf997aeb81b6c2047e816526a99b0a6d2847eae",
+  "files": [
+    {
+      "path": ".cairn/specs/aspen-host-bridge/spec.md",
+      "baseline_blake3": "a879865d61c027b5e71eecc94a3c34f136fb0c11adc1ce4c34edce76683bb761",
+      "qualified_blake3": "a879865d61c027b5e71eecc94a3c34f136fb0c11adc1ce4c34edce76683bb761",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/aspen-runtime-backend/spec.md",
+      "baseline_blake3": "b6c429f8f373248cf224ce76631578f7e9033020e9810f2b36ccae95d723063c",
+      "qualified_blake3": "b6c429f8f373248cf224ce76631578f7e9033020e9810f2b36ccae95d723063c",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/cairn-gate-adapter/spec.md",
+      "baseline_blake3": "d4c46612055f7069b3ee97d8167628ba5faaeaec88759e7d75633e16fb2c9d16",
+      "qualified_blake3": "d4c46612055f7069b3ee97d8167628ba5faaeaec88759e7d75633e16fb2c9d16",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/cdevents-interchange-adapter/spec.md",
+      "baseline_blake3": "a275cf5e9dbf8d60f75572b79b222fa039f031f228d17e25fd12e061f5223c79",
+      "qualified_blake3": "a275cf5e9dbf8d60f75572b79b222fa039f031f228d17e25fd12e061f5223c79",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/celld-event-store-adapter/spec.md",
+      "baseline_blake3": "605ad007e121e5dff8f3430ad00d0c9fbcfdc7bfc9f5b7afc5803e55e35b3eaf",
+      "qualified_blake3": "605ad007e121e5dff8f3430ad00d0c9fbcfdc7bfc9f5b7afc5803e55e35b3eaf",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/change-gating/spec.md",
+      "baseline_blake3": "0c826cd994836ba253e7a511bcb81fe5659c695748dd8eadb6c4dbdfe348d411",
+      "qualified_blake3": "0c826cd994836ba253e7a511bcb81fe5659c695748dd8eadb6c4dbdfe348d411",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/ci-domain/spec.md",
+      "baseline_blake3": "4e4c2ce5de73b7c400ef5fb66dc89fc720a5f965ef11d8feeb674d4da9aa3da6",
+      "qualified_blake3": "4e4c2ce5de73b7c400ef5fb66dc89fc720a5f965ef11d8feeb674d4da9aa3da6",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/durable-operations/spec.md",
+      "baseline_blake3": "284a74b75128d3a5407184efb5318b93d0420348da65e7ac101e7eb04f1ed472",
+      "qualified_blake3": "284a74b75128d3a5407184efb5318b93d0420348da65e7ac101e7eb04f1ed472",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/git-source-adapter/spec.md",
+      "baseline_blake3": "86fd09d022be432b94a3cf93b2bd41285c5140fe969434882f89779af9b0e9d8",
+      "qualified_blake3": "86fd09d022be432b94a3cf93b2bd41285c5140fe969434882f89779af9b0e9d8",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/github-ci/spec.md",
+      "baseline_blake3": "0b7365eaef4e45f0fd984bf97c56527817bc658d926daa38ba1fb8697888d574",
+      "qualified_blake3": "0b7365eaef4e45f0fd984bf97c56527817bc658d926daa38ba1fb8697888d574",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/interchange-projections/spec.md",
+      "baseline_blake3": "56251b3980b65818889f818604035efd215a3ba43f7f9468f8ed95f46dd432a4",
+      "qualified_blake3": "56251b3980b65818889f818604035efd215a3ba43f7f9468f8ed95f46dd432a4",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/lattice-workflow-adapter/spec.md",
+      "baseline_blake3": "a4342d4f4ced27274a39ba7739e8976cda61922b2b624253b009659c7b177c2e",
+      "qualified_blake3": "a4342d4f4ced27274a39ba7739e8976cda61922b2b624253b009659c7b177c2e",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/mantle-build-adapter/spec.md",
+      "baseline_blake3": "e5bd98f902c7bf12fb0841631bed21263211881ba9d142e6293551b767117d48",
+      "qualified_blake3": "e5bd98f902c7bf12fb0841631bed21263211881ba9d142e6293551b767117d48",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/nix-eval-jobs-adapter/spec.md",
+      "baseline_blake3": "f98c360ba0cb9d30a88e8d6e85c2a49c42b2bca2ab060852ed0b99704a109833",
+      "qualified_blake3": "f98c360ba0cb9d30a88e8d6e85c2a49c42b2bca2ab060852ed0b99704a109833",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/opentelemetry-projection-adapter/spec.md",
+      "baseline_blake3": "cd58ce77058bbc8ee92e1c56655d3d5192451e91b0c13a10afbeadb1913d0f0c",
+      "qualified_blake3": "cd58ce77058bbc8ee92e1c56655d3d5192451e91b0c13a10afbeadb1913d0f0c",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/provider-ports/spec.md",
+      "baseline_blake3": "4f29a7d2caabc11166588a1204e608dd7219c49184061d05f45ccba9fc88480c",
+      "qualified_blake3": "4f29a7d2caabc11166588a1204e608dd7219c49184061d05f45ccba9fc88480c",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/radicle-ci-compatibility/spec.md",
+      "baseline_blake3": "e1f98b454947e00f8d41079a6c7e5de4e344129f198b7fa2b06cad57ed3da337",
+      "qualified_blake3": "e1f98b454947e00f8d41079a6c7e5de4e344129f198b7fa2b06cad57ed3da337",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/radicle-cob-support/spec.md",
+      "baseline_blake3": "a2c0656c5f38d5fc16e24cabefa05b8590117e85692180e4fdc193e6eef6c6dc",
+      "qualified_blake3": "a2c0656c5f38d5fc16e24cabefa05b8590117e85692180e4fdc193e6eef6c6dc",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/radicle-mutation/spec.md",
+      "baseline_blake3": "7493b7241a76873ad4879f6d226054feabdd23f811c778cfc24b9df5ad829137",
+      "qualified_blake3": "7493b7241a76873ad4879f6d226054feabdd23f811c778cfc24b9df5ad829137",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/radicle-source-contract/spec.md",
+      "baseline_blake3": "a86ac36dfa32068535d32c7deb45d9343090f4824699e30bf2e3d6aacda709fa",
+      "qualified_blake3": "a86ac36dfa32068535d32c7deb45d9343090f4824699e30bf2e3d6aacda709fa",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/radicle-status/spec.md",
+      "baseline_blake3": "fc07fbbf43c9732886b9a68cd30faea45603e5584baa45817977f4e9ad638683",
+      "qualified_blake3": "fc07fbbf43c9732886b9a68cd30faea45603e5584baa45817977f4e9ad638683",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/remote-execution-compatibility/spec.md",
+      "baseline_blake3": "250ff5f4acdb89c6bcea1765791ee26a0f81d8338dfa08b16d3f2a31a6976a56",
+      "qualified_blake3": "250ff5f4acdb89c6bcea1765791ee26a0f81d8338dfa08b16d3f2a31a6976a56",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/repository-hosting/spec.md",
+      "baseline_blake3": "16810e237ed6b3ffff5f54a6d522123556cc1ff187065d00c0626f065cad258a",
+      "qualified_blake3": "16810e237ed6b3ffff5f54a6d522123556cc1ff187065d00c0626f065cad258a",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/repository-lifecycle/spec.md",
+      "baseline_blake3": "2a607b69d40d94fa4dd5b992c289c4ce8afecc9a6dad59d6ed94d76e479760ce",
+      "qualified_blake3": "2a607b69d40d94fa4dd5b992c289c4ce8afecc9a6dad59d6ed94d76e479760ce",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/source-collaboration/spec.md",
+      "baseline_blake3": "0c3e0842c7b8b2150ec2e2fcaf887dbd8e970997c9d36b7d8087532e47cebba8",
+      "qualified_blake3": "0c3e0842c7b8b2150ec2e2fcaf887dbd8e970997c9d36b7d8087532e47cebba8",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/sqlite-event-store-adapter/spec.md",
+      "baseline_blake3": "ac73c9ba8446a0d814b3decf814ef36f2ffb6e771a288c0d75143182237a0458",
+      "qualified_blake3": "ac73c9ba8446a0d814b3decf814ef36f2ffb6e771a288c0d75143182237a0458",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/task-operations/spec.md",
+      "baseline_blake3": "35f466529b9a13e50be3838522d14b2ed6b9ed4d5ed9a8c8f4258bd9f81711ad",
+      "qualified_blake3": "35f466529b9a13e50be3838522d14b2ed6b9ed4d5ed9a8c8f4258bd9f81711ad",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/valence-evidence-adapter/spec.md",
+      "baseline_blake3": "89c184f783c6a0e1f8141813be1bafbf270206b4632ed3fe27e3082d2479fe17",
+      "qualified_blake3": "89c184f783c6a0e1f8141813be1bafbf270206b4632ed3fe27e3082d2479fe17",
+      "unchanged": true
+    },
+    {
+      "path": ".cairn/specs/webhook-notification-adapter/spec.md",
+      "baseline_blake3": "c5281b214ee44f23ea1d7c7d45ad5bc4068485a2455ee264437c87ad6081a1e0",
+      "qualified_blake3": "c5281b214ee44f23ea1d7c7d45ad5bc4068485a2455ee264437c87ad6081a1e0",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/PROVENANCE.md",
+      "baseline_blake3": "960486859dde06bd992d9bd0056c03d645e995aeb684d5f1e0585455f2685683",
+      "qualified_blake3": "960486859dde06bd992d9bd0056c03d645e995aeb684d5f1e0585455f2685683",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/contracts.ncl",
+      "baseline_blake3": "bc537dc32ff01fc9004dc032b78ad6fb5855c5c6f0158ecda219d5912b46619c",
+      "qualified_blake3": "bc537dc32ff01fc9004dc032b78ad6fb5855c5c6f0158ecda219d5912b46619c",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/default.ncl",
+      "baseline_blake3": "e055da0466e269d27c8b9d48a2ca5474bb6ae0c4813d906cfe5b5194274df0f6",
+      "qualified_blake3": "e055da0466e269d27c8b9d48a2ca5474bb6ae0c4813d906cfe5b5194274df0f6",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/fixtures/invalid-traceability-inventory.ncl",
+      "baseline_blake3": "29148a4cf7bf37e804e8a24a374483ba0e356e9b08acfc9a5c6644983f51f377",
+      "qualified_blake3": "29148a4cf7bf37e804e8a24a374483ba0e356e9b08acfc9a5c6644983f51f377",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/fixtures/invalid-traceability-negative-missing-count.ncl",
+      "baseline_blake3": "9840c7b9204e52992e17861f0602401b4f31beeabda334d58690dc819c4c9b50",
+      "qualified_blake3": "9840c7b9204e52992e17861f0602401b4f31beeabda334d58690dc819c4c9b50",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/fixtures/invalid-traceability-source-root.ncl",
+      "baseline_blake3": "1904b281cb7ccc4f102270164c31fd6e27e17fd81d0de6378c95fb6c2dd2c1e5",
+      "qualified_blake3": "1904b281cb7ccc4f102270164c31fd6e27e17fd81d0de6378c95fb6c2dd2c1e5",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/fixtures/negative-missing-outcome-profile.ncl",
+      "baseline_blake3": "883155305d4b0e41e722376e16cd4eb239e9bf7c48a62f59f4594cd406a1d612",
+      "qualified_blake3": "883155305d4b0e41e722376e16cd4eb239e9bf7c48a62f59f4594cd406a1d612",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/generated/cairn-policy.json",
+      "baseline_blake3": "1efab3566e5c9ed96855a94acca7790ae140e380a1e220430cc8ba2f2ccb2a8e",
+      "qualified_blake3": "1efab3566e5c9ed96855a94acca7790ae140e380a1e220430cc8ba2f2ccb2a8e",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/lifecycle-store-contracts.ncl",
+      "baseline_blake3": "cfa0842a93d34d87db473c5f3a26b2e6b8285bf4d0fffc6bc9ffc54c77f32b99",
+      "qualified_blake3": "cfa0842a93d34d87db473c5f3a26b2e6b8285bf4d0fffc6bc9ffc54c77f32b99",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/nominal-evidence-identities.ncl",
+      "baseline_blake3": "6e4798683072695e0c06feb2ceac31d9aa9fa74f6821c048c875dfe5b4c92b6c",
+      "qualified_blake3": "6e4798683072695e0c06feb2ceac31d9aa9fa74f6821c048c875dfe5b4c92b6c",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/traceability-inventory-contracts.ncl",
+      "baseline_blake3": "376943ec416488c93f98eec28afcfc7b103f2fa873a3408e61ce5407a0be75fe",
+      "qualified_blake3": "376943ec416488c93f98eec28afcfc7b103f2fa873a3408e61ce5407a0be75fe",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/traceability-inventory.ncl",
+      "baseline_blake3": "6e19ace0694f60af2a19245f927856f0190ca120a7c823045574c8a910ff3a3c",
+      "qualified_blake3": "6e19ace0694f60af2a19245f927856f0190ca120a7c823045574c8a910ff3a3c",
+      "unchanged": true
+    },
+    {
+      "path": "cairn-policy/upstream-default.ncl",
+      "baseline_blake3": "c3b5981d71789b04ff3a7567a84a7b1df29b5703dcb3a65e664143713e77a97e",
+      "qualified_blake3": "c3b5981d71789b04ff3a7567a84a7b1df29b5703dcb3a65e664143713e77a97e",
+      "unchanged": true
+    }
+  ]
+}

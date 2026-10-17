@@ -1,0 +1,4 @@
+run_details 0 {"run_id":0,"nodes":[{"node_id":0,"node_label":"digest source","status":"Failed","cached":false,"outputs":[],"error":"effect dispatch failed: AdapterRejected"}],"observed_completion_order":[0]}
+run_details 1 {"run_id":1,"nodes":[{"node_id":0,"node_label":"digest source","status":"Failed","cached":false,"outputs":[],"error":"effect dispatch failed: AdapterRejected"}],"observed_completion_order":[0]}
+runs 0 {"run_id":0,"owner":{"kind":"unscoped"},"workflow_name":"kiln-host-qualification","started_epoch_ms":1792209982200,"finished_epoch_ms":1792209982208,"node_count":1,"cache_hits":0,"failures":1}
+runs 1 {"run_id":1,"owner":{"kind":"unscoped"},"workflow_name":"kiln-host-qualification","started_epoch_ms":1792210416069,"finished_epoch_ms":1792210416084,"node_count":1,"cache_hits":0,"failures":1}

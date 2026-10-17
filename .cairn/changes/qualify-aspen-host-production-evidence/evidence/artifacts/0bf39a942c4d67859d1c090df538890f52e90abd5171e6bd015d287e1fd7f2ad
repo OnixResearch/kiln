@@ -1,0 +1,40 @@
+use std::path::PathBuf;
+use std::time::Duration;
+
+use kiln_adapter_aspen::profile::{AspenRuntimeProfileDocument, admit_profile};
+use kiln_adapter_aspen::transport::{AspenServiceIngress, AspenServiceTransport, IngressSource, UnixAspenServiceTransport, build_ingress};
+use kiln_adapter_lattice::lower_request;
+use kiln_adapter_radicle::{RadicleShellConfig, admit_config, plan_trigger};
+use kiln_provider_api::TriggerRequest;
+
+const TRANSPORT_TIMEOUT_MILLISECONDS: u64 = 30_000;
+
+fn load<T: serde::de::DeserializeOwned>(path: &str) -> Result<T, Box<dyn std::error::Error>> {
+    Ok(serde_json::from_slice(&std::fs::read(path)?)?)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let arguments: Vec<_> = std::env::args().collect();
+    let document: AspenRuntimeProfileDocument = load(&arguments[2])?;
+    let runtime_profile = document.into_runtime_profile().map_err(|error| format!("{error:?}"))?;
+    let profile = admit_profile(&runtime_profile).map_err(|error| format!("{error:?}"))?;
+    match arguments[1].as_str() {
+        "prepare" => {
+            let config: RadicleShellConfig = load(&arguments[3])?;
+            let admitted = admit_config(config).map_err(|error| format!("{error:?}"))?;
+            let trigger: TriggerRequest = load(&arguments[4])?;
+            let ingress = build_ingress(&profile, IngressSource::Operator, trigger.clone()).map_err(|error| format!("{error:?}"))?;
+            let plan = plan_trigger(&admitted.shell, trigger).map_err(|error| format!("{error:?}"))?.plan;
+            let request = lower_request(&admitted.lattice, &plan).map_err(|error| format!("{error:?}"))?;
+            println!("{}", serde_json::json!({"ingress": ingress, "request": request, "contract": admitted.lattice.contract, "transport": admitted.transport, "aspen_profile_identity": profile.profile_identity}));
+        }
+        "submit" | "reconcile" => {
+            let ingress: AspenServiceIngress = load(&arguments[4])?;
+            let mut client = UnixAspenServiceTransport::new(PathBuf::from(&arguments[3]), profile.profile.bounds.max_callback_input_bytes, Duration::from_millis(TRANSPORT_TIMEOUT_MILLISECONDS))?;
+            let outcome = if arguments[1] == "submit" { client.submit(&profile, &ingress) } else { client.reconcile(&profile, &ingress.operation_id) };
+            println!("{}", serde_json::to_string(&outcome)?);
+        }
+        _ => return Err("expected prepare, submit or reconcile".into()),
+    }
+    Ok(())
+}

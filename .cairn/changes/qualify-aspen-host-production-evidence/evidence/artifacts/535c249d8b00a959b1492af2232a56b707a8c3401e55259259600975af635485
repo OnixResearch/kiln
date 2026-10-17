@@ -1,0 +1,150 @@
+{
+  "schema": "kiln.qualification-actual-invocation.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "scope": "separately declared clean isolated actual Lattice/Nix case, not the earlier quarantined state",
+  "initial_host_argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+    "--aspen-profile",
+    "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+    "--radicle-profile",
+    "/var/tmp/kiln-qualification.BEA91plo/radicle-profile.json",
+    "--socket",
+    "/var/tmp/kiln-qualification.BEA91plo/host-verified.sock",
+    "--extension",
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+    "--state-root",
+    "/var/tmp/kiln-qualification.BEA91plo/host-state-verified",
+    "--max-requests",
+    "8",
+    "--timeout-ms",
+    "30000",
+    "--poll-interval-ms",
+    "50"
+  ],
+  "restart_host_argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+    "--aspen-profile",
+    "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+    "--radicle-profile",
+    "/var/tmp/kiln-qualification.BEA91plo/radicle-profile.json",
+    "--socket",
+    "/var/tmp/kiln-qualification.BEA91plo/host-verified.sock",
+    "--extension",
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+    "--state-root",
+    "/var/tmp/kiln-qualification.BEA91plo/host-state-verified",
+    "--max-requests",
+    "2",
+    "--timeout-ms",
+    "30000",
+    "--poll-interval-ms",
+    "50"
+  ],
+  "lattice_argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/bwrap-root/bin/bwrap",
+    "--ro-bind",
+    "/",
+    "/",
+    "--dev-bind",
+    "/dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-qualification.BEA91plo",
+    "/var/tmp/kiln-qualification.BEA91plo",
+    "--bind",
+    "/var/tmp/kiln-qualification.BEA91plo/lattice-tmp",
+    "/tmp",
+    "--die-with-parent",
+    "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+    "--config",
+    "/var/tmp/kiln-qualification.BEA91plo/lattice-config.ncl",
+    "workflow-exchange",
+    "serve",
+    "--profile",
+    "/var/tmp/kiln-qualification.BEA91plo/lattice-handler.ncl"
+  ],
+  "lattice_environment": {
+    "PATH": "/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin"
+  },
+  "submit_argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+    "submit",
+    "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+    "/var/tmp/kiln-qualification.BEA91plo/host-verified.sock",
+    "/var/tmp/kiln-qualification.BEA91plo/ingress-verified.json"
+  ],
+  "reconcile_argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+    "reconcile",
+    "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+    "/var/tmp/kiln-qualification.BEA91plo/host-verified.sock",
+    "/var/tmp/kiln-qualification.BEA91plo/ingress-verified.json"
+  ],
+  "crash_argv": [
+    "/run/current-system/sw/bin/kill",
+    "-KILL",
+    "1211344"
+  ],
+  "state_root": "/var/tmp/kiln-qualification.BEA91plo/host-state-verified",
+  "provider_stopped_before_duplicate_and_restart": true,
+  "bounds": {
+    "initial_maximum_requests": 8,
+    "restart_maximum_requests": 2,
+    "host_timeout_milliseconds": 30000,
+    "host_poll_interval_milliseconds": 50,
+    "provider_timeout_milliseconds": 10000,
+    "provider_teardown_milliseconds": 2000,
+    "provider_stdout_bytes": 65536,
+    "provider_stderr_bytes": 65536
+  },
+  "inputs": [
+    {
+      "name": "actual-runtime-profile.json",
+      "blake3": "a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0",
+      "bytes": 4974,
+      "path": "artifacts/a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0"
+    },
+    {
+      "name": "actual-collaboration-profile.json",
+      "blake3": "8821785d87543f0cc054ff56d3a8680736de33148afbe22ba8cce7b9ccb01c5f",
+      "bytes": 2206,
+      "path": "artifacts/8821785d87543f0cc054ff56d3a8680736de33148afbe22ba8cce7b9ccb01c5f"
+    },
+    {
+      "name": "actual-provider-profile.json",
+      "blake3": "a8dce6f91e681974d099b3558b6f6464a044c1b642f17b1ecf54d9c347f5c7a3",
+      "bytes": 1581,
+      "path": "artifacts/a8dce6f91e681974d099b3558b6f6464a044c1b642f17b1ecf54d9c347f5c7a3"
+    },
+    {
+      "name": "actual-provider-wrapper",
+      "blake3": "c2f6d0ac73927a63fd34757377189f5ab3436948a55674f67a8dd474d8a6a6aa",
+      "bytes": 585,
+      "path": "artifacts/c2f6d0ac73927a63fd34757377189f5ab3436948a55674f67a8dd474d8a6a6aa"
+    },
+    {
+      "name": "actual-workflow-exchange-handler.ncl",
+      "blake3": "003f6de54720ec9f9f67115b71576b2c9fe627f73a5230d90b1560f7cf77ba2e",
+      "bytes": 1760,
+      "path": "artifacts/003f6de54720ec9f9f67115b71576b2c9fe627f73a5230d90b1560f7cf77ba2e"
+    },
+    {
+      "name": "actual-workflow-exchange-handler.json",
+      "blake3": "94a3e38299c6535f1493bb20baaf7827b7a8b0fa44cd994eec9839ab13d32da0",
+      "bytes": 1878,
+      "path": "artifacts/94a3e38299c6535f1493bb20baaf7827b7a8b0fa44cd994eec9839ab13d32da0"
+    },
+    {
+      "name": "actual-canonical-saved-workflow.ncl",
+      "blake3": "dd26a74d4d8b453cff63799e1d6e0b2477c0886b1cda32ebd3aa6504afe53a71",
+      "bytes": 8184,
+      "path": "artifacts/dd26a74d4d8b453cff63799e1d6e0b2477c0886b1cda32ebd3aa6504afe53a71"
+    },
+    {
+      "name": "actual-ingress-verified.json",
+      "blake3": "a04e5419478caf568515503e35786b3867e3a7315f13ca2c5edd21b6bbbcdac9",
+      "bytes": 1614,
+      "path": "artifacts/a04e5419478caf568515503e35786b3867e3a7315f13ca2c5edd21b6bbbcdac9"
+    }
+  ]
+}

@@ -80,6 +80,29 @@ nix build path:$PWD#checks.x86_64-linux.kiln-aspen-host-octet-deny-all --no-link
 
 The package check runs all-target and all-feature tests. Positive tests bind the host profile into extension argv, route one real Aspen-hosted callback through Lattice, restart from durable state, replay exact acknowledgements, and reconcile accepted uncertainty without dispatch. Negative tests deny bad admission and reject missing, changed, truncated, corrupt, or identity-mismatched state and profile input.
 
+## Exact-cohort qualification
+
+Kiln maintainers own the repeatable local qualification rail for the Aspen/Lattice CI host. From the Kiln repository root, the receipt consumer is:
+
+```console
+cargo run --locked -p kiln-cli -- host-qualify COHORT_JSON RECEIPT_JSON ARTIFACT_ROOT
+```
+
+`COHORT_JSON` is the operator's expected `HostQualificationCohort`: the exact source revision and BLAKE3 identities of the source archive, host/extension/provider executables, runtime/collaboration/provider profiles, host identity and publication binding. Its original JSON bytes determine the cohort identity. A publication binding must distinguish a published revision from changed, unpublished candidate inputs; an older publication cannot qualify new executable bytes.
+
+The version-1 receipt must claim only `bounded_local_host` and contain each of these observations exactly once, with the expected cohort identity and a `passed` verdict:
+
+- `durability`, `uncertain_recovery`, `corruption`, `provider_teardown`, `finite_load`, `backup_restore`, `rollback`, `authority`, `publication`;
+- `host_gate`, `provider_gate`, `clippy_gate`, `octet_gate`, `workspace_gate`, `no_std_gate`, `nickel_gate`, `nix_gate`, `lifecycle_gate`.
+
+Every observation names a retained artifact by its 64-hex BLAKE3 digest. Place those exact bytes at `ARTIFACT_ROOT/DIGEST`; the consumer verifies each distinct artifact before admission. Cohort, receipt and individual artifact inputs are each bounded to 4 MiB. Missing, failed, uncertain, duplicate, stale or mixed-cohort observations and stronger claims are rejected.
+
+The consumer checks supplied consistency and retained bytes, not whether a declared observation is true. Operators must review the actual commands, outputs, executable/profile identities, bounds and publication status. Admission supplies no publication, release, deployment or credential authority.
+
+The all-feature native host drills launch actual child hosts and Aspen extension processes, retain exact acknowledgement replay and provider-command counts, and exercise SIGKILL recovery, persistent uncertainty, five damaged-state cases, four-operation finite load, complete quiescent backup/restore and explicit restoration of the prior executable/profile/state cohort. Their Lattice terminal handler is an explicitly closed transport fixture, not real workflow execution; real Lattice/provider observations remain separately identified. Successful Nix package checks retain the JSON observations with `--nocapture`. Test-only `KILN_ASPEN_HOST_QUALIFICATION_EXECUTABLE` and `KILN_ASPEN_HOST_QUALIFICATION_EXTENSION` overrides select absolute frozen executables and record their actual identities.
+
+The [current source-bound observations](../../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md) retain the actual commands, frozen executable identities, native per-case profile bytes, positive and negative process results, and receipt-consumer outcomes. The cohort's host-input binding enumerates those profile variants explicitly; a closed-transport drill is not relabeled as execution of the separately recorded real Lattice/Nix profile. The primary profile fields name that actual isolated service configuration, not an approval of an operator deployment.
+
 ## Non-claims
 
 The host proves only bounded local process and machine-local persistence facts for the exact reviewed cohort. It does not prove production availability, workflow correctness, CI correctness, host sandboxing, global durability, storage-device persistence, credential freshness, external effect truth, distributed exactly-once execution, or release eligibility.

@@ -17,6 +17,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - packed Preserves and BLAKE3 canonical identity;
 - an exact Aspen/Molten runtime profile, atomic event-store mapping, bounded content and callback contracts, and fail-closed ingress;
 - a standalone `kiln-aspen-host` composition shell that runs the real Aspen native service and concrete Lattice effect adapter;
+- exact-cohort host qualification receipt admission, retained-artifact identity checks, and stronger-claim rejection;
 - a standalone `kiln-radicle-nix-provider` shell for bounded checks and durable reports under Lattice;
 - Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - authenticated GitHub push/PR intake, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;

@@ -6,6 +6,8 @@
 )]
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use kiln_radicle_nix_provider::{
     HostedProviderRequest, execute_hosted_nix_provider, load_hosted_provider_profile,
@@ -82,12 +84,19 @@ fn run() -> Result<bool, String> {
     let arguments = parse_arguments().map_err(str::to_string)?;
     let profile =
         load_hosted_provider_profile(&arguments.profile).map_err(|error| error.to_string())?;
+    let cancellation = Arc::new(AtomicBool::new(false));
+    for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+        signal_hook::flag::register(signal, Arc::clone(&cancellation)).map_err(|error| {
+            format!("provider cancellation handler registration failed: {error}")
+        })?;
+    }
     let receipt = execute_hosted_nix_provider(
         &profile,
         &HostedProviderRequest {
             repository: arguments.repository,
             revision: arguments.revision,
         },
+        &cancellation,
     )
     .map_err(|error| error.to_string())?;
     let bytes = serde_json::to_vec(&receipt).map_err(|_| "provider receipt encoding failed")?;

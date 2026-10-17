@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "rollback",
+  "verdict": "passed",
+  "scope": "explicit fixture-owned prior/candidate executable-profile-state cohorts; no deployed release rollback",
+  "observed": "Mixed profile/executable and old-profile-on-candidate-state transitions rejected; separately admitted candidate ran against fresh state; explicit prior executable/profile/quiescent-state restoration replayed the original full acknowledgement.",
+  "bounds": {
+    "native_child_deadline_seconds": 15,
+    "prior_callback_timeout_milliseconds": 30000,
+    "candidate_callback_timeout_milliseconds": 30001
+  },
+  "artifacts": [
+    {
+      "name": "host-complete-native-tests-final.log",
+      "blake3": "5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68",
+      "bytes": 280705,
+      "path": "artifacts/5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "kiln.qualification-native-octet-availability.v1",
+  "scope": "availability and producer identity only; no selected Octet gate ran",
+  "installed_executable": "/nix/store/x4a5p5vnvkj8jchi6lprm27xy9lk0zkj-cargo-octet-0.1.0/bin/cargo-octet",
+  "installed_executable_blake3": "64e519cef956686326c7c48e9969d2563ed34177be4b8fe33e77b650d477a1f0",
+  "installed_source": "/nix/store/fmnq5i0razc5bdmncvfw331lh047100g-source",
+  "installed_source_nar": "sha256-UcrUoc9SYFY1/EaAozCT2V7h/fbF3RmUE89ewS/NgAM=",
+  "required_revision": "cf04e894e53eb0947230118a086ef6066ddba38c",
+  "required_source_nar": "sha256-WMNrQL7l+LIabv5k4ekcN5Su5rXnaCYYyzzkNF2+NP0=",
+  "producer_identity_matches": false,
+  "decision": "do not substitute a different installed producer for the required exact-cohort Nix/Octet checks"
+}

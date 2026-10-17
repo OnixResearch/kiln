@@ -1,0 +1,122 @@
+{
+  "schema": "kiln.qualification-consumer-smoke.v1",
+  "scope": "Actual CLI admission and rejection behavior over explicitly synthetic format fixtures, NOT production-host qualification",
+  "executable": "/var/tmp/kiln-qualification.BEA91plo/root-target/debug/kiln",
+  "executable_blake3": "802506bb2e0ba68d6f4de0494fbfc26537f1804d13290bce60424bf781eff9cf",
+  "cases": [
+    {
+      "name": "complete-format-fixture",
+      "exit_code": 0,
+      "stdout": "{\"claim\":\"bounded_local_host\",\"cohort\":\"d328f867260a11bc4c248fad1c4c5e4492f09641190c92559af699083809aa4f\",\"non_claims\":[\"admission checks supplied observation consistency and retained artifact identity, not observation truth\",\"machine-local evidence does not prove global durability or exactly-once delivery\",\"admission does not prove CI correctness, provider truth, host sandboxing or availability\",\"admission supplies no publication, release, deployment or credential authority\"],\"receipt\":\"8a2b4ec2953f54205ba8f9452364ce0680c52a080353e65a5074012274b2f917\",\"result\":\"admitted\",\"schema\":\"kiln.host-qualification-admission.v1\",\"verified_artifacts\":18}\n",
+      "stderr": ""
+    },
+    {
+      "name": "missing-case",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_incomplete: all required execution and gate observations must occur exactly once\n"
+    },
+    {
+      "name": "duplicate-cannot-replace-required-case",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_duplicate: a duplicate observation cannot replace a missing qualification case\n"
+    },
+    {
+      "name": "failed-case",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_gate_not_passed: failed or uncertain observations cannot qualify a host\n"
+    },
+    {
+      "name": "unknown-case",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_gate_not_passed: failed or uncertain observations cannot qualify a host\n"
+    },
+    {
+      "name": "stale-cohort",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_cohort_mismatch: receipt does not identify the exact expected cohort document\n"
+    },
+    {
+      "name": "mixed-cohort",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_mixed_cohort: an observation belongs to another cohort\n"
+    },
+    {
+      "name": "stronger-claim-global_durability",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "stronger-claim-exactly_once_delivery",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "stronger-claim-ci_correctness",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "stronger-claim-provider_truth",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "stronger-claim-host_sandboxing",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "stronger-claim-availability",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "stronger-claim-release_eligibility",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "stronger-claim-deployment_authority",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+    },
+    {
+      "name": "tampered-artifact",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification artifact bytes differ from their exact identity\n"
+    },
+    {
+      "name": "missing-artifact",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification input open failed: No such file or directory (os error 2)\n"
+    },
+    {
+      "name": "excess-arguments",
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT\n"
+    },
+    {
+      "name": "oversized-cohort",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification input exceeds the canonical byte bound\n"
+    }
+  ]
+}

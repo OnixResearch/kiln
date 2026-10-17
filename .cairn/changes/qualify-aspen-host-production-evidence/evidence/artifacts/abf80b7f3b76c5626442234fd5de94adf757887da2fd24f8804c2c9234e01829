@@ -1,0 +1,236 @@
+Script started on 2026-10-17 01:26:59-04:00 [COMMAND="'systemd-run' '--user' '--scope' '--collect' '--unit=kiln-qualification-nix-native-BEA91plo' '--property=Delegate=yes' '--' '/var/tmp/kiln-qualification.BEA91plo/bwrap-root/bin/bwrap' '--ro-bind' '/' '/' '--dev-bind' '/dev' '/dev' '--bind' '/var/tmp/kiln-qualification.BEA91plo' '/var/tmp/kiln-qualification.BEA91plo' '--bind' '/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store' '/nix/store' '--bind' '/sys/fs/cgroup' '/sys/fs/cgroup' '--bind' '/var/tmp/kiln-qualification.BEA91plo/retained' '/tmp' '--die-with-parent' '--setenv' 'PATH' '/nix/store/6rwk5j1qqk7na4la5m2ka34p734braxa-nix-2.36.0/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/ggcm0s524bsly3qc7kww945qs7003psf-openssh-10.5p1/bin:/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin' '--setenv' 'TMPDIR' '/tmp' '--setenv' 'XDG_CACHE_HOME' '/var/tmp/kiln-qualification.BEA91plo/nix-cache' '--setenv' 'GIT_TERMINAL_PROMPT' '0' '--setenv' 'GIT_SSH_COMMAND' 'ssh -oBatchMode=yes -oConnectTimeout=15 -oConnectionAttempts=1' '--setenv' 'NIX_CONF_DIR' '/var/tmp/kiln-qualification.BEA91plo/native-nix-config' '--setenv' 'NIX_SSL_CERT_FILE' '/nix/store/glfrj1lg16mcgyhn5pjyng197idbr72z-nss-cacert-3.126/etc/ssl/certs/ca-bundle.crt' '/nix/store/6rwk5j1qqk7na4la5m2ka34p734braxa-nix-2.36.0/bin/nix' 'flake' 'check' '--store' '/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root' '--option' 'build-users-group' '' '--option' 'sandbox' 'true' '--option' 'builders' '' '--option' 'use-cgroups' 'true' '--extra-substituters' 'daemon?trusted=true&priority=0' '--max-jobs' '2' '--cores' '8' 'path:/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source' '--no-write-lock-file' '--keep-going' '-L'" <not executed on terminal>]
+Running as unit: kiln-qualification-nix-native-BEA91plo.scope; invocation ID: 69d23f53b0c844d1936f075f4a6c0a6f
+evaluating flake...
+checking flake output 'packages'...
+checking derivation packages.x86_64-linux.kiln...
+derivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv
+checking derivation packages.x86_64-linux.kiln-aspen-host...
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/onix-artifact.git'; using expired cached ref 'refs/heads/main'
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/basalt.git'; using expired cached ref 'refs/heads/main'
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/cairn.git'; using expired cached ref 'refs/heads/main'
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/kamacite.git'; using expired cached ref 'refs/heads/main'
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/lattice.git'; using expired cached ref 'refs/heads/main'
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/ucan.git'; using expired cached ref 'refs/heads/main'
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/valence.git'; using expired cached ref 'refs/heads/main'
+derivation evaluated to /nix/store/j44l17y0zfhwdar89vm9c5b26x80jxnn-kiln-aspen-host-0.1.0.drv
+checking derivation packages.x86_64-linux.kiln-radicle-nix-provider...
+derivation evaluated to /nix/store/z2xb15m69a4s9pk4wf3zk8k4mw3l2v24-kiln-radicle-nix-provider-0.1.0.drv
+checking derivation packages.x86_64-linux.celld-cohort...
+derivation evaluated to /nix/store/xd010q9j4bi89ya4xczsa8sgylzn15pq-celld-v0.2.1.drv
+checking derivation packages.x86_64-linux.pijul-cohort-fixture-producer...
+derivation evaluated to /nix/store/079qfghzrcddfanpw2ckfbzkgrvfjwff-pijul-1.0.0-beta.11.drv
+checking derivation packages.x86_64-linux.secretspec-cohort...
+derivation evaluated to /nix/store/8kn79z9ka4jqsj76f23lzrlxl7iq0jlg-secretspec-0.19.0.drv
+checking derivation packages.x86_64-linux.default...
+derivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv
+checking flake output 'apps'...
+checking app 'apps.x86_64-linux.kiln'...
+checking app 'apps.x86_64-linux.default'...
+checking app 'apps.x86_64-linux.kiln-adapter-github'...
+checking app 'apps.x86_64-linux.kiln-github-job'...
+checking flake output 'checks'...
+checking derivation checks.x86_64-linux.package...
+derivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv
+checking derivation checks.x86_64-linux.tests...
+derivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv
+checking derivation checks.x86_64-linux.boundaries...
+derivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv
+checking derivation checks.x86_64-linux.runtime-independence...
+derivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv
+checking derivation checks.x86_64-linux.format...
+derivation evaluated to /nix/store/g2ca6md8kbl417crijqqxxqn5l4zfhvn-kiln-format.drv
+checking derivation checks.x86_64-linux.clippy...
+derivation evaluated to /nix/store/fvrslfbhdz6wqrwxrsz05vf6j129x6ja-kiln-clippy-0.1.0.drv
+checking derivation checks.x86_64-linux.github-protocol-fixtures...
+derivation evaluated to /nix/store/qiidh9rig96anpqbfv5wwfb1i75j9rv1-kiln-github-protocol-fixtures-0.1.0.drv
+checking derivation checks.x86_64-linux.nickel...
+derivation evaluated to /nix/store/m0k1zpdnnhiqc4r7ppygv7xvb54b4mj4-kiln-nickel.drv
+checking derivation checks.x86_64-linux.kiln-radicle-nix-provider-package...
+derivation evaluated to /nix/store/z2xb15m69a4s9pk4wf3zk8k4mw3l2v24-kiln-radicle-nix-provider-0.1.0.drv
+checking derivation checks.x86_64-linux.kiln-radicle-nix-provider-octet-deny-all...
+copying path '/nix/store/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2-source' to 'local'...
+error: opening file "/nix/store/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2-source": No such file or directory
+warning: unable to download 'https://cache.nixos.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.nixos.org; retrying in 65 ms (attempt 1/5)
+warning: unable to download 'https://cache.nixos.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.nixos.org; retrying in 85 ms (attempt 2/5)
+warning: unable to download 'https://cache.nixos.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.nixos.org; retrying in 47 ms (attempt 3/5)
+warning: unable to download 'https://cache.nixos.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.nixos.org; retrying in 146 ms (attempt 4/5)
+disabling binary cache 'https://cache.nixos.org' for 60 seconds
+error: unable to download 'https://cache.nixos.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.nixos.org
+warning: unable to download 'https://devenv.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: devenv.cachix.org; retrying in 70 ms (attempt 1/5)
+warning: unable to download 'https://devenv.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: devenv.cachix.org; retrying in 163 ms (attempt 2/5)
+warning: unable to download 'https://devenv.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: devenv.cachix.org; retrying in 338 ms (attempt 3/5)
+warning: unable to download 'https://devenv.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: devenv.cachix.org; retrying in 563 ms (attempt 4/5)
+disabling binary cache 'https://devenv.cachix.org' for 60 seconds
+error: unable to download 'https://devenv.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: devenv.cachix.org
+warning: unable to download 'https://nix-community.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: nix-community.cachix.org; retrying in 82 ms (attempt 1/5)
+warning: unable to download 'https://nix-community.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: nix-community.cachix.org; retrying in 28 ms (attempt 2/5)
+warning: unable to download 'https://nix-community.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: nix-community.cachix.org; retrying in 236 ms (attempt 3/5)
+warning: unable to download 'https://nix-community.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: nix-community.cachix.org; retrying in 608 ms (attempt 4/5)
+disabling binary cache 'https://nix-community.cachix.org' for 60 seconds
+error: unable to download 'https://nix-community.cachix.org/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: nix-community.cachix.org
+warning: unable to download 'https://cache.dataaturservice.se/spectrum/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.dataaturservice.se; retrying in 43 ms (attempt 1/5)
+warning: unable to download 'https://cache.dataaturservice.se/spectrum/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.dataaturservice.se; retrying in 44 ms (attempt 2/5)
+warning: unable to download 'https://cache.dataaturservice.se/spectrum/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.dataaturservice.se; retrying in 111 ms (attempt 3/5)
+warning: unable to download 'https://cache.dataaturservice.se/spectrum/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.dataaturservice.se; retrying in 414 ms (attempt 4/5)
+disabling binary cache 'https://cache.dataaturservice.se/spectrum' for 60 seconds
+error: unable to download 'https://cache.dataaturservice.se/spectrum/4yg5rl54ywmp8adzinfrd2bx5bzpf0n2.narinfo': Could not resolve hostname (6) Could not resolve host: cache.dataaturservice.se
+unpacking 'github:OnixResearch/octet/cf04e894e53eb0947230118a086ef6066ddba38c?narHash=sha256-WMNrQL7l%2BLIabv5k4ekcN5Su5rXnaCYYyzzkNF2%2BNP0%3D' into the Git cache...
+warning: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com; retrying in 98 ms (attempt 1/5)
+warning: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com; retrying in 198 ms (attempt 2/5)
+warning: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com; retrying in 257 ms (attempt 3/5)
+warning: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com; retrying in 508 ms (attempt 4/5)
+error:
+       … while checking the derivation 'checks.x86_64-linux.kiln-radicle-nix-provider-octet-deny-all'
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:468:11:
+          467|           kiln-radicle-nix-provider-package = radicleNixProviderPackage;
+          468|           kiln-radicle-nix-provider-octet-deny-all =
+             |           ^
+          469|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+
+       … in the condition of the assert statement
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:469:13:
+          468|           kiln-radicle-nix-provider-octet-deny-all =
+          469|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+             |             ^
+          470|             (octet.lib.mkConsumerCheck {
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: Failed to open archive (Source threw exception: error: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com)
+error: 'checks.x86_64-linux.drvPath' does not exist
+checking derivation checks.x86_64-linux.pijul-native-fixtures...
+derivation evaluated to /nix/store/hsfkvdxpwf1mw8avn4372xzh34syz2dh-kiln-pijul-native-fixtures-0.1.0.drv
+checking derivation checks.x86_64-linux.pijul-cohort...
+derivation evaluated to /nix/store/izyrnvxq04mz2hxnrpp112jf81rhxfh5-kiln-pijul-cohort.drv
+checking derivation checks.x86_64-linux.nix-eval-fixture-process...
+derivation evaluated to /nix/store/j06k7h8z4aqzbg4rrqnh7gw17zgab0cc-kiln-nix-eval-fixture-process-0.1.0.drv
+checking derivation checks.x86_64-linux.no-std...
+derivation evaluated to /nix/store/ikzrg6pil4dwwn026911hg24gsiljyik-kiln-no-std-0.1.0.drv
+checking derivation checks.x86_64-linux.kiln-aspen-host-package...
+derivation evaluated to /nix/store/j44l17y0zfhwdar89vm9c5b26x80jxnn-kiln-aspen-host-0.1.0.drv
+checking derivation checks.x86_64-linux.kiln-aspen-host-octet-deny-all...
+error:
+       … while checking the derivation 'checks.x86_64-linux.kiln-aspen-host-octet-deny-all'
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:586:11:
+          585|           kiln-aspen-host-package = hostPackage;
+          586|           kiln-aspen-host-octet-deny-all =
+             |           ^
+          587|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+
+       … in the condition of the assert statement
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:587:13:
+          586|           kiln-aspen-host-octet-deny-all =
+          587|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+             |             ^
+          588|             (octet.lib.mkConsumerCheck {
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: Failed to open archive (Source threw exception: error: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com)
+error: 'checks.x86_64-linux.drvPath' does not exist
+checking derivation checks.x86_64-linux.aspen-runtime-octet-deny-all...
+error:
+       … while checking the derivation 'checks.x86_64-linux.aspen-runtime-octet-deny-all'
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:636:11:
+          635|               );
+          636|           aspen-runtime-octet-deny-all =
+             |           ^
+          637|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+
+       … in the condition of the assert statement
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:637:13:
+          636|           aspen-runtime-octet-deny-all =
+          637|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+             |             ^
+          638|             (octet.lib.mkConsumerCheck {
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: Failed to open archive (Source threw exception: error: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com)
+error: 'checks.x86_64-linux.drvPath' does not exist
+checking derivation checks.x86_64-linux.radicle-broker-wire-octet-deny-all...
+error:
+       … while checking the derivation 'checks.x86_64-linux.radicle-broker-wire-octet-deny-all'
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:653:11:
+          652|               });
+          653|           radicle-broker-wire-octet-deny-all =
+             |           ^
+          654|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+
+       … in the condition of the assert statement
+         at /var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source/flake.nix:654:13:
+          653|           radicle-broker-wire-octet-deny-all =
+          654|             assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+             |             ^
+          655|             (octet.lib.mkConsumerCheck {
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: Failed to open archive (Source threw exception: error: unable to download 'https://api.github.com/repos/OnixResearch/octet/tarball/cf04e894e53eb0947230118a086ef6066ddba38c': Could not resolve hostname (6) Could not resolve host: api.github.com)
+error: 'checks.x86_64-linux.drvPath' does not exist
+checking derivation checks.x86_64-linux.radicle-source-contract-fixtures...
+derivation evaluated to /nix/store/4ri61g7xnsb0b28pz8f9kczbmsiw7zm9-kiln-radicle-source-contract-fixtures-0.1.0.drv
+checking derivation checks.x86_64-linux.aspen-runtime-profile...
+derivation evaluated to /nix/store/269fnzq0ajrl9mx1afaraynyz40nd2h5-kiln-aspen-runtime-profile.drv
+checking derivation checks.x86_64-linux.cairn-gate-cohort...
+derivation evaluated to /nix/store/gkyzdzhkdvychs2a7aa94fbx6wi2kxss-kiln-cairn-gate-cohort.drv
+checking derivation checks.x86_64-linux.mantle-build-cohort...
+derivation evaluated to /nix/store/gag1cfrfg8ds0ns9r01w9g50q6z747zy-kiln-mantle-build-cohort.drv
+checking derivation checks.x86_64-linux.nix-eval-jobs-cohort...
+derivation evaluated to /nix/store/i4d5cgsbqr9bxpqpf8bn8zib5qz3bw6s-kiln-nix-eval-jobs-cohort.drv
+checking derivation checks.x86_64-linux.radicle-source-native-fixtures...
+derivation evaluated to /nix/store/mx26iby4lr0yhajvlnf4vk98xi7pmynf-kiln-radicle-source-native-fixtures-0.1.0.drv
+checking derivation checks.x86_64-linux.radicle-status-native-fixtures...
+derivation evaluated to /nix/store/2dswvih2dnmya39497y0p1bl84bnpf1z-kiln-radicle-status-native-fixtures-0.1.0.drv
+checking derivation checks.x86_64-linux.radicle-mutation-native-fixtures...
+derivation evaluated to /nix/store/mspgbda5gz9wz78p2jhrbjdfy34l46b0-kiln-radicle-mutation-native-fixtures-0.1.0.drv
+checking derivation checks.x86_64-linux.radicle-status-cohort...
+derivation evaluated to /nix/store/isjghkbj5c9xfw00dfqcwwf6m78n3bix-kiln-radicle-status-cohort.drv
+checking derivation checks.x86_64-linux.radicle-status-boundaries...
+derivation evaluated to /nix/store/ah279rv6cz9q0r43f1bnrx0hlx6lr46v-kiln-radicle-status-boundaries-0.1.0.drv
+checking derivation checks.x86_64-linux.celld-boundaries...
+derivation evaluated to /nix/store/0r33x58a7ilnx9s8452byf7jjndcl8py-kiln-celld-boundaries-0.1.0.drv
+checking derivation checks.x86_64-linux.release-evidence...
+derivation evaluated to /nix/store/4sncz9rvz3g1pq6ly1api2yx7zhaqs5h-kiln-release-evidence.drv
+checking flake output 'devShells'...
+checking derivation devShells.x86_64-linux.default...
+derivation evaluated to /nix/store/n3nril7wjg97ngra8c79zidzdgmbpbh1-nix-shell.drv
+running 26 flake checks...
+error: this system does not support the kernel namespaces that are required for sandboxing; use '--no-sandbox' to disable sandboxing
+
+Script done on 2026-10-17 01:27:15-04:00 [COMMAND_EXIT_CODE="1"]

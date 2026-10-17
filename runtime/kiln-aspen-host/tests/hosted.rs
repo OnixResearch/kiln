@@ -64,3 +64,8 @@ mod recovery_test;
 mod rejected_test;
 #[path = "hosted/uncertain.rs"]
 mod uncertain_test;
+
+#[path = "hosted/process.rs"]
+mod process;
+#[path = "hosted/qualification.rs"]
+mod qualification_test;

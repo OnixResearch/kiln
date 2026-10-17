@@ -1,0 +1,116 @@
+{
+  "schema": "kiln.qualification-documentation-links.v1",
+  "scope": "relative file targets in touched operator/host/evidence documents; external URLs and section anchors not checked",
+  "links": [
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl",
+      "exists": true
+    },
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/integrate-canonical-main/evidence/verification.json",
+      "exists": true
+    },
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "exists": true
+    },
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/integrate-canonical-main/evidence/publication.json",
+      "exists": true
+    },
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/candidate.ncl",
+      "exists": true
+    },
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/verification.json",
+      "exists": true
+    },
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/prepare-public-release/evidence/push-2026-10-15.json",
+      "exists": true
+    },
+    {
+      "source": "docs/hosting-and-recovery.md",
+      "target": "../.cairn/changes/prepare-public-release/evidence/github-push-2026-10-15.json",
+      "exists": true
+    },
+    {
+      "source": "runtime/kiln-aspen-host/README.md",
+      "target": "../../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "cohort.json",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "source-manifest.json",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/7ba21589d83d570ca5a715f47fdac8f4b5ab26eb1a18f99db7c1cdc00d8bb4a3",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/1db31ac220720b5f36d08f3b6c34665b6d6c23cfed316598fd3407719268f85c",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/9c91f1e0f187b87849110242bb9ce861f7eae9eafff4fc64ea003f215acdce45",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/942d45b47ec8da405562c41cfcfcc33541df00e2ef0b1b043b52c1fff442e399",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/3890ff1843ca00f3bbfd412c899cfbf032e71e2688273e2b443f80512cc601f7",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/7d304d0278ae2803f6ca3e92f5733588d9503634253acb9520d0b85581107438",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/261cbbd4809b9990775d122872e887105ddfaaa1f1ca49840ff1efe30e3ace28",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/aeb198bcdebe422f74ecb3eddb9ad48f9efc19c21e367665c93102b0e3da55b9",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifacts/5379fbb744165d64fcba77ce8f8f48282fa38fba5bd32ce458e8e6c1f2407706",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "artifact-index.json",
+      "exists": true
+    },
+    {
+      "source": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "receipt-incomplete.json",
+      "exists": true
+    }
+  ]
+}

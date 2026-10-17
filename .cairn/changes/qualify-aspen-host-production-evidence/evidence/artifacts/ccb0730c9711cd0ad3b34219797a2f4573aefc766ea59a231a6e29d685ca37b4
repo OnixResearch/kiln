@@ -1,0 +1,24 @@
+   Compiling kiln-radicle-nix-provider v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-radicle-nix-provider)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.61s
+     Running unittests src/lib.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/kiln_radicle_nix_provider-866ec98ef99b5a83)
+
+running 4 tests
+test tests::changed_repository_user_and_wrapper_are_rejected ... ok
+test tests::malformed_profile_json_and_unknown_fields_fail_closed ... ok
+
+thread 'tests::failure_output_flood_and_timeout_do_not_become_success' (240406) panicked at src/tests.rs:153:5:
+assertion `left == right` failed
+  left: ProviderError
+ right: OutputLimitExceeded
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::failure_output_flood_and_timeout_do_not_become_success ... FAILED
+test tests::exact_provider_succeeds_with_explicit_arguments_and_clear_environment ... ok
+
+failures:
+
+failures:
+    tests::failure_output_flood_and_timeout_do_not_become_success
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `--lib`

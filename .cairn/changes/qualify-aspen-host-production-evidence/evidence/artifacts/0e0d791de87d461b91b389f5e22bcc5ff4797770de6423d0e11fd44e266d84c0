@@ -1,0 +1,129 @@
+{
+  "schema_version": "cairn.cli-machine.v1",
+  "ok": true,
+  "command": "traceability",
+  "exit_class": "success",
+  "result": {
+    "command": "traceability coverage",
+    "dangling": [],
+    "input_hash": "42de04cb38288ddad755daa2d526af91549f8d3bc3ec13ce1a84a407975b42a5",
+    "missing": [],
+    "policy": "kiln-default",
+    "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+    "profile": {
+      "anchor_kind": "exact_marker_bytes",
+      "assurance_level": "declared",
+      "evidence_sources": [
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "crates",
+          "source_kind": "rust_source"
+        },
+        {
+          "extensions": [
+            "ncl"
+          ],
+          "root": "crates",
+          "source_kind": "nickel_source"
+        },
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "runtime/kiln-aspen-host",
+          "source_kind": "rust_source"
+        },
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "runtime/kiln-radicle-nix-provider",
+          "source_kind": "rust_source"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": "docs/hosting-and-recovery.md",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "rs",
+            "ncl"
+          ],
+          "root": "tools",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "mjs"
+          ],
+          "root": "src",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "mjs",
+            "sh"
+          ],
+          "root": "tests",
+          "source_kind": "tool_source"
+        }
+      ],
+      "id": "cairn-default",
+      "marker_verbs": [
+        "impl",
+        "verify",
+        "depends",
+        "related"
+      ],
+      "requirement_sources": [
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/specs",
+          "source_kind": "accepted_specs"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/bind-aspen-extension-runtime-profile/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/pace-aspen-lattice-observation/specs",
+          "source_kind": "requirements_doc"
+        }
+      ]
+    },
+    "profile_id": "cairn-default",
+    "receipt_hash": "4bb5ec41212ee988393c71423430660fc8d70c33def47489f97d2c8a940b7ff4",
+    "referenced": 625,
+    "requirements": 625,
+    "root": "/home/brittonr/git/OnixResearch/kiln",
+    "source_summary": {
+      "evidence_files": 241,
+      "evidence_manifest_hash": "bd919515d85fbfcd4e0c3668b62b231f3f7197f9ae5c2332ffb1c65dbaa27c14",
+      "requirement_files": 31,
+      "requirement_manifest_hash": "49850ac33c83e02656bd916ef47fbeee2642ff7bcf4576723dc25e638923208a"
+    },
+    "valid": true,
+    "verdict": "pass"
+  },
+  "diagnostics": [],
+  "non_claims": [
+    "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+    "a machine envelope does not prove nested evidence truth or command correctness",
+    "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+    "a machine envelope does not prove lifecycle readiness or release eligibility",
+    "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+  ]
+}

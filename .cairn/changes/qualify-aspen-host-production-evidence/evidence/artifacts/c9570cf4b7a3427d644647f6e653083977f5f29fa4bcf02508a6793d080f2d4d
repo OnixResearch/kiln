@@ -1,0 +1,53 @@
+{
+  "schema": "kiln.qualification-rejected-actual-recovery.v1",
+  "source_revision": "a9e67a14178c83654c4bf932bfc84c160ecd749d",
+  "scope": "earlier failed/misconfigured attempts retained in their original state root; no recovery success claimed",
+  "state_root": "/var/tmp/kiln-qualification.BEA91plo/host-state",
+  "crash_signal": "SIGKILL",
+  "prior_process_id": 974461,
+  "restart": {
+    "text": "KilnQualificationActualSigkillRecovery [service] — failed — up 1.8s\nready=false persist=false detached=false exit=1\nhost state failed: restart recovered native service: Host(\"invalid harness artifact: system-extension lifecycle transiti\non denied: [IllegalTransition { phase: Quarantined, event: BeginRestart }]\")",
+    "details": {
+      "resolvedPath": "/home/brittonr/.omp/run/daemons/8a3d8c5f8338162b/daemons/KilnQualificationActualSigkillRecovery/output.log",
+      "contentType": "text/plain",
+      "proc": {
+        "daemon": {
+          "name": "KilnQualificationActualSigkillRecovery",
+          "id": "a33f91dd-a9e8-47ec-a868-228a55534da6",
+          "state": "failed",
+          "createdAt": 1792211159683,
+          "startedAt": 1792211159683,
+          "exitedAt": 1792211161437,
+          "exitCode": 1,
+          "restartCount": 0,
+          "outputBytes": 198,
+          "owner": "Main",
+          "persist": false,
+          "detached": false
+        },
+        "log": "host state failed: restart recovered native service: Host(\"invalid harness artifact: system-extension lifecycle transiti\non denied: [IllegalTransition { phase: Quarantined, event: BeginRestart }]\")",
+        "terminalRows": [
+          "\u001b[0mhost state failed: restart recovered native service: Host(\"invalid harness artifact: system-extension lifecycle transiti",
+          "\u001b[0mon denied: [IllegalTransition { phase: Quarantined, event: BeginRestart }]\")"
+        ]
+      },
+      "totalLines": 4,
+      "displayContent": {
+        "text": "KilnQualificationActualSigkillRecovery [service] — failed — up 1.8s\nready=false persist=false detached=false exit=1\nhost state failed: restart recovered native service: Host(\"invalid harness artifact: system-extension lifecycle transiti\non denied: [IllegalTransition { phase: Quarantined, event: BeginRestart }]\")",
+        "startLine": 1,
+        "lineNumbers": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "meta": {
+        "source": {
+          "type": "internal",
+          "value": "proc://KilnQualificationActualSigkillRecovery"
+        }
+      }
+    }
+  }
+}

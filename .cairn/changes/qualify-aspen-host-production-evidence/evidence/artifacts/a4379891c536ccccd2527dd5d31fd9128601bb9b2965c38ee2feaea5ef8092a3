@@ -1,0 +1,40 @@
+Script started on 2026-10-17 00:04:03-04:00 [COMMAND="env TMPDIR="/var/tmp" RUSTC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustc" RUSTDOC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustdoc" CARGO_TARGET_DIR="/var/tmp/kiln-qualification.BEA91plo/provider-target" PATH="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin" /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/cargo --config /var/tmp/kiln-qualification.BEA91plo/provider-git-sources.toml fmt --all -- --check && env TMPDIR="/var/tmp" RUSTC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustc" RUSTDOC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustdoc" CARGO_TARGET_DIR="/var/tmp/kiln-qualification.BEA91plo/provider-target" PATH="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin" /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/cargo --config /var/tmp/kiln-qualification.BEA91plo/provider-git-sources.toml clippy --locked --offline --workspace --all-targets --all-features -- -D warnings && env TMPDIR="/var/tmp" RUSTC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustc" RUSTDOC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustdoc" CARGO_TARGET_DIR="/var/tmp/kiln-qualification.BEA91plo/provider-target" PATH="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin" /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/cargo --config /var/tmp/kiln-qualification.BEA91plo/provider-git-sources.toml test --locked --offline --workspace --all-features" <not executed on terminal>]
+    Checking kiln-radicle-nix-provider v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-radicle-nix-provider)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+   Compiling kiln-radicle-nix-provider v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-radicle-nix-provider)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.44s
+     Running unittests src/lib.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/kiln_radicle_nix_provider-866ec98ef99b5a83)
+
+running 4 tests
+test tests::changed_repository_user_and_wrapper_are_rejected ... ok
+test tests::malformed_profile_json_and_unknown_fields_fail_closed ... ok
+test tests::exact_provider_succeeds_with_explicit_arguments_and_clear_environment ... ok
+test tests::failure_output_flood_and_timeout_do_not_become_success ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src/main.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/kiln_radicle_nix_provider-37f851c5c4dd366c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_teardown.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/process_teardown-571792b69b211b8d)
+
+running 5 tests
+test actual_provider_success_reaps_descendant_and_publishes_bounded_report ... ok
+test actual_provider_sigterm_cancellation_terminates_owned_descendant ... ok
+test actual_provider_stdout_limit_terminates_owned_descendant ... ok
+test actual_provider_stderr_limit_terminates_owned_descendant ... ok
+test actual_provider_timeout_terminates_owned_descendant ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.05s
+
+   Doc-tests kiln_radicle_nix_provider
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+Script done on 2026-10-17 00:04:07-04:00 [COMMAND_EXIT_CODE="0"]

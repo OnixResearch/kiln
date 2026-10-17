@@ -1,0 +1,17 @@
+{
+  "source_revision": {
+    "contract_version": 1,
+    "provider_namespace": "kiln",
+    "native_kind": "unpublished-source-payload-blake3",
+    "native_id": "fa826a0545692ceb9f05860c699e00a8736dbef7d2a0d0045192e5484ad11a82"
+  },
+  "source_archive": "fa826a0545692ceb9f05860c699e00a8736dbef7d2a0d0045192e5484ad11a82",
+  "host_executable": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591",
+  "extension_executable": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1",
+  "provider_executable": "63bf5c5701fa35a00f53ea83469251fbd7426db9087514686e3699d1ee447f27",
+  "runtime_profile": "a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0",
+  "collaboration_profile": "8821785d87543f0cc054ff56d3a8680736de33148afbe22ba8cce7b9ccb01c5f",
+  "provider_profile": "a8dce6f91e681974d099b3558b6f6464a044c1b642f17b1ecf54d9c347f5c7a3",
+  "host_identity": "77d2170b4689fc26731322b9a84ad103dbc714e5e8099bf3b9c4b753caf0b611",
+  "publication_binding": "d74b0f67f68fd7c952dddcb0e2d3e85fcfe17ee831ef332328519bd1437de5ad"
+}

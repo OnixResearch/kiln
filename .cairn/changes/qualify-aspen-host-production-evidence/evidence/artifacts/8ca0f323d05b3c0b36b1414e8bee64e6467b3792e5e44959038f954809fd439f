@@ -1,0 +1,5 @@
+{
+  data_dir = "/var/tmp/kiln-qualification.BEA91plo/lattice-state",
+  default_timeout_secs = 30,
+  shell = "/bin/sh",
+}

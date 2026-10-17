@@ -1,0 +1,22 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "finite_load",
+  "verdict": "passed",
+  "scope": "actual native child hosts with closed Lattice terminal fixture; no capacity/soak claim",
+  "observed": "Every submit/duplicate/reconcile and post-restart acknowledgement matched; exactly four dispatches, four observations and zero recovery dispatches.",
+  "bounds": {
+    "operations": 4,
+    "requests_before_restart": 12,
+    "requests_after_restart": 8,
+    "native_child_deadline_seconds": 15
+  },
+  "artifacts": [
+    {
+      "name": "host-complete-native-tests-final.log",
+      "blake3": "5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68",
+      "bytes": 280705,
+      "path": "artifacts/5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68"
+    }
+  ]
+}

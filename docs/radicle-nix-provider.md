@@ -12,6 +12,8 @@ The profile binds one user ID, source root, wrapper path, wrapper BLAKE3 identit
 
 The child process receives a cleared environment. The process gets only the fixed `nix flake check --no-update-lock-file` operation and a `git+file` source URI. The runtime limits stdin, stdout, stderr, time, polling, and teardown. It terminates the full process group when the limit policy requires teardown.
 
+`SIGINT` and `SIGTERM` raise the same explicit cancellation flag used by Bounded Exec. Cancellation terminates the owned process group and reaps the direct child before the provider publishes a `Cancelled` receipt and exits with check-failure code `3`. Library callers supply their own `AtomicBool`; signal registration remains in the executable shell. Group termination does not promise adoption or reaping of non-child descendants: qualification records distinguish an absent process from a terminated-but-unreaped zombie.
+
 The provider writes one bounded log and one JSON report with mode `0640`. A shared report group can read the files, but other users cannot. It uses capability-relative, no-replace publication with required directory synchronization. A repeated run accepts an existing file only when its bytes are equal.
 
 The report identity binds the schema, repository, revision, wrapper identity, and report namespace. A process failure, timeout, output flood, or uncertain teardown never becomes success.

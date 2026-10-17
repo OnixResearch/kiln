@@ -1,0 +1,12 @@
+[package]
+name = "kiln-qualification-driver"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+kiln-adapter-aspen = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+kiln-adapter-lattice = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+kiln-adapter-radicle = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+kiln-provider-api = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
+serde = "1.0.228"
+serde_json = "1.0.150"

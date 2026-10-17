@@ -1,0 +1,76 @@
+Script started on 2026-10-17 00:02:30-04:00 [COMMAND="env TMPDIR="/var/tmp" RUSTC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustc" RUSTDOC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustdoc" CARGO_TARGET_DIR="/var/tmp/kiln-qualification.BEA91plo/provider-target" PATH="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin" /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/cargo --config /var/tmp/kiln-qualification.BEA91plo/provider-git-sources.toml clippy --locked --offline --workspace --all-targets --all-features -- -D warnings" <not executed on terminal>]
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Checking libc v0.2.189
+    Checking cfg-if v1.0.4
+    Checking bitflags v2.13.1
+    Checking linux-raw-sys v0.12.1
+    Checking bounded-exec-core v0.1.0 (https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88e)
+    Checking cpufeatures v0.3.1
+    Checking itoa v1.0.18
+    Checking memchr v2.8.3
+    Checking arrayref v0.3.9
+    Checking arrayvec v0.7.8
+    Checking serde_core v1.0.229
+    Checking zmij v1.0.23
+    Checking constant_time_eq v0.4.2
+    Checking once_cell v1.21.4
+    Checking fastrand v2.5.0
+    Checking rustix v1.1.4
+    Checking errno v0.3.14
+    Checking nix v0.30.1
+    Checking getrandom v0.4.3
+    Checking signal-hook-registry v1.4.8
+    Checking signal-hook v0.3.18
+    Checking serde_json v1.0.151
+    Checking serde v1.0.229
+    Checking durable-file-publication v0.1.0 (https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e)
+    Checking tempfile v3.27.0
+    Checking bounded-exec v0.1.0 (https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88e)
+    Checking blake3 v1.8.6
+    Checking kiln-radicle-nix-provider v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-radicle-nix-provider)
+error: this `if` statement can be collapsed
+   --> tests/process_teardown.rs:259:13
+    |
+259 | /             if let Some(status) = self.child.try_wait()? {
+260 | |                 if observed_terminated {
+261 | |                     return Ok(status);
+262 | |                 }
+263 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+    = note: `-D clippy::collapsible-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+259 ~             if let Some(status) = self.child.try_wait()?
+260 ~                 && observed_terminated {
+261 |                     return Ok(status);
+262 ~                 }
+    |
+
+error: this `if` statement can be collapsed
+   --> tests/process_teardown.rs:300:13
+    |
+300 | /             if let Ok(Some(identity)) = read_identity(&self.work.join(leaf)) {
+301 | |                 if !self.owned.contains(&identity) {
+302 | |                     self.owned.push(identity);
+303 | |                 }
+304 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+help: collapse nested if block
+    |
+300 ~             if let Ok(Some(identity)) = read_identity(&self.work.join(leaf))
+301 ~                 && !self.owned.contains(&identity) {
+302 |                     self.owned.push(identity);
+303 ~                 }
+    |
+
+error: could not compile `kiln-radicle-nix-provider` (test "process_teardown") due to 2 previous errors
+
+Script done on 2026-10-17 00:02:36-04:00 [COMMAND_EXIT_CODE="101"]

@@ -73,6 +73,29 @@ retains the failure and the isolated runtime scopes. This exception covers only
 this source and evidence-only descendants; it does not approve production use,
 waive the production obligations, or change the default gate into a PASS.
 
+## Exact-cohort local qualification
+
+`kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT` checks the operator's exact
+expected cohort, all required observation kinds, bounded claims and retained
+BLAKE3 artifact bytes. It does not attest observation truth or grant production,
+publication, release or deployment authority.
+
+The [qualification evidence](../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md)
+binds an explicitly unpublished source payload and frozen native executables.
+Native child-process drills retain their exact per-case profile variants and
+closed Lattice transport-fixture scope. The separately identified real
+Lattice/Nix observation retains its successful provider report and exact
+acknowledgement replay after SIGKILL with Lattice stopped. Neither scope proves
+CI correctness or external provider truth.
+
+Earlier provider failures and a quarantined recovery rejection remain retained;
+they are not successful checks. A minimal shell workflow's `completed`
+acknowledgement alone is not provider success. The receipt consumer rejects the
+retained incomplete gate receipt and stronger claims instead of promoting
+available local observations into qualification. Exact gate status and consumer
+results belong to the linked evidence, not the historical source-only exception.
+
+
 ## Integrated main publication
 
 The source-plus-verification revision `cd8b810028fafd3bcb531e920f5360e1f52f6fda`

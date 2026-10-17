@@ -1,0 +1,12 @@
+{
+  description = "Isolated Kiln qualification exact-source Nix check";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/b7c2ada94fe99c15b0dbcf4d11fd7850b957a436";
+  outputs = { self, nixpkgs }: let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs { inherit system; };
+  in {
+    checks.${system}.exact-source = pkgs.runCommand "kiln-qualification-exact-source" {} ''
+      ${pkgs.coreutils}/bin/cp ${./qualification.txt} "$out"
+    '';
+  };
+}

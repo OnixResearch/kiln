@@ -1,0 +1,4 @@
+Script started on 2026-10-17 00:20:55-04:00 [COMMAND="/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver submit /var/tmp/kiln-qualification.BEA91plo/runtime-profile.json /var/tmp/kiln-qualification.BEA91plo/host.sock /var/tmp/kiln-qualification.BEA91plo/ingress-cache-bound.json" <not executed on terminal>]
+Error: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+
+Script done on 2026-10-17 00:20:55-04:00 [COMMAND_EXIT_CODE="1"]

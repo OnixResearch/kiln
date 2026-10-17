@@ -1,0 +1,117 @@
+{
+  "contract_version": 1,
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "claims": [
+    "bounded_local_host"
+  ],
+  "observations": [
+    {
+      "kind": "durability",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "7ba21589d83d570ca5a715f47fdac8f4b5ab26eb1a18f99db7c1cdc00d8bb4a3",
+      "verdict": "passed"
+    },
+    {
+      "kind": "uncertain_recovery",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "1db31ac220720b5f36d08f3b6c34665b6d6c23cfed316598fd3407719268f85c",
+      "verdict": "passed"
+    },
+    {
+      "kind": "corruption",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "9c91f1e0f187b87849110242bb9ce861f7eae9eafff4fc64ea003f215acdce45",
+      "verdict": "passed"
+    },
+    {
+      "kind": "provider_teardown",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "942d45b47ec8da405562c41cfcfcc33541df00e2ef0b1b043b52c1fff442e399",
+      "verdict": "passed"
+    },
+    {
+      "kind": "finite_load",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "3890ff1843ca00f3bbfd412c899cfbf032e71e2688273e2b443f80512cc601f7",
+      "verdict": "passed"
+    },
+    {
+      "kind": "backup_restore",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "7d304d0278ae2803f6ca3e92f5733588d9503634253acb9520d0b85581107438",
+      "verdict": "passed"
+    },
+    {
+      "kind": "rollback",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "261cbbd4809b9990775d122872e887105ddfaaa1f1ca49840ff1efe30e3ace28",
+      "verdict": "passed"
+    },
+    {
+      "kind": "authority",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "aeb198bcdebe422f74ecb3eddb9ad48f9efc19c21e367665c93102b0e3da55b9",
+      "verdict": "passed"
+    },
+    {
+      "kind": "publication",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "5379fbb744165d64fcba77ce8f8f48282fa38fba5bd32ce458e8e6c1f2407706",
+      "verdict": "passed"
+    },
+    {
+      "kind": "host_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68",
+      "verdict": "passed"
+    },
+    {
+      "kind": "provider_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "a4379891c536ccccd2527dd5d31fd9128601bb9b2965c38ee2feaea5ef8092a3",
+      "verdict": "passed"
+    },
+    {
+      "kind": "clippy_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "6eacfa54d84e5e55bb119992c8240755f88ea4f11b5878fa191d6330773d0cca",
+      "verdict": "passed"
+    },
+    {
+      "kind": "octet_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "577a96f81dc9dc82d596e6f74df605e1a362fcdf3222fe476531f430b25de3ed",
+      "verdict": "unknown"
+    },
+    {
+      "kind": "workspace_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "29124d7b6cc1bf0268fc91ab2d4ff444dbfb4fd1752cc18c60b640bbf5c8a434",
+      "verdict": "passed"
+    },
+    {
+      "kind": "no_std_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "fa7e3e963c29ee8f7239499d630cbf9cbbfa29d0603bccba3e3e26ab2d3eeecc",
+      "verdict": "passed"
+    },
+    {
+      "kind": "nickel_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "2c05b97171e57aa5eeb29832954fcfcdc090ba394fdf2a9fa9546be203da364a",
+      "verdict": "passed"
+    },
+    {
+      "kind": "nix_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "577a96f81dc9dc82d596e6f74df605e1a362fcdf3222fe476531f430b25de3ed",
+      "verdict": "unknown"
+    },
+    {
+      "kind": "lifecycle_gate",
+      "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+      "artifact": "cedf55df1d595e1a63b7019b625d1a2713e888a14c2961a1e47b995bb7cda9d3",
+      "verdict": "passed"
+    }
+  ]
+}

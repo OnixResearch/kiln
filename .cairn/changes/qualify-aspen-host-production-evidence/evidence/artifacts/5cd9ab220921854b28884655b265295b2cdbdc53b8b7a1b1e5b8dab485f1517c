@@ -1,0 +1,15 @@
+schema=kiln.radicle-nix-provider.v1
+repository=rad:qualification-exact-source
+revision=a9e67a14178c83654c4bf932bfc84c160ecd749d
+source=git+file:///var/tmp/kiln-qualification.BEA91plo/source?rev=a9e67a14178c83654c4bf932bfc84c160ecd749d
+outcome=Success
+exit_code=Some(0)
+--- stdout ---
+
+--- stderr ---
+evaluating flake...
+checking flake output 'checks'...
+checking derivation checks.x86_64-linux.exact-source...
+derivation evaluated to /nix/store/15hkj8jg95piiszb3yll8ln1ijqifxl8-kiln-qualification-exact-source.drv
+running 0 flake checks...
+all checks passed!

@@ -25,8 +25,10 @@ durable-file-publication = { git = "https://seed.radicle.garden/z3tAR4For7qw8Zir
 rustix = { version = "1.1", features = ["fs"] }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
+signal-hook = "=0.3.18"
 
 [dev-dependencies]
+rustix = { version = "1.1", features = ["process"] }
 tempfile = "=3.27.0"
 
 [lints.rust]

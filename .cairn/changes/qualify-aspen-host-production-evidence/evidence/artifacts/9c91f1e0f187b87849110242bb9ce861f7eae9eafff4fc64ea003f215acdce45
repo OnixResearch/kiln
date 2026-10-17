@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "corruption",
+  "verdict": "passed",
+  "scope": "actual native host startup with fixture-owned damaged state",
+  "observed": "Malformed marker, truncated ledger, corrupt native journal, corrupt callback value and missing callback directory rejected before ingress.",
+  "bounds": {
+    "native_child_deadline_seconds": 15,
+    "truncated_ledger_bytes": 8
+  },
+  "artifacts": [
+    {
+      "name": "host-complete-native-tests-final.log",
+      "blake3": "5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68",
+      "bytes": 280705,
+      "path": "artifacts/5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68"
+    }
+  ]
+}

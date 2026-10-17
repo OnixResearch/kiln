@@ -1,0 +1,31 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "authority",
+  "verdict": "passed",
+  "scope": "provider/native profile admission and qualification claim boundary, not authorization of deployment",
+  "observed": "Profile/executable/source/environment admission and bounded receipt rejects exercised. Synthetic format smoke is separately labeled, not native qualification evidence.",
+  "bounds": {
+    "consumer_input_bytes": 4194304
+  },
+  "artifacts": [
+    {
+      "name": "host-complete-native-tests-final.log",
+      "blake3": "5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68",
+      "bytes": 280705,
+      "path": "artifacts/5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68"
+    },
+    {
+      "name": "provider-native-gates-final.log",
+      "blake3": "a4379891c536ccccd2527dd5d31fd9128601bb9b2965c38ee2feaea5ef8092a3",
+      "bytes": 4714,
+      "path": "artifacts/a4379891c536ccccd2527dd5d31fd9128601bb9b2965c38ee2feaea5ef8092a3"
+    },
+    {
+      "name": "synthetic-consumer-smoke.json",
+      "blake3": "c0b68ab793fb95ab434b44394d3a8f2807d7ad6748827288cf2869a1c2e80d85",
+      "bytes": 4923,
+      "path": "artifacts/c0b68ab793fb95ab434b44394d3a8f2807d7ad6748827288cf2869a1c2e80d85"
+    }
+  ]
+}

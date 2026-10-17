@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.qualification-source-payload-preservation.v1",
+  "qualified_input_archive_blake3": "fa826a0545692ceb9f05860c699e00a8736dbef7d2a0d0045192e5484ad11a82",
+  "checked_original_product_file_count": 1613,
+  "excluded_non_product_metadata": [
+    ".jj/",
+    ".git/"
+  ],
+  "reason": "The retained raw Nix input snapshot includes version-control bookkeeping. It is not a publication archive; changing VCS heads are not compiled product inputs.",
+  "changed_original_files": [
+    {
+      "path": ".cairn/changes/qualify-aspen-host-production-evidence/tasks.md",
+      "qualified_payload_blake3": "dbf2e85c0217065859c5a9e086258ce91c9d2c106434fa0d029c3edf6e38c6c2",
+      "current_blake3": "f402f64f7552d19db9a68f16be6c5aa34e60bc8e144486348aad4670c8186c40",
+      "evidence_only": true
+    },
+    {
+      "path": "docs/hosting-and-recovery.md",
+      "qualified_payload_blake3": "b780fe2207a29766d9fdaba7f27aeaa19122ca99eb7ac1b0bc7da546af241b91",
+      "current_blake3": "5a2dd6c8dec8830a4d211642f41a6babe7e6c2260c558c920d12869adab9876d",
+      "evidence_only": true
+    },
+    {
+      "path": "runtime/kiln-aspen-host/README.md",
+      "qualified_payload_blake3": "b79fbfcfbd385c18edfb62ccb6b9ecbfdf073bf9689add115de72ab8aa7a20f6",
+      "current_blake3": "2e7cfafa0d3e40537d6b8544f916f649750a1651a88137fa0ffcc4da05306dbb",
+      "evidence_only": true
+    }
+  ],
+  "additional_evidence_root": ".cairn/changes/qualify-aspen-host-production-evidence/evidence",
+  "compiled_code_and_manifest_inputs_unchanged": true
+}

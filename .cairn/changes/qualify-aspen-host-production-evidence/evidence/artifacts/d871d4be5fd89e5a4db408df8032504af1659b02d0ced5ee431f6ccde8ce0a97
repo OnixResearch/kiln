@@ -1,0 +1,8 @@
+{
+  "schema": "kiln.qualification-command-observation.v1",
+  "source": "delivered tool result for bg_522",
+  "observed_result": "[Command timed out after 1800 seconds]",
+  "wall_time_seconds": 1800.15,
+  "command_prefix": "env TMPDIR=/var/tmp XDG_CACHE_HOME=/var/tmp/kiln-qualification.BEA91plo/nix-cache nix develop path:$PWD --offline --n...",
+  "full_command_not_retained": true
+}

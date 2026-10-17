@@ -1,5 +1,6 @@
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 
 use tempfile::TempDir;
 
@@ -80,6 +81,22 @@ fn request() -> HostedProviderRequest {
     }
 }
 
+fn published_log(
+    profile: &HostedNixProviderProfile,
+    receipt: &HostedProviderReceipt,
+) -> std::io::Result<String> {
+    let run_leaf = receipt
+        .run_identity
+        .strip_prefix("b3:")
+        .ok_or_else(|| std::io::Error::other("provider receipt has invalid run identity"))?;
+    std::fs::read_to_string(
+        profile
+            .report_root
+            .join(&profile.report_namespace)
+            .join(format!("{run_leaf}.log")),
+    )
+}
+
 // r[verify kiln.radicle.hosted_nix_provider.accepted]
 #[test]
 fn exact_provider_succeeds_with_explicit_arguments_and_clear_environment() {
@@ -92,10 +109,11 @@ case "$4" in git+file://*'?rev='*) ;; *) exit 11 ;; esac
 printf 'provider-ok'
 "#;
     let (_temporary, profile) = fixture(body);
-    let first =
-        execute_hosted_nix_provider(&profile, &request()).unwrap_or_else(|_| unreachable!());
-    let repeated =
-        execute_hosted_nix_provider(&profile, &request()).unwrap_or_else(|_| unreachable!());
+    let cancellation = AtomicBool::new(false);
+    let first = execute_hosted_nix_provider(&profile, &request(), &cancellation)
+        .unwrap_or_else(|_| unreachable!());
+    let repeated = execute_hosted_nix_provider(&profile, &request(), &cancellation)
+        .unwrap_or_else(|_| unreachable!());
     assert_eq!(first, repeated);
     assert_eq!(first.outcome, HostedProviderOutcome::Success);
     assert!(first.log_url.ends_with(".log"));
@@ -120,42 +138,55 @@ printf 'provider-ok'
 #[test]
 fn changed_repository_user_and_wrapper_are_rejected() {
     let (_temporary, profile) = fixture("printf 'provider-ok'");
+    let cancellation = AtomicBool::new(false);
     let mut wrong_repository = request();
     wrong_repository.repository = "rad:zother".to_string();
-    assert!(execute_hosted_nix_provider(&profile, &wrong_repository).is_err());
+    assert!(execute_hosted_nix_provider(&profile, &wrong_repository, &cancellation).is_err());
 
     let mut wrong_user = profile.clone();
     wrong_user.allowed_user_id = wrong_user.allowed_user_id.saturating_add(1);
-    assert!(execute_hosted_nix_provider(&wrong_user, &request()).is_err());
+    assert!(execute_hosted_nix_provider(&wrong_user, &request(), &cancellation).is_err());
 
     std::fs::write(&profile.wrapper_path, "changed").unwrap_or_else(|_| unreachable!());
-    assert!(execute_hosted_nix_provider(&profile, &request()).is_err());
+    assert!(execute_hosted_nix_provider(&profile, &request(), &cancellation).is_err());
 }
 
 // r[verify kiln.radicle.hosted_nix_provider.rejected]
 #[test]
-fn failure_output_flood_and_timeout_do_not_become_success() {
+fn failure_output_flood_and_timeout_do_not_become_success() -> Result<(), Box<dyn std::error::Error>>
+{
+    let cancellation = AtomicBool::new(false);
     let (_failed_directory, failed) = fixture("exit 7");
-    let failed_receipt =
-        execute_hosted_nix_provider(&failed, &request()).unwrap_or_else(|_| unreachable!());
-    assert_eq!(failed_receipt.outcome, HostedProviderOutcome::Failure);
+    let failed_receipt = execute_hosted_nix_provider(&failed, &request(), &cancellation)?;
+    assert_eq!(
+        failed_receipt.outcome,
+        HostedProviderOutcome::Failure,
+        "published provider log:\n{}",
+        published_log(&failed, &failed_receipt)?,
+    );
 
     let flood_body = format!(
         "count=0; while [ \"$count\" -lt {TEST_FLOOD_ITERATIONS} ]; do printf x; count=$((count + 1)); done"
     );
     let (_flood_directory, flood) = fixture(&flood_body);
-    let flood_receipt =
-        execute_hosted_nix_provider(&flood, &request()).unwrap_or_else(|_| unreachable!());
+    let flood_receipt = execute_hosted_nix_provider(&flood, &request(), &cancellation)?;
     assert_eq!(
         flood_receipt.outcome,
-        HostedProviderOutcome::OutputLimitExceeded
+        HostedProviderOutcome::OutputLimitExceeded,
+        "published provider log:\n{}",
+        published_log(&flood, &flood_receipt)?,
     );
 
     let (_timeout_directory, mut timeout) = fixture("while :; do :; done");
     timeout.limits.timeout_milliseconds = TEST_SHORT_TIMEOUT_MILLISECONDS;
-    let timeout_receipt =
-        execute_hosted_nix_provider(&timeout, &request()).unwrap_or_else(|_| unreachable!());
-    assert_eq!(timeout_receipt.outcome, HostedProviderOutcome::TimedOut);
+    let timeout_receipt = execute_hosted_nix_provider(&timeout, &request(), &cancellation)?;
+    assert_eq!(
+        timeout_receipt.outcome,
+        HostedProviderOutcome::TimedOut,
+        "published provider log:\n{}",
+        published_log(&timeout, &timeout_receipt)?,
+    );
+    Ok(())
 }
 
 #[test]

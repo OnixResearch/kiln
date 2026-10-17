@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "publication",
+  "verdict": "passed",
+  "scope": "exact unpublished candidate identity classification and preserved historical publication boundary",
+  "observed": "Source payload, manifest and exact executable/profile bytes bound; 29 accepted spec files and all 13 policy files unchanged from published baseline. No new publication, signing, push or deployment authority.",
+  "bounds": {},
+  "artifacts": [
+    {
+      "name": "publication-binding.json",
+      "blake3": "d74b0f67f68fd7c952dddcb0e2d3e85fcfe17ee831ef332328519bd1437de5ad",
+      "bytes": 783,
+      "path": "artifacts/d74b0f67f68fd7c952dddcb0e2d3e85fcfe17ee831ef332328519bd1437de5ad"
+    },
+    {
+      "name": "contract-policy-preservation.json",
+      "blake3": "acaeea3df38b7bd731aa7712bbb25e8cfdbee95f2ae16939f2c47842273967ef",
+      "bytes": 12070,
+      "path": "artifacts/acaeea3df38b7bd731aa7712bbb25e8cfdbee95f2ae16939f2c47842273967ef"
+    }
+  ]
+}

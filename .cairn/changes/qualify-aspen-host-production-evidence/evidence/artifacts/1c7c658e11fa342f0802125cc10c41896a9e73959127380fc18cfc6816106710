@@ -1,0 +1,30 @@
+schema=kiln.radicle-nix-provider.v1
+repository=rad:qualification-exact-source
+revision=3db63512d3e5271308f4ba8bcc11eb58357a17b3
+source=git+file:///var/tmp/kiln-qualification.BEA91plo/source?rev=3db63512d3e5271308f4ba8bcc11eb58357a17b3
+outcome=Failure
+exit_code=Some(1)
+--- stdout ---
+
+--- stderr ---
+evaluating flake...
+checking flake output 'checks'...
+checking derivation checks.x86_64-linux.exact-source...
+derivation evaluated to /nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv
+running 1 flake checks...
+building '/nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv' on 'ssh-ng://root@aspen1.local'...
+copying 1 paths...
+copying path '/nix/store/7vcbm3azg3z58qy7h6g2gipdngkihf6k-qualification.txt' to 'ssh-ng://root@aspen1.local'...
+building '/nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv'...
+error: build of '/nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv' on 'ssh-ng://root@aspen1.local' failed: Cannot build '/nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv'.
+       Reason: builder failed with exit code 1.
+       Output paths:
+         /nix/store/64ivv8kwj4zh9rjr9cl2d67z3i7f9rzj-kiln-qualification-exact-source
+       Last 1 log lines:
+       > error: executing '/nix/store/84hi6zs6h5srf2898b6p0d3k19z0fz5h-uutils-coreutils-0.11.0/bin/coreutils': No such file or directory
+       For full logs, run:
+         nix log /nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv
+error: failed to build attribute 'checks.x86_64-linux.exact-source', build of '/nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv^*' failed: Cannot build '/nix/store/y3nmbyzrxjhcykyrv1adwrnn61b6ak1r-kiln-qualification-exact-source.drv'.
+       Reason: builder failed with exit code 1.
+       Output paths:
+         /nix/store/64ivv8kwj4zh9rjr9cl2d67z3i7f9rzj-kiln-qualification-exact-source

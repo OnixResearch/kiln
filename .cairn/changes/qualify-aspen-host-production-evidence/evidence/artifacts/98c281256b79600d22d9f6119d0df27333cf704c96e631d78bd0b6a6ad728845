@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.qualification-isolated-native-configuration.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "argv": [
+    "nix",
+    "copy",
+    "--from",
+    "daemon",
+    "--to",
+    "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root",
+    "/nix/store/9jq1d8njn644y4fn0nwps1dvndjjfnk2-nix.conf",
+    "/nix/store/mg8rk9v7ihcm7sam8q1p0b8gzb1g97ng-etc-nix-machines",
+    "/nix/store/glfrj1lg16mcgyhn5pjyng197idbr72z-nss-cacert-3.126",
+    "/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15",
+    "/nix/store/3qgy8q2j64v2m9jy3a5jmssacbblhd4r-coreutils-9.11"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "running auto-GC to free 30485643264 bytes\nwaiting for the big garbage collector lock...\ncopying 17 paths...\ncopying path '/nix/store/mg8rk9v7ihcm7sam8q1p0b8gzb1g97ng-etc-nix-machines' to 'local'...\ncopying path '/nix/store/hz954b4dkbxmwl3vbisipn0ww9hqlyf4-libtasn1-4.21.0' to 'local'...\ncopying path '/nix/store/mhd5j36zdk4wq73d2znv4axx8fyvd2w9-libevent-2.1.13' to 'local'...\ncopying path '/nix/store/88rpjhka2v8d01frjnsl6chvlv9lnvjc-libselinux-3.10' to 'local'...\ncopying path '/nix/store/glfrj1lg16mcgyhn5pjyng197idbr72z-nss-cacert-3.126' to 'local'...\ncopying path '/nix/store/b83mr63vv29dh9h00f910hf41s7fk6ph-niks3-post-build-upload-disabled' to 'local'...\ncopying path '/nix/store/jwyskbj2mc7izs67ib2msydsh0vbnwl9-gmp-with-cxx-6.3.0' to 'local'...\ncopying path '/nix/store/s03pwvivxwjqbk3iflyhqyv4ryhfj374-p11-kit-0.26.2' to 'local'...\ncopying path '/nix/store/a3hr0l5skscvbkcr7kz3nhi4linz1p71-glib-2.88.3' to 'local'...\ncopying path '/nix/store/4xxc7cldibnlw5496qg5d45i0nmxyz11-nettle-3.10.2' to 'local'...\ncopying path '/nix/store/qvh3wmxf35f8cb8sgb99cysrqikijzvj-unbound-1.26.0-lib' to 'local'...\ncopying path '/nix/store/d9l35nclmi0390dxpgivrikv5sf228kx-gnutls-3.8.13' to 'local'...\ncopying path '/nix/store/y6wazlb55c6i2gcpc3s88kkx1yqpp2mx-qemu-user-11.1.0' to 'local'...\ncopying path '/nix/store/rm558jnydby4rn0xi9ny5n6hglyky8p8-qemu-aarch64-binfmt-P' to 'local'...\ncopying path '/nix/store/hl0n4jp8bykli77gkfad470a1545ivkw-qemu-arm-binfmt-P' to 'local'...\ncopying path '/nix/store/8wz3glxwchpj67wsr1lphzfpa7fxk94c-qemu-riscv64-binfmt-P' to 'local'...\ncopying path '/nix/store/9jq1d8njn644y4fn0nwps1dvndjjfnk2-nix.conf' to 'local'...\n",
+  "scope": "unchanged native Nix configuration and CA bundle closures required by existing absolute /etc symlinks; no credential content or policy alteration"
+}

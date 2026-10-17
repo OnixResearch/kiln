@@ -1,0 +1,37 @@
+{
+  "text": "bg_557 [bash] — cancelled — script -q -e -c ''\\''env'\\'' '\\''TMPDIR=/var/tmp'\\'' '\\''XDG_CACHE_HOME=/var/tmp/kiln-qualification.BEA91plo/nix-cach...\nError: [Command cancelled]\nevaluating flake...\nchecking flake output 'packages'...\nchecking derivation packages.x86_64-linux.kiln...\nderivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv\nchecking derivation packages.x86_64-linux.kiln-aspen-host...",
+  "details": {
+    "contentType": "text/plain",
+    "proc": {
+      "job": {
+        "id": "bg_557",
+        "type": "bash",
+        "status": "cancelled",
+        "label": "script -q -e -c ''\\''env'\\'' '\\''TMPDIR=/var/tmp'\\'' '\\''XDG_CACHE_HOME=/var/tmp/kiln-qualification.BEA91plo/nix-cach...",
+        "durationMs": 528469,
+        "errorText": "[Command cancelled]\nevaluating flake...\nchecking flake output 'packages'...\nchecking derivation packages.x86_64-linux.kiln...\nderivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv\nchecking derivation packages.x86_64-linux.kiln-aspen-host...\n"
+      },
+      "log": "Error: [Command cancelled]\nevaluating flake...\nchecking flake output 'packages'...\nchecking derivation packages.x86_64-linux.kiln...\nderivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv\nchecking derivation packages.x86_64-linux.kiln-aspen-host...\n"
+    },
+    "totalLines": 7,
+    "displayContent": {
+      "text": "bg_557 [bash] — cancelled — script -q -e -c ''\\''env'\\'' '\\''TMPDIR=/var/tmp'\\'' '\\''XDG_CACHE_HOME=/var/tmp/kiln-qualification.BEA91plo/nix-cach...\nError: [Command cancelled]\nevaluating flake...\nchecking flake output 'packages'...\nchecking derivation packages.x86_64-linux.kiln...\nderivation evaluated to /nix/store/31y35wy4wh5hmy27r3ga1hszbhx7mkyn-kiln-0.1.0.drv\nchecking derivation packages.x86_64-linux.kiln-aspen-host...",
+      "startLine": 1,
+      "lineNumbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "meta": {
+      "source": {
+        "type": "internal",
+        "value": "proc://bg_557"
+      }
+    }
+  }
+}

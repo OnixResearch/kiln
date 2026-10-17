@@ -1,8 +1,9 @@
 use std::ffi::OsString;
+use std::sync::atomic::AtomicBool;
 
 use bounded_exec::{
     CommandSpec, Disposition, EnvironmentMode, ExecutionLimits, Input, Operation, OutcomePolicy,
-    RunError, RunRequest, TerminationScope, run,
+    RunError, RunRequest, TerminationScope, run_with_cancellation,
 };
 
 use super::model::{
@@ -23,6 +24,7 @@ pub(super) struct ProcessObservation {
 pub(super) fn execute_process(
     profile: &HostedNixProviderProfile,
     source_uri: &str,
+    cancellation: &AtomicBool,
 ) -> HostedProviderResult<ProcessObservation> {
     let limits = profile.limits;
     let stdin_max_bytes = checked_usize(limits.stdin_max_bytes, "stdin bound")?;
@@ -55,7 +57,7 @@ pub(super) fn execute_process(
             HostedProviderError::Admission("provider outcome policy is invalid".to_string())
         })?,
     };
-    match run(request) {
+    match run_with_cancellation(request, cancellation) {
         Ok(output) => {
             let outcome = match output.disposition {
                 Disposition::Succeeded => HostedProviderOutcome::Success,

@@ -1,0 +1,64 @@
+{
+  "schema": "kiln.qualification-nix-gates-blocked.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "argv": [
+    "env",
+    "TMPDIR=/var/tmp",
+    "XDG_CACHE_HOME=/var/tmp/kiln-qualification.BEA91plo/nix-cache",
+    "GIT_TERMINAL_PROMPT=0",
+    "GIT_SSH_COMMAND=ssh -oBatchMode=yes -oConnectTimeout=15 -oConnectionAttempts=1",
+    "nix",
+    "flake",
+    "check",
+    "path:/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source",
+    "--no-write-lock-file",
+    "-L"
+  ],
+  "status": "blocked-before-package-build",
+  "unobserved_gates": [
+    "nix_gate",
+    "octet_gate"
+  ],
+  "source_cache": {
+    "revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+    "nar_identity": "sha256-BVmqyUYyoNpY6LfOABxwPO3DY88ZtXeKNg3TPoGCcL0=",
+    "exact_documented_identity_verified": true
+  },
+  "diagnosis": {
+    "daemon": {
+      "version": "2.36.0",
+      "trusted": true,
+      "responds_to_info": true,
+      "small_owned_file_publication_exit_code": 0
+    },
+    "exact_source_path": "/nix/store/qwsa00lfmyc1kb015pxx03wkc9zxs5hh-build-cohort",
+    "source_lock_path": "/nix/store/qwsa00lfmyc1kb015pxx03wkc9zxs5hh-build-cohort.lock",
+    "source_lock_device": 31,
+    "source_lock_inode": 2198957,
+    "mode": "0600",
+    "owner": "root:root",
+    "holder_pid": 750625,
+    "holder_process": "nix-daemon",
+    "holder_uid": 0,
+    "waiting_worker_pid": 3688438,
+    "observed_proc_locks_lines": [
+      "8208: FLOCK  ADVISORY  WRITE 750625 00:1f:2198957 0 EOF",
+      "8208: -> FLOCK  ADVISORY  WRITE 3688438 00:1f:2198957 0 EOF"
+    ],
+    "holder_provenance": "unattributed; no authority assumed to signal another root-owned process",
+    "privileged_read_probe": {
+      "argv": [
+        "sudo",
+        "-n",
+        "--",
+        "ss",
+        "-xnp",
+        "src /nix/var/nix/daemon-socket/socket"
+      ],
+      "exit_code": 1,
+      "stderr": "sudo: a password is required\n"
+    },
+    "action": "cancelled only the owned blocked gate; did not signal the lock holder, unlink its lock, modify source/pins/policy, or fabricate a gate verdict"
+  },
+  "scope": "source-bound diagnosis only; no completed Nix or Octet gate and no qualification"
+}

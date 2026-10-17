@@ -1,3 +1,5 @@
+pub mod qualification;
+
 use alloc::collections::BTreeSet;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};

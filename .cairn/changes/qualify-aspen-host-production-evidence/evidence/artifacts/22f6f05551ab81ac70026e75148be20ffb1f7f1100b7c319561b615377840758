@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.qualification-explicit-rid-preflight.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "commands": [
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--identity",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"payload\": {\n    \"xyz.radicle.project\": {\n      \"defaultBranch\": \"main\",\n      \"description\": \"Provider-neutral CI control plane\",\n      \"name\": \"Kiln\"\n    }\n  },\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--sigrefs",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx bc8564b0d301bb239b3e40cc70176f8b1a4e6b41 parent\n",
+      "stderr": ""
+    }
+  ],
+  "scope": "read-only explicit RID inspection; non-colocated Jujutsu checkout is not auto-detectable as a Radicle working tree"
+}

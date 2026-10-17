@@ -1,0 +1,169 @@
+{
+  "schema": "kiln.qualification-final-documentation-link-observation.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "scope": "relative target existence, not rendered or deployed UI",
+  "links": [
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl",
+      "exists": true
+    },
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/integrate-canonical-main/evidence/verification.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/integrate-canonical-main/evidence/verification.json",
+      "exists": true
+    },
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "exists": true
+    },
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/integrate-canonical-main/evidence/publication.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/integrate-canonical-main/evidence/publication.json",
+      "exists": true
+    },
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/candidate.ncl",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/candidate.ncl",
+      "exists": true
+    },
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/verification.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/verification.json",
+      "exists": true
+    },
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/prepare-public-release/evidence/push-2026-10-15.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/evidence/push-2026-10-15.json",
+      "exists": true
+    },
+    {
+      "document": "docs/hosting-and-recovery.md",
+      "destination": "../.cairn/changes/prepare-public-release/evidence/github-push-2026-10-15.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/evidence/github-push-2026-10-15.json",
+      "exists": true
+    },
+    {
+      "document": "runtime/kiln-aspen-host/README.md",
+      "destination": "../../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "cohort.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "source-manifest.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/source-manifest.json",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/df5f72f973590892aca20977c3650e630ce95d4fb89c01198e802fc3d1c6e7df",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/df5f72f973590892aca20977c3650e630ce95d4fb89c01198e802fc3d1c6e7df",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/1db31ac220720b5f36d08f3b6c34665b6d6c23cfed316598fd3407719268f85c",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/1db31ac220720b5f36d08f3b6c34665b6d6c23cfed316598fd3407719268f85c",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/9c91f1e0f187b87849110242bb9ce861f7eae9eafff4fc64ea003f215acdce45",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/9c91f1e0f187b87849110242bb9ce861f7eae9eafff4fc64ea003f215acdce45",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/942d45b47ec8da405562c41cfcfcc33541df00e2ef0b1b043b52c1fff442e399",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/942d45b47ec8da405562c41cfcfcc33541df00e2ef0b1b043b52c1fff442e399",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/3890ff1843ca00f3bbfd412c899cfbf032e71e2688273e2b443f80512cc601f7",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/3890ff1843ca00f3bbfd412c899cfbf032e71e2688273e2b443f80512cc601f7",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/7d304d0278ae2803f6ca3e92f5733588d9503634253acb9520d0b85581107438",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/7d304d0278ae2803f6ca3e92f5733588d9503634253acb9520d0b85581107438",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/261cbbd4809b9990775d122872e887105ddfaaa1f1ca49840ff1efe30e3ace28",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/261cbbd4809b9990775d122872e887105ddfaaa1f1ca49840ff1efe30e3ace28",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/aeb198bcdebe422f74ecb3eddb9ad48f9efc19c21e367665c93102b0e3da55b9",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/aeb198bcdebe422f74ecb3eddb9ad48f9efc19c21e367665c93102b0e3da55b9",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/5379fbb744165d64fcba77ce8f8f48282fa38fba5bd32ce458e8e6c1f2407706",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/5379fbb744165d64fcba77ce8f8f48282fa38fba5bd32ce458e8e6c1f2407706",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifact-index.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifact-index.json",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/4a5a1b7244b4de6a04bb2e70361188bd47a10a617dd0f0adb507bc592276551c",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/4a5a1b7244b4de6a04bb2e70361188bd47a10a617dd0f0adb507bc592276551c",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "receipt-incomplete.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-incomplete.json",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "receipt-blocked.json",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-blocked.json",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/577a96f81dc9dc82d596e6f74df605e1a362fcdf3222fe476531f430b25de3ed",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/577a96f81dc9dc82d596e6f74df605e1a362fcdf3222fe476531f430b25de3ed",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/773d2df5bf2f4fa47725b51a7a53d4d72b22fba43cab37ef449466190be40a91",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/773d2df5bf2f4fa47725b51a7a53d4d72b22fba43cab37ef449466190be40a91",
+      "exists": true
+    },
+    {
+      "document": ".cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md",
+      "destination": "artifacts/0ca0c214ec60e4d9f8122f50eb1ec2250c320bba79224c1d2f8d12fe25f84234",
+      "target": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/0ca0c214ec60e4d9f8122f50eb1ec2250c320bba79224c1d2f8d12fe25f84234",
+      "exists": true
+    }
+  ]
+}

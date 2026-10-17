@@ -1,0 +1,16 @@
+{
+  "schema": "kiln.qualification-publication-binding.v1",
+  "baseline_revision": "2bf997aeb81b6c2047e816526a99b0a6d2847eae",
+  "qualified_candidate": {
+    "status": "unpublished-local-source-payload",
+    "source_archive_blake3": "fa826a0545692ceb9f05860c699e00a8736dbef7d2a0d0045192e5484ad11a82",
+    "source_manifest_blake3": "4f6d74189c38068dbda4282a4df3c679002c2af585f5e722fb769f96733ef66e",
+    "source_store_path": "/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source"
+  },
+  "remote_publication_performed": false,
+  "release_or_deployment_authority_granted": false,
+  "non_claims": [
+    "historical source publication does not qualify changed executable bytes",
+    "qualification does not authorize signing, push, synchronization, governance mutation or publication"
+  ]
+}

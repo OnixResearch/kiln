@@ -1,0 +1,5 @@
+#!/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin/bash
+set -eu
+export PATH=/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/84hi6zs6h5srf2898b6p0d3k19z0fz5h-uutils-coreutils-0.11.0/bin
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+exec /nix/store/6rwk5j1qqk7na4la5m2ka34p734braxa-nix-2.36.0/bin/nix --extra-experimental-features 'nix-command flakes' "$@"

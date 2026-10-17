@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Implement and exercise the three existing Aspen-host production-evidence obligations without changing their normative bodies, stable IDs, policy or publication authority.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

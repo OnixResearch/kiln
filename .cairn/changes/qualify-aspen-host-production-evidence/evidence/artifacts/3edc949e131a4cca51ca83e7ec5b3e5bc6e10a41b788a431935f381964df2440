@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.qualification-nix-wait-diagnostic.v1",
+  "scope": "bounded evaluator blocking diagnosis; not a gate verdict",
+  "argv": [
+    "timeout",
+    "--kill-after=5s",
+    "20s",
+    "strace",
+    "-f",
+    "-tt",
+    "-T",
+    "-e",
+    "trace=connect,poll,ppoll,epoll_wait,futex,flock,fcntl,wait4",
+    "-o",
+    "/var/tmp/kiln-qualification.BEA91plo/retained/nix-host-evaluation-wait-trace.log",
+    "env",
+    "TMPDIR=/var/tmp",
+    "XDG_CACHE_HOME=/var/tmp/kiln-qualification.BEA91plo/nix-cache",
+    "GIT_TERMINAL_PROMPT=0",
+    "GIT_SSH_COMMAND=ssh -oBatchMode=yes -oConnectTimeout=15 -oConnectionAttempts=1",
+    "nix",
+    "eval",
+    "--raw",
+    "path:/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source#packages.x86_64-linux.kiln-aspen-host.drvPath",
+    "--no-write-lock-file"
+  ],
+  "exit_code": 124,
+  "stdout": "",
+  "stderr": "\rshutting down\u001b[Kerror: interrupted by the user\n"
+}

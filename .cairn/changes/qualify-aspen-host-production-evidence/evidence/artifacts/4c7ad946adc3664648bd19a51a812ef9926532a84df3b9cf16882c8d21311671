@@ -1,0 +1,4 @@
+Script started on 2026-10-17 00:44:50-04:00 [COMMAND="'env' 'TMPDIR=/var/tmp' 'XDG_CACHE_HOME=/var/tmp/kiln-qualification.BEA91plo/nix-cache' 'HOME=/var/tmp/kiln-qualification.BEA91plo/empty-home' 'GIT_CONFIG_NOSYSTEM=1' 'GIT_CONFIG_GLOBAL=/dev/null' 'GIT_TERMINAL_PROMPT=0' 'GIT_CONFIG_COUNT=2' 'GIT_CONFIG_KEY_0=url.https://seed.radicle.garden/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git.insteadOf' 'GIT_CONFIG_VALUE_0=https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git' 'GIT_CONFIG_KEY_1=protocol.version' 'GIT_CONFIG_VALUE_1=0' 'nix' 'eval' '--option' 'access-tokens' '' '--option' 'secret-key-files' '' '--json' '--expr' 'builtins.fetchGit { url = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git"; rev = "29dac88ecded94457572db3fdfaaaab95fa91525"; allRefs = true; }'" <not executed on terminal>]
+"/nix/store/42kh9d4vr3zkiixs84f0vrf54n5d3x15-source"
+
+Script done on 2026-10-17 00:44:50-04:00 [COMMAND_EXIT_CODE="0"]

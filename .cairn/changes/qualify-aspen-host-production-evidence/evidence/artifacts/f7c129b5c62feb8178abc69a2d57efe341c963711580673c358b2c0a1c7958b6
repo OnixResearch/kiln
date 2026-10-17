@@ -1,0 +1,353 @@
+[
+  {
+    "stage": "proposal",
+    "argv": [
+      "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+      "--machine",
+      "gate",
+      "proposal",
+      "qualify-aspen-host-production-evidence",
+      "--root",
+      "/home/brittonr/git/OnixResearch/kiln",
+      "--policy",
+      "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+    ],
+    "result": {
+      "schema_version": "cairn.cli-machine.v1",
+      "ok": true,
+      "command": "gate",
+      "exit_class": "success",
+      "result": {
+        "acceptance_ids": [
+          "qualify-aspen-host-production-evidence.admission",
+          "qualify-aspen-host-production-evidence.cohort",
+          "qualify-aspen-host-production-evidence.execution",
+          "qualify-aspen-host-production-evidence.gates"
+        ],
+        "change": "qualify-aspen-host-production-evidence",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "7842b6d2407f9ee23b2765b20089ed9b3418b9cfef1ec04c5bfdd2fb959055f4",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+          "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+          "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "probe_evidence": null,
+        "profile_identity_hash": "e33250262c9418fa7b9f3b4d08f739c2a1c0ec5e3e842e503ed2a77b27387ee7",
+        "receipt_hash": "dd00afa05823aab103f8c022f1daceb5964887bf22e2e8eceb38f090ceef9abf",
+        "review_receipt_hashes": [
+          "74980f7ea439b1bee0d449f3dc2c8bbd144bcd5702b2db8c72bf6457923d3465"
+        ],
+        "spec_effect": "none",
+        "stage": "proposal",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "no-spec-delta",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "diagnostics": [],
+      "non_claims": [
+        "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+        "a machine envelope does not prove nested evidence truth or command correctness",
+        "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+        "a machine envelope does not prove lifecycle readiness or release eligibility",
+        "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+      ]
+    }
+  },
+  {
+    "stage": "design",
+    "argv": [
+      "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+      "--machine",
+      "gate",
+      "design",
+      "qualify-aspen-host-production-evidence",
+      "--root",
+      "/home/brittonr/git/OnixResearch/kiln",
+      "--policy",
+      "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+    ],
+    "result": {
+      "schema_version": "cairn.cli-machine.v1",
+      "ok": true,
+      "command": "gate",
+      "exit_class": "success",
+      "result": {
+        "acceptance_ids": [
+          "qualify-aspen-host-production-evidence.admission",
+          "qualify-aspen-host-production-evidence.cohort",
+          "qualify-aspen-host-production-evidence.execution",
+          "qualify-aspen-host-production-evidence.gates"
+        ],
+        "change": "qualify-aspen-host-production-evidence",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "2793f2357794dae899b2c4df9e4c1a1502c05fa111af0f41d69cda2a8a8deb14",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+          "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+          "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "probe_evidence": null,
+        "profile_identity_hash": "e33250262c9418fa7b9f3b4d08f739c2a1c0ec5e3e842e503ed2a77b27387ee7",
+        "receipt_hash": "91e4bc2a847f2a749cdd37670fb130c359f0654fb4997ba5a9616713b357a337",
+        "review_receipt_hashes": [
+          "74980f7ea439b1bee0d449f3dc2c8bbd144bcd5702b2db8c72bf6457923d3465"
+        ],
+        "spec_effect": "none",
+        "stage": "design",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/acceptance.md#profile-adapter",
+            "requirement_blocks": 1,
+            "scenario_blocks": 4,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "no-spec-delta",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "diagnostics": [],
+      "non_claims": [
+        "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+        "a machine envelope does not prove nested evidence truth or command correctness",
+        "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+        "a machine envelope does not prove lifecycle readiness or release eligibility",
+        "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+      ]
+    }
+  },
+  {
+    "stage": "tasks",
+    "argv": [
+      "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+      "--machine",
+      "gate",
+      "tasks",
+      "qualify-aspen-host-production-evidence",
+      "--root",
+      "/home/brittonr/git/OnixResearch/kiln",
+      "--policy",
+      "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+    ],
+    "result": {
+      "schema_version": "cairn.cli-machine.v1",
+      "ok": true,
+      "command": "gate",
+      "exit_class": "success",
+      "result": {
+        "acceptance_ids": [
+          "qualify-aspen-host-production-evidence.admission",
+          "qualify-aspen-host-production-evidence.cohort",
+          "qualify-aspen-host-production-evidence.execution",
+          "qualify-aspen-host-production-evidence.gates"
+        ],
+        "change": "qualify-aspen-host-production-evidence",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "588c152d412fcc24a39042f2b4741601bd1d96db3fc83b72d7b053dc389ae0c9",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+          "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+          "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "probe_evidence": {
+          "declarations_present": false,
+          "probes": []
+        },
+        "profile_identity_hash": "e33250262c9418fa7b9f3b4d08f739c2a1c0ec5e3e842e503ed2a77b27387ee7",
+        "receipt_hash": "23c7ab24943e9f408e0c286bc42fd51bcb89c7cc5cc38620bc4f72f20910c34c",
+        "review_receipt_hashes": [
+          "74980f7ea439b1bee0d449f3dc2c8bbd144bcd5702b2db8c72bf6457923d3465"
+        ],
+        "spec_effect": "none",
+        "stage": "tasks",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/acceptance.md#profile-adapter",
+            "requirement_blocks": 1,
+            "scenario_blocks": 4,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 11,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 11,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 11,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 11
+          }
+        ],
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        },
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "no-spec-delta",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "diagnostics": [],
+      "non_claims": [
+        "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+        "a machine envelope does not prove nested evidence truth or command correctness",
+        "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+        "a machine envelope does not prove lifecycle readiness or release eligibility",
+        "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+      ]
+    }
+  }
+]

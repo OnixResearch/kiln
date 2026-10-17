@@ -1,0 +1,34 @@
+{
+  "allowed_user_id": 1555,
+  "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+  "durable_file_publication_revision": "8e05e74e24b45f752d77145c4455385daaf6d6ab",
+  "limits": {
+    "poll_interval_milliseconds": 10,
+    "report_max_bytes": 262144,
+    "stage_collision_attempts": 4,
+    "stderr_max_bytes": 65536,
+    "stdin_max_bytes": 1,
+    "stdout_max_bytes": 65536,
+    "teardown_timeout_milliseconds": 2000,
+    "timeout_milliseconds": 10000,
+    "wrapper_max_bytes": 4096
+  },
+  "non_claims": [
+    "a local source path does not prove source trust or revision authority",
+    "bounded execution does not prove sandboxing or hermeticity",
+    "a process exit does not prove CI correctness",
+    "report publication does not prove external report delivery",
+    "filesystem synchronization does not prove storage-device persistence",
+    "a provider receipt does not prove distributed exactly-once execution",
+    "provider execution does not establish release eligibility"
+  ],
+  "report_base_url": "https://ci.invalid/qualification",
+  "report_namespace": "host-qualification",
+  "report_root": "/var/tmp/kiln-qualification.BEA91plo/provider-reports",
+  "repository": "rad:qualification-exact-source",
+  "schema": "kiln.radicle-nix-provider.v1",
+  "source_root": "/var/tmp/kiln-qualification.BEA91plo/source",
+  "working_directory": "/var/tmp/kiln-qualification.BEA91plo/provider-work",
+  "wrapper_blake3": "c2f6d0ac73927a63fd34757377189f5ab3436948a55674f67a8dd474d8a6a6aa",
+  "wrapper_path": "/var/tmp/kiln-qualification.BEA91plo/nix-wrapper"
+}

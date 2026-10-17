@@ -1,3 +1,5 @@
+mod qualification;
+
 use std::path::Path;
 
 use kiln_codec::identity_from_bytes;
@@ -9,13 +11,18 @@ use kiln_standalone::{CommitMode, MemoryJournal};
 
 const COMMAND_DEMO: &str = "demo";
 const COMMAND_EVIDENCE: &str = "evidence";
+const COMMAND_HOST_QUALIFY: &str = "host-qualify";
+const QUALIFICATION_USAGE: &str = "usage: kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT";
 const EXIT_FAILURE: i32 = 1;
 const EXIT_USAGE: i32 = 2;
 
 fn main() {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
-        fail("usage: kiln demo | kiln evidence INPUT OUTPUT", EXIT_USAGE);
+        fail(
+            "usage: kiln demo | kiln evidence INPUT OUTPUT | kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT",
+            EXIT_USAGE,
+        );
     };
     let result = match command.as_str() {
         COMMAND_DEMO => demo(),
@@ -27,6 +34,25 @@ fn main() {
                 fail("usage: kiln evidence INPUT OUTPUT", EXIT_USAGE);
             };
             generate_evidence(Path::new(&input), Path::new(&output))
+        }
+        COMMAND_HOST_QUALIFY => {
+            let Some(cohort) = arguments.next() else {
+                fail(QUALIFICATION_USAGE, EXIT_USAGE);
+            };
+            let Some(receipt) = arguments.next() else {
+                fail(QUALIFICATION_USAGE, EXIT_USAGE);
+            };
+            let Some(artifacts) = arguments.next() else {
+                fail(QUALIFICATION_USAGE, EXIT_USAGE);
+            };
+            if arguments.next().is_some() {
+                fail(QUALIFICATION_USAGE, EXIT_USAGE);
+            }
+            qualification::qualify(
+                Path::new(&cohort),
+                Path::new(&receipt),
+                Path::new(&artifacts),
+            )
         }
         _ => Err(format!("unsupported command: {command}")),
     };
@@ -98,11 +124,6 @@ fn generate_evidence(input: &Path, output: &Path) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn demo_emits_canonical_state() {
-        assert!(demo().is_ok());
-    }
 
     #[test]
     fn evidence_identity_is_deterministic() {

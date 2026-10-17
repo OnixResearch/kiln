@@ -1,0 +1,1563 @@
+{
+  "schema": "kiln.qualification-native-lifecycle.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "scope": "current evidence-only task/operator-documentation descendant; runtime product files unchanged",
+  "commands": [
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "validate",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "result": {
+        "schema_version": "cairn.cli-machine.v1",
+        "ok": true,
+        "command": "validate",
+        "exit_class": "success",
+        "result": {
+          "change_issues": [],
+          "changes": 10,
+          "cross_repo_dependencies": [],
+          "cross_repo_evidence_issues": [],
+          "findings": [
+            {
+              "code": "cairn.gate.validation",
+              "message": "cairn.workflow.profile.artifact: no-spec-review is blocked"
+            },
+            {
+              "code": "cairn.gate.validation",
+              "message": "cairn.workflow.profile.artifact: workflow profile artifact is not structurally complete: no-spec-review (blocked)"
+            },
+            {
+              "code": "cairn.gate.validation",
+              "message": "cairn.workflow.profile.review: workflow review is invalid or not approved: no-spec-classification-review"
+            }
+          ],
+          "issues": [
+            "cairn.workflow.profile.artifact: no-spec-review is blocked",
+            "cairn.workflow.profile.artifact: workflow profile artifact is not structurally complete: no-spec-review (blocked)",
+            "cairn.workflow.profile.review: workflow review is invalid or not approved: no-spec-classification-review"
+          ],
+          "layout": "cairn",
+          "policy": "kiln-default",
+          "profile_issues": [
+            "cairn.workflow.profile.artifact: no-spec-review is blocked",
+            "cairn.workflow.profile.review: workflow review is invalid or not approved: no-spec-classification-review"
+          ],
+          "resolution": {
+            "diagnostics": [],
+            "locator_consulted": false,
+            "registry_lookup": "local_locator_only",
+            "selected": {
+              "project_identity": null,
+              "root": "/home/brittonr/git/OnixResearch/kiln",
+              "source": "explicit_root",
+              "store_id": null,
+              "store_identity": null
+            },
+            "valid": true
+          },
+          "spec_findings": [],
+          "spec_issues": [],
+          "spec_substance": [
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-github-ci-adapter/specs/github-ci/spec.md",
+              "requirement_blocks": 10,
+              "scenario_blocks": 20,
+              "substantive_requirement_blocks": 10
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-onix-nix-evaluator-cohort/specs/nix-eval-jobs-onix-cohort/spec.md",
+              "requirement_blocks": 9,
+              "scenario_blocks": 15,
+              "substantive_requirement_blocks": 9
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/bind-aspen-extension-runtime-profile/specs/aspen-host-bridge/spec.md",
+              "requirement_blocks": 1,
+              "scenario_blocks": 2,
+              "substantive_requirement_blocks": 1
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-http-shell/specs/observation-http-shell/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-iroh-shell/specs/observation-iroh-shell/spec.md",
+              "requirement_blocks": 7,
+              "scenario_blocks": 12,
+              "substantive_requirement_blocks": 7
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-projection/specs/observation-projection/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 12,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/pace-aspen-lattice-observation/specs/aspen-host-bridge/spec.md",
+              "requirement_blocks": 1,
+              "scenario_blocks": 2,
+              "substantive_requirement_blocks": 1
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+              "requirement_blocks": 3,
+              "scenario_blocks": 6,
+              "substantive_requirement_blocks": 3
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/aspen-host-bridge/spec.md",
+              "requirement_blocks": 9,
+              "scenario_blocks": 17,
+              "substantive_requirement_blocks": 9
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/aspen-runtime-backend/spec.md",
+              "requirement_blocks": 13,
+              "scenario_blocks": 25,
+              "substantive_requirement_blocks": 13
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/cairn-gate-adapter/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/cdevents-interchange-adapter/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/celld-event-store-adapter/spec.md",
+              "requirement_blocks": 12,
+              "scenario_blocks": 24,
+              "substantive_requirement_blocks": 12
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/change-gating/spec.md",
+              "requirement_blocks": 10,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 10
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/ci-domain/spec.md",
+              "requirement_blocks": 9,
+              "scenario_blocks": 9,
+              "substantive_requirement_blocks": 9
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/durable-operations/spec.md",
+              "requirement_blocks": 13,
+              "scenario_blocks": 13,
+              "substantive_requirement_blocks": 13
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/git-source-adapter/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/github-ci/spec.md",
+              "requirement_blocks": 10,
+              "scenario_blocks": 20,
+              "substantive_requirement_blocks": 10
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/interchange-projections/spec.md",
+              "requirement_blocks": 10,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 10
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/lattice-workflow-adapter/spec.md",
+              "requirement_blocks": 9,
+              "scenario_blocks": 15,
+              "substantive_requirement_blocks": 9
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/mantle-build-adapter/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/nix-eval-jobs-adapter/spec.md",
+              "requirement_blocks": 12,
+              "scenario_blocks": 25,
+              "substantive_requirement_blocks": 12
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/opentelemetry-projection-adapter/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/provider-ports/spec.md",
+              "requirement_blocks": 15,
+              "scenario_blocks": 15,
+              "substantive_requirement_blocks": 15
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/radicle-ci-compatibility/spec.md",
+              "requirement_blocks": 14,
+              "scenario_blocks": 18,
+              "substantive_requirement_blocks": 14
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/radicle-cob-support/spec.md",
+              "requirement_blocks": 12,
+              "scenario_blocks": 22,
+              "substantive_requirement_blocks": 12
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/radicle-mutation/spec.md",
+              "requirement_blocks": 4,
+              "scenario_blocks": 7,
+              "substantive_requirement_blocks": 4
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/radicle-source-contract/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 12,
+              "substantive_requirement_blocks": 6
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/radicle-status/spec.md",
+              "requirement_blocks": 10,
+              "scenario_blocks": 14,
+              "substantive_requirement_blocks": 10
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/remote-execution-compatibility/spec.md",
+              "requirement_blocks": 10,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 10
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/repository-hosting/spec.md",
+              "requirement_blocks": 14,
+              "scenario_blocks": 14,
+              "substantive_requirement_blocks": 14
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/repository-lifecycle/spec.md",
+              "requirement_blocks": 1,
+              "scenario_blocks": 3,
+              "substantive_requirement_blocks": 1
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/source-collaboration/spec.md",
+              "requirement_blocks": 18,
+              "scenario_blocks": 34,
+              "substantive_requirement_blocks": 18
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/sqlite-event-store-adapter/spec.md",
+              "requirement_blocks": 7,
+              "scenario_blocks": 12,
+              "substantive_requirement_blocks": 7
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/task-operations/spec.md",
+              "requirement_blocks": 13,
+              "scenario_blocks": 24,
+              "substantive_requirement_blocks": 13
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/valence-evidence-adapter/spec.md",
+              "requirement_blocks": 5,
+              "scenario_blocks": 8,
+              "substantive_requirement_blocks": 5
+            },
+            {
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/specs/webhook-notification-adapter/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_requirement_blocks": 6
+            }
+          ],
+          "specs_validated": 37,
+          "substance": [
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-github-ci-adapter/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-github-ci-adapter/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 8,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-github-ci-adapter/specs/github-ci/spec.md",
+              "requirement_blocks": 10,
+              "scenario_blocks": 20,
+              "substantive_lines": 70,
+              "substantive_requirement_blocks": 10,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 8,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-github-ci-adapter/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 8,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 8,
+              "task_done": 8,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-onix-nix-evaluator-cohort/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 22,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-onix-nix-evaluator-cohort/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-onix-nix-evaluator-cohort/specs/nix-eval-jobs-onix-cohort/spec.md",
+              "requirement_blocks": 9,
+              "scenario_blocks": 15,
+              "substantive_lines": 54,
+              "substantive_requirement_blocks": 9,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 13,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/add-onix-nix-evaluator-cohort/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 17,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 13,
+              "task_done": 1,
+              "task_in_progress": 0,
+              "task_todo": 12
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/bind-aspen-extension-runtime-profile/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/bind-aspen-extension-runtime-profile/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 8,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/bind-aspen-extension-runtime-profile/specs/aspen-host-bridge/spec.md",
+              "requirement_blocks": 1,
+              "scenario_blocks": 2,
+              "substantive_lines": 12,
+              "substantive_requirement_blocks": 1,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 9,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/bind-aspen-extension-runtime-profile/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 9,
+              "task_done": 7,
+              "task_in_progress": 0,
+              "task_todo": 2
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/integrate-canonical-main/acceptance.md#profile-adapter",
+              "requirement_blocks": 1,
+              "scenario_blocks": 4,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 1,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/integrate-canonical-main/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 12,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/integrate-canonical-main/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 5,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/integrate-canonical-main/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 5,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 5,
+              "task_done": 5,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-http-shell/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 23,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-http-shell/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-http-shell/specs/observation-http-shell/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 10,
+              "substantive_lines": 36,
+              "substantive_requirement_blocks": 6,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 16,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-http-shell/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 16,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 16
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-iroh-shell/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 23,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-iroh-shell/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 17,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-iroh-shell/specs/observation-iroh-shell/spec.md",
+              "requirement_blocks": 7,
+              "scenario_blocks": 12,
+              "substantive_lines": 43,
+              "substantive_requirement_blocks": 7,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 21,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-iroh-shell/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 21,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 21,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 21
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-projection/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 22,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-projection/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 17,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-projection/specs/observation-projection/spec.md",
+              "requirement_blocks": 6,
+              "scenario_blocks": 12,
+              "substantive_lines": 42,
+              "substantive_requirement_blocks": 6,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 15,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/observation-projection/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 15,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 15,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 15
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/pace-aspen-lattice-observation/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 15,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/pace-aspen-lattice-observation/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 8,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/pace-aspen-lattice-observation/specs/aspen-host-bridge/spec.md",
+              "requirement_blocks": 1,
+              "scenario_blocks": 2,
+              "substantive_lines": 11,
+              "substantive_requirement_blocks": 1,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 9,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/pace-aspen-lattice-observation/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 9,
+              "task_done": 7,
+              "task_in_progress": 0,
+              "task_todo": 2
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+              "requirement_blocks": 3,
+              "scenario_blocks": 6,
+              "substantive_lines": 21,
+              "substantive_requirement_blocks": 3,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 12,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-public-release/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 23,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 12,
+              "task_done": 12,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/acceptance.md#profile-adapter",
+              "requirement_blocks": 1,
+              "scenario_blocks": 4,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 1,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 12,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 11,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 11,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 11,
+              "task_done": 9,
+              "task_in_progress": 0,
+              "task_todo": 2
+            }
+          ],
+          "substance_findings": [
+            {
+              "code": "cairn.gate.validation",
+              "message": "cairn.workflow.profile.artifact: workflow profile artifact is not structurally complete: no-spec-review (blocked)"
+            },
+            {
+              "code": "cairn.gate.validation",
+              "message": "cairn.workflow.profile.review: workflow review is invalid or not approved: no-spec-classification-review"
+            }
+          ],
+          "substance_issues": [
+            "cairn.workflow.profile.artifact: workflow profile artifact is not structurally complete: no-spec-review (blocked)",
+            "cairn.workflow.profile.review: workflow review is invalid or not approved: no-spec-classification-review"
+          ],
+          "valid": false,
+          "workflow_profiles": [
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "7788920578a035a27bc4036f8a03d8f29f7c103919f07ffff402a53192faace4",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "ade2e6b4f57c0d5b0bd6ee5fea7f2f34f608984068b81875b9b6481e9d8209ec",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "357a3423631e6c13a90e5101836cd9e933ad91935fffc1f551abc156ae36beea",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [
+                "integrate-canonical-main.contracts",
+                "integrate-canonical-main.history",
+                "integrate-canonical-main.publication",
+                "integrate-canonical-main.verification"
+              ],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+                "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+                "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+              ],
+              "profile_identity_hash": "022d3e99ffc24f9a0a4328cc9b2bfc03193cb689aaa24521798023245eb86f9e",
+              "review_receipt_hashes": [
+                "b75f489f918504943d984758b29eb2d0b11e012512952f1395f1e8df2295a57c"
+              ],
+              "spec_effect": "none",
+              "workflow_profile": "no-spec-delta",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "17d6b033bed3d3131e610bdf8bbe633e9aa6bcca36735e91cf547588590c84b0",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "1071a9e4ec7f83856d7bd2d5e02513fd7d5c956fa61cc7586d10c6b79f4c851b",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "140803fac70a646f678ef0e977e9664d2cb6b43368afcc5aece79173ba86bab4",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "a9c2fe82cb00ae231a5fd2d880d0b6e859c2c1b5974aa4342a6b927964175538",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+              ],
+              "profile_identity_hash": "7097fd712d93d71daa8ea765012e71c491baf7e65e3359f39da5cd978d7d50d9",
+              "review_receipt_hashes": [],
+              "spec_effect": "delta",
+              "workflow_profile": "spec-driven",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            },
+            {
+              "acceptance_ids": [
+                "qualify-aspen-host-production-evidence.admission",
+                "qualify-aspen-host-production-evidence.cohort",
+                "qualify-aspen-host-production-evidence.execution",
+                "qualify-aspen-host-production-evidence.gates"
+              ],
+              "non_claims": [
+                "workflow state proves only the selected policy graph and observed structural artifact facts",
+                "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+                "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+                "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+                "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+                "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+              ],
+              "profile_identity_hash": "e6e4b4987130a2c5672968a41119d4a30cdae2002c3ef8af5b2080af52478236",
+              "review_receipt_hashes": [
+                "74980f7ea439b1bee0d449f3dc2c8bbd144bcd5702b2db8c72bf6457923d3465"
+              ],
+              "spec_effect": "none",
+              "workflow_profile": "no-spec-delta",
+              "workflow_profile_compatibility_fallback": false,
+              "workflow_profile_source": "change_create",
+              "workflow_profile_version": 1
+            }
+          ]
+        },
+        "diagnostics": [],
+        "non_claims": [
+          "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+          "a machine envelope does not prove nested evidence truth or command correctness",
+          "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+          "a machine envelope does not prove lifecycle readiness or release eligibility",
+          "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+        ]
+      }
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "gate",
+        "proposal",
+        "qualify-aspen-host-production-evidence",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "result": {
+        "schema_version": "cairn.cli-machine.v1",
+        "ok": true,
+        "command": "gate",
+        "exit_class": "success",
+        "result": {
+          "acceptance_ids": [
+            "qualify-aspen-host-production-evidence.admission",
+            "qualify-aspen-host-production-evidence.cohort",
+            "qualify-aspen-host-production-evidence.execution",
+            "qualify-aspen-host-production-evidence.gates"
+          ],
+          "change": "qualify-aspen-host-production-evidence",
+          "evidence_summary": {
+            "docs_only": 0,
+            "fixture": 0,
+            "formal": 0,
+            "mode": "advisory",
+            "model": 0,
+            "probe": 0,
+            "property": 0
+          },
+          "input_hash": "aaa057a8eed33fb0e594a3e56902b4238122071406905af475ba1f42e2c5b226",
+          "issues": [],
+          "layout": "cairn",
+          "non_claims": [
+            "workflow state proves only the selected policy graph and observed structural artifact facts",
+            "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+            "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+            "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+            "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+            "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+          ],
+          "policy": "kiln-default",
+          "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+          "probe_evidence": null,
+          "profile_identity_hash": "e6e4b4987130a2c5672968a41119d4a30cdae2002c3ef8af5b2080af52478236",
+          "receipt_hash": "b6320bd579117276d6010f967857a08245476e11787599fe9e62fd541a173484",
+          "review_receipt_hashes": [
+            "74980f7ea439b1bee0d449f3dc2c8bbd144bcd5702b2db8c72bf6457923d3465"
+          ],
+          "spec_effect": "none",
+          "stage": "proposal",
+          "substance": [
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            }
+          ],
+          "task_ordering": null,
+          "valid": true,
+          "verdict": "PASS",
+          "workflow_profile": "no-spec-delta",
+          "workflow_profile_compatibility_fallback": false,
+          "workflow_profile_source": "change_create",
+          "workflow_profile_version": 1
+        },
+        "diagnostics": [],
+        "non_claims": [
+          "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+          "a machine envelope does not prove nested evidence truth or command correctness",
+          "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+          "a machine envelope does not prove lifecycle readiness or release eligibility",
+          "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+        ]
+      }
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "gate",
+        "design",
+        "qualify-aspen-host-production-evidence",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "result": {
+        "schema_version": "cairn.cli-machine.v1",
+        "ok": true,
+        "command": "gate",
+        "exit_class": "success",
+        "result": {
+          "acceptance_ids": [
+            "qualify-aspen-host-production-evidence.admission",
+            "qualify-aspen-host-production-evidence.cohort",
+            "qualify-aspen-host-production-evidence.execution",
+            "qualify-aspen-host-production-evidence.gates"
+          ],
+          "change": "qualify-aspen-host-production-evidence",
+          "evidence_summary": {
+            "docs_only": 0,
+            "fixture": 0,
+            "formal": 0,
+            "mode": "advisory",
+            "model": 0,
+            "probe": 0,
+            "property": 0
+          },
+          "input_hash": "ee97ebf8520925bda996956fa6a8ac5bccce83fa855c014f0548e87d4bad9555",
+          "issues": [],
+          "layout": "cairn",
+          "non_claims": [
+            "workflow state proves only the selected policy graph and observed structural artifact facts",
+            "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+            "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+            "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+            "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+            "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+          ],
+          "policy": "kiln-default",
+          "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+          "probe_evidence": null,
+          "profile_identity_hash": "e6e4b4987130a2c5672968a41119d4a30cdae2002c3ef8af5b2080af52478236",
+          "receipt_hash": "2aca4dbf65111344d2e5a39440f985a19eb27ae69ae6e680597a91c5df413455",
+          "review_receipt_hashes": [
+            "74980f7ea439b1bee0d449f3dc2c8bbd144bcd5702b2db8c72bf6457923d3465"
+          ],
+          "spec_effect": "none",
+          "stage": "design",
+          "substance": [
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/acceptance.md#profile-adapter",
+              "requirement_blocks": 1,
+              "scenario_blocks": 4,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 1,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 12,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            }
+          ],
+          "task_ordering": null,
+          "valid": true,
+          "verdict": "PASS",
+          "workflow_profile": "no-spec-delta",
+          "workflow_profile_compatibility_fallback": false,
+          "workflow_profile_source": "change_create",
+          "workflow_profile_version": 1
+        },
+        "diagnostics": [],
+        "non_claims": [
+          "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+          "a machine envelope does not prove nested evidence truth or command correctness",
+          "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+          "a machine envelope does not prove lifecycle readiness or release eligibility",
+          "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+        ]
+      }
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "gate",
+        "tasks",
+        "qualify-aspen-host-production-evidence",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "result": {
+        "schema_version": "cairn.cli-machine.v1",
+        "ok": true,
+        "command": "gate",
+        "exit_class": "success",
+        "result": {
+          "acceptance_ids": [
+            "qualify-aspen-host-production-evidence.admission",
+            "qualify-aspen-host-production-evidence.cohort",
+            "qualify-aspen-host-production-evidence.execution",
+            "qualify-aspen-host-production-evidence.gates"
+          ],
+          "change": "qualify-aspen-host-production-evidence",
+          "evidence_summary": {
+            "docs_only": 0,
+            "fixture": 0,
+            "formal": 0,
+            "mode": "advisory",
+            "model": 0,
+            "probe": 0,
+            "property": 0
+          },
+          "input_hash": "098b2274abb39af7657fd1a96a5a8b1ff347afb3ccd6322914a16d2021e00d66",
+          "issues": [
+            {
+              "code": "cairn.workflow.profile.artifact",
+              "message": "workflow profile artifact is not structurally complete: no-spec-review (blocked)",
+              "promoted": "no",
+              "scope": "tasks"
+            },
+            {
+              "code": "cairn.workflow.profile.review",
+              "message": "workflow review is invalid or not approved: no-spec-classification-review",
+              "promoted": "no",
+              "scope": "tasks"
+            }
+          ],
+          "layout": "cairn",
+          "non_claims": [
+            "workflow state proves only the selected policy graph and observed structural artifact facts",
+            "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+            "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+            "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+            "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+            "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+          ],
+          "policy": "kiln-default",
+          "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+          "probe_evidence": {
+            "declarations_present": false,
+            "probes": []
+          },
+          "profile_identity_hash": "e6e4b4987130a2c5672968a41119d4a30cdae2002c3ef8af5b2080af52478236",
+          "receipt_hash": "4e5abf6f0cf0f0c3860758f8ef9532ddfebdc7c177ca506705c5e58fbb1edac1",
+          "review_receipt_hashes": [
+            "74980f7ea439b1bee0d449f3dc2c8bbd144bcd5702b2db8c72bf6457923d3465"
+          ],
+          "spec_effect": "none",
+          "stage": "tasks",
+          "substance": [
+            {
+              "checkbox_tasks": 0,
+              "kind": "delta_spec",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/acceptance.md#profile-adapter",
+              "requirement_blocks": 1,
+              "scenario_blocks": 4,
+              "substantive_lines": 16,
+              "substantive_requirement_blocks": 1,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "design",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/design.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 12,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 0,
+              "kind": "proposal",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 9,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 0,
+              "task_done": 0,
+              "task_in_progress": 0,
+              "task_todo": 0
+            },
+            {
+              "checkbox_tasks": 11,
+              "kind": "tasks",
+              "malformed_dependency_markers": 0,
+              "path": "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/tasks.md",
+              "requirement_blocks": 0,
+              "scenario_blocks": 0,
+              "substantive_lines": 11,
+              "substantive_requirement_blocks": 0,
+              "substantive_tasks": 11,
+              "task_done": 9,
+              "task_in_progress": 0,
+              "task_todo": 2
+            }
+          ],
+          "task_ordering": {
+            "active": false,
+            "edges": [],
+            "issues": [],
+            "nodes": [],
+            "order": [],
+            "ready_tasks": [],
+            "valid": true
+          },
+          "valid": false,
+          "verdict": "FAIL",
+          "workflow_profile": "no-spec-delta",
+          "workflow_profile_compatibility_fallback": false,
+          "workflow_profile_source": "change_create",
+          "workflow_profile_version": 1
+        },
+        "diagnostics": [],
+        "non_claims": [
+          "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+          "a machine envelope does not prove nested evidence truth or command correctness",
+          "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+          "a machine envelope does not prove lifecycle readiness or release eligibility",
+          "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+        ]
+      }
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "--machine",
+        "traceability",
+        "coverage",
+        "--root",
+        "/home/brittonr/git/OnixResearch/kiln",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "result": {
+        "schema_version": "cairn.cli-machine.v1",
+        "ok": true,
+        "command": "traceability",
+        "exit_class": "success",
+        "result": {
+          "command": "traceability coverage",
+          "dangling": [],
+          "input_hash": "1ac9ca6baef322a5ee5ebe988f7d9066f074cad9aa7ece7ec23ca40341216dc8",
+          "missing": [],
+          "policy": "kiln-default",
+          "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+          "profile": {
+            "anchor_kind": "exact_marker_bytes",
+            "assurance_level": "declared",
+            "evidence_sources": [
+              {
+                "extensions": [
+                  "rs"
+                ],
+                "root": "crates",
+                "source_kind": "rust_source"
+              },
+              {
+                "extensions": [
+                  "ncl"
+                ],
+                "root": "crates",
+                "source_kind": "nickel_source"
+              },
+              {
+                "extensions": [
+                  "rs"
+                ],
+                "root": "runtime/kiln-aspen-host",
+                "source_kind": "rust_source"
+              },
+              {
+                "extensions": [
+                  "rs"
+                ],
+                "root": "runtime/kiln-radicle-nix-provider",
+                "source_kind": "rust_source"
+              },
+              {
+                "extensions": [
+                  "md"
+                ],
+                "root": "docs/hosting-and-recovery.md",
+                "source_kind": "tool_source"
+              },
+              {
+                "extensions": [
+                  "rs",
+                  "ncl"
+                ],
+                "root": "tools",
+                "source_kind": "tool_source"
+              },
+              {
+                "extensions": [
+                  "mjs"
+                ],
+                "root": "src",
+                "source_kind": "tool_source"
+              },
+              {
+                "extensions": [
+                  "mjs",
+                  "sh"
+                ],
+                "root": "tests",
+                "source_kind": "tool_source"
+              }
+            ],
+            "id": "cairn-default",
+            "marker_verbs": [
+              "impl",
+              "verify",
+              "depends",
+              "related"
+            ],
+            "requirement_sources": [
+              {
+                "extensions": [
+                  "md"
+                ],
+                "root": ".cairn/specs",
+                "source_kind": "accepted_specs"
+              },
+              {
+                "extensions": [
+                  "md"
+                ],
+                "root": ".cairn/changes/bind-aspen-extension-runtime-profile/specs",
+                "source_kind": "requirements_doc"
+              },
+              {
+                "extensions": [
+                  "md"
+                ],
+                "root": ".cairn/changes/pace-aspen-lattice-observation/specs",
+                "source_kind": "requirements_doc"
+              }
+            ]
+          },
+          "profile_id": "cairn-default",
+          "receipt_hash": "19b9a0696c73de97acb56d8aa33f2fe5f6a5e0a33b59391cc3a95749f094fb4f",
+          "referenced": 625,
+          "requirements": 625,
+          "root": "/home/brittonr/git/OnixResearch/kiln",
+          "source_summary": {
+            "evidence_files": 241,
+            "evidence_manifest_hash": "ece8f87a7e2d526359b81b11b8318c40cef796f959361bebcb91d4a02dfd64c2",
+            "requirement_files": 31,
+            "requirement_manifest_hash": "49850ac33c83e02656bd916ef47fbeee2642ff7bcf4576723dc25e638923208a"
+          },
+          "valid": true,
+          "verdict": "pass"
+        },
+        "diagnostics": [],
+        "non_claims": [
+          "a valid machine envelope proves only that Cairn reached the controlled output boundary and serialized one typed outcome",
+          "a machine envelope does not prove nested evidence truth or command correctness",
+          "a machine envelope does not prove mutation safety, process reliability, or host integrity",
+          "a machine envelope does not prove lifecycle readiness or release eligibility",
+          "no envelope is guaranteed after host termination, process kill, memory exhaustion, pre-boundary panic, broken stdout, or failure before Cairn starts"
+        ]
+      }
+    }
+  ]
+}

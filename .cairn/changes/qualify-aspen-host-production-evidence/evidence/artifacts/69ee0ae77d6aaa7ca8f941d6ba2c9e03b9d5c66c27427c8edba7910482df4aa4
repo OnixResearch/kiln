@@ -1,0 +1,18 @@
+{
+  "schema": "kiln.qualification-nix-daemon-write-probe.v1",
+  "scope": "small owned diagnostic file publication; not a gate result",
+  "argv": [
+    "timeout",
+    "--kill-after=2s",
+    "10s",
+    "nix",
+    "store",
+    "add-path",
+    "--name",
+    "kiln-qualification-daemon-probe",
+    "/var/tmp/kiln-qualification.BEA91plo/retained/bounded-exec-source-cache-seed.log"
+  ],
+  "exit_code": 0,
+  "stdout": "/nix/store/nsc7k0bl881xdwdldxsci0x0kaj7ac4k-kiln-qualification-daemon-probe\n",
+  "stderr": ""
+}

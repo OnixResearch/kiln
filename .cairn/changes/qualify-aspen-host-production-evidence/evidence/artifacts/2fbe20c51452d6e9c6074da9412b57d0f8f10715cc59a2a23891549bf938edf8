@@ -1,0 +1,15 @@
+let base = import "/nix/store/hqf16msh3qflssh34k44ikdx4pjjr2ii-source/examples/workflows/daily-digest.ncl" in
+let WorkflowTimeoutSeconds = 30 in
+base & {
+  meta | force = base.meta & {
+    name | force = "kiln-host-qualification",
+    description | force = "Isolated exact-source Kiln provider through the real Lattice exchange",
+  },
+  nodes | force = [std.array.at 0 base.nodes],
+  edges | force = [],
+  configs | force = [(std.array.at 0 base.configs) & {
+    command | force = "exec /var/tmp/kiln-qualification.BEA91plo/provider --profile /var/tmp/kiln-qualification.BEA91plo/provider-profile.json --repository \"$LATTICE_SOURCE_REPOSITORY\" --revision \"$LATTICE_SOURCE_REVISION\"",
+    timeout_secs | force = WorkflowTimeoutSeconds,
+    pipe_stdin | force = false,
+  }],
+}

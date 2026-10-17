@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.qualification-actual-current-blocked-receipt-consumer.v1",
+  "argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/root-pinned-target/debug/kiln",
+    "host-qualify",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-blocked.json",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+  ],
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "executable_blake3": "eed52dbf90ee5acaac4773b045688b3d12e87fa784a781097f967f6dfb2d53c7",
+  "cohort_input_blake3": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "receipt": "receipt-blocked.json",
+  "receipt_input_blake3": "deced9375a2f274001b1829e27a46796017e83cda028893cba26e27041869483",
+  "receipt_input_bytes": 4473,
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "qualification_gate_not_passed: failed or uncertain observations cannot qualify a host\n",
+  "unknown_gates": [
+    "octet_gate",
+    "nix_gate"
+  ],
+  "lifecycle_observation": {
+    "name": "native-lifecycle-after-current-plan-review.json",
+    "blake3": "4a5a1b7244b4de6a04bb2e70361188bd47a10a617dd0f0adb507bc592276551c",
+    "bytes": 126200,
+    "path": "artifacts/4a5a1b7244b4de6a04bb2e70361188bd47a10a617dd0f0adb507bc592276551c"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.qualification-final-product-input-preservation.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "source_snapshot": "fa826a0545692ceb9f05860c699e00a8736dbef7d2a0d0045192e5484ad11a82",
+  "source_store_path": "/nix/store/qs6ys6z64y518qizxhc5xwsrl9h0qss1-source",
+  "checked_original_product_files": 1613,
+  "excluded_vcs_bookkeeping": 2730,
+  "permitted_evidence_only_changes": [
+    {
+      "path": ".cairn/changes/qualify-aspen-host-production-evidence/reviews/no-spec-classification.json",
+      "original": "1280ed37a8ea4f8bc3b7dde589a3dffc81ec328caa5ea08ffc961304b8d13595",
+      "current": "ba344340e5c39b80b84a5ef1f25882e624fd42becb85388bbb2bb34aecdcf5d7"
+    },
+    {
+      "path": ".cairn/changes/qualify-aspen-host-production-evidence/tasks.md",
+      "original": "dbf2e85c0217065859c5a9e086258ce91c9d2c106434fa0d029c3edf6e38c6c2",
+      "current": "f402f64f7552d19db9a68f16be6c5aa34e60bc8e144486348aad4670c8186c40"
+    },
+    {
+      "path": "docs/hosting-and-recovery.md",
+      "original": "b780fe2207a29766d9fdaba7f27aeaa19122ca99eb7ac1b0bc7da546af241b91",
+      "current": "5a2dd6c8dec8830a4d211642f41a6babe7e6c2260c558c920d12869adab9876d"
+    },
+    {
+      "path": "runtime/kiln-aspen-host/README.md",
+      "original": "b79fbfcfbd385c18edfb62ccb6b9ecbfdf073bf9689add115de72ab8aa7a20f6",
+      "current": "2e7cfafa0d3e40537d6b8544f916f649750a1651a88137fa0ffcc4da05306dbb"
+    }
+  ],
+  "compiled_code_manifests_runtime_profiles_accepted_specs_and_policy_unchanged": true,
+  "scope": "raw archived input remains unchanged; current task/operator documentation and refreshed semantic review are later evidence-only descendants"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "backup_restore",
+  "verdict": "passed",
+  "scope": "actual native host complete quiescent state; fixture-owned temporary backup",
+  "observed": "Complete four-component state and sidecars copied only after host exit, byte identities retained, original acknowledgement replayed. Missing-journal partial restore rejected before ingress and repaired from the same backup.",
+  "bounds": {
+    "native_child_deadline_seconds": 15
+  },
+  "artifacts": [
+    {
+      "name": "host-complete-native-tests-final.log",
+      "blake3": "5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68",
+      "bytes": 280705,
+      "path": "artifacts/5e432f57705412d7ffd64830eef9488882d543338b38c1ad23a378909ed13c68"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "kiln.qualification-gate-observation.v1",
+  "cohort": "0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+  "kind": "clippy_gate",
+  "verdict": "passed",
+  "scope": "strict all-target/all-feature host/provider Clippy and prescribed root-toolchain workspace Clippy",
+  "artifacts": [
+    {
+      "name": "host-clippy-final.log",
+      "blake3": "e7c20a9416043a4605db4f6fa595042fe895ca8c38417d6288ae32833895b44a",
+      "bytes": 2701,
+      "path": "artifacts/e7c20a9416043a4605db4f6fa595042fe895ca8c38417d6288ae32833895b44a"
+    },
+    {
+      "name": "provider-clippy.log",
+      "blake3": "3404b0549a1836878c812a475f25975f728e21133dbb00a4ca9987ca05e5c497",
+      "bytes": 4279,
+      "path": "artifacts/3404b0549a1836878c812a475f25975f728e21133dbb00a4ca9987ca05e5c497"
+    },
+    {
+      "name": "workspace-pinned-native-gates.log",
+      "blake3": "29124d7b6cc1bf0268fc91ab2d4ff444dbfb4fd1752cc18c60b640bbf5c8a434",
+      "bytes": 69898,
+      "path": "artifacts/29124d7b6cc1bf0268fc91ab2d4ff444dbfb4fd1752cc18c60b640bbf5c8a434"
+    }
+  ]
+}
