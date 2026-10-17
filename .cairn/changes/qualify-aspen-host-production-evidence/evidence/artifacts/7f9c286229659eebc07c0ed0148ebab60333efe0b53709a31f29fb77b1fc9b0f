@@ -1,0 +1,61 @@
+{
+  "schema": "kiln.qualification-complete-acknowledgement-bytes.v1",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "actual_runtime": {
+    "name": "described-history-actual-provider-recovery-passed.json",
+    "blake3": "3e992dd68ddafebe060767786fc63d3c568b792836b1831b30d78497976f3adf",
+    "bytes": 19540,
+    "path": "artifacts/3e992dd68ddafebe060767786fc63d3c568b792836b1831b30d78497976f3adf"
+  },
+  "commands": [
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+        "submit",
+        "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/host.sock",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/ingress.json"
+      ],
+      "exit_code": 0,
+      "stdout_bytes": 652,
+      "stdout_blake3": "8b301db91938d3ac6cf23f50987f5eb58cafd5c856e3c6aa9d06fe5c72700b3b"
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+        "submit",
+        "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/host.sock",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/ingress.json"
+      ],
+      "exit_code": 0,
+      "stdout_bytes": 652,
+      "stdout_blake3": "8b301db91938d3ac6cf23f50987f5eb58cafd5c856e3c6aa9d06fe5c72700b3b"
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+        "submit",
+        "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/host.sock",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/ingress.json"
+      ],
+      "exit_code": 0,
+      "stdout_bytes": 652,
+      "stdout_blake3": "8b301db91938d3ac6cf23f50987f5eb58cafd5c856e3c6aa9d06fe5c72700b3b"
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+        "reconcile",
+        "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/host.sock",
+        "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/ingress.json"
+      ],
+      "exit_code": 0,
+      "stdout_bytes": 652,
+      "stdout_blake3": "8b301db91938d3ac6cf23f50987f5eb58cafd5c856e3c6aa9d06fe5c72700b3b"
+    }
+  ],
+  "all_complete_acknowledgement_json_bytes_equal": true
+}

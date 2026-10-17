@@ -1,0 +1,36 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "source_archive_blake3": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "kind": "authority",
+  "verdict": "passed",
+  "scope": "actual native profile/source/environment admission and current source receipt-policy checks; no deployment or publication authority",
+  "observed": "Native host/provider admission and the exact-source root checks passed. The actual current Nix CLI rejected the historical blocked receipt. Complete current-cohort positive and negative consumer observations are separately retained to avoid a self-referential receipt.",
+  "artifacts": [
+    {
+      "name": "described-history-host-native-tests-and-clippy-passed.log",
+      "blake3": "7271a71f4fc598487824cf960ea4d4a7ab7bd214f70fdf17609c2af0cf6fd85b",
+      "bytes": 322717,
+      "path": "artifacts/7271a71f4fc598487824cf960ea4d4a7ab7bd214f70fdf17609c2af0cf6fd85b"
+    },
+    {
+      "name": "described-history-provider-native-gates-passed.log",
+      "blake3": "cd65c4261449f9d090e187209e0e21989e5f8b78a40b5980382728a5c519a1a0",
+      "bytes": 4945,
+      "path": "artifacts/cd65c4261449f9d090e187209e0e21989e5f8b78a40b5980382728a5c519a1a0"
+    },
+    {
+      "name": "described-history-exact-derivation-gate-proof.json",
+      "blake3": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "bytes": 1384,
+      "path": "artifacts/18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550"
+    },
+    {
+      "name": "described-history-current-cli-historical-blocked-receipt-rejection.json",
+      "blake3": "edc45879fb3ed5c0f7dce7508193ae5f0e52e6ec0e69ee639f7f4f670eb3be7e",
+      "bytes": 790,
+      "path": "artifacts/edc45879fb3ed5c0f7dce7508193ae5f0e52e6ec0e69ee639f7f4f670eb3be7e"
+    }
+  ]
+}

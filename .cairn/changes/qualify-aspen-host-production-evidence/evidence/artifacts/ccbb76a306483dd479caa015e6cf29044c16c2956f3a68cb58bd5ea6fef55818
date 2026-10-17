@@ -1,0 +1,38 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "source_archive_blake3": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "kind": "uncertain_recovery",
+  "verdict": "passed",
+  "scope": "actual native child hosts with an explicitly closed Lattice terminal transport fixture",
+  "observed": "Recoverable uncertainty resolved through RecoverDispatch and Observe without another Dispatch; persistent unavailability retained Unknown across restart.",
+  "artifacts": [
+    {
+      "name": "described-history-host-native-tests-and-clippy-passed.log",
+      "blake3": "7271a71f4fc598487824cf960ea4d4a7ab7bd214f70fdf17609c2af0cf6fd85b",
+      "bytes": 322717,
+      "path": "artifacts/7271a71f4fc598487824cf960ea4d4a7ab7bd214f70fdf17609c2af0cf6fd85b"
+    },
+    {
+      "name": "described-history-host-and-case-inputs.json",
+      "blake3": "579ade503a142f35e4c5c5dabe867f884739e6fbe3ee1d7d9b5979c65ebdfe8c",
+      "bytes": 280102,
+      "path": "artifacts/579ade503a142f35e4c5c5dabe867f884739e6fbe3ee1d7d9b5979c65ebdfe8c"
+    }
+  ],
+  "count_witnesses": [
+    {
+      "schema": "kiln.aspen-host.qualification-fixture-counts.v1",
+      "dispatch": 1,
+      "recover_dispatch": 6,
+      "observe": 0
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-fixture-counts.v1",
+      "dispatch": 1,
+      "recover_dispatch": 2,
+      "observe": 1
+    }
+  ]
+}

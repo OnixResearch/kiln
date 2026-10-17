@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.qualification-current-cli-proof.v1",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "receipt": {
+    "name": "described-history-qualified-receipt.json",
+    "blake3": "9b00f30e9762a03fcfcc1580bef3da3d511157e448e291de253bba3bbd593da3",
+    "bytes": 4471,
+    "path": "artifacts/9b00f30e9762a03fcfcc1580bef3da3d511157e448e291de253bba3bbd593da3"
+  },
+  "consumer_product": {
+    "name": "described-history-source-root-product-path.json",
+    "blake3": "9284355725eb74d7e07722b180252b70051ffb64be808c6cdf516cf6a58a7b57",
+    "bytes": 3998,
+    "path": "artifacts/9284355725eb74d7e07722b180252b70051ffb64be808c6cdf516cf6a58a7b57"
+  },
+  "positive": {
+    "name": "described-history-qualified-current-cli-admission.json",
+    "blake3": "9a97d2cac103c0a135f47b9c7c4065e4d3c351ee27c6f42f15c4544e654e1c0b",
+    "bytes": 1323,
+    "path": "artifacts/9a97d2cac103c0a135f47b9c7c4065e4d3c351ee27c6f42f15c4544e654e1c0b"
+  },
+  "negative_metadata": {
+    "name": "described-history-current-cli-metadata-rejections.json",
+    "blake3": "20ce5af2af2a3b174b759140a7fea046514d12a77ac59992355e53a575199c26",
+    "bytes": 19750,
+    "path": "artifacts/20ce5af2af2a3b174b759140a7fea046514d12a77ac59992355e53a575199c26"
+  },
+  "negative_artifacts": {
+    "name": "described-history-current-cli-artifact-rejections.json",
+    "blake3": "4d04fdc524bb69137682f2a76671a6938e92133ac2c91b835c66a8a37c033bbc",
+    "bytes": 1743,
+    "path": "artifacts/4d04fdc524bb69137682f2a76671a6938e92133ac2c91b835c66a8a37c033bbc"
+  },
+  "negative_observations": 18,
+  "scope": "actual identical frozen-source Nix CLI product; only the complete bounded-local-host receipt was admitted",
+  "non_claims": [
+    "CLI admission checks supplied consistency and direct retained artifact bytes, not observation truth",
+    "qualification supplies no publication, release, deployment or credential authority"
+  ]
+}

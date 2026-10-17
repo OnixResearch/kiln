@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.qualification-identical-derivation-gate-proof.v1",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "source_archive": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "metadata_only_source_tree_proof": {
+    "name": "inherited-empty-description-repair-and-source-identity.json",
+    "blake3": "d87457f6c3e60a961ca423a487203d8a0397d9dfef5037d6dc881d7aadfddc55",
+    "bytes": 1395,
+    "path": "artifacts/d87457f6c3e60a961ca423a487203d8a0397d9dfef5037d6dc881d7aadfddc55"
+  },
+  "current_invocation": {
+    "name": "described-history-complete-private-nix-gates-passed.log",
+    "blake3": "566409856e1483147177aa82c1c764bb555ed85b546728dba9fdb08e0883644d",
+    "bytes": 9594,
+    "path": "artifacts/566409856e1483147177aa82c1c764bb555ed85b546728dba9fdb08e0883644d"
+  },
+  "original_executed_identical_derivation_log": {
+    "name": "final-complete-private-nix-gates-passed.log",
+    "blake3": "d8c2ea484c2aed3038cb32e960db81f43af0618ab5419a6a9b36f1b2a3f86110",
+    "bytes": 639111,
+    "path": "artifacts/d8c2ea484c2aed3038cb32e960db81f43af0618ab5419a6a9b36f1b2a3f86110"
+  },
+  "source_store_path": "/nix/store/k6yrvzjjf5vq2lvis3x4k2ciqm99m3sf-source",
+  "scope": "all 30 exact x86_64 derivations already realized successfully; current check reused those identical input derivations, rather than reexecuting cached root tests"
+}

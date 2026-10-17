@@ -1,0 +1,48 @@
+{
+  "alpn": "molten/system-extension/native/v2",
+  "authority_ref": "kiln-aspen-authority-v1",
+  "framing": "preserves-packed-materialized-values-v2",
+  "generation": 1,
+  "idempotency_key": {
+    "contract_version": 1,
+    "native_id": "958afa12e414602f3cec063e8d26d646076426bdc9209354bc51bd951b23d0ae",
+    "native_kind": "trigger-idempotency-blake3",
+    "provider_namespace": "kiln"
+  },
+  "operation_id": {
+    "contract_version": 1,
+    "native_id": "d837b9ce010ebfe16352e77419c662e39e6a80ae41f47f75e0647a2ff32bfbe8",
+    "native_kind": "service-operation-blake3",
+    "provider_namespace": "molten"
+  },
+  "profile_identity": "2008b2d661855cf7a384706b6641d8baf697bb66dc78a1a3fa97322a9e6be723",
+  "resource_ref": "kiln-aspen-resources-v1",
+  "schema": "kiln.aspen-runtime.service-ingress.v2",
+  "service_id": "kiln-ci-control-plane-v2",
+  "source": "operator",
+  "trigger": {
+    "actor": {
+      "contract_version": 1,
+      "native_id": "did:key:described-afd06231",
+      "native_kind": "actor",
+      "provider_namespace": "radicle"
+    },
+    "after": {
+      "contract_version": 1,
+      "native_id": "a9e67a14178c83654c4bf932bfc84c160ecd749d",
+      "native_kind": "revision",
+      "provider_namespace": "radicle"
+    },
+    "before": null,
+    "branch": null,
+    "event": "push",
+    "patch": null,
+    "repository": {
+      "contract_version": 1,
+      "native_id": "rad:qualification-exact-source",
+      "native_kind": "repository",
+      "provider_namespace": "radicle"
+    }
+  },
+  "trigger_identity": "958afa12e414602f3cec063e8d26d646076426bdc9209354bc51bd951b23d0ae"
+}

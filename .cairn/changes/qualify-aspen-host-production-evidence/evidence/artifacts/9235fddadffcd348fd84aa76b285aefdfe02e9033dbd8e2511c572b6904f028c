@@ -1,0 +1,154 @@
+{
+  "aspen_profile_identity": "2008b2d661855cf7a384706b6641d8baf697bb66dc78a1a3fa97322a9e6be723",
+  "contract": {
+    "adapter_kinds": [
+      "local",
+      "remote"
+    ],
+    "controls": {
+      "cancel": true,
+      "pause": true,
+      "resume": true
+    },
+    "effect_classes": [
+      "build",
+      "test"
+    ],
+    "graph_schema": "lattice.workflow-graph.v1",
+    "limits": {
+      "maximum_edges": 1024,
+      "maximum_log_read_bytes": 1048576,
+      "maximum_log_references": 256,
+      "maximum_nodes": 256,
+      "maximum_total_log_bytes": 16777216
+    },
+    "node_kinds": [
+      "build",
+      "test"
+    ],
+    "non_claims": [
+      "workflow admission does not prove workflow correctness",
+      "workflow admission does not prove host confinement",
+      "workflow observation does not prove an external effect succeeded",
+      "workflow observation does not prove credential freshness",
+      "workflow observation does not establish release readiness"
+    ],
+    "platforms": [
+      "linux-x86_64"
+    ],
+    "schema": "lattice.workflow-profile.v1"
+  },
+  "ingress": {
+    "alpn": "molten/system-extension/native/v2",
+    "authority_ref": "kiln-aspen-authority-v1",
+    "framing": "preserves-packed-materialized-values-v2",
+    "generation": 1,
+    "idempotency_key": {
+      "contract_version": 1,
+      "native_id": "947cd5fe7d6cce3bbc47151989ae0d71c7b952cb20c6def73e6e4e18a8f026b1",
+      "native_kind": "trigger-idempotency-blake3",
+      "provider_namespace": "kiln"
+    },
+    "operation_id": {
+      "contract_version": 1,
+      "native_id": "da80c161412bbbd46f90ba4db650b7305fabfdd8a9676620c0f49d2ca702beea",
+      "native_kind": "service-operation-blake3",
+      "provider_namespace": "molten"
+    },
+    "profile_identity": "2008b2d661855cf7a384706b6641d8baf697bb66dc78a1a3fa97322a9e6be723",
+    "resource_ref": "kiln-aspen-resources-v1",
+    "schema": "kiln.aspen-runtime.service-ingress.v2",
+    "service_id": "kiln-ci-control-plane-v2",
+    "source": "operator",
+    "trigger": {
+      "actor": {
+        "contract_version": 1,
+        "native_id": "did:key:qualified-afd06231",
+        "native_kind": "actor",
+        "provider_namespace": "radicle"
+      },
+      "after": {
+        "contract_version": 1,
+        "native_id": "a9e67a14178c83654c4bf932bfc84c160ecd749d",
+        "native_kind": "revision",
+        "provider_namespace": "radicle"
+      },
+      "before": null,
+      "branch": null,
+      "event": "push",
+      "patch": null,
+      "repository": {
+        "contract_version": 1,
+        "native_id": "rad:qualification-exact-source",
+        "native_kind": "repository",
+        "provider_namespace": "radicle"
+      }
+    },
+    "trigger_identity": "947cd5fe7d6cce3bbc47151989ae0d71c7b952cb20c6def73e6e4e18a8f026b1"
+  },
+  "request": {
+    "controls": {
+      "cancel": true,
+      "pause": false,
+      "resume": false
+    },
+    "graph": {
+      "edges": [],
+      "identity": "b3:a5af82f6dc0f5b094624022825ba048775cc4892bfdd12473bb57945e8745426",
+      "nodes": [
+        {
+          "adapter_kind": "local",
+          "effect_class": "build",
+          "id": "build",
+          "kind": "build",
+          "operation_identity": "b3:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "schema": "lattice.workflow-graph.v1"
+    },
+    "idempotency_key": "b3:947cd5fe7d6cce3bbc47151989ae0d71c7b952cb20c6def73e6e4e18a8f026b1",
+    "identity": "b3:180665c47c6dffee688c0bd59a2494d06950949c8e7173e91672dacf70802c07",
+    "kiln": {
+      "attempt_identity": "b3:bbcb7b120bd419431d57d9cba4939f5d131a6a87d3918f18930b16e6b6f8a560",
+      "candidate_identity": "b3:15b803a6aecab310504ac388be19115413df1e7c1db14d6e521cc45fbe49fe0f",
+      "effect_identity": "b3:7c78ee6186fa0bf4840d8eac4c41bc2aade7d33b1052b249556a6e159026e59e",
+      "pipeline_revision_identity": "b3:14696ed9100e913d6bc50db9918dd8d5eb7395b2673b9b1c344855e7b16c3c15",
+      "workflow_policy_identity": "b3:3003a5e2718757caa6325070d7cb1da85f6012f177d80ec6771552b8f7d4724e"
+    },
+    "observation": {
+      "maximum_log_read_bytes": 1048576,
+      "maximum_log_references": 256,
+      "maximum_total_log_bytes": 16777216
+    },
+    "platform": "linux-x86_64",
+    "profile_identity": "b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5",
+    "schema": "lattice.workflow-request.v2",
+    "source": {
+      "provider": "radicle",
+      "repository": "rad:qualification-exact-source",
+      "revision": "a9e67a14178c83654c4bf932bfc84c160ecd749d"
+    }
+  },
+  "transport": {
+    "limits": {
+      "maximum_connections": 64,
+      "maximum_frame_bytes": 33554432,
+      "maximum_log_bytes": 16777216,
+      "read_deadline_milliseconds": 30000,
+      "write_deadline_milliseconds": 30000
+    },
+    "non_claims": [
+      "transport admission does not prove workflow correctness",
+      "transport peer identity does not prove peer intent",
+      "transport acceptance does not prove an operation executed",
+      "transport response does not prove an external effect succeeded",
+      "transport checks do not establish production deployment"
+    ],
+    "peers": {
+      "allowed_user_ids": [
+        1555
+      ]
+    },
+    "schema": "lattice.workflow-transport-profile.v1"
+  }
+}

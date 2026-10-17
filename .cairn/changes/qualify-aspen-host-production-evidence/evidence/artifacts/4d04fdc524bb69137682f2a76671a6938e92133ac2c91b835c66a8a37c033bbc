@@ -1,0 +1,34 @@
+{
+  "schema": "kiln.qualification-current-cli-artifact-rejections.v1",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "damaged_artifact": "8e0d0db6029739cfd751cec15134b083ed5f87fd807578c963de5595189025d8",
+  "observations": [
+    {
+      "name": "changed-retained-artifact",
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+        "host-qualify",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-qualified.json",
+        "/var/tmp/kiln-qualification.BEA91plo/described-history-tampered-artifacts"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification artifact bytes differ from their exact identity\n"
+    },
+    {
+      "name": "missing-retained-artifact-root",
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+        "host-qualify",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-qualified.json",
+        "/var/tmp/kiln-qualification.BEA91plo/described-history-missing-artifacts"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification input open failed: No such file or directory (os error 2)\n"
+    }
+  ]
+}

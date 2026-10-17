@@ -1,0 +1,48 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "source_archive_blake3": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "kind": "publication",
+  "verdict": "passed",
+  "scope": "exact unpublished local executable-input candidate at qualification time; historical published baseline remains separate",
+  "observed": "Product source revision, normalized source archive, manifest, executable/profile inputs and public Radicle governance snapshot bound without changing accepted specifications or lifecycle policy.",
+  "artifacts": [
+    {
+      "name": "described-history-clean-source-manifest.json",
+      "blake3": "7a113bc55621d10403728a36879fd3a05674bd205900e12f239aa4b817d50044",
+      "bytes": 289650,
+      "path": "artifacts/7a113bc55621d10403728a36879fd3a05674bd205900e12f239aa4b817d50044"
+    },
+    {
+      "name": "final-contract-policy-preservation.json",
+      "blake3": "f965ba53b4dc3e4805d45cd3f9e7078802eca5983f3fd5766b2be8679e0d3c17",
+      "bytes": 12230,
+      "path": "artifacts/f965ba53b4dc3e4805d45cd3f9e7078802eca5983f3fd5766b2be8679e0d3c17"
+    },
+    {
+      "name": "described-history-identical-source-archive-and-import-binding.json",
+      "blake3": "56933f8244cacf2bde6b2a64dc6b1bb1e07126c807b8bb53706c5883d1535b09",
+      "bytes": 1330,
+      "path": "artifacts/56933f8244cacf2bde6b2a64dc6b1bb1e07126c807b8bb53706c5883d1535b09"
+    },
+    {
+      "name": "described-history-publication-binding.json",
+      "blake3": "1e88d3b34545d3516ef41e111c3c5b7d1719cb9115e0d23e0cd66f9e2ae461b3",
+      "bytes": 2183,
+      "path": "artifacts/1e88d3b34545d3516ef41e111c3c5b7d1719cb9115e0d23e0cd66f9e2ae461b3"
+    },
+    {
+      "name": "described-history-host-and-case-inputs.json",
+      "blake3": "579ade503a142f35e4c5c5dabe867f884739e6fbe3ee1d7d9b5979c65ebdfe8c",
+      "bytes": 280102,
+      "path": "artifacts/579ade503a142f35e4c5c5dabe867f884739e6fbe3ee1d7d9b5979c65ebdfe8c"
+    },
+    {
+      "name": "inherited-empty-description-repair-and-source-identity.json",
+      "blake3": "d87457f6c3e60a961ca423a487203d8a0397d9dfef5037d6dc881d7aadfddc55",
+      "bytes": 1395,
+      "path": "artifacts/d87457f6c3e60a961ca423a487203d8a0397d9dfef5037d6dc881d7aadfddc55"
+    }
+  ]
+}

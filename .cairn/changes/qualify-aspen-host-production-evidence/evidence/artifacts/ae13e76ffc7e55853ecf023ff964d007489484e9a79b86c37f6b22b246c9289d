@@ -1,0 +1,9 @@
+Script started on 2026-10-17 03:40:28-04:00 [COMMAND="python3 /var/tmp/kiln-qualification.BEA91plo/run-described-postlink-real-runtime.py" <not executed on terminal>]
+{"verdict": "failed", "record": "/var/tmp/kiln-qualification.BEA91plo/retained/described-postlink-actual-provider-recovery.json", "scope": "isolated fresh-state actual Aspen host, actual Lattice and actual Nix; local source fixture only"}
+Traceback (most recent call last):
+  File "/var/tmp/kiln-qualification.BEA91plo/run-described-postlink-real-runtime.py", line 116, in <module>
+    assert len(report_files) == 1, report_files
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: []
+
+Script done on 2026-10-17 03:40:32-04:00 [COMMAND_EXIT_CODE="1"]

@@ -12,7 +12,7 @@ No historical receipt supplies the complete current source/executable/runtime-pr
 
 ## Frozen qualification candidate
 
-The current executable-input candidate is `05ecd14be3e43067a1dc5ebc21b9a27e21d2b297`. Its normalized GNU TAR is 14,714,880 bytes with BLAKE3 `fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044`; the [complete regular-file manifest](artifacts/539df6323201fc0f0669641650756ca4715e3b3cf9e1d0071e6abd9124baed59) binds all 1,183 file members. `.jj/` and `.git/` are excluded. Later qualification receipts, review/task completion and publication observations are evidence-only descendants, not retroactive additions to this tested payload.
+The current executable-input candidate is `afd06231e8e616c86a6f507fb2a69c41babd1f84`. Its normalized GNU TAR is 14,714,880 bytes with BLAKE3 `fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044`; the [complete regular-file manifest](artifacts/7a113bc55621d10403728a36879fd3a05674bd205900e12f239aa4b817d50044) binds all 1,183 file members. `.jj/` and `.git/` are excluded. Later qualification receipts, review/task completion and publication observations are evidence-only descendants, not retroactive additions to this tested payload.
 
 The preservation artifact records unchanged bodies for all 29 accepted specifications and all 13 lifecycle-policy inputs against the published baseline. The isolated Nix store admits this exact source without deleting or mutating the unrelated system-daemon import lock; required checks retain sandboxing, cgroups, locked producer inputs and their original policies.
 

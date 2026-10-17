@@ -1,0 +1,117 @@
+{
+  "contract_version": 1,
+  "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "claims": [
+    "bounded_local_host"
+  ],
+  "observations": [
+    {
+      "kind": "durability",
+      "cohort": "06bc294f23674aced815b3b33599dc1d58111547a928b10a3d727a7be579d521",
+      "artifact": "8e0d0db6029739cfd751cec15134b083ed5f87fd807578c963de5595189025d8",
+      "verdict": "passed"
+    },
+    {
+      "kind": "uncertain_recovery",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "ccbb76a306483dd479caa015e6cf29044c16c2956f3a68cb58bd5ea6fef55818",
+      "verdict": "passed"
+    },
+    {
+      "kind": "corruption",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "bda4b262e7896967c49b0c4a4cd3df45064fdde73097267f64f8e4997e87177b",
+      "verdict": "passed"
+    },
+    {
+      "kind": "provider_teardown",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "0fb91919ac3627ba3211152ca32160a89d42f7ff2bc45906fe4d8ff3c26e5c01",
+      "verdict": "passed"
+    },
+    {
+      "kind": "finite_load",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "e8f7eeda8103cc35323ea8947125010281797cbc902cc960bf73ca6d6499cfcc",
+      "verdict": "passed"
+    },
+    {
+      "kind": "backup_restore",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "b870ec6046413b431d9f150a527eaa837696271a69ccd637486fccd132758568",
+      "verdict": "passed"
+    },
+    {
+      "kind": "rollback",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "424c3f1ad575e675e75c8b33e9b15a6fdca2891cf1b59026c5206219cb8209a3",
+      "verdict": "passed"
+    },
+    {
+      "kind": "publication",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "e6a410977880ce445aded6cd7aa5a30b5497a9f1d4aab046e74ef07ac16d00ea",
+      "verdict": "passed"
+    },
+    {
+      "kind": "authority",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "efbcbd4460b77ba3d02c035ed138d7b73104c460ef4865571e549e1abbb427ca",
+      "verdict": "passed"
+    },
+    {
+      "kind": "host_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "7271a71f4fc598487824cf960ea4d4a7ab7bd214f70fdf17609c2af0cf6fd85b",
+      "verdict": "passed"
+    },
+    {
+      "kind": "provider_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "cd65c4261449f9d090e187209e0e21989e5f8b78a40b5980382728a5c519a1a0",
+      "verdict": "passed"
+    },
+    {
+      "kind": "clippy_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "verdict": "passed"
+    },
+    {
+      "kind": "octet_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "verdict": "passed"
+    },
+    {
+      "kind": "workspace_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "verdict": "passed"
+    },
+    {
+      "kind": "no_std_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "verdict": "passed"
+    },
+    {
+      "kind": "nickel_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "verdict": "passed"
+    },
+    {
+      "kind": "nix_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "verdict": "passed"
+    },
+    {
+      "kind": "lifecycle_gate",
+      "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+      "artifact": "80a1e76e95c4ab945300fae74277bc5f70179a74fbe4c89b32aa3c9be19e62d7",
+      "verdict": "passed"
+    }
+  ]
+}

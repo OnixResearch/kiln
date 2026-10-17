@@ -1,0 +1,7 @@
+let base = (import "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/k6yrvzjjf5vq2lvis3x4k2ciqm99m3sf-source/config/radicle-workflow-shell.ncl").profile in
+base & {
+ socket_path | force = "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/lattice.sock",
+ replay_database_path | force = "/var/tmp/kiln-qualification.BEA91plo/described-real-runtime/radicle-replay.sqlite",
+ maximum_polls | force = 2000,
+ allowed_user_ids | force = [1555],
+}

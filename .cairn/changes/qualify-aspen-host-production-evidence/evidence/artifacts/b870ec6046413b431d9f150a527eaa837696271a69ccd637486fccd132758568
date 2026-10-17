@@ -1,0 +1,40 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "source_archive_blake3": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "kind": "backup_restore",
+  "verdict": "passed",
+  "scope": "actual complete quiescent native-host state and fixture-owned backup",
+  "observed": "Four durable components and all sidecars copied after host exit, exact member identities retained and original acknowledgement replayed; partial missing-journal restore rejected and repaired from the same complete backup. The included snapshot helper retained all 4,095 flat members with exact bytes and rejected one more without returning a partial backup.",
+  "artifacts": [
+    {
+      "name": "described-history-host-native-tests-and-clippy-passed.log",
+      "blake3": "7271a71f4fc598487824cf960ea4d4a7ab7bd214f70fdf17609c2af0cf6fd85b",
+      "bytes": 322717,
+      "path": "artifacts/7271a71f4fc598487824cf960ea4d4a7ab7bd214f70fdf17609c2af0cf6fd85b"
+    },
+    {
+      "name": "described-history-host-and-case-inputs.json",
+      "blake3": "579ade503a142f35e4c5c5dabe867f884739e6fbe3ee1d7d9b5979c65ebdfe8c",
+      "bytes": 280102,
+      "path": "artifacts/579ade503a142f35e4c5c5dabe867f884739e6fbe3ee1d7d9b5979c65ebdfe8c"
+    },
+    {
+      "name": "described-history-snapshot-helper-smoke.log",
+      "blake3": "2cc94a424e3b14275be2de73718e74995b5f764696eb0b848f4ebec465c2143b",
+      "bytes": 446156,
+      "path": "artifacts/2cc94a424e3b14275be2de73718e74995b5f764696eb0b848f4ebec465c2143b"
+    }
+  ],
+  "bounds": {
+    "durable_components": [
+      "operation-ledger",
+      "native-journal",
+      "callback-values",
+      "host-state.json"
+    ],
+    "maximum_open_snapshot_directories": 128,
+    "maximum_snapshot_steps_per_component": 4096
+  }
+}

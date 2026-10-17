@@ -1,0 +1,37 @@
+{
+  "schema": "kiln.qualification-source-metadata-repair.v1",
+  "superseded_source": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297",
+  "current_source": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "description_command": {
+    "argv": [
+      "jj",
+      "--config",
+      "snapshot.max-new-file-size=4194304",
+      "describe",
+      "536e15cd177f267cb19403bdfd7c5c21ead9965e",
+      "--message",
+      "Record qualification workspace checkpoint"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Rebased 5 descendant commits.\nWorking copy  (@) now at: ztkomlvk 09996fa2 Record authorized exact-cohort main publication observations\nParent commit (@-)      : yoovsnzq 809ec5bd main* | Record complete exact-cohort qualification and authorized publication evidence\n"
+  },
+  "unchanged_tree_command": {
+    "argv": [
+      "jj",
+      "--config",
+      "snapshot.max-new-file-size=4194304",
+      "diff",
+      "--from",
+      "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297",
+      "--to",
+      "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+      "--summary"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "source_archive_unchanged": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "scope": "local unpublished history metadata only; no source-byte, producer-policy or remote-history change; refresh observations for the new exact source identity"
+}

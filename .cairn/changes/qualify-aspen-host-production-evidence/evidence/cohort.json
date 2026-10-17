@@ -3,15 +3,15 @@
     "contract_version": 1,
     "provider_namespace": "git",
     "native_kind": "commit",
-    "native_id": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297"
+    "native_id": "afd06231e8e616c86a6f507fb2a69c41babd1f84"
   },
   "source_archive": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
-  "host_executable": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591",
-  "extension_executable": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1",
+  "host_executable": "584635dd59da2f6fb7d4184ff2b2ff171a1cbacc984da09f259d249398db98f2",
+  "extension_executable": "b47677277399180e70808d8243f7f4b5c4b92b192e1dbd0f93fff6e2fab6e50b",
   "provider_executable": "edb6b1b71fb26905ac42fdb186ff981f4cd351d3c7abfd861785e74730f9ee34",
   "runtime_profile": "a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0",
-  "collaboration_profile": "297693c217677d05069c50c8833f0d821249f4bbe647daf0d2279ccf43eb1ea4",
-  "provider_profile": "15419a89e038b27f2676aa88df3d1b483b37d6e76dcb2fc1c2de876d36782c65",
-  "host_identity": "a95eff6e38d8872074f62b724f80674b9ef63d859557acdbf4138b27ce40daee",
-  "publication_binding": "f7a57c94b9a0677f729427c349e8f49936f67bd9edd7779fc433b84bde331a33"
+  "collaboration_profile": "4adb399d0a82a70b74efe358e475b1c98fe7e8f6d9860b63c752ea009fccf2ea",
+  "provider_profile": "440cae8e7844b4c1b7b8b0154247973b01ba33bbc48ad1b0e541e22311d6c005",
+  "host_identity": "579ade503a142f35e4c5c5dabe867f884739e6fbe3ee1d7d9b5979c65ebdfe8c",
+  "publication_binding": "1e88d3b34545d3516ef41e111c3c5b7d1719cb9115e0d23e0cd66f9e2ae461b3"
 }

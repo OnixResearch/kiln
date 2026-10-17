@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.qualification-identical-source-archive-and-import-binding.v1",
+  "source_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "source_archive_blake3": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "source_manifest": {
+    "name": "described-history-clean-source-manifest.json",
+    "blake3": "7a113bc55621d10403728a36879fd3a05674bd205900e12f239aa4b817d50044",
+    "bytes": 289650,
+    "path": "artifacts/7a113bc55621d10403728a36879fd3a05674bd205900e12f239aa4b817d50044"
+  },
+  "metadata_only_source_tree_proof": {
+    "name": "inherited-empty-description-repair-and-source-identity.json",
+    "blake3": "d87457f6c3e60a961ca423a487203d8a0397d9dfef5037d6dc881d7aadfddc55",
+    "bytes": 1395,
+    "path": "artifacts/d87457f6c3e60a961ca423a487203d8a0397d9dfef5037d6dc881d7aadfddc55"
+  },
+  "original_exact_source_import": {
+    "name": "final-clean-source-import.json",
+    "blake3": "30b21dcd748e4cda4efcbd8c330d0715dd98c7681f7781edb33206fa00965c27",
+    "bytes": 3837,
+    "path": "artifacts/30b21dcd748e4cda4efcbd8c330d0715dd98c7681f7781edb33206fa00965c27"
+  },
+  "source_store_path": "/nix/store/k6yrvzjjf5vq2lvis3x4k2ciqm99m3sf-source",
+  "scope": "unchanged normalized source bytes and identical admitted Nix store source; original source-import observation remains historical"
+}

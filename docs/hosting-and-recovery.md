@@ -81,7 +81,7 @@ BLAKE3 artifact bytes. It does not attest observation truth or grant production,
 publication, release or deployment authority.
 
 The [qualification evidence](../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md)
-binds frozen source candidate `05ecd14be3e43067a1dc5ebc21b9a27e21d2b297`
+binds frozen source candidate `afd06231e8e616c86a6f507fb2a69c41babd1f84`
 and frozen native executables; its publication binding was explicitly unpublished
 at qualification time, independently of any later authorized source push.
 Native child-process drills retain their exact per-case profile variants and

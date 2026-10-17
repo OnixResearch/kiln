@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "jj",
+    "--config",
+    "snapshot.max-new-file-size=4194304",
+    "log",
+    "--no-graph",
+    "-r",
+    "((main@github | main@rad)..@) & (description(exact:\"\") | conflicts())",
+    "-T",
+    "commit_id ++ \" description=\" ++ description ++ \"\n\""
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

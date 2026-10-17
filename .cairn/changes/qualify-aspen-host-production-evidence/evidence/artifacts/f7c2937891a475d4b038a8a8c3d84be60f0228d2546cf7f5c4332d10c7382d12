@@ -1,0 +1,55 @@
+{
+  "schema": "kiln.qualification-main-push-description-blocker.v1",
+  "rejected_push": {
+    "argv": [
+      "jj",
+      "--config",
+      "snapshot.max-new-file-size=4194304",
+      "git",
+      "push",
+      "--remote",
+      "rad",
+      "--bookmark",
+      "main"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Error: Won't push commit 536e15cd177f since it has no description\nHint: Rejected commit: rkrsmyrv 536e15cd (empty) (no description set)\n"
+  },
+  "publication_revision": "12916f3204d031477a079187b93022afd83b5a25",
+  "qualified_input": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297",
+  "commands": [
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "log",
+        "--no-graph",
+        "-r",
+        "536e15cd177f",
+        "-T",
+        "commit_id ++ \" change=\" ++ change_id ++ \" description=\" ++ description ++ \" parents=\" ++ parents.map(|c| c.commit_id()).join(\",\") ++ \"\\n\""
+      ],
+      "exit_code": 0,
+      "stdout": "536e15cd177f267cb19403bdfd7c5c21ead9965e change=rkrsmyrvpmtvytvwsrkkpymnovzkwzks description= parents=be86a27c8a1d3c4a63d281d5efb13faae4a3dc15\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "log",
+        "--no-graph",
+        "-r",
+        "536e15cd177f & ancestors(05ecd14be3e43067a1dc5ebc21b9a27e21d2b297)",
+        "-T",
+        "commit_id ++ \"\\n\""
+      ],
+      "exit_code": 0,
+      "stdout": "536e15cd177f267cb19403bdfd7c5c21ead9965e\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "repository": {
+    "contract_version": 1,
+    "provider_namespace": "radicle",
+    "native_kind": "repository",
+    "native_id": "rad:qualification-exact-source"
+  },
+  "actor": {
+    "contract_version": 1,
+    "provider_namespace": "radicle",
+    "native_kind": "actor",
+    "native_id": "did:key:described-afd06231"
+  },
+  "before": null,
+  "after": {
+    "contract_version": 1,
+    "provider_namespace": "radicle",
+    "native_kind": "revision",
+    "native_id": "a9e67a14178c83654c4bf932bfc84c160ecd749d"
+  },
+  "branch": null,
+  "patch": null,
+  "event": "push"
+}

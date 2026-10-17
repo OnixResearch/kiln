@@ -1,0 +1,13 @@
+{
+  "name": "described-history-historical-blocked-receipt",
+  "argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+    "host-qualify",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-blocked.json",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+  ],
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "qualification_cohort_mismatch: receipt does not identify the exact expected cohort document\n"
+}

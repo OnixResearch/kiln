@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.qualification-authorized-main-push.v1",
+  "publication_revision": "12916f3204d031477a079187b93022afd83b5a25",
+  "qualified_source": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297",
+  "command": {
+    "argv": [
+      "jj",
+      "--config",
+      "snapshot.max-new-file-size=4194304",
+      "git",
+      "push",
+      "--remote",
+      "rad",
+      "--bookmark",
+      "main"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Error: Won't push commit 536e15cd177f since it has no description\nHint: Rejected commit: rkrsmyrv 536e15cd (empty) (no description set)\n"
+  }
+}
