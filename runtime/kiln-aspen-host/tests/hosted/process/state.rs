@@ -12,6 +12,9 @@ const DURABLE_COMPONENTS: [&str; 4] = [
 // independent of the number of files. Exceeding the fixture bound fails rather
 // than silently omitting any durable state from the snapshot.
 const MAXIMUM_SNAPSHOT_DEPTH: usize = 128;
+// Finite fixture budget per durable component, including directory unwinds.
+// Exhaustion rejects the entire snapshot; no partial backup is returned.
+const MAXIMUM_SNAPSHOT_STEPS: usize = 4096;
 
 pub(in super::super) fn state_snapshot(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
     let mut files = BTreeMap::new();
@@ -20,7 +23,10 @@ pub(in super::super) fn state_snapshot(root: &Path) -> BTreeMap<PathBuf, Vec<u8>
         if let Some(directory) = snapshot_entry(root, &root.join(component), &mut files, 0) {
             directories.push(directory);
         }
-        while let Some(directory) = directories.last_mut() {
+        for _ in 0..MAXIMUM_SNAPSHOT_STEPS {
+            let Some(directory) = directories.last_mut() else {
+                break;
+            };
             let Some(entry) = directory.next() else {
                 assert!(directories.pop().is_some());
                 continue;
@@ -32,6 +38,10 @@ pub(in super::super) fn state_snapshot(root: &Path) -> BTreeMap<PathBuf, Vec<u8>
                 directories.push(child);
             }
         }
+        assert!(
+            directories.is_empty(),
+            "durable snapshot traversal exceeds fixture step budget"
+        );
     }
     let identities = files.iter().map(|(path, bytes)| {
         serde_json::json!({ "path": path, "blake3": blake3::hash(bytes).to_hex().to_string() })
