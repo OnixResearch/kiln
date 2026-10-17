@@ -1,0 +1,408 @@
+{
+  "schema": "kiln.iroh-authorized-main-push.v1",
+  "state": "pushed-and-read-back",
+  "recorded_at_utc": "2026-10-18T15:54:07.297Z",
+  "owner": "Kiln maintainers",
+  "authority": {
+    "operator_request": "commit and push",
+    "scope": "Commit completed Iroh work and fast-forward the existing main bookmark to canonical Radicle and the configured GitHub mirror; preserve unrelated working-copy changes",
+    "governance_mutation_requested": false,
+    "binary_release_or_deployment_requested": false
+  },
+  "source": {
+    "revision": "2c529b154d625735c43246cad2178d70813a01c3",
+    "description": "Add authenticated Iroh workflow execution transport",
+    "rollback_revision": "13ffb51933cd9dbb19ce1e5ee4df808a6c29d2f1",
+    "selected_changes": "Iroh crate, root membership/lock, typed positive/negative configuration, Nix app/check wiring, accepted lifecycle spec, completed change evidence, operator/architecture/cohort documentation, and only the Iroh row of LICENSES.md",
+    "excluded_work": "Prospective dependency-license package and LICENSES.md section, prior publication/qualification observations and artifacts, hosting prose, and producer-local Cargo.lock changes remain outside this source commit",
+    "verified_runtime_source_blake3": {
+      "Cargo.toml": "5c4619d330c1dfc6df7639c803788e1212ccec10f18bccba9830cb66c76b10e1",
+      "Cargo.lock": "bd9f889620defdf09dcb4fa0428ee40d496fb8d48e7b811afe1a1e6c3753bfa4",
+      "flake.nix": "6650cbb59320d741704836a9b68237d0d8dba945902aa23c7619a2a7ea3f7bc6",
+      "crates/kiln-adapter-iroh/Cargo.toml": "ceb92f6271764d42c09d23039e1a3d5e1da3bccd3e07bcd4026d9a9796b2cdba",
+      "crates/kiln-adapter-iroh/src/lib.rs": "5f46dd77c490ff7fd5edd5e8974dd20228556af1cb40c0f8f7fe93c5d50a786c",
+      "crates/kiln-adapter-iroh/src/profile.rs": "5eb65c72a73c4b64fdf38e2ab7afd82f7365526aa87f18311bb5d3cfc239f864",
+      "crates/kiln-adapter-iroh/src/transport.rs": "59730e234a6771b853730f74fb435adcd3b759a062ef44d8182dcd6bef327346",
+      "crates/kiln-adapter-iroh/src/main.rs": "1988dc34defe3d7615a108c3eaf82367990aa9d29bf13300adf740cfabaeaf41",
+      "crates/kiln-adapter-iroh/tests/workflow.rs": "fed6bd2703a8ffd1f0951aae57005ba1baf477865c0c14708f073770b58b61fa",
+      "config/iroh-workflow.ncl": "23d2f83c6d108cc37cc4966697c82507bfd50c5eb14a024fdbed450285aa3425",
+      "crates/kiln-conformance/src/traceability.rs": "9b220af22dbe5021c3b0b9029f38b0cc6c1bfdc0c75e4689b33f673c91c07023",
+      ".cairn/specs/iroh-workflow-transport/spec.md": "135a3fa8a9da87ccc23b0de3a84e381fd0d1e7b3a455fa39a87cf104b76a60b7"
+    },
+    "verified_runtime_source_files_match_acquisition": true
+  },
+  "remotes": [
+    {
+      "name": "rad",
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "fetch_url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "push_url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "ref": "refs/heads/main",
+      "revision": "2c529b154d625735c43246cad2178d70813a01c3",
+      "push_command": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "reported_seed_sync_count": 3
+    },
+    {
+      "name": "github",
+      "url": "git@github.com:OnixResearch/kiln.git",
+      "ref": "refs/heads/main",
+      "revision": "2c529b154d625735c43246cad2178d70813a01c3",
+      "push_command": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "push_order": "canonical Radicle, then GitHub projection; no force push",
+  "ref_readback": {
+    "command": [
+      "jj",
+      "git",
+      "fetch",
+      "--remote",
+      "github",
+      "--remote",
+      "rad"
+    ],
+    "exit_code": 0,
+    "result": "Nothing changed; main, main@github and main@rad resolve to the exact source revision"
+  },
+  "hosting_profile": {
+    "source": "config/hosting-profile.ncl",
+    "source_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+    "scope": "Existing hosting policy as present in the acquired source; historical publication declarations are not refreshed product validation"
+  },
+  "governance_after": {
+    "inspection_uses_explicit_rid": true,
+    "identity": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "visibility": "public",
+    "signed_refs": {
+      "namespace": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "revision": "8419d75c1c65dd336c5e8c8fa7e44a2c61f92e58",
+      "feature": "parent"
+    },
+    "commands": [
+      [
+        "rad",
+        "inspect",
+        "--identity",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      [
+        "rad",
+        "inspect",
+        "--sigrefs",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      [
+        "rad",
+        "inspect",
+        "--visibility",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ]
+    ]
+  },
+  "seed_namespace_observations": [
+    {
+      "url": "https://rosa.radicle.xyz/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "method": "GET via read tool",
+      "delegate": true,
+      "observed_main": "2c529b154d625735c43246cad2178d70813a01c3",
+      "scope": "Selected fields from the observed JSON response; not a separately verified server signature or proof of independent storage"
+    },
+    {
+      "url": "https://iris.radicle.xyz/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "method": "GET via read tool",
+      "delegate": true,
+      "observed_main": "2c529b154d625735c43246cad2178d70813a01c3",
+      "scope": "Selected fields from the observed JSON response; not a separately verified server signature or proof of independent storage"
+    },
+    {
+      "url": "https://seed.radicle.garden/api/v1/repos/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/remotes/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "method": "GET via read tool",
+      "delegate": true,
+      "observed_main": "2c529b154d625735c43246cad2178d70813a01c3",
+      "scope": "Selected fields from the observed JSON response; not a separately verified server signature or proof of independent storage"
+    }
+  ],
+  "source_acquisitions": [
+    {
+      "transport": "native",
+      "revision": "2c529b154d625735c43246cad2178d70813a01c3",
+      "members": 1487,
+      "archive": {
+        "format": "ustar",
+        "bytes": 26685440,
+        "blake3": "5e16ea93f40a47e68757131ed52c6e7cac2a9b09d8913319de4d09f9d6234639"
+      },
+      "memberlist_blake3": "5859136521ea2e86f2b8bbc744841cf9d7777e793d8d66f24fda0a0506caa62c",
+      "hosting_profile_source_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0"
+    },
+    {
+      "transport": "https",
+      "revision": "2c529b154d625735c43246cad2178d70813a01c3",
+      "members": 1487,
+      "archive": {
+        "format": "ustar",
+        "bytes": 26685440,
+        "blake3": "5e16ea93f40a47e68757131ed52c6e7cac2a9b09d8913319de4d09f9d6234639"
+      },
+      "memberlist_blake3": "5859136521ea2e86f2b8bbc744841cf9d7777e793d8d66f24fda0a0506caa62c",
+      "hosting_profile_source_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0"
+    }
+  ],
+  "acquisition_commands": [
+    {
+      "command": [
+        "jj",
+        "git",
+        "clone",
+        "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/native"
+      ],
+      "exit_code": 0,
+      "checkout_command": [
+        "jj",
+        "new",
+        "2c529b154d625735c43246cad2178d70813a01c3"
+      ]
+    },
+    {
+      "command": [
+        "jj",
+        "git",
+        "clone",
+        "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/https"
+      ],
+      "environment": {
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "protocol.version",
+        "GIT_CONFIG_VALUE_0": "0"
+      },
+      "exit_code": 0,
+      "scope": "Fresh checkout with system/global Git config and interactive prompts disabled; HOME and Jujutsu configuration were not isolated"
+    }
+  ],
+  "archive_recipe": "GNU tar; LC_ALL=C; explicit lexically sorted jj-tracked source paths; USTAR; no recursion; mtime/uid/gid zero; numeric owner; mode u=rwX,go=rX; NUL member list; Git/Jujutsu metadata excluded",
+  "archive_and_source_commands": [
+    {
+      "command": [
+        "jj",
+        "log",
+        "--no-graph",
+        "--revisions",
+        "main@origin",
+        "--template",
+        "commit_id"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/native",
+      "exit_code": 0,
+      "stdout": "2c529b154d625735c43246cad2178d70813a01c3",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "jj",
+        "log",
+        "--no-graph",
+        "--revisions",
+        "main@origin",
+        "--template",
+        "commit_id"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/https",
+      "exit_code": 0,
+      "stdout": "2c529b154d625735c43246cad2178d70813a01c3",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "jj",
+        "file",
+        "list",
+        "--revision",
+        "2c529b154d625735c43246cad2178d70813a01c3"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/https",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_scope": "Tracked member listing omitted here; its NUL-encoded member-list digest and count are retained in source_acquisitions"
+    },
+    {
+      "command": [
+        "jj",
+        "file",
+        "list",
+        "--revision",
+        "2c529b154d625735c43246cad2178d70813a01c3"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/native",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_scope": "Tracked member listing omitted here; its NUL-encoded member-list digest and count are retained in source_acquisitions"
+    },
+    {
+      "command": [
+        "tar",
+        "--create",
+        "--file",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/https.tar",
+        "--directory",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/https",
+        "--format=ustar",
+        "--sort=name",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/https.members"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/https",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "tar",
+        "--create",
+        "--file",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/native.tar",
+        "--directory",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/native",
+        "--format=ustar",
+        "--sort=name",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/native.members"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/native",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+        "--no-names",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/https.tar",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/https.members",
+        "config/hosting-profile.ncl"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/https",
+      "exit_code": 0,
+      "stdout": "5e16ea93f40a47e68757131ed52c6e7cac2a9b09d8913319de4d09f9d6234639\n5859136521ea2e86f2b8bbc744841cf9d7777e793d8d66f24fda0a0506caa62c\n1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+        "--no-names",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/native.tar",
+        "/var/tmp/kiln-iroh-commit.jz7eWVoW/native.members",
+        "config/hosting-profile.ncl"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/native",
+      "exit_code": 0,
+      "stdout": "5e16ea93f40a47e68757131ed52c6e7cac2a9b09d8913319de4d09f9d6234639\n5859136521ea2e86f2b8bbc744841cf9d7777e793d8d66f24fda0a0506caa62c\n1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+        "--no-names",
+        "Cargo.toml",
+        "Cargo.lock",
+        "flake.nix",
+        "crates/kiln-adapter-iroh/Cargo.toml",
+        "crates/kiln-adapter-iroh/src/lib.rs",
+        "crates/kiln-adapter-iroh/src/profile.rs",
+        "crates/kiln-adapter-iroh/src/transport.rs",
+        "crates/kiln-adapter-iroh/src/main.rs",
+        "crates/kiln-adapter-iroh/tests/workflow.rs",
+        "config/iroh-workflow.ncl",
+        "crates/kiln-conformance/src/traceability.rs",
+        ".cairn/specs/iroh-workflow-transport/spec.md"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/native",
+      "exit_code": 0,
+      "stdout": "5c4619d330c1dfc6df7639c803788e1212ccec10f18bccba9830cb66c76b10e1\nbd9f889620defdf09dcb4fa0428ee40d496fb8d48e7b811afe1a1e6c3753bfa4\n6650cbb59320d741704836a9b68237d0d8dba945902aa23c7619a2a7ea3f7bc6\nceb92f6271764d42c09d23039e1a3d5e1da3bccd3e07bcd4026d9a9796b2cdba\n5f46dd77c490ff7fd5edd5e8974dd20228556af1cb40c0f8f7fe93c5d50a786c\n5eb65c72a73c4b64fdf38e2ab7afd82f7365526aa87f18311bb5d3cfc239f864\n59730e234a6771b853730f74fb435adcd3b759a062ef44d8182dcd6bef327346\n1988dc34defe3d7615a108c3eaf82367990aa9d29bf13300adf740cfabaeaf41\nfed6bd2703a8ffd1f0951aae57005ba1baf477865c0c14708f073770b58b61fa\n23d2f83c6d108cc37cc4966697c82507bfd50c5eb14a024fdbed450285aa3425\n9b220af22dbe5021c3b0b9029f38b0cc6c1bfdc0c75e4689b33f673c91c07023\n135a3fa8a9da87ccc23b0de3a84e381fd0d1e7b3a455fa39a87cf104b76a60b7\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "jj",
+        "log",
+        "--no-graph",
+        "--revisions",
+        "2c529b154d625735c43246cad2178d70813a01c3-",
+        "--template",
+        "commit_id"
+      ],
+      "cwd": "/var/tmp/kiln-iroh-commit.jz7eWVoW/native",
+      "exit_code": 0,
+      "stdout": "13ffb51933cd9dbb19ce1e5ee4df808a6c29d2f1",
+      "stderr": ""
+    }
+  ],
+  "observed_readback_failure": {
+    "command": [
+      "rad",
+      "inspect",
+      "--identity"
+    ],
+    "cwd": "/home/brittonr/git/OnixResearch/kiln",
+    "exit_code": 1,
+    "error": "Current directory is not a Radicle repository",
+    "resolution": "Used explicit RID selectors, without initializing or changing repository governance"
+  },
+  "retention": "Later local evidence-only child of the published source; this receipt is not part of the source archive or an additional requested remote ref update",
+  "non_claims": [
+    "Source-ref publication does not grant release, deployment, runtime, or credential authority",
+    "Readback proves only the exact observed refs, source bytes, signed-ref pointer and metadata at the recorded time",
+    "Replica agreement does not prove seed honesty, independence or future availability",
+    "No fresh product-test run is claimed by this push; the acquired runtime source identities match the earlier retained verification",
+    "Existing historical publication and qualification receipts retain their exact original scope"
+  ]
+}
