@@ -1,17 +1,17 @@
 #[derive(Debug)]
-pub(super) struct RunningProvider {
+pub(super) struct OwnedChild {
     pub(super) child: std::process::Child,
     pub(super) started: std::time::Instant,
     pub(super) work: std::path::PathBuf,
     pub(super) stdout_path: std::path::PathBuf,
     pub(super) stderr_path: std::path::PathBuf,
     pub(super) owned: Vec<super::observation::ProcessIdentity>,
+    pub(super) clock: fn() -> std::time::Instant,
 }
 
-impl RunningProvider {
+impl OwnedChild {
     pub(super) fn await_descendant(&mut self) -> super::TestResult {
-        let deadline =
-            std::time::Instant::now() + std::time::Duration::from_millis(super::READINESS_BOUND_MS);
+        let deadline = (self.clock)() + std::time::Duration::from_millis(super::READINESS_BOUND_MS);
         loop {
             if self.work.join("wrapper.pid").exists() && self.work.join("descendant.pid").exists() {
                 let wrapper = super::observation::read_identity(&self.work.join("wrapper.pid"))?;
@@ -38,7 +38,7 @@ impl RunningProvider {
                 )
                 .into());
             }
-            if std::time::Instant::now() >= deadline {
+            if (self.clock)() >= deadline {
                 return Err("descendant readiness exceeded named bound".into());
             }
             std::thread::sleep(std::time::Duration::from_millis(super::POLL_INTERVAL_MS));
@@ -55,7 +55,7 @@ impl RunningProvider {
         completion_bound: std::time::Duration,
         teardown_deadline: std::time::Instant,
     ) -> super::TestResult<std::process::ExitStatus> {
-        let completion_deadline = std::time::Instant::now() + completion_bound;
+        let completion_deadline = (self.clock)() + completion_bound;
         let mut is_termination_observed = false;
         loop {
             if !is_termination_observed {
@@ -77,7 +77,7 @@ impl RunningProvider {
                         survivors.push((*identity, observation));
                     }
                 }
-                if std::time::Instant::now() > teardown_deadline {
+                if (self.clock)() > teardown_deadline {
                     return Err(format!("direct-child reaping/descendant termination was not observed within named teardown bound: {survivors:?}; all observations: {observations:?}").into());
                 }
                 is_termination_observed = survivors.is_empty();
@@ -92,7 +92,7 @@ impl RunningProvider {
             {
                 return Ok(status);
             }
-            if std::time::Instant::now() >= completion_deadline {
+            if (self.clock)() >= completion_deadline {
                 return Err("provider completion exceeded named bound".into());
             }
             std::thread::sleep(std::time::Duration::from_millis(super::POLL_INTERVAL_MS));
@@ -106,7 +106,7 @@ impl RunningProvider {
     }
 }
 
-impl Drop for RunningProvider {
+impl Drop for OwnedChild {
     fn drop(&mut self) {
         // Emergency cleanup follows, never precedes, the behavioral assertions.
         // Recover PID files even when readiness failed before recording identities.
@@ -136,8 +136,9 @@ impl Drop for RunningProvider {
 pub(super) fn exercise_limit(
     operation: &str,
     expected: kiln_radicle_nix_provider::HostedProviderOutcome,
+    clock: fn() -> std::time::Instant,
 ) -> super::TestResult {
-    let fixture = super::fixture::Fixture::new(operation, super::EXECUTION_TIMEOUT_MS)?;
+    let fixture = super::fixture::Harness::new(operation, super::EXECUTION_TIMEOUT_MS, clock)?;
     let mut provider = fixture.start()?;
     provider.await_descendant()?;
     let teardown_deadline =
@@ -147,7 +148,7 @@ pub(super) fn exercise_limit(
                     super::EXECUTION_TIMEOUT_MS + super::TEARDOWN_BOUND_MS,
                 )
         } else {
-            std::time::Instant::now() + std::time::Duration::from_millis(super::TEARDOWN_BOUND_MS)
+            clock() + std::time::Duration::from_millis(super::TEARDOWN_BOUND_MS)
         };
     provider.proceed()?;
     let status = provider.finish(

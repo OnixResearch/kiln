@@ -66,7 +66,7 @@ fn child_host_startup_rejects_malformed_corrupt_and_partial_durable_state() {
         DamagedState::CorruptCallbackValue,
         DamagedState::MissingCallbackDirectory,
     ] {
-        let fixture = ProcessFixture::new();
+        let fixture = ProcessFixture::new(std::time::Instant::now);
         let lattice = FixtureLattice::start(&fixture, false);
         let child = fixture.start(1);
         completed(
@@ -96,7 +96,7 @@ fn child_host_startup_rejects_malformed_corrupt_and_partial_durable_state() {
 // r[verify kiln.aspen_host.production_evidence]
 #[test]
 fn child_host_complete_quiescent_backup_restores_and_partial_restore_is_rejected() {
-    let fixture = ProcessFixture::new();
+    let fixture = ProcessFixture::new(std::time::Instant::now);
     let lattice = FixtureLattice::start(&fixture, false);
     let ingress = fixture.ingress(0);
     let child = fixture.start(1);

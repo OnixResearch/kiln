@@ -3,6 +3,7 @@ use super::*;
 pub(in super::super) struct HostChild {
     pub(super) child: Child,
     pub(super) stderr: std::fs::File,
+    pub(super) clock: fn() -> Instant,
 }
 
 impl HostChild {
@@ -21,7 +22,7 @@ impl HostChild {
     }
 
     pub(in super::super) fn wait(&mut self) -> ExitStatus {
-        let deadline = Instant::now() + Duration::from_secs(CHILD_DEADLINE_SECONDS);
+        let deadline = (self.clock)() + Duration::from_secs(CHILD_DEADLINE_SECONDS);
         loop {
             if let Some(status) = self
                 .child
@@ -41,7 +42,7 @@ impl HostChild {
                 return status;
             }
             assert!(
-                Instant::now() < deadline,
+                (self.clock)() < deadline,
                 "child exit deadline: {}",
                 self.diagnostics()
             );

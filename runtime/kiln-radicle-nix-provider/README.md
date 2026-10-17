@@ -7,3 +7,5 @@ Use the root `config/radicle-nix-provider.ncl` function to produce its JSON prof
 The workspace pins Bounded Exec and Durable File Publication by immutable revision. Its Octet hook and Nix check cover the complete workspace, all targets, and all features.
 
 The native process-control drills use Rustix signal syscalls for cancellation and emergency cleanup, not an external `/bin/kill`. They exercise real provider processes and owned descendants under Linux with `/proc` and `/bin/sh`; success, timeout, output-limit and SIGTERM cases retain the same bounded teardown assertions in ordinary and Nix-sandboxed runs.
+
+Each process drill injects the real `std::time::Instant` clock into its harness. The owned-child shell uses that input for the same named readiness, completion and teardown deadlines; clock acquisition is explicit without changing Octet policy or adding lint allowances.

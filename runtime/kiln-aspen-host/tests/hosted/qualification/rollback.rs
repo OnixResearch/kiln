@@ -9,7 +9,7 @@ const INCOMPATIBLE_CALLBACK_TIMEOUT_MILLISECONDS: u64 = 30_001;
     reason = "the rollback drill keeps both incompatible cohorts and exact prior restoration visible"
 )]
 fn child_host_explicit_rollback_rejects_mixed_cohort_then_restores_prior_exact_cohort() {
-    let mut fixture = ProcessFixture::new();
+    let mut fixture = ProcessFixture::new(std::time::Instant::now);
     let lattice = FixtureLattice::start(&fixture, false);
     let ingress = fixture.ingress(0);
     let prior_host = fixture.host_executable.clone();

@@ -34,14 +34,14 @@ const OWNED_PROCESS_COUNT: usize = 2;
 
 #[test]
 fn actual_provider_success_reaps_descendant_and_publishes_bounded_report() -> TestResult {
-    let fixture = fixture::Fixture::new(
+    let fixture = fixture::Harness::new(
         "printf done > release-child; wait \"$descendant\"; printf bounded-control-ok",
         EXECUTION_TIMEOUT_MS,
+        std::time::Instant::now,
     )?;
     let mut provider = fixture.start()?;
     provider.await_descendant()?;
-    let teardown_deadline =
-        std::time::Instant::now() + std::time::Duration::from_millis(TEARDOWN_BOUND_MS);
+    let teardown_deadline = (fixture.clock)() + std::time::Duration::from_millis(TEARDOWN_BOUND_MS);
     provider.proceed()?;
     let status = provider.finish(
         std::time::Duration::from_millis(
@@ -89,6 +89,7 @@ fn actual_provider_timeout_terminates_owned_descendant() -> TestResult {
     running::exercise_limit(
         "wait \"$descendant\"",
         kiln_radicle_nix_provider::HostedProviderOutcome::TimedOut,
+        std::time::Instant::now,
     )
 }
 
@@ -99,6 +100,7 @@ fn actual_provider_stdout_limit_terminates_owned_descendant() -> TestResult {
             "count=0; while [ \"$count\" -lt {FLOOD_WRITES} ]; do printf x; count=$((count + 1)); done; exit 0"
         ),
         kiln_radicle_nix_provider::HostedProviderOutcome::OutputLimitExceeded,
+        std::time::Instant::now,
     )
 }
 
@@ -109,16 +111,21 @@ fn actual_provider_stderr_limit_terminates_owned_descendant() -> TestResult {
             "count=0; while [ \"$count\" -lt {FLOOD_WRITES} ]; do printf x >&2; count=$((count + 1)); done; exit 0"
         ),
         kiln_radicle_nix_provider::HostedProviderOutcome::OutputLimitExceeded,
+        std::time::Instant::now,
     )
 }
 
 #[test]
 fn actual_provider_sigterm_cancellation_terminates_owned_descendant() -> TestResult {
-    let fixture = fixture::Fixture::new("wait \"$descendant\"", CANCELLATION_EXECUTION_TIMEOUT_MS)?;
+    let fixture = fixture::Harness::new(
+        "wait \"$descendant\"",
+        CANCELLATION_EXECUTION_TIMEOUT_MS,
+        std::time::Instant::now,
+    )?;
     let mut provider = fixture.start()?;
     provider.await_descendant()?;
     provider.proceed()?;
-    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(TEARDOWN_BOUND_MS);
+    let deadline = (fixture.clock)() + std::time::Duration::from_millis(TEARDOWN_BOUND_MS);
     observation::signal(provider.child.id(), rustix::process::Signal::TERM)?;
     let status = provider.finish(
         std::time::Duration::from_millis(TEARDOWN_BOUND_MS + PUBLICATION_ALLOWANCE_MS),

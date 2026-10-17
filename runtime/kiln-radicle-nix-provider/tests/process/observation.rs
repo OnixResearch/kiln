@@ -6,12 +6,12 @@ pub(super) struct ProcessIdentity {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct ProcessObservation {
+pub(super) struct Snapshot {
     pub(super) identity: ProcessIdentity,
     pub(super) state: char,
 }
 
-pub(super) fn observe_process(pid: u32) -> super::TestResult<Option<ProcessObservation>> {
+pub(super) fn observe_process(pid: u32) -> super::TestResult<Option<Snapshot>> {
     let stat = match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
         Ok(stat) => stat,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -31,7 +31,7 @@ pub(super) fn observe_process(pid: u32) -> super::TestResult<Option<ProcessObser
         .nth(16)
         .ok_or("missing process start time")?
         .parse()?;
-    Ok(Some(ProcessObservation {
+    Ok(Some(Snapshot {
         identity: ProcessIdentity {
             pid,
             group,

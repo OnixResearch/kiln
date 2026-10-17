@@ -32,10 +32,11 @@ pub(super) struct ProcessFixture {
     pub(super) host_socket: PathBuf,
     pub(super) lattice_socket: PathBuf,
     pub(super) host_executable: PathBuf,
+    clock: fn() -> Instant,
 }
 
 impl ProcessFixture {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(clock: fn() -> Instant) -> Self {
         let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!("temporary root"));
         let mut paths = host_paths(&directory);
         paths.extension_executable = qualification_executable(
@@ -65,6 +66,7 @@ impl ProcessFixture {
             host_socket,
             lattice_socket,
             host_executable,
+            clock,
         }
     }
 
@@ -97,12 +99,16 @@ impl ProcessFixture {
             )
             .spawn()
             .unwrap_or_else(|error| unreachable!("spawn native host: {error}"));
-        HostChild { child, stderr }
+        HostChild {
+            child,
+            stderr,
+            clock: self.clock,
+        }
     }
 
     pub(super) fn start(&self, maximum_requests: usize) -> HostChild {
         let mut child = self.spawn(maximum_requests);
-        let deadline = Instant::now() + Duration::from_secs(CHILD_DEADLINE_SECONDS);
+        let deadline = (self.clock)() + Duration::from_secs(CHILD_DEADLINE_SECONDS);
         while !self.host_socket.exists() {
             assert!(
                 child
@@ -114,7 +120,7 @@ impl ProcessFixture {
                 child.diagnostics()
             );
             assert!(
-                Instant::now() < deadline,
+                (self.clock)() < deadline,
                 "host startup deadline: {}",
                 child.diagnostics()
             );

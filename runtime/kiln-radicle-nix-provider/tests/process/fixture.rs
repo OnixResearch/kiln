@@ -1,13 +1,18 @@
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
 #[derive(Debug)]
-pub(super) struct Fixture {
+pub(super) struct Harness {
     root: tempfile::TempDir,
     pub(super) profile: kiln_radicle_nix_provider::HostedNixProviderProfile,
+    pub(super) clock: fn() -> std::time::Instant,
 }
 
-impl Fixture {
-    pub(super) fn new(operation: &str, timeout_ms: u64) -> super::TestResult<Self> {
+impl Harness {
+    pub(super) fn new(
+        operation: &str,
+        timeout_ms: u64,
+        clock: fn() -> std::time::Instant,
+    ) -> super::TestResult<Self> {
         let root = tempfile::tempdir()?;
         let source = root.path().join("source.git");
         let work = root.path().join("work");
@@ -69,15 +74,19 @@ while [ ! -f proceed ]; do :; done
                 .map(str::to_string)
                 .to_vec(),
         };
-        Ok(Self { root, profile })
+        Ok(Self {
+            root,
+            profile,
+            clock,
+        })
     }
 
-    pub(super) fn start(&self) -> super::TestResult<super::running::RunningProvider> {
+    pub(super) fn start(&self) -> super::TestResult<super::running::OwnedChild> {
         let profile_path = self.root.path().join("profile.json");
         std::fs::write(&profile_path, serde_json::to_vec(&self.profile)?)?;
         let stdout_path = self.root.path().join("provider.stdout");
         let stderr_path = self.root.path().join("provider.stderr");
-        let started = std::time::Instant::now();
+        let started = (self.clock)();
         let child = std::process::Command::new(env!("CARGO_BIN_EXE_kiln-radicle-nix-provider"))
             .args([
                 "--profile",
@@ -94,13 +103,14 @@ while [ ! -f proceed ]; do :; done
             .stdout(std::fs::File::create(&stdout_path)?)
             .stderr(std::fs::File::create(&stderr_path)?)
             .spawn()?;
-        Ok(super::running::RunningProvider {
+        Ok(super::running::OwnedChild {
             child,
             started,
             work: self.profile.working_directory.clone(),
             stdout_path,
             stderr_path,
             owned: Vec::with_capacity(super::OWNED_PROCESS_COUNT),
+            clock: self.clock,
         })
     }
 }

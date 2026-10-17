@@ -16,7 +16,7 @@ const CRASH_REQUEST_ALLOWANCE: usize = 8;
 // r[verify kiln.aspen_host.production_evidence]
 #[test]
 fn child_host_crash_replays_exact_acknowledgements_without_dispatch() {
-    let fixture = ProcessFixture::new();
+    let fixture = ProcessFixture::new(std::time::Instant::now);
     let lattice = FixtureLattice::start(&fixture, false);
     let ingress = fixture.ingress(0);
     let child = fixture.start(CRASH_REQUEST_ALLOWANCE);
@@ -44,7 +44,7 @@ fn child_host_crash_replays_exact_acknowledgements_without_dispatch() {
 
 #[test]
 fn child_host_crash_recovers_unknown_and_duplicate_without_redispatch() {
-    let fixture = ProcessFixture::new();
+    let fixture = ProcessFixture::new(std::time::Instant::now);
     // The adapter probes RecoverDispatch during submit; keep it unavailable
     // until the crashed host has lost its process state.
     let lattice = FixtureLattice::unavailable_recovery(&fixture);
@@ -91,7 +91,7 @@ fn child_host_restart_retains_unknown_on_failed_recovery_without_redispatch() {
     const REQUESTS_AFTER_RESTART: usize = 3;
     // Initial adapter recovery, duplicate, startup recovery, and three requests.
     const EXPECTED_RECOVERY_ATTEMPTS: usize = 6;
-    let fixture = ProcessFixture::new();
+    let fixture = ProcessFixture::new(std::time::Instant::now);
     let lattice = FixtureLattice::unavailable_recovery(&fixture);
     let ingress = fixture.ingress(0);
     let child = fixture.start(CRASH_REQUEST_ALLOWANCE);
@@ -143,7 +143,7 @@ fn child_host_restart_retains_unknown_on_failed_recovery_without_redispatch() {
 // r[verify kiln.aspen_host.production_evidence]
 #[test]
 fn child_host_bounded_load_preserves_every_ack_and_dispatch_count_across_restart() {
-    let fixture = ProcessFixture::new();
+    let fixture = ProcessFixture::new(std::time::Instant::now);
     let lattice = FixtureLattice::start(&fixture, false);
     let child = fixture.start(LOAD_OPERATION_COUNT * REQUESTS_PER_OPERATION);
     let mut client = fixture.client();
