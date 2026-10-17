@@ -281,6 +281,11 @@
           program = "${packageFor system}/bin/kiln-adapter-github";
           meta.description = "Run the Kiln GitHub webhook and recovery service";
         };
+        kiln-adapter-iroh = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-adapter-iroh";
+          meta.description = "Run the authenticated Iroh native workflow worker or Unix proxy";
+        };
         kiln-github-job = {
           type = "app";
           program = "${packageFor system}/bin/kiln-github-job";
@@ -716,6 +721,9 @@
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
+            nickel typecheck config/iroh-workflow.ncl
+            nickel export config/fixtures/iroh-workflow-positive.ncl >/dev/null
+            nickel format --check config/iroh-workflow.ncl config/fixtures/*iroh-workflow*.ncl
             nickel typecheck config/github-contracts.ncl
             nickel typecheck config/github-ci.ncl
             nickel typecheck config/github-job.ncl

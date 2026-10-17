@@ -1,0 +1,2805 @@
+{
+  "schema": "kiln.iroh-workflow-verification.v1",
+  "observed_at_utc": "2026-10-18T05:24:39.085Z",
+  "verdict": "PASS",
+  "claim_scope": "Authenticated native Lattice workflow transport on two local Iroh endpoints, not a deployment or release decision",
+  "capability": {
+    "immediate_outcome": "A real native Lattice workflow executes through the private Unix proxy and worker, then exact recovery survives both bridge restarts without a second marker write",
+    "durable_contribution": "Existing Kiln workflow consumers can select the bridge through their existing Unix socket setting; native identities, capability admission and unknown-after-write remain authoritative",
+    "current_consumers": [
+      "kiln-adapter-lattice UnixWorkflowExchange",
+      "existing GitHub and Radicle Lattice socket configurations"
+    ],
+    "maintenance_owner": "Kiln maintainers",
+    "operator_owner": "Peer enrollment, keys, private directories, Lattice routes and durability, isolation and deployment"
+  },
+  "cohort": {
+    "iroh": "0.95.1",
+    "alpn": "kiln.workflow.v1",
+    "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+    "cargo": "1.88.0 (873a06493 2025-05-10)",
+    "native_lattice_contract_revision": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+    "signing_lock": {
+      "ed25519": "3.0.0-rc.1",
+      "pkcs8": "0.11.0-rc.7",
+      "spki": "0.8.0-rc.4",
+      "der": "0.8.0-rc.9",
+      "pem-rfc7468": "1.0.0-rc.3",
+      "signature": "3.0.0-rc.4"
+    }
+  },
+  "source": {
+    "kind": "working-tree file identities, not a commit or publication receipt",
+    "blake3": {
+      "Cargo.toml": "5c4619d330c1dfc6df7639c803788e1212ccec10f18bccba9830cb66c76b10e1",
+      "Cargo.lock": "bd9f889620defdf09dcb4fa0428ee40d496fb8d48e7b811afe1a1e6c3753bfa4",
+      "flake.nix": "6650cbb59320d741704836a9b68237d0d8dba945902aa23c7619a2a7ea3f7bc6",
+      "crates/kiln-adapter-iroh/Cargo.toml": "ceb92f6271764d42c09d23039e1a3d5e1da3bccd3e07bcd4026d9a9796b2cdba",
+      "crates/kiln-adapter-iroh/src/lib.rs": "5f46dd77c490ff7fd5edd5e8974dd20228556af1cb40c0f8f7fe93c5d50a786c",
+      "crates/kiln-adapter-iroh/src/profile.rs": "5eb65c72a73c4b64fdf38e2ab7afd82f7365526aa87f18311bb5d3cfc239f864",
+      "crates/kiln-adapter-iroh/src/transport.rs": "59730e234a6771b853730f74fb435adcd3b759a062ef44d8182dcd6bef327346",
+      "crates/kiln-adapter-iroh/src/main.rs": "1988dc34defe3d7615a108c3eaf82367990aa9d29bf13300adf740cfabaeaf41",
+      "crates/kiln-adapter-iroh/tests/workflow.rs": "fed6bd2703a8ffd1f0951aae57005ba1baf477865c0c14708f073770b58b61fa",
+      "config/iroh-workflow.ncl": "23d2f83c6d108cc37cc4966697c82507bfd50c5eb14a024fdbed450285aa3425",
+      "crates/kiln-conformance/src/traceability.rs": "9b220af22dbe5021c3b0b9029f38b0cc6c1bfdc0c75e4689b33f673c91c07023",
+      ".cairn/specs/iroh-workflow-transport/spec.md": "135a3fa8a9da87ccc23b0de3a84e381fd0d1e7b3a455fa39a87cf104b76a60b7"
+    },
+    "ordering_note": "Runtime sources and lock are the exercised versions. The accepted-spec sync and comment-only central traceability links were added after workspace/build checks and checked with Cairn, cargo check -p kiln-conformance and workspace formatting. Final Cairn reports precede writing this aggregate evidence file."
+  },
+  "execution_environment": {
+    "PATH": "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/etc/profiles/per-user/brittonr/bin:/run/current-system/sw/bin",
+    "PKG_CONFIG_PATH": "/nix/store/dbvxz51s7m6401ycyp3l38407y11hq6p-openssl-3.6.3-dev/lib/pkgconfig:/nix/store/h4si9iyvqy1aaqy4piqw0pj2c6snmz69-zlib-1.3.2-dev/lib/pkgconfig"
+  },
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "kiln-adapter-iroh",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "passed": 9,
+      "notes": "Eight authenticated transport/admission/recovery tests plus one protected-identity lifecycle test. The zero-test throwaway smoke driver target was removed after real-process proof."
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "exit_code": 0,
+      "passed": 419,
+      "ignored": 2,
+      "ignored_scope": [
+        "actual_worker_controls: requires pinned loopback Celld HTTPS cohort runner",
+        "actual_worker_persists_event_outbox_and_reconciles_a_lost_append_response: requires tests/celld-live-cohort.sh"
+      ]
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "-p",
+        "kiln-core",
+        "--target",
+        "wasm32-unknown-unknown"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "nix",
+        "build",
+        "--no-link",
+        "--no-write-lock-file",
+        "path:.#checks.x86_64-linux.nickel",
+        "--option",
+        "min-free",
+        "0",
+        "-L"
+      ],
+      "exit_code": 0,
+      "output": "/nix/store/rqpw6k3y6lfm8n1y5m8a44z853rhh38b-kiln-nickel"
+    },
+    {
+      "command": [
+        "nix",
+        "build",
+        "--no-link",
+        "--no-write-lock-file",
+        "path:.#packages.x86_64-linux.default",
+        "--option",
+        "min-free",
+        "0",
+        "-L"
+      ],
+      "exit_code": 0,
+      "output": "/nix/store/629yhmd5qjaf7s5v73q2mhlmfbxl50bq-kiln-0.1.0",
+      "notes": "Includes workspace tests and installs kiln-adapter-iroh; this is not full flake-check or optional standalone runtime qualification."
+    },
+    {
+      "command": [
+        "/nix/store/629yhmd5qjaf7s5v73q2mhlmfbxl50bq-kiln-0.1.0/bin/kiln-adapter-iroh",
+        "--help"
+      ],
+      "exit_code": 0,
+      "executable_blake3": "1bedc9a436a7698bea75f0cca89d834a004b316f7b85f60ab2b3d954641a092c"
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "-p",
+        "kiln-conformance"
+      ],
+      "exit_code": 0,
+      "notes": "The host kache index reported a disk-I/O warning and disabled caching; compilation and subsequent workspace formatting succeeded."
+    }
+  ],
+  "nickel_negative_observations": [
+    {
+      "fixture": "deadline",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-deadline.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `exchange_timeout_ms`\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:111:25\n    │\n111 │   exchange_timeout_ms | Integer 1 MaximumDeadlineMilliseconds,\n    │                         ------------------------------------- expected type\n    │\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-deadline.ncl:2:33\n    │\n  2 │   exchange_timeout_ms | force = 0,\n    │                                 ^ applied to this expression\n\n\n\nWall time: 0.74 seconds\n\nCommand exited with code 1"
+    },
+    {
+      "fixture": "socket",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-socket.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `socket_path`\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:104:17\n    │\n104 │   socket_path | AbsoluteSocketPath,\n    │                 ------------------ expected type\n    │\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-socket.ncl:2:25\n    │\n  2 │   socket_path | force = \"/tmp/../lattice.sock\",\n    │                         ^^^^^^^^^^^^^^^^^^^^^^ applied to this expression\n    │\n    ┌─ <unknown> (generated by evaluation):1:1\n    │\n  1 │ \"/tmp/../lattice.sock\"\n    │ ---------------------- evaluated to this value\n\n\n\nWall time: 0.74 seconds\n\nCommand exited with code 1"
+    },
+    {
+      "fixture": "alpn",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-alpn.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `alpn`\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:103:10\n    │\n103 │   alpn | Exact \"kiln.workflow.v1\",\n    │          ------------------------ expected type\n    │\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-alpn.ncl:2:18\n    │\n  2 │   alpn | force = \"kiln.observation.v1\",\n    │                  ^^^^^^^^^^^^^^^^^^^^^ applied to this expression\n    │\n    ┌─ <unknown> (generated by evaluation):1:1\n    │\n  1 │ \"kiln.observation.v1\"\n    │ --------------------- evaluated to this value\n\n\n\nWall time: 0.88 seconds\n\nCommand exited with code 1"
+    },
+    {
+      "fixture": "relay",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-relay.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `relay_urls`\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:108:22\n    │\n108 │   relay_urls | Array Relay | BoundedArray 0 MaximumRelays,\n    │                      ----- expected array element type\n    │\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-relay.ncl:2:25\n    │\n  2 │   relay_urls | force = [\"http://relay.invalid\"],\n    │                         ^^^^^^^^^^^^^^^^^^^^^^ applied to this expression\n    │\n    ┌─ <unknown> (generated by evaluation):1:1\n    │\n  1 │ \"http://relay.invalid\"\n    │ ---------------------- evaluated to this value\n\n\n\nWall time: 0.88 seconds\n\nCommand exited with code 1"
+    },
+    {
+      "fixture": "users",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-users.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `allowed_user_ids`\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:107:93\n    │\n107 │   allowed_user_ids | Array (Integer 0 MaximumUserId) | BoundedArray 1 MaximumAllowedUsers | OrderedUserIds,\n    │                                                                                             -------------- expected type\n    │\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-users.ncl:2:30\n    │\n  2 │   allowed_user_ids | force = [1000, 1000],\n    │                              ^^^^^^^^^^^^ applied to this expression\n\n\n\nWall time: 0.89 seconds\n\nCommand exited with code 1"
+    },
+    {
+      "fixture": "limits",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-limits.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `maximum_connections`\n   ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:96:25\n   │\n96 │   maximum_connections | Integer 1 MaximumConcurrentExchanges,\n   │                         ------------------------------------ expected type\n   │\n   ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-limits.ncl:2:50\n   │\n 2 │   transport_limits.maximum_connections | force = 65,\n   │                                                  ^^ applied to this expression\n\n\n\nWall time: 0.74 seconds\n\nCommand exited with code 1"
+    },
+    {
+      "fixture": "cohort",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-cohort.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `iroh_version`\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:102:18\n    │\n102 │   iroh_version | Exact \"0.95.1\",\n    │                  -------------- expected type\n    │\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-cohort.ncl:2:26\n    │\n  2 │   iroh_version | force = \"0.96.0\",\n    │                          ^^^^^^^^ applied to this expression\n    │\n    ┌─ <unknown> (generated by evaluation):1:1\n    │\n  1 │ \"0.96.0\"\n    │ -------- evaluated to this value\n\n\n\nWall time: 0.88 seconds\n\nCommand exited with code 1"
+    },
+    {
+      "fixture": "peers",
+      "command": [
+        "nickel",
+        "export",
+        "--format",
+        "json",
+        "config/fixtures/negative-iroh-workflow-peers.ncl"
+      ],
+      "exit_code": 1,
+      "expected_rejection": true,
+      "output": "error: contract broken by the value of `allowed_peers`\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/iroh-workflow.ncl:106:32\n    │\n106 │   allowed_peers | Array Peer | BoundedArray 1 MaximumPeers,\n    │                                --------------------------- expected type\n    │\n    ┌─ /home/brittonr/git/OnixResearch/kiln/config/fixtures/negative-iroh-workflow-peers.ncl:2:27\n    │\n  2 │   allowed_peers | force = [],\n    │                           ^^ applied to this expression\n\n\n\nWall time: 0.74 seconds\n\nCommand exited with code 1"
+    }
+  ],
+  "cairn": [
+    {
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "add-iroh-workflow-transport",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "report": {
+        "acceptance_ids": [],
+        "change": "add-iroh-workflow-transport",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "0b1168a087968c6f0bd7341889f88cf13ca3cd980a7a627def9d882acbd7705c",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "probe_evidence": null,
+        "profile_identity_hash": "c8f3552787fa3e65ad284d407a7a198af367679c3174697e39f16942d30de86d",
+        "receipt_hash": "3e16e8a005b25f7b78bb1b508e05f07a6ef6accff4bce3b7043107c0108b62df",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "proposal",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "add-iroh-workflow-transport",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "report": {
+        "acceptance_ids": [],
+        "change": "add-iroh-workflow-transport",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "bfba6d8d680d1964ef203ecafbcf834a7529b09347a4a9d7662dcc244bb813ec",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "probe_evidence": null,
+        "profile_identity_hash": "c8f3552787fa3e65ad284d407a7a198af367679c3174697e39f16942d30de86d",
+        "receipt_hash": "c2c1134144381183651d596245a5df94226f56d05473cd59f21e3c375e3c3744",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "design",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/specs/iroh-workflow-transport/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 8,
+            "substantive_lines": 29,
+            "substantive_requirement_blocks": 5,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "add-iroh-workflow-transport",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "report": {
+        "acceptance_ids": [],
+        "change": "add-iroh-workflow-transport",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "b9d5d14cab74d37f9d916f926a4310c48b88a02f40493d44c347c6d1ec14f826",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "probe_evidence": {
+          "declarations_present": false,
+          "probes": []
+        },
+        "profile_identity_hash": "c8f3552787fa3e65ad284d407a7a198af367679c3174697e39f16942d30de86d",
+        "receipt_hash": "9a02e0cea1f9635fec03df0acef918f351b3f4133ded1293d4408e10211da439",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "tasks",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/specs/iroh-workflow-transport/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 8,
+            "substantive_lines": 29,
+            "substantive_requirement_blocks": 5,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 6,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 6,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 6,
+            "task_done": 6,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        },
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "report": {
+        "change_issues": [],
+        "changes": 12,
+        "cross_repo_dependencies": [],
+        "cross_repo_evidence_issues": [],
+        "findings": [],
+        "issues": [],
+        "layout": "cairn",
+        "policy": "kiln-default",
+        "profile_issues": [],
+        "resolution": {
+          "diagnostics": [],
+          "locator_consulted": false,
+          "registry_lookup": "local_locator_only",
+          "selected": {
+            "project_identity": null,
+            "root": ".",
+            "source": "explicit_root",
+            "store_id": null,
+            "store_identity": null
+          },
+          "valid": true
+        },
+        "spec_findings": [],
+        "spec_issues": [],
+        "spec_substance": [
+          {
+            "path": "./.cairn/changes/add-github-ci-adapter/specs/github-ci/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 20,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/changes/add-iroh-workflow-transport/specs/iroh-workflow-transport/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 8,
+            "substantive_requirement_blocks": 5
+          },
+          {
+            "path": "./.cairn/changes/add-onix-nix-evaluator-cohort/specs/nix-eval-jobs-onix-cohort/spec.md",
+            "requirement_blocks": 9,
+            "scenario_blocks": 15,
+            "substantive_requirement_blocks": 9
+          },
+          {
+            "path": "./.cairn/changes/bind-aspen-extension-runtime-profile/specs/aspen-host-bridge/spec.md",
+            "requirement_blocks": 1,
+            "scenario_blocks": 2,
+            "substantive_requirement_blocks": 1
+          },
+          {
+            "path": "./.cairn/changes/observation-http-shell/specs/observation-http-shell/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/changes/observation-iroh-shell/specs/observation-iroh-shell/spec.md",
+            "requirement_blocks": 7,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 7
+          },
+          {
+            "path": "./.cairn/changes/observation-projection/specs/observation-projection/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/changes/pace-aspen-lattice-observation/specs/aspen-host-bridge/spec.md",
+            "requirement_blocks": 1,
+            "scenario_blocks": 2,
+            "substantive_requirement_blocks": 1
+          },
+          {
+            "path": "./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+            "requirement_blocks": 3,
+            "scenario_blocks": 6,
+            "substantive_requirement_blocks": 3
+          },
+          {
+            "path": "./.cairn/specs/aspen-host-bridge/spec.md",
+            "requirement_blocks": 9,
+            "scenario_blocks": 17,
+            "substantive_requirement_blocks": 9
+          },
+          {
+            "path": "./.cairn/specs/aspen-runtime-backend/spec.md",
+            "requirement_blocks": 13,
+            "scenario_blocks": 25,
+            "substantive_requirement_blocks": 13
+          },
+          {
+            "path": "./.cairn/specs/cairn-gate-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/cdevents-interchange-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/celld-event-store-adapter/spec.md",
+            "requirement_blocks": 12,
+            "scenario_blocks": 24,
+            "substantive_requirement_blocks": 12
+          },
+          {
+            "path": "./.cairn/specs/change-gating/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/ci-domain/spec.md",
+            "requirement_blocks": 9,
+            "scenario_blocks": 9,
+            "substantive_requirement_blocks": 9
+          },
+          {
+            "path": "./.cairn/specs/durable-operations/spec.md",
+            "requirement_blocks": 13,
+            "scenario_blocks": 13,
+            "substantive_requirement_blocks": 13
+          },
+          {
+            "path": "./.cairn/specs/git-source-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/github-ci/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 20,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/interchange-projections/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/iroh-workflow-transport/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 8,
+            "substantive_requirement_blocks": 5
+          },
+          {
+            "path": "./.cairn/specs/lattice-workflow-adapter/spec.md",
+            "requirement_blocks": 9,
+            "scenario_blocks": 15,
+            "substantive_requirement_blocks": 9
+          },
+          {
+            "path": "./.cairn/specs/mantle-build-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/nix-eval-jobs-adapter/spec.md",
+            "requirement_blocks": 12,
+            "scenario_blocks": 25,
+            "substantive_requirement_blocks": 12
+          },
+          {
+            "path": "./.cairn/specs/opentelemetry-projection-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/provider-ports/spec.md",
+            "requirement_blocks": 15,
+            "scenario_blocks": 15,
+            "substantive_requirement_blocks": 15
+          },
+          {
+            "path": "./.cairn/specs/radicle-ci-compatibility/spec.md",
+            "requirement_blocks": 14,
+            "scenario_blocks": 18,
+            "substantive_requirement_blocks": 14
+          },
+          {
+            "path": "./.cairn/specs/radicle-cob-support/spec.md",
+            "requirement_blocks": 12,
+            "scenario_blocks": 22,
+            "substantive_requirement_blocks": 12
+          },
+          {
+            "path": "./.cairn/specs/radicle-mutation/spec.md",
+            "requirement_blocks": 4,
+            "scenario_blocks": 7,
+            "substantive_requirement_blocks": 4
+          },
+          {
+            "path": "./.cairn/specs/radicle-source-contract/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 6
+          },
+          {
+            "path": "./.cairn/specs/radicle-status/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 14,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/remote-execution-compatibility/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 10
+          },
+          {
+            "path": "./.cairn/specs/repository-hosting/spec.md",
+            "requirement_blocks": 14,
+            "scenario_blocks": 14,
+            "substantive_requirement_blocks": 14
+          },
+          {
+            "path": "./.cairn/specs/repository-lifecycle/spec.md",
+            "requirement_blocks": 1,
+            "scenario_blocks": 3,
+            "substantive_requirement_blocks": 1
+          },
+          {
+            "path": "./.cairn/specs/source-collaboration/spec.md",
+            "requirement_blocks": 18,
+            "scenario_blocks": 34,
+            "substantive_requirement_blocks": 18
+          },
+          {
+            "path": "./.cairn/specs/sqlite-event-store-adapter/spec.md",
+            "requirement_blocks": 7,
+            "scenario_blocks": 12,
+            "substantive_requirement_blocks": 7
+          },
+          {
+            "path": "./.cairn/specs/task-operations/spec.md",
+            "requirement_blocks": 13,
+            "scenario_blocks": 24,
+            "substantive_requirement_blocks": 13
+          },
+          {
+            "path": "./.cairn/specs/valence-evidence-adapter/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 8,
+            "substantive_requirement_blocks": 5
+          },
+          {
+            "path": "./.cairn/specs/webhook-notification-adapter/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_requirement_blocks": 6
+          }
+        ],
+        "specs_validated": 39,
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-github-ci-adapter/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-github-ci-adapter/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 8,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-github-ci-adapter/specs/github-ci/spec.md",
+            "requirement_blocks": 10,
+            "scenario_blocks": 20,
+            "substantive_lines": 70,
+            "substantive_requirement_blocks": 10,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 8,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-github-ci-adapter/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 8,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 8,
+            "task_done": 8,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/specs/iroh-workflow-transport/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 8,
+            "substantive_lines": 29,
+            "substantive_requirement_blocks": 5,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 6,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-iroh-workflow-transport/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 6,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 6,
+            "task_done": 6,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-onix-nix-evaluator-cohort/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 22,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-onix-nix-evaluator-cohort/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-onix-nix-evaluator-cohort/specs/nix-eval-jobs-onix-cohort/spec.md",
+            "requirement_blocks": 9,
+            "scenario_blocks": 15,
+            "substantive_lines": 54,
+            "substantive_requirement_blocks": 9,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 13,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/add-onix-nix-evaluator-cohort/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 17,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 13,
+            "task_done": 1,
+            "task_in_progress": 0,
+            "task_todo": 12
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/bind-aspen-extension-runtime-profile/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/bind-aspen-extension-runtime-profile/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 8,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/bind-aspen-extension-runtime-profile/specs/aspen-host-bridge/spec.md",
+            "requirement_blocks": 1,
+            "scenario_blocks": 2,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 9,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/bind-aspen-extension-runtime-profile/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 9,
+            "task_done": 7,
+            "task_in_progress": 0,
+            "task_todo": 2
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/integrate-canonical-main/acceptance.md#profile-adapter",
+            "requirement_blocks": 1,
+            "scenario_blocks": 4,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/integrate-canonical-main/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/integrate-canonical-main/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 5,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/integrate-canonical-main/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 5,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 5,
+            "task_done": 5,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 23,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/specs/observation-http-shell/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 10,
+            "substantive_lines": 36,
+            "substantive_requirement_blocks": 6,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 16,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-http-shell/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 16,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 16
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 23,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 17,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/specs/observation-iroh-shell/spec.md",
+            "requirement_blocks": 7,
+            "scenario_blocks": 12,
+            "substantive_lines": 43,
+            "substantive_requirement_blocks": 7,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 21,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-iroh-shell/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 21,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 21,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 21
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 22,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 17,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/specs/observation-projection/spec.md",
+            "requirement_blocks": 6,
+            "scenario_blocks": 12,
+            "substantive_lines": 42,
+            "substantive_requirement_blocks": 6,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 15,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/observation-projection/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 15,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 15,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 15
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/pace-aspen-lattice-observation/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 15,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/pace-aspen-lattice-observation/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 8,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/pace-aspen-lattice-observation/specs/aspen-host-bridge/spec.md",
+            "requirement_blocks": 1,
+            "scenario_blocks": 2,
+            "substantive_lines": 11,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 9,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/pace-aspen-lattice-observation/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 9,
+            "task_done": 7,
+            "task_in_progress": 0,
+            "task_todo": 2
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-owned-dependencies-agpl/acceptance.md#profile-adapter",
+            "requirement_blocks": 1,
+            "scenario_blocks": 3,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-owned-dependencies-agpl/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-owned-dependencies-agpl/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 7,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 5,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-owned-dependencies-agpl/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 15,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 5,
+            "task_done": 5,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md",
+            "requirement_blocks": 3,
+            "scenario_blocks": 6,
+            "substantive_lines": 21,
+            "substantive_requirement_blocks": 3,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 12,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/prepare-public-release/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 23,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 12,
+            "task_done": 12,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/qualify-aspen-host-production-evidence/acceptance.md#profile-adapter",
+            "requirement_blocks": 1,
+            "scenario_blocks": 4,
+            "substantive_lines": 16,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/qualify-aspen-host-production-evidence/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/qualify-aspen-host-production-evidence/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 11,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/qualify-aspen-host-production-evidence/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 11,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 11,
+            "task_done": 11,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "substance_findings": [],
+        "substance_issues": [],
+        "valid": true,
+        "workflow_profiles": [
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "7788920578a035a27bc4036f8a03d8f29f7c103919f07ffff402a53192faace4",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "c8f3552787fa3e65ad284d407a7a198af367679c3174697e39f16942d30de86d",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "ade2e6b4f57c0d5b0bd6ee5fea7f2f34f608984068b81875b9b6481e9d8209ec",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "357a3423631e6c13a90e5101836cd9e933ad91935fffc1f551abc156ae36beea",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [
+              "integrate-canonical-main.contracts",
+              "integrate-canonical-main.history",
+              "integrate-canonical-main.publication",
+              "integrate-canonical-main.verification"
+            ],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+              "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+              "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+            ],
+            "profile_identity_hash": "022d3e99ffc24f9a0a4328cc9b2bfc03193cb689aaa24521798023245eb86f9e",
+            "review_receipt_hashes": [
+              "b75f489f918504943d984758b29eb2d0b11e012512952f1395f1e8df2295a57c"
+            ],
+            "spec_effect": "none",
+            "workflow_profile": "no-spec-delta",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "17d6b033bed3d3131e610bdf8bbe633e9aa6bcca36735e91cf547588590c84b0",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "1071a9e4ec7f83856d7bd2d5e02513fd7d5c956fa61cc7586d10c6b79f4c851b",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "140803fac70a646f678ef0e977e9664d2cb6b43368afcc5aece79173ba86bab4",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "a9c2fe82cb00ae231a5fd2d880d0b6e859c2c1b5974aa4342a6b927964175538",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [
+              "prepare-owned-dependencies-agpl.boundary",
+              "prepare-owned-dependencies-agpl.inventory",
+              "prepare-owned-dependencies-agpl.verification"
+            ],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+              "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+              "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+            ],
+            "profile_identity_hash": "676e461280ce4c9755fbb2596e27a8dabfc7664650356ef9154c818cce5d8dc4",
+            "review_receipt_hashes": [
+              "444cc4eff83476c2a03fe67d74e01b18e27c2253662c974da80f3e237d169bea"
+            ],
+            "spec_effect": "none",
+            "workflow_profile": "no-spec-delta",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+            ],
+            "profile_identity_hash": "7097fd712d93d71daa8ea765012e71c491baf7e65e3359f39da5cd978d7d50d9",
+            "review_receipt_hashes": [],
+            "spec_effect": "delta",
+            "workflow_profile": "spec-driven",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          },
+          {
+            "acceptance_ids": [
+              "qualify-aspen-host-production-evidence.admission",
+              "qualify-aspen-host-production-evidence.cohort",
+              "qualify-aspen-host-production-evidence.execution",
+              "qualify-aspen-host-production-evidence.gates"
+            ],
+            "non_claims": [
+              "workflow state proves only the selected policy graph and observed structural artifact facts",
+              "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+              "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+              "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+              "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+              "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+            ],
+            "profile_identity_hash": "009850b064bf901950cb2422c36af1467e00794206bcc5022a2e4c3ba794631a",
+            "review_receipt_hashes": [
+              "49887d1606539924578375ca987f9e622196d9c996ed959d49069e7148941ac6"
+            ],
+            "spec_effect": "none",
+            "workflow_profile": "no-spec-delta",
+            "workflow_profile_compatibility_fallback": false,
+            "workflow_profile_source": "change_create",
+            "workflow_profile_version": 1
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "exit_code": 0,
+      "report": {
+        "command": "traceability coverage",
+        "dangling": [],
+        "input_hash": "1e0baea2ec3cba23eccfc0c108f7fa51db2e21e9c1a50a9f5948b2fe56e06d75",
+        "missing": [],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "profile": {
+          "anchor_kind": "exact_marker_bytes",
+          "assurance_level": "declared",
+          "evidence_sources": [
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "crates",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "ncl"
+              ],
+              "root": "crates",
+              "source_kind": "nickel_source"
+            },
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "runtime/kiln-aspen-host",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "runtime/kiln-radicle-nix-provider",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": "docs/hosting-and-recovery.md",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "rs",
+                "ncl"
+              ],
+              "root": "tools",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs"
+              ],
+              "root": "src",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs",
+                "sh"
+              ],
+              "root": "tests",
+              "source_kind": "tool_source"
+            }
+          ],
+          "id": "cairn-default",
+          "marker_verbs": [
+            "impl",
+            "verify",
+            "depends",
+            "related"
+          ],
+          "requirement_sources": [
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/specs",
+              "source_kind": "accepted_specs"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/changes/bind-aspen-extension-runtime-profile/specs",
+              "source_kind": "requirements_doc"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/changes/pace-aspen-lattice-observation/specs",
+              "source_kind": "requirements_doc"
+            }
+          ]
+        },
+        "profile_id": "cairn-default",
+        "receipt_hash": "450e7c2155d163f7527dc335ba4d6383ea8f3261c74ecff3bce67b11a476c296",
+        "referenced": 638,
+        "requirements": 638,
+        "root": ".",
+        "source_summary": {
+          "evidence_files": 254,
+          "evidence_manifest_hash": "dc6b3ad355cc5b5e33656b759043bcc30bef2af95348610761f1031b79d325fe",
+          "requirement_files": 32,
+          "requirement_manifest_hash": "07ebb730f3cc509dd21eef7a2a5de39442ba58ee312e2d46dddc7e0efd5dea0a"
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    }
+  ],
+  "actual_native_process_smoke": {
+    "scope": "actual native Lattice process, two authenticated Iroh endpoints, private Unix proxy, loopback only",
+    "case": "/var/tmp/kiln-iroh-execution-82lc1uo1",
+    "commands": [
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/examples/remote_smoke",
+          "prepare"
+        ],
+        "exit_code": 0,
+        "stdout": "{\n  \"contract\": {\n    \"adapter_kinds\": [\n      \"local\",\n      \"remote\"\n    ],\n    \"controls\": {\n      \"cancel\": true,\n      \"pause\": true,\n      \"resume\": true\n    },\n    \"effect_classes\": [\n      \"build\",\n      \"test\"\n    ],\n    \"graph_schema\": \"lattice.workflow-graph.v1\",\n    \"limits\": {\n      \"maximum_edges\": 16,\n      \"maximum_log_read_bytes\": 4096,\n      \"maximum_log_references\": 8,\n      \"maximum_nodes\": 8,\n      \"maximum_total_log_bytes\": 16384\n    },\n    \"node_kinds\": [\n      \"build\",\n      \"test\"\n    ],\n    \"non_claims\": [\n      \"workflow admission does not prove workflow correctness\",\n      \"workflow admission does not prove host confinement\",\n      \"workflow observation does not prove an external effect succeeded\",\n      \"workflow observation does not prove credential freshness\",\n      \"workflow observation does not establish release readiness\"\n    ],\n    \"platforms\": [\n      \"linux-x86_64\"\n    ],\n    \"schema\": \"lattice.workflow-profile.v1\"\n  },\n  \"request\": {\n    \"controls\": {\n      \"cancel\": true,\n      \"pause\": true,\n      \"resume\": true\n    },\n    \"graph\": {\n      \"edges\": [],\n      \"identity\": \"b3:a5af82f6dc0f5b094624022825ba048775cc4892bfdd12473bb57945e8745426\",\n      \"nodes\": [\n        {\n          \"adapter_kind\": \"local\",\n          \"effect_class\": \"build\",\n          \"id\": \"build\",\n          \"kind\": \"build\",\n          \"operation_identity\": \"b3:1111111111111111111111111111111111111111111111111111111111111111\"\n        }\n      ],\n      \"schema\": \"lattice.workflow-graph.v1\"\n    },\n    \"idempotency_key\": \"b3:3333333333333333333333333333333333333333333333333333333333333333\",\n    \"identity\": \"b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991\",\n    \"kiln\": {\n      \"attempt_identity\": \"b3:5555555555555555555555555555555555555555555555555555555555555555\",\n      \"candidate_identity\": \"b3:6666666666666666666666666666666666666666666666666666666666666666\",\n      \"effect_identity\": \"b3:4444444444444444444444444444444444444444444444444444444444444444\",\n      \"pipeline_revision_identity\": \"b3:7777777777777777777777777777777777777777777777777777777777777777\",\n      \"workflow_policy_identity\": \"b3:8888888888888888888888888888888888888888888888888888888888888888\"\n    },\n    \"observation\": {\n      \"maximum_log_read_bytes\": 4096,\n      \"maximum_log_references\": 8,\n      \"maximum_total_log_bytes\": 16384\n    },\n    \"platform\": \"linux-x86_64\",\n    \"profile_identity\": \"b3:76cd726a32c4c4ca1b327c9efe8e637028f9b3f0b118b38fa84bffab50a5504e\",\n    \"schema\": \"lattice.workflow-request.v2\",\n    \"source\": null\n  }\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+          "--config",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/lattice-config.ncl",
+          "import",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/workflow.ncl"
+        ],
+        "exit_code": 0,
+        "stdout": "Imported 'kiln-iroh-smoke'\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+          "--config",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/lattice-config.ncl",
+          "export",
+          "kiln-iroh-smoke",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/saved-workflow.ncl"
+        ],
+        "exit_code": 0,
+        "stdout": "Exported 'kiln-iroh-smoke' to /var/tmp/kiln-iroh-execution-82lc1uo1/saved-workflow.ncl\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+          "export",
+          "--format",
+          "json",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/saved-workflow.ncl"
+        ],
+        "exit_code": 0,
+        "stdout": "{\n  \"configs\": [\n    {\n      \"agent_context_refs\": [],\n      \"agent_cwd\": [],\n      \"agent_model_hint\": [],\n      \"agent_output_mode\": \"\",\n      \"agent_prompt\": \"\",\n      \"agent_prompt_file\": [],\n      \"agent_session\": [],\n      \"agent_target\": \"\",\n      \"agent_tool_policy\": \"\",\n      \"allowed_roots\": [],\n      \"approval\": [],\n      \"artifact_policy\": \"\",\n      \"body\": [],\n      \"cache_policy\": \"\",\n      \"command\": \"printf 'iroh-executed\\\\n' >> /var/tmp/kiln-iroh-execution-82lc1uo1/execution-marker\",\n      \"condition_branches\": [],\n      \"cwd\": [],\n      \"effect_policy\": \"\",\n      \"env\": [],\n      \"file_content\": [],\n      \"file_operation\": \"\",\n      \"file_path\": \"\",\n      \"headers\": [],\n      \"http_method\": \"\",\n      \"image_allowed_roots\": [],\n      \"image_max_bytes\": 0,\n      \"image_path\": \"\",\n      \"kind\": \"shell\",\n      \"merge_policy\": \"\",\n      \"merge_required_inputs\": [],\n      \"node_id\": 0,\n      \"operation_plan\": [],\n      \"overwrite\": false,\n      \"pipe_stdin\": false,\n      \"retry_policy\": \"\",\n      \"runtime_key\": \"default\",\n      \"runtime_kind\": \"shell\",\n      \"secret_env\": [],\n      \"subworkflow_input_mappings\": [],\n      \"subworkflow_name\": \"\",\n      \"subworkflow_output_mappings\": [],\n      \"timeout_secs\": 60,\n      \"url\": \"\"\n    }\n  ],\n  \"edges\": [],\n  \"meta\": {\n    \"created\": \"2026-06-03T00:00:00+00:00\",\n    \"description\": \"Filter event records and render a Markdown digest\",\n    \"modified\": \"2026-06-03T00:00:00+00:00\",\n    \"name\": \"kiln-iroh-smoke\"\n  },\n  \"nodes\": [\n    {\n      \"id\": 0,\n      \"input_ports\": [\n        {\n          \"id\": 0,\n          \"label\": \"stdin\",\n          \"type_tag\": \"string\"\n        }\n      ],\n      \"label\": \"digest source\",\n      \"output_ports\": [\n        {\n          \"id\": 1,\n          \"label\": \"stdout\",\n          \"type_tag\": \"string\"\n        },\n        {\n          \"id\": 2,\n          \"label\": \"stderr\",\n          \"type_tag\": \"string\"\n        },\n        {\n          \"id\": 3,\n          \"label\": \"exit\",\n          \"type_tag\": \"exitcode\"\n        }\n      ],\n      \"x\": 0,\n      \"y\": 0\n    }\n  ],\n  \"triggers\": []\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "keygen",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/controller.key"
+        ],
+        "exit_code": 0,
+        "stdout": "5602ad72805cd3ba287f25cd0c6946844ea33f9525bff2c3c3d12cbf1aa55fd3\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "keygen",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker.key"
+        ],
+        "exit_code": 0,
+        "stdout": "12c1995f9131886a8c15cfe4c9867d0b2e06a7b2c42c29afc38b6b961cac37f4\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "keygen",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/controller.key"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "kiln-adapter-iroh: File exists (os error 17)\n"
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "validate",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker.json"
+        ],
+        "exit_code": 0,
+        "stdout": "profile admitted\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "validate",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/proxy.json"
+        ],
+        "exit_code": 0,
+        "stdout": "profile admitted\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "proxy",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/proxy.json",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/controller.key",
+          "--remote",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/remote-dummy.json"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "kiln-adapter-iroh: key must be a private regular file of exactly 32 raw bytes\n"
+      },
+      {
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+          "--config",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/lattice-config.ncl",
+          "workflow-exchange",
+          "serve",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/handler.ncl"
+        ],
+        "pid": 3642631
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "worker",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker.json",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker.key"
+        ],
+        "pid": 3642678
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "proxy",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/proxy.json",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/controller.key",
+          "--remote",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker-endpoint.json"
+        ],
+        "pid": 3642712
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/examples/remote_smoke",
+          "run",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/proxy.json",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/accepted.json"
+        ],
+        "exit_code": 0,
+        "stdout": "{\n  \"accepted\": {\n    \"execution_identity\": \"b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83\",\n    \"idempotency_key\": \"b3:3333333333333333333333333333333333333333333333333333333333333333\",\n    \"request_identity\": \"b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991\",\n    \"schema\": \"lattice.workflow-accepted.v1\",\n    \"workflow_identity\": \"b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067\"\n  },\n  \"mode\": \"run\",\n  \"observation\": {\n    \"execution_identity\": \"b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83\",\n    \"idempotency_key\": \"b3:3333333333333333333333333333333333333333333333333333333333333333\",\n    \"identity\": \"b3:8c8e92c72a9dc4ce786e4da3c3f587adcb442719bc17bd00db86a58c47697411\",\n    \"logs\": [\n      {\n        \"bytes\": 10,\n        \"cursor\": 0,\n        \"gap_before\": false,\n        \"node_id\": \"build\",\n        \"reference_identity\": \"b3:cfa093ab64a397e0e06dc51d41787d910d80a870b4738cecf479270c45302414\",\n        \"retained\": true,\n        \"stream\": \"diagnostic\",\n        \"truncated\": false\n      }\n    ],\n    \"nodes\": [\n      {\n        \"adapter_identity\": \"b3:202d1a6acdad9ed5816380b50e29eeb659081a1171f0e97602e7cc4ce5e5f5e8\",\n        \"node_id\": \"build\",\n        \"receipt_identity\": \"b3:728583f58597fff44e13a2a46cd9d29c8c1645cab365a49bb64f67a2055df4da\",\n        \"state\": \"completed\",\n        \"successful\": true,\n        \"terminal\": true\n      }\n    ],\n    \"receipt_identity\": \"b3:588ae0c318312c0721223f3217998dbcaceaa4672af705195572ea99b3b01647\",\n    \"request_identity\": \"b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991\",\n    \"schema\": \"lattice.workflow-observation.v1\",\n    \"sequence\": 2,\n    \"state\": \"completed\",\n    \"successful\": true,\n    \"terminal\": true,\n    \"workflow_identity\": \"b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067\"\n  }\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "worker",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker.json",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker.key"
+        ],
+        "pid": 3642765
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+          "proxy",
+          "--profile",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/proxy.json",
+          "--key",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/controller.key",
+          "--remote",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/worker-restarted-endpoint.json"
+        ],
+        "pid": 3642799
+      },
+      {
+        "argv": [
+          "/home/brittonr/.cargo-target/debug/examples/remote_smoke",
+          "recover",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/proxy.json",
+          "/var/tmp/kiln-iroh-execution-82lc1uo1/accepted.json"
+        ],
+        "exit_code": 0,
+        "stdout": "{\n  \"accepted\": {\n    \"execution_identity\": \"b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83\",\n    \"idempotency_key\": \"b3:3333333333333333333333333333333333333333333333333333333333333333\",\n    \"request_identity\": \"b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991\",\n    \"schema\": \"lattice.workflow-accepted.v1\",\n    \"workflow_identity\": \"b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067\"\n  },\n  \"mode\": \"recover\",\n  \"observation\": {\n    \"execution_identity\": \"b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83\",\n    \"idempotency_key\": \"b3:3333333333333333333333333333333333333333333333333333333333333333\",\n    \"identity\": \"b3:8c8e92c72a9dc4ce786e4da3c3f587adcb442719bc17bd00db86a58c47697411\",\n    \"logs\": [\n      {\n        \"bytes\": 10,\n        \"cursor\": 0,\n        \"gap_before\": false,\n        \"node_id\": \"build\",\n        \"reference_identity\": \"b3:cfa093ab64a397e0e06dc51d41787d910d80a870b4738cecf479270c45302414\",\n        \"retained\": true,\n        \"stream\": \"diagnostic\",\n        \"truncated\": false\n      }\n    ],\n    \"nodes\": [\n      {\n        \"adapter_identity\": \"b3:202d1a6acdad9ed5816380b50e29eeb659081a1171f0e97602e7cc4ce5e5f5e8\",\n        \"node_id\": \"build\",\n        \"receipt_identity\": \"b3:728583f58597fff44e13a2a46cd9d29c8c1645cab365a49bb64f67a2055df4da\",\n        \"state\": \"completed\",\n        \"successful\": true,\n        \"terminal\": true\n      }\n    ],\n    \"receipt_identity\": \"b3:588ae0c318312c0721223f3217998dbcaceaa4672af705195572ea99b3b01647\",\n    \"request_identity\": \"b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991\",\n    \"schema\": \"lattice.workflow-observation.v1\",\n    \"sequence\": 2,\n    \"state\": \"completed\",\n    \"successful\": true,\n    \"terminal\": true,\n    \"workflow_identity\": \"b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067\"\n  }\n}\n",
+        "stderr": ""
+      }
+    ],
+    "workflow_revision": "b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067",
+    "verdict": "PASS",
+    "initial": {
+      "accepted": {
+        "execution_identity": "b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83",
+        "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+        "request_identity": "b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991",
+        "schema": "lattice.workflow-accepted.v1",
+        "workflow_identity": "b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067"
+      },
+      "mode": "run",
+      "observation": {
+        "execution_identity": "b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83",
+        "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+        "identity": "b3:8c8e92c72a9dc4ce786e4da3c3f587adcb442719bc17bd00db86a58c47697411",
+        "logs": [
+          {
+            "bytes": 10,
+            "cursor": 0,
+            "gap_before": false,
+            "node_id": "build",
+            "reference_identity": "b3:cfa093ab64a397e0e06dc51d41787d910d80a870b4738cecf479270c45302414",
+            "retained": true,
+            "stream": "diagnostic",
+            "truncated": false
+          }
+        ],
+        "nodes": [
+          {
+            "adapter_identity": "b3:202d1a6acdad9ed5816380b50e29eeb659081a1171f0e97602e7cc4ce5e5f5e8",
+            "node_id": "build",
+            "receipt_identity": "b3:728583f58597fff44e13a2a46cd9d29c8c1645cab365a49bb64f67a2055df4da",
+            "state": "completed",
+            "successful": true,
+            "terminal": true
+          }
+        ],
+        "receipt_identity": "b3:588ae0c318312c0721223f3217998dbcaceaa4672af705195572ea99b3b01647",
+        "request_identity": "b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991",
+        "schema": "lattice.workflow-observation.v1",
+        "sequence": 2,
+        "state": "completed",
+        "successful": true,
+        "terminal": true,
+        "workflow_identity": "b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067"
+      }
+    },
+    "recovered": {
+      "accepted": {
+        "execution_identity": "b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83",
+        "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+        "request_identity": "b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991",
+        "schema": "lattice.workflow-accepted.v1",
+        "workflow_identity": "b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067"
+      },
+      "mode": "recover",
+      "observation": {
+        "execution_identity": "b3:2d990aa2e1ef3706717b9d9c196000277501081024716b909340ef92975fbf83",
+        "idempotency_key": "b3:3333333333333333333333333333333333333333333333333333333333333333",
+        "identity": "b3:8c8e92c72a9dc4ce786e4da3c3f587adcb442719bc17bd00db86a58c47697411",
+        "logs": [
+          {
+            "bytes": 10,
+            "cursor": 0,
+            "gap_before": false,
+            "node_id": "build",
+            "reference_identity": "b3:cfa093ab64a397e0e06dc51d41787d910d80a870b4738cecf479270c45302414",
+            "retained": true,
+            "stream": "diagnostic",
+            "truncated": false
+          }
+        ],
+        "nodes": [
+          {
+            "adapter_identity": "b3:202d1a6acdad9ed5816380b50e29eeb659081a1171f0e97602e7cc4ce5e5f5e8",
+            "node_id": "build",
+            "receipt_identity": "b3:728583f58597fff44e13a2a46cd9d29c8c1645cab365a49bb64f67a2055df4da",
+            "state": "completed",
+            "successful": true,
+            "terminal": true
+          }
+        ],
+        "receipt_identity": "b3:588ae0c318312c0721223f3217998dbcaceaa4672af705195572ea99b3b01647",
+        "request_identity": "b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991",
+        "schema": "lattice.workflow-observation.v1",
+        "sequence": 2,
+        "state": "completed",
+        "successful": true,
+        "terminal": true,
+        "workflow_identity": "b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067"
+      }
+    },
+    "marker": "iroh-executed\n",
+    "exact_recovery_after_both_bridge_restarts": true,
+    "executables": {
+      "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh": "8f94f9c1d9a6ddb5df0c2d2c99ab40259a7910a60f12c12b3f5c1b767874c09b",
+      "/home/brittonr/.cargo-target/debug/examples/remote_smoke": "dbffba2e5739278fc4ac0f71b9d93dfe8db558d7493de8c43dd33634c7b6ea77",
+      "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice": "26be4c428495e484a642cb20024e5e11423387cc6d1ef823496fb2ef912ce804"
+    },
+    "non_claims": [
+      "loopback only; no NAT/relay deployment claim",
+      "no remote publication/status mutation",
+      "no sandboxing, provider truth, CI correctness or release authority"
+    ],
+    "checked_public_inputs": {
+      "worker.json": {
+        "schema": "kiln.iroh-workflow-profile.v1",
+        "iroh_version": "0.95.1",
+        "alpn": "kiln.workflow.v1",
+        "bind_address": "127.0.0.1:0",
+        "relay_urls": [],
+        "allowed_peers": [
+          "5602ad72805cd3ba287f25cd0c6946844ea33f9525bff2c3c3d12cbf1aa55fd3"
+        ],
+        "socket_path": "/var/tmp/kiln-iroh-execution-82lc1uo1/lattice.sock",
+        "transport": {
+          "schema": "lattice.workflow-transport-profile.v1",
+          "limits": {
+            "maximum_frame_bytes": 1048576,
+            "maximum_log_bytes": 65536,
+            "maximum_connections": 16,
+            "read_deadline_milliseconds": 10000,
+            "write_deadline_milliseconds": 10000
+          },
+          "peers": {
+            "allowed_user_ids": [
+              1555
+            ]
+          },
+          "non_claims": [
+            "transport admission does not prove workflow correctness",
+            "transport peer identity does not prove peer intent",
+            "transport acceptance does not prove an operation executed",
+            "transport response does not prove an external effect succeeded",
+            "transport checks do not establish production deployment"
+          ]
+        },
+        "contract": {
+          "adapter_kinds": [
+            "local",
+            "remote"
+          ],
+          "controls": {
+            "cancel": true,
+            "pause": true,
+            "resume": true
+          },
+          "effect_classes": [
+            "build",
+            "test"
+          ],
+          "graph_schema": "lattice.workflow-graph.v1",
+          "limits": {
+            "maximum_edges": 16,
+            "maximum_log_read_bytes": 4096,
+            "maximum_log_references": 8,
+            "maximum_nodes": 8,
+            "maximum_total_log_bytes": 16384
+          },
+          "node_kinds": [
+            "build",
+            "test"
+          ],
+          "non_claims": [
+            "workflow admission does not prove workflow correctness",
+            "workflow admission does not prove host confinement",
+            "workflow observation does not prove an external effect succeeded",
+            "workflow observation does not prove credential freshness",
+            "workflow observation does not establish release readiness"
+          ],
+          "platforms": [
+            "linux-x86_64"
+          ],
+          "schema": "lattice.workflow-profile.v1"
+        },
+        "exchange_timeout_ms": 5000
+      },
+      "proxy.json": {
+        "schema": "kiln.iroh-workflow-profile.v1",
+        "iroh_version": "0.95.1",
+        "alpn": "kiln.workflow.v1",
+        "bind_address": "127.0.0.1:0",
+        "relay_urls": [],
+        "allowed_peers": [
+          "12c1995f9131886a8c15cfe4c9867d0b2e06a7b2c42c29afc38b6b961cac37f4"
+        ],
+        "socket_path": "/var/tmp/kiln-iroh-execution-82lc1uo1/controller.sock",
+        "transport": {
+          "schema": "lattice.workflow-transport-profile.v1",
+          "limits": {
+            "maximum_frame_bytes": 1048576,
+            "maximum_log_bytes": 65536,
+            "maximum_connections": 16,
+            "read_deadline_milliseconds": 10000,
+            "write_deadline_milliseconds": 10000
+          },
+          "peers": {
+            "allowed_user_ids": [
+              1555
+            ]
+          },
+          "non_claims": [
+            "transport admission does not prove workflow correctness",
+            "transport peer identity does not prove peer intent",
+            "transport acceptance does not prove an operation executed",
+            "transport response does not prove an external effect succeeded",
+            "transport checks do not establish production deployment"
+          ]
+        },
+        "contract": {
+          "adapter_kinds": [
+            "local",
+            "remote"
+          ],
+          "controls": {
+            "cancel": true,
+            "pause": true,
+            "resume": true
+          },
+          "effect_classes": [
+            "build",
+            "test"
+          ],
+          "graph_schema": "lattice.workflow-graph.v1",
+          "limits": {
+            "maximum_edges": 16,
+            "maximum_log_read_bytes": 4096,
+            "maximum_log_references": 8,
+            "maximum_nodes": 8,
+            "maximum_total_log_bytes": 16384
+          },
+          "node_kinds": [
+            "build",
+            "test"
+          ],
+          "non_claims": [
+            "workflow admission does not prove workflow correctness",
+            "workflow admission does not prove host confinement",
+            "workflow observation does not prove an external effect succeeded",
+            "workflow observation does not prove credential freshness",
+            "workflow observation does not establish release readiness"
+          ],
+          "platforms": [
+            "linux-x86_64"
+          ],
+          "schema": "lattice.workflow-profile.v1"
+        },
+        "exchange_timeout_ms": 5000
+      },
+      "handler-input.json": {
+        "schema": "lattice.workflow-exchange-handler-profile.v1",
+        "socket_path": "/var/tmp/kiln-iroh-execution-82lc1uo1/lattice.sock",
+        "transport": {
+          "schema": "lattice.workflow-transport-profile.v1",
+          "limits": {
+            "maximum_frame_bytes": 1048576,
+            "maximum_log_bytes": 65536,
+            "maximum_connections": 16,
+            "read_deadline_milliseconds": 10000,
+            "write_deadline_milliseconds": 10000
+          },
+          "peers": {
+            "allowed_user_ids": [
+              1555
+            ]
+          },
+          "non_claims": [
+            "transport admission does not prove workflow correctness",
+            "transport peer identity does not prove peer intent",
+            "transport acceptance does not prove an operation executed",
+            "transport response does not prove an external effect succeeded",
+            "transport checks do not establish production deployment"
+          ]
+        },
+        "maximum_active_executions": 2,
+        "routes": [
+          {
+            "profile_identity": "b3:76cd726a32c4c4ca1b327c9efe8e637028f9b3f0b118b38fa84bffab50a5504e",
+            "graph_identity": "b3:a5af82f6dc0f5b094624022825ba048775cc4892bfdd12473bb57945e8745426",
+            "workflow_name": "kiln-iroh-smoke",
+            "workflow_revision": "b3:fd30e3fee41a91ed82bf7d2c003be09639105f848765396a4c785e246ebdc067",
+            "effect_authority": "route_exact",
+            "source_binding": "unavailable",
+            "nodes": [
+              {
+                "request_node_id": "build",
+                "operation_identity": "b3:1111111111111111111111111111111111111111111111111111111111111111",
+                "workflow_node_id": 0
+              }
+            ]
+          }
+        ],
+        "non_claims": [
+          "handler admission does not prove workflow correctness",
+          "route authority does not prove host confinement",
+          "execution observation does not prove an external effect succeeded",
+          "peer identity does not prove peer intent",
+          "handler checks do not establish release readiness"
+        ]
+      },
+      "worker-endpoint.json": {
+        "id": "12c1995f9131886a8c15cfe4c9867d0b2e06a7b2c42c29afc38b6b961cac37f4",
+        "addrs": [
+          {
+            "Ip": "127.0.0.1:34841"
+          },
+          {
+            "Ip": "[::1]:42031"
+          }
+        ]
+      },
+      "worker-restarted-endpoint.json": {
+        "id": "12c1995f9131886a8c15cfe4c9867d0b2e06a7b2c42c29afc38b6b961cac37f4",
+        "addrs": [
+          {
+            "Ip": "127.0.0.1:38396"
+          },
+          {
+            "Ip": "[::1]:44673"
+          }
+        ]
+      }
+    },
+    "notes": "The actual workflow is a single reviewed shell node that writes one marker. Request preparation used the existing producer recovery fixture with a single-node graph and recomputed native graph/request identities. The throwaway driver is not a shipped API or permanent test; its executed binary identity and exact observations are retained above."
+  },
+  "observed_failures_and_resolutions": [
+    {
+      "stage": "initial dependency compilation",
+      "observation": "ed25519-dalek 3.0.0-pre.1 failed against newer stable ed25519/PKCS8 KeyMalformed APIs",
+      "resolution": "Cargo downgraded the six signing packages to the published Iroh 0.95.1 lock cohort; no registry source patch was made"
+    },
+    {
+      "stage": "local native build environment",
+      "observation": "aws-lc-sys could not find cc after an incorrect explicit tool PATH",
+      "resolution": "Resolved native prerequisite paths from the pinned nixpkgs input and used the recorded PATH and PKG_CONFIG_PATH"
+    },
+    {
+      "stage": "adapter compilation",
+      "observation": "Pinned Iroh uses explicit SocketAddrV4/V6 values and infallible authenticated remote_id()",
+      "resolution": "Aligned calls with those APIs and compiled under Rust 1.88"
+    },
+    {
+      "stage": "provider-failure shutdown regression",
+      "observation": "unavailable_provider_is_unknown_not_safe_retry_through_proxy failed with Err(Deadline) during worker teardown",
+      "resolution": "Do not cancel owned QUIC draining with a per-exchange timeout; await endpoint close after aborting/joining owned exchanges. The existing regression scenario then passed"
+    },
+    {
+      "stage": "first actual-process harness setup",
+      "observation": "Native Lattice rejected a handler wrapper that embedded JSON directly as Nickel syntax",
+      "resolution": "Import generated handler JSON through the producer Nickel contract; the real execution and restart recovery then passed",
+      "failed_attempt": {
+        "scope": "actual native Lattice process, two authenticated Iroh endpoints, private Unix proxy, loopback only",
+        "case": "/var/tmp/kiln-iroh-execution-euswaord",
+        "commands": [
+          {
+            "argv": [
+              "/home/brittonr/.cargo-target/debug/examples/remote_smoke",
+              "prepare"
+            ],
+            "exit_code": 0,
+            "stdout": "{\n  \"contract\": {\n    \"adapter_kinds\": [\n      \"local\",\n      \"remote\"\n    ],\n    \"controls\": {\n      \"cancel\": true,\n      \"pause\": true,\n      \"resume\": true\n    },\n    \"effect_classes\": [\n      \"build\",\n      \"test\"\n    ],\n    \"graph_schema\": \"lattice.workflow-graph.v1\",\n    \"limits\": {\n      \"maximum_edges\": 16,\n      \"maximum_log_read_bytes\": 4096,\n      \"maximum_log_references\": 8,\n      \"maximum_nodes\": 8,\n      \"maximum_total_log_bytes\": 16384\n    },\n    \"node_kinds\": [\n      \"build\",\n      \"test\"\n    ],\n    \"non_claims\": [\n      \"workflow admission does not prove workflow correctness\",\n      \"workflow admission does not prove host confinement\",\n      \"workflow observation does not prove an external effect succeeded\",\n      \"workflow observation does not prove credential freshness\",\n      \"workflow observation does not establish release readiness\"\n    ],\n    \"platforms\": [\n      \"linux-x86_64\"\n    ],\n    \"schema\": \"lattice.workflow-profile.v1\"\n  },\n  \"request\": {\n    \"controls\": {\n      \"cancel\": true,\n      \"pause\": true,\n      \"resume\": true\n    },\n    \"graph\": {\n      \"edges\": [],\n      \"identity\": \"b3:a5af82f6dc0f5b094624022825ba048775cc4892bfdd12473bb57945e8745426\",\n      \"nodes\": [\n        {\n          \"adapter_kind\": \"local\",\n          \"effect_class\": \"build\",\n          \"id\": \"build\",\n          \"kind\": \"build\",\n          \"operation_identity\": \"b3:1111111111111111111111111111111111111111111111111111111111111111\"\n        }\n      ],\n      \"schema\": \"lattice.workflow-graph.v1\"\n    },\n    \"idempotency_key\": \"b3:3333333333333333333333333333333333333333333333333333333333333333\",\n    \"identity\": \"b3:d1014d2eff97fea65240d69a88e1fb4bdd86066bae39635cedc034e1c6480991\",\n    \"kiln\": {\n      \"attempt_identity\": \"b3:5555555555555555555555555555555555555555555555555555555555555555\",\n      \"candidate_identity\": \"b3:6666666666666666666666666666666666666666666666666666666666666666\",\n      \"effect_identity\": \"b3:4444444444444444444444444444444444444444444444444444444444444444\",\n      \"pipeline_revision_identity\": \"b3:7777777777777777777777777777777777777777777777777777777777777777\",\n      \"workflow_policy_identity\": \"b3:8888888888888888888888888888888888888888888888888888888888888888\"\n    },\n    \"observation\": {\n      \"maximum_log_read_bytes\": 4096,\n      \"maximum_log_references\": 8,\n      \"maximum_total_log_bytes\": 16384\n    },\n    \"platform\": \"linux-x86_64\",\n    \"profile_identity\": \"b3:76cd726a32c4c4ca1b327c9efe8e637028f9b3f0b118b38fa84bffab50a5504e\",\n    \"schema\": \"lattice.workflow-request.v2\",\n    \"source\": null\n  }\n}\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+              "--config",
+              "/var/tmp/kiln-iroh-execution-euswaord/lattice-config.ncl",
+              "import",
+              "/var/tmp/kiln-iroh-execution-euswaord/workflow.ncl"
+            ],
+            "exit_code": 0,
+            "stdout": "Imported 'kiln-iroh-smoke'\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+              "--config",
+              "/var/tmp/kiln-iroh-execution-euswaord/lattice-config.ncl",
+              "export",
+              "kiln-iroh-smoke",
+              "/var/tmp/kiln-iroh-execution-euswaord/saved-workflow.ncl"
+            ],
+            "exit_code": 0,
+            "stdout": "Exported 'kiln-iroh-smoke' to /var/tmp/kiln-iroh-execution-euswaord/saved-workflow.ncl\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+              "export",
+              "--format",
+              "json",
+              "/var/tmp/kiln-iroh-execution-euswaord/saved-workflow.ncl"
+            ],
+            "exit_code": 0,
+            "stdout": "{\n  \"configs\": [\n    {\n      \"agent_context_refs\": [],\n      \"agent_cwd\": [],\n      \"agent_model_hint\": [],\n      \"agent_output_mode\": \"\",\n      \"agent_prompt\": \"\",\n      \"agent_prompt_file\": [],\n      \"agent_session\": [],\n      \"agent_target\": \"\",\n      \"agent_tool_policy\": \"\",\n      \"allowed_roots\": [],\n      \"approval\": [],\n      \"artifact_policy\": \"\",\n      \"body\": [],\n      \"cache_policy\": \"\",\n      \"command\": \"printf 'iroh-executed\\\\n' >> /var/tmp/kiln-iroh-execution-euswaord/execution-marker\",\n      \"condition_branches\": [],\n      \"cwd\": [],\n      \"effect_policy\": \"\",\n      \"env\": [],\n      \"file_content\": [],\n      \"file_operation\": \"\",\n      \"file_path\": \"\",\n      \"headers\": [],\n      \"http_method\": \"\",\n      \"image_allowed_roots\": [],\n      \"image_max_bytes\": 0,\n      \"image_path\": \"\",\n      \"kind\": \"shell\",\n      \"merge_policy\": \"\",\n      \"merge_required_inputs\": [],\n      \"node_id\": 0,\n      \"operation_plan\": [],\n      \"overwrite\": false,\n      \"pipe_stdin\": false,\n      \"retry_policy\": \"\",\n      \"runtime_key\": \"default\",\n      \"runtime_kind\": \"shell\",\n      \"secret_env\": [],\n      \"subworkflow_input_mappings\": [],\n      \"subworkflow_name\": \"\",\n      \"subworkflow_output_mappings\": [],\n      \"timeout_secs\": 60,\n      \"url\": \"\"\n    }\n  ],\n  \"edges\": [],\n  \"meta\": {\n    \"created\": \"2026-06-03T00:00:00+00:00\",\n    \"description\": \"Filter event records and render a Markdown digest\",\n    \"modified\": \"2026-06-03T00:00:00+00:00\",\n    \"name\": \"kiln-iroh-smoke\"\n  },\n  \"nodes\": [\n    {\n      \"id\": 0,\n      \"input_ports\": [\n        {\n          \"id\": 0,\n          \"label\": \"stdin\",\n          \"type_tag\": \"string\"\n        }\n      ],\n      \"label\": \"digest source\",\n      \"output_ports\": [\n        {\n          \"id\": 1,\n          \"label\": \"stdout\",\n          \"type_tag\": \"string\"\n        },\n        {\n          \"id\": 2,\n          \"label\": \"stderr\",\n          \"type_tag\": \"string\"\n        },\n        {\n          \"id\": 3,\n          \"label\": \"exit\",\n          \"type_tag\": \"exitcode\"\n        }\n      ],\n      \"x\": 0,\n      \"y\": 0\n    }\n  ],\n  \"triggers\": []\n}\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+              "keygen",
+              "--key",
+              "/var/tmp/kiln-iroh-execution-euswaord/controller.key"
+            ],
+            "exit_code": 0,
+            "stdout": "2e4ac36f6382bd8602a06d29b6cd8a45c33c5a21c3c96fd86c3ed0b40ce11e96\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+              "keygen",
+              "--key",
+              "/var/tmp/kiln-iroh-execution-euswaord/worker.key"
+            ],
+            "exit_code": 0,
+            "stdout": "2b324e8e30a5fe0a2cfd98c5ffe949455c909d50c15ea66bf4ded59adc89c770\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+              "keygen",
+              "--key",
+              "/var/tmp/kiln-iroh-execution-euswaord/controller.key"
+            ],
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": "kiln-adapter-iroh: File exists (os error 17)\n"
+          },
+          {
+            "argv": [
+              "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+              "validate",
+              "--profile",
+              "/var/tmp/kiln-iroh-execution-euswaord/worker.json"
+            ],
+            "exit_code": 0,
+            "stdout": "profile admitted\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+              "validate",
+              "--profile",
+              "/var/tmp/kiln-iroh-execution-euswaord/proxy.json"
+            ],
+            "exit_code": 0,
+            "stdout": "profile admitted\n",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "/home/brittonr/.cargo-target/debug/kiln-adapter-iroh",
+              "proxy",
+              "--profile",
+              "/var/tmp/kiln-iroh-execution-euswaord/proxy.json",
+              "--key",
+              "/var/tmp/kiln-iroh-execution-euswaord/controller.key",
+              "--remote",
+              "/var/tmp/kiln-iroh-execution-euswaord/remote-dummy.json"
+            ],
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": "kiln-adapter-iroh: key must be a private regular file of exactly 32 raw bytes\n"
+          },
+          {
+            "argv": [
+              "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+              "--config",
+              "/var/tmp/kiln-iroh-execution-euswaord/lattice-config.ncl",
+              "workflow-exchange",
+              "serve",
+              "--profile",
+              "/var/tmp/kiln-iroh-execution-euswaord/handler.ncl"
+            ],
+            "pid": 3630657
+          }
+        ],
+        "workflow_revision": "b3:85be54f201cc9e4542be5e807693e69d5bf61833bf950229d3a1e1661efcddcd",
+        "verdict": "FAIL",
+        "error": "RuntimeError('service exited before readiness')"
+      }
+    },
+    {
+      "stage": "traceability before native sync",
+      "observation": {
+        "command": "traceability coverage",
+        "dangling": [
+          "kiln.iroh.workflow.conformance",
+          "kiln.iroh.workflow.peers",
+          "kiln.iroh.workflow.peers.scenario.allowed",
+          "kiln.iroh.workflow.peers.scenario.denied",
+          "kiln.iroh.workflow.profile",
+          "kiln.iroh.workflow.profile.scenario.invalid",
+          "kiln.iroh.workflow.profile.scenario.valid",
+          "kiln.iroh.workflow.recovery",
+          "kiln.iroh.workflow.recovery.scenario.unknown",
+          "kiln.iroh.workflow.transport",
+          "kiln.iroh.workflow.transport.scenario.invalid"
+        ],
+        "input_hash": "742acf14a25162357628d165e6a7e94ef87af46572e1518d6da6454bd7958d94",
+        "missing": [],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "profile": {
+          "anchor_kind": "exact_marker_bytes",
+          "assurance_level": "declared",
+          "evidence_sources": [
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "crates",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "ncl"
+              ],
+              "root": "crates",
+              "source_kind": "nickel_source"
+            },
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "runtime/kiln-aspen-host",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "runtime/kiln-radicle-nix-provider",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": "docs/hosting-and-recovery.md",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "rs",
+                "ncl"
+              ],
+              "root": "tools",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs"
+              ],
+              "root": "src",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs",
+                "sh"
+              ],
+              "root": "tests",
+              "source_kind": "tool_source"
+            }
+          ],
+          "id": "cairn-default",
+          "marker_verbs": [
+            "impl",
+            "verify",
+            "depends",
+            "related"
+          ],
+          "requirement_sources": [
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/specs",
+              "source_kind": "accepted_specs"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/changes/bind-aspen-extension-runtime-profile/specs",
+              "source_kind": "requirements_doc"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/changes/pace-aspen-lattice-observation/specs",
+              "source_kind": "requirements_doc"
+            }
+          ]
+        },
+        "profile_id": "cairn-default",
+        "receipt_hash": "bccb1986618853e917dce7311f696b66365cb43391e4b11e166f2c2023ddb9d8",
+        "referenced": 625,
+        "requirements": 625,
+        "root": ".",
+        "source_summary": {
+          "evidence_files": 254,
+          "evidence_manifest_hash": "39b10865202e4220631ae83dcea14640fbc2ed4be9d4e712d0081d1958694f8e",
+          "requirement_files": 31,
+          "requirement_manifest_hash": "49850ac33c83e02656bd916ef47fbeee2642ff7bcf4576723dc25e638923208a"
+        },
+        "valid": false,
+        "verdict": "fail"
+      },
+      "resolution": "Used cairn sync on this change, without weakening policy or adding an active-change requirement-source exception"
+    },
+    {
+      "stage": "traceability after native sync",
+      "observation": {
+        "command": "traceability coverage",
+        "dangling": [],
+        "input_hash": "93d7e865d22e0dd2206ee29ca47d6226e9f19203a7062bf9952cc8847cdc8c50",
+        "missing": [
+          "kiln.iroh.workflow.conformance.scenario.local",
+          "kiln.iroh.workflow.transport.scenario.valid"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "4745cedf1fe681ba345edf175d9ec2bcc413d88e191f5f454c86388c1321397a",
+        "profile": {
+          "anchor_kind": "exact_marker_bytes",
+          "assurance_level": "declared",
+          "evidence_sources": [
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "crates",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "ncl"
+              ],
+              "root": "crates",
+              "source_kind": "nickel_source"
+            },
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "runtime/kiln-aspen-host",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "rs"
+              ],
+              "root": "runtime/kiln-radicle-nix-provider",
+              "source_kind": "rust_source"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": "docs/hosting-and-recovery.md",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "rs",
+                "ncl"
+              ],
+              "root": "tools",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs"
+              ],
+              "root": "src",
+              "source_kind": "tool_source"
+            },
+            {
+              "extensions": [
+                "mjs",
+                "sh"
+              ],
+              "root": "tests",
+              "source_kind": "tool_source"
+            }
+          ],
+          "id": "cairn-default",
+          "marker_verbs": [
+            "impl",
+            "verify",
+            "depends",
+            "related"
+          ],
+          "requirement_sources": [
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/specs",
+              "source_kind": "accepted_specs"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/changes/bind-aspen-extension-runtime-profile/specs",
+              "source_kind": "requirements_doc"
+            },
+            {
+              "extensions": [
+                "md"
+              ],
+              "root": ".cairn/changes/pace-aspen-lattice-observation/specs",
+              "source_kind": "requirements_doc"
+            }
+          ]
+        },
+        "profile_id": "cairn-default",
+        "receipt_hash": "55f9f2c4c4ab5b3f968c23587d4bfc22dbc8eafbf0a9aa083748e9d694aee30e",
+        "referenced": 636,
+        "requirements": 638,
+        "root": ".",
+        "source_summary": {
+          "evidence_files": 254,
+          "evidence_manifest_hash": "39b10865202e4220631ae83dcea14640fbc2ed4be9d4e712d0081d1958694f8e",
+          "requirement_files": 32,
+          "requirement_manifest_hash": "07ebb730f3cc509dd21eef7a2a5de39442ba58ee312e2d46dddc7e0efd5dea0a"
+        },
+        "valid": false,
+        "verdict": "fail"
+      },
+      "resolution": "Linked the maintained positive exchange test and actual-process receipt from the established central traceability ledger; final coverage has no missing or dangling references"
+    }
+  ],
+  "non_claims": [
+    "Loopback only: no WAN, NAT traversal, relay availability or production deployment claim",
+    "Transport identity and peer enrollment do not prove peer intent, source trust, confinement, provider truth, workflow correctness or CI correctness",
+    "The current real Lattice handler rejects pause/resume and supplies bounded terminal diagnostics, not arbitrary shell stdout; transport does not invent unsupported producer capabilities",
+    "Recovery evidence is scoped to the original exact request and does not prove global exactly-once execution",
+    "No remote publication, status write, repository governance mutation, release authority or fresh release decision",
+    "Cairn coverage is declared linkage evidence, not behavioral proof; runtime/build evidence covers the selected binaries and inputs only",
+    "This aggregate is retained local observation data, not an authenticated evidence bundle or authorization"
+  ]
+}

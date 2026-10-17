@@ -11,6 +11,7 @@ members = [
   "crates/kiln-adapter-git",
   "crates/kiln-adapter-pijul",
   "crates/kiln-adapter-lattice",
+  "crates/kiln-adapter-iroh",
   "crates/kiln-adapter-github",
   "crates/kiln-adapter-cairn",
   "crates/kiln-adapter-mantle",

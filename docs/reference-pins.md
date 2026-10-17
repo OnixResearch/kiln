@@ -122,6 +122,31 @@ and `secret-key-files`. This checks acquisition, not build correctness or releas
 eligibility. An offline metadata smoke may reuse only the public registry cache;
 it must not reuse Cargo's Git cache.
 
+### Registry execution transport cohort
+
+`kiln-adapter-iroh` pins registry Iroh `0.95.1` (upstream Rust minimum 1.85)
+under ALPN `kiln.workflow.v1`. Kiln retains Rust 1.88 and the existing imported
+Lattice workflow contract/transport; Iroh does not enter provider-neutral cores.
+Use the committed Cargo-generated lock and `--locked` commands. The signing
+prereleases require their compatible published Iroh lock cohort:
+
+| Registry package | Locked version |
+|---|---|
+| `ed25519` | `3.0.0-rc.1` |
+| `pkcs8` | `0.11.0-rc.7` |
+| `spki` | `0.8.0-rc.4` |
+| `der` | `0.8.0-rc.9` |
+| `pem-rfc7468` | `1.0.0-rc.3` |
+| `signature` | `3.0.0-rc.4` |
+
+Unconstrained resolution selected newer stable packages incompatible with
+Iroh's `ed25519-dalek 3.0.0-pre.1`. The lock was corrected with Cargo, not local
+registry edits or a patched cryptography implementation. Kiln maintainers must
+recheck Rust 1.88 compilation, native peer/unknown-outcome conformance, and the
+workspace gates when changing this cohort. This is compatibility evidence,
+not a cryptographic audit or security guarantee.
+
+
 ### Standalone runtime and optional tool cohort
 
 `runtime/kiln-aspen-host` and `runtime/kiln-radicle-nix-provider` remain independent

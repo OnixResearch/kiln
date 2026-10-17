@@ -15,6 +15,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
 | `kiln-adapter-pijul` | Exact Pijul state observation and bounded local snapshot acquisition. |
 | `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
+| `kiln-adapter-iroh` | Authenticated, bounded native Lattice workflow transport through a controller-local Unix proxy and worker-local Lattice socket; no CI-state or execution authority. |
 | `kiln-adapter-aspen` | Exact Aspen/Molten runtime profile, identity, atomic durability, content, typed effects, ingress, and bounded Unix transport mapping. |
 | `kiln-aspen-extension` | Deterministic Kiln callback decisions and one-shot native callback executable bound to the host's exact runtime profile. |
 | `kiln-adapter-cairn` | Exact Cairn gate lowering, bounded execution, result admission, and reconciliation. |
@@ -58,6 +59,13 @@ normal redispatch. Provider completion evidence remains subject to Kiln outcome
 admission. `LocalAspenService` is only a deterministic model fixture, not this
 native host. The separate `runtime/kiln-radicle-nix-provider` shell owns bounded
 Nix execution and durable reports, not CI or release authority.
+
+The Iroh bridge preserves the existing Lattice exchange contract, peer-pins the
+worker, enrolls controllers, and checks the exact native capability profile
+before forwarding. Existing consumers select its private proxy socket without
+an API or provider-ID cutover. Ambiguous exchanges retain unknown-after-write;
+only exact native recovery can resolve them. Lattice still owns execution and
+durability. The bridge adds no fallback executor or core runtime dependency.
 
 ## Production transition
 

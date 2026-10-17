@@ -10,6 +10,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - versioned provider capability admission;
 - bounded read-only source snapshots from local Git and Pijul repositories;
 - versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
+- authenticated Iroh workflow transport through a private local Unix proxy and worker-local Lattice endpoint;
 - exact Cairn gate request, process, result, and reconciliation admission;
 - exact Mantle build request, bounded process, product, log, and reconciliation admission;
 - exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
@@ -66,6 +67,13 @@ deployment, credential, worker isolation, and repository authority. Local checks
 do not prove live deployment, remote status writes, source trust, or confinement.
 Recorded local outcomes, executable identities, and scoped producer-gate results are in
 the [scoped GitHub CI evidence](evidence/github-ci-local-runtime.ncl).
+
+For remote workflow execution over Iroh, use `kiln-adapter-iroh` with the existing
+consumer's Lattice socket setting. Follow [peer enrollment, private keys, profiles,
+startup, and recovery](docs/operator.md#iroh-remote-workflow-execution). The
+[change-local evidence](.cairn/changes/add-iroh-workflow-transport/evidence/verification.json)
+records actual local execution and exact recovery after both bridges restart,
+not WAN/relay availability or deployment authority.
 
 ## Licensing
 

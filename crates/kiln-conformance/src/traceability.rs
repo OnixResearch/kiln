@@ -1,5 +1,11 @@
 // Accepted-spec traceability index. The paths identify the implementation or conformance surface.
 //
+// Iroh native exchange conformance: crates/kiln-adapter-iroh/tests/workflow.rs.
+// r[verify kiln.iroh.workflow.transport.scenario.valid]
+// Actual native Lattice execution and bridge-restart observations:
+// .cairn/changes/add-iroh-workflow-transport/evidence/verification.json.
+// r[verify kiln.iroh.workflow.conformance.scenario.local]
+//
 // Radicle COB model and adapters: crates/kiln-core/src/cob.rs, crates/kiln-adapter-cob/src/lib.rs.
 // r[impl kiln.lifecycle.native_store]
 // r[verify kiln.lifecycle.native_store.scenario.active_paths]

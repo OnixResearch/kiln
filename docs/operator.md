@@ -337,3 +337,112 @@ the exercised executables and selected producer files by BLAKE3. It covers exact
 source success/failure, restart duplicate suppression, and lost-status-response
 reconciliation against local fixtures. It also records scoped Lattice-wide gate
 results; it does not bind a clean producer release or prove deployment.
+
+## Iroh remote workflow execution
+
+`kiln-adapter-iroh` carries the existing Lattice workflow exchange between a
+controller-local Unix proxy and a worker-local Lattice socket:
+
+`Kiln workflow port -> private Unix proxy -> authenticated Iroh -> worker -> Lattice`.
+
+It adds transport, not another executor. Dispatch, exact recovery, observation,
+controls, logs and reconciliation keep their native identities and existing Kiln
+admission. The separate read-only Iroh observation plan is not implemented here.
+The registry cohort pins Iroh `0.95.1` under ALPN `kiln.workflow.v1`, retaining
+the workspace's Rust 1.88 toolchain.
+
+### Enrollment and profiles
+
+Generate one stable identity on each host in an operator-owned private directory:
+
+```console
+kiln-adapter-iroh keygen --key /etc/kiln/worker.key
+kiln-adapter-iroh keygen --key /etc/kiln/controller.key
+```
+
+Run the respective command on its own host. Each prints only its public key.
+Keys are exactly 32 raw secret bytes, created mode 0600 without overwrite.
+Loading rejects symlinks, nonregular files, wrong lengths and group/world access.
+Do not commit keys, place them in the Nix store, or put their bytes in profiles.
+
+Apply `config/iroh-workflow.ncl` to reviewed operator inputs and export each
+result as JSON. Required inputs are `schema`, `iroh_version`, `alpn`,
+`socket_path`, `bind_address`, `allowed_peers`, `allowed_user_ids`,
+`relay_urls`, `transport_limits`, `contract`, and `exchange_timeout_ms`.
+Use the exact schema `kiln.iroh-workflow-profile.v1` and cohort/ALPN above.
+`config/fixtures/iroh-workflow-inputs.ncl` shows the complete shape with
+synthetic enrollment and paths; it is not a production configuration.
+
+Each reviewed wrapper invokes the one-argument builder exactly as the positive
+fixture does, with its own operator input file. Export the worker and proxy
+wrappers before CLI validation:
+
+```console
+nickel export --format json /etc/kiln/worker.ncl > /etc/kiln/worker.json
+nickel export --format json /etc/kiln/proxy.ncl > /etc/kiln/proxy.json
+```
+
+- Worker `allowed_peers` enrolls controller public keys; proxy `allowed_peers`
+  pins the selected worker key. Enrollment grants workflow execution authority
+  for that exact native contract profile, not merely read access.
+- Worker `socket_path` is its existing local Lattice endpoint. Proxy
+  `socket_path` is a new private controller-local listener; it must not exist
+  at startup. `allowed_user_ids` admits the actual local consumer UID, not an
+  assumed fixture UID. The proxy socket is mode 0600; its parent directory and
+  service user remain operator-controlled.
+- `contract` is the exact native Lattice capability profile already selected
+  by the Kiln consumer. The worker rejects any different profile before opening
+  Lattice. Configure the producer's exact saved workflow route and authority as
+  described above; the bridge cannot repair a missing or stale route.
+- Empty `relay_urls` disables relays; discovery and implicit default relays are
+  disabled. Optional relay URLs must be explicit HTTPS URLs. Bind addresses and
+  public dial hints remain deployment inputs, never execution authority. The
+  other address family is bound only on loopback, not an ambient wildcard.
+- Frame/log limits and read/write windows use the existing native transport
+  profile. `maximum_connections` bounds concurrent bridge exchanges (at most
+  64), not bridge lifetime. Configure the actual Lattice server's finite
+  connection budget independently. `exchange_timeout_ms` bounds the complete
+  bridge exchange; all declared deadlines are finite, at most 300000 ms.
+
+### Start and select the transport
+
+```console
+kiln-adapter-iroh validate --profile /etc/kiln/worker.json
+kiln-adapter-iroh worker --profile /etc/kiln/worker.json --key /etc/kiln/worker.key
+```
+
+Save the worker's single public startup `EndpointAddr` JSON line to a reviewed
+`worker-endpoint.json` on the controller. It carries public identity and address
+hints only. Its endpoint ID must match proxy enrollment.
+
+```console
+kiln-adapter-iroh validate --profile /etc/kiln/proxy.json
+kiln-adapter-iroh proxy --profile /etc/kiln/proxy.json --key /etc/kiln/controller.key --remote /etc/kiln/worker-endpoint.json
+```
+
+Wait for the private proxy socket, not just its network startup line. Select that
+socket in the existing GitHub, Radicle, or other Lattice consumer configuration;
+no new CI API, workflow schema, provider ID, or fallback executor is introduced.
+The default Nix package installs the binary; `nix run .#kiln-adapter-iroh -- --help`
+is the corresponding app.
+
+Lost, malformed, timed-out or cancelled exchanges close without a synthetic
+success or retryable result. The existing Unix consumer retains
+`UnknownAfterWrite`; reconcile with the original exact `RecoverDispatch`, never
+blind ordinary redispatch. SIGINT/SIGTERM stop owned exchanges and await QUIC
+endpoint draining; the per-exchange timeout does not interrupt owned teardown.
+Graceful proxy shutdown removes only its own socket inode. Changing
+enrollment requires restarting the immutable profile and does not cancel work
+already accepted by Lattice. Controls and logs retain the selected producer's
+capabilities: the current real Lattice handler rejects pause/resume and retains
+fixed terminal diagnostic chunks, not arbitrary shell stdout.
+
+Kiln maintainers own the adapter and repeatability rail:
+`cargo test --locked -p kiln-adapter-iroh`, strict workspace Clippy, and the
+Nickel positive/negative fixtures in the Nix check. Operators own peer enrollment,
+private directories, Lattice routes/durability, secrets, worker isolation and
+deployment. The change-local evidence records actual local execution and restart
+recovery through both bridges. Loopback checks do not establish WAN/NAT/relay
+availability, sandboxing, provider truth, CI correctness, exactly-once effects,
+publication or release authority.
+
