@@ -1,0 +1,36 @@
+{
+  "schema": "kiln.qualification-publication-binding.v1",
+  "baseline_revision": "2bf997aeb81b6c2047e816526a99b0a6d2847eae",
+  "qualified_candidate": {
+    "status": "unpublished-local-executable-input-candidate",
+    "source_revision": "2e52a152643d9d5b478e4128e1c7a60cfec93028",
+    "source_archive_blake3": "3b0099a3e41ff95024209f2a68eec219ce744c90ac5f450095ae3ff6b75578a0",
+    "source_manifest_blake3": "5a133ae00e99b82146e5d0a966607d81e15bb63c5b60f1c69da32bd40abcc7c0",
+    "source_store_path": "/nix/store/cp4nkkva3mji2vbm240p69bsm06hxsxx-source"
+  },
+  "accepted_requirements_and_policy": {
+    "name": "final-contract-policy-preservation.json",
+    "blake3": "55f4164220bcc7faf380ecb9903cb1eaffd4e8112bbd33f33439d3a2f3a2c64e",
+    "bytes": 12230,
+    "path": "artifacts/55f4164220bcc7faf380ecb9903cb1eaffd4e8112bbd33f33439d3a2f3a2c64e"
+  },
+  "host_input_binding": {
+    "name": "final-host-and-case-inputs.json",
+    "blake3": "71f1e247bc736ba046316a83cd7e62e3042f08259c7d2040b7a42529deb6ff6f",
+    "bytes": 45023,
+    "path": "artifacts/71f1e247bc736ba046316a83cd7e62e3042f08259c7d2040b7a42529deb6ff6f"
+  },
+  "pre_push_governance": {
+    "name": "pre-push-radicle-governance-and-signed-refs.json",
+    "blake3": "5e1324fa564dcfe3c3bc2133d84b5e8087791db15ed98b3fe5da4a4bbc26402a",
+    "bytes": 3671,
+    "path": "artifacts/5e1324fa564dcfe3c3bc2133d84b5e8087791db15ed98b3fe5da4a4bbc26402a"
+  },
+  "remote_publication_performed_at_qualification": false,
+  "release_or_deployment_authority_granted": false,
+  "non_claims": [
+    "historical publication does not qualify changed executable inputs",
+    "any later push requires separate operator authorization and retains its own revision, archive and signed-reference observations",
+    "qualification never authorizes signing, synchronization, governance mutation, deployment or release"
+  ]
+}

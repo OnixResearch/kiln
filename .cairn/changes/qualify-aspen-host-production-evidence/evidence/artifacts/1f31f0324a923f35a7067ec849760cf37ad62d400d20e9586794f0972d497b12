@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.qualification-current-cli-admission.v1",
+  "consumer_product": {
+    "name": "final-source-root-product-path.json",
+    "blake3": "7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677",
+    "bytes": 3689,
+    "path": "artifacts/7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677"
+  },
+  "cohort": "ee2227b8a312c2d4a0c12927b9f016a2aa0c5b71f428261d2b9c990813e88aef",
+  "source_revision": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297",
+  "command": {
+    "name": "complete-current-exact-cohort",
+    "argv": [
+      "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+      "host-qualify",
+      "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+      "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-qualified.json",
+      "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"claim\":\"bounded_local_host\",\"cohort\":\"ee2227b8a312c2d4a0c12927b9f016a2aa0c5b71f428261d2b9c990813e88aef\",\"non_claims\":[\"admission checks supplied observation consistency and retained artifact identity, not observation truth\",\"machine-local evidence does not prove global durability or exactly-once delivery\",\"admission does not prove CI correctness, provider truth, host sandboxing or availability\",\"admission supplies no publication, release, deployment or credential authority\"],\"receipt\":\"5ba5452cfcad04f43994b293de2143bb477cd5529fd1e3c6e5c5496712564f47\",\"result\":\"admitted\",\"schema\":\"kiln.host-qualification-admission.v1\",\"verified_artifacts\":13}\n",
+    "stderr": ""
+  }
+}

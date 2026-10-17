@@ -1,0 +1,3 @@
+Kiln Aspen host Lattice observation failed: lattice_transport_connect
+Kiln Aspen host workflow routing failed: TransportFailure { message: "lattice_transport_connect: Lattice transport endpoint is unavailable" }
+Kiln Aspen host effect routing failed: Host("invalid harness artifact: system-extension bound fabric-port routing failed")

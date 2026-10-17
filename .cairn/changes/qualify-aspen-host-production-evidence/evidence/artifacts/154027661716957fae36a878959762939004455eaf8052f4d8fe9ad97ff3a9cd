@@ -1,0 +1,10 @@
+Script started on 2026-10-17 02:40:41-04:00 [COMMAND="python3 /var/tmp/kiln-qualification.BEA91plo/run-repaired-real-runtime.py" <not executed on terminal>]
+{"verdict": "failed", "record": "/var/tmp/kiln-qualification.BEA91plo/retained/repaired-actual-provider-recovery.json", "scope": "isolated fresh-state actual Aspen host, actual Lattice and actual Nix; local source fixture only"}
+Traceback (most recent call last):
+  File "/var/tmp/kiln-qualification.BEA91plo/run-repaired-real-runtime.py", line 112, in <module>
+    initial = ack(invoke('submit'))
+  File "/var/tmp/kiln-qualification.BEA91plo/run-repaired-real-runtime.py", line 90, in ack
+    raise RuntimeError(f'not a completed real acknowledgement: {outcome}')
+RuntimeError: not a completed real acknowledgement: {'DisconnectedAfterAcceptance': {'operation_id': {'contract_version': 1, 'provider_namespace': 'molten', 'native_kind': 'service-operation-blake3', 'native_id': 'a6a2f567f5b42882941328d38432e5266ae2cfd25441ded95eef85e60195d555'}}}
+
+Script done on 2026-10-17 02:40:46-04:00 [COMMAND_EXIT_CODE="1"]

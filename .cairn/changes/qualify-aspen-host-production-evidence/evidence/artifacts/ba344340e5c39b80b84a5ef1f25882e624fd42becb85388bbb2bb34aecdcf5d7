@@ -1,0 +1,28 @@
+{
+  "schema_version": "cairn.semantic-review.review-receipt.v1",
+  "review_kind": "plan",
+  "decision": "approved",
+  "findings": [],
+  "reviewed_inputs": [
+    {
+      "path": "proposal.md",
+      "hash": "710686efe1b7200ba7c403270a5a0c7b20cdb11cb29ca110f88bdfe21fbe041b"
+    },
+    {
+      "path": "design.md",
+      "hash": "213573bd79e2d535b1bf1d1b162e6d3bd123ab2b62e68395a9fddf50ff7f39c1"
+    },
+    {
+      "path": "acceptance.md",
+      "hash": "05dfde65b44a4bbd687336324fd56a7948efc2e8af4e8ac565310a72fcf977ea"
+    },
+    {
+      "path": "tasks.md",
+      "hash": "f402f64f7552d19db9a68f16be6c5aa34e60bc8e144486348aad4670c8186c40"
+    }
+  ],
+  "reviewer": {
+    "id": "omp-host-qualification-plan-review",
+    "source": "agentic"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "schema": "kiln.qualification-actual-provider-recovery.v1",
+  "scope": "isolated fresh-state actual Aspen host, actual Lattice and actual Nix; local source fixture only",
+  "product_source_revision": "be86a27c8a1d3c4a63d281d5efb13faae4a3dc15",
+  "source_archive_blake3": "95c695e1ff9989e0aabf6a4305e3a500d257d1508de009ddbf36b0dc019a5a81",
+  "commands": [
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+        "--config",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/lattice-config.ncl",
+        "import",
+        "/var/tmp/kiln-qualification.BEA91plo/lattice-workflow.ncl"
+      ],
+      "exit_code": 0,
+      "stdout": "Imported 'kiln-host-qualification'\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+        "prepare",
+        "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/radicle-profile.json",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/trigger.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"aspen_profile_identity\":\"2008b2d661855cf7a384706b6641d8baf697bb66dc78a1a3fa97322a9e6be723\",\"contract\":{\"adapter_kinds\":[\"local\",\"remote\"],\"controls\":{\"cancel\":true,\"pause\":true,\"resume\":true},\"effect_classes\":[\"build\",\"test\"],\"graph_schema\":\"lattice.workflow-graph.v1\",\"limits\":{\"maximum_edges\":1024,\"maximum_log_read_bytes\":1048576,\"maximum_log_references\":256,\"maximum_nodes\":256,\"maximum_total_log_bytes\":16777216},\"node_kinds\":[\"build\",\"test\"],\"non_claims\":[\"workflow admission does not prove workflow correctness\",\"workflow admission does not prove host confinement\",\"workflow observation does not prove an external effect succeeded\",\"workflow observation does not prove credential freshness\",\"workflow observation does not establish release readiness\"],\"platforms\":[\"linux-x86_64\"],\"schema\":\"lattice.workflow-profile.v1\"},\"ingress\":{\"alpn\":\"molten/system-extension/native/v2\",\"authority_ref\":\"kiln-aspen-authority-v1\",\"framing\":\"preserves-packed-materialized-values-v2\",\"generation\":1,\"idempotency_key\":{\"contract_version\":1,\"native_id\":\"8a872a4f33f5829e7eacf0d8fd08f5359d5f5c15e50d0aa303127b1dbb64fe9a\",\"native_kind\":\"trigger-idempotency-blake3\",\"provider_namespace\":\"kiln\"},\"operation_id\":{\"contract_version\":1,\"native_id\":\"45a230097a7fe77428175efa1b6138c947f2d9cc7b190fabe13f6730b9e90bbe\",\"native_kind\":\"service-operation-blake3\",\"provider_namespace\":\"molten\"},\"profile_identity\":\"2008b2d661855cf7a384706b6641d8baf697bb66dc78a1a3fa97322a9e6be723\",\"resource_ref\":\"kiln-aspen-resources-v1\",\"schema\":\"kiln.aspen-runtime.service-ingress.v2\",\"service_id\":\"kiln-ci-control-plane-v2\",\"source\":\"operator\",\"trigger\":{\"actor\":{\"contract_version\":1,\"native_id\":\"did:key:repaired-be86a27c-real-host-qualification\",\"native_kind\":\"actor\",\"provider_namespace\":\"radicle\"},\"after\":{\"contract_version\":1,\"native_id\":\"a9e67a14178c83654c4bf932bfc84c160ecd749d\",\"native_kind\":\"revision\",\"provider_namespace\":\"radicle\"},\"before\":null,\"branch\":null,\"event\":\"push\",\"patch\":null,\"repository\":{\"contract_version\":1,\"native_id\":\"rad:qualification-exact-source\",\"native_kind\":\"repository\",\"provider_namespace\":\"radicle\"}},\"trigger_identity\":\"8a872a4f33f5829e7eacf0d8fd08f5359d5f5c15e50d0aa303127b1dbb64fe9a\"},\"request\":{\"controls\":{\"cancel\":true,\"pause\":false,\"resume\":false},\"graph\":{\"edges\":[],\"identity\":\"b3:a5af82f6dc0f5b094624022825ba048775cc4892bfdd12473bb57945e8745426\",\"nodes\":[{\"adapter_kind\":\"local\",\"effect_class\":\"build\",\"id\":\"build\",\"kind\":\"build\",\"operation_identity\":\"b3:1111111111111111111111111111111111111111111111111111111111111111\"}],\"schema\":\"lattice.workflow-graph.v1\"},\"idempotency_key\":\"b3:8a872a4f33f5829e7eacf0d8fd08f5359d5f5c15e50d0aa303127b1dbb64fe9a\",\"identity\":\"b3:7a6ee3e913583dda72d4e4d2ad3bd15e104d0ad88b3e45ba2e05204c41a99a4c\",\"kiln\":{\"attempt_identity\":\"b3:c77abbe28b16c0f202425bfc54ffde396c20625cf11686dde23ae42d37c4f1c2\",\"candidate_identity\":\"b3:9431946093705e034ae83eb9483908f352e5d28dab60c239b79d2fbb22c8d06d\",\"effect_identity\":\"b3:bfc0b72d47f72246a8a657282c37735dbf030e3ca10399ccfca69039b70b40d9\",\"pipeline_revision_identity\":\"b3:07b6b4717ba51b5d12e79c2fe50bf586957cd873c63c64a7c5365c8e47d9e3d6\",\"workflow_policy_identity\":\"b3:3003a5e2718757caa6325070d7cb1da85f6012f177d80ec6771552b8f7d4724e\"},\"observation\":{\"maximum_log_read_bytes\":1048576,\"maximum_log_references\":256,\"maximum_total_log_bytes\":16777216},\"platform\":\"linux-x86_64\",\"profile_identity\":\"b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5\",\"schema\":\"lattice.workflow-request.v2\",\"source\":{\"provider\":\"radicle\",\"repository\":\"rad:qualification-exact-source\",\"revision\":\"a9e67a14178c83654c4bf932bfc84c160ecd749d\"}},\"transport\":{\"limits\":{\"maximum_connections\":64,\"maximum_frame_bytes\":33554432,\"maximum_log_bytes\":16777216,\"read_deadline_milliseconds\":30000,\"write_deadline_milliseconds\":30000},\"non_claims\":[\"transport admission does not prove workflow correctness\",\"transport peer identity does not prove peer intent\",\"transport acceptance does not prove an operation executed\",\"transport response does not prove an external effect succeeded\",\"transport checks do not establish production deployment\"],\"peers\":{\"allowed_user_ids\":[1555]},\"schema\":\"lattice.workflow-transport-profile.v1\"}}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice",
+        "--config",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/lattice-config.ncl",
+        "workflow-exchange",
+        "serve",
+        "--profile",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/lattice-handler.ncl"
+      ],
+      "pid": 1277485,
+      "log": "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/lattice.log"
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "--aspen-profile",
+        "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+        "--radicle-profile",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/radicle-profile.json",
+        "--socket",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/host.sock",
+        "--extension",
+        "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "--state-root",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/host-state",
+        "--max-requests",
+        "8",
+        "--timeout-ms",
+        "30000",
+        "--poll-interval-ms",
+        "10"
+      ],
+      "pid": 1277522,
+      "log": "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/host-initial.log"
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver",
+        "submit",
+        "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/host.sock",
+        "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/ingress.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"DisconnectedAfterAcceptance\":{\"operation_id\":{\"contract_version\":1,\"provider_namespace\":\"molten\",\"native_kind\":\"service-operation-blake3\",\"native_id\":\"45a230097a7fe77428175efa1b6138c947f2d9cc7b190fabe13f6730b9e90bbe\"}}}\n",
+      "stderr": ""
+    }
+  ],
+  "executables": {
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591",
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1",
+    "/var/tmp/kiln-qualification.BEA91plo/provider": "edb6b1b71fb26905ac42fdb186ff981f4cd351d3c7abfd861785e74730f9ee34",
+    "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice": "26be4c428495e484a642cb20024e5e11423387cc6d1ef823496fb2ef912ce804",
+    "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver": "a033f1fc0b83806f6c226f2041bd48b028e0697a990291dd269f69a503ef903a"
+  },
+  "profiles": {
+    "/var/tmp/kiln-qualification.BEA91plo/runtime-profile.json": "a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0",
+    "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/radicle-profile.json": "1a2337682052b8044e3ab364c60e558cd2f0a2bb601388771e9981adf5d46a94",
+    "/var/tmp/kiln-qualification.BEA91plo/provider-profile.json": "04c31383b31387db844cbb3d10431a15146a461c17b67ada17a99c4b637bcc6e",
+    "/var/tmp/kiln-qualification.BEA91plo/repaired-real-runtime/lattice-handler.ncl": "1d9a8c4ad239d32d4b86d4d3a0fde51af7c7c40ee3bc542afbb5d0405da88f1c"
+  },
+  "verdict": "failed",
+  "failure": "RuntimeError(\"not a completed real acknowledgement: {'DisconnectedAfterAcceptance': {'operation_id': {'contract_version': 1, 'provider_namespace': 'molten', 'native_kind': 'service-operation-blake3', 'native_id': '45a230097a7fe77428175efa1b6138c947f2d9cc7b190fabe13f6730b9e90bbe'}}}\")"
+}

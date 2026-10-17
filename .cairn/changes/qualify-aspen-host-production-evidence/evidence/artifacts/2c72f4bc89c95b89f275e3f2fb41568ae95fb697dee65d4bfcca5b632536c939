@@ -1,0 +1,27 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "06bc294f23674aced815b3b33599dc1d58111547a928b10a3d727a7be579d521",
+  "source_revision": "2e52a152643d9d5b478e4128e1c7a60cfec93028",
+  "source_archive_blake3": "3b0099a3e41ff95024209f2a68eec219ce744c90ac5f450095ae3ff6b75578a0",
+  "kind": "provider_teardown",
+  "verdict": "passed",
+  "scope": "actual provider binary and owned Linux process descendants with synthetic wrapper workloads",
+  "observed": "Success, timeout, stdout-limit, stderr-limit and SIGTERM-cancellation cases passed; original PID/group/start-time identities observed absent (None), not reported absent while merely unreaped.",
+  "artifacts": [
+    {
+      "name": "final-provider-native-gates-passed.log",
+      "blake3": "3c186922cb89853e574a31dfc7977e560c829fede35bc66acd20700aa6a991f6",
+      "bytes": 4892,
+      "path": "artifacts/3c186922cb89853e574a31dfc7977e560c829fede35bc66acd20700aa6a991f6"
+    }
+  ],
+  "bounds": {
+    "cases": [
+      "success",
+      "timeout",
+      "stdout_limit",
+      "stderr_limit",
+      "sigterm_cancellation"
+    ]
+  }
+}

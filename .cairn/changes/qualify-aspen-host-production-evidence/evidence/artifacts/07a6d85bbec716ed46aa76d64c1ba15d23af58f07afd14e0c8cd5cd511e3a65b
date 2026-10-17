@@ -1,0 +1,35 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "06bc294f23674aced815b3b33599dc1d58111547a928b10a3d727a7be579d521",
+  "source_revision": "2e52a152643d9d5b478e4128e1c7a60cfec93028",
+  "source_archive_blake3": "3b0099a3e41ff95024209f2a68eec219ce744c90ac5f450095ae3ff6b75578a0",
+  "kind": "durability",
+  "verdict": "passed",
+  "scope": "actual Aspen host and real Lattice/Nix, plus separately scoped closed-transport native crash drill",
+  "observed": "Actual successful provider report retained; Lattice stopped before duplicate and SIGKILL/restart; all complete acknowledgements byte-equal and report files unchanged.",
+  "artifacts": [
+    {
+      "name": "final-actual-provider-recovery-passed.json",
+      "blake3": "5611b30002471ee5fde1483018e82272f26baf0de8cedc4405251609cd1fdbb5",
+      "bytes": 19486,
+      "path": "artifacts/5611b30002471ee5fde1483018e82272f26baf0de8cedc4405251609cd1fdbb5"
+    },
+    {
+      "name": "final-host-native-tests-and-clippy-passed.log",
+      "blake3": "6b4bb2846ddfc6b4c99e06c0aed1a81e45c408cc38a01afb93305556b6eeb244",
+      "bytes": 322664,
+      "path": "artifacts/6b4bb2846ddfc6b4c99e06c0aed1a81e45c408cc38a01afb93305556b6eeb244"
+    },
+    {
+      "name": "final-host-and-case-inputs.json",
+      "blake3": "71f1e247bc736ba046316a83cd7e62e3042f08259c7d2040b7a42529deb6ff6f",
+      "bytes": 45023,
+      "path": "artifacts/71f1e247bc736ba046316a83cd7e62e3042f08259c7d2040b7a42529deb6ff6f"
+    }
+  ],
+  "bounds": {
+    "startup_seconds": 15,
+    "command_seconds": 45,
+    "teardown_seconds": 5
+  }
+}

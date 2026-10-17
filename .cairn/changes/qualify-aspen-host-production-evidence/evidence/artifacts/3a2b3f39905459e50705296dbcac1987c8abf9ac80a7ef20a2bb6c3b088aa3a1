@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.qualification-current-cli-proof.v1",
+  "source_revision": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297",
+  "cohort": "ee2227b8a312c2d4a0c12927b9f016a2aa0c5b71f428261d2b9c990813e88aef",
+  "receipt": {
+    "name": "final-qualified-receipt.json",
+    "blake3": "5ba5452cfcad04f43994b293de2143bb477cd5529fd1e3c6e5c5496712564f47",
+    "bytes": 4471,
+    "path": "artifacts/5ba5452cfcad04f43994b293de2143bb477cd5529fd1e3c6e5c5496712564f47"
+  },
+  "consumer_product": {
+    "name": "final-source-root-product-path.json",
+    "blake3": "7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677",
+    "bytes": 3689,
+    "path": "artifacts/7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677"
+  },
+  "positive": {
+    "name": "final-qualified-current-cli-admission.json",
+    "blake3": "1f31f0324a923f35a7067ec849760cf37ad62d400d20e9586794f0972d497b12",
+    "bytes": 1823,
+    "path": "artifacts/1f31f0324a923f35a7067ec849760cf37ad62d400d20e9586794f0972d497b12"
+  },
+  "negative_metadata": {
+    "name": "final-current-cli-metadata-rejections.json",
+    "blake3": "c2ab48306a3f90b6c2875da650b03d28a1cf02a976605c885b6b1d16f7e0e269",
+    "bytes": 19712,
+    "path": "artifacts/c2ab48306a3f90b6c2875da650b03d28a1cf02a976605c885b6b1d16f7e0e269"
+  },
+  "negative_artifacts": {
+    "name": "final-current-cli-artifact-rejections.json",
+    "blake3": "db7686d54b3bc48a5e57a3d591b56985ef2b03ebe3c32d1d7eab70eb5677c046",
+    "bytes": 1943,
+    "path": "artifacts/db7686d54b3bc48a5e57a3d591b56985ef2b03ebe3c32d1d7eab70eb5677c046"
+  },
+  "negative_observations": 18,
+  "scope": "actual frozen-source CLI; only the complete bounded-local-host receipt was admitted",
+  "non_claims": [
+    "CLI admission checks supplied consistency and direct retained artifact bytes, not observation truth",
+    "qualification supplies no publication, release, deployment or credential authority"
+  ]
+}

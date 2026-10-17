@@ -1,0 +1,42 @@
+Script started on 2026-10-17 02:24:13-04:00 [COMMAND="env TMPDIR="/var/tmp" RUSTC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustc" RUSTDOC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustdoc" CARGO_TARGET_DIR="/var/tmp/kiln-qualification.BEA91plo/provider-target" PATH="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin" /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/cargo --config /var/tmp/kiln-qualification.BEA91plo/provider-git-sources.toml test --locked --offline --workspace --all-targets --all-features -- --nocapture && env TMPDIR="/var/tmp" RUSTC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustc" RUSTDOC="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/rustdoc" CARGO_TARGET_DIR="/var/tmp/kiln-qualification.BEA91plo/provider-target" PATH="/nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin:/nix/store/l5qkpzsr4gxvksh45b3nhxbkyr5cviar-gcc-wrapper-15.3.0/bin:/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4/bin:/nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2/bin:/run/current-system/sw/bin:/usr/bin:/bin" /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26/bin/cargo --config /var/tmp/kiln-qualification.BEA91plo/provider-git-sources.toml clippy --locked --offline --workspace --all-targets --all-features -- -D warnings" <not executed on terminal>]
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling kiln-radicle-nix-provider v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-radicle-nix-provider)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.18s
+     Running unittests src/lib.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/kiln_radicle_nix_provider-ff33965f7791732d)
+
+running 4 tests
+test tests::changed_repository_user_and_wrapper_are_rejected ... ok
+test tests::malformed_profile_json_and_unknown_fields_fail_closed ... ok
+test tests::exact_provider_succeeds_with_explicit_arguments_and_clear_environment ... ok
+test tests::failure_output_flood_and_timeout_do_not_become_success ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running unittests src/main.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/kiln_radicle_nix_provider-f103e45d4c2420af)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process.rs (/var/tmp/kiln-qualification.BEA91plo/provider-target/debug/deps/process-2eb518ccf02ba289)
+
+running 5 tests
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 1488420, group: 1488420, start_ticks: 13678941 }, None), (ProcessIdentity { pid: 1488436, group: 1488420, start_ticks: 13678941 }, None)]
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 1488417, group: 1488417, start_ticks: 13678941 }, None), (ProcessIdentity { pid: 1488434, group: 1488417, start_ticks: 13678941 }, None)]
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 1488419, group: 1488419, start_ticks: 13678941 }, None), (ProcessIdentity { pid: 1488435, group: 1488419, start_ticks: 13678941 }, None)]
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 1488418, group: 1488418, start_ticks: 13678941 }, None), (ProcessIdentity { pid: 1488430, group: 1488418, start_ticks: 13678941 }, None)]
+test actual_provider_success_reaps_descendant_and_publishes_bounded_report ... ok
+test actual_provider_sigterm_cancellation_terminates_owned_descendant ... ok
+test actual_provider_stderr_limit_terminates_owned_descendant ... ok
+test actual_provider_stdout_limit_terminates_owned_descendant ... ok
+provider teardown observations (None means original process absent; Z means terminated but unreaped, not absent): [(ProcessIdentity { pid: 1488416, group: 1488416, start_ticks: 13678941 }, None), (ProcessIdentity { pid: 1488427, group: 1488416, start_ticks: 13678941 }, None)]
+test actual_provider_timeout_terminates_owned_descendant ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.03s
+
+    Checking kiln-radicle-nix-provider v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-radicle-nix-provider)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.22s
+
+Script done on 2026-10-17 02:24:18-04:00 [COMMAND_EXIT_CODE="0"]

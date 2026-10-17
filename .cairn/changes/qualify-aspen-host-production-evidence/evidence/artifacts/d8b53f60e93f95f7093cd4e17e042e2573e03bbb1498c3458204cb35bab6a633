@@ -1,0 +1,19 @@
+{
+  "schema": "kiln.radicle-nix-provider.v1",
+  "run_identity": "b3:fb24d2c99bc0bc3d709df9ee3bcd39ef5dc499befad8ddaa840b8606eb6bc481",
+  "repository": "rad:qualification-exact-source",
+  "revision": "a9e67a14178c83654c4bf932bfc84c160ecd749d",
+  "wrapper_blake3": "c2f6d0ac73927a63fd34757377189f5ab3436948a55674f67a8dd474d8a6a6aa",
+  "outcome": "success",
+  "exit_code": 0,
+  "log_blake3": "fcd3fc5862f98eb13583c027c058019e61e777bca4e715ca86c7935a173da516",
+  "non_claims": [
+    "a local source path does not prove source trust or revision authority",
+    "bounded execution does not prove sandboxing or hermeticity",
+    "a process exit does not prove CI correctness",
+    "report publication does not prove external report delivery",
+    "filesystem synchronization does not prove storage-device persistence",
+    "a provider receipt does not prove distributed exactly-once execution",
+    "provider execution does not establish release eligibility"
+  ]
+}

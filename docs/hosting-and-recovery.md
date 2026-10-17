@@ -64,10 +64,10 @@ standalone conformance and isolated process checks.
 The operator authorized a bounded [source-only publication exception](../.cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl)
 for checked merge candidate `d11c5592ff990594d3ad53e8dd80240f6ad8e927`.
 All 30 x86_64 Nix checks passed and all 619 accepted parent requirement bodies
-were preserved. Declared traceability remains **FAIL**: 622 of 625 referenced,
+were preserved. At that candidate, declared traceability was **FAIL**: 622 of 625 referenced,
 with the three `kiln.aspen_host.production_evidence` obligations still missing
 implementation/verification evidence and no dangling IDs. The six implemented
-staged IDs are declared requirement documents, not newly accepted specs.
+staged IDs were declared requirement documents, not newly accepted specs.
 The [candidate-bound verification record](../.cairn/changes/integrate-canonical-main/evidence/verification.json)
 retains the failure and the isolated runtime scopes. This exception covers only
 this source and evidence-only descendants; it does not approve production use,
@@ -81,7 +81,9 @@ BLAKE3 artifact bytes. It does not attest observation truth or grant production,
 publication, release or deployment authority.
 
 The [qualification evidence](../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md)
-binds an explicitly unpublished source payload and frozen native executables.
+binds frozen source candidate `05ecd14be3e43067a1dc5ebc21b9a27e21d2b297`
+and frozen native executables; its publication binding was explicitly unpublished
+at qualification time, independently of any later authorized source push.
 Native child-process drills retain their exact per-case profile variants and
 closed Lattice transport-fixture scope. The separately identified real
 Lattice/Nix observation retains its successful provider report and exact
@@ -90,10 +92,13 @@ CI correctness or external provider truth.
 
 Earlier provider failures and a quarantined recovery rejection remain retained;
 they are not successful checks. A minimal shell workflow's `completed`
-acknowledgement alone is not provider success. The receipt consumer rejects the
-retained incomplete gate receipt and stronger claims instead of promoting
-available local observations into qualification. Exact gate status and consumer
-results belong to the linked evidence, not the historical source-only exception.
+acknowledgement alone is not provider success. All 30 x86_64 Nix checks and the
+separate native host/provider gates passed for this frozen input. The actual
+receipt consumer admitted only the complete bounded-local-host receipt and
+rejected missing, failed, stale, mixed, stronger-claim and damaged-artifact
+inputs. Current declared traceability is 625/625; this is linkage, not execution
+truth or release authority. Exact gate and consumer results belong to the linked
+evidence, not the historical source-only exception.
 
 
 ## Integrated main publication

@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.qualification-superseded-gate.v1",
+  "source_revision": "7d70c2fb5f9edb38dd59ba3f01aab08bac469dec",
+  "source_archive_blake3": "58b5065f9a35c9e4fc79290fb12fd1e9ef0310fb55a831677644e41c04ab4bf5",
+  "observed_native_failure": {
+    "name": "clock-input-pre-lint-final-clock-injected-host-tests-passed-clippy-failed.log",
+    "blake3": "50440720df2adecb6584a4da4abf54a14b9d26c7aaad3572a518414d07196d63",
+    "bytes": 323469,
+    "path": "artifacts/50440720df2adecb6584a4da4abf54a14b9d26c7aaad3572a518414d07196d63"
+  },
+  "gate_log": {
+    "name": "clock-input-pre-lint-private-nix-gates-interrupted.log",
+    "blake3": "fa88d2829c4dc6a64c0004a823c8ef46773def5dc0ad0f4c308caad88862ae62",
+    "bytes": 335872,
+    "path": "artifacts/fa88d2829c4dc6a64c0004a823c8ef46773def5dc0ad0f4c308caad88862ae62"
+  },
+  "reason": "owned broad gate cancelled after the same source was rejected by strict native Clippy; never a passing broad gate",
+  "job_cancellation": "proc://bg_576/kill returned Cancelled background job bg_576",
+  "owned_scope_stop": {
+    "argv": [
+      "systemctl",
+      "--user",
+      "stop",
+      "kiln-qualification-nix-clock-input-BEA91plo.scope"
+    ],
+    "exit_code": 5,
+    "stdout": "",
+    "stderr": "Failed to stop kiln-qualification-nix-clock-input-BEA91plo.scope: Unit kiln-qualification-nix-clock-input-BEA91plo.scope not loaded.\n"
+  }
+}

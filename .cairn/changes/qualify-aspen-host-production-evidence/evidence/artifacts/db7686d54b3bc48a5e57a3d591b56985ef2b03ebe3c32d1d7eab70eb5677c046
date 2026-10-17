@@ -1,0 +1,39 @@
+{
+  "schema": "kiln.qualification-current-cli-artifact-rejections.v1",
+  "cohort": "ee2227b8a312c2d4a0c12927b9f016a2aa0c5b71f428261d2b9c990813e88aef",
+  "consumer_product": {
+    "name": "final-source-root-product-path.json",
+    "blake3": "7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677",
+    "bytes": 3689,
+    "path": "artifacts/7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677"
+  },
+  "changed_artifact": "df025bc155ce1012a88cf2d8b4ce2ddf94845df9417073273aa1c5b6055012f0",
+  "observations": [
+    {
+      "name": "changed-retained-artifact-bytes",
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+        "host-qualify",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-qualified.json",
+        "/var/tmp/kiln-qualification.BEA91plo/current-consumer-tampered-artifacts"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification artifact bytes differ from their exact identity\n"
+    },
+    {
+      "name": "missing-retained-artifact",
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+        "host-qualify",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-qualified.json",
+        "/var/tmp/kiln-qualification.BEA91plo/absent-qualification-artifacts"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "qualification input open failed: No such file or directory (os error 2)\n"
+    }
+  ]
+}

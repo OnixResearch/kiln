@@ -1,0 +1,35 @@
+{
+  "schema": "kiln.qualification-main-push-preflight.v1",
+  "scope": "operator-authorized exact main-ref push to existing canonical Radicle and declared GitHub projection; no visibility/default-branch/governance change",
+  "commands": [
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "git",
+        "remote",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "github git@github.com:OnixResearch/kiln.git\nrad rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE (push: rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx)\n\"seed.radicle.dev@z6MksmpU5b1dS7oaqF2bHXhQi1DWy2hB7Mh9CuN7y1DN6QSz\" rad://z2wsvxm5s2sjgvuv1k5jhiwi1pbke/z6MksmpU5b1dS7oaqF2bHXhQi1DWy2hB7Mh9CuN7y1DN6QSz\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "log",
+        "--no-graph",
+        "-r",
+        "((main@github | main@rad | 05ecd14be3e43067a1dc5ebc21b9a27e21d2b297) ~ ancestors(@))",
+        "-T",
+        "commit_id ++ \"\\n\""
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

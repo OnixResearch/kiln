@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "06bc294f23674aced815b3b33599dc1d58111547a928b10a3d727a7be579d521",
+  "source_revision": "2e52a152643d9d5b478e4128e1c7a60cfec93028",
+  "source_archive_blake3": "3b0099a3e41ff95024209f2a68eec219ce744c90ac5f450095ae3ff6b75578a0",
+  "kind": "backup_restore",
+  "verdict": "passed",
+  "scope": "actual complete quiescent native-host state and fixture-owned backup",
+  "observed": "Four durable components and all sidecars copied after host exit, exact member identities retained and original acknowledgement replayed; partial missing-journal restore rejected and repaired from the same complete backup.",
+  "artifacts": [
+    {
+      "name": "final-host-native-tests-and-clippy-passed.log",
+      "blake3": "6b4bb2846ddfc6b4c99e06c0aed1a81e45c408cc38a01afb93305556b6eeb244",
+      "bytes": 322664,
+      "path": "artifacts/6b4bb2846ddfc6b4c99e06c0aed1a81e45c408cc38a01afb93305556b6eeb244"
+    },
+    {
+      "name": "final-host-and-case-inputs.json",
+      "blake3": "71f1e247bc736ba046316a83cd7e62e3042f08259c7d2040b7a42529deb6ff6f",
+      "bytes": 45023,
+      "path": "artifacts/71f1e247bc736ba046316a83cd7e62e3042f08259c7d2040b7a42529deb6ff6f"
+    }
+  ],
+  "bounds": {
+    "durable_components": [
+      "operation-ledger",
+      "native-journal",
+      "callback-values",
+      "host-state.json"
+    ],
+    "maximum_open_snapshot_directories": 128
+  }
+}

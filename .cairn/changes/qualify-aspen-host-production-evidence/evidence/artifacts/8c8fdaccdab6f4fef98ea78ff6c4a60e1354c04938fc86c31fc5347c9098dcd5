@@ -1,0 +1,1 @@
+{data_dir = "/var/tmp/kiln-qualification.BEA91plo/bounded-real-runtime/lattice-state", default_timeout_secs = 30, shell = "/bin/sh"}

@@ -1,0 +1,364 @@
+{
+  "schema": "kiln.qualification-current-cli-rejections.v1",
+  "cohort": "ee2227b8a312c2d4a0c12927b9f016a2aa0c5b71f428261d2b9c990813e88aef",
+  "consumer_product": {
+    "name": "final-source-root-product-path.json",
+    "blake3": "7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677",
+    "bytes": 3689,
+    "path": "artifacts/7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677"
+  },
+  "observations": [
+    {
+      "name": "missing-observation",
+      "input": {
+        "name": "final-rejection-input-missing-observation.json",
+        "blake3": "71e5268b384603d7f725d102438dbe260620b4c78b9e9176d0632edef00c0a71",
+        "bytes": 4234,
+        "path": "artifacts/71e5268b384603d7f725d102438dbe260620b4c78b9e9176d0632edef00c0a71"
+      },
+      "command": {
+        "name": "missing-observation",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/71e5268b384603d7f725d102438dbe260620b4c78b9e9176d0632edef00c0a71",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_incomplete: all required execution and gate observations must occur exactly once\n"
+      }
+    },
+    {
+      "name": "failed-observation",
+      "input": {
+        "name": "final-rejection-input-failed-observation.json",
+        "blake3": "8425217c6b3661aeecdf05b044dee5287dc5bd332bc7684fcbf70eafc5d939d1",
+        "bytes": 4471,
+        "path": "artifacts/8425217c6b3661aeecdf05b044dee5287dc5bd332bc7684fcbf70eafc5d939d1"
+      },
+      "command": {
+        "name": "failed-observation",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/8425217c6b3661aeecdf05b044dee5287dc5bd332bc7684fcbf70eafc5d939d1",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_gate_not_passed: failed or uncertain observations cannot qualify a host\n"
+      }
+    },
+    {
+      "name": "unknown-observation",
+      "input": {
+        "name": "final-rejection-input-unknown-observation.json",
+        "blake3": "83534e0de6a3b109a8ef7bca5b3c5a2d7399383ce686fa69a26d5f686b95b27d",
+        "bytes": 4472,
+        "path": "artifacts/83534e0de6a3b109a8ef7bca5b3c5a2d7399383ce686fa69a26d5f686b95b27d"
+      },
+      "command": {
+        "name": "unknown-observation",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/83534e0de6a3b109a8ef7bca5b3c5a2d7399383ce686fa69a26d5f686b95b27d",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_gate_not_passed: failed or uncertain observations cannot qualify a host\n"
+      }
+    },
+    {
+      "name": "failed-required-gate",
+      "input": {
+        "name": "final-rejection-input-failed-required-gate.json",
+        "blake3": "b89735c864427e648df11eb4dc7bdb456b6ac8dd79bb30fee9496e62d57bbd39",
+        "bytes": 4471,
+        "path": "artifacts/b89735c864427e648df11eb4dc7bdb456b6ac8dd79bb30fee9496e62d57bbd39"
+      },
+      "command": {
+        "name": "failed-required-gate",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/b89735c864427e648df11eb4dc7bdb456b6ac8dd79bb30fee9496e62d57bbd39",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_gate_not_passed: failed or uncertain observations cannot qualify a host\n"
+      }
+    },
+    {
+      "name": "stale-cohort",
+      "input": {
+        "name": "final-rejection-input-stale-cohort.json",
+        "blake3": "45e5117415b3fadac889c73204cc337fb22b038503b69403e550f82e428d7fe0",
+        "bytes": 4471,
+        "path": "artifacts/45e5117415b3fadac889c73204cc337fb22b038503b69403e550f82e428d7fe0"
+      },
+      "command": {
+        "name": "stale-cohort",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/45e5117415b3fadac889c73204cc337fb22b038503b69403e550f82e428d7fe0",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_cohort_mismatch: receipt does not identify the exact expected cohort document\n"
+      }
+    },
+    {
+      "name": "mixed-cohort",
+      "input": {
+        "name": "final-rejection-input-mixed-cohort.json",
+        "blake3": "94fb8b3cc74702c18401fc19003c82141812c1cb7407a5ba67db13808410b822",
+        "bytes": 4471,
+        "path": "artifacts/94fb8b3cc74702c18401fc19003c82141812c1cb7407a5ba67db13808410b822"
+      },
+      "command": {
+        "name": "mixed-cohort",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/94fb8b3cc74702c18401fc19003c82141812c1cb7407a5ba67db13808410b822",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_mixed_cohort: an observation belongs to another cohort\n"
+      }
+    },
+    {
+      "name": "duplicate-observation",
+      "input": {
+        "name": "final-rejection-input-duplicate-observation.json",
+        "blake3": "7b86cdd465e2aa03a219db391e672068dc497882ba7adeea47dcb58e9de8c43a",
+        "bytes": 4708,
+        "path": "artifacts/7b86cdd465e2aa03a219db391e672068dc497882ba7adeea47dcb58e9de8c43a"
+      },
+      "command": {
+        "name": "duplicate-observation",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/7b86cdd465e2aa03a219db391e672068dc497882ba7adeea47dcb58e9de8c43a",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_incomplete: all required execution and gate observations must occur exactly once\n"
+      }
+    },
+    {
+      "name": "unsupported-version",
+      "input": {
+        "name": "final-rejection-input-unsupported-version.json",
+        "blake3": "6180665555558c4409d5ad4cdcc529af82b475b28b7d12c0f5a26ec8f95acc94",
+        "bytes": 4471,
+        "path": "artifacts/6180665555558c4409d5ad4cdcc529af82b475b28b7d12c0f5a26ec8f95acc94"
+      },
+      "command": {
+        "name": "unsupported-version",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/6180665555558c4409d5ad4cdcc529af82b475b28b7d12c0f5a26ec8f95acc94",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_version: unsupported qualification contract version\n"
+      }
+    },
+    {
+      "name": "stronger-global_durability",
+      "input": {
+        "name": "final-rejection-input-stronger-global_durability.json",
+        "blake3": "fd3c97181503fef028a54a1f8f9b909c25f3749fcb642334919aa3c3812ccd26",
+        "bytes": 4496,
+        "path": "artifacts/fd3c97181503fef028a54a1f8f9b909c25f3749fcb642334919aa3c3812ccd26"
+      },
+      "command": {
+        "name": "stronger-global_durability",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/fd3c97181503fef028a54a1f8f9b909c25f3749fcb642334919aa3c3812ccd26",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    },
+    {
+      "name": "stronger-exactly_once_delivery",
+      "input": {
+        "name": "final-rejection-input-stronger-exactly_once_delivery.json",
+        "blake3": "b30d47e5e626ee34c86ac5bea9e5596da919928ebdde22f291c49a070392cd2d",
+        "bytes": 4500,
+        "path": "artifacts/b30d47e5e626ee34c86ac5bea9e5596da919928ebdde22f291c49a070392cd2d"
+      },
+      "command": {
+        "name": "stronger-exactly_once_delivery",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/b30d47e5e626ee34c86ac5bea9e5596da919928ebdde22f291c49a070392cd2d",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    },
+    {
+      "name": "stronger-ci_correctness",
+      "input": {
+        "name": "final-rejection-input-stronger-ci_correctness.json",
+        "blake3": "1f1f47641a6b1f35a51c9e2512019628fb5a9c3000859c5e9ac91d1e23441b52",
+        "bytes": 4493,
+        "path": "artifacts/1f1f47641a6b1f35a51c9e2512019628fb5a9c3000859c5e9ac91d1e23441b52"
+      },
+      "command": {
+        "name": "stronger-ci_correctness",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/1f1f47641a6b1f35a51c9e2512019628fb5a9c3000859c5e9ac91d1e23441b52",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    },
+    {
+      "name": "stronger-provider_truth",
+      "input": {
+        "name": "final-rejection-input-stronger-provider_truth.json",
+        "blake3": "4b792ad76f77bd6df5954d6d81c74d1db000bc7f7ef52d8598ee3f7bb1df1825",
+        "bytes": 4493,
+        "path": "artifacts/4b792ad76f77bd6df5954d6d81c74d1db000bc7f7ef52d8598ee3f7bb1df1825"
+      },
+      "command": {
+        "name": "stronger-provider_truth",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/4b792ad76f77bd6df5954d6d81c74d1db000bc7f7ef52d8598ee3f7bb1df1825",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    },
+    {
+      "name": "stronger-host_sandboxing",
+      "input": {
+        "name": "final-rejection-input-stronger-host_sandboxing.json",
+        "blake3": "cdcc8b0028632e158b1b19ddbcc4b26b4d340689f9fdd9132a39a6782a98e72b",
+        "bytes": 4494,
+        "path": "artifacts/cdcc8b0028632e158b1b19ddbcc4b26b4d340689f9fdd9132a39a6782a98e72b"
+      },
+      "command": {
+        "name": "stronger-host_sandboxing",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/cdcc8b0028632e158b1b19ddbcc4b26b4d340689f9fdd9132a39a6782a98e72b",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    },
+    {
+      "name": "stronger-availability",
+      "input": {
+        "name": "final-rejection-input-stronger-availability.json",
+        "blake3": "9394e8b401e62bdd42aed49a1e5c57e059a9fa3e258a4615a4a5e1947efb1170",
+        "bytes": 4491,
+        "path": "artifacts/9394e8b401e62bdd42aed49a1e5c57e059a9fa3e258a4615a4a5e1947efb1170"
+      },
+      "command": {
+        "name": "stronger-availability",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/9394e8b401e62bdd42aed49a1e5c57e059a9fa3e258a4615a4a5e1947efb1170",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    },
+    {
+      "name": "stronger-release_eligibility",
+      "input": {
+        "name": "final-rejection-input-stronger-release_eligibility.json",
+        "blake3": "2280ca0ca2dfcd4f3399c0ac02ed4d24f63ed08de4f93f7512d74c4ace0403f4",
+        "bytes": 4498,
+        "path": "artifacts/2280ca0ca2dfcd4f3399c0ac02ed4d24f63ed08de4f93f7512d74c4ace0403f4"
+      },
+      "command": {
+        "name": "stronger-release_eligibility",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/2280ca0ca2dfcd4f3399c0ac02ed4d24f63ed08de4f93f7512d74c4ace0403f4",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    },
+    {
+      "name": "stronger-deployment_authority",
+      "input": {
+        "name": "final-rejection-input-stronger-deployment_authority.json",
+        "blake3": "9ddad04133ed7a1004463d2d5620ee058b99ab553b478f72bb0646347d242096",
+        "bytes": 4499,
+        "path": "artifacts/9ddad04133ed7a1004463d2d5620ee058b99ab553b478f72bb0646347d242096"
+      },
+      "command": {
+        "name": "stronger-deployment_authority",
+        "argv": [
+          "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+          "host-qualify",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/cohort.json",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/9ddad04133ed7a1004463d2d5620ee058b99ab553b478f72bb0646347d242096",
+          "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "qualification_stronger_claim: local observations cannot establish broader truth or release/deployment authority\n"
+      }
+    }
+  ]
+}

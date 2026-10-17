@@ -1,0 +1,11 @@
+Script started on 2026-10-17 02:38:14-04:00 [COMMAND="python3 /var/tmp/kiln-qualification.BEA91plo/run-repaired-real-runtime.py" <not executed on terminal>]
+{"verdict": "failed", "record": "/var/tmp/kiln-qualification.BEA91plo/retained/repaired-actual-provider-recovery.json", "scope": "isolated fresh-state actual Aspen host, actual Lattice and actual Nix; local source fixture only"}
+Traceback (most recent call last):
+  File "/var/tmp/kiln-qualification.BEA91plo/run-repaired-real-runtime.py", line 110, in <module>
+    ready(HOST_SOCKET, host)
+    ~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/var/tmp/kiln-qualification.BEA91plo/run-repaired-real-runtime.py", line 61, in ready
+    raise RuntimeError(f'owned service {process.pid} exited before socket readiness: {process.returncode}')
+RuntimeError: owned service 1955431 exited before socket readiness: 1
+
+Script done on 2026-10-17 02:38:15-04:00 [COMMAND_EXIT_CODE="1"]

@@ -1,0 +1,170 @@
+import json
+from pathlib import Path
+import signal
+import subprocess
+import time
+
+WORK = Path('/var/tmp/kiln-qualification.BEA91plo')
+CASE = WORK / 'bounded-real-runtime'
+ROOT = Path('/home/brittonr/git/OnixResearch/kiln')
+START_BOUND_SECONDS = 15
+COMMAND_BOUND_SECONDS = 45
+STOP_BOUND_SECONDS = 5
+SOURCE_REVISION = '05ecd14be3e43067a1dc5ebc21b9a27e21d2b297'
+SOURCE_ARCHIVE = 'fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044'
+DRIVER = WORK / 'driver-target/debug/kiln-qualification-driver'
+HOST = WORK / 'host-target/debug/kiln-aspen-host'
+EXTENSION = WORK / 'host-target/debug/kiln-aspen-host-extension-fixture'
+LATTICE = WORK / 'lattice-root/bin/lattice'
+RUNTIME_PROFILE = WORK / 'runtime-profile.json'
+COLLABORATION_PROFILE = CASE / 'radicle-profile.json'
+HOST_SOCKET = CASE / 'host.sock'
+LATTICE_SOCKET = CASE / 'lattice.sock'
+REPORT_NAMESPACE = 'bounded-05ecd14b'
+record = {
+    'schema': 'kiln.qualification-actual-provider-recovery.v1',
+    'scope': 'isolated fresh-state actual Aspen host, actual Lattice and actual Nix; local source fixture only',
+    'product_source_revision': SOURCE_REVISION,
+    'source_archive_blake3': SOURCE_ARCHIVE,
+    'commands': [],
+}
+processes = []
+logs = []
+
+
+def b3(path):
+    return subprocess.run(['b3sum', '--no-names', str(path)], check=True, capture_output=True, text=True).stdout.strip()
+
+
+def checked(argv, timeout=COMMAND_BOUND_SECONDS):
+    result = subprocess.run([str(arg) for arg in argv], cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+    observation = {'argv': [str(arg) for arg in argv], 'exit_code': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr}
+    record['commands'].append(observation)
+    if result.returncode:
+        raise RuntimeError(json.dumps(observation))
+    return result.stdout
+
+
+def start(argv, name):
+    log = (CASE / f'{name}.log').open('w')
+    logs.append(log)
+    process = subprocess.Popen([str(arg) for arg in argv], cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    processes.append(process)
+    record['commands'].append({'argv': [str(arg) for arg in argv], 'pid': process.pid, 'log': str(CASE / f'{name}.log')})
+    return process
+
+
+def ready(path, process):
+    deadline = time.monotonic() + START_BOUND_SECONDS
+    while not path.is_socket():
+        if process.poll() is not None:
+            raise RuntimeError(f'owned service {process.pid} exited before socket readiness: {process.returncode}')
+        if time.monotonic() >= deadline:
+            raise RuntimeError(f'owned service socket deadline exceeded: {path}')
+        time.sleep(0.01)
+
+
+def stop(process):
+    if process.poll() is None:
+        process.terminate()
+        try:
+            process.wait(timeout=STOP_BOUND_SECONDS)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=STOP_BOUND_SECONDS)
+
+
+def host_argv(maximum_requests):
+    return [HOST, '--aspen-profile', RUNTIME_PROFILE, '--radicle-profile', COLLABORATION_PROFILE,
+            '--socket', HOST_SOCKET, '--extension', EXTENSION, '--state-root', CASE / 'host-state',
+            '--max-requests', str(maximum_requests), '--timeout-ms', '30000', '--poll-interval-ms', '10']
+
+
+def invoke(command):
+    return json.loads(checked([DRIVER, command, RUNTIME_PROFILE, HOST_SOCKET, CASE / 'ingress.json']))
+
+
+def ack(outcome):
+    value = outcome.get('Acknowledged')
+    if not value or value.get('decision') != 'completed':
+        raise RuntimeError(f'not a completed real acknowledgement: {outcome}')
+    return value
+
+
+def report_snapshot():
+    directory = WORK / 'provider-reports' / REPORT_NAMESPACE
+    return {path.name: b3(path) for path in sorted(directory.iterdir()) if path.is_file()}
+
+
+try:
+    assert not (CASE / 'lattice-state').exists(), 'fresh qualification must not reuse prior Lattice state'
+    (CASE / 'host-state').mkdir()
+    record['executables'] = {str(path): b3(path) for path in [HOST, EXTENSION, WORK / 'provider', LATTICE, DRIVER]}
+    record['profiles'] = {str(path): b3(path) for path in [RUNTIME_PROFILE, COLLABORATION_PROFILE, WORK / 'provider-profile.json', CASE / 'lattice-handler.ncl']}
+    assert record['executables'][str(WORK / 'provider')] == 'edb6b1b71fb26905ac42fdb186ff981f4cd351d3c7abfd861785e74730f9ee34'
+    checked([LATTICE, '--config', CASE / 'lattice-config.ncl', 'import', WORK / 'lattice-workflow.ncl'])
+    prepared = json.loads(checked([DRIVER, 'prepare', RUNTIME_PROFILE, COLLABORATION_PROFILE, CASE / 'trigger.json']))
+    (CASE / 'prepared.json').write_text(json.dumps(prepared, indent=2) + '\n')
+    (CASE / 'ingress.json').write_text(json.dumps(prepared['ingress'], indent=2) + '\n')
+    lattice = start([LATTICE, '--config', CASE / 'lattice-config.ncl', 'workflow-exchange', 'serve', '--profile', CASE / 'lattice-handler.ncl'], 'lattice')
+    ready(LATTICE_SOCKET, lattice)
+    host = start(host_argv(8), 'host-initial')
+    ready(HOST_SOCKET, host)
+    initial = ack(invoke('submit'))
+    assert lattice.poll() is None, 'Lattice exhausted its declared connection budget before terminal acknowledgement'
+    report_files = sorted((WORK / 'provider-reports' / REPORT_NAMESPACE).glob('*.json'))
+    assert len(report_files) == 1, report_files
+    provider_report = json.loads(report_files[0].read_text())
+    assert provider_report['outcome'] == 'success', provider_report
+    assert provider_report['exit_code'] == 0, provider_report
+    assert provider_report['revision'] == 'a9e67a14178c83654c4bf932bfc84c160ecd749d', provider_report
+    assert provider_report['repository'] == 'rad:qualification-exact-source', provider_report
+    provider_log = report_files[0].with_suffix('.log')
+    assert b3(provider_log) == provider_report['log_blake3']
+    before = report_snapshot()
+    stop(lattice)
+    assert lattice.poll() is not None
+    duplicate = invoke('submit')
+    assert ack(duplicate) == initial
+    host.kill()
+    assert host.wait(timeout=STOP_BOUND_SECONDS) == -signal.SIGKILL
+    record['crash'] = {'signal': 'SIGKILL', 'pid': host.pid, 'observed_returncode': host.returncode}
+    assert HOST_SOCKET.is_socket()
+    HOST_SOCKET.unlink()
+    recovered = start(host_argv(2), 'host-restarted')
+    ready(HOST_SOCKET, recovered)
+    replay = invoke('submit')
+    reconcile = invoke('reconcile')
+    assert ack(replay) == initial
+    assert ack(reconcile) == initial
+    assert recovered.wait(timeout=STOP_BOUND_SECONDS) == 0
+    after = report_snapshot()
+    assert before == after
+    record.update({
+        'verdict': 'passed',
+        'source_revision': provider_report['revision'],
+        'wrapper_blake3': provider_report['wrapper_blake3'],
+        'provider_report': provider_report,
+        'provider_report_path': str(report_files[0]),
+        'lattice_stopped_before_duplicate_and_restart': True,
+        'initial': initial,
+        'duplicate_before_restart': duplicate,
+        'replay': replay,
+        'reconcile': reconcile,
+        'full_acknowledgements_equal': True,
+        'provider_report_files_unchanged': before,
+        'non_claims': ['local source fixture only', 'no live Radicle or external status effect', 'no CI correctness or provider truth claim', 'no deployment or release authority'],
+    })
+except BaseException as error:
+    record['verdict'] = 'failed'
+    record['failure'] = repr(error)
+    raise
+finally:
+    for process in reversed(processes):
+        stop(process)
+    record['owned_process_exits'] = [{'pid': process.pid, 'returncode': process.returncode} for process in processes]
+    for log in logs:
+        log.close()
+    output = WORK / 'retained/repaired-actual-provider-recovery.json'
+    output.write_text(json.dumps(record, indent=2) + '\n')
+    print(json.dumps({'verdict': record['verdict'], 'record': str(output), 'scope': record['scope']}), flush=True)

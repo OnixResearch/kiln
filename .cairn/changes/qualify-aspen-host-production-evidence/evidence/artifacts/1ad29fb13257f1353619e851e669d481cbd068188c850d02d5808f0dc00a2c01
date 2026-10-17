@@ -1,0 +1,42 @@
+{
+  "schema": "kiln.qualification-execution-case.v1",
+  "cohort": "ee2227b8a312c2d4a0c12927b9f016a2aa0c5b71f428261d2b9c990813e88aef",
+  "source_revision": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297",
+  "source_archive_blake3": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
+  "kind": "publication",
+  "verdict": "passed",
+  "scope": "exact unpublished local executable-input candidate at qualification time; historical published baseline remains separate",
+  "observed": "Product source revision, normalized source archive, manifest, executable/profile inputs and public Radicle governance snapshot bound without changing accepted specifications or lifecycle policy.",
+  "artifacts": [
+    {
+      "name": "final-clean-source-manifest.json",
+      "blake3": "539df6323201fc0f0669641650756ca4715e3b3cf9e1d0071e6abd9124baed59",
+      "bytes": 289650,
+      "path": "artifacts/539df6323201fc0f0669641650756ca4715e3b3cf9e1d0071e6abd9124baed59"
+    },
+    {
+      "name": "final-contract-policy-preservation.json",
+      "blake3": "f965ba53b4dc3e4805d45cd3f9e7078802eca5983f3fd5766b2be8679e0d3c17",
+      "bytes": 12230,
+      "path": "artifacts/f965ba53b4dc3e4805d45cd3f9e7078802eca5983f3fd5766b2be8679e0d3c17"
+    },
+    {
+      "name": "final-clean-source-import.json",
+      "blake3": "30b21dcd748e4cda4efcbd8c330d0715dd98c7681f7781edb33206fa00965c27",
+      "bytes": 3837,
+      "path": "artifacts/30b21dcd748e4cda4efcbd8c330d0715dd98c7681f7781edb33206fa00965c27"
+    },
+    {
+      "name": "final-publication-binding.json",
+      "blake3": "f7a57c94b9a0677f729427c349e8f49936f67bd9edd7779fc433b84bde331a33",
+      "bytes": 1854,
+      "path": "artifacts/f7a57c94b9a0677f729427c349e8f49936f67bd9edd7779fc433b84bde331a33"
+    },
+    {
+      "name": "final-host-and-case-inputs.json",
+      "blake3": "a95eff6e38d8872074f62b724f80674b9ef63d859557acdbf4138b27ce40daee",
+      "bytes": 46694,
+      "path": "artifacts/a95eff6e38d8872074f62b724f80674b9ef63d859557acdbf4138b27ce40daee"
+    }
+  ]
+}

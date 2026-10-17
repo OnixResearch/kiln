@@ -1,17 +1,17 @@
 {
   "source_revision": {
     "contract_version": 1,
-    "provider_namespace": "kiln",
-    "native_kind": "unpublished-source-payload-blake3",
-    "native_id": "fa826a0545692ceb9f05860c699e00a8736dbef7d2a0d0045192e5484ad11a82"
+    "provider_namespace": "git",
+    "native_kind": "commit",
+    "native_id": "05ecd14be3e43067a1dc5ebc21b9a27e21d2b297"
   },
-  "source_archive": "fa826a0545692ceb9f05860c699e00a8736dbef7d2a0d0045192e5484ad11a82",
+  "source_archive": "fca77390881731154dae79f179faa6cfa51d08fb626fc2ce35cac112cd07f044",
   "host_executable": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591",
   "extension_executable": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1",
-  "provider_executable": "63bf5c5701fa35a00f53ea83469251fbd7426db9087514686e3699d1ee447f27",
+  "provider_executable": "edb6b1b71fb26905ac42fdb186ff981f4cd351d3c7abfd861785e74730f9ee34",
   "runtime_profile": "a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0",
-  "collaboration_profile": "8821785d87543f0cc054ff56d3a8680736de33148afbe22ba8cce7b9ccb01c5f",
-  "provider_profile": "a8dce6f91e681974d099b3558b6f6464a044c1b642f17b1ecf54d9c347f5c7a3",
-  "host_identity": "77d2170b4689fc26731322b9a84ad103dbc714e5e8099bf3b9c4b753caf0b611",
-  "publication_binding": "d74b0f67f68fd7c952dddcb0e2d3e85fcfe17ee831ef332328519bd1437de5ad"
+  "collaboration_profile": "297693c217677d05069c50c8833f0d821249f4bbe647daf0d2279ccf43eb1ea4",
+  "provider_profile": "15419a89e038b27f2676aa88df3d1b483b37d6e76dcb2fc1c2de876d36782c65",
+  "host_identity": "a95eff6e38d8872074f62b724f80674b9ef63d859557acdbf4138b27ce40daee",
+  "publication_binding": "f7a57c94b9a0677f729427c349e8f49936f67bd9edd7779fc433b84bde331a33"
 }

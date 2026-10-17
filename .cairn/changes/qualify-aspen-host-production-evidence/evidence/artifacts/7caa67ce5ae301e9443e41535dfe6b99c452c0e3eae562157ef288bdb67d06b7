@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.qualification-github-projection-visibility.v1",
+  "argv": [
+    "gh",
+    "repo",
+    "view",
+    "OnixResearch/kiln",
+    "--json",
+    "visibility,url,defaultBranchRef"
+  ],
+  "observed_stdout": {
+    "defaultBranchRef": {
+      "name": "publication-candidate-2026-10-15"
+    },
+    "url": "https://github.com/OnixResearch/kiln",
+    "visibility": "PRIVATE"
+  },
+  "scope": "actual read-only CLI observation before the separately authorized push; no visibility or default-branch mutation",
+  "non_claims": [
+    "pushing source does not authorize exposing private forge metadata",
+    "the GitHub projection does not replace Radicle governance"
+  ]
+}

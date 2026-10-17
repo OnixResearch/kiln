@@ -1,0 +1,4 @@
+Script started on 2026-10-17 02:28:52-04:00 [COMMAND="python3 /var/tmp/kiln-qualification.BEA91plo/run-repaired-real-runtime.py" <not executed on terminal>]
+{"verdict": "passed", "record": "/var/tmp/kiln-qualification.BEA91plo/retained/repaired-actual-provider-recovery.json", "scope": "isolated fresh-state actual Aspen host, actual Lattice and actual Nix; local source fixture only"}
+
+Script done on 2026-10-17 02:28:59-04:00 [COMMAND_EXIT_CODE="0"]

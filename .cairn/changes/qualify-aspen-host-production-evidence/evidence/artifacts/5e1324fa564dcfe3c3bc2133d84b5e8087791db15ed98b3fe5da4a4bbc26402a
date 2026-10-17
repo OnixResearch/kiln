@@ -1,0 +1,51 @@
+{
+  "schema": "kiln.qualification-publication-preflight.v1",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "scope": "read-only local Radicle identity, visibility and signed-ref observations before separately authorized push; no governance mutation",
+  "commands": [
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--identity",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"payload\": {\n    \"xyz.radicle.project\": {\n      \"defaultBranch\": \"main\",\n      \"description\": \"Provider-neutral CI control plane\",\n      \"name\": \"Kiln\"\n    }\n  },\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--sigrefs",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx bc8564b0d301bb239b3e40cc70176f8b1a4e6b41 parent\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--visibility",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "public\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--refs",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\n└── refs\n    ├── cobs\n    │   └── xyz.radicle.id\n    │       └── 7ce7e08059bc233ac12407a112e2dd9791d93190\n    ├── heads\n    │   ├── cairn-adapter-portfolio\n    │   ├── cairn\n    │   │   ├── add-git-source-adapter-20260820\n    │   │   ├── add-lattice-workflow-adapter-20260820\n    │   │   ├── add-mantle-build-adapter-20260821\n    │   │   ├── add-nix-eval-jobs-provider-adapter-20260821\n    │   │   ├── add-pijul-source-adapter-20260821\n    │   │   ├── align-provider-port-ownership-20260820\n    │   │   ├── close-duplicate-radicle-cob-20260820\n    │   │   ├── migrate-native-lifecycle-20260810\n    │   │   ├── mutate-radicle-cobs-single-writer-20260821\n    │   │   ├── operationalize-radicle-provider-shell-20260821\n    │   │   ├── publish-radicle-ci-status-20260821\n    │   │   ├── publish-radicle-source-contract-20260821\n    │   │   ├── record-radicle-transport-blocker-20260820\n    │   │   └── split-radicle-provider-changes-20260821\n    │   ├── candidate\n    │   ├── change\n    │   │   ├── add-aspen-host-bridge-20260827\n    │   │   ├── admit-radicle-broker-031-wire-20260829\n    │   │   ├── bind-aspen-extension-runtime-profile-20260828\n    │   │   ├── pace-aspen-lattice-observation-20260828\n    │   │   ├── plan-aspen-runtime-backend-20260826\n    │   │   └── productionize-aspen-radicle-host-20260828\n    │   ├── implement-kiln\n    │   ├── kiln-observability-drain\n    │   ├── main\n    │   ├── publication-candidate-2026-10-15\n    │   ├── publication-evidence-2026-10-15\n    │   └── seaglass-kiln-executor\n    └── rad\n        ├── id\n        ├── root\n        └── sigrefs\n",
+      "stderr": ""
+    }
+  ]
+}

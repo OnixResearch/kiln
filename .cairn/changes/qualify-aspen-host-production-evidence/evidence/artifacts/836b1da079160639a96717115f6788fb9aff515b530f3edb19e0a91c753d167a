@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.qualification-current-product-historical-receipt-rejection.v1",
+  "consumer_product": {
+    "name": "final-source-root-product-path.json",
+    "blake3": "7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677",
+    "bytes": 3689,
+    "path": "artifacts/7073e09c1194f3827df57504638d1652417c114d907fe46ec0a8df1619c19677"
+  },
+  "scope": "current frozen-source Nix product exercising the historical original-cohort blocked receipt; this is not a current host qualification",
+  "argv": [
+    "/var/tmp/kiln-qualification.BEA91plo/isolated-nix-root/nix/store/wccbd3yqfnyw0dcv14mc1pvsgy41hwv1-kiln-0.1.0/bin/kiln",
+    "host-qualify",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts/0a903a37e2fd77699e47c4bf502b77a88a70e58c6327a0fd042f46196b0a9fd1",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/receipt-blocked.json",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/qualify-aspen-host-production-evidence/evidence/artifacts"
+  ],
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "qualification_gate_not_passed: failed or uncertain observations cannot qualify a host\n"
+}

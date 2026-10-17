@@ -1,0 +1,1013 @@
+{
+  "schema": "kiln.qualification-host-and-case-inputs.v1",
+  "scope": "one machine, exact recorded native executables and explicitly enumerated isolated native profile variants; actual Lattice and Nix input cohort identified separately",
+  "host": {
+    "uname": "Linux britton-desktop 6.18.50 #1-NixOS SMP PREEMPT_DYNAMIC Mon Sep  7 15:23:00 UTC 2026 x86_64 GNU/Linux",
+    "uid": 1555,
+    "architecture": "x86_64"
+  },
+  "host_observation_commands": [
+    {
+      "argv": [
+        "uname",
+        "-a"
+      ],
+      "exit_code": 0,
+      "stdout": "Linux britton-desktop 6.18.50 #1-NixOS SMP PREEMPT_DYNAMIC Mon Sep  7 15:23:00 UTC 2026 x86_64 GNU/Linux\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uname",
+        "-m"
+      ],
+      "exit_code": 0,
+      "stdout": "x86_64\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "id",
+        "-u"
+      ],
+      "exit_code": 0,
+      "stdout": "1555\n",
+      "stderr": ""
+    }
+  ],
+  "source_revision": "2e52a152643d9d5b478e4128e1c7a60cfec93028",
+  "source_archive_blake3": "3b0099a3e41ff95024209f2a68eec219ce744c90ac5f450095ae3ff6b75578a0",
+  "native_launch_artifact": {
+    "name": "final-host-native-tests-and-clippy-passed.log",
+    "blake3": "6b4bb2846ddfc6b4c99e06c0aed1a81e45c408cc38a01afb93305556b6eeb244",
+    "bytes": 322664,
+    "path": "artifacts/6b4bb2846ddfc6b4c99e06c0aed1a81e45c408cc38a01afb93305556b6eeb244"
+  },
+  "native_case_profile_variants": [
+    {
+      "role": "runtime",
+      "name": "final-native-runtime-profile-cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a.json",
+      "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a",
+      "bytes": 4217,
+      "path": "artifacts/cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-87f1233e8864cd78796314ee72e8c086996f94b53713ecc9381edfadae670a5e.json",
+      "blake3": "87f1233e8864cd78796314ee72e8c086996f94b53713ecc9381edfadae670a5e",
+      "bytes": 1754,
+      "path": "artifacts/87f1233e8864cd78796314ee72e8c086996f94b53713ecc9381edfadae670a5e"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-41c73da1b149437c8ec5605f368b866fc6b394eb5c47f9e285a3195fa8eb81aa.json",
+      "blake3": "41c73da1b149437c8ec5605f368b866fc6b394eb5c47f9e285a3195fa8eb81aa",
+      "bytes": 1754,
+      "path": "artifacts/41c73da1b149437c8ec5605f368b866fc6b394eb5c47f9e285a3195fa8eb81aa"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-426d1cbc7cf81521062d21f158eec8a9aed9198ce9c8eccf1ac2483edd260acf.json",
+      "blake3": "426d1cbc7cf81521062d21f158eec8a9aed9198ce9c8eccf1ac2483edd260acf",
+      "bytes": 1754,
+      "path": "artifacts/426d1cbc7cf81521062d21f158eec8a9aed9198ce9c8eccf1ac2483edd260acf"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-100b57e11df66278361456438f68343b0bd67459ae345d493e98cb53f463bbb3.json",
+      "blake3": "100b57e11df66278361456438f68343b0bd67459ae345d493e98cb53f463bbb3",
+      "bytes": 1754,
+      "path": "artifacts/100b57e11df66278361456438f68343b0bd67459ae345d493e98cb53f463bbb3"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-97fefe5ee257717170d3fe1e2a9cc6982e102beb564a2d8f3295bfbb3ef1ed12.json",
+      "blake3": "97fefe5ee257717170d3fe1e2a9cc6982e102beb564a2d8f3295bfbb3ef1ed12",
+      "bytes": 1754,
+      "path": "artifacts/97fefe5ee257717170d3fe1e2a9cc6982e102beb564a2d8f3295bfbb3ef1ed12"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-dbca470d77bc6d0f7100946e4f99fae5bfd44c6f525b7a6d6bd25fe648f3f145.json",
+      "blake3": "dbca470d77bc6d0f7100946e4f99fae5bfd44c6f525b7a6d6bd25fe648f3f145",
+      "bytes": 1754,
+      "path": "artifacts/dbca470d77bc6d0f7100946e4f99fae5bfd44c6f525b7a6d6bd25fe648f3f145"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5.json",
+      "blake3": "2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5",
+      "bytes": 1754,
+      "path": "artifacts/2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5"
+    },
+    {
+      "role": "runtime",
+      "name": "final-native-runtime-profile-50f702d0d2e6138d2d637db039973569cc24ee9e1032d626b8d90828356798e4.json",
+      "blake3": "50f702d0d2e6138d2d637db039973569cc24ee9e1032d626b8d90828356798e4",
+      "bytes": 4217,
+      "path": "artifacts/50f702d0d2e6138d2d637db039973569cc24ee9e1032d626b8d90828356798e4"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-399670dd76522a2dcc188fd8e196dbebb7e39885475537d3ae1b7cac60969316.json",
+      "blake3": "399670dd76522a2dcc188fd8e196dbebb7e39885475537d3ae1b7cac60969316",
+      "bytes": 1754,
+      "path": "artifacts/399670dd76522a2dcc188fd8e196dbebb7e39885475537d3ae1b7cac60969316"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-a31604f175af8aa7d5561bcf84425798cb850598c843f0b7ccae3395ffa10360.json",
+      "blake3": "a31604f175af8aa7d5561bcf84425798cb850598c843f0b7ccae3395ffa10360",
+      "bytes": 1754,
+      "path": "artifacts/a31604f175af8aa7d5561bcf84425798cb850598c843f0b7ccae3395ffa10360"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-fde01973731859ce45a5438a1a8cb7c3bc8f568be31659c44e2a1f3348d036ae.json",
+      "blake3": "fde01973731859ce45a5438a1a8cb7c3bc8f568be31659c44e2a1f3348d036ae",
+      "bytes": 1754,
+      "path": "artifacts/fde01973731859ce45a5438a1a8cb7c3bc8f568be31659c44e2a1f3348d036ae"
+    },
+    {
+      "role": "collaboration",
+      "name": "final-native-collaboration-profile-7965484bb7faff2dab5246aa0fd31644d5d080d51c5ddb10da1d5eb51a0efc3d.json",
+      "blake3": "7965484bb7faff2dab5246aa0fd31644d5d080d51c5ddb10da1d5eb51a0efc3d",
+      "bytes": 1754,
+      "path": "artifacts/7965484bb7faff2dab5246aa0fd31644d5d080d51c5ddb10da1d5eb51a0efc3d"
+    }
+  ],
+  "native_launches": [
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpcI5M5H/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpcI5M5H/radicle-profile.json",
+        "blake3": "87f1233e8864cd78796314ee72e8c086996f94b53713ecc9381edfadae670a5e"
+      },
+      "socket": "/var/tmp/.tmpcI5M5H/host.sock",
+      "state_root": "/var/tmp/.tmpcI5M5H",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpcS6EjP/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpcS6EjP/radicle-profile.json",
+        "blake3": "41c73da1b149437c8ec5605f368b866fc6b394eb5c47f9e285a3195fa8eb81aa"
+      },
+      "socket": "/var/tmp/.tmpcS6EjP/host.sock",
+      "state_root": "/var/tmp/.tmpcS6EjP",
+      "maximum_requests": 12,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmphKtJ6m/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmphKtJ6m/radicle-profile.json",
+        "blake3": "426d1cbc7cf81521062d21f158eec8a9aed9198ce9c8eccf1ac2483edd260acf"
+      },
+      "socket": "/var/tmp/.tmphKtJ6m/host.sock",
+      "state_root": "/var/tmp/.tmphKtJ6m",
+      "maximum_requests": 8,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpbPy5JT/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpbPy5JT/radicle-profile.json",
+        "blake3": "100b57e11df66278361456438f68343b0bd67459ae345d493e98cb53f463bbb3"
+      },
+      "socket": "/var/tmp/.tmpbPy5JT/host.sock",
+      "state_root": "/var/tmp/.tmpbPy5JT",
+      "maximum_requests": 8,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/radicle-profile.json",
+        "blake3": "97fefe5ee257717170d3fe1e2a9cc6982e102beb564a2d8f3295bfbb3ef1ed12"
+      },
+      "socket": "/var/tmp/.tmpRVnZPB/host.sock",
+      "state_root": "/var/tmp/.tmpRVnZPB",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmphMpflJ/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmphMpflJ/radicle-profile.json",
+        "blake3": "dbca470d77bc6d0f7100946e4f99fae5bfd44c6f525b7a6d6bd25fe648f3f145"
+      },
+      "socket": "/var/tmp/.tmphMpflJ/host.sock",
+      "state_root": "/var/tmp/.tmphMpflJ",
+      "maximum_requests": 8,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/radicle-profile.json",
+        "blake3": "2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5"
+      },
+      "socket": "/var/tmp/.tmpLdLXfK/host.sock",
+      "state_root": "/var/tmp/.tmpLdLXfK",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmphKtJ6m/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmphKtJ6m/radicle-profile.json",
+        "blake3": "426d1cbc7cf81521062d21f158eec8a9aed9198ce9c8eccf1ac2483edd260acf"
+      },
+      "socket": "/var/tmp/.tmphKtJ6m/host.sock",
+      "state_root": "/var/tmp/.tmphKtJ6m",
+      "maximum_requests": 2,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmphMpflJ/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmphMpflJ/radicle-profile.json",
+        "blake3": "dbca470d77bc6d0f7100946e4f99fae5bfd44c6f525b7a6d6bd25fe648f3f145"
+      },
+      "socket": "/var/tmp/.tmphMpflJ/host.sock",
+      "state_root": "/var/tmp/.tmphMpflJ",
+      "maximum_requests": 3,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpbPy5JT/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpbPy5JT/radicle-profile.json",
+        "blake3": "100b57e11df66278361456438f68343b0bd67459ae345d493e98cb53f463bbb3"
+      },
+      "socket": "/var/tmp/.tmpbPy5JT/host.sock",
+      "state_root": "/var/tmp/.tmpbPy5JT",
+      "maximum_requests": 2,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpcI5M5H/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpcI5M5H/radicle-profile.json",
+        "blake3": "87f1233e8864cd78796314ee72e8c086996f94b53713ecc9381edfadae670a5e"
+      },
+      "socket": "/var/tmp/.tmpcI5M5H/host.sock",
+      "state_root": "/var/tmp/.tmpcI5M5H",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/radicle-profile.json",
+        "blake3": "97fefe5ee257717170d3fe1e2a9cc6982e102beb564a2d8f3295bfbb3ef1ed12"
+      },
+      "socket": "/var/tmp/.tmpRVnZPB/host.sock",
+      "state_root": "/var/tmp/.tmpRVnZPB",
+      "maximum_requests": 2,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpcS6EjP/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpcS6EjP/radicle-profile.json",
+        "blake3": "41c73da1b149437c8ec5605f368b866fc6b394eb5c47f9e285a3195fa8eb81aa"
+      },
+      "socket": "/var/tmp/.tmpcS6EjP/host.sock",
+      "state_root": "/var/tmp/.tmpcS6EjP",
+      "maximum_requests": 8,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/runtime-profile.json",
+        "blake3": "50f702d0d2e6138d2d637db039973569cc24ee9e1032d626b8d90828356798e4"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/radicle-profile.json",
+        "blake3": "2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5"
+      },
+      "socket": "/var/tmp/.tmpLdLXfK/host.sock",
+      "state_root": "/var/tmp/.tmpLdLXfK",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmppMTnTH/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmppMTnTH/radicle-profile.json",
+        "blake3": "399670dd76522a2dcc188fd8e196dbebb7e39885475537d3ae1b7cac60969316"
+      },
+      "socket": "/var/tmp/.tmppMTnTH/host.sock",
+      "state_root": "/var/tmp/.tmppMTnTH",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/radicle-profile.json",
+        "blake3": "97fefe5ee257717170d3fe1e2a9cc6982e102beb564a2d8f3295bfbb3ef1ed12"
+      },
+      "socket": "/var/tmp/.tmpRVnZPB/host.sock",
+      "state_root": "/var/tmp/.tmpRVnZPB",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/.tmpLdLXfK/candidate-extension",
+        "blake3": "cd03870b1239f2860952fd39063cbfd26323bafc29b3e96094fdf86f6bea3314"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/radicle-profile.json",
+        "blake3": "2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5"
+      },
+      "socket": "/var/tmp/.tmpLdLXfK/host.sock",
+      "state_root": "/var/tmp/.tmpLdLXfK",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmppMTnTH/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmppMTnTH/radicle-profile.json",
+        "blake3": "399670dd76522a2dcc188fd8e196dbebb7e39885475537d3ae1b7cac60969316"
+      },
+      "socket": "/var/tmp/.tmppMTnTH/host.sock",
+      "state_root": "/var/tmp/.tmppMTnTH",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpRVnZPB/radicle-profile.json",
+        "blake3": "97fefe5ee257717170d3fe1e2a9cc6982e102beb564a2d8f3295bfbb3ef1ed12"
+      },
+      "socket": "/var/tmp/.tmpRVnZPB/host.sock",
+      "state_root": "/var/tmp/.tmpRVnZPB",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/.tmpLdLXfK/candidate-extension",
+        "blake3": "cd03870b1239f2860952fd39063cbfd26323bafc29b3e96094fdf86f6bea3314"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/runtime-profile.json",
+        "blake3": "50f702d0d2e6138d2d637db039973569cc24ee9e1032d626b8d90828356798e4"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/radicle-profile.json",
+        "blake3": "2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5"
+      },
+      "socket": "/var/tmp/.tmpLdLXfK/host.sock",
+      "state_root": "/var/tmp/.tmpdqg20M",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpDvtY1y/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpDvtY1y/radicle-profile.json",
+        "blake3": "a31604f175af8aa7d5561bcf84425798cb850598c843f0b7ccae3395ffa10360"
+      },
+      "socket": "/var/tmp/.tmpDvtY1y/host.sock",
+      "state_root": "/var/tmp/.tmpDvtY1y",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/radicle-profile.json",
+        "blake3": "2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5"
+      },
+      "socket": "/var/tmp/.tmpLdLXfK/host.sock",
+      "state_root": "/var/tmp/.tmpdqg20M",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpDvtY1y/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpDvtY1y/radicle-profile.json",
+        "blake3": "a31604f175af8aa7d5561bcf84425798cb850598c843f0b7ccae3395ffa10360"
+      },
+      "socket": "/var/tmp/.tmpDvtY1y/host.sock",
+      "state_root": "/var/tmp/.tmpDvtY1y",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmp3Lvnar/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmp3Lvnar/radicle-profile.json",
+        "blake3": "fde01973731859ce45a5438a1a8cb7c3bc8f568be31659c44e2a1f3348d036ae"
+      },
+      "socket": "/var/tmp/.tmp3Lvnar/host.sock",
+      "state_root": "/var/tmp/.tmp3Lvnar",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmpLdLXfK/radicle-profile.json",
+        "blake3": "2825c8384aa88dff6e663984fe41f3b1e6fe7f8d5ee8d8ca221bdc839d37b3e5"
+      },
+      "socket": "/var/tmp/.tmpLdLXfK/host.sock",
+      "state_root": "/var/tmp/.tmpLdLXfK",
+      "maximum_requests": 2,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmp3Lvnar/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmp3Lvnar/radicle-profile.json",
+        "blake3": "fde01973731859ce45a5438a1a8cb7c3bc8f568be31659c44e2a1f3348d036ae"
+      },
+      "socket": "/var/tmp/.tmp3Lvnar/host.sock",
+      "state_root": "/var/tmp/.tmp3Lvnar",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmppgM7Cs/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmppgM7Cs/radicle-profile.json",
+        "blake3": "7965484bb7faff2dab5246aa0fd31644d5d080d51c5ddb10da1d5eb51a0efc3d"
+      },
+      "socket": "/var/tmp/.tmppgM7Cs/host.sock",
+      "state_root": "/var/tmp/.tmppgM7Cs",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    },
+    {
+      "schema": "kiln.aspen-host.qualification-child-launch.v1",
+      "scope": "machine-local-native-host-with-closed-lattice-terminal-fixture",
+      "host": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host",
+        "blake3": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591"
+      },
+      "extension": {
+        "path": "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture",
+        "blake3": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1"
+      },
+      "aspen_profile": {
+        "path": "/var/tmp/.tmppgM7Cs/runtime-profile.json",
+        "blake3": "cf641055ff404e6a7e2cc1ccd62969982275aa2a7fce6974b2eddc515a23380a"
+      },
+      "radicle_profile": {
+        "path": "/var/tmp/.tmppgM7Cs/radicle-profile.json",
+        "blake3": "7965484bb7faff2dab5246aa0fd31644d5d080d51c5ddb10da1d5eb51a0efc3d"
+      },
+      "socket": "/var/tmp/.tmppgM7Cs/host.sock",
+      "state_root": "/var/tmp/.tmppgM7Cs",
+      "maximum_requests": 1,
+      "timeout_milliseconds": 5000,
+      "poll_interval_milliseconds": 10,
+      "child_deadline_seconds": 15
+    }
+  ],
+  "native_record_counts": {
+    "kiln.aspen-host.qualification-child-launch.v1": 28,
+    "kiln.aspen-host.qualification-ack.v1": 38,
+    "kiln.aspen-host.qualification-child-exit.v1": 28,
+    "kiln.aspen-host.qualification-unknown.v1": 6,
+    "kiln.aspen-host.qualification-quiescent-state.v1": 13,
+    "kiln.aspen-host.qualification-fixture-counts.v1": 11
+  },
+  "native_test_results": [
+    {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0
+    }
+  ],
+  "provider_native_artifact": {
+    "name": "final-provider-native-gates-passed.log",
+    "blake3": "3c186922cb89853e574a31dfc7977e560c829fede35bc66acd20700aa6a991f6",
+    "bytes": 4892,
+    "path": "artifacts/3c186922cb89853e574a31dfc7977e560c829fede35bc66acd20700aa6a991f6"
+  },
+  "actual_runtime_observation": {
+    "name": "final-actual-provider-recovery-passed.json",
+    "blake3": "5611b30002471ee5fde1483018e82272f26baf0de8cedc4405251609cd1fdbb5",
+    "bytes": 19486,
+    "path": "artifacts/5611b30002471ee5fde1483018e82272f26baf0de8cedc4405251609cd1fdbb5"
+  },
+  "actual_runtime_inputs": {
+    "runtime_profile": {
+      "name": "final-actual-runtime_profile.json",
+      "blake3": "a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0",
+      "bytes": 4974,
+      "path": "artifacts/a2612f70ec030b12f5df653abde374d14bc96d447e0157020a9fb9b3bb731bb0"
+    },
+    "collaboration_profile": {
+      "name": "final-actual-collaboration_profile.json",
+      "blake3": "9fd1ac6857c11f37601ef2ee02fe5d870ca4b4eb9f7b8d3e9958a8cfb386a707",
+      "bytes": 2248,
+      "path": "artifacts/9fd1ac6857c11f37601ef2ee02fe5d870ca4b4eb9f7b8d3e9958a8cfb386a707"
+    },
+    "provider_profile": {
+      "name": "final-actual-provider_profile.json",
+      "blake3": "1aea57d4e7b3c604eefcd79bf020a2cc8cdb1bd3cde79d5a54d251c00bffb6de",
+      "bytes": 1591,
+      "path": "artifacts/1aea57d4e7b3c604eefcd79bf020a2cc8cdb1bd3cde79d5a54d251c00bffb6de"
+    },
+    "workflow_handler": {
+      "name": "final-actual-workflow_handler.ncl",
+      "blake3": "8c103815b88bdb406827c5f40e230355d5754490642090ebec5d775b65ab21a8",
+      "bytes": 1783,
+      "path": "artifacts/8c103815b88bdb406827c5f40e230355d5754490642090ebec5d775b65ab21a8"
+    },
+    "lattice_config": {
+      "name": "final-actual-lattice_config.ncl",
+      "blake3": "39ee737f168a012b592455e02b8e4ff42413d06610f137716d7d41731119449e",
+      "bytes": 133,
+      "path": "artifacts/39ee737f168a012b592455e02b8e4ff42413d06610f137716d7d41731119449e"
+    },
+    "trigger": {
+      "name": "final-actual-trigger.json",
+      "blake3": "34688613d72f037f6d5faca96b780df961bceb4edc4babc5979625af704f15eb",
+      "bytes": 570,
+      "path": "artifacts/34688613d72f037f6d5faca96b780df961bceb4edc4babc5979625af704f15eb"
+    },
+    "ingress": {
+      "name": "final-actual-ingress.json",
+      "blake3": "38718e6b9d637a96ad5998e7c9c6700b26daf14a73eff0831980848a72d37198",
+      "bytes": 1588,
+      "path": "artifacts/38718e6b9d637a96ad5998e7c9c6700b26daf14a73eff0831980848a72d37198"
+    },
+    "prepared": {
+      "name": "final-actual-prepared.json",
+      "blake3": "64b0382e67f1874b06130d66ca405a15e3885b02a57cab5159cbf8254c9c0a82",
+      "bytes": 5242,
+      "path": "artifacts/64b0382e67f1874b06130d66ca405a15e3885b02a57cab5159cbf8254c9c0a82"
+    },
+    "provider_profile_nickel": {
+      "name": "final-actual-provider_profile_nickel.ncl",
+      "blake3": "fa2a7f970454aca39a56082a741e42aae55b68a2bf462c94e10d39169aadbba1",
+      "bytes": 963,
+      "path": "artifacts/fa2a7f970454aca39a56082a741e42aae55b68a2bf462c94e10d39169aadbba1"
+    },
+    "collaboration_profile_nickel": {
+      "name": "final-actual-collaboration_profile_nickel.ncl",
+      "blake3": "68f30b1e854e16871447f302135ae41c58cafe12a4421bb8ac3f9fb98caf9360",
+      "bytes": 462,
+      "path": "artifacts/68f30b1e854e16871447f302135ae41c58cafe12a4421bb8ac3f9fb98caf9360"
+    },
+    "nix_wrapper": {
+      "name": "final-actual-nix_wrapper.json",
+      "blake3": "c2f6d0ac73927a63fd34757377189f5ab3436948a55674f67a8dd474d8a6a6aa",
+      "bytes": 585,
+      "path": "artifacts/c2f6d0ac73927a63fd34757377189f5ab3436948a55674f67a8dd474d8a6a6aa"
+    },
+    "provider_report": {
+      "name": "final-actual-provider_report.json",
+      "blake3": "99f349715c613896fc2551de6fad108dd876d43343a9ef76c8c174d17530cb04",
+      "bytes": 957,
+      "path": "artifacts/99f349715c613896fc2551de6fad108dd876d43343a9ef76c8c174d17530cb04"
+    },
+    "provider_log": {
+      "name": "final-actual-provider_log.log",
+      "blake3": "5cd9ab220921854b28884655b265295b2cdbdc53b8b7a1b1e5b8dab485f1517c",
+      "bytes": 559,
+      "path": "artifacts/5cd9ab220921854b28884655b265295b2cdbdc53b8b7a1b1e5b8dab485f1517c"
+    }
+  },
+  "actual_runtime_executables": {
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host": "7472d0cb4df2dfcd7734f7c2eb97851e62b44b764f4acbcff3822ecc7a6b6591",
+    "/var/tmp/kiln-qualification.BEA91plo/host-target/debug/kiln-aspen-host-extension-fixture": "b125ca493b223f37b16a41d1d10d6719d3241024939211e5468387e7ae0137d1",
+    "/var/tmp/kiln-qualification.BEA91plo/provider": "edb6b1b71fb26905ac42fdb186ff981f4cd351d3c7abfd861785e74730f9ee34",
+    "/var/tmp/kiln-qualification.BEA91plo/lattice-root/bin/lattice": "26be4c428495e484a642cb20024e5e11423387cc6d1ef823496fb2ef912ce804",
+    "/var/tmp/kiln-qualification.BEA91plo/driver-target/debug/kiln-qualification-driver": "a033f1fc0b83806f6c226f2041bd48b028e0697a990291dd269f69a503ef903a"
+  },
+  "non_claims": [
+    "native closed-transport fixtures do not establish actual workflow/provider execution",
+    "local execution does not prove global durability, provider truth, sandboxing or availability",
+    "these observations do not authorize an operator deployment or publication"
+  ]
+}

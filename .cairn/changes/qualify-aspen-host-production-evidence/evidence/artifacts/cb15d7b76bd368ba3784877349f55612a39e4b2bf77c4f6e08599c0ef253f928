@@ -1,0 +1,34 @@
+{
+  "schema": "kiln.qualification-publication-fetch.v1",
+  "scope": "read-only remote acquisition before the authorized exact-main push; no remote mutation",
+  "commands": [
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "git",
+        "fetch",
+        "--remote",
+        "github"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Nothing changed.\n"
+    },
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "git",
+        "fetch",
+        "--remote",
+        "rad"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Nothing changed.\n"
+    }
+  ]
+}
