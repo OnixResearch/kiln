@@ -56,6 +56,6 @@ Receipt admission checks supplied consistency and retained bytes, not observatio
 
 ## Repeatability
 
-The permanent native drills live in `runtime/kiln-aspen-host/tests/hosted/qualification.rs` and `runtime/kiln-radicle-nix-provider/tests/process_teardown.rs`; pure qualification admission/rejection lives in `crates/kiln-core/src/hosting/qualification/`. Run the host/provider gates documented in their READMEs and the root checks in `docs/operator.md`. Nix package checks retain the native JSON observations with `--nocapture`.
+The permanent native drills live in `runtime/kiln-aspen-host/tests/hosted/qualification.rs` and its case modules, and `runtime/kiln-radicle-nix-provider/tests/process.rs`; pure qualification admission/rejection lives in `crates/kiln-core/src/hosting/qualification/`. Run the host/provider gates documented in their READMEs and the root checks in `docs/operator.md`. Nix package checks retain the native JSON observations with `--nocapture`.
 
 For a fresh qualification, rebuild and record the actual source/executable/profile/host identities and exact case inputs, execute the named cases and all required gates, retain every failure and bounded artifact, and run `kiln host-qualify` against the reviewed expected cohort. Changed inputs require a new cohort and observations; neither this receipt nor historical publication transfers qualification.

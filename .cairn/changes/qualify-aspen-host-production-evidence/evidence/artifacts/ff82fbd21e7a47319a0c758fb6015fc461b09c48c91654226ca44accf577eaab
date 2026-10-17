@@ -1,0 +1,78 @@
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+mod fixture {
+    use std::path::{Path, PathBuf};
+
+    fn file_document(path: &Path) -> serde_json::Value {
+        let bytes = std::fs::read(path).unwrap_or_else(|_| unreachable!("cohort profile bytes"));
+        serde_json::from_slice(&bytes).unwrap_or_else(|_| unreachable!("cohort profile document"))
+    }
+
+    #[path = "/home/brittonr/git/OnixResearch/kiln/runtime/kiln-aspen-host/tests/hosted/process/state.rs"]
+    pub mod state;
+}
+
+fn prepare(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    for component in ["operation-ledger", "native-journal", "callback-values"] {
+        std::fs::create_dir(root.join(component))?;
+    }
+    std::fs::write(root.join("host-state.json"), b"{\"scope\":\"snapshot-helper-smoke\"}")?;
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let regular = tempfile::tempdir()?;
+    prepare(regular.path())?;
+    let mut expected = BTreeMap::new();
+    expected.insert(PathBuf::from("host-state.json"), b"{\"scope\":\"snapshot-helper-smoke\"}".to_vec());
+    for (relative, bytes) in [
+        ("operation-ledger/entry", b"exact ledger".as_slice()),
+        ("native-journal/partition/journal", b"exact journal".as_slice()),
+        ("native-journal/partition/journal.wal", b"exact sidecar".as_slice()),
+        ("callback-values/nested/value", b"exact callback\0bytes".as_slice()),
+    ] {
+        let path = regular.path().join(relative);
+        std::fs::create_dir_all(path.parent().ok_or("missing smoke parent")?)?;
+        std::fs::write(path, bytes)?;
+        expected.insert(PathBuf::from(relative), bytes.to_vec());
+    }
+    let snapshot = fixture::state::state_snapshot(regular.path());
+    assert_eq!(snapshot, expected);
+    std::fs::write(regular.path().join("callback-values/unwanted"), b"not in snapshot")?;
+    std::fs::write(regular.path().join("operation-ledger/entry"), b"changed")?;
+    fixture::state::restore_state(regular.path(), &snapshot);
+    assert_eq!(fixture::state::state_snapshot(regular.path()), expected);
+    assert!(!regular.path().join("callback-values/unwanted").exists());
+
+    std::os::unix::fs::symlink(
+        regular.path().join("operation-ledger/entry"),
+        regular.path().join("callback-values/forbidden-link"),
+    )?;
+    assert!(std::panic::catch_unwind(|| fixture::state::state_snapshot(regular.path())).is_err());
+
+    let deep = tempfile::tempdir()?;
+    prepare(deep.path())?;
+    let mut path = deep.path().join("operation-ledger");
+    for _ in 1..128 {
+        path.push("d");
+        std::fs::create_dir(&path)?;
+    }
+    std::fs::write(path.join("leaf"), b"maximum admitted directory depth")?;
+    let deep_snapshot = fixture::state::state_snapshot(deep.path());
+    assert_eq!(deep_snapshot.get(path.join("leaf").strip_prefix(deep.path())?), Some(&b"maximum admitted directory depth".to_vec()));
+    std::fs::create_dir(path.join("one-too-deep"))?;
+    assert!(std::panic::catch_unwind(|| fixture::state::state_snapshot(deep.path())).is_err());
+    println!("{}", serde_json::json!({
+        "schema": "kiln.qualification-snapshot-helper-smoke.v1",
+        "source": "actual included process/state.rs",
+        "exact_relative_paths_and_bytes": true,
+        "sidecars_retained": true,
+        "restore_removes_unrecorded_members": true,
+        "symlink_rejected": true,
+        "depth_128_admitted": true,
+        "depth_129_rejected_without_truncation": true,
+        "scope": "test helper behavior only, not native host durability or deployment"
+    }));
+    Ok(())
+}

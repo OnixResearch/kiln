@@ -761,6 +761,36 @@
       "blake3": "ac859ea9fe2d9f2a1d0749e340fbc35263fc5d9486feb4dcd94c9654776b4741",
       "bytes": 126183,
       "path": "artifacts/ac859ea9fe2d9f2a1d0749e340fbc35263fc5d9486feb4dcd94c9654776b4741"
+    },
+    {
+      "name": "first-complete-private-nix-gates-failed.log",
+      "blake3": "bd94725c1aeac31f753bca3dc95df7db2e56bc31eec264f3da8d5e0c77cecb76",
+      "bytes": 1201354,
+      "path": "artifacts/bd94725c1aeac31f753bca3dc95df7db2e56bc31eec264f3da8d5e0c77cecb76"
+    },
+    {
+      "name": "host-policy-repair-module-loading-failed.log",
+      "blake3": "96892821a6ebc029bf1075c66f2e0dbc2e21e8874e5d3ae3816574a0597c56d8",
+      "bytes": 3547,
+      "path": "artifacts/96892821a6ebc029bf1075c66f2e0dbc2e21e8874e5d3ae3816574a0597c56d8"
+    },
+    {
+      "name": "provider-policy-repair-native-gates.log",
+      "blake3": "a6d92c9208f078afd6eabcda8da853cbd260242fc396e54ad66ebfd3eec545c4",
+      "bytes": 6138,
+      "path": "artifacts/a6d92c9208f078afd6eabcda8da853cbd260242fc396e54ad66ebfd3eec545c4"
+    },
+    {
+      "name": "snapshot-helper-smoke.log",
+      "blake3": "5286989a5fbec64766dc42dafe0517b00bc551c7211e49c74eeca47a7e97218c",
+      "bytes": 4441,
+      "path": "artifacts/5286989a5fbec64766dc42dafe0517b00bc551c7211e49c74eeca47a7e97218c"
+    },
+    {
+      "name": "snapshot-helper-smoke.rs",
+      "blake3": "ff82fbd21e7a47319a0c758fb6015fc461b09c48c91654226ca44accf577eaab",
+      "bytes": 3572,
+      "path": "artifacts/ff82fbd21e7a47319a0c758fb6015fc461b09c48c91654226ca44accf577eaab"
     }
   ],
   "qualification_status": "blocked",
