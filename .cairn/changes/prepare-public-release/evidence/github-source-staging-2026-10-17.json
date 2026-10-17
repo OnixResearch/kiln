@@ -1,0 +1,1318 @@
+{
+  "schema": "kiln.github-source-projection-staging.v1",
+  "operator_request": "make them",
+  "owner": "Kiln maintainers coordinate this bounded operator receipt; each producer owns its source and legal boundary",
+  "state": "private-staging-created; public source selection pending",
+  "created": [
+    {
+      "owner": "basalt",
+      "id": 1423867430,
+      "url": "https://github.com/OnixResearch/basalt-public",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "kamacite",
+      "id": 1423867443,
+      "url": "https://github.com/OnixResearch/kamacite-public",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "trellis",
+      "id": 1423867438,
+      "url": "https://github.com/OnixResearch/trellis-public",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "ucan",
+      "id": 1423867434,
+      "url": "https://github.com/OnixResearch/ucan-public",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "content-identity-core",
+      "id": 1423867439,
+      "url": "https://github.com/OnixResearch/content-identity-core",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "durable-file-publication",
+      "id": 1423867442,
+      "url": "https://github.com/OnixResearch/durable-file-publication",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "schema-identity-core",
+      "id": 1423867440,
+      "url": "https://github.com/OnixResearch/schema-identity-core",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "schema-migration-core",
+      "id": 1423867441,
+      "url": "https://github.com/OnixResearch/schema-migration-core",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "id": 1423867432,
+      "url": "https://github.com/OnixResearch/radicle-cob-git-store",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    },
+    {
+      "owner": "kiln",
+      "id": 1423867429,
+      "url": "https://github.com/OnixResearch/kiln-public",
+      "private": true,
+      "actions_enabled": false,
+      "source_uploaded": false
+    }
+  ],
+  "existing_private_repositories_unchanged": [
+    "OnixResearch/basalt",
+    "OnixResearch/kamacite",
+    "OnixResearch/trellis",
+    "OnixResearch/ucan",
+    "OnixResearch/kiln"
+  ],
+  "canonical_radicle_mutations": false,
+  "private_history_uploaded": false,
+  "source_payload_decision": "Several trees contain unrelated/uncommitted changes alongside AGPL preparation; public payload selection must be explicit.",
+  "trellis_blocker": {
+    "source": "trellis/README.md:861-862",
+    "requirement": "A qualified review of Corresponding Source obligations is still required before public distribution."
+  },
+  "commands": [
+    {
+      "owner": "kiln",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=kiln-public",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of kiln; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867429,\"node_id\":\"R_kgDOVN5-JQ\",\"name\":\"kiln-public\",\"full_name\":\"OnixResearch/kiln-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/kiln-public\",\"description\":\"Source projection o",
+      "stdout_complete": false
+    },
+    {
+      "owner": "basalt",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=basalt-public",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of basalt; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867430,\"node_id\":\"R_kgDOVN5-Jg\",\"name\":\"basalt-public\",\"full_name\":\"OnixResearch/basalt-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/basalt-public\",\"description\":\"Source projec",
+      "stdout_complete": false
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=radicle-cob-git-store",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of radicle-cob-git-store; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867432,\"node_id\":\"R_kgDOVN5-KA\",\"name\":\"radicle-cob-git-store\",\"full_name\":\"OnixResearch/radicle-cob-git-store\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/radicle-cob-git-store\",\"des",
+      "stdout_complete": false
+    },
+    {
+      "owner": "kiln",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/kiln-public/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "basalt",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/basalt-public/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "ucan",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=ucan-public",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of ucan; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867434,\"node_id\":\"R_kgDOVN5-Kg\",\"name\":\"ucan-public\",\"full_name\":\"OnixResearch/ucan-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/ucan-public\",\"description\":\"Source projection o",
+      "stdout_complete": false
+    },
+    {
+      "owner": "trellis",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/trellis",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=trellis-public",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of trellis; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867438,\"node_id\":\"R_kgDOVN5-Lg\",\"name\":\"trellis-public\",\"full_name\":\"OnixResearch/trellis-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/trellis-public\",\"description\":\"Source pro",
+      "stdout_complete": false
+    },
+    {
+      "owner": "schema-migration-core",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=schema-migration-core",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of schema-migration-core; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867441,\"node_id\":\"R_kgDOVN5-MQ\",\"name\":\"schema-migration-core\",\"full_name\":\"OnixResearch/schema-migration-core\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/schema-migration-core\",\"des",
+      "stdout_complete": false
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=schema-identity-core",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of schema-identity-core; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867440,\"node_id\":\"R_kgDOVN5-MA\",\"name\":\"schema-identity-core\",\"full_name\":\"OnixResearch/schema-identity-core\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/schema-identity-core\",\"descri",
+      "stdout_complete": false
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/radicle-cob-git-store/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=durable-file-publication",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of durable-file-publication; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867442,\"node_id\":\"R_kgDOVN5-Mg\",\"name\":\"durable-file-publication\",\"full_name\":\"OnixResearch/durable-file-publication\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/durable-file-publicat",
+      "stdout_complete": false
+    },
+    {
+      "owner": "kamacite",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/kamacite",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=kamacite-public",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of kamacite; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867443,\"node_id\":\"R_kgDOVN5-Mw\",\"name\":\"kamacite-public\",\"full_name\":\"OnixResearch/kamacite-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/kamacite-public\",\"description\":\"Source ",
+      "stdout_complete": false
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "create private source projection staging repository",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "orgs/OnixResearch/repos",
+        "-f",
+        "name=content-identity-core",
+        "-F",
+        "private=true",
+        "-F",
+        "auto_init=false",
+        "-f",
+        "description=Source projection of content-identity-core; private development history is not included."
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867439,\"node_id\":\"R_kgDOVN5-Lw\",\"name\":\"content-identity-core\",\"full_name\":\"OnixResearch/content-identity-core\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/content-identity-core\",\"des",
+      "stdout_complete": false
+    },
+    {
+      "owner": "ucan",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/ucan-public/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-migration-core",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/schema-migration-core/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "trellis",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/trellis",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/trellis-public/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/schema-identity-core/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/durable-file-publication/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kamacite",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/kamacite",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/kamacite-public/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "disable Actions before source upload",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "--method",
+        "PUT",
+        "repos/OnixResearch/content-identity-core/actions/permissions",
+        "-F",
+        "enabled=false"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "basalt",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 1,
+      "stderr": "Error: There is no jj repo in \".\"\nHint: It looks like this is a git repo. You can create a jj repo backed by it by running this:\njj git init\n",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "ucan",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 1,
+      "stderr": "Error: There is no jj repo in \".\"\nHint: It looks like this is a git repo. You can create a jj repo backed by it by running this:\njj git init\n",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 1,
+      "stderr": "Error: There is no jj repo in \".\"\nHint: It looks like this is a git repo. You can create a jj repo backed by it by running this:\njj git init\n",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 1,
+      "stderr": "Error: There is no jj repo in \".\"\nHint: It looks like this is a git repo. You can create a jj repo backed by it by running this:\njj git init\n",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 1,
+      "stderr": "Error: There is no jj repo in \".\"\nHint: It looks like this is a git repo. You can create a jj repo backed by it by running this:\njj git init\n",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 1,
+      "stderr": "Error: There is no jj repo in \".\"\nHint: It looks like this is a git repo. You can create a jj repo backed by it by running this:\njj git init\n",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kiln",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "db552f504236b3e330be46618e2fd29fb864f190",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "db552f504236b3e330be46618e2fd29fb864f190\nfalse\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kiln",
+      "label": "locate source object store",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "command": [
+        "jj",
+        "--ignore-working-copy",
+        "git",
+        "root"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "/home/brittonr/git/OnixResearch/kiln/.git\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-migration-core",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "07b5e157bcf9efb7e72937668aabfd7112af9c5c\nfalse\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-migration-core",
+      "label": "locate source object store",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "command": [
+        "jj",
+        "--ignore-working-copy",
+        "git",
+        "root"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "/home/brittonr/git/OnixResearch/schema-migration-core/.git\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kamacite",
+      "label": "freeze selected source identity",
+      "cwd": "/home/brittonr/git/OnixResearch/kamacite",
+      "command": [
+        "jj",
+        "--no-pager",
+        "log",
+        "--no-graph",
+        "-r",
+        "@",
+        "-T",
+        "commit_id ++ \"\\n\" ++ conflict ++ \"\\n\""
+      ],
+      "exit": 0,
+      "stderr": "Done importing changes from the underlying Git repo.\n",
+      "stdout_excerpt": "3688fbfdafe15260c206e82bd176abd55dd2810e\nfalse\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kamacite",
+      "label": "locate source object store",
+      "cwd": "/home/brittonr/git/OnixResearch/kamacite",
+      "command": [
+        "jj",
+        "--ignore-working-copy",
+        "git",
+        "root"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "/home/brittonr/git/OnixResearch/kamacite/.git\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "ucan",
+      "label": "read Git-only source baseline",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "d46816f19606b518307ba21ab33e8b93b6ebf646\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "basalt",
+      "label": "read Git-only source baseline",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "f79662d3528c688b828a41e2a64a9efefd018893\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "read Git-only source baseline",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "f4712fb23acfc8333d205f43c9086e8b9d5f2601\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "read Git-only source baseline",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "527c7828fa10970d42064460cd7cd15c1c5a6cca\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "inspect new source selection paths",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "git",
+        "ls-files",
+        "--others",
+        "--exclude-standard"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "LICENSE-MIT\nNOTICE\ncairn/changes/owned-source-agpl/design.md\ncairn/changes/owned-source-agpl/evidence/preimplementation-gates.md\ncairn/changes/owned-source-agpl/metadata.json\ncairn/changes/owned-source-agpl/proposal.md\ncairn/changes/owned-source-agpl/specs/owned-source-licensing/spec.md\ncairn/changes/owned-source-agpl/tasks.md\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "read Git-only source baseline",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "0db80df1c019c110e908fa4ed0603e0d52129afb\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "read Git-only source baseline",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "dace0c70eef55baaaa1af2c9162a7f64d629299a\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "inspect new source selection paths",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "git",
+        "ls-files",
+        "--others",
+        "--exclude-standard"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": ".cairn/changes/owned-source-agpl/design.md\n.cairn/changes/owned-source-agpl/evidence/preimplementation-gates.md\n.cairn/changes/owned-source-agpl/metadata.json\n.cairn/changes/owned-source-agpl/proposal.md\n.cairn/changes/owned-source-agpl/specs/owned-source-licensing/spec.md\n.cairn/changes/owned-source-agpl/tasks.md\nLICENSE\nNOTICE\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "inspect new source selection paths",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "git",
+        "ls-files",
+        "--others",
+        "--exclude-standard"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": ".cairn/changes/adopt-owned-source-agpl/design.md\n.cairn/changes/adopt-owned-source-agpl/metadata.json\n.cairn/changes/adopt-owned-source-agpl/proposal.md\n.cairn/changes/adopt-owned-source-agpl/specs/owned-source-license/spec.md\n.cairn/changes/adopt-owned-source-agpl/tasks.md\nLICENSE-AGPL\ncairn/changes/add-recovery-artifact-profile/design.md\ncairn/changes/add-recovery-artifact-profile/proposal.md\ncairn/changes/add-recovery-artifact-profile/specs/durable-file-publication/spec.md\ncairn/changes/add-recovery-artifact-profile/tasks.md\ncairn/changes/replication-before-acknowledge/design.md\ncairn/changes/replication-before-acknowledge/metadata.json\ncairn/changes/replication-before-acknowledge/proposal.md\ncairn/changes/replication-before-acknowledge/specs/durability-acknowledgment/spec.md\ncairn/changes/replication-before-acknowledge/tasks.md\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "inspect new source selection paths",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "git",
+        "ls-files",
+        "--others",
+        "--exclude-standard"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": ".cairn/changes/owned-source-agpl/design.md\n.cairn/changes/owned-source-agpl/evidence/preimplementation-gates.md\n.cairn/changes/owned-source-agpl/metadata.json\n.cairn/changes/owned-source-agpl/proposal.md\n.cairn/changes/owned-source-agpl/specs/owned-source-licensing/spec.md\n.cairn/changes/owned-source-agpl/tasks.md\nLICENSE-MIT\nNOTICE\ncrates/schema-identity-conformance/LICENSE\ncrates/schema-identity-conformance/LICENSE-MIT\ncrates/schema-identity-conformance/NOTICE\ncrates/schema-identity-core/LICENSE\ncrates/schema-identity-core/LICENSE-MIT\ncrates/schema-identity-core/NOTICE\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "inspect tracked source selection changes",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "git",
+        "diff",
+        "--name-only",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "Cargo.toml\nLICENSE\nREADME.md\nSOURCE.md\nsrc/lib.rs\ntests/boundary.rs\ntests/identity.rs\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "inspect tracked source selection changes",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "git",
+        "diff",
+        "--name-only",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": ".cairn/specs/git-cob-store/spec.md\nCargo.toml\nREADME.md\nsrc/lib.rs\ntests/git_store.rs\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "inspect tracked source selection changes",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "git",
+        "diff",
+        "--name-only",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "Cargo.toml\nLICENSE\nREADME.md\nSOURCE.md\ncrates/schema-identity-conformance/src/lib.rs\ncrates/schema-identity-core/src/lib.rs\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "inspect tracked source selection changes",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "git",
+        "diff",
+        "--name-only",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": ".cairn/specs/durable-file-publication/spec.md\nCargo.toml\nLICENSE\nNOTICE\nREADME.md\ncairn/specs/durable-file-publication/spec.md\nconfig/contracts.ncl\nconfig/repository.json\nconfig/repository.ncl\nflake.nix\nprovenance/SOURCE.md\nrelease/profile.json\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "basalt",
+      "label": "inspect new source selection paths",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "git",
+        "ls-files",
+        "--others",
+        "--exclude-standard"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "basalt",
+      "label": "inspect tracked source selection changes",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "git",
+        "diff",
+        "--name-only",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "",
+      "stdout_complete": true
+    },
+    {
+      "owner": "ucan",
+      "label": "inspect new source selection paths",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "git",
+        "ls-files",
+        "--others",
+        "--exclude-standard"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": ".cairn/changes/prepare-owned-source-agpl/design.md\n.cairn/changes/prepare-owned-source-agpl/evidence/final-verification.json\n.cairn/changes/prepare-owned-source-agpl/evidence/implementation-handoff.txt\n.cairn/changes/prepare-owned-source-agpl/evidence/preimplementation-blocker.txt\n.cairn/changes/prepare-owned-source-agpl/evidence/preimplementation-gates.txt\n.cairn/changes/prepare-owned-source-agpl/proposal.md\n.cairn/changes/prepare-owned-source-agpl/specs/license-boundary/spec.md\n.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\n.cairn/changes/prepare-owned-source-agpl/tasks.md\n.cairn/specs/owned-source-agpl/spec.md\nLICENSE\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "ucan",
+      "label": "inspect tracked source selection changes",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "git",
+        "diff",
+        "--name-only",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": ".cairn/specs/license-boundary/spec.md\nREADME.md\ncrates/ucan-core/Cargo.toml\ncrates/ucan-core/LICENSE\ndocs/licensing.md\nexamples/pentest_chain.rs\nlicense-policy.tsv\ntools/check-license-boundary.rs\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-migration-core",
+      "label": "inspect snapshot source scope",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "command": [
+        "jj",
+        "--ignore-working-copy",
+        "diff",
+        "--summary",
+        "-r",
+        "07b5e157bcf9efb7e72937668aabfd7112af9c5c"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "A .cairn/changes/owned-source-agpl/design.md\nA .cairn/changes/owned-source-agpl/evidence/preimplementation-gates.md\nA .cairn/changes/owned-source-agpl/metadata.json\nA .cairn/changes/owned-source-agpl/proposal.md\nA .cairn/changes/owned-source-agpl/specs/owned-source-licensing/spec.md\nA .cairn/changes/owned-source-agpl/tasks.md\nM Cargo.toml\nM LICENSE\nA LICENSE-MIT\nA NOTICE\nM README.md\nM SOURCE.md\nC {LICENSE => crates/schema-migration-conformance/LICENSE}\nA crates/schema-migration-conformance/LICENSE-MIT\nA crates/schema-migration-conformance/NOTICE\nM crates/schema-migration-conformance/src/lib.rs\nC {LICENSE => crates/schema-migration-core/LICENSE}\nA crates/schema-migration-core/LICENSE-MIT\nA crates/schema-migration-core/NOTICE\nM crates/schema-migration-core/src/lib.rs\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kamacite",
+      "label": "inspect snapshot source scope",
+      "cwd": "/home/brittonr/git/OnixResearch/kamacite",
+      "command": [
+        "jj",
+        "--ignore-working-copy",
+        "diff",
+        "--summary",
+        "-r",
+        "3688fbfdafe15260c206e82bd176abd55dd2810e"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "M .cairn/changes/add-wit-component-adapter-suite/extraction-feasibility.md\nA .cairn/changes/prepare-owned-agpl/design.md\nA .cairn/changes/prepare-owned-agpl/metadata.json\nA .cairn/changes/prepare-owned-agpl/proposal.md\nA .cairn/changes/prepare-owned-agpl/specs/packaging-and-validation-rails/spec.md\nA .cairn/changes/prepare-owned-agpl/tasks.md\nM .cairn/specs/packaging-and-validation-rails/spec.md\nM Cargo.toml\nA LICENSE\nM README.md\nA cairn/changes/add-adjacent-schema-migration-contracts/design.md\nA cairn/changes/add-adjacent-schema-migration-contracts/metadata.json\nA cairn/changes/add-adjacent-schema-migration-contracts/proposal.md\nA cairn/changes/add-adjacent-schema-migration-contracts/specs/schema-vocabulary/spec.md\nA cairn/changes/add-adjacent-schema-migration-contracts/tasks.md\nA crates/kamacite-core/LICENSE\nM crates/kamacite-core/LICENSE-APACHE\nM crates/kamacite-core/LICENSE-MIT\nM docs/licensing.md\nM license-policy.tsv\nM pilots/schema-migration/Cargo.toml\nA pilots/schema-migration/LICENSE\nM tools/check-license-boundary.rs\n",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-migration-core",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/schema-migration-core/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kiln",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln-public/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/content-identity-core/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kamacite",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/kamacite",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kamacite-public/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "basalt",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/basalt-public/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/durable-file-publication/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "trellis",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/trellis",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/trellis-public/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "ucan",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/ucan-public/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/schema-identity-core/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "verify Actions upload guard",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/radicle-cob-git-store/actions/permissions"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"enabled\":false,\"sha_pinning_required\":false}",
+      "stdout_complete": true
+    },
+    {
+      "owner": "kamacite",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/kamacite",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kamacite-public"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867443,\"node_id\":\"R_kgDOVN5-Mw\",\"name\":\"kamacite-public\",\"full_name\":\"OnixResearch/kamacite-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/kamacite-public\",\"description\":\"Source ",
+      "stdout_complete": false
+    },
+    {
+      "owner": "schema-identity-core",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/schema-identity-core"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867440,\"node_id\":\"R_kgDOVN5-MA\",\"name\":\"schema-identity-core\",\"full_name\":\"OnixResearch/schema-identity-core\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/schema-identity-core\",\"descri",
+      "stdout_complete": false
+    },
+    {
+      "owner": "ucan",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/ucan",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/ucan-public"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867434,\"node_id\":\"R_kgDOVN5-Kg\",\"name\":\"ucan-public\",\"full_name\":\"OnixResearch/ucan-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/ucan-public\",\"description\":\"Source projection o",
+      "stdout_complete": false
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/radicle-cob-git-store"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867432,\"node_id\":\"R_kgDOVN5-KA\",\"name\":\"radicle-cob-git-store\",\"full_name\":\"OnixResearch/radicle-cob-git-store\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/radicle-cob-git-store\",\"des",
+      "stdout_complete": false
+    },
+    {
+      "owner": "trellis",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/trellis",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/trellis-public"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867438,\"node_id\":\"R_kgDOVN5-Lg\",\"name\":\"trellis-public\",\"full_name\":\"OnixResearch/trellis-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/trellis-public\",\"description\":\"Source pro",
+      "stdout_complete": false
+    },
+    {
+      "owner": "durable-file-publication",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/durable-file-publication"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867442,\"node_id\":\"R_kgDOVN5-Mg\",\"name\":\"durable-file-publication\",\"full_name\":\"OnixResearch/durable-file-publication\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/durable-file-publicat",
+      "stdout_complete": false
+    },
+    {
+      "owner": "basalt",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/basalt",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/basalt-public"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867430,\"node_id\":\"R_kgDOVN5-Jg\",\"name\":\"basalt-public\",\"full_name\":\"OnixResearch/basalt-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/basalt-public\",\"description\":\"Source projec",
+      "stdout_complete": false
+    },
+    {
+      "owner": "kiln",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/kiln-public"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867429,\"node_id\":\"R_kgDOVN5-JQ\",\"name\":\"kiln-public\",\"full_name\":\"OnixResearch/kiln-public\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/kiln-public\",\"description\":\"Source projection o",
+      "stdout_complete": false
+    },
+    {
+      "owner": "schema-migration-core",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/schema-migration-core"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867441,\"node_id\":\"R_kgDOVN5-MQ\",\"name\":\"schema-migration-core\",\"full_name\":\"OnixResearch/schema-migration-core\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/schema-migration-core\",\"des",
+      "stdout_complete": false
+    },
+    {
+      "owner": "content-identity-core",
+      "label": "verify staging repository metadata",
+      "cwd": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "command": [
+        "gh",
+        "api",
+        "repos/OnixResearch/content-identity-core"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout_excerpt": "{\"id\":1423867439,\"node_id\":\"R_kgDOVN5-Lw\",\"name\":\"content-identity-core\",\"full_name\":\"OnixResearch/content-identity-core\",\"private\":true,\"owner\":{\"login\":\"OnixResearch\",\"id\":276673343,\"node_id\":\"O_kgDOEH2zPw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/276673343?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/OnixResearch\",\"html_url\":\"https://github.com/OnixResearch\",\"followers_url\":\"https://api.github.com/users/OnixResearch/followers\",\"following_url\":\"https://api.github.com/users/OnixResearch/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/OnixResearch/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/OnixResearch/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/OnixResearch/subscriptions\",\"organizations_url\":\"https://api.github.com/users/OnixResearch/orgs\",\"repos_url\":\"https://api.github.com/users/OnixResearch/repos\",\"events_url\":\"https://api.github.com/users/OnixResearch/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/OnixResearch/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/OnixResearch/content-identity-core\",\"des",
+      "stdout_complete": false
+    }
+  ]
+}

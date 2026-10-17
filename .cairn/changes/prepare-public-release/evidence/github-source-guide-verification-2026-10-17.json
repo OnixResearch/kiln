@@ -1,0 +1,119 @@
+{
+  "schema": "kiln.github-source-guide-verification.v1",
+  "owner": "Workspace maintainers own catalog generation; Kiln maintainers retain this source-publication operator observation.",
+  "scope": "Nine newly public source endpoints in the workspace catalog and generated guides; no generator implementation changes.",
+  "observed_at_utc": "2026-10-18T01:21:36.884Z",
+  "catalog": "../docs/catalog.ncl",
+  "canonical_generator": {
+    "source": "../tools/generate-workspace-docs",
+    "cargo_lock_unchanged": true,
+    "build": {
+      "exit": 0,
+      "mode": "cargo build --offline --locked with isolated CARGO_TARGET_DIR",
+      "compiler": "/nix/store/h0bm0ddpc57am27ll62m23284i9an2h9-rustc-1.94.1/bin/rustc",
+      "stderr": "   Compiling proc-macro2 v1.0.107\n   Compiling unicode-ident v1.0.24\n   Compiling quote v1.0.47\n   Compiling serde_core v1.0.228\n   Compiling zmij v1.0.23\n   Compiling serde v1.0.228\n   Compiling serde_json v1.0.149\n   Compiling itoa v1.0.18\n   Compiling memchr v2.8.3\n   Compiling syn v2.0.119\n   Compiling serde_derive v1.0.228\n   Compiling workspace-docs-renderer v0.1.0 (/home/brittonr/git/OnixResearch/tools/generate-workspace-docs)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.42s\n"
+    }
+  },
+  "checks": [
+    {
+      "label": "export current guide catalog with cached Nickel",
+      "cwd": "/home/brittonr/git/OnixResearch",
+      "command": [
+        "/nix/store/rpf5p41q462hmrk3wyzf9almj56hkd57-nickel-1.17.0/bin/nickel",
+        "export",
+        "--format",
+        "json",
+        "docs/catalog.ncl"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Catalog JSON retained only as temporary generator input; 25007 output bytes."
+    },
+    {
+      "label": "generate canonical repository guide sections",
+      "cwd": "/home/brittonr/git/OnixResearch",
+      "command": [
+        "/var/tmp/onix-guides-20261017.kNhpmu/target/debug/workspace-docs-renderer",
+        "--catalog-json",
+        "/var/tmp/onix-guides-20261017.kNhpmu/catalog.json",
+        "--wiki",
+        "WIKI.adoc",
+        "--vocabulary",
+        "VOCABULARY.adoc",
+        "--agents",
+        "AGENTS.md"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "regenerated workspace AsciiDoc: WIKI.adoc\n"
+    },
+    {
+      "label": "check canonical generated guide freshness",
+      "cwd": "/home/brittonr/git/OnixResearch",
+      "command": [
+        "/var/tmp/onix-guides-20261017.kNhpmu/target/debug/workspace-docs-renderer",
+        "--catalog-json",
+        "/var/tmp/onix-guides-20261017.kNhpmu/catalog.json",
+        "--wiki",
+        "WIKI.adoc",
+        "--vocabulary",
+        "VOCABULARY.adoc",
+        "--agents",
+        "AGENTS.md",
+        "--check"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "workspace AsciiDoc is fresh\n"
+    },
+    {
+      "label": "render canonical compatibility HTML with warnings fatal",
+      "cwd": "/home/brittonr/git/OnixResearch",
+      "command": [
+        "/nix/store/a1g95j7mfaqrmp4z8hvsd358807gnk5r-asciidoctor-2.0.26/bin/asciidoctor",
+        "--failure-level",
+        "WARN",
+        "WIKI.adoc",
+        "VOCABULARY.adoc"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": ""
+    }
+  ],
+  "rendered_link_observation": {
+    "path": "../WIKI.html",
+    "all_nine_public_github_source_links_present": true,
+    "method": "Observed actual rendered HTML hrefs for each new public source URL."
+  },
+  "packaged_entry_point": {
+    "attempts": [
+      {
+        "command": [
+          "nix",
+          "run",
+          ".#generate-docs",
+          "--no-write-lock-file"
+        ],
+        "state": "cancelled",
+        "observation": "Automatic GC requested approximately 96 GB and waited for the big garbage collector lock; store free space observed as 41126723584 bytes."
+      },
+      {
+        "command": [
+          "nix",
+          "run",
+          ".#generate-docs",
+          "--no-write-lock-file",
+          "--option",
+          "min-free",
+          "0"
+        ],
+        "state": "cancelled_without_completed_result",
+        "observation": "Environment acquisition reported copying a Nix input source; the invocation was cancelled before a completed result was received."
+      }
+    ],
+    "nix_daemon_settings_changed": false,
+    "full_nix_site_render_audit_claimed": false
+  },
+  "result": "Canonical generated sections are fresh. Both compatibility HTML files rendered with Asciidoctor --failure-level WARN and no warnings; all nine public source hrefs were observed. The full packaged Nix/Site entry point is not recorded as PASS."
+}

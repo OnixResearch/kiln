@@ -1,0 +1,688 @@
+{
+  "schema": "kiln.github-source-projection-scan-review.v1",
+  "scope": "Nine exact historyless source payloads. Review covers the reported scanner matches, not exhaustive privacy, rights, legal compatibility or production certification.",
+  "scanner": "gitleaks 8.30.1",
+  "configuration": {
+    "default_rules": true,
+    "empty_ignore_file": true,
+    "ignore_inline_gitleaks_allow": true,
+    "redact": 100,
+    "max_archive_depth": 3,
+    "max_decode_depth": 5,
+    "no_baseline": true
+  },
+  "source_payloads": [
+    {
+      "owner": "basalt",
+      "archive_blake3": "5f86c08690fa0a556fface1730f0bb7ced5de22617e2238c63d8ef6887b41168",
+      "manifest_blake3": "e39fb4a2e5f9ea5385bf36d9a74ff893940435bafe983f01e6dcafedf9c8978a",
+      "projection_commit": "ef7192d4a718581012d8827d89e1c32b30c460b6",
+      "scanner_exit": 1,
+      "scanner_pass": false,
+      "known_findings_reviewed": 9,
+      "known_findings": [
+        {
+          "index": 0,
+          "rule": "generic-api-key",
+          "path": ".cairn/archive/2026-08-11-bind-verified-nostr-identities/evidence/producer-identities.json",
+          "line": 4,
+          "end_line": 4,
+          "fingerprint": ".cairn/archive/2026-08-11-bind-verified-nostr-identities/evidence/producer-identities.json:generic-api-key:4",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source and producer evidence",
+              "explanation": "Within basalt, .cairn/archive/2026-08-11-bind-verified-nostr-identities/evidence/producer-identities.json:1–11 records producer schemas and implementation/source identities; line 5 incorporates the matched revision into the named VerifiedNostrCredential contract. src/nostr_identity.rs:27–33 explicitly defines the same value as the reviewed source revision that introduced VerifiedNostrCredential. It is a 40-hex source commit identity, not a Nostr private scalar, Ed25519 seed, or credential value."
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "rule": "generic-api-key",
+          "path": "contracts/nostr-identity/generated/identities.json",
+          "line": 4,
+          "end_line": 4,
+          "fingerprint": "contracts/nostr-identity/generated/identities.json:generic-api-key:4",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source and producer evidence",
+              "explanation": "Within basalt, contracts/nostr-identity/generated/identities.json:1–11 places the match among source revisions, producer schemas, and BLAKE3 identities. The adjacent credential_contract field identifies the producer API at that revision. src/nostr_identity.rs:27–33 documents the matching constant as the source revision introducing VerifiedNostrCredential, while contracts/nostr-identity/contracts.ncl:60–65 declares the same source/contract identity. This separately accounts for the generated-file occurrence."
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "rule": "generic-api-key",
+          "path": "contracts/nostr-identity/contracts.ncl",
+          "line": 63,
+          "end_line": 63,
+          "fingerprint": "contracts/nostr-identity/contracts.ncl:generic-api-key:63",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source and producer evidence",
+              "explanation": "Within basalt, contracts/nostr-identity/contracts.ncl:60–65 defines an identity record containing the policy schema, integrated UCAN source revision, credential-introduction revision, and versioned producer contract. src/nostr_identity.rs:29–33 documents and repeats the matched source revision. The policy's public_key field is separately declared at contracts/nostr-identity/contracts.ncl:23–35; the scanner match is not that key field or a private key."
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "rule": "generic-api-key",
+          "path": "contracts/oidc-exchange/source-contracts.ncl",
+          "line": 6,
+          "end_line": 6,
+          "fingerprint": "contracts/oidc-exchange/source-contracts.ncl:generic-api-key:6",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source and producer evidence",
+              "explanation": "Within basalt, contracts/oidc-exchange/source-contracts.ncl:1–8 declares the reviewed jsonwebtoken version, upstream revision, and crate checksum. Its validator maps this match specifically to jsonwebtoken.upstream_revision at lines 26–30; contracts/oidc-exchange/source-boundary.ncl:9–13 performs that projection. src/oidc_exchange/mod.rs:45–48 explicitly documents the same constant as the immutable upstream object for the reviewed release. This is dependency provenance, not a JWT or API key."
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "rule": "generic-api-key",
+          "path": "contracts/oidc-exchange/source-contracts.ncl",
+          "line": 7,
+          "end_line": 7,
+          "fingerprint": "contracts/oidc-exchange/source-contracts.ncl:generic-api-key:7",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source and lockfile evidence",
+              "explanation": "Within basalt, contracts/oidc-exchange/source-contracts.ncl:26–30 validates the match specifically as jsonwebtoken.crate_checksum; contracts/oidc-exchange/source-boundary.ncl:9–13 exports that field. Cargo.lock:1152–1156 independently contains the identical checksum for jsonwebtoken version 11.0.0 from the crates.io registry. This is the package's 64-hex integrity checksum, not authentication material."
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "rule": "generic-api-key",
+          "path": "contracts/secretspec-issuer/fixtures/positive/issuer-key-declaration.json",
+          "line": 4,
+          "end_line": 4,
+          "fingerprint": "contracts/secretspec-issuer/fixtures/positive/issuer-key-declaration.json:generic-api-key:4",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Declaration and producer evidence",
+              "explanation": "Within basalt, contracts/secretspec-issuer/fixtures/positive/issuer-key-declaration.json:1–17 contains declaration metadata, a key identifier, and a credential-free env provider spec, not a key value. src/secretspec_issuer.rs:79–103 defines IssuerKeyDeclaration as metadata-only with no key value; lines 198–203 compare secretspec_commit with the reviewed dependency constant. src/secretspec_issuer_identity.rs:3–10 identifies that constant as the upstream v0.17.0 tag commit. tests/secretspec_issuer.rs:6–21 and 69–91 load this declaration and supply a fabricated resolution response. Classification follows the matched commit identity, not merely the fixture name or its production profile label."
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "rule": "generic-api-key",
+          "path": "tests/ucan_enforcement/onixos_targets.rs",
+          "line": 94,
+          "end_line": 94,
+          "fingerprint": "tests/ucan_enforcement/onixos_targets.rs:generic-api-key:94",
+          "classification": "synthetic_fixture",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Negative-test execution context",
+              "explanation": "Within basalt, tests/ucan_enforcement/onixos_targets.rs:57–104 supplies the matched literal as a resource outside the reviewed prefix in onixos_action_substitutions_fail_before_replay, then asserts ScopeDenied. It is a short placeholder DID/resource string used directly in a negative test, not signing material or an authenticating credential. The request is checked by action binding rather than used to contact a service. The surrounding test support's signer constructor at tests/ucan_enforcement/support/fixtures.rs:96–98 explicitly constructs deterministic repeated-byte test seeds; no live key retrieval is needed for this test context."
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "rule": "generic-api-key",
+          "path": "vendor/ucan/src/profile/v1_authorization/tests.rs",
+          "line": 278,
+          "end_line": 278,
+          "fingerprint": "vendor/ucan/src/profile/v1_authorization/tests.rs:generic-api-key:278",
+          "classification": "synthetic_fixture",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Fixture construction and isolation",
+              "explanation": "Within basalt, vendor/ucan/src/profile/v1_authorization/tests.rs:255–287 uses the match as an intentionally wrong executor and asserts a denied outcome with zero replay calls. The test's keys are constructed by signing_key from repeated-byte seeds at lines 79–84 and registered in an in-memory public-key map at lines 267–269; they are not loaded from live credential storage. vendor/ucan/src/profile/v1_authorization.rs:615–617 includes this module only under cfg(test). The matched value itself is a deliberately synthetic executor identifier, not any of those seeds."
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "rule": "generic-api-key",
+          "path": "vendor/ucan/src/verified.rs",
+          "line": 2714,
+          "end_line": 2714,
+          "fingerprint": "vendor/ucan/src/verified.rs:generic-api-key:2714",
+          "classification": "synthetic_fixture",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Fixture use and checked operation",
+              "explanation": "Within basalt, vendor/ucan/src/verified.rs:2711–2718 assigns the match to wrong_child_issuer and verifies that linkage fails against the parent audience. The enclosing module is cfg(test) at lines 2019–2020. proof_link_is_valid at lines 714–740 passes the identifiers' bytes into a structural audience/issuer linkage check and explicitly does not perform signature verification, proof resolution, or external lookup. The literal is a synthetic mismatch identifier, not secret key material."
+            }
+          ]
+        }
+      ],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "kamacite",
+      "archive_blake3": "3c3ab0e9588734b5ffda9a0a30586bd1d8ca056fc70047a09b9a7d752c4b71f8",
+      "manifest_blake3": "db586ea8267256bcc715c34e60a11c7f6d09336ef41ac3b4fe9ba09552cdaebe",
+      "projection_commit": "99bf2100c239cee3d3d445a3de6a5ab44fa6952a",
+      "scanner_exit": 0,
+      "scanner_pass": true,
+      "known_findings_reviewed": 0,
+      "known_findings": [],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "ucan",
+      "archive_blake3": "73af36ddf85b26d261033e881e69540e657e2e6d9f66169a3d94ac53bbd10f68",
+      "manifest_blake3": "621ffff11a370e5c8f5cc47d39852b24ab3978ce492b3379f8ef47e4dbbe10f1",
+      "projection_commit": "4d8acab764c73a90c33f471d4ee4cae82311bbf4",
+      "scanner_exit": 1,
+      "scanner_pass": false,
+      "known_findings_reviewed": 15,
+      "known_findings": [
+        {
+          "index": 0,
+          "rule": "generic-api-key",
+          "path": "fixtures/1.0.0/delegation.json",
+          "line": 12,
+          "end_line": 12,
+          "fingerprint": "fixtures/1.0.0/delegation.json:generic-api-key:12",
+          "classification": "synthetic_fixture",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Exact fixture context",
+              "explanation": "ucan/fixtures/1.0.0/delegation.json:2-11 identifies the protocol version, explicitly documents private-principal encoding, bundles named test principals, and labels the case a basic delegation. Lines 14-30 give Ed25519/DAG-CBOR metadata, a /account command, empty policy, and expiration 1753353393, already past at review time."
+            },
+            {
+              "label": "Pinned import and bounded consumer evidence",
+              "explanation": "ucan/fixtures/1.0.0/manifest.json:5-13 records the upstream spec repository, pinned revision, and byte identities. ucan/src/profile/v1/tests.rs:257-281 consumes envelope metadata; ucan/examples/protocol_profile_report.rs:93-98,212-227 reconstructs metadata and signs a separate local round trip with a fixed test seed. ucan/docs/protocol-profiles.md:79-83 explicitly disclaims upstream token/CID byte parity. This review did not execute these consumers or cryptographically verify the original stored token."
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "rule": "generic-api-key",
+          "path": "fixtures/1.0.0/delegation.json",
+          "line": 16,
+          "end_line": 16,
+          "fingerprint": "fixtures/1.0.0/delegation.json:generic-api-key:16",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Public issuer field",
+              "explanation": "ucan/fixtures/1.0.0/delegation.json:14-18 places the match in envelope.payload.iss, the public issuer identifier, distinct from private test principals at lines 3-7. ucan/src/profile/v1/tests.rs:257-272 consumes it as issuer metadata."
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "rule": "generic-api-key",
+          "path": "fixtures/1.0.0/delegation.json",
+          "line": 17,
+          "end_line": 17,
+          "fingerprint": "fixtures/1.0.0/delegation.json:generic-api-key:17",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Public audience field",
+              "explanation": "ucan/fixtures/1.0.0/delegation.json:14-18 places the match in envelope.payload.aud. ucan/src/profile/v1/tests.rs:257-276 consumes it as public audience metadata, not signing material."
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "rule": "generic-api-key",
+          "path": "fixtures/1.0.0/delegation.json",
+          "line": 18,
+          "end_line": 18,
+          "fingerprint": "fixtures/1.0.0/delegation.json:generic-api-key:18",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Public subject field",
+              "explanation": "ucan/fixtures/1.0.0/delegation.json:16-20 stores this match in envelope.payload.sub, repeating the public issuer identifier as subject; private test principals are separately identified at lines 3-7."
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md",
+          "line": 18,
+          "end_line": 18,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md:generic-api-key:18",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Distinct public issuer occurrence",
+              "explanation": "ucan/openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md:18 quotes the issuer printed by issue_and_verify. Index 4 is the issuer occurrence at columns 64-116; index 5 shares its fingerprint but is the audience occurrence. ucan/src/token.rs:1864-1866,2080-2083 derives issuer DIDs from public verification keys."
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md",
+          "line": 18,
+          "end_line": 18,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md:generic-api-key:18",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Distinct public audience occurrence",
+              "explanation": "ucan/openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md:18 quotes the audience printed by issue_and_verify. This is the separate occurrence at columns 134-186, not index 4's issuer. ucan/examples/issue_and_verify.rs:29-31 obtains the audience from a test signer's public issuer DID."
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md",
+          "line": 19,
+          "end_line": 19,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md:generic-api-key:19",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Public proof-chain identity",
+              "explanation": "ucan/openspec/changes/archive/2026-04-25-harden-production-signers/tasks.md:19 quotes proof_chain output. ucan/examples/proof_chain.rs:31-48 constructs local test signers, and lines 58-60 verify the child and print its public issuer. No private seed occurs in this matched field."
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt",
+          "line": 147,
+          "end_line": 147,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:generic-api-key:147",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Public example issuer",
+              "explanation": "ucan/openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:142-149 records issue_and_verify output; line 147 is explicitly labeled issuer. ucan/src/token.rs:1864-1866,2080-2083 derives this form from public-key bytes, not private seed serialization."
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt",
+          "line": 148,
+          "end_line": 148,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:generic-api-key:148",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Public example audience",
+              "explanation": "ucan/openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:142-149 records issue_and_verify output; line 148 is explicitly labeled audience. ucan/examples/issue_and_verify.rs:29-31 derives the audience identifier from the local test signer's public issuer DID."
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt",
+          "line": 155,
+          "end_line": 155,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:generic-api-key:155",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Public child identity",
+              "explanation": "ucan/openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:151-157 attributes this public child issuer to proof_chain. ucan/examples/proof_chain.rs:31-48 constructs local test signers and lines 58-60 verify and print the child issuer, not secret-key bytes."
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "rule": "jwt",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt",
+          "line": 146,
+          "end_line": 146,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:jwt:146",
+          "classification": "synthetic_fixture",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Historical token provenance",
+              "explanation": "ucan/openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:142-149 attributes this JWT to the local issue_and_verify example and prints its public issuer/audience. Its claims use synthetic Unix time bounds 1000–2000, an empty proof list, and the example store/add capability, not a live service session."
+            },
+            {
+              "label": "Source-supported synthetic signing path",
+              "explanation": "The contemporaneous archived design.md:1-3 explicitly says the examples construct signing keys from fixed seed bytes. ucan/examples/issue_and_verify.rs:19-43 retains fixed test-seed construction, synthetic time bounds, and a local verification context. The current example prints only token length at line 45; the archived raw JWT remains present and was assessed on its provenance, not assumed safe because the file is an evidence log."
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt",
+          "line": 146,
+          "end_line": 146,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:generic-api-key:146",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Decoded public issuer, not a separate credential",
+              "explanation": "ucan-gitleaks.json:223-243 records a base64-decoded, depth-1 generic-api-key match within the JWT at line 146. This occurrence is its public iss DID, also printed in clear as issuer at redaction-slice-verification.txt:147; it is not a signing key. The reported entropy matches that separate public-issuer occurrence. Index 12 shares the fingerprint and encoded range but is the audience match."
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "rule": "generic-api-key",
+          "path": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt",
+          "line": 146,
+          "end_line": 146,
+          "fingerprint": "openspec/changes/archive/2026-04-25-harden-production-signers/evidence/redaction-slice-verification.txt:generic-api-key:146",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Decoded public audience, separately covered",
+              "explanation": "ucan-gitleaks.json:246-266 records the second depth-1 base64-decoded match in the same JWT at line 146. This occurrence is the public aud DID, also printed as audience at redaction-slice-verification.txt:148; its reported entropy matches that public audience. It is separately covered from index 11 despite identical fingerprint and encoded source range."
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "rule": "generic-api-key",
+          "path": "src/profile/v1_authorization/tests.rs",
+          "line": 278,
+          "end_line": 278,
+          "fingerprint": "src/profile/v1_authorization/tests.rs:generic-api-key:278",
+          "classification": "synthetic_fixture",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Isolated negative authorization fixture",
+              "explanation": "ucan/src/profile/v1_authorization/tests.rs:255-287 passes a deliberately wrong, human-readable executor placeholder into executor_mismatch_denies_before_replay, then asserts an executor denial and zero replay calls. Lines 11-18,71-84 provide in-memory proof/key stores and deterministic test keys. ucan/src/profile/v1_authorization.rs:615-617 includes this file only under cfg(test)."
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "rule": "generic-api-key",
+          "path": "src/verified.rs",
+          "line": 2714,
+          "end_line": 2714,
+          "fingerprint": "src/verified.rs:generic-api-key:2714",
+          "classification": "synthetic_fixture",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Test-only structural linkage fixture",
+              "explanation": "ucan/src/verified.rs:2712-2720 assigns a human-readable parent-audience placeholder, reuses it as child issuer for a positive assertion, and supplies a different placeholder for rejection. The containing module is cfg(test) at lines 2019-2020. The tested proof_link_is_valid at lines 714-740 checks structural audience/issuer linkage; it performs no signature verification, key lookup, or remote access."
+            }
+          ]
+        }
+      ],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "content-identity-core",
+      "archive_blake3": "82b08048a2f6468ed865e76b39b7b2be6d6b61a3ae76535566e72c0e017856ac",
+      "manifest_blake3": "71c0d2e634caeb343fb4d69349736ae64b0458dee6b427458a907ed295a00009",
+      "projection_commit": "f8b00069f0077eee002b7f537a1495fe283ca426",
+      "scanner_exit": 0,
+      "scanner_pass": true,
+      "known_findings_reviewed": 0,
+      "known_findings": [],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "durable-file-publication",
+      "archive_blake3": "aa299eabb89e1d6dafd2790fe11412cf0c921b5000852bbabf8c22b087a0cb71",
+      "manifest_blake3": "177e12b3d8714f5018ff3a7a6bef730ff86b600d458157d2565e6d4af14daa78",
+      "projection_commit": "76543d374b34aa52825bc0e48d0f205542c47bf7",
+      "scanner_exit": 1,
+      "scanner_pass": false,
+      "known_findings_reviewed": 4,
+      "known_findings": [
+        {
+          "index": 0,
+          "rule": "generic-api-key",
+          "path": "cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md",
+          "line": 77,
+          "end_line": 77,
+          "fingerprint": "cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md:generic-api-key:77",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source classification",
+              "explanation": "Within durable-file-publication, cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md:77 identifies the match as the publishing Radicle delegate. docs/DISTRIBUTION.md:5–8 independently records the same delegate beside the RID and clone remote. The match is a public Ed25519 did:key identifier, not signing material or a provider/source hash."
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "rule": "generic-api-key",
+          "path": "cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md",
+          "line": 81,
+          "end_line": 81,
+          "fingerprint": "cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md:generic-api-key:81",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source classification",
+              "explanation": "Within durable-file-publication, cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md:81 explicitly identifies the match as Aspen1's separate seed identity for signed-ref replication. docs/DISTRIBUTION.md:18–22 corroborates that role. The adjacent private-SSH bootstrap description does not make the matched public DID an SSH credential, and the match is not one of the surrounding Git revision or checksum identities."
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "rule": "generic-api-key",
+          "path": "docs/DISTRIBUTION.md",
+          "line": 6,
+          "end_line": 6,
+          "fingerprint": "docs/DISTRIBUTION.md:generic-api-key:6",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source classification",
+              "explanation": "Within durable-file-publication, docs/DISTRIBUTION.md:5–16 places the matched Delegate field alongside the Radicle RID, branch, remote, and clone instructions. cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md:77 records the same public publisher identity. This occurrence is separately accounted for rather than collapsed with report index 0. A public Ed25519 DID does not contain the delegate's private signing key."
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "rule": "generic-api-key",
+          "path": "docs/DISTRIBUTION.md",
+          "line": 20,
+          "end_line": 20,
+          "fingerprint": "docs/DISTRIBUTION.md:generic-api-key:20",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Source classification",
+              "explanation": "Within durable-file-publication, docs/DISTRIBUTION.md:18–22 identifies the match as Aspen1's separate Radicle seed identity while distinguishing private SSH as a bootstrap transport. cairn/archive/2026-07-27-establish-durable-file-publication/evidence/validation.md:81 corroborates the public signed-ref replication identity. This separately retained report occurrence contains no secret key bytes or provider credential."
+            }
+          ]
+        }
+      ],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "schema-identity-core",
+      "archive_blake3": "8621007894f3a776c2a0775952393c4a19e197f3292f41e93be094bf4f0e2d38",
+      "manifest_blake3": "85177e2c72ed9bd74a319ee741380ce7c319b7c655f3eacc50bd9a811ffed6d7",
+      "projection_commit": "50bd13f76359c4206173c5e8a7de1e4383104a7d",
+      "scanner_exit": 0,
+      "scanner_pass": true,
+      "known_findings_reviewed": 0,
+      "known_findings": [],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "schema-migration-core",
+      "archive_blake3": "5b0487afbcba04693e057adb71f5bb68b171e1589999ed7da03ddbaed5e5e5db",
+      "manifest_blake3": "4aeb04b64a8c531069e27c302d827ecbae6fa25d6f27c5fe2330e84d849c98cb",
+      "projection_commit": "0e7b5429d7bf377ed1efb5ec9e8bd3ba038bcc44",
+      "scanner_exit": 0,
+      "scanner_pass": true,
+      "known_findings_reviewed": 0,
+      "known_findings": [],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "archive_blake3": "fdc8f03ce1445401084b1823ebba73ef9ff140c2dab09c5ac72c8b7a25d440bc",
+      "manifest_blake3": "47da22c0261ba352888f424ba4681704508954be36c225b54525ba1f02be61af",
+      "projection_commit": "677c0fe017bb792ac0a8a8e8221b58851ece90f7",
+      "scanner_exit": 0,
+      "scanner_pass": true,
+      "known_findings_reviewed": 0,
+      "known_findings": [],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    },
+    {
+      "owner": "kiln",
+      "archive_blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+      "manifest_blake3": "b2910c76b9c20eeb8d3b0b81730e22a6ee10c6401ff19dc969e521ad2f7ad93e",
+      "projection_commit": "35d10f2ebb3a6901d2aab273a467940ad8581bf6",
+      "scanner_exit": 1,
+      "scanner_pass": false,
+      "known_findings_reviewed": 6,
+      "known_findings": [
+        {
+          "index": 0,
+          "rule": "generic-api-key",
+          "path": "config/default.ncl",
+          "line": 107,
+          "end_line": 107,
+          "fingerprint": "config/default.ncl:generic-api-key:107",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Hosting declaration and identity type",
+              "explanation": "Within the staged kiln payload, config/default.ncl:103–118 places the match in hosting.delegates beside the Radicle RID, threshold, and source acquisition metadata. crates/kiln-core/src/hosting.rs:35–49 models delegates as public ExternalRef identities rather than signing-key bytes. The identical public delegate is recorded in the assigned durable-file-publication snapshot at docs/DISTRIBUTION.md:5–8. The matched DID identifies an authority but does not contain its private signing key."
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "rule": "generic-api-key",
+          "path": "config/fixtures/negative-valence-role.ncl",
+          "line": 4,
+          "end_line": 4,
+          "fingerprint": "config/fixtures/negative-valence-role.ncl:generic-api-key:4",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Contract and dependency-pin evidence",
+              "explanation": "Within the staged kiln payload, config/fixtures/negative-valence-role.ncl:1–23 contains the match as a dependency revision; the intentionally invalid field is identity_roles, not this revision. config/contracts.ncl:67–69 defines the exact ArtifactAuthRevision contract. crates/kiln-adapter-valence/src/lib.rs:13–14 and 79–94 compare it with ARTIFACT_AUTH_SOURCE_REVISION. vendor/valence/Cargo.toml:26–28 uses the identical value as the Git rev for artifact-auth-core and artifact-auth-ed25519. Thus this is a source commit even though it appears in a negative fixture."
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "rule": "generic-api-key",
+          "path": "config/valence-profile.ncl",
+          "line": 9,
+          "end_line": 9,
+          "fingerprint": "config/valence-profile.ncl:generic-api-key:9",
+          "classification": "content_identity",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Profile admission and dependency-pin evidence",
+              "explanation": "Within the staged kiln payload, config/valence-profile.ncl:7–14 declares the match beside the Valence source revision, schemas, and source-versioned registries. config/contracts.ncl:67–69 and 215–220 enforce it as ArtifactAuthRevision. crates/kiln-adapter-valence/src/lib.rs:13–14 and 79–94 bind profile admission to the same source identity, while vendor/valence/Cargo.toml:26–28 uses it as the upstream artifact package Git revision. It is not an authentication token despite artifact_auth in the field name."
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "rule": "generic-api-key",
+          "path": "evidence/publication-receipt.ncl",
+          "line": 70,
+          "end_line": 70,
+          "fingerprint": "evidence/publication-receipt.ncl:generic-api-key:70",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Publication receipt context",
+              "explanation": "Within the staged kiln payload, evidence/publication-receipt.ncl:55–77 records publication status, RID, source and identity revisions, the matched delegates list, threshold, and signed-reference metadata. The matched DID is identical to hosting.delegates in config/default.ncl:107, not the neighboring source hashes or signature-reference object identity. It is the delegate's public Ed25519 identity; the receipt does not encode its private signer in this field."
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "rule": "generic-api-key",
+          "path": "evidence/release-evidence.json",
+          "line": 333,
+          "end_line": 333,
+          "fingerprint": "evidence/release-evidence.json:generic-api-key:333",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Exported receipt context",
+              "explanation": "Within the staged kiln payload, evidence/release-evidence.json:324–345 nests the match under hosting_publication.receipt.delegates alongside the publication authority, branches, hosting-profile digest, and acquisition records. The same public delegate appears in evidence/publication-receipt.ncl:70 and config/default.ncl:107. This occurrence is an exported identity observation, not a bearer token or private signing-key export, and is retained as its own report entry."
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "rule": "generic-api-key",
+          "path": "vendor/valence/crates/valence-core/src/radicle_forge_ops.rs",
+          "line": 1399,
+          "end_line": 1399,
+          "fingerprint": "vendor/valence/crates/valence-core/src/radicle_forge_ops.rs:generic-api-key:1399",
+          "classification": "public_identifier",
+          "publication_blocking": false,
+          "evidence": [
+            {
+              "label": "Test use and public-identity corroboration",
+              "explanation": "Within the staged kiln payload, vendor/valence/crates/valence-core/src/radicle_forge_ops.rs:1384–1402 defines the matched AUTHOR_DID inside cfg(test). Lines 1527–1535 use it as SourceBatch.importer_did, an attribution identity rather than a signer secret. Unlike the neighboring synthetic identities, this value is the same public delegate present in config/default.ncl:107 and the assigned durable-file-publication docs/DISTRIBUTION.md:6. It is classified by its actual public-key identity type, not presumed synthetic merely because it occurs in tests."
+            }
+          ]
+        }
+      ],
+      "unresolved_known_findings": 0,
+      "scope": "Static classification of exact source payload matches; not exhaustive privacy, security, rights, legal compatibility or production clearance."
+    }
+  ],
+  "trellis": {
+    "source_uploaded": false,
+    "public": false,
+    "reason": {
+      "source": "trellis/README.md:861-862",
+      "requirement": "A qualified review of Corresponding Source obligations is still required before public distribution."
+    }
+  }
+}

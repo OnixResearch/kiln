@@ -224,6 +224,43 @@ source identities, and access limitations. It is a later local record, not part
 of either already-pushed frozen revision. Kiln maintainers own the repeatable
 projection verification path.
 
+### Public historyless source projection
+
+The separate [public GitHub source repository](https://github.com/OnixResearch/kiln-public)
+contains parentless commit `35d10f2ebb3a6901d2aab273a467940ad8581bf6`.
+Its source bytes are the frozen candidate
+`db552f504236b3e330be46618e2fd29fb864f190`, not the later working tree.
+The new projection commit has a different Git identity; it is not a
+revision-preserving mirror or a dependency fallback.
+
+A fresh HTTPS clone with operator credentials disabled reproduced all 719
+source-manifest members, file bytes, executable flags, symlink facts, and the
+normalized USTAR and manifest BLAKE3 identities above. The public branch has one
+reachable commit. Private development history was not uploaded, and the original
+`OnixResearch/kiln` repository remains private. Actions are disabled in the new
+repository.
+
+The [source-publication receipt](../.cairn/changes/prepare-public-release/evidence/github-source-publication-2026-10-17.json)
+records this projection and eight producer source repositories, their exact
+payload selections, anonymous acquisition observations, and disabled Actions.
+The [bounded scan review](../.cairn/changes/prepare-public-release/evidence/github-source-projections-2026-10-17/scan-review.json)
+retains the original scanner exit codes and evidence for known matches; it is
+not exhaustive privacy, rights, or legal-compatibility clearance. Trellis has
+only an empty private staging repository pending its required qualified
+Corresponding Source review.
+
+Kiln maintainers own this projection's repeatable acquisition and source-identity
+checks; each producer owns its source and license boundary. No automatic
+mirroring, canonical Radicle operation, governance change, consumer-pin update,
+binary release, runtime qualification, or fresh product-check run is claimed.
+The earlier private-projection observations above retain their original scope.
+
+For Durable File Publication, the operator's GitHub-hosting request is an explicit
+exception to the snapshot's historical Radicle-only public-distribution prose.
+The GitHub repository metadata declares a noncanonical source view; its canonical
+Radicle identity and immutable Radicle release-channel contract remain unchanged.
+This is not authorization to substitute GitHub objects in dependency admission.
+
 ## Recovery
 
 Keep an independent source archive and signed-reference capture. Keep the rollback revision outside a running Kiln service.
