@@ -1,0 +1,1073 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling cfg-if v1.0.4
+   Compiling serde_core v1.0.229
+   Compiling syn v3.0.3
+   Compiling libc v0.2.189
+   Compiling find-msvc-tools v0.1.10
+   Compiling jobserver v0.1.35
+   Compiling shlex v2.0.1
+   Compiling syn v2.0.119
+   Compiling cc v1.4.2
+   Compiling serde_derive v1.0.229
+   Compiling serde v1.0.229
+   Compiling memchr v2.8.3
+   Compiling zeroize_derive v1.5.0
+   Compiling blake3 v1.8.6
+   Compiling zeroize v1.9.0
+   Compiling constant_time_eq v0.4.2
+   Compiling arrayvec v0.7.8
+   Compiling arrayref v0.3.9
+   Compiling cpufeatures v0.3.0
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling itoa v1.0.18
+   Compiling autocfg v1.5.1
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling kiln-core v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-core)
+   Compiling typenum v1.20.1
+   Compiling libm v0.2.16
+   Compiling num-traits v0.2.19
+   Compiling spin v0.9.9
+   Compiling lazy_static v1.5.0
+   Compiling num-integer v0.1.46
+   Compiling aho-corasick v1.1.5
+   Compiling regex-syntax v0.8.11
+   Compiling regex-automata v0.4.18
+   Compiling subtle v2.6.1
+   Compiling kiln-provider-api v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-provider-api)
+   Compiling serde_bytes v0.11.19
+   Compiling crypto-common v0.1.7
+   Compiling bitflags v2.13.1
+   Compiling num-bigint v0.4.8
+   Compiling regex v1.13.1
+   Compiling base64 v0.13.1
+   Compiling bytemuck v1.25.2
+   Compiling dtoa v0.4.8
+   Compiling const-oid v0.9.6
+   Compiling preserves v5.0.0-rc.7
+   Compiling getrandom v0.2.17
+   Compiling smallvec v1.15.2
+   Compiling block-buffer v0.10.4
+   Compiling cpufeatures v0.2.17
+   Compiling digest v0.10.7
+   Compiling pkg-config v0.3.34
+   Compiling once_cell v1.21.4
+   Compiling log v0.4.33
+   Compiling fastrand v2.5.0
+   Compiling kiln-codec v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-codec)
+   Compiling rustix v1.1.4
+   Compiling getrandom v0.4.3
+   Compiling linux-raw-sys v0.12.1
+   Compiling vcpkg v0.2.15
+   Compiling tempfile v3.27.0
+   Compiling rand_core v0.6.4
+   Compiling sha2 v0.10.9
+   Compiling hmac v0.12.1
+   Compiling zerocopy v0.8.56
+   Compiling synstructure v0.13.2
+   Compiling cfg_aliases v0.2.2
+   Compiling zerofrom-derive v0.1.7
+   Compiling openssl-sys v0.9.117
+   Compiling libz-sys v1.1.29
+   Compiling zerofrom v0.1.8
+   Compiling yoke-derive v0.8.2
+   Compiling ppv-lite86 v0.2.21
+   Compiling stable_deref_trait v1.2.1
+   Compiling libgit2-sys v0.18.7+1.9.6
+   Compiling yoke v0.8.3
+   Compiling opaque-debug v0.3.1
+   Compiling zerovec-derive v0.11.5
+   Compiling zerovec v0.11.8
+   Compiling der v0.7.10
+   Compiling displaydoc v0.2.7
+   Compiling block-padding v0.3.3
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling inout v0.1.4
+   Compiling rand_chacha v0.3.1
+   Compiling nix v0.30.1
+   Compiling byteorder v1.5.0
+   Compiling base64 v0.22.1
+   Compiling rand v0.8.7
+   Compiling cipher v0.4.4
+   Compiling curve25519-dalek v4.1.3
+   Compiling tinystr v0.8.4
+   Compiling litemap v0.8.3
+   Compiling thiserror v2.0.20
+   Compiling writeable v0.6.4
+   Compiling icu_locale_core v2.3.0
+   Compiling zerotrie v0.2.5
+   Compiling spki v0.7.3
+   Compiling potential_utf v0.1.6
+   Compiling signature v2.2.0
+   Compiling ff v0.13.1
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling thiserror-impl v2.0.20
+   Compiling utf8_iter v1.0.4
+   Compiling bounded-exec-core v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/bounded-exec/crates/bounded-exec-core)
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling base16ct v0.2.0
+   Compiling sec1 v0.7.3
+   Compiling bounded-exec v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/bounded-exec/crates/bounded-exec)
+   Compiling icu_collections v2.3.0
+   Compiling group v0.13.0
+   Compiling icu_provider v2.3.0
+   Compiling crypto-bigint v0.5.5
+   Compiling memoffset v0.9.1
+   Compiling elliptic-curve v0.13.8
+   Compiling nix v0.31.3
+   Compiling libsqlite3-sys v0.38.2
+   Compiling universal-hash v0.5.1
+   Compiling data-encoding v2.11.1
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling rfc6979 v0.4.0
+   Compiling ecdsa v0.16.9
+   Compiling idna_adapter v1.2.2
+   Compiling polyval v0.6.2
+   Compiling primeorder v0.13.6
+   Compiling lattice-workflow-contract v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/lattice/crates/lattice-workflow-contract)
+   Compiling base64ct v1.8.3
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling fallible-iterator v0.3.0
+   Compiling num-bigint-dig v0.8.6
+   Compiling percent-encoding v2.3.2
+   Compiling form_urlencoded v1.2.2
+   Compiling rusqlite v0.40.2
+   Compiling pem-rfc7468 v0.7.0
+   Compiling lattice-workflow-transport v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/lattice/crates/lattice-workflow-contract/transport)
+   Compiling ghash v0.5.1
+   Compiling idna v1.1.0
+   Compiling pkcs8 v0.10.2
+   Compiling ctr v0.9.2
+   Compiling aes v0.8.4
+   Compiling aead v0.5.2
+   Compiling num-iter v0.1.46
+   Compiling aes-gcm v0.10.3
+   Compiling pkcs1 v0.7.5
+   Compiling url v2.5.8
+   Compiling ssh-encoding v0.2.0
+   Compiling poly1305 v0.8.0
+   Compiling ed25519 v2.2.3
+   Compiling cbc v0.1.2
+   Compiling blowfish v0.9.1
+   Compiling chacha20 v0.9.1
+   Compiling pbkdf2 v0.12.2
+   Compiling data-encoding-macro-internal v0.1.19
+   Compiling bcrypt-pbkdf v0.10.0
+   Compiling ssh-cipher v0.2.0
+   Compiling ed25519-dalek v2.2.0
+   Compiling rsa v0.9.10
+   Compiling kiln-adapter-lattice v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-lattice)
+   Compiling p521 v0.13.3
+   Compiling p256 v0.13.2
+   Compiling p384 v0.13.1
+   Compiling kiln-adapter-aspen v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-aspen)
+   Compiling match-lookup v0.1.2
+   Compiling const-str v0.4.3
+   Compiling base256emoji v1.0.2
+   Compiling ssh-key v0.6.7
+   Compiling data-encoding-macro v0.1.21
+   Compiling secrecy v0.10.3
+   Compiling base45 v3.2.0
+   Compiling base-x v0.2.11
+   Compiling multibase v0.9.3
+   Compiling ssh-agent-lib v0.6.0
+   Compiling git2 v0.21.0
+   Compiling radicle-crypto v0.19.0
+   Compiling radicle-git-metadata v0.2.1
+   Compiling radicle-git-ref-format v0.2.0
+   Compiling radicle-dag v0.10.0
+   Compiling nonempty v0.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling radicle-oid v0.2.2
+   Compiling radicle-cob v0.21.1
+   Compiling ring v0.17.14
+   Compiling openssl-probe v0.1.6
+   Compiling ref-cast v1.0.27
+   Compiling git2 v0.20.2
+   Compiling kiln-radicle-source-contract v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-radicle-source-contract)
+   Compiling ref-cast-impl v1.0.27
+   Compiling serde_derive_internals v0.30.0
+   Compiling schemars_derive v1.2.2
+   Compiling onix-radicle-cob-git-store v0.2.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/radicle-cob-git-store)
+   Compiling dyn-clone v1.0.20
+   Compiling untrusted v0.9.0
+   Compiling schemars v1.2.2
+   Compiling kiln-adapter-git v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-git)
+   Compiling rustls v0.23.43
+   Compiling allocator-api2 v0.2.21
+   Compiling rustls-webpki v0.103.15
+   Compiling hashbrown v0.17.1
+   Compiling radicle-core v0.4.1
+   Compiling webpki-roots v1.0.9
+   Compiling getrandom v0.3.4
+   Compiling equivalent v1.0.2
+   Compiling webpki-roots v0.26.11
+   Compiling kiln-adapter-cob v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-cob)
+   Compiling kiln-adapter-radicle v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-radicle)
+   Compiling ureq v2.12.1
+   Compiling getrandom v0.1.16
+   Compiling errno v0.3.14
+   Compiling crossbeam-utils v0.8.22
+   Compiling signal-hook v0.3.18
+   Compiling signal-hook-registry v1.4.8
+   Compiling rand_core v0.5.1
+   Compiling kiln-standalone v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-standalone)
+   Compiling digest v0.9.0
+   Compiling crossbeam-epoch v0.9.20
+   Compiling rustix v0.38.44
+   Compiling crc32fast v1.5.0
+   Compiling parking_lot_core v0.8.6
+   Compiling thiserror v1.0.69
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling bincode v1.3.3
+   Compiling indexmap v2.14.0
+   Compiling kiln-adapter-jj v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-jj)
+   Compiling kiln-adapter-remote v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-remote)
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling thiserror-impl v1.0.69
+   Compiling instant v0.1.13
+   Compiling linux-raw-sys v0.4.15
+   Compiling crossbeam-deque v0.8.7
+   Compiling winnow v0.7.15
+   Compiling parking_lot_core v0.9.12
+   Compiling toml_write v0.1.2
+   Compiling toml_edit v0.22.27
+   Compiling zstd-seekable v0.1.23
+   Compiling rand_chacha v0.2.2
+   Compiling rand_core v0.9.5
+   Compiling crypto-mac v0.11.0
+   Compiling block-buffer v0.9.0
+   Compiling cipher v0.3.0
+   Compiling num_cpus v1.17.0
+   Compiling bstr v1.13.1
+   Compiling signature v1.6.4
+   Compiling unicode-width v0.2.2
+   Compiling same-file v1.0.6
+   Compiling anyhow v1.0.104
+   Compiling foldhash v0.1.5
+   Compiling hashbrown v0.15.5
+   Compiling walkdir v2.5.0
+   Compiling console v0.15.11
+   Compiling globset v0.4.20
+   Compiling ed25519 v1.5.3
+   Compiling threadpool v1.8.1
+   Compiling ctr v0.8.0
+   Compiling sha2 v0.9.9
+   Compiling rand_chacha v0.9.0
+   Compiling rand v0.7.3
+   Compiling sanakirja-core v2.0.0-beta.1
+   Compiling toml v0.8.23
+   Compiling parking_lot v0.11.2
+   Compiling fs4 v0.6.6
+   Compiling kiln-adapter-github v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-github)
+   Compiling curve25519-dalek v3.2.0
+   Compiling kiln-aspen-extension v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-aspen-extension)
+   Compiling memmap2 v0.9.11
+   Compiling dirs-sys-next v0.1.2
+   Compiling encoding_rs v0.8.35
+   Compiling shell-words v1.1.1
+   Compiling jiff-core v0.1.0
+   Compiling minimal-lexical v0.2.1
+   Compiling rlimit v0.10.2
+   Compiling foldhash v0.2.0
+   Compiling linked-hash-map v0.5.6
+   Compiling static_assertions v1.1.0
+   Compiling twox-hash v1.6.3
+   Compiling lru-cache v0.1.2
+   Compiling iddqd v0.4.6
+   Compiling nom v7.1.3
+   Compiling jiff v0.2.35
+   Compiling dialoguer v0.10.4
+   Compiling chardetng v0.1.17
+   Compiling dirs-next v2.0.0
+   Compiling sanakirja v2.0.0-beta
+   Compiling ed25519-dalek v1.0.1
+   Compiling parking_lot v0.12.5
+   Compiling ignore v0.4.33
+   Compiling rand v0.9.5
+   Compiling aes v0.7.5
+   Compiling imara-diff v0.1.8
+   Compiling hmac v0.11.0
+   Compiling pbkdf2 v0.9.0
+   Compiling kiln-conformance v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-conformance)
+   Compiling rustls-pemfile v2.2.0
+   Compiling artifact-auth-core v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/artifact/crates/artifact-auth-core)
+   Compiling pijul-macros v1.0.0-beta.11
+   Compiling bs58 v0.4.0
+   Compiling path-slash v0.2.1
+   Compiling diffs v0.5.1
+   Compiling adler32 v1.2.0
+   Compiling canonical-path v2.0.2
+   Compiling whoami v1.6.1
+   Compiling pijul-config v1.0.0-beta.10
+   Compiling valence-core v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/valence/crates/valence-core)
+   Compiling libpijul v1.0.0-beta.11
+   Compiling kiln-adapter-celld v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-celld)
+   Compiling cairn-gate-contract v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/vendor/cairn/crates/cairn-gate-contract)
+   Compiling kiln-adapter-valence v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-valence)
+   Compiling kiln-adapter-opentelemetry v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-opentelemetry)
+   Compiling pijul-repository v1.0.0-beta.10
+   Compiling kiln-adapter-pijul v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-pijul)
+   Compiling kiln-adapter-cairn v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-cairn)
+   Compiling kiln-adapter-sqlite v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-sqlite)
+   Compiling kiln-adapter-mantle v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-mantle)
+   Compiling kiln-adapter-nix-eval v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-nix-eval)
+   Compiling kiln-adapter-webhook v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-webhook)
+   Compiling kiln-adapter-cdevents v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-adapter-cdevents)
+   Compiling kiln-cli v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 56s
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_aspen-2ce9e0e5a7ef8d52)
+
+running 16 tests
+test tests::completion::hosted_provider_completion_maps_exact_terminal_and_rejects_linkage_drift ... ok
+test tests::contracts::equal_digest_text_keeps_roles_and_namespaces_distinct ... ok
+test tests::contracts::independent_consumer_accepts_the_static_producer_fixture ... ok
+test tests::contracts::architecture_keeps_aspen_out_of_core_and_ambient_effects_out_of_callback ... ok
+test tests::contracts::denied_and_stale_effects_never_produce_a_fabric_plan ... ok
+test tests::contracts::runtime_composition_is_explicit_and_never_falls_back ... ok
+test tests::contracts::callback_frames_are_canonical_bounded_and_strict ... ok
+test tests::runtime::content_mapping_rejects_missing_corrupt_and_overbound_objects ... ok
+test tests::runtime::journal_and_outbox_commit_atomically_and_conflicts_change_nothing ... ok
+test tests::contracts::exact_profile_admits_and_drift_fails_without_fallback ... ok
+test tests::runtime::remote_disconnect_after_acceptance_remains_unknown ... ok
+test tests::unix::unix_server_codec_rejects_operation_shape_unknown_fields_and_bounds ... ok
+test tests::runtime::workflow_exchange_preserves_response_and_unknown_acceptance ... ok
+test tests::runtime::timeout_and_cancellation_do_not_commit ... ok
+test tests::runtime::lost_commit_acknowledgement_reconciles_without_duplicate_mutation ... ok
+test tests::unix::unix_aspen_transport_accepts_exact_response_and_denies_missing_endpoint ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_cairn-cbac6d2848652a94)
+
+running 14 tests
+test tests::core_and_provider_manifests_do_not_import_cairn_or_bounded_exec ... ok
+test tests::executable_substitution_fails_before_process_execution ... ok
+test tests::profile_rejects_revision_schema_and_limit_drift ... ok
+test tests::controlled_policy_error_preserves_diagnostic_class ... ok
+test tests::malformed_and_truncated_outputs_are_provider_errors ... ok
+test tests::independent_consumer_accepts_producer_fixture_and_rejects_substitution ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::tampered_native_receipt_identity_is_rejected ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_rerun ... ok
+test tests::exact_machine_fixture_preserves_blocked_findings ... ok
+test tests::repeated_effect_rejects_candidate_and_policy_substitution ... ok
+test tests::exact_machine_fixture_admits_pass_repeat_and_reconciliation ... ok
+test tests::bounded_runtime_preserves_timeout_and_cancellation ... ok
+test tests::bounded_runtime_hashes_exact_file_and_rejects_missing_executable ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.73s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_cdevents-4580a1ffbccc7c19)
+
+running 6 tests
+test tests::lossy_profile_is_rejected ... ok
+test tests::missing_correlation_rejects_without_canonical_action ... ok
+test tests::imported_success_is_observational_and_duplicates_are_explicit ... ok
+test tests::independent_fixture_decodes_with_the_pinned_profile ... ok
+test tests::unknown_event_type_and_missing_fields_fail_closed ... ok
+test tests::task_run_round_trip_preserves_declared_fields ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_celld-d16d556cfbbcf894)
+
+running 54 tests
+test admission::tests::ambiguous_provider_outcome_requires_reconciliation ... ok
+test admission::tests::expired_lease_requires_reconcile ... ok
+test admission::tests::checked_replay_rejects_corrupted_identity_before_evolution ... ok
+test admission::tests::completed_lease_requires_no_action ... ok
+test admission::tests::checked_replay_evolves_valid_history_without_provider_dispatch ... ok
+test admission::tests::leases_move_unclaimed_to_leased ... ok
+test admission::tests::admits_one_batch_at_the_expected_revision ... ok
+test admission::tests::plans_a_known_migration ... ok
+test admission::tests::rejects_a_migration_cycle ... ok
+test admission::tests::rejects_a_migration_exceeding_the_step_bound ... ok
+test admission::tests::classifies_repeats_and_conflicts ... ok
+test admission::tests::rejects_a_duplicate_event_identity ... ok
+test admission::tests::rejects_a_stale_expected_revision ... ok
+test admission::tests::rejects_an_unknown_migration_edge ... ok
+test admission::tests::rejects_an_empty_append ... ok
+test admission::tests::rejects_a_non_contiguous_append ... ok
+test client::tests::a_missing_authenticated_read_never_fabricates_an_empty_journal ... ok
+test client::tests::append_classifies_a_disconnection ... ok
+test client::tests::append_classifies_a_key_mismatch ... ok
+test client::tests::append_classifies_a_malformed_response ... ok
+test client::tests::append_classifies_a_redirect ... ok
+test client::tests::append_classifies_a_timeout ... ok
+test client::tests::append_classifies_an_unknown_outcome ... ok
+test client::tests::append_classifies_a_tls_failure ... ok
+test client::tests::append_rejects_a_stale_request_before_dispatch ... ok
+test client::tests::append_rejects_a_second_partition_before_transport ... ok
+test client::tests::append_commits_on_acceptance ... ok
+test partition::tests::maps_a_partition_deterministically ... ok
+test partition::tests::maps_different_streams_within_the_partition_policy ... ok
+test partition::tests::rejects_zero_partition_count ... ok
+test profile::tests::local_sqlite_only_cannot_admit_an_unobserved_runtime ... ok
+test profile::tests::rejects_drifted_release ... ok
+test profile::tests::rejects_hostile_tenants_on_the_alpha_cohort ... ok
+test profile::tests::rejects_output_gate_disabled ... ok
+test profile::tests::rejects_private_route_and_untrusted_origin_before_worker_dispatch ... ok
+test profile::tests::rejects_storage_probe_disabled ... ok
+test profile::tests::rejects_stale_cohort_observations_and_observed_disabled_storage ... ok
+test profile::tests::rejects_undeclared_trust_domain ... ok
+test profile::tests::rejects_zero_bounds ... ok
+test profile::tests::rejects_unobserved_artifact_deployment_storage_and_ingress_changes ... ok
+test protocol::tests::classifies_accepted_and_rejected_responses ... ok
+test protocol::tests::rejects_an_empty_nonce ... ok
+test worker::tests::cohort_admission_requires_output_gate_and_probe ... ok
+test protocol::tests::rejects_a_wrong_signature ... ok
+test protocol::tests::signs_and_verifies_an_envelope ... ok
+test protocol::tests::length_framing_rejects_equal_legacy_nonce_and_operation_bytes ... ok
+test worker::tests::worker_commits_one_append ... ok
+test worker::tests::worke
+[…101ln elided…]
+ed out; finished in 0.00s
+
+     Running unittests src/bin/github-job.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_github_job-dbe12c7ee5590286)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/job.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/job-ce50310bfa0025ad)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_jj-8840eb079d943b01)
+
+running 2 tests
+test tests::rejects_divergent_change_before_acquisition ... ok
+test tests::resolves_exact_commit_and_tree ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_lattice-998b5774f4e776ea)
+
+running 19 tests
+test tests::profile_rejects_missing_operation_and_capability_drift ... ok
+test tests::pinned_profile_is_exact_and_admitted ... ok
+test tests::source_context_preserves_mixed_case_provider_identity ... ok
+test tests::disconnect_after_acceptance_stays_unknown_with_execution_identity ... ok
+test tests::unsupported_node_fails_before_transport ... ok
+test tests::unix::pinned_recovery_fixtures_pass_producer_admission ... ok
+test tests::pinned_producer_fixtures_pass_independent_consumer_admission ... ok
+test tests::unavailable_provider_fails_without_fallback ... ok
+test tests::request_lowering_is_deterministic ... ok
+test tests::unrequested_control_fails_before_transport ... ok
+test tests::dispatch_and_observe_preserve_linkage_and_complete ... ok
+test tests::recovery_only_dispatch_never_sends_a_new_dispatch ... ok
+test tests::cancellation_returns_a_linked_terminal_observation ... ok
+test tests::unix::unavailable_socket_fails_without_fallback ... ok
+test tests::stale_execution_is_rejected_without_state_change ... ok
+test tests::unix::not_found_recovery_remains_unknown_without_retry_authority ... ok
+test tests::pause_and_log_operations_are_bounded ... ok
+test tests::unix::unknown_dispatch_recovers_acceptance_without_redispatch ... ok
+test tests::unix::concrete_socket_client_covers_every_exchange_operation ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_mantle-64f0c0d91c6588ed)
+
+running 9 tests
+test tests::core_and_provider_manifests_do_not_import_mantle_or_bounded_exec ... ok
+test tests::bounded_runtime_hashes_files_and_enforces_log_bounds ... ok
+test tests::profile_and_file_identity_drift_fail_before_dispatch ... ok
+test tests::independent_consumer_accepts_exact_producer_fixtures ... ok
+test tests::cache_cannot_hide_a_missing_required_product ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::repeated_effect_rejects_candidate_and_plan_substitution ... ok
+test tests::exact_native_report_admits_success_repeat_logs_and_reconciliation ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_redispatch ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_nix_eval-fc63047d21a333b8)
+
+running 16 tests
+test tests::core_and_standalone_manifests_do_not_import_nix_or_adapter_code ... ok
+test tests::executable_manifest_source_and_cohort_drift_fail_before_launch ... ok
+test onix::tests::measured_file_preflight_binds_bytes_bounds_and_no_follow ... ok
+test tests::named_onix_candidate_rejects_unpublished_source_and_measured_drift ... ok
+test tests::explicit_cancellation_uses_the_cancellation_path ... ok
+test tests::spawn_failure_cleans_the_private_gc_root_directory ... ok
+test tests::bounded_runtime_hashes_files_and_rejects_non_root_entries ... ok
+test tests::stock_profile_rejects_onix_cohort_before_process_launch ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::duplicate_jobs_oversized_lines_and_gc_root_loss_fail_closed ... ok
+test tests::malformed_truncated_and_conflicting_cache_streams_fail_closed ... ok
+test tests::complete_stream_maps_tasks_and_preserves_job_error ... ok
+test tests::gc_roots_require_complete_handoff_and_preserve_cleanup_failure ... ok
+test tests::timeout_cancellation_crash_and_unknown_remain_distinct ... ok
+test tests::shared_discovery_conformance_accepts_the_exact_adapter ... ok
+test tests::incremental_decoder_is_invariant_across_chunk_boundaries ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_opentelemetry-3d75c19f9ae81730)
+
+running 7 tests
+test tests::profile_drift_and_authority_promotion_fail_closed ... ok
+test tests::unregistered_metric_name_is_rejected ... ok
+test tests::independent_fixture_preserves_batch_identity_and_all_signals ... ok
+test tests::projection_is_deterministic_and_keeps_kiln_links ... ok
+test tests::secret_is_redacted_before_batch_encoding ... ok
+test tests::backend_loss_does_not_change_canonical_state ... ok
+test tests::backend_acceptance_does_not_create_ci_success ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_pijul-4e0263bc69822781)
+
+running 10 tests
+test archive::tests::archive_accepts_regular_file_and_rejects_special_permissions ... ok
+test tests::core_standalone_and_cli_remain_independent_of_pijul_runtime ... ok
+test tests::missing_busy_and_damaged_provider_failures_remain_distinct ... ok
+test tests::pinned_profile_is_exact_and_read_only ... ok
+test tests::profile_rejects_version_format_capability_and_bound_drift ... ok
+test tests::moving_or_substituted_state_fails_without_partial_success ... ok
+test tests::exact_native_observation_resolves_repeatably ... ok
+test tests::equal_snapshots_do_not_collapse_distinct_pijul_histories ... ok
+test tests::concrete_shell_uses_native_library_without_mutation_or_network_surface ... ok
+test tests::malformed_and_bounded_snapshots_fail_closed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_radicle-41f78ffea2189324)
+
+running 39 tests
+test defelo::tests::published_broker_fixture_maps_only_authoritative_trigger_facts ... ok
+test defelo::tests::deployed_push_maps_and_emits_exact_protocol_lines ... ok
+test mutation::tests::write_outcomes_keep_timeout_and_unknown_distinct ... ok
+test mutation::tests::rendered_review_matches_the_pinned_radicle_shape ... ok
+test mutation::tests::undeclared_target_and_action_are_rejected ... ok
+test mutation::tests::pinned_profile_and_declared_plan_are_admitted ... ok
+test source::tests::authority_contract_and_cohort_drift_fail_closed ... ok
+test source::tests::pinned_source_profile_is_narrow_and_admitted ... ok
+test mutation::tests::zero_deadline_executable_substitution_and_merge_authority_are_rejected ... ok
+test source::tests::malformed_native_identities_fail_before_repository_access ... ok
+test status::tests::empty_resolution_reason_fails_before_executable_access ... ok
+test status::tests::authority_expansion_is_rejected ... ok
+test defelo::tests::invalid_envelopes_and_unknown_outcome_fail_closed ... ok
+test status::tests::exact_expected_head_is_admitted_and_stale_head_is_rejected ... ok
+test status::tests::first_write_and_own_single_head_are_admitted ... ok
+test status::tests::foreign_and_multiple_heads_are_rejected ... ok
+test status::tests::malformed_and_zero_signers_are_rejected ... ok
+test status::tests::foreign_repository_is_rejected ... ok
+test status::tests::missing_secret_declaration_is_rejected ... ok
+test status::tests::pinned_profile_and_allowed_plan_are_admitted ... ok
+test status::tests::production_profile_rejects_executable_substitution ... ok
+test status::tests::oversized_payload_fails_before_signer_or_storage_access ... ok
+test status::tests::replayed_key_requires_equal_run_and_outcome ... ok
+test status::tests::executable_identity_drift_fails_closed ... ok
+test status::tests::terminal_outcomes_are_classified_and_unknown_is_rejected ... ok
+test status::tests::unlisted_object_type_is_rejected ... ok
+test status::tests::zero_profile_bound_is_rejected ... ok
+test status::tests::status_dispatch_round_trips_and_rejects_unknown_fields ... ok
+test tests::maps_push_and_emits_two_protocol_lines ... ok
+test tests::maps_patch_and_preserves_failure ... ok
+test tests::rejects_run_substitution_and_preserves_timeout_failure ... ok
+test status::tests::resolved_signer_debug_is_redacted ... ok
+test tests::rejects_zero_poll_bound_before_provider_calls ... ok
+test tests::rejects_stdout_noise_fields ... ok
+test tests::rejects_unknown_version ... ok
+test workflow::tests::profile_admits_trigger_only_and_rejects_fixture_or_collaboration ... ok
+test tests::production_composition_has_no_fixture_direct_nix_or_core_provider_edge ... ok
+test replay::tests::sqlite_replay_reserves_once_and_rejects_conflicting_transition ... ok
+test workflow::tests::uncertain_dispatch_recovers_without_redispatch_after_restart ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_radicle-2c7af9815eb056c2)
+
+running 2 tests
+test tests::runtime_selection_is_explicit_and_aspen_requires_exact_paths ... ok
+test tests::protocol_preflight_accepts_published_wire_and_rejects_malformed_input ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/mutation_native.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/mutation_native-db37d9b1ae672453)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/source_native.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/source_native-85e3effde3d07892)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/status_native.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/status_native-01fc887f11a87877)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_remote-fb70e9a33c58f4fb)
+
+running 3 tests
+test tests::observation_mode_admission_blocks_unsupported_wait ... ok
+test tests::missing_digest_fails_before_upload ... ok
+test tests::disconnect_after_acceptance_stays_unknown ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_sqlite-35764627e0f8a773)
+
+running 9 tests
+test tests::unsafe_profile_is_rejected_without_durability_claim ... ok
+test tests::pure_append_model_rejects_stale_duplicate_and_gap_inputs ... ok
+test tests::explicit_migration_accepts_known_edge_and_rejects_unknown_version ... ok
+test tests::interrupted_transaction_exposes_neither_side ... ok
+test tests::retention_preserves_stream_revision_and_replays_from_exact_snapshot ... ok
+test tests::committed_events_and_outbox_replay_after_restart ... ok
+test tests::lease_survives_restart_and_expiry_requires_reconciliation ... ok
+test tests::damaged_event_bytes_stop_replay ... ok
+test tests::lock_backup_snapshot_and_bounds_are_explicit ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_valence-92f40f38d6a0676a)
+
+running 7 tests
+test tests::missing_nonclaim_and_malformed_span_are_rejected ... ok
+test tests::profile_drift_and_kiln_builder_promotion_fail_closed ... ok
+test tests::pinned_producer_fixture_passes_independent_import ... ok
+test tests::attempt_projection_is_valid_recorded_only_evidence ... ok
+test tests::imported_success_does_not_change_canonical_state ... ok
+test tests::stale_subject_is_rejected ... ok
+test tests::unavailable_provider_does_not_promote_or_mutate_state ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_adapter_webhook-d60266a40ef877e9)
+
+running 8 tests
+test tests::dynamic_destination_and_oversized_body_stop_before_effects ... ok
+test tests::blake3_signature_is_deterministic_and_redacted ... ok
+test tests::accepted_receiver_is_bounded_and_secret_debug_is_redacted ... ok
+test tests::rate_limit_tls_and_response_bounds_are_explicit ... ok
+test tests::private_address_stops_before_secret_access ... ok
+test tests::redirect_and_definite_rejection_are_not_followed ... ok
+test tests::timeout_after_possible_acceptance_is_unknown_without_unsafe_retry ... ok
+test tests::request_projection_is_deterministic_and_exact ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_aspen_extension-225badafb691062b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_aspen_extension-d07202cedb19b64c)
+
+running 3 tests
+test tests::runtime_profile_arguments_reject_missing_duplicate_and_unsafe_values ... ok
+test tests::exact_non_default_runtime_profile_is_admitted ... ok
+test tests::runtime_profile_rejects_changed_invalid_missing_and_oversized_documents ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/callback.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/callback-1187c0b37a5d80f1)
+
+running 3 tests
+test callback_checkpoints_recovers_drains_and_stops_with_generation_fencing ... ok
+test callback_accepts_valid_trigger_deterministically_and_denies_without_effects ... ok
+test callback_rejects_stale_authority_and_duplicate_completion ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hosted.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/hosted-42088eb9af82271c)
+
+running 4 tests
+test post_accept_disconnect_is_unknown_until_exact_reconciliation ... ok
+test local_service_accepts_rejects_replays_and_recovers_after_restart ... ok
+test process::separate_callback_process_accepts_canonical_input_and_rejects_bad_frames ... ok
+test process::native_host_frames_repeat_and_denials_release_no_effects ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/main.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln-9ec25b4b73141a89)
+
+running 3 tests
+test tests::evidence_rejects_missing_input ... ok
+test tests::demo_emits_canonical_state ... ok
+test tests::evidence_identity_is_deterministic ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_codec-f6fece709969db16)
+
+running 2 tests
+test tests::rejects_output_above_bound ... ok
+test tests::equal_values_have_equal_packed_identity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_conformance-463f8744bc9e9b42)
+
+running 9 tests
+test tests::conformance_rejects_provider_substitution ... ok
+test tests::dependency_boundaries_reject_provider_runtime ... ok
+test tests::provider_contract_gate_rejects_adapter_owned_ports ... ok
+test tests::dependency_boundaries_reject_reference_runtime ... ok
+test tests::reusable_provider_conformance_covers_repeat_cancel_timeout_and_reconcile ... ok
+test tests::dependency_boundaries_reject_every_forbidden_edge ... ok
+test tests::reference_boundary_allows_docs_and_rejects_product_integration ... ok
+test tests::provider_contracts_have_one_application_owner ... ok
+test tests::dependency_boundaries_accept_current_core ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/core_contracts.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/core_contracts-d7f663573102e7c0)
+
+running 10 tests
+test cursor_gap_is_explicit ... ok
+test cyclic_or_reversed_dependency_fails ... ok
+test consistent_publication_bundle_passes ... ok
+test cob_profile_and_fresh_plan_pass ... ok
+test exact_candidate_and_merge_preflight_pass ... ok
+test unsupported_pause_dispatches_nothing ... ok
+test rollback_sequence_fails ... ok
+test unknown_cob_schema_fails_closed ... ok
+test wait_predicate_is_read_only ... ok
+test status_filter_covers_every_exact_selection_dimension ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/provider_contract.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/provider_contract-d0be973f9f9431c1)
+
+running 2 tests
+test undeclared_pause_fails_closed ... ok
+test declared_lifecycle_is_admitted ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_core-a84f04fbecd95e40)
+
+running 62 tests
+test build::tests::exact_build_observation_is_admitted ... ok
+test cob::tests::detects_missing_initial_profile ... ok
+test build::tests::stale_candidate_and_missing_products_are_rejected ... ok
+test cob::tests::complete_resolution_rejects_partial_heads ... ok
+test discovery::tests::terminal_classification_preserves_uncertainty ... ok
+test domain::tests::unknown_outcome_is_not_terminal_success ... ok
+test discovery::tests::duplicate_derivations_and_cycles_fail_closed ... ok
+test domain::tests::starts_run_deterministically ... ok
+test domain::tests::rejects_terminal_mutation ... ok
+test gating::tests::failed_candidate_shrinks_window ... ok
+test discovery::tests::exact_jobs_map_deterministically_with_dependencies ... ok
+test gating::tests::exact_gate_plan_is_admitted ... ok
+test gating::tests::serial_admission_never_speculates ... ok
+test gating::tests::speculative_admission_is_bounded_by_candidate_count ... ok
+test gating::tests::gate_plan_rejects_noncanonical_evidence_and_pipeline_drift ... ok
+test gating::tests::exact_pass_and_block_map_to_candidate_results ... ok
+test gating::tests::stale_result_does_not_apply ... ok
+test gating::tests::unknown_outcome_never_becomes_a_gate_result ... ok
+test hosting::tests::published_profile_requires_rid ... ok
+test hosting::tests::readonly_mirror_rejects_write ... ok
+test gating::tests::substituted_candidate_policy_and_receipt_facts_fail_closed ... ok
+test interchange::tests::builder_and_control_plane_are_distinct ... ok
+test interchange::tests::imported_success_has_no_state_authority ... ok
+test interchange::tests::projections_cannot_promote_authority ... ok
+test operations::tests::dominant_share_rejects_missing_capacity ... ok
+test operations::tests::larger_share_ranks_first_for_equal_usage ... ok
+test provider::tests::admits_declared_operation ... ok
+test provider::tests::failure_translation_preserves_each_class ... ok
+test provider::tests::rejects_observation_from_substituted_profile ... ok
+test provider::tests::rejects_hidden_fallback ... ok
+test remote::tests::cache_hit_without_output_is_not_success ... ok
+test remote::tests::disconnect_after_acceptance_is_unknown ... ok
+test remote::tests::capability_admission_is_value_based ... ok
+test remote::tests::equal_native_text_keeps_distinct_kinds ... ok
+test source::tests::git_snapshot_rejects_unsafe_duplicate_and_gitlink_entries ... ok
+test source::tests::git_snapshot_manifest_is_deterministic ... ok
+test source::tests::admits_exact_jujutsu_commit ... ok
+test source::tests::local_git_profile_has_no_network_or_mutation_authority ... ok
+test source::tests::admits_stable_local_git_resolution ... ok
+test discovery::tests::observation_identity_and_gc_handoff_bind_exact_facts ... ok
+test source::tests::narrow_source_profile_does_not_gain_forge_authority ... ok
+test source::tests::native_source_profiles_keep_distinct_identity_namespaces ... ok
+test task_ops::tests::redacts_secret_value ... ok
+test source::tests::replayed_or_invalidly_signed_trigger_fails_closed ... ok
+test source::tests::pijul_snapshot_is_deterministic_and_rejects_invalid_entries ... ok
+test task_ops::tests::admits_ready_task ... ok
+test source::tests::rejects_ambiguous_jujutsu_revision ... ok
+test types::tests::accepts_namespaced_external_identity ... ok
+test types::tests::rejects_oversized_identifier ... ok
+test workflow::tests::cyclic_plan_is_rejected ... ok
+test workflow::tests::ordered_acyclic_plan_is_admitted ... ok
+test workflow::tests::linked_completion_maps_to_success ... ok
+test source::tests::rejects_moved_or_unsupported_git_resolution ... ok
+test trigger::tests::rejects_substitution_and_oversized_log_url ... ok
+test trigger::tests::admits_matching_bounded_observation ... ok
+test types::tests::rejects_malformed_content_identity ... ok
+test workflow::tests::stale_attempt_is_rejected ... ok
+test task_ops::tests::denies_delayed_task_without_time ... ok
+test source::tests::pijul_facts_bind_complete_stable_state ... ok
+test trigger::tests::rejects_zero_poll_bound ... ok
+test workflow::tests::paused_execution_cannot_claim_terminal_success ... ok
+test discovery::tests::evaluator_cohort_drift_changes_observation_identity ... ok
+
+test result: ok. 62 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_provider_api-8eac9254cde9cf46)
+
+running 2 tests
+test tests::roles_remain_distinct ... ok
+test tests::infrastructure_outcomes_remain_distinct ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_radicle_source_contract-21f5acef06e901ee)
+
+running 10 tests
+test tests::contract_publishes_explicit_non_claims ... ok
+test tests::contract_manifest_has_no_provider_runtime_dependency ... ok
+test tests::accepts_exact_parent_level_receipt ... ok
+test tests::rejects_digest_and_snapshot_bound_failures ... ok
+test tests::rejects_feature_and_verification_downgrades ... ok
+test tests::rejects_floating_or_malformed_request_facts ... ok
+test tests::rejects_identity_and_revision_substitution ... ok
+test tests::rejects_moved_or_unexpected_signed_refs ... ok
+test tests::rejects_zero_and_inconsistent_bounds ... ok
+test tests::rejects_unknown_wire_fields ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/producer_fixtures.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/producer_fixtures-6b48060866daebbf)
+
+running 1 test
+test producer_fixtures_match_independent_admission ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/kiln_standalone-ae175dc8a74c0278)
+
+running 9 tests
+test tests::client_deadline_does_not_change_attempt_outcome ... ok
+test tests::bounded_log_survives_store_clone ... ok
+test tests::interruption_commits_nothing ... ok
+test tests::hold_wires_to_canonical_command_without_provider_effect ... ok
+test tests::event_and_outbox_commit_together ... ok
+test tests::machine_status_output_is_versioned_and_bounded ... ok
+test tests::recovery_rejects_partial_log_metadata ... ok
+test tests::unknown_outcome_survives_recovery ... ok
+test tests::reference_profile_completes_accepted_and_rejected_runs ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/onix_radicle_cob_git_store-122abc7eacea6c56)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/git_store.rs (/var/tmp/kiln-public-readiness.UcF1MA/target/debug/deps/git_store-48936e500732cbc9)
+
+running 4 tests
+test stale_exact_head_is_rejected_even_when_operation_ancestry_matches_current ... ok
+test malformed_symbolic_foreign_author_and_tampered_signatures_fail_closed ... ok
+test signed_cob_roundtrip_with_borrowed_repository_and_exact_update ... ok
+test bounded_scan_counts_distinct_ids_not_valid_namespace_refs ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+   Doc-tests kiln_adapter_aspen
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cairn
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cdevents
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_celld
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cob
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_git
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_github
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_jj
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_lattice
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_mantle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_nix_eval
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_opentelemetry
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_pijul
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_radicle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_remote
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_sqlite
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_valence
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_webhook
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_aspen_extension
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_codec
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_conformance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_provider_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_radicle_source_contract
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_standalone
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests onix_radicle_cob_git_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling cc v1.4.2
+   Compiling syn v3.0.3
+   Compiling num-traits v0.2.19
+   Compiling memchr v2.8.3
+   Compiling blake3 v1.8.6
+   Compiling serde_derive v1.0.229
+   Compiling aho-corasick v1.1.5
+   Compiling serde v1.0.229
+   Compiling regex-automata v0.4.18
+   Compiling num-integer v0.1.46
+   Compiling serde_json v1.0.151
+   Compiling num-bigint v0.4.8
+   Compiling regex v1.13.1
+   Compiling kiln-core v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-core)
+   Compiling lazy_static v1.5.0
+   Compiling preserves v5.0.0-rc.7
+   Compiling kiln-codec v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-codec)
+   Compiling kiln-provider-api v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-provider-api)
+   Compiling kiln-standalone v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-standalone)
+   Compiling kiln-cli v0.1.0 (/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0/crates/kiln-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.97s
+     Running `/var/tmp/kiln-public-readiness.UcF1MA/target/debug/kiln demo`
+{"revision":1,"runs":{"demo-run":{"active_attempt":"demo-attempt","outcome":"Pending"}},"attempts":{"demo-attempt":{"run_id":"demo-run","provider_profile":"standalone-build-v1","outcome":"Pending","external_reference":null,"products":[],"metrics":[]}},"holds":[],"seen_commands":["demo-start"]}
+
+
+Wall time: 130.93 seconds
+
+[Showing lines 1-534 and 636-1169 of 1169; 101 middle lines (6.8KB) elided. Read artifact://2102 for full output]

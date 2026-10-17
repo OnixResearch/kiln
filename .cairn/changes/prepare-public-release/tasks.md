@@ -36,3 +36,7 @@ occurred.
 - [x] [serial] Exercise required checks from the clean candidate archive without sibling repositories or operator credentials. r[kiln.public_release.sources] r[kiln.public_release.gates]
 - [x] [serial] Record fresh candidate-bound observations in a separate evidence revision and stop before signing, push, synchronization, or publication. r[kiln.public_release.claims]
 
+## Phase 5: Current standalone contributor recheck
+
+- [x] [serial] Recheck the standalone quick start from a fresh anonymous main clone, document the tested Garden smart-HTTP client protocol, and retain exact public-source/build/hygiene observations without changing hosting or optional-runtime readiness. r[kiln.public_release.sources] r[kiln.public_release.claims]
+

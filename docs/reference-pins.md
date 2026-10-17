@@ -112,6 +112,9 @@ mode. Regenerate `Cargo.lock` with Cargo and `flake.lock` with Nix, retain produ
 cohort checks, and run the owning Kiln checks before claiming compatibility.
 Do not hand-edit locks or add sibling-path dependencies.
 
+For the initial Garden clone, use the command-local Git protocol setting in the
+[quick start](../README.md#quick-start); it does not change global Git configuration.
+
 For a fresh anonymous acquisition smoke, use an empty `HOME` and `CARGO_HOME`,
 disable SSH and interactive Git credentials, then run `cargo fetch --locked` and
 `nix flake archive --no-write-lock-file path:$PWD` with empty Nix `access-tokens`

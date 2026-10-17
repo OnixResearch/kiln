@@ -189,3 +189,63 @@ is retained rather than relabeled PASS. Its full flake run was cancelled when
 superseded. No remote publication authority or binary-license compatibility
 clearance is claimed.
 
+## Current standalone contributor recheck
+
+The fresh anonymous clone acquired public `main` at
+`2bc241834461b2df10464bd847ae7a098857d497`. This is a separate observation of
+the published root workspace, not a new candidate or a reassignment of earlier
+release receipts. The [source-bound observations](standalone-2026-10-16/observations.json)
+retain input BLAKE3 identities, the cleared environment, exact exercised build
+commands, source resolution, CLI state, and review limits.
+
+Default Garden Git negotiation returned HTTP 500. Command-local
+`protocol.version=0` acquired the source without credentials; the corrected
+README clone command also succeeded in a second fresh destination. No global
+Git configuration or alternate source route was installed.
+
+Cold root Nix source acquisition and fresh `cargo fetch --locked` passed with
+empty contributor HOME/CARGO_HOME, disabled SSH/prompts, and empty Nix token,
+signing-key, and netrc inputs. Locked offline metadata admitted 27 workspace
+packages and 410 resolved packages, with zero Git-sourced packages. The Nix
+source-store check does not claim a fresh compiler/native-dependency bootstrap;
+the build reused the system Nix store and public cache.
+
+All 291 default workspace tests passed, with zero failed or ignored tests.
+The actual `kiln demo` accepted `demo-start`, produced journal revision 1, and
+created the expected pending run/attempt with no holds. The complete
+[workspace and demo output](standalone-2026-10-16/build-and-demo.log) is retained.
+
+Gitleaks 8.30.1 scanned 71 fetched commits (approximately 9.2 MB), returned exit
+1, and reported 18 `generic-api-key` findings. This is not a scanner PASS.
+Every match was checked against its exact historical commit, source line, and
+scanner columns: 16 public Ed25519 `did:key` occurrences and two
+`artifact_auth_revision` Git source references. The original
+[redacted scanner report](standalone-2026-10-16/gitleaks-history.redacted.json)
+and all classifications are retained; no suppression or baseline was added.
+The reviewed source intentionally contains deterministic signing seeds and
+synthetic credentials in isolated conformance fixtures. No confirmed
+operational credential disclosure was found in the examined scope; this is
+not exhaustive source or history secret-free certification.
+
+The source-notice review found no missing referenced license/NOTICE text or
+improper public reuse grant across the selected package/import records. It
+does not certify copyright authority, exhaustively inventory dependencies, or
+clear combined binaries for distribution. Existing copyleft and owner-only
+grant boundaries remain unchanged.
+
+Local strict Cairn validation and the preparation proposal/design/tasks gates
+passed; all 12 preparation tasks are complete. Global traceability remains
+FAIL at 622/625, with no dangling markers. Its three missing
+`kiln.aspen_host.production_evidence*` identifiers are the same obligations
+recorded by the existing [exact-candidate source-only exception](../../integrate-canonical-main/evidence/source-only-exception.ncl).
+The [native check outputs](standalone-2026-10-16/lifecycle-checks.json) retain
+that failure alongside the passing checks. No marker, policy, or new waiver
+was added; optional-runtime production qualification remains outside this
+contributor recheck. These receipts precede their own result-documentation
+bookkeeping rather than claiming to validate their finalized output.
+
+Kiln maintainers own the corrected contributor recipe and repeatability rail.
+These local documentation/evidence changes do not claim optional-runtime or
+hosted-service readiness, change hosting provenance, or perform signing,
+publication, synchronization, governance mutation, lifecycle sync, or archive.
+

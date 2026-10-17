@@ -1,0 +1,716 @@
+{
+  "schema": "kiln.standalone-contributor-observations.v1",
+  "observed_at_utc": "2026-10-17T02:23:32.943Z",
+  "owner": "Kiln maintainers",
+  "state": "public-source-checked-local-documentation-corrected",
+  "scope": "Current public root workspace contributor quick start; not optional runtime products, hosting provenance, or a new publication candidate",
+  "source": {
+    "route": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+    "revision": "2bc241834461b2df10464bd847ae7a098857d497",
+    "checkout": "/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0",
+    "input_blake3": {
+      "Cargo.toml": "4c4540ba94a5127c9367d8c4a4800c2f2bae598dc6b9aa59e73cd6228ef1b7b0",
+      "Cargo.lock": "9e8018a766b9770b2bab00f505f5af50e68644187b1e68b8cbbc5c899078ebb1",
+      "flake.nix": "c6949f7a7471822184a5abcdc81dfd929dd4cd146b45c9fee4ffe4487701f757",
+      "flake.lock": "e33a13a1d814c1d7cc6796b644d22c814c23c485464dc6ed67018448483b141b",
+      "rust-toolchain.toml": "33fa2adb5accff04df02668d70f4e702e3329c34a1f4c42a91c94f2e768d6e2a",
+      "README.md": "68b509bf2844ec796df7fa97ce8b8e88bfafb77d918fd0711ca128f601e5fb82",
+      "LICENSES.md": "ddbfaa18d0a172177ccf55f40970f12c6431bf4e40cbd3d0eadf2cad74ccd303"
+    },
+    "documentation_boundary": "These hashes bind the acquired public source, not the subsequent local README/reference-pins/task/evidence edits."
+  },
+  "environment": {
+    "PATH": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin:/usr/bin:/bin",
+    "HOME": "/var/tmp/kiln-public-readiness.UcF1MA/home",
+    "XDG_CONFIG_HOME": "/var/tmp/kiln-public-readiness.UcF1MA/config",
+    "XDG_CACHE_HOME": "/var/tmp/kiln-public-readiness.UcF1MA/cache",
+    "XDG_DATA_HOME": "/var/tmp/kiln-public-readiness.UcF1MA/data",
+    "CARGO_HOME": "/var/tmp/kiln-public-readiness.UcF1MA/cargo",
+    "CARGO_TARGET_DIR": "/var/tmp/kiln-public-readiness.UcF1MA/target",
+    "CARGO_BUILD_JOBS": "2",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "TERM": "dumb",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_CONFIG_GLOBAL": "/dev/null",
+    "GIT_TERMINAL_PROMPT": "0",
+    "GIT_ASKPASS": "/run/current-system/sw/bin/false",
+    "SSH_ASKPASS": "/run/current-system/sw/bin/false",
+    "GIT_SSH_COMMAND": "/run/current-system/sw/bin/false",
+    "GIT_CONFIG_COUNT": "2",
+    "GIT_CONFIG_KEY_0": "credential.helper",
+    "GIT_CONFIG_VALUE_0": "",
+    "GIT_CONFIG_KEY_1": "protocol.ssh.allow",
+    "GIT_CONFIG_VALUE_1": "never",
+    "NIX_USER_CONF_FILES": "/dev/null",
+    "NIX_CONFIG": "experimental-features = nix-command flakes\naccess-tokens =\nsecret-key-files =\nnetrc-file = /dev/null\nbuilders =\nsubstituters = https://cache.nixos.org\nextra-substituters =\nmin-free = 0\nmax-free = 0\n"
+  },
+  "acquisition": {
+    "default_git_negotiation": {
+      "outcome": "failed",
+      "observed_http_status": 500
+    },
+    "command_local_protocol_v0": {
+      "outcome": "acquired public main anonymously",
+      "git_protocol_version": "0"
+    },
+    "corrected_readme_command": "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git kiln",
+    "corrected_readme_smoke": {
+      "outcome": "acquired anonymously in a separate checkout-readme destination",
+      "observed_source_short_revision": "2bc24183"
+    },
+    "cargo_fetch": {
+      "outcome": "passed",
+      "command": "cargo fetch --locked",
+      "initial_home": "new empty HOME and CARGO_HOME; no Cargo Git cache or sibling inputs"
+    },
+    "cold_nix_archive": {
+      "outcome": "passed",
+      "source_store_root": "/var/tmp/kiln-public-readiness.UcF1MA/cold-nix-store",
+      "observed_archive": {
+        "inputs": {
+          "nix-eval-jobs": {
+            "inputs": {
+              "flake-parts": {
+                "inputs": {},
+                "path": "/nix/store/pqjppkj5kcs4001j5svlsz1595hcja0y-source"
+              },
+              "nix": {
+                "inputs": {},
+                "path": "/nix/store/mxqs2kx71n63lrrc1cgh037q9f862r3y-source"
+              },
+              "nixpkgs": {
+                "inputs": {},
+                "path": "/nix/store/qs19c087rpasj7p8h8l8z8y80gxz9pwi-source"
+              },
+              "treefmt-nix": {
+                "inputs": {},
+                "path": "/nix/store/j2wzjpy3yyr56yv1klygrm7mya0kb2f0-source"
+              }
+            },
+            "path": "/nix/store/xx7385j23r97ra2x4j9mdh6lcs4pnwcq-source"
+          },
+          "nixpkgs": {
+            "inputs": {},
+            "path": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source"
+          },
+          "rust-overlay": {
+            "inputs": {},
+            "path": "/nix/store/gjx3mziwj0g4azg30z4irhkl8jsw8y26-source"
+          }
+        },
+        "path": "/nix/store/vyqisaws54dr197l1bpkm0c8wcb898ky-source"
+      }
+    },
+    "limit": "Cold source-input acquisition is not a fresh bootstrap of all compiler/native dependencies. Product builds used the system Nix store and public cache."
+  },
+  "workspace_resolution": {
+    "command": "cargo metadata --locked --offline --format-version 1",
+    "exit_code": 0,
+    "workspace_packages": [
+      {
+        "name": "kiln-adapter-aspen",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-cairn",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-cdevents",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-celld",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-cob",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-git",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-github",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-jj",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-lattice",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-mantle",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-nix-eval",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-opentelemetry",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-pijul",
+        "version": "0.1.0",
+        "license": "GPL-2.0-only",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-radicle",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-remote",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-sqlite",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-valence",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-adapter-webhook",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-aspen-extension",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-cli",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-codec",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-conformance",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-core",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-provider-api",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-radicle-source-contract",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "kiln-standalone",
+        "version": "0.1.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      },
+      {
+        "name": "onix-radicle-cob-git-store",
+        "version": "0.2.0",
+        "license": "MIT OR Apache-2.0",
+        "source": null
+      }
+    ],
+    "git_sources": [],
+    "registry_sources": [
+      "registry+https://github.com/rust-lang/crates.io-index"
+    ],
+    "resolved_packages": 410
+  },
+  "toolchain": {
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+    "cargo": "cargo 1.88.0 (873a06493 2025-05-10)"
+  },
+  "workspace_tests": {
+    "command": "env -i PATH='/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin:/usr/bin:/bin' HOME='/var/tmp/kiln-public-readiness.UcF1MA/home' XDG_CONFIG_HOME='/var/tmp/kiln-public-readiness.UcF1MA/config' XDG_CACHE_HOME='/var/tmp/kiln-public-readiness.UcF1MA/cache' XDG_DATA_HOME='/var/tmp/kiln-public-readiness.UcF1MA/data' CARGO_HOME='/var/tmp/kiln-public-readiness.UcF1MA/cargo' CARGO_TARGET_DIR='/var/tmp/kiln-public-readiness.UcF1MA/target' CARGO_BUILD_JOBS='2' LANG='C.UTF-8' LC_ALL='C.UTF-8' TERM='dumb' GIT_CONFIG_NOSYSTEM='1' GIT_CONFIG_GLOBAL='/dev/null' GIT_TERMINAL_PROMPT='0' GIT_ASKPASS='/run/current-system/sw/bin/false' SSH_ASKPASS='/run/current-system/sw/bin/false' GIT_SSH_COMMAND='/run/current-system/sw/bin/false' GIT_CONFIG_COUNT='2' GIT_CONFIG_KEY_0='credential.helper' GIT_CONFIG_VALUE_0='' GIT_CONFIG_KEY_1='protocol.ssh.allow' GIT_CONFIG_VALUE_1='never' NIX_USER_CONF_FILES='/dev/null' NIX_CONFIG='experimental-features = nix-command flakes\naccess-tokens =\nsecret-key-files =\nnetrc-file = /dev/null\nbuilders =\nsubstituters = https://cache.nixos.org\nextra-substituters =\nmin-free = 0\nmax-free = 0\n' nix develop --no-write-lock-file --option build-dir /var/tmp 'path:/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0' -c cargo test --locked --workspace",
+    "outcome": "passed",
+    "passed": 291,
+    "failed": 0,
+    "ignored": 0,
+    "result_summaries": 62,
+    "profile": "Default root workspace features; no all-features or optional-runtime claim"
+  },
+  "cli_smoke": {
+    "command": "env -i PATH='/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin:/usr/bin:/bin' HOME='/var/tmp/kiln-public-readiness.UcF1MA/home' XDG_CONFIG_HOME='/var/tmp/kiln-public-readiness.UcF1MA/config' XDG_CACHE_HOME='/var/tmp/kiln-public-readiness.UcF1MA/cache' XDG_DATA_HOME='/var/tmp/kiln-public-readiness.UcF1MA/data' CARGO_HOME='/var/tmp/kiln-public-readiness.UcF1MA/cargo' CARGO_TARGET_DIR='/var/tmp/kiln-public-readiness.UcF1MA/target' CARGO_BUILD_JOBS='2' LANG='C.UTF-8' LC_ALL='C.UTF-8' TERM='dumb' GIT_CONFIG_NOSYSTEM='1' GIT_CONFIG_GLOBAL='/dev/null' GIT_TERMINAL_PROMPT='0' GIT_ASKPASS='/run/current-system/sw/bin/false' SSH_ASKPASS='/run/current-system/sw/bin/false' GIT_SSH_COMMAND='/run/current-system/sw/bin/false' GIT_CONFIG_COUNT='2' GIT_CONFIG_KEY_0='credential.helper' GIT_CONFIG_VALUE_0='' GIT_CONFIG_KEY_1='protocol.ssh.allow' GIT_CONFIG_VALUE_1='never' NIX_USER_CONF_FILES='/dev/null' NIX_CONFIG='experimental-features = nix-command flakes\naccess-tokens =\nsecret-key-files =\nnetrc-file = /dev/null\nbuilders =\nsubstituters = https://cache.nixos.org\nextra-substituters =\nmin-free = 0\nmax-free = 0\n' nix develop --no-write-lock-file --option build-dir /var/tmp 'path:/var/tmp/kiln-public-readiness.UcF1MA/checkout-protocol-v0' -c cargo run --locked -p kiln-cli -- demo",
+    "outcome": "passed",
+    "observed_state": {
+      "revision": 1,
+      "runs": {
+        "demo-run": {
+          "active_attempt": "demo-attempt",
+          "outcome": "Pending"
+        }
+      },
+      "attempts": {
+        "demo-attempt": {
+          "run_id": "demo-run",
+          "provider_profile": "standalone-build-v1",
+          "outcome": "Pending",
+          "external_reference": null,
+          "products": [],
+          "metrics": []
+        }
+      },
+      "holds": [],
+      "seen_commands": [
+        "demo-start"
+      ]
+    }
+  },
+  "history_scan": {
+    "scanner": "Gitleaks 8.30.1",
+    "scope": "71 commits in the anonymously fetched Git history; approximately 9.2 MB scanned",
+    "exit_code": 1,
+    "automatic_result": "18 generic-api-key findings; not scanner PASS",
+    "redaction": "100 percent; original redacted scanner report retained separately",
+    "suppression": "No baseline or repository allowlist added; inline allow comments ignored for the scan",
+    "historical_review": "All 18 findings checked against the exact commit, source line and scanner columns using jj file show; 14 distinct historical blobs",
+    "manual_result": "16 public Ed25519 did:key occurrences and two artifact_auth_revision Git source references; no confirmed operational credential disclosure in these findings",
+    "findings": [
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/integrate-canonical-main/evidence/hosting-profile.json",
+        "line": 16,
+        "end_line": 16,
+        "commit": "2bc241834461b2df10464bd847ae7a098857d497",
+        "entropy": 4.8868423,
+        "finding": 1,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 11,
+        "end_column": 63,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/integrate-canonical-main/evidence/governance-after.json",
+        "line": 14,
+        "end_line": 14,
+        "commit": "2bc241834461b2df10464bd847ae7a098857d497",
+        "entropy": 4.8868423,
+        "finding": 2,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 13,
+        "end_column": 65,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/integrate-canonical-main/evidence/governance-after.json",
+        "line": 27,
+        "end_line": 27,
+        "commit": "2bc241834461b2df10464bd847ae7a098857d497",
+        "entropy": 4.8868423,
+        "finding": 3,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 13,
+        "end_column": 65,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/integrate-canonical-main/evidence/governance-before.json",
+        "line": 13,
+        "end_line": 13,
+        "commit": "cd8b810028fafd3bcb531e920f5360e1f52f6fda",
+        "entropy": 4.8868423,
+        "finding": 4,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 13,
+        "end_column": 65,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/hosting-profile.json",
+        "line": 16,
+        "end_line": 16,
+        "commit": "1867f611a7968211e29830f4f1a6d5c4ff568138",
+        "entropy": 4.8868423,
+        "finding": 5,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 11,
+        "end_column": 63,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/prepare-public-release/evidence/candidates/2026-10-15/hosting-profile.json",
+        "line": 16,
+        "end_line": 16,
+        "commit": "1867f611a7968211e29830f4f1a6d5c4ff568138",
+        "entropy": 4.8868423,
+        "finding": 6,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 11,
+        "end_column": 63,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/prepare-public-release/evidence/push-2026-10-15.json",
+        "line": 16,
+        "end_line": 16,
+        "commit": "1867f611a7968211e29830f4f1a6d5c4ff568138",
+        "entropy": 4.8868423,
+        "finding": 7,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 23,
+        "end_column": 75,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/prepare-public-release/evidence/push-2026-10-15.json",
+        "line": 66,
+        "end_line": 66,
+        "commit": "1867f611a7968211e29830f4f1a6d5c4ff568138",
+        "entropy": 4.8868423,
+        "finding": 8,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 15,
+        "end_column": 67,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/prepare-public-release/evidence/push-2026-10-15.json",
+        "line": 80,
+        "end_line": 80,
+        "commit": "1867f611a7968211e29830f4f1a6d5c4ff568138",
+        "entropy": 4.8868423,
+        "finding": 9,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 15,
+        "end_column": 67,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "fixtures/radicle-ci-broker/0.31.0/trigger.json",
+        "line": 1,
+        "end_line": 1,
+        "commit": "ad01ac6397f58b165c5fa51f1a3c28d32eda7a64",
+        "entropy": 5.069236,
+        "finding": 10,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "trigger_repository_private": false,
+        "delegate_equals_pusher": true,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 221,
+        "end_column": 273,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "fixtures/radicle-ci-broker/0.31.0/trigger.json",
+        "line": 1,
+        "end_line": 1,
+        "commit": "ad01ac6397f58b165c5fa51f1a3c28d32eda7a64",
+        "entropy": 5.069236,
+        "finding": 11,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "trigger_repository_private": false,
+        "delegate_equals_pusher": true,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 297,
+        "end_column": 349,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": ".cairn/changes/bind-aspen-extension-runtime-profile/evidence/verification.md",
+        "line": 11,
+        "end_line": 11,
+        "commit": "330059df57641300baa6c2ae09fd3a4989018d40",
+        "entropy": 4.7618423,
+        "finding": 12,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 36,
+        "end_column": 88,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "config/fixtures/negative-valence-role.ncl",
+        "line": 4,
+        "end_line": 4,
+        "commit": "1b9be7b5f9719295412d5fdba0feb34f8e596866",
+        "entropy": 3.6225739,
+        "finding": 13,
+        "category": "public_source_revision",
+        "field": "artifact_auth_revision",
+        "revision": "e41340bec587b6d049b5cc518ec7db925dde84be",
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 4,
+        "end_column": 70,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "config/valence-profile.ncl",
+        "line": 9,
+        "end_line": 9,
+        "commit": "1b9be7b5f9719295412d5fdba0feb34f8e596866",
+        "entropy": 3.6225739,
+        "finding": 14,
+        "category": "public_source_revision",
+        "field": "artifact_auth_revision",
+        "revision": "e41340bec587b6d049b5cc518ec7db925dde84be",
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 4,
+        "end_column": 70,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "config/default.ncl",
+        "line": 107,
+        "end_line": 107,
+        "commit": "2d7d2081f907cb19e39798e2e2c0a59d07ad9d3d",
+        "entropy": 4.8868423,
+        "finding": 15,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 24,
+        "end_column": 76,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "vendor/valence/crates/valence-core/src/radicle_forge_ops.rs",
+        "line": 1399,
+        "end_line": 1399,
+        "commit": "1867f611a7968211e29830f4f1a6d5c4ff568138",
+        "entropy": 4.8868423,
+        "finding": 16,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 36,
+        "end_column": 88,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "evidence/publication-receipt.ncl",
+        "line": 70,
+        "end_line": 70,
+        "commit": "2d7d2081f907cb19e39798e2e2c0a59d07ad9d3d",
+        "entropy": 4.8868423,
+        "finding": 17,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 24,
+        "end_column": 76,
+        "exact_scanner_span_verified": true
+      },
+      {
+        "rule": "generic-api-key",
+        "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "file": "evidence/release-evidence.json",
+        "line": 333,
+        "end_line": 333,
+        "commit": "2d7d2081f907cb19e39798e2e2c0a59d07ad9d3d",
+        "entropy": 4.8868423,
+        "finding": 18,
+        "category": "public_ed25519_did",
+        "distinct_public_identities_in_source_span": 1,
+        "evidence": "Read exact historical source using jj file show at the scanner commit and source line range",
+        "start_column": 17,
+        "end_column": 69,
+        "exact_scanner_span_verified": true
+      }
+    ],
+    "fixture_boundary": "Current source intentionally includes deterministic Ed25519 signing seeds and synthetic HMAC/token credentials in isolated conformance tests; their presence is not a claim that source contains no private-key bytes.",
+    "limit": "Bounded scanner plus targeted source review, not exhaustive secret-free certification of all source, deleted/unfetched history, dependencies, or operator systems"
+  },
+  "source_notice_review": {
+    "outcome": "No missing referenced source-license/NOTICE text or improper public reuse grant identified in examined scope",
+    "scope": "26 explicitly listed Kiln package manifests, local COB store, seven import records, selected upstream package license metadata and retained licensing/NOTICE/provenance texts",
+    "evidence": [
+      "LICENSES.md",
+      "Cargo.toml",
+      "crates/kiln-adapter-pijul/Cargo.toml",
+      "vendor/artifact/NOTICE",
+      "vendor/artifact/provenance/SOURCE_GRANT.md",
+      "vendor/cairn/docs/licensing.md",
+      "vendor/valence/docs/licensing.md",
+      "vendor/*.source.json"
+    ],
+    "limit": "Source-notice consistency review, not copyright/license certification, exhaustive dependency or native-library audit, or combined-binary distribution clearance; owner-specific grants do not extend to public recipients"
+  },
+  "retained_artifacts": [
+    {
+      "path": "build-and-demo.log",
+      "blake3": "b4cac031773c5ccc690fa0a43ba472eb601886b21e3e5f97fd4f82586d06e5be"
+    },
+    {
+      "path": "gitleaks-history.redacted.json",
+      "blake3": "5e660c52e9f53597da28b0ec719d5f48244006a34d78e55453c127c03569cf9e"
+    },
+    {
+      "path": "lifecycle-checks.json",
+      "blake3": "d65db0cec848a35be9a35108b36f5ac1e8f9daa4ba839d545be5f1200e19ea71"
+    }
+  ],
+  "durable_contribution": "Command-local Garden protocol recipe, fresh anonymous root-workspace reproduction and exact historical classification without scanner suppression; maintained by Kiln maintainers for outside contributors",
+  "non_claims": [
+    "No new signing, push, synchronization, announcement, governance mutation, mirror publication, lifecycle sync or archive performed",
+    "HTTPS acquisition does not authenticate Radicle governance or prove future source availability",
+    "No optional Aspen/Lattice runtime, hosted service deployment, remote status writes, provider correctness, worker confinement, aarch64 build or new full Nix gate run claimed",
+    "Earlier release/candidate receipts retain their original input boundaries; these observations cover only the identified public source and subsequent local documentation correction"
+  ],
+  "local_lifecycle_checks": {
+    "evidence": "lifecycle-checks.json",
+    "scope": "Completed local task state before writing these check results and the explanatory documentation; not a claim that a receipt includes its own final output",
+    "results": [
+      {
+        "name": "strict-validation",
+        "exit_code": 0,
+        "valid": true,
+        "receipt_hash": "8a73a2537c8f369df89a874f40ed08758521fe75eb94c7f4a03de53007d3e22e"
+      },
+      {
+        "name": "traceability",
+        "exit_code": 1,
+        "valid": false,
+        "verdict": "fail",
+        "receipt_hash": "3d1530100aa0d5e8bdd98bf28dcd6881082b36a75461eacb4ed6d36af60c1335"
+      },
+      {
+        "name": "proposal-gate",
+        "exit_code": 0,
+        "valid": true,
+        "verdict": "PASS",
+        "receipt_hash": "52fd341af0bfed8035819cf8e6fc6b9ebc4a1ab47f25c77397b73deb590bfe87"
+      },
+      {
+        "name": "design-gate",
+        "exit_code": 0,
+        "valid": true,
+        "verdict": "PASS",
+        "receipt_hash": "8676098ffa1806110299c4d11081b9bc5012b081cad3f753671aa8636077a81d"
+      },
+      {
+        "name": "tasks-gate",
+        "exit_code": 0,
+        "valid": true,
+        "verdict": "PASS",
+        "receipt_hash": "5c49d42d5993eb9a71cf09b9ffbe61a1df96f740e4e85e6c6374d3512aefd79a"
+      }
+    ],
+    "traceability": {
+      "requirements": 625,
+      "referenced": 622,
+      "missing": [
+        "kiln.aspen_host.production_evidence",
+        "kiln.aspen_host.production_evidence.accepted",
+        "kiln.aspen_host.production_evidence.rejected"
+      ],
+      "dangling": [],
+      "existing_exact_candidate_exception": ".cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl",
+      "waiver_added": false
+    }
+  }
+}
