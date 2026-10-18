@@ -30,7 +30,10 @@ fn main() -> CoreResult<()> {
     };
     let started = apply(&state, &start)?;
     assert_eq!(
-        started.attempts.get(&attempt_id).map(|attempt| attempt.outcome),
+        started
+            .attempts
+            .get(&attempt_id)
+            .map(|attempt| attempt.outcome),
         Some(Outcome::Pending)
     );
     let completion = CommandEnvelope {
@@ -47,7 +50,10 @@ fn main() -> CoreResult<()> {
     };
     let terminal = apply(&started, &completion)?;
     assert_eq!(
-        terminal.attempts.get(&attempt_id).map(|attempt| attempt.outcome),
+        terminal
+            .attempts
+            .get(&attempt_id)
+            .map(|attempt| attempt.outcome),
         Some(Outcome::DomainFailure)
     );
     let late_success = CommandEnvelope {
@@ -70,7 +76,11 @@ fn main() -> CoreResult<()> {
 fn apply(state: &State, command: &CommandEnvelope) -> CoreResult<State> {
     let decision = decide(state, command, Limits::default())?;
     let event = decision.events.first().ok_or_else(|| {
-        Diagnostic::new("missing_probe_event", "live_ci", "transition emitted no event")
+        Diagnostic::new(
+            "missing_probe_event",
+            "live_ci",
+            "transition emitted no event",
+        )
     })?;
     evolve(state, event)
 }
