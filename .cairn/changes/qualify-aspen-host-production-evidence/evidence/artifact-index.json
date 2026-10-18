@@ -2530,6 +2530,78 @@
       "blake3": "b19d346e84dea31973b32924d02975c260d7a50dc10b6c5bda2d8300bb1f753b",
       "bytes": 37872,
       "path": "artifacts/b19d346e84dea31973b32924d02975c260d7a50dc10b6c5bda2d8300bb1f753b"
+    },
+    {
+      "name": "described-history-authorized-main-publication-source-manifest.json",
+      "blake3": "e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43",
+      "bytes": 373909,
+      "path": "artifacts/e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43"
+    },
+    {
+      "name": "described-history-exact-main-push-preflight.json",
+      "blake3": "c970bbd531ddeb1a0f58762319eed65f4b019b6834af5ab29055ab8bfe6d3904",
+      "bytes": 2182,
+      "path": "artifacts/c970bbd531ddeb1a0f58762319eed65f4b019b6834af5ab29055ab8bfe6d3904"
+    },
+    {
+      "name": "described-history-authorized-main-push-observation.json",
+      "blake3": "e72cd4511a1a036be9dea8f3ce7eb775fcc00b0f3b21cd053cd9f516b000941e",
+      "bytes": 2299,
+      "path": "artifacts/e72cd4511a1a036be9dea8f3ce7eb775fcc00b0f3b21cd053cd9f516b000941e"
+    },
+    {
+      "name": "described-history-post-main-push-radicle-governance-and-signed-refs.json",
+      "blake3": "9d77ba835917a2e908d905b91f5169cdf34decd2adfe68bdbd6ad042a255c724",
+      "bytes": 1220,
+      "path": "artifacts/9d77ba835917a2e908d905b91f5169cdf34decd2adfe68bdbd6ad042a255c724"
+    },
+    {
+      "name": "described-history-fresh-acquisition-github-ssh.json",
+      "blake3": "176df0c030c0efda5060f2c44d57b4b24e6c083c2468858128b87409b834d815",
+      "bytes": 587259,
+      "path": "artifacts/176df0c030c0efda5060f2c44d57b4b24e6c083c2468858128b87409b834d815"
+    },
+    {
+      "name": "described-history-fresh-acquisition-radicle-native.json",
+      "blake3": "c80754119652cb01a0a6e6e58e6c4f756996539cc0fbb65b90b2b7d106ac8510",
+      "bytes": 2093,
+      "path": "artifacts/c80754119652cb01a0a6e6e58e6c4f756996539cc0fbb65b90b2b7d106ac8510"
+    },
+    {
+      "name": "described-history-fresh-acquisition-garden-anonymous-https.json",
+      "blake3": "7a238781d5b9f4594754e99db73595353e18aa35f9b161a089eee7d77d4fd9c8",
+      "bytes": 587229,
+      "path": "artifacts/7a238781d5b9f4594754e99db73595353e18aa35f9b161a089eee7d77d4fd9c8"
+    },
+    {
+      "name": "described-history-fresh-acquisition-radicle-namespace-native.json",
+      "blake3": "6ded815f3cc52414409e8cceba573e2df88e38e427874fdb1a312e4b44f36c43",
+      "bytes": 2165,
+      "path": "artifacts/6ded815f3cc52414409e8cceba573e2df88e38e427874fdb1a312e4b44f36c43"
+    },
+    {
+      "name": "described-history-fresh-acquisition-radicle-declared-helper.json",
+      "blake3": "2b0e0a17185c01c08e4c8b4024f75cbb8f93ab5c8a02f7089a3e328a3f4d541a",
+      "bytes": 589396,
+      "path": "artifacts/2b0e0a17185c01c08e4c8b4024f75cbb8f93ab5c8a02f7089a3e328a3f4d541a"
+    },
+    {
+      "name": "described-history-seed-namespace-readbacks.json",
+      "blake3": "9685e5b89d871491b4ba0339459226509fc73807aabfbda38700852cc3bbe756",
+      "bytes": 1981,
+      "path": "artifacts/9685e5b89d871491b4ba0339459226509fc73807aabfbda38700852cc3bbe756"
+    },
+    {
+      "name": "described-history-authorized-main-publication-receipt.json",
+      "blake3": "56b2430915873e8290506ab031582c60ccb33fe6f747985f26865ff88d0c140c",
+      "bytes": 6224,
+      "path": "artifacts/56b2430915873e8290506ab031582c60ccb33fe6f747985f26865ff88d0c140c"
+    },
+    {
+      "name": "described-history-post-publication-local-evidence-validation.json",
+      "blake3": "ea7d3da5a36185d14844c193b5b9cefd0f96898c89a368536a8858b4aa6537e8",
+      "bytes": 97483,
+      "path": "artifacts/ea7d3da5a36185d14844c193b5b9cefd0f96898c89a368536a8858b4aa6537e8"
     }
   ],
   "qualification_status": "qualified: bounded local host only; no release or deployment authority",
@@ -2759,5 +2831,18 @@
       "path": "artifacts/17e5ae38c07dac60c0e7db102d11635205255843fdca77a1fd3a48ff3c12415c"
     },
     "missing_required_preexisting_report_namespace": true
+  },
+  "authorized_main_publication": {
+    "name": "described-history-authorized-main-publication-receipt.json",
+    "blake3": "56b2430915873e8290506ab031582c60ccb33fe6f747985f26865ff88d0c140c",
+    "bytes": 6224,
+    "path": "artifacts/56b2430915873e8290506ab031582c60ccb33fe6f747985f26865ff88d0c140c"
+  },
+  "authorized_main_publication_revision": "c9266e05d3d44f8d0be06aa60c69edd6b3586adb",
+  "post_publication_local_evidence_validation": {
+    "name": "described-history-post-publication-local-evidence-validation.json",
+    "blake3": "ea7d3da5a36185d14844c193b5b9cefd0f96898c89a368536a8858b4aa6537e8",
+    "bytes": 97483,
+    "path": "artifacts/ea7d3da5a36185d14844c193b5b9cefd0f96898c89a368536a8858b4aa6537e8"
   }
 }

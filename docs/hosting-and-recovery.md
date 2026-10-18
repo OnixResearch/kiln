@@ -100,6 +100,9 @@ inputs. Current declared traceability is 625/625; this is linkage, not execution
 truth or release authority. Exact gate and consumer results belong to the linked
 evidence, not the historical source-only exception.
 
+The separately authorized [qualified-candidate publication](../.cairn/changes/qualify-aspen-host-production-evidence/evidence/publication.json) advanced both declared `main` refs to `c9266e05d3d44f8d0be06aa60c69edd6b3586adb`. Fresh GitHub SSH, namespace-scoped native Radicle and anonymous Garden HTTPS checkouts reproduced all 1441 regular members and the 23767040-byte normalized USTAR archive, BLAKE3 `561e1106ae4c836d1042042818ad181b97b190214a98f92430015ea213826c61`. Iris, Rosa and Garden namespace APIs agreed at read time; public visibility, the delegate and threshold were unchanged. The post-push receipt is retained in a local evidence-only child, outside that published source archive. This source publication grants no deployment, release or credential authority.
+
+
 
 ## Integrated main publication
 

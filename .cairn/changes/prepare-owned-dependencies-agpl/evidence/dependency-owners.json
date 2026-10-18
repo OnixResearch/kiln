@@ -1,0 +1,864 @@
+{
+  "schema": "kiln.selected-owned-dependency-inventory.v1",
+  "scope": {
+    "cargo_locks": [
+      "Cargo.lock",
+      "runtime/kiln-aspen-host/Cargo.lock",
+      "runtime/kiln-radicle-nix-provider/Cargo.lock"
+    ],
+    "nix_locks": [
+      "flake.lock",
+      "runtime/build-cohort/flake.lock"
+    ],
+    "consumer_license_and_pins": "unchanged",
+    "maintenance_owner": "Kiln maintainers own selected-closure inventory; each producer maintains its own source license and checks."
+  },
+  "owners": [
+    {
+      "owner": "artifact",
+      "cargo_sources": [
+        {
+          "source": "git+ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d880ddf4c2967f4c024b489b5c0022bf1",
+          "packages": [
+            "artifact-auth-core",
+            "artifact-auth-ed25519",
+            "artifact-binding-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "artifact",
+          "lastModified": 1785024816,
+          "narHash": "sha256-2cM912L2YXVnVX9LquwhAPKyjPP/z/oFQRe7Qq9bHHE=",
+          "ref": "refs/heads/main",
+          "rev": "e41340bec587b6d049b5cc518ec7db925dde84be",
+          "revCount": 13,
+          "type": "git",
+          "url": "ssh://git@github.com/OnixResearch/onix-artifact.git"
+        }
+      ],
+      "source_imports": [
+        {
+          "name": "artifact",
+          "record_keys": [
+            "source_repository",
+            "source_commit",
+            "full_archive_format",
+            "full_archive_blake3",
+            "archive_format",
+            "archive_paths",
+            "archive_blake3",
+            "importer",
+            "package_licenses",
+            "scope",
+            "nonclaims"
+          ],
+          "source_repository": "ssh://git@github.com/OnixResearch/onix-artifact.git",
+          "source_commit": "e41340bec587b6d049b5cc518ec7db925dde84be",
+          "package_licenses": {
+            "artifact-auth-core": "MIT OR Apache-2.0"
+          },
+          "canonical_record": "vendor/artifact.source.json"
+        }
+      ],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/artifact",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "aspen",
+      "cargo_sources": [
+        {
+          "source": "git+https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded26ca1907c29948e08b53f35df23080733",
+          "packages": [
+            "molten",
+            "molten-core",
+            "molten-node-host"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/.worktrees/aspen-owned-license-boundary-20261017",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "basalt",
+      "cargo_sources": [
+        {
+          "source": "git+ssh://git@github.com/OnixResearch/basalt.git?rev=d913dc01e765c9b297df5fcc57dfa06aac39bc74#d913dc01e765c9b297df5fcc57dfa06aac39bc74",
+          "packages": [
+            "basalt"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/basalt",
+      "disposition": "already-declares-agpl-no-product-edit",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "bounded-exec",
+      "cargo_sources": [
+        {
+          "source": "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525",
+          "packages": [
+            "bounded-exec",
+            "bounded-exec-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock",
+            "runtime/kiln-radicle-nix-provider/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [
+        {
+          "name": "bounded-exec",
+          "record_keys": [
+            "source_repository",
+            "source_commit",
+            "full_archive_format",
+            "full_archive_blake3",
+            "archive_format",
+            "archive_paths",
+            "archive_blake3",
+            "importer",
+            "package_licenses",
+            "scope",
+            "nonclaims",
+            "repository_id"
+          ],
+          "source_repository": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+          "source_commit": "29dac88ecded94457572db3fdfaaaab95fa91525",
+          "package_licenses": {
+            "bounded-exec": "AGPL-3.0-or-later",
+            "bounded-exec-core": "AGPL-3.0-or-later"
+          },
+          "repository_id": "rad:z2CpqLFpdP36fZXYUK5ZNWxMibpCo",
+          "canonical_record": "vendor/bounded-exec.source.json"
+        }
+      ],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/bounded-exec",
+      "disposition": "already-declares-agpl-no-product-edit",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "cairn",
+      "cargo_sources": [
+        {
+          "source": "git+ssh://git@github.com/OnixResearch/cairn.git?rev=3b4c280b893f2709aebea21fc51a4f9eeba3fe3b#3b4c280b893f2709aebea21fc51a4f9eeba3fe3b",
+          "packages": [
+            "cairn-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "cairn",
+          "lastModified": 1786223974,
+          "narHash": "sha256-OKzh+0SPDKBS8Jr6icvTxuAmTZ79v6Lm6wmgQ6vaY/o=",
+          "owner": "onixresearch",
+          "repo": "cairn",
+          "rev": "695124d459574ba7aeba6097310d237f393c243c",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "cairn_2",
+          "lastModified": 1783740921,
+          "narHash": "sha256-KrCOV4I/R7ET3Se9uN9lLv1XmfnGWYBMTMMEgs5Ey64=",
+          "owner": "onixresearch",
+          "repo": "cairn",
+          "rev": "a22ea2bff65f16abec4f0f7ba2d7ddc14dc35871",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "cairn_3",
+          "lastModified": 1779500840,
+          "narHash": "sha256-tnsP7kS55Druw+k+/ZD+4hd5f0JsLgW8komD6LSCWJ4=",
+          "owner": "onixresearch",
+          "repo": "cairn",
+          "rev": "3c470b9478072fed00234000d5abee07c20eda1c",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "cairn_4",
+          "lastModified": 1779500840,
+          "narHash": "sha256-tnsP7kS55Druw+k+/ZD+4hd5f0JsLgW8komD6LSCWJ4=",
+          "owner": "onixresearch",
+          "repo": "cairn",
+          "rev": "3c470b9478072fed00234000d5abee07c20eda1c",
+          "type": "github"
+        }
+      ],
+      "source_imports": [
+        {
+          "name": "cairn",
+          "record_keys": [
+            "source_repository",
+            "source_commit",
+            "full_archive_format",
+            "full_archive_blake3",
+            "archive_format",
+            "archive_paths",
+            "archive_blake3",
+            "importer",
+            "package_licenses",
+            "scope",
+            "nonclaims"
+          ],
+          "source_repository": "ssh://git@github.com/OnixResearch/cairn.git",
+          "source_commit": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+          "package_licenses": {
+            "cairn-gate-contract": "MIT OR Apache-2.0"
+          },
+          "canonical_record": "vendor/cairn.source.json"
+        }
+      ],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "chaoscontrol",
+      "cargo_sources": [
+        {
+          "source": "git+https://github.com/brittonr/chaoscontrol.git?rev=b8c440ea3b19df796542e58e8ee36200e1c3db85#b8c440ea3b19df796542e58e8ee36200e1c3db85",
+          "packages": [
+            "chaoscontrol-snapshot-descriptor"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/chaoscontrol",
+      "disposition": "already-declares-agpl-no-product-edit",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "choregraph",
+      "cargo_sources": [
+        {
+          "source": "git+https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git?rev=b3e08e19750f53bdbcae970cdf58a47a791ed20b#b3e08e19750f53bdbcae970cdf58a47a791ed20b",
+          "packages": [
+            "choregraph-history"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/choregraph",
+      "disposition": "already-declares-agpl-no-product-edit",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "content-identity-core",
+      "cargo_sources": [
+        {
+          "source": "git+https://seed.radicle.garden/zA14jhTdwST4PxPBdsryc4zS7Kpq.git?rev=7f55597b5dc879b7601856e8d7fd0dbacaa2a498#7f55597b5dc879b7601856e8d7fd0dbacaa2a498",
+          "packages": [
+            "content-identity-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "durable-file-publication",
+      "cargo_sources": [
+        {
+          "source": "git+https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e24b45f752d77145c4455385daaf6d6ab",
+          "packages": [
+            "durable-file-publication"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock",
+            "runtime/kiln-radicle-nix-provider/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "kamacite",
+      "cargo_sources": [
+        {
+          "source": "git+ssh://git@github.com/OnixResearch/kamacite.git?rev=d76fe4abe543724d8fc0ac4b362187caf2e27622#d76fe4abe543724d8fc0ac4b362187caf2e27622",
+          "packages": [
+            "kamacite-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "kamacite-build-support",
+          "lastModified": 1785176269,
+          "narHash": "sha256-Z6+dLkP2cziybjrAiRznP1cHUASyekhOwGl5ErWzZJc=",
+          "ref": "refs/heads/main",
+          "rev": "d76fe4abe543724d8fc0ac4b362187caf2e27622",
+          "revCount": 88,
+          "type": "git",
+          "url": "ssh://git@github.com/OnixResearch/kamacite.git"
+        }
+      ],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/kamacite",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "lattice",
+      "cargo_sources": [
+        {
+          "source": "git+ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67c7fd4a8b05914161a8e09de2759bebc8",
+          "packages": [
+            "lattice-workflow-contract",
+            "lattice-workflow-transport"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [
+        {
+          "name": "lattice",
+          "record_keys": [
+            "source_repository",
+            "source_commit",
+            "full_archive_format",
+            "full_archive_blake3",
+            "archive_format",
+            "archive_paths",
+            "archive_blake3",
+            "importer",
+            "package_licenses",
+            "scope",
+            "nonclaims"
+          ],
+          "source_repository": "ssh://git@github.com/OnixResearch/lattice.git",
+          "source_commit": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+          "package_licenses": {
+            "lattice-workflow-contract": "MIT",
+            "lattice-workflow-transport": "MIT"
+          },
+          "canonical_record": "vendor/lattice.source.json"
+        }
+      ],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/lattice",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "mantle",
+      "cargo_sources": [],
+      "nix_sources": [],
+      "source_imports": [
+        {
+          "name": "mantle",
+          "record_keys": [
+            "source_repository",
+            "source_commit",
+            "full_archive_format",
+            "full_archive_blake3",
+            "archive_format",
+            "archive_paths",
+            "archive_blake3",
+            "importer",
+            "package_licenses",
+            "scope",
+            "nonclaims"
+          ],
+          "source_repository": "ssh://git@github.com/OnixResearch/mantle.git",
+          "source_commit": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+          "package_licenses": {},
+          "canonical_record": "vendor/mantle.source.json"
+        }
+      ],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "nickel-export",
+      "cargo_sources": [],
+      "nix_sources": [
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "nickel-export",
+          "lastModified": 1783990479,
+          "narHash": "sha256-dV4+/jghpJ89F5DHprdjxyru8kllMAurS2DsBGn/ibA=",
+          "owner": "OnixResearch",
+          "repo": "nickel-export",
+          "rev": "257fafc1c746f1faf156207043a4c826bfb16d49",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "nickel-export_2",
+          "lastModified": 1783990479,
+          "narHash": "sha256-dV4+/jghpJ89F5DHprdjxyru8kllMAurS2DsBGn/ibA=",
+          "owner": "OnixResearch",
+          "repo": "nickel-export",
+          "rev": "257fafc1c746f1faf156207043a4c826bfb16d49",
+          "type": "github"
+        }
+      ],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/nickel-export",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "octet",
+      "cargo_sources": [],
+      "nix_sources": [
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "octet",
+          "lastModified": 1787244050,
+          "narHash": "sha256-WMNrQL7l+LIabv5k4ekcN5Su5rXnaCYYyzzkNF2+NP0=",
+          "owner": "OnixResearch",
+          "repo": "octet",
+          "rev": "cf04e894e53eb0947230118a086ef6066ddba38c",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "slotcar",
+          "lastModified": 1783449144,
+          "narHash": "sha256-OvqB00mDIsGDOcuK5jvPJUModVz9WbIBuM/l06TABHc=",
+          "owner": "OnixResearch",
+          "repo": "slotcar",
+          "rev": "2f8213a88781d9d38bb81319d06a50805d48ccd3",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "slotcar_2",
+          "lastModified": 1778903772,
+          "narHash": "sha256-8F7g650MFMXm5zyOBadWg0pOHxXccDgwbOVUZYLwwkQ=",
+          "owner": "onixresearch",
+          "repo": "slotcar",
+          "rev": "b18a547801dfebaa5ee3e748e3ebefed1a66cb17",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "slotcar_3",
+          "lastModified": 1783449144,
+          "narHash": "sha256-OvqB00mDIsGDOcuK5jvPJUModVz9WbIBuM/l06TABHc=",
+          "owner": "OnixResearch",
+          "repo": "slotcar",
+          "rev": "2f8213a88781d9d38bb81319d06a50805d48ccd3",
+          "type": "github"
+        },
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "slotcar_4",
+          "lastModified": 1778903772,
+          "narHash": "sha256-8F7g650MFMXm5zyOBadWg0pOHxXccDgwbOVUZYLwwkQ=",
+          "owner": "onixresearch",
+          "repo": "slotcar",
+          "rev": "b18a547801dfebaa5ee3e748e3ebefed1a66cb17",
+          "type": "github"
+        }
+      ],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/octet",
+      "disposition": "already-declares-agpl-no-product-edit",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "cargo_sources": [],
+      "nix_sources": [],
+      "source_imports": [
+        {
+          "name": "radicle-cob-git-store",
+          "record_keys": [
+            "package",
+            "version",
+            "license",
+            "source_commit",
+            "archive_format",
+            "archive_blake3",
+            "importer",
+            "upstream_cohort",
+            "nonclaims"
+          ],
+          "license": "MIT OR Apache-2.0",
+          "source_commit": "a87ca01412fb62e69171925d79d2d6b0a23a7e72",
+          "canonical_record": "vendor/radicle-cob-git-store.source.json"
+        }
+      ],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "schema-identity-core",
+      "cargo_sources": [
+        {
+          "source": "git+https://seed.radicle.garden/z6gGpUJtzdVBCCtZTzh4cV1skv4H.git?rev=2562c8aa38a034061f9af9f3e17280494a5b8de2#2562c8aa38a034061f9af9f3e17280494a5b8de2",
+          "packages": [
+            "schema-identity-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "schema-migration-core",
+      "cargo_sources": [
+        {
+          "source": "git+https://seed.radicle.garden/z1C4YVMgDGyVdQa72uPNj3UDS5cY.git?rev=4fe90e130f2871cf69a6febcdc70785adca98aea#4fe90e130f2871cf69a6febcdc70785adca98aea",
+          "packages": [
+            "schema-migration-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "trellis",
+      "cargo_sources": [],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/trellis",
+      "disposition": "prospective-source-prepared-unpublished-native-sync-blocked",
+      "prior_disposition": "blocked-before-product-cutover",
+      "disposition_evidence": "trellis-verification.json; preserves the prior admission failure while recording the subsequent full-strength policy repair and source preparation; legacy accepted-ID synchronization remains blocked",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "ucan",
+      "cargo_sources": [
+        {
+          "source": "git+ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad993027d48ff148028c537cdaf91f6e5285ca",
+          "packages": [
+            "ucan",
+            "ucan-core",
+            "verified-logic"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [],
+      "source_imports": [],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/ucan",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    },
+    {
+      "owner": "valence",
+      "cargo_sources": [
+        {
+          "source": "git+ssh://git@github.com/OnixResearch/valence.git?rev=5f1c2ba5072c6f9622fa59b1af20502985f569fd#5f1c2ba5072c6f9622fa59b1af20502985f569fd",
+          "packages": [
+            "valence-core"
+          ],
+          "locks": [
+            "runtime/kiln-aspen-host/Cargo.lock"
+          ]
+        }
+      ],
+      "nix_sources": [
+        {
+          "lock": "runtime/build-cohort/flake.lock",
+          "name": "valence",
+          "lastModified": 1784063340,
+          "narHash": "sha256-ASWqHCXtUIDerN5vG57TbciTs2q2kHx/dyJI6q0veDk=",
+          "owner": "OnixResearch",
+          "repo": "valence",
+          "rev": "5f1c2ba5072c6f9622fa59b1af20502985f569fd",
+          "type": "github"
+        }
+      ],
+      "source_imports": [
+        {
+          "name": "valence",
+          "record_keys": [
+            "source_repository",
+            "source_commit",
+            "full_archive_format",
+            "full_archive_blake3",
+            "archive_format",
+            "archive_paths",
+            "archive_blake3",
+            "importer",
+            "package_licenses",
+            "scope",
+            "nonclaims"
+          ],
+          "source_repository": "ssh://git@github.com/OnixResearch/valence.git",
+          "source_commit": "220307a371e7bc4e3309447b09447d0fe6c4db5f",
+          "package_licenses": {
+            "valence-core": "MPL-2.0"
+          },
+          "canonical_record": "vendor/valence.source.json"
+        }
+      ],
+      "actual_preparation_root": "/home/brittonr/git/OnixResearch/valence",
+      "disposition": "prospective-source-prepared-unpublished",
+      "operator_selected_prospective_grant": "AGPL-3.0-or-later for all new owned material; earlier grants and third-party/immutable content retain their original terms."
+    }
+  ],
+  "nested_owner_evidence": [
+    {
+      "owner": "trellis",
+      "via_owner": "ucan",
+      "selected_ucan_revision": "2aad993027d48ff148028c537cdaf91f6e5285ca",
+      "selected_record": "vendor/verified-logic-revision.txt",
+      "selected_trellis_revision": "fb232e0e213d3e96878bbf86a10b26e53245a72c",
+      "source_repository": "git@github.com:OnixResearch/trellis.git",
+      "observation": "Read from the exact selected UCAN Git object, not its current working tree.",
+      "current_ucan_retained_snapshot": "1f03111b92cc36aade07359c96773e086908c95f",
+      "limit": "Selected consumer and current producer snapshots are distinct, intentionally unmigrated inputs."
+    }
+  ],
+  "consumer_self_dependency": [
+    {
+      "source": "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c",
+      "packages": [
+        "kiln-adapter-aspen",
+        "kiln-adapter-lattice",
+        "kiln-adapter-radicle",
+        "kiln-aspen-extension",
+        "kiln-codec",
+        "kiln-core",
+        "kiln-provider-api",
+        "kiln-radicle-source-contract"
+      ],
+      "locks": [
+        "runtime/kiln-aspen-host/Cargo.lock"
+      ]
+    }
+  ],
+  "historical_owner_aliases": {
+    "artifact": [
+      "onix-artifact"
+    ],
+    "octet": [
+      "slotcar",
+      "tigerstyle-rs"
+    ]
+  },
+  "continuity": {
+    "cargo": [
+      {
+        "lock": "Cargo.lock",
+        "selected_git_sources_unchanged": true,
+        "sources": []
+      },
+      {
+        "lock": "runtime/kiln-aspen-host/Cargo.lock",
+        "selected_git_sources_unchanged": true,
+        "sources": [
+          "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525",
+          "git+https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded26ca1907c29948e08b53f35df23080733",
+          "git+https://github.com/brittonr/chaoscontrol.git?rev=b8c440ea3b19df796542e58e8ee36200e1c3db85#b8c440ea3b19df796542e58e8ee36200e1c3db85",
+          "git+https://seed.radicle.garden/z1C4YVMgDGyVdQa72uPNj3UDS5cY.git?rev=4fe90e130f2871cf69a6febcdc70785adca98aea#4fe90e130f2871cf69a6febcdc70785adca98aea",
+          "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c",
+          "git+https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e24b45f752d77145c4455385daaf6d6ab",
+          "git+https://seed.radicle.garden/z6gGpUJtzdVBCCtZTzh4cV1skv4H.git?rev=2562c8aa38a034061f9af9f3e17280494a5b8de2#2562c8aa38a034061f9af9f3e17280494a5b8de2",
+          "git+https://seed.radicle.garden/zA14jhTdwST4PxPBdsryc4zS7Kpq.git?rev=7f55597b5dc879b7601856e8d7fd0dbacaa2a498#7f55597b5dc879b7601856e8d7fd0dbacaa2a498",
+          "git+https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git?rev=b3e08e19750f53bdbcae970cdf58a47a791ed20b#b3e08e19750f53bdbcae970cdf58a47a791ed20b",
+          "git+ssh://git@github.com/OnixResearch/basalt.git?rev=d913dc01e765c9b297df5fcc57dfa06aac39bc74#d913dc01e765c9b297df5fcc57dfa06aac39bc74",
+          "git+ssh://git@github.com/OnixResearch/cairn.git?rev=3b4c280b893f2709aebea21fc51a4f9eeba3fe3b#3b4c280b893f2709aebea21fc51a4f9eeba3fe3b",
+          "git+ssh://git@github.com/OnixResearch/kamacite.git?rev=d76fe4abe543724d8fc0ac4b362187caf2e27622#d76fe4abe543724d8fc0ac4b362187caf2e27622",
+          "git+ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67c7fd4a8b05914161a8e09de2759bebc8",
+          "git+ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d880ddf4c2967f4c024b489b5c0022bf1",
+          "git+ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad993027d48ff148028c537cdaf91f6e5285ca",
+          "git+ssh://git@github.com/OnixResearch/valence.git?rev=5f1c2ba5072c6f9622fa59b1af20502985f569fd#5f1c2ba5072c6f9622fa59b1af20502985f569fd"
+        ]
+      },
+      {
+        "lock": "runtime/kiln-radicle-nix-provider/Cargo.lock",
+        "selected_git_sources_unchanged": true,
+        "sources": [
+          "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525",
+          "git+https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e24b45f752d77145c4455385daaf6d6ab"
+        ]
+      }
+    ],
+    "nix": [
+      {
+        "lock": "flake.lock",
+        "source_rows": 0,
+        "all_selected_sources_unchanged": true,
+        "rows": []
+      },
+      {
+        "lock": "runtime/build-cohort/flake.lock",
+        "source_rows": 14,
+        "all_selected_sources_unchanged": true,
+        "rows": [
+          {
+            "name": "artifact",
+            "unchanged": true
+          },
+          {
+            "name": "cairn",
+            "unchanged": true
+          },
+          {
+            "name": "cairn_2",
+            "unchanged": true
+          },
+          {
+            "name": "cairn_3",
+            "unchanged": true
+          },
+          {
+            "name": "cairn_4",
+            "unchanged": true
+          },
+          {
+            "name": "kamacite-build-support",
+            "unchanged": true
+          },
+          {
+            "name": "nickel-export",
+            "unchanged": true
+          },
+          {
+            "name": "nickel-export_2",
+            "unchanged": true
+          },
+          {
+            "name": "octet",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar_2",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar_3",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar_4",
+            "unchanged": true
+          },
+          {
+            "name": "valence",
+            "unchanged": true
+          }
+        ]
+      }
+    ],
+    "kiln_source_imports": [
+      {
+        "owner": "lattice",
+        "exit": 0,
+        "stdout": "verified existing vendored lattice source: 70496e67c7fd4a8b05914161a8e09de2759bebc8",
+        "error": null
+      },
+      {
+        "owner": "cairn",
+        "exit": 0,
+        "stdout": "verified existing vendored cairn source: 15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+        "error": null
+      },
+      {
+        "owner": "valence",
+        "exit": 0,
+        "stdout": "verified existing vendored valence source: 220307a371e7bc4e3309447b09447d0fe6c4db5f",
+        "error": null
+      },
+      {
+        "owner": "artifact",
+        "exit": 0,
+        "stdout": "verified existing vendored artifact source: e41340bec587b6d049b5cc518ec7db925dde84be",
+        "error": null
+      },
+      {
+        "owner": "bounded-exec",
+        "exit": 0,
+        "stdout": "verified existing vendored bounded-exec source: 29dac88ecded94457572db3fdfaaaab95fa91525",
+        "error": null
+      },
+      {
+        "owner": "mantle",
+        "exit": 0,
+        "stdout": "verified existing vendored mantle source: 0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+        "error": null
+      },
+      {
+        "owner": "radicle-cob-git-store",
+        "exit": 0,
+        "stdout": "verified existing vendored COB source: a87ca01412fb62e69171925d79d2d6b0a23a7e72"
+      }
+    ]
+  },
+  "non_claims": [
+    "Preparation does not publish or identify a new immutable producer release.",
+    "Old package/source grants in Kiln imports and locks are not relabeled by prospective producer grants.",
+    "Inventory and license checks do not prove copyright title, third-party permission, privacy clearance, combined-output compatibility, anonymous acquisition, or publication authority."
+  ]
+}

@@ -82,6 +82,80 @@ recipients. Public recipients must not infer a permissive exception from
 Kiln's workspace declaration, the adapter's metadata, this notice, or that
 owner-specific authorization.
 
+## Prospective owned-dependency licensing
+
+The operator selected `AGPL-3.0-or-later` for new owned-source releases of the
+dependencies below, including their reusable cores, contracts, schemas, owned
+templates, fixtures, and policy. Each producer owns its authoritative license
+map and preparation checks. Kiln maintainers own the selected dependency
+inventory and the boundary between preparation and exact consumed revisions.
+
+| Owning repository | Selected dependency scope |
+| --- | --- |
+| Artifact (`onix-artifact`) | Authentication/binding packages and transitive imported authentication core |
+| Aspen/Molten | Standalone host runtime and native service composition |
+| Basalt | Transitive runtime policy dependency |
+| Bounded Exec | Linked process shell and core |
+| Cairn | Gate contract, runtime core, and selected build-tool inputs |
+| ChaosControl | Runtime snapshot descriptor |
+| Choregraph | Runtime branchable history |
+| Content Identity Core | Transitive runtime content identity |
+| Durable File Publication | Standalone runtime publication mechanism |
+| Kamacite | Runtime interchange core and exact optional build profile |
+| Lattice | Workflow contract and Unix transport |
+| Mantle | Imported build contract and fixtures |
+| Nickel Export | Transitive optional build-tool input |
+| Octet | Optional source gate and its historical Slotcar inputs |
+| Radicle COB Git Store | Separately imported shared store |
+| Schema Identity Core | Runtime schema identities |
+| Schema Migration Core | Runtime schema migration decisions |
+| Trellis | Original owner of the verified-logic snapshot carried by UCAN |
+| UCAN | Runtime capability library and its immutable verified-logic import |
+| Valence | Linked evidence core |
+
+This is prospective source preparation, **not** a relabeling of the earlier
+revisions in the integration map above. Existing MIT, Apache, MPL, and
+multilicensing grants remain valid, including previously granted byte-identical
+content. Third-party notices and immutable imported snapshots retain their
+original terms. Kiln's current source imports, locks, package licenses, and
+runtime cohorts are unchanged; moving a consumer to a future AGPL release needs
+its own exact-revision, compatibility, and combined-output review.
+
+The historical Slotcar commits `2f8213a88781d9d38bb81319d06a50805d48ccd3` and
+`b18a547801dfebaa5ee3e748e3ebefed1a66cb17` are present in Octet's source history;
+Octet's README identifies Slotcar as its historical name. They do not identify a
+separate missing implementation owner. Historical URLs still need their own
+acquisition evidence.
+
+All twenty selected owners now have local prospective AGPL source preparation:
+fifteen producer changes and five owners that already declared AGPL. Trellis's
+full-policy admission repair preserves all pre-existing obligations, and its
+licensing, packaging, native gates, Verus and coverage checks passed locally.
+Its licensing change remains open because native accepted-spec sync rejects
+pre-existing multiple requirement IDs per block; no broader legacy migration or
+archive was performed. Producer Nix check groups remain blocked on store
+installation, and Lattice's retained Rats source identity and notice review
+remain open. Those failures are not passes and are not repaired here.
+
+These producer prerequisites are **not** a requirement to migrate Kiln's
+unchanged source imports to new AGPL releases before publishing Kiln source.
+Kiln imports only Lattice's workflow contract and transport, not its Rats
+snapshot. Trellis is a nested source of the separately pinned UCAN runtime
+cohort, not a vendored Kiln source import. A separately authorized producer
+remote is not required to redistribute the already imported shared COB store
+under its retained public grant. None of these distinctions certifies rights
+for a future producer release, standalone runtime closure, or combined binary.
+
+The [current-source review](.cairn/changes/prepare-owned-dependencies-agpl/evidence/current-source-review.json)
+records retained grants, notices and the applicability of each prerequisite.
+The [producer verification receipt](.cairn/changes/prepare-owned-dependencies-agpl/evidence/final-verification.json)
+and [executed command record](.cairn/changes/prepare-owned-dependencies-agpl/evidence/commands.json)
+retain the actual target roots and all observed failures. An exact Kiln source
+candidate still needs its own anonymous acquisition, privacy/rights and
+distribution-scope review. This inventory does not prove copyright title,
+third-party permission, AGPL compliance of every shipped combination, or
+authority to publish.
+
 ## Included license texts and provenance
 
 - [LICENSE-GPL-2.0](LICENSE-GPL-2.0) is the verbatim GPL version 2 text retrieved

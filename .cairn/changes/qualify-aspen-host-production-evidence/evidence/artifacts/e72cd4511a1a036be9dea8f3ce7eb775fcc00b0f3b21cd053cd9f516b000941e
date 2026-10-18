@@ -1,0 +1,66 @@
+{
+  "schema": "kiln.qualification-authorized-main-push.v1",
+  "publication_revision": "c9266e05d3d44f8d0be06aa60c69edd6b3586adb",
+  "qualified_input_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "source_manifest": {
+    "name": "described-history-authorized-main-publication-source-manifest.json",
+    "blake3": "e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43",
+    "bytes": 373909,
+    "path": "artifacts/e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43"
+  },
+  "preflight": {
+    "name": "described-history-exact-main-push-preflight.json",
+    "blake3": "c970bbd531ddeb1a0f58762319eed65f4b019b6834af5ab29055ab8bfe6d3904",
+    "bytes": 2182,
+    "path": "artifacts/c970bbd531ddeb1a0f58762319eed65f4b019b6834af5ab29055ab8bfe6d3904"
+  },
+  "local_main_set": {
+    "argv": [
+      "jj",
+      "--config",
+      "snapshot.max-new-file-size=4194304",
+      "bookmark",
+      "set",
+      "main",
+      "--revision",
+      "c9266e05d3d44f8d0be06aa60c69edd6b3586adb"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "Moved 1 bookmarks to ztkomlvk c9266e05 main* | Record repaired-source exact-cohort qualification and authorized publication evidence\n"
+  },
+  "commands": [
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 2bf997aeb81b to c9266e05d3d4]\ngit: ✓ Canonical reference refs/heads/main updated to target commit c9266e05d3d44f8d0be06aa60c69edd6b3586adb        \ngit: ✓ Synced with 3 seed(s)        \ngit: \ngit:   https://app.radicle.xyz/nodes/iris.radicle.xyz/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/c9266e05d3d44f8d0be06aa60c69edd6b3586adb        \ngit: \n"
+    },
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "git",
+        "push",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to github:\n  bookmark: main [move forward from 2bf997aeb81b to c9266e05d3d4]\n"
+    }
+  ]
+}

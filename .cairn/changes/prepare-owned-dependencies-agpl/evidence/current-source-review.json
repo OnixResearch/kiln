@@ -1,0 +1,163 @@
+{
+  "schema": "kiln.current-imported-source-license-review.v1",
+  "scope": {
+    "purpose": "Current-source publication handoff, not adoption of prospective producer AGPL revisions",
+    "reviewed_material": "Kiln's seven committed source imports, retained source grants/notices, selected dependency-owner inventory and prior verification receipts",
+    "candidate_binding": "Exact imported revisions below; the release owner must separately select and bind the complete Kiln candidate, including subsequent documentation or lockfile edits",
+    "distribution": "Repository source only; no prebuilt executable, installed runtime closure, source bundle of otherwise unimported dependencies, or production service is approved here",
+    "source_changes": "No imported source, producer pin, lockfile, or upstream grant changed by this review",
+    "legal_clearance": false,
+    "publication_authority": "This receipt grants none; operator release approval and forge mutations are separate"
+  },
+  "current_imports": [
+    {
+      "component": "Lattice workflow contract and transport",
+      "source_record": "vendor/lattice.source.json",
+      "revision": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+      "retained_grant": "MIT",
+      "evidence": [
+        "vendor/lattice/crates/lattice-workflow-contract/Cargo.toml",
+        "vendor/lattice/crates/lattice-workflow-contract/LICENSE",
+        "vendor/lattice/crates/lattice-workflow-contract/transport/Cargo.toml",
+        "vendor/lattice/crates/lattice-workflow-contract/transport/LICENSE"
+      ],
+      "finding": "The selected archive contains only crates/lattice-workflow-contract, including transport. It does not import Lattice's applications or vendor-cargo-deps/rats. Preserve both original copyright spellings."
+    },
+    {
+      "component": "Cairn gate contract, fixtures and schema",
+      "source_record": "vendor/cairn.source.json",
+      "revision": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+      "retained_grant": "cairn-gate-contract inherits MIT OR Apache-2.0 from retained root Cargo.toml",
+      "evidence": [
+        "vendor/cairn/Cargo.toml",
+        "vendor/cairn/crates/cairn-gate-contract/Cargo.toml",
+        "vendor/cairn/crates/cairn-gate-contract/LICENSE-MIT",
+        "vendor/cairn/crates/cairn-gate-contract/LICENSE-APACHE",
+        "vendor/cairn/docs/licensing.md",
+        "vendor/cairn/LICENSES"
+      ],
+      "finding": "Selected contract source does not import the separately executed AGPL Cairn CLI. Retained producer metadata can mention unselected applications; it does not select or relicense them."
+    },
+    {
+      "component": "Valence core",
+      "source_record": "vendor/valence.source.json",
+      "revision": "220307a371e7bc4e3309447b09447d0fe6c4db5f",
+      "retained_grant": "MPL-2.0",
+      "evidence": [
+        "vendor/valence/crates/valence-core/Cargo.toml",
+        "vendor/valence/crates/valence-core/LICENSE",
+        "vendor/valence/license-policy.tsv",
+        "vendor/valence/docs/licensing.md"
+      ],
+      "finding": "The MPL-covered imported files retain their terms; Kiln's permissive adapter metadata is not a replacement grant."
+    },
+    {
+      "component": "Artifact authentication core",
+      "source_record": "vendor/artifact.source.json",
+      "revision": "e41340bec587b6d049b5cc518ec7db925dde84be",
+      "retained_grant": "MIT OR Apache-2.0",
+      "evidence": [
+        "vendor/artifact/Cargo.toml",
+        "vendor/artifact/crates/artifact-auth-core/Cargo.toml",
+        "vendor/artifact/LICENSE-MIT",
+        "vendor/artifact/LICENSE-APACHE",
+        "vendor/artifact/NOTICE",
+        "vendor/artifact/provenance/SOURCE_GRANT.md",
+        "vendor/artifact/docs/source-inventory.md"
+      ],
+      "finding": "The retained NOTICE offers owner-controlled imported material under MIT OR Apache-2.0. SOURCE_GRANT records the 2026-07-18 Mantle authorization and 2026-07-24 artifact-transfer direction with exact historical revisions; it excludes third-party material, specifications, generated vendored code and prior external contributions. The inventory distinguishes source roles, including Valence as conformance mapping rather than Ed25519 implementation source. These are upstream recorded representations, not an independent proof of copyright title or a broader new grant."
+    },
+    {
+      "component": "Bounded Exec shell and core",
+      "source_record": "vendor/bounded-exec.source.json",
+      "revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+      "retained_grant": "AGPL-3.0-or-later",
+      "evidence": [
+        "vendor/bounded-exec/Cargo.toml",
+        "vendor/bounded-exec/LICENSE",
+        "LICENSE-AGPL-3.0",
+        "docs/cairn-gate.md"
+      ],
+      "finding": "Public recipients rely on the retained AGPL grant, not the documented OnixResearch-specific reuse authorization. These libraries are linked, not converted into a license exception by process execution."
+    },
+    {
+      "component": "Mantle contract and fixtures",
+      "source_record": "vendor/mantle.source.json",
+      "revision": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+      "retained_grant": "Retained upstream AGPL license applies; no Mantle Rust producer code imported",
+      "evidence": [
+        "vendor/mantle/LICENSE",
+        "vendor/mantle/contracts/mantle-build-contract.ncl",
+        "vendor/mantle/fixtures/mantle-build-contract"
+      ],
+      "finding": "Selected source is schema and fixtures with its original legal text, not a permissively relicensed producer."
+    },
+    {
+      "component": "Radicle COB Git Store v0.2.0",
+      "source_record": "vendor/radicle-cob-git-store.source.json",
+      "revision": "a87ca01412fb62e69171925d79d2d6b0a23a7e72",
+      "retained_grant": "MIT OR Apache-2.0",
+      "evidence": [
+        "vendor/radicle-cob-git-store/Cargo.toml",
+        "vendor/radicle-cob-git-store/LICENSE-MIT",
+        "vendor/radicle-cob-git-store/LICENSE-APACHE"
+      ],
+      "finding": "The original MIT attribution says cairn contributors; preserve it. A missing separately authorized producer remote does not remove this import's public grant or require a producer publication to redistribute the retained source."
+    }
+  ],
+  "upstream_prerequisite_classification": [
+    {
+      "item": "Trellis legacy accepted-spec synchronization",
+      "retained_failure": "Native sync blocked with delta_merge.accepted_identity_cardinality; Trellis remains unarchived. Original preimplementation admission failures remain in final-verification.json.resolved_historical_blockers.",
+      "evidence": "trellis-verification.json; final-verification.json.blocked_checks.trellis_native_licensing_sync",
+      "applies_to": "Prospective Trellis lifecycle closeout, not a new condition on historical source grants",
+      "current_source_boundary": "No Trellis source import in Kiln's vendor records. The separate Aspen host lock selects UCAN 2aad993027d48ff148028c537cdaf91f6e5285ca, whose historical nested Trellis identity is fb232e0e213d3e96878bbf86a10b26e53245a72c. Do not replace it with UCAN's current retained snapshot or infer its terms from new AGPL preparation. See dependency-owners.json.nested_owner_evidence."
+    },
+    {
+      "item": "Lattice Rats source identity and historical notices",
+      "retained_failure": "Retained Rats source does not match declared ef26e13b2e9cbcb4a0c902f9caff641b6d013867; anonymous acquisition was not established; historical root LICENSE was absent; rat-keymap metadata had no license. No refresh or grant was guessed.",
+      "evidence": "final-verification.json.rats_importer",
+      "applies_to": "Lattice full-source publication or any later bundle/selected artifact containing that snapshot",
+      "current_source_boundary": "Not present in Kiln's selected Lattice contract/transport import. No Rats package is named in the three selected Kiln Cargo locks; a lock or dependency reference is not redistribution of an unimported source tree. This does not clear Lattice's full repository or any future runtime/binary closure."
+    },
+    {
+      "item": "Producer Nix installation and checks",
+      "retained_failure": "Artifact, Durable File Publication and Nickel Export check groups did not finish because Nix store installation stalled. Signed client cache acquisition worked; store installation did not. Trellis immutable Nix release rail was not exercised, and its unrelated formatter failure remains recorded.",
+      "evidence": "final-verification.json.blocked_checks.nix; final-verification.json.additional_unpassed_checks",
+      "applies_to": "Prospective producer qualification, not a copyright grant or successful current Kiln build",
+      "current_source_boundary": "No producer check is relabeled as passed. The release owner must exercise fresh Kiln candidate acquisition/build separately."
+    },
+    {
+      "item": "Producer remote authority",
+      "retained_failure": "No Radicle COB Git Store remote, RID or network availability is declared by the mechanism and no producer remote mutation is authorized here.",
+      "evidence": "final-verification.json.publication_prerequisites; vendor/radicle-cob-git-store.source.json",
+      "applies_to": "Publishing a new authoritative producer release",
+      "current_source_boundary": "Not a prerequisite to source redistribution of the existing separately imported MIT OR Apache-2.0 snapshot. Kiln forge authority, candidate promotion and visibility remain the release owner's separate responsibility."
+    }
+  ],
+  "rights_handoff": {
+    "identified_current_import_rights_gap": "None identified by this scoped review of the retained declarations, source-grant record, notices and provenance. This is not a legal opinion or proof that all contributors held the represented rights.",
+    "remaining_current_source_prerequisites": [
+      "Select an exact Kiln source candidate and verify the actual shipped tree, including retained notices/license/provenance files; prior producer/import checks are historical observations, not whole-candidate release approval.",
+      "Complete candidate-specific anonymous acquisition/build and privacy/rights review, including files outside these seven imports and any separately fetched source that will actually be redistributed.",
+      "Preserve all applicable old grants, notices, attribution, warranty disclaimers and provenance; no prospective producer AGPL declaration relabels the imported revisions or revokes earlier grants.",
+      "Assess any covered derivative/combined source actually distributed under its applicable terms. This repository-level source review is not permission to combine GPL-2.0-only Pijul code with AGPL-3.0-or-later code in one incompatible work."
+    ],
+    "future_binary_or_runtime_distribution": "Requires its own exact selected graph/shipped-content, GPL/AGPL compatibility, corresponding-source, notice and MPL-covered-source review. Modified AGPL network programs also require applicable section 13 review. An owner-specific reuse grant does not flow to public recipients. Source-only publication does not waive these obligations or certify production readiness."
+  },
+  "observed_hashes_sha256": {
+    "LICENSE-GPL-2.0": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+    "LICENSE-AGPL-3.0": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+    "vendor/artifact/NOTICE": "e647562d2c2e144ae70683edee9ed9fd04608171a7bbd549a7f60a2fb13a1ee5",
+    "vendor/artifact/provenance/SOURCE_GRANT.md": "f6d5b0a4f9a820cea88b71de96654c69ff898b330021859572e6fdddf118bd93",
+    "vendor/artifact/docs/source-inventory.md": "61f58f8b4568aa8306b69721a2064ee62fcf2a06810c3ec3d93fe062299e830c",
+    "vendor/radicle-cob-git-store/LICENSE-MIT": "4379fb1e21245ef557dcb505f4133186311e994ab6ed3998364991a0c9cef86f",
+    "vendor/radicle-cob-git-store/LICENSE-APACHE": "c2bbe6d9ca8417d30b4df735561e24a2efbf888b21586d97b14c4a70a8efb88b"
+  },
+  "verification_boundary": {
+    "performed": "Scoped document/source-record/manifest reads, literal searches across selected imports and Cargo locks, and sha256sum of the retained legal/provenance files listed above",
+    "historical_import_proof": "dependency-owners.json.continuity.kiln_source_imports and final-verification.json.consumer_integrity preserve successful drift-refusing comparisons of all seven imports; this review did not repeat or upgrade their recorded scope",
+    "not_performed": "No builds, tests, lint, format, failed-check reruns, remote operations, producer edits, candidate selection or publication",
+    "release_owner_verification": "After integration rerun applicable native Kiln document gates, bind the exact candidate and exercise fresh anonymous acquisition/build. Do not rerun historical failed producer checks merely to confirm their known failures."
+  }
+}

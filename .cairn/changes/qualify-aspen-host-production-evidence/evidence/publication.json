@@ -1,0 +1,136 @@
+{
+  "schema": "kiln.qualification-authorized-main-publication.v1",
+  "status": "published-and-read-back",
+  "observed_at_utc": "2026-10-17T07:58:20.910Z",
+  "authority": "resumed operator-authorized exact main push; qualification itself grants no publication authority",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "publication_revision": "c9266e05d3d44f8d0be06aa60c69edd6b3586adb",
+  "qualified_executable_input_revision": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "qualified_cohort": "871bd733bf5567f6e2e060285b6b8c4607a36e27667f6371e532b224b4716901",
+  "source_manifest": {
+    "name": "described-history-authorized-main-publication-source-manifest.json",
+    "blake3": "e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43",
+    "bytes": 373909,
+    "path": "artifacts/e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43"
+  },
+  "publication_archive": {
+    "format": "ustar",
+    "bytes": 23767040,
+    "blake3": "561e1106ae4c836d1042042818ad181b97b190214a98f92430015ea213826c61",
+    "regular_members": 1441
+  },
+  "push": {
+    "name": "described-history-authorized-main-push-observation.json",
+    "blake3": "e72cd4511a1a036be9dea8f3ce7eb775fcc00b0f3b21cd053cd9f516b000941e",
+    "bytes": 2299,
+    "path": "artifacts/e72cd4511a1a036be9dea8f3ce7eb775fcc00b0f3b21cd053cd9f516b000941e"
+  },
+  "acquisitions": [
+    {
+      "name": "described-history-fresh-acquisition-github-ssh.json",
+      "blake3": "176df0c030c0efda5060f2c44d57b4b24e6c083c2468858128b87409b834d815",
+      "bytes": 587259,
+      "path": "artifacts/176df0c030c0efda5060f2c44d57b4b24e6c083c2468858128b87409b834d815"
+    },
+    {
+      "name": "described-history-fresh-acquisition-radicle-declared-helper.json",
+      "blake3": "2b0e0a17185c01c08e4c8b4024f75cbb8f93ab5c8a02f7089a3e328a3f4d541a",
+      "bytes": 589396,
+      "path": "artifacts/2b0e0a17185c01c08e4c8b4024f75cbb8f93ab5c8a02f7089a3e328a3f4d541a"
+    },
+    {
+      "name": "described-history-fresh-acquisition-garden-anonymous-https.json",
+      "blake3": "7a238781d5b9f4594754e99db73595353e18aa35f9b161a089eee7d77d4fd9c8",
+      "bytes": 587229,
+      "path": "artifacts/7a238781d5b9f4594754e99db73595353e18aa35f9b161a089eee7d77d4fd9c8"
+    }
+  ],
+  "seed_namespace_reads": {
+    "name": "described-history-seed-namespace-readbacks.json",
+    "blake3": "9685e5b89d871491b4ba0339459226509fc73807aabfbda38700852cc3bbe756",
+    "bytes": 1981,
+    "path": "artifacts/9685e5b89d871491b4ba0339459226509fc73807aabfbda38700852cc3bbe756"
+  },
+  "governance": {
+    "before": {
+      "name": "described-history-pre-main-push-radicle-governance.json",
+      "blake3": "8a911ce5d3e4f34f40b886fe83c4b48c721431196e2c132c02cb8cdad1fd842a",
+      "bytes": 1149,
+      "path": "artifacts/8a911ce5d3e4f34f40b886fe83c4b48c721431196e2c132c02cb8cdad1fd842a"
+    },
+    "after": {
+      "name": "described-history-post-main-push-radicle-governance-and-signed-refs.json",
+      "blake3": "9d77ba835917a2e908d905b91f5169cdf34decd2adfe68bdbd6ad042a255c724",
+      "bytes": 1220,
+      "path": "artifacts/9d77ba835917a2e908d905b91f5169cdf34decd2adfe68bdbd6ad042a255c724"
+    },
+    "identity": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "visibility": "public",
+    "identity_changed": false,
+    "signed_refs": {
+      "namespace": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "revision": "f730db5a2b17c665bc5891cfe680320c06fbada9",
+      "feature": "parent"
+    }
+  },
+  "qualification": {
+    "receipt": {
+      "name": "described-history-qualified-receipt.json",
+      "blake3": "9b00f30e9762a03fcfcc1580bef3da3d511157e448e291de253bba3bbd593da3",
+      "bytes": 4471,
+      "path": "artifacts/9b00f30e9762a03fcfcc1580bef3da3d511157e448e291de253bba3bbd593da3"
+    },
+    "consumer": {
+      "name": "described-history-complete-current-cli-consumer-proof.json",
+      "blake3": "a8e09121075d0bdb324e49a87bad6e474a095de49eb1c77ee082722cf943dbca",
+      "bytes": 1984,
+      "path": "artifacts/a8e09121075d0bdb324e49a87bad6e474a095de49eb1c77ee082722cf943dbca"
+    },
+    "lifecycle": {
+      "name": "described-history-completed-current-native-lifecycle.json",
+      "blake3": "f125c85f5c1f02046595028e44e2a7108dd4c7ab74d0541bbaeb1006063552b3",
+      "bytes": 126335,
+      "path": "artifacts/f125c85f5c1f02046595028e44e2a7108dd4c7ab74d0541bbaeb1006063552b3"
+    },
+    "nix_exact_derivations": {
+      "name": "described-history-exact-derivation-gate-proof.json",
+      "blake3": "18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550",
+      "bytes": 1384,
+      "path": "artifacts/18154819c0f33b66d921fd1be45b32c61ead04d4eb987adc2ffa7ef2950bf550"
+    }
+  },
+  "earlier_acquisition_input_failures": {
+    "decorated_remote_listing_instead_of_url": {
+      "name": "described-history-fresh-acquisition-radicle-native.json",
+      "blake3": "c80754119652cb01a0a6e6e58e6c4f756996539cc0fbb65b90b2b7d106ac8510",
+      "bytes": 2093,
+      "path": "artifacts/c80754119652cb01a0a6e6e58e6c4f756996539cc0fbb65b90b2b7d106ac8510"
+    },
+    "bare_native_uri_lowercased_by_client": {
+      "name": "described-history-fresh-acquisition-radicle-namespace-native.json",
+      "blake3": "6ded815f3cc52414409e8cceba573e2df88e38e427874fdb1a312e4b44f36c43",
+      "bytes": 2165,
+      "path": "artifacts/6ded815f3cc52414409e8cceba573e2df88e38e427874fdb1a312e4b44f36c43"
+    }
+  },
+  "post_push_observations_are_local_evidence_only_descendant": true,
+  "non_claims": [
+    "post-push observation files are not part of the published revision or its source archive",
+    "native Radicle acquisition reads local signed-reference storage; anonymous Garden acquisition is separately identified",
+    "seed agreement does not establish physical independence, seed trust or future availability",
+    "local qualification and source publication do not authorize or prove deployment, live Onix shadows, release eligibility or credential effects",
+    "no lifecycle sync or archive was performed"
+  ]
+}

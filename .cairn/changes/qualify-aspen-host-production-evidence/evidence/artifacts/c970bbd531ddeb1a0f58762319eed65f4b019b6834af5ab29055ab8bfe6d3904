@@ -1,0 +1,64 @@
+{
+  "schema": "kiln.qualification-exact-main-push-preflight.v1",
+  "publication_revision": "c9266e05d3d44f8d0be06aa60c69edd6b3586adb",
+  "qualified_input": "afd06231e8e616c86a6f507fb2a69c41babd1f84",
+  "commands": [
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "git",
+        "remote",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "github git@github.com:OnixResearch/kiln.git\nrad rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE (push: rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx)\n\"seed.radicle.dev@z6MksmpU5b1dS7oaqF2bHXhQi1DWy2hB7Mh9CuN7y1DN6QSz\" rad://z2wsvxm5s2sjgvuv1k5jhiwi1pbke/z6MksmpU5b1dS7oaqF2bHXhQi1DWy2hB7Mh9CuN7y1DN6QSz\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "log",
+        "--no-graph",
+        "-r",
+        "(main@github | main@rad | afd06231e8e616c86a6f507fb2a69c41babd1f84) ~ ancestors(c9266e05d3d44f8d0be06aa60c69edd6b3586adb)",
+        "-T",
+        "commit_id ++ \"\n\""
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "jj",
+        "--config",
+        "snapshot.max-new-file-size=4194304",
+        "log",
+        "--no-graph",
+        "-r",
+        "((main@github | main@rad)..c9266e05d3d44f8d0be06aa60c69edd6b3586adb) & (description(exact:\"\") | conflicts())",
+        "-T",
+        "commit_id ++ \"\n\""
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "source_manifest": {
+    "name": "described-history-authorized-main-publication-source-manifest.json",
+    "blake3": "e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43",
+    "bytes": 373909,
+    "path": "artifacts/e8a6ea91d547624b6a9838c5b2809eed2555a4969cf15d942d89aa7eeb321a43"
+  },
+  "governance": {
+    "name": "described-history-pre-main-push-radicle-governance.json",
+    "blake3": "8a911ce5d3e4f34f40b886fe83c4b48c721431196e2c132c02cb8cdad1fd842a",
+    "bytes": 1149,
+    "path": "artifacts/8a911ce5d3e4f34f40b886fe83c4b48c721431196e2c132c02cb8cdad1fd842a"
+  }
+}

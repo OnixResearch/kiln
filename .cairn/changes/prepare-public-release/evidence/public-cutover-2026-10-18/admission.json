@@ -1,0 +1,109 @@
+{
+  "schema": "kiln.public-cutover-admission.v1",
+  "observed_at_utc": "2026-10-18T22:03:15.047380+00:00",
+  "checks": [
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "gate",
+        "proposal",
+        "prepare-owned-dependencies-agpl",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"acceptance_ids\": [\n    \"prepare-owned-dependencies-agpl.boundary\",\n    \"prepare-owned-dependencies-agpl.inventory\",\n    \"prepare-owned-dependencies-agpl.verification\"\n  ],\n  \"change\": \"prepare-owned-dependencies-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"92698feea84087b239b2882c5c69d6316970a285d0335932aee5bb54a9574f9e\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\",\n    \"no-spec profile conformance does not prove zero behavior effect or semantic correctness\",\n    \"change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"f97f30addb606ead5298568eb6f3bc86d549f914e77e266c3ded7da333a388e9\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"34392dd5315d3992699c2c71b0d45d48c539cb42c5e2ebf95c9e5c29385f4430\",\n  \"receipt_hash\": \"53e4ec4f9007be82378235fcb6262b264860e4eefb38b574a8a7dfeea401a593\",\n  \"review_receipt_hashes\": [\n    \"fa0ca4f1eb7b90a2059a1c86210480b8c9d211c3adfba623278b1af8038424b9\"\n  ],\n  \"spec_effect\": \"none\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 7,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"no-spec-delta\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "gate",
+        "design",
+        "prepare-owned-dependencies-agpl",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"acceptance_ids\": [\n    \"prepare-owned-dependencies-agpl.boundary\",\n    \"prepare-owned-dependencies-agpl.inventory\",\n    \"prepare-owned-dependencies-agpl.verification\"\n  ],\n  \"change\": \"prepare-owned-dependencies-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"97a378d59189e741fd7fcbf93f6025a5942977fd1355472cd7de3ab0c94b3a7c\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\",\n    \"no-spec profile conformance does not prove zero behavior effect or semantic correctness\",\n    \"change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"f97f30addb606ead5298568eb6f3bc86d549f914e77e266c3ded7da333a388e9\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"34392dd5315d3992699c2c71b0d45d48c539cb42c5e2ebf95c9e5c29385f4430\",\n  \"receipt_hash\": \"2a14a07df20947e27607177ce0e8a7aeb2d85be73b3777ab3d5340d2074e17c0\",\n  \"review_receipt_hashes\": [\n    \"fa0ca4f1eb7b90a2059a1c86210480b8c9d211c3adfba623278b1af8038424b9\"\n  ],\n  \"spec_effect\": \"none\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/acceptance.md#profile-adapter\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 3,\n      \"substantive_lines\": 12,\n      \"substantive_requirement_blocks\": 1,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 7,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"no-spec-delta\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "gate",
+        "tasks",
+        "prepare-owned-dependencies-agpl",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"acceptance_ids\": [\n    \"prepare-owned-dependencies-agpl.boundary\",\n    \"prepare-owned-dependencies-agpl.inventory\",\n    \"prepare-owned-dependencies-agpl.verification\"\n  ],\n  \"change\": \"prepare-owned-dependencies-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"4ab1c3e12132b894265d0de1165941acee0f8c701f23505ed34a9353e84600fb\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\",\n    \"no-spec profile conformance does not prove zero behavior effect or semantic correctness\",\n    \"change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"f97f30addb606ead5298568eb6f3bc86d549f914e77e266c3ded7da333a388e9\",\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"profile_identity_hash\": \"34392dd5315d3992699c2c71b0d45d48c539cb42c5e2ebf95c9e5c29385f4430\",\n  \"receipt_hash\": \"3f19493416a371f03fec4514eabbe673b54365cc48f3360df3ac8681ef95bdde\",\n  \"review_receipt_hashes\": [\n    \"fa0ca4f1eb7b90a2059a1c86210480b8c9d211c3adfba623278b1af8038424b9\"\n  ],\n  \"spec_effect\": \"none\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/acceptance.md#profile-adapter\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 3,\n      \"substantive_lines\": 12,\n      \"substantive_requirement_blocks\": 1,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 7,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 5,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-dependencies-agpl/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 18,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 5,\n      \"task_done\": 5,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"no-spec-delta\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "gate",
+        "proposal",
+        "prepare-public-release",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"prepare-public-release\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"dce510fcbf63d405d0277c011668175419d0d46d5b7b3874a69002a037273075\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"f97f30addb606ead5298568eb6f3bc86d549f914e77e266c3ded7da333a388e9\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"e450f8c4b380ca22f2ea2573c467d34985c593340b8350a120c53ccb008030ae\",\n  \"receipt_hash\": \"1f516615f210655a291440dd0b28ae54a43129d036dc8b44d07851f029b1e390\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "gate",
+        "design",
+        "prepare-public-release",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"prepare-public-release\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"82fcc7c10751dc5c0577f08c6d8f08a70de573af8b3886731349bd52a91bcfb5\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"f97f30addb606ead5298568eb6f3bc86d549f914e77e266c3ded7da333a388e9\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"e450f8c4b380ca22f2ea2573c467d34985c593340b8350a120c53ccb008030ae\",\n  \"receipt_hash\": \"a430004c9a638063accfc7308d2b5c96218f098148c2a983b00629908bb25927\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 16,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/var/tmp/kiln-qualification.BEA91plo/cairn-root/bin/cairn",
+        "gate",
+        "tasks",
+        "prepare-public-release",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"prepare-public-release\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"822ea4a1df24de33ec3926a81c09fdf04c60ddbb9767e976bc9b1bee95c1e5f6\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"f97f30addb606ead5298568eb6f3bc86d549f914e77e266c3ded7da333a388e9\",\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"profile_identity_hash\": \"e450f8c4b380ca22f2ea2573c467d34985c593340b8350a120c53ccb008030ae\",\n  \"receipt_hash\": \"f016fa29051be2b046dabb8f0b0cb907409141f0498e04c0bc00ce951db54cbb\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 16,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/specs/public-release-preparation/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 15,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-public-release/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 26,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 15,\n      \"task_done\": 12,\n      \"task_in_progress\": 0,\n      \"task_todo\": 3\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+      "stderr": ""
+    }
+  ],
+  "notice_hash_interoperability": {
+    "algorithm": "sha256",
+    "observed": {
+      "LICENSE-GPL-2.0": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "LICENSE-AGPL-3.0": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+      "vendor/artifact/NOTICE": "e647562d2c2e144ae70683edee9ed9fd04608171a7bbd549a7f60a2fb13a1ee5",
+      "vendor/artifact/provenance/SOURCE_GRANT.md": "f6d5b0a4f9a820cea88b71de96654c69ff898b330021859572e6fdddf118bd93",
+      "vendor/artifact/docs/source-inventory.md": "61f58f8b4568aa8306b69721a2064ee62fcf2a06810c3ec3d93fe062299e830c",
+      "vendor/radicle-cob-git-store/LICENSE-MIT": "4379fb1e21245ef557dcb505f4133186311e994ab6ed3998364991a0c9cef86f",
+      "vendor/radicle-cob-git-store/LICENSE-APACHE": "c2bbe6d9ca8417d30b4df735561e24a2efbf888b21586d97b14c4a70a8efb88b"
+    }
+  },
+  "verdict": "PASS"
+}

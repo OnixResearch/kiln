@@ -1,0 +1,28 @@
+{
+  "decision": "approved",
+  "findings": [],
+  "review_kind": "plan",
+  "reviewed_inputs": [
+    {
+      "hash": "2d3cde7b6958053d4361bef5db3591b03c46c953d9c6e2b3005e749016295b1c",
+      "path": "proposal.md"
+    },
+    {
+      "hash": "7233ef2043780348ca1a771a517c405c193b0d368d219c9c0cad4b108fe61d98",
+      "path": "design.md"
+    },
+    {
+      "hash": "dd92772ff2b3ec37ebbd629d09e40640b733c189c8f5b465a859f65c27920038",
+      "path": "acceptance.md"
+    },
+    {
+      "hash": "d626fce8c8a26f0b69d6e1b43dfb3328146d58e3a86badd8ab177fdb93917f96",
+      "path": "tasks.md"
+    }
+  ],
+  "reviewer": {
+    "id": "omp-current-source-license-scope-review",
+    "source": "agentic"
+  },
+  "schema_version": "cairn.semantic-review.review-receipt.v1"
+}

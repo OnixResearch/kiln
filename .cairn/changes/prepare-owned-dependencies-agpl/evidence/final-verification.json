@@ -1,0 +1,4498 @@
+{
+  "schema": "kiln.owned-dependency-agpl-preparation.local-verification.v1",
+  "scope": {
+    "inventory": "dependency-owners.json",
+    "prospective_owned_source_grant": "AGPL-3.0-or-later",
+    "current_consumer_licenses_pins_imports_and_runtime_cohorts": "unchanged",
+    "historical_grants_and_third_party_terms": "retained; prior grants continue to cover previously granted byte-identical material",
+    "release_or_legal_clearance": false,
+    "maintenance_owner": "Kiln maintainers own this selected-closure receipt; each producer owns its license map, source preparation and repeatability checks",
+    "current_kiln_source_publication_review": "current-source-review.json; publication_prerequisites below concern prospective producer releases and consumer migration, not blanket denial of the retained grants for unchanged Kiln imports"
+  },
+  "outcome": {
+    "selected_owners": 20,
+    "changed_producers": 15,
+    "already_agpl_without_product_edits": [
+      "basalt",
+      "bounded-exec",
+      "chaoscontrol",
+      "choregraph",
+      "octet"
+    ],
+    "all_owners_prepared": true,
+    "published_new_revisions": false
+  },
+  "prepared_changes": [
+    {
+      "owner": "artifact",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/artifact",
+      "native_change": "adopt-owned-source-agpl",
+      "lifecycle_tool": "/etc/profiles/per-user/brittonr/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "durable-file-publication",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "native_change": "adopt-owned-source-agpl",
+      "lifecycle_tool": "/etc/profiles/per-user/brittonr/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "cairn",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017",
+      "native_change": "prepare-owned-agpl",
+      "lifecycle_tool": "/etc/profiles/per-user/brittonr/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "kamacite",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/kamacite",
+      "native_change": "prepare-owned-agpl",
+      "lifecycle_tool": "/nix/store/9dfw87gh94yria6lx1xmclq489a875jw-cairn-0.1.0/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "valence",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/valence",
+      "native_change": "adopt-owned-source-agpl",
+      "lifecycle_tool": "/nix/store/9dfw87gh94yria6lx1xmclq489a875jw-cairn-0.1.0/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "nickel-export",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/nickel-export",
+      "native_change": "adopt-owned-source-agpl",
+      "lifecycle_tool": "/tmp/kiln-agpl-cairn-a22-target/debug/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "content-identity-core",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "native_change": "owned-source-agpl",
+      "lifecycle_tool": "/tmp/kiln-agpl-cairn-a22-target/debug/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "schema-identity-core",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "native_change": "owned-source-agpl",
+      "lifecycle_tool": "/tmp/kiln-agpl-cairn-bfa-target/debug/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "schema-migration-core",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "native_change": "owned-source-agpl",
+      "lifecycle_tool": "/tmp/kiln-agpl-cairn-bfa-target/debug/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/radicle-cob-git-store",
+      "native_change": "owned-source-agpl",
+      "lifecycle_tool": "/etc/profiles/per-user/brittonr/bin/cairn",
+      "policy": "/home/brittonr/git/OnixResearch/cairn/cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "ucan",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/ucan",
+      "native_change": "prepare-owned-source-agpl",
+      "lifecycle_tool": "/nix/store/9dfw87gh94yria6lx1xmclq489a875jw-cairn-0.1.0/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "lattice",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/lattice",
+      "native_change": "adopt-owned-source-agpl",
+      "lifecycle_tool": "/etc/profiles/per-user/brittonr/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "aspen",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/.worktrees/aspen-owned-license-boundary-20261017",
+      "native_change": "complete-owned-license-package-policy",
+      "lifecycle_tool": "/etc/profiles/per-user/brittonr/bin/cairn",
+      "policy": "/home/brittonr/git/OnixResearch/cairn/cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "mantle",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017",
+      "native_change": "align-owned-example-template-licenses",
+      "lifecycle_tool": "/nix/store/1z6bhr2cl43z4kpsvjkxy9b47nqr9pkg-cairn-0.1.0/bin/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false
+    },
+    {
+      "owner": "trellis",
+      "actual_target_root": "/home/brittonr/git/OnixResearch/trellis",
+      "native_change": "prepare-owned-source-agpl",
+      "lifecycle_tool": "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+      "policy": "cairn-policy/generated/cairn-policy.json",
+      "source_disposition": "prospective-owned-source-prepared-unpublished",
+      "publication_authorized": false,
+      "verification": "trellis-verification.json",
+      "lifecycle_state": "Source prepared; licensing native sync blocked on pre-existing accepted requirement-ID cardinality; unarchived."
+    }
+  ],
+  "workspace_package_metadata": [
+    {
+      "owner": "artifact",
+      "packages": [
+        {
+          "name": "artifact-auth-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/artifact/crates/artifact-auth-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "artifact-auth-ed25519",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/artifact/crates/artifact-auth-ed25519/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "artifact-binding-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/artifact/crates/artifact-binding-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "artifact-transfer-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/artifact/crates/artifact-transfer-core/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "aspen",
+      "packages": [
+        {
+          "name": "molten",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/aspen-owned-license-boundary-20261017/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "molten-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/aspen-owned-license-boundary-20261017/crates/molten-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "molten-node-host",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/aspen-owned-license-boundary-20261017/crates/molten-node-host/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "molten-release-policy",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/aspen-owned-license-boundary-20261017/crates/molten-release-policy/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "basalt",
+      "packages": [
+        {
+          "name": "basalt",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/basalt/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "bounded-exec",
+      "packages": [
+        {
+          "name": "bounded-exec-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/bounded-exec/crates/bounded-exec-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "bounded-exec",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/bounded-exec/crates/bounded-exec/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "cairn",
+      "packages": [
+        {
+          "name": "cairn-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017/crates/cairn-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "cairn-cli",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017/crates/cairn-cli/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "bounded-tree-cap",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017/vendor/bounded-tree-cap/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "bounded-tree-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017/vendor/bounded-tree-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "onix-cairn-radicle-cob",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017/crates/cairn-radicle-cob/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "onix-radicle-cob-git-store",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017/vendor/radicle-cob-git-store/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "cairn-gate-contract",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/.worktrees/cairn-owned-agpl-20261017/crates/cairn-gate-contract/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "chaoscontrol",
+      "packages": [
+        {
+          "name": "chaoscontrol-protocol",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-protocol/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-replay-evidence-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-replay-evidence-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-snapshot-descriptor",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-snapshot-descriptor/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-sim-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-sim-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-fault",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-fault/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-smr",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-smr/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-wasm-differential",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-wasm-differential/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-wasm-exploration-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-wasm-exploration-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-sdk",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-sdk/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-vmm",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-vmm/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-vm-cohort-adapter",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-vm-cohort-adapter/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-trace",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-trace/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-explore",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-explore/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-evidence",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-evidence/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-dashboard",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-dashboard/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-replay",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-replay/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-property-suite",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-property-suite/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-guest",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-guest/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-guest-determinism-probe",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-guest-determinism-probe/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-raft-guest",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-raft-guest/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-guest-net",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-guest-net/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-net-guest",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-net-guest/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-redb-guest",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-redb-guest/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "chaoscontrol-rust-workload-guest",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/chaoscontrol/crates/chaoscontrol-rust-workload-guest/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "choregraph",
+      "packages": [
+        {
+          "name": "choregraph-choreography",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-choreography/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-kamacite",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-kamacite/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-cli",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-cli/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-nickel",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-nickel/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-release",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-release/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-seaglass",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-seaglass/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-history",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-history/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-history-machine",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-history-machine/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-wasm",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-wasm/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-weave",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/choregraph-weave/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "execution-graph-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/crates/execution-graph-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-foundation-check",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/tools/choregraph-foundation-check/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "choregraph-wasm-conformance",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/choregraph/tools/choregraph-wasm-conformance/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "content-identity-core",
+      "packages": [
+        {
+          "name": "content-identity-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/content-identity-core/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "durable-file-publication",
+      "packages": [
+        {
+          "name": "durable-file-publication",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/durable-file-publication/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "kamacite",
+      "packages": [
+        {
+          "name": "kamacite-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/kamacite/crates/kamacite-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "kamacite-cli",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/kamacite/crates/kamacite-cli/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "lattice",
+      "packages": [
+        {
+          "name": "lattice",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapters",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapters/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-atif",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-atif/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-change-request",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-change-request/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-continual",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-continual/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-daemon",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-daemon/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-eval",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-eval/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-eval-core",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-eval-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-maintenance",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-maintenance/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-observability",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-observability/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-safe",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-safe/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-adapter-rlm-kernel",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-adapter-rlm-kernel/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-core",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-router",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-router/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "host-control-core",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/host-control/crates/host-control-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-runtime",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-runtime/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-session-core",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-session-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-steel",
+          "license": "MIT OR Apache-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-steel/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "animus-std-secretspec",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/animus/crates/animus-std-secretspec/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "basalt",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/basalt/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "ucan",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/basalt/vendor/ucan/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "ucan-core",
+          "license": "MPL-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/basalt/vendor/ucan/crates/ucan-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "verified-logic",
+          "license": "MPL-2.0",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/basalt/vendor/ucan/vendor/verified-logic/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "ucan-nostr",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/basalt/vendor/ucan/crates/ucan-nostr/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "budget-ledger-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/crates/budget-ledger-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "lattice-compose-binding",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/crates/lattice-compose-binding/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "lattice-workflow-contract",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/crates/lattice-workflow-contract/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "lattice-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/crates/lattice-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "lattice-workflow-transport",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/crates/lattice-workflow-contract/transport/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-canvas",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-canvas/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-editor",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-editor/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-fuzzy",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-fuzzy/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "ratcore",
+          "license": "MIT",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/ratcore/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-keymap",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-keymap/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-layers",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-layers/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-nodegraph",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-nodegraph/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-streaming",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-streaming/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-chrome",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-chrome/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-inline",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-inline/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-markdown",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-markdown/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-table",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-table/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-tree",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-tree/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-widgets",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-widgets/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "rat-spinner",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source/subwayrat/crates/rat-spinner/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "lattice-repository-validation-fixture",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/lattice/tests/fixtures/repository-validation/vendor-dependency/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "mantle",
+      "packages": [
+        {
+          "name": "crunch-android-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-android-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-android",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-android/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-build",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-build/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-action-result-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-action-result-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-attestation",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-attestation/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-attestation-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-attestation-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-remote-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-remote-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-store",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-store/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-composition-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-composition-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-gc-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-gc-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-nar",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-nar/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "nix-compat",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/vendor/nix-compat/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "nix-compat-derive",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/vendor/nix-compat-derive/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "snix-castore",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/vendor/snix-castore/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "fuse-backend-rs",
+          "license": "Apache-2.0 AND BSD-3-Clause",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/vendor/fuse-backend-rs/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "snix-tracing",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/vendor/snix-tracing/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "snix-store",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/vendor/snix-store/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-overlay-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-overlay-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-repair-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-repair-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "snix-build",
+          "license": null,
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/vendor/snix-build/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-delta",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-delta/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-delta-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-delta-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-causal-trace-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-causal-trace-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-glue",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-glue/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-eval",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-eval/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-service-readiness-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-service-readiness-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-remote-app",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-remote-app/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-rust-cache-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-rust-cache-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-rust-cache",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-rust-cache/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-rustc-wrapper",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-rustc-wrapper/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantlepkgs-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantlepkgs-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-cargo-unit-plan",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-cargo-unit-plan/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-rust-plan-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-rust-plan-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-lock-vendor-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-lock-vendor-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-lock-vendor-producer",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-lock-vendor-producer/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-rust-plan-app",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-rust-plan-app/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-application-contract",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-application-contract/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-portable-client-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-portable-client-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-build-contract",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-build-contract/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-eval-budget-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-eval-budget-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-evaluation-stream-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-evaluation-stream-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-pipeline",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-pipeline/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-watch-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-watch-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-project",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-project/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-project-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-project-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-shell",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-shell/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-shell-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-shell-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-release-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-release-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-bootstrap-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-bootstrap-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-hardware-simulation-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-hardware-simulation-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-hardware-simulation",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-hardware-simulation/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-kernelscript-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-kernelscript-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-kernelscript-adapter",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-kernelscript-adapter/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-source-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-source-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-spacewasm-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-spacewasm-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-spacewasm",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-spacewasm/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-wasm-component-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-wasm-component-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "crunch-wasm-component",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/crunch-wasm-component/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle-wasm-consumer-verifier",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/crates/mantle-wasm-consumer-verifier/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "mantle",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/mantle/.pi/worktrees/mantle-owned-agpl-20261017/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "nickel-export",
+      "packages": [
+        {
+          "name": "nickel-export-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/nickel-export/crates/nickel-export-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "nickel-export",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/nickel-export/crates/nickel-export/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "octet",
+      "packages": [
+        {
+          "name": "cargo-octet",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/octet/cargo-octet/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "octet-architecture-ir",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/octet/crates/octet-architecture-ir/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "octet-lint-metadata",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/octet/crates/octet-lint-metadata/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "octet-standards",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/octet/crates/octet-standards/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "octet",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/octet/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "packages": [
+        {
+          "name": "onix-radicle-cob-git-store",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/radicle-cob-git-store/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "schema-identity-core",
+      "packages": [
+        {
+          "name": "schema-identity-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/schema-identity-core/crates/schema-identity-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "schema-identity-conformance",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/schema-identity-core/crates/schema-identity-conformance/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "schema-migration-core",
+      "packages": [
+        {
+          "name": "schema-migration-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/schema-migration-core/crates/schema-migration-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "schema-migration-conformance",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/schema-migration-core/crates/schema-migration-conformance/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "ucan",
+      "packages": [
+        {
+          "name": "ucan-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/ucan/crates/ucan-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "ucan-nostr",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/ucan/crates/ucan-nostr/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "ucan",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/ucan/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "valence",
+      "packages": [
+        {
+          "name": "valence-core",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/valence/crates/valence-core/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "valence-cli",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/valence/crates/valence-cli/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "valence-radicle",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/valence/crates/valence-radicle/Cargo.toml",
+          "source": null
+        },
+        {
+          "name": "valence-shared-identity-pilot",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/valence/pilots/shared-identity/Cargo.toml",
+          "source": null
+        }
+      ]
+    },
+    {
+      "owner": "trellis",
+      "packages": [
+        {
+          "name": "verified-logic",
+          "license": "AGPL-3.0-or-later",
+          "license_file": null,
+          "manifest": "/home/brittonr/git/OnixResearch/trellis/Cargo.toml",
+          "source": null
+        }
+      ]
+    }
+  ],
+  "regular_package_inclusion_lists": [
+    {
+      "owner": "artifact",
+      "packages": [
+        {
+          "package": "artifact-auth-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-AGPL"
+          ],
+          "error": null
+        },
+        {
+          "package": "artifact-auth-ed25519",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-AGPL"
+          ],
+          "error": null
+        },
+        {
+          "package": "artifact-binding-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-AGPL"
+          ],
+          "error": null
+        },
+        {
+          "package": "artifact-transfer-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-AGPL"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "cairn",
+      "packages": [
+        {
+          "package": "cairn-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-APACHE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        },
+        {
+          "package": "cairn-cli",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "onix-cairn-radicle-cob",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "cairn-gate-contract",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-APACHE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "content-identity-core",
+      "packages": [
+        {
+          "package": "content-identity-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "durable-file-publication",
+      "packages": [
+        {
+          "package": "durable-file-publication",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-AGPL",
+            "LICENSE-APACHE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "kamacite",
+      "packages": [
+        {
+          "package": "kamacite-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-APACHE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        },
+        {
+          "package": "kamacite-cli",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "nickel-export",
+      "packages": [
+        {
+          "package": "nickel-export-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "nickel-export",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "radicle-cob-git-store",
+      "packages": [
+        {
+          "package": "onix-radicle-cob-git-store",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-APACHE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "schema-identity-core",
+      "packages": [
+        {
+          "package": "schema-identity-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        },
+        {
+          "package": "schema-identity-conformance",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "schema-migration-core",
+      "packages": [
+        {
+          "package": "schema-migration-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        },
+        {
+          "package": "schema-migration-conformance",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSE-MIT"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "ucan",
+      "packages": [
+        {
+          "package": "ucan-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "ucan-nostr",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "ucan",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "valence",
+      "packages": [
+        {
+          "package": "valence-core",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "valence-cli",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "valence-radicle",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        },
+        {
+          "package": "valence-shared-identity-pilot",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "trellis",
+      "packages": [
+        {
+          "package": "verified-logic",
+          "exit": 0,
+          "license": "AGPL-3.0-or-later",
+          "included_license_files": [
+            "LICENSE",
+            "LICENSES/AGPL-3.0-or-later.txt",
+            "LICENSES/MPL-2.0.txt"
+          ],
+          "error": null
+        }
+      ]
+    }
+  ],
+  "standalone_package_metadata_and_inclusion_lists": [
+    {
+      "owner": "artifact",
+      "manifest": "fixtures/publication-candidate/Cargo.toml",
+      "exit": 0,
+      "packages": [
+        {
+          "name": "durable-file-publication-candidate",
+          "license": "AGPL-3.0-or-later"
+        }
+      ],
+      "listing": {
+        "exit": 0,
+        "license_files": [
+          "LICENSE",
+          "LICENSE-AGPL"
+        ],
+        "error": null
+      }
+    },
+    {
+      "owner": "kamacite",
+      "manifest": "pilots/schema-migration/Cargo.toml",
+      "exit": 0,
+      "packages": [
+        {
+          "name": "kamacite-schema-migration-pilot",
+          "license": "AGPL-3.0-or-later"
+        }
+      ],
+      "listing": {
+        "exit": 0,
+        "license_files": [
+          "LICENSE"
+        ],
+        "error": null
+      }
+    },
+    {
+      "owner": "nickel-export",
+      "manifest": "fuzz/Cargo.toml",
+      "exit": 0,
+      "packages": [
+        {
+          "name": "nickel-export-fuzz",
+          "license": "AGPL-3.0-or-later"
+        }
+      ],
+      "listing": {
+        "exit": 0,
+        "license_files": [
+          "LICENSE"
+        ],
+        "error": null
+      }
+    },
+    {
+      "owner": "valence",
+      "manifest": "crates/valence-radicle-native/Cargo.toml",
+      "exit": 0,
+      "packages": [
+        {
+          "name": "valence-radicle-native",
+          "license": "AGPL-3.0-or-later"
+        }
+      ],
+      "listing": {
+        "exit": 0,
+        "license_files": [
+          "LICENSE"
+        ],
+        "error": null
+      }
+    },
+    {
+      "owner": "mantle",
+      "manifest": "examples/projects/rust-workspace/Cargo.toml",
+      "exit": 0,
+      "packages": [
+        {
+          "name": "greeting",
+          "license": "AGPL-3.0-or-later"
+        },
+        {
+          "name": "workspace-app",
+          "license": "AGPL-3.0-or-later"
+        }
+      ],
+      "listing": null
+    }
+  ],
+  "license_boundary_controls": [
+    {
+      "owner": "aspen",
+      "exit": 0,
+      "stdout": "license boundary valid: 12 rules",
+      "error": null
+    },
+    {
+      "owner": "cairn",
+      "exit": 0,
+      "stdout": "license boundary valid: 18 rules",
+      "error": null
+    },
+    {
+      "owner": "kamacite",
+      "exit": 0,
+      "stdout": "license boundary valid: 14 rules",
+      "error": null
+    },
+    {
+      "owner": "nickel-export",
+      "exit": 0,
+      "stdout": "license boundary valid: 13 rules",
+      "error": null
+    },
+    {
+      "owner": "ucan",
+      "exit": 0,
+      "stdout": "license boundary valid: 17 rules",
+      "error": null
+    },
+    {
+      "owner": "valence",
+      "exit": 0,
+      "stdout": "license boundary valid: 24 rules",
+      "error": null
+    },
+    {
+      "owner": "trellis",
+      "exit": 0,
+      "stdout": "license boundary valid: 19 rules",
+      "error": null
+    }
+  ],
+  "nickel_projections": [
+    {
+      "owner": "artifact",
+      "projections": [
+        {
+          "source": "config/repository.ncl",
+          "projection": "config/repository.json",
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "release/profile.ncl",
+          "projection": "release/profile.json",
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "durable-file-publication",
+      "projections": [
+        {
+          "source": "config/repository.ncl",
+          "projection": "config/repository.json",
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "release/profile.ncl",
+          "projection": "release/profile.json",
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "nickel-export",
+      "projections": [
+        {
+          "source": "config/repository.ncl",
+          "projection": "config/generated/repository.json",
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "release/profile.ncl",
+          "projection": "release/generated/profile.json",
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "owner": "trellis",
+      "projections": [
+        {
+          "source": "verification-policy/policy.ncl",
+          "projection": "verification-policy/generated/policy.json",
+          "request": "nickel-export-cutover/generated/requests/verification-policy.json",
+          "manifest": "nickel-export-cutover/generated/manifests/verification-policy.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "proof-review/policy.ncl",
+          "projection": "proof-review/generated/policy.json",
+          "request": "nickel-export-cutover/generated/requests/proof-review-policy.json",
+          "manifest": "nickel-export-cutover/generated/manifests/proof-review-policy.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "cairn-policy/default.ncl",
+          "projection": "cairn-policy/generated/cairn-policy.json",
+          "request": "nickel-export-cutover/generated/requests/cairn-policy.json",
+          "manifest": "nickel-export-cutover/generated/manifests/cairn-policy.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "cairn/config.ncl",
+          "projection": "cairn/config.yaml",
+          "request": "nickel-export-cutover/generated/requests/lifecycle-config.json",
+          "manifest": "nickel-export-cutover/generated/manifests/lifecycle-config.json",
+          "compatibility_destinations": [
+            "openspec/config.yaml"
+          ],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "json-artifacts/proof-evidence-bundle.ncl",
+          "projection": "nickel-export-cutover/generated/outputs/proof-evidence-contract.json",
+          "request": "nickel-export-cutover/generated/requests/proof-evidence-contract.json",
+          "manifest": "nickel-export-cutover/generated/manifests/proof-evidence-contract.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "json-artifacts/octet-baseline.ncl",
+          "projection": "nickel-export-cutover/generated/outputs/octet-baseline-contract.json",
+          "request": "nickel-export-cutover/generated/requests/octet-baseline-contract.json",
+          "manifest": "nickel-export-cutover/generated/manifests/octet-baseline-contract.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "json-artifacts/verification-policy-generated.ncl",
+          "projection": "nickel-export-cutover/generated/outputs/verification-policy-contract.json",
+          "request": "nickel-export-cutover/generated/requests/verification-policy-contract.json",
+          "manifest": "nickel-export-cutover/generated/manifests/verification-policy-contract.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "json-artifacts/proof-review-policy-generated.ncl",
+          "projection": "nickel-export-cutover/generated/outputs/proof-review-policy-contract.json",
+          "request": "nickel-export-cutover/generated/requests/proof-review-policy-contract.json",
+          "manifest": "nickel-export-cutover/generated/manifests/proof-review-policy-contract.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        },
+        {
+          "source": "json-artifacts/cairn-policy-generated.ncl",
+          "projection": "nickel-export-cutover/generated/outputs/cairn-policy-contract.json",
+          "request": "nickel-export-cutover/generated/requests/cairn-policy-contract.json",
+          "manifest": "nickel-export-cutover/generated/manifests/cairn-policy-contract.json",
+          "compatibility_destinations": [],
+          "exit": 0,
+          "byte_exact": true,
+          "error": null
+        }
+      ],
+      "evidence": "trellis-verification.json"
+    }
+  ],
+  "nickel_fixtures": [
+    {
+      "owner": "artifact",
+      "path": "config/fixtures/invalid-license.ncl",
+      "exit": 1,
+      "expected": "nonzero",
+      "matched": true,
+      "diagnostic": "error: contract broken by the value of `license`\n   ┌─ /home/brittonr/git/OnixResearch/artifact/config/contracts.ncl:56:13\n   │\n56 │   license | StandaloneLicense,\n   │             ----------------- expected type\n   │\n   ┌─ /home/brittonr/git/OnixResearch/artifact/config/fixtures/invalid-license.ncl:5:13\n   │\n 5 │   license = \"MIT OR Apache-2.0\",\n   │             ^^^^^^^^^^^^^^^^^^^ applied to this expression\n   │\n   ┌─ <unknown> (generated by evaluation):1:1\n   │\n 1 │ \"MIT OR Apache-2.0\"\n   │ -"
+    },
+    {
+      "owner": "nickel-export",
+      "path": "config/tests/license-map.valid.ncl",
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "diagnostic": ""
+    },
+    {
+      "owner": "nickel-export",
+      "path": "config/tests/license-map.stale-mpl.invalid.ncl",
+      "exit": 1,
+      "expected": "nonzero",
+      "matched": true,
+      "diagnostic": "error: contract broken by a value\n  ┌─ /home/brittonr/git/OnixResearch/nickel-export/config/tests/license-map.stale-mpl.invalid.ncl:2:1\n  │  \n2 │ ╭ [\n3 │ │   { package = \"nickel-export-core\", license = \"MPL-2.0\" },\n4 │ │   { package = \"nickel-export\", license = \"AGPL-3.0-or-later\" },\n5 │ │ ] | Contracts.PackageLicenseMap\n  │ │     --------------------------- expected type\n  │ ╰─^ applied to this expression\n\n"
+    },
+    {
+      "owner": "nickel-export",
+      "path": "config/tests/license-map.unknown-package.invalid.ncl",
+      "exit": 1,
+      "expected": "nonzero",
+      "matched": true,
+      "diagnostic": "error: contract broken by a value\n  ┌─ /home/brittonr/git/OnixResearch/nickel-export/config/tests/license-map.unknown-package.invalid.ncl:2:1\n  │  \n2 │ ╭ [\n3 │ │   { package = \"nickel-export-core\", license = \"AGPL-3.0-or-later\" },\n4 │ │   { package = \"unknown-shell\", license = \"AGPL-3.0-or-later\" },\n5 │ │ ] | Contracts.PackageLicenseMap\n  │ │     --------------------------- expected type\n  │ ╰─^ applied to this expression\n\n"
+    },
+    {
+      "owner": "durable-file-publication",
+      "type": "Repository",
+      "exit": 1,
+      "matched": true,
+      "diagnostic": "error: contract broken by the value of `license`\n   ┌─ /home/brittonr/git/OnixResearch/durable-file-publication/config/contracts.ncl:17:13\n   │\n17 │   license | Equal \"AGPL-3.0-or-later\",\n   │             ------------------------- expected type\n   │\n   ┌─ <stdin>:1:131\n   │\n 1 │ let C = import \"config/contracts.ncl\" in let R = import \"config/repository.ncl\" in ((std.record.remove \"license\" R) & { license = \"MIT OR Apache-2.0\" }) | C.Repository\n   │                                                "
+    },
+    {
+      "owner": "durable-file-publication",
+      "type": "Release",
+      "exit": 1,
+      "matched": true,
+      "diagnostic": "error: contract broken by the value of `license`\n   ┌─ /home/brittonr/git/OnixResearch/durable-file-publication/config/contracts.ncl:33:13\n   │\n33 │   license | Equal \"AGPL-3.0-or-later\",\n   │             ------------------------- expected type\n   │\n   ┌─ <stdin>:1:129\n   │\n 1 │ let C = import \"config/contracts.ncl\" in let R = import \"release/profile.ncl\" in ((std.record.remove \"license\" R) & { license = \"MIT OR Apache-2.0\" }) | C.Release\n   │                                                     "
+    }
+  ],
+  "nix_syntax": [
+    {
+      "owner": "artifact",
+      "exit": 0,
+      "error": null
+    },
+    {
+      "owner": "durable-file-publication",
+      "exit": 0,
+      "error": null
+    },
+    {
+      "owner": "nickel-export",
+      "exit": 0,
+      "error": null
+    }
+  ],
+  "lifecycle": {
+    "gates": [
+      {
+        "owner": "artifact",
+        "change": "adopt-owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "artifact-default",
+            "policy_hash": "e49e1e82637cbc9d87c9b047eab92a935e764c88944eb249f0678438985a8532",
+            "input_hash": "47397624b8da40389d3f2603f58448144c4fecc51782556fe82d6a72e8f8d9e7",
+            "receipt_hash": "2624dbf06ca3aac3988958007c65bd7ede544c6f9cbc5a95b8ee0557397bacd9",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "artifact-default",
+            "policy_hash": "e49e1e82637cbc9d87c9b047eab92a935e764c88944eb249f0678438985a8532",
+            "input_hash": "f0ceb976ef6254fc92c1d7b8a98a3e88edae3a46ab5d9551029ad6959507eb6b",
+            "receipt_hash": "b0f95bce44547d324efbe2f579861ac6ad13bbf28f85568c4e4df3508682e0d9",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "artifact-default",
+            "policy_hash": "e49e1e82637cbc9d87c9b047eab92a935e764c88944eb249f0678438985a8532",
+            "input_hash": "c8a3c5f114fd068a0589924934658e6ce34a194292bb01aba8a1dee6273c8461",
+            "receipt_hash": "0149f5e4f02efb8ed745bcc233c2f93e2f4e699fa25b6dcf4fc674cefe582efe",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "durable-file-publication",
+        "change": "adopt-owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "3414b277ac85621234904ea055e046b93e44f3850e80d5a1d7c65e04c857a0af",
+            "receipt_hash": "e92551e3e4072e9954d83e732aeba945b8e952f0f35294f536a82ecbd35a800b",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "93b855bf15d364ac719c4b442178ef128ae49aee59ddb171141ee24de87dc9a1",
+            "receipt_hash": "158e52dcbb1a1ed5d889bfc06ef4abdf7a72227ce0706ffeb1f36f7d07cc2152",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "61acc6fb7ad4600b57b32c8590f1086329025e2695a9ce7863aa508ad70b9c91",
+            "receipt_hash": "1c4f8e50b9f0819d0d1d1e675db4dd99f63f00f3fcb0b5b2bf9aec10a0484961",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "cairn",
+        "change": "prepare-owned-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "02c36dd1128c9f7bda7126a0b26500309c40e5128fd8581d3c414c5295acf8a0",
+            "receipt_hash": "827435a86f47382fd2a2ab371aa863e9ca6ca08d42c31a9242bfed0fd25d0efe",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "ac1655fa12e039143bb581d42c4a3828d1904fc79f04262f5df53eeebb76be1a",
+            "receipt_hash": "e708a92e9a0a62e1a68b52cf7af09c8dd559e263208fe144a7f470b1268f7a60",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "1fa0da9c76d5a26539bece571e6011ea13e80f317fb8bc2fcad0eb647e8badab",
+            "receipt_hash": "df3c708d1cf92724a67472b649ee65752c37afd1ffbe7bbb9df1980439b6b0e2",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "kamacite",
+        "change": "prepare-owned-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "kamacite-default",
+            "policy_hash": "7adcb67233d059d60916b7fd4941436d1c4aa69798a42fad6829298fc5180594",
+            "input_hash": "9c0e4c18bdb22646471cbd352be060170ebb276c8867984b39352921c57c0e96",
+            "receipt_hash": "b798cacef96894cb41b75c063566cab25f224bb5b1c3972b2639364896dfe744",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "kamacite-default",
+            "policy_hash": "7adcb67233d059d60916b7fd4941436d1c4aa69798a42fad6829298fc5180594",
+            "input_hash": "c4e2019e852abb3336821e1c6d81bf02afa87574d50cdddc9013047d6699b01c",
+            "receipt_hash": "c7949e622c1c37573aeff5df4b7340aa808e5e1015321842507fb67969559477",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "kamacite-default",
+            "policy_hash": "7adcb67233d059d60916b7fd4941436d1c4aa69798a42fad6829298fc5180594",
+            "input_hash": "6e6d190c341c185db065426a85305ab27ca2cbc158c869f2c72f1f1175fe4f57",
+            "receipt_hash": "8c38de0b42fe95bc1c0a1c7067e35e6b126e9fdbfb3a5db8ba64f58354df47af",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "valence",
+        "change": "adopt-owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "valence-default",
+            "policy_hash": "5e7b6930a922e8ccb45ff9288e28adba073734b56971c3ad4860ee70e1652da2",
+            "input_hash": "397bb98c55cd1e0297c439548687c00a20b389106b05aec86d297fccbee7707e",
+            "receipt_hash": "8824c461e92a5c3d29c8d9b51d4f674c10bdae4d21fcd6894607100de1a0f948",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "valence-default",
+            "policy_hash": "5e7b6930a922e8ccb45ff9288e28adba073734b56971c3ad4860ee70e1652da2",
+            "input_hash": "fb1fb15ccfef893dafbca308acdf0a15fcd64706a102cf7f643851a367b107ed",
+            "receipt_hash": "847952143a10ee350528dd2249d487e8b81eac77f86ec17e5de15482b1ce77e1",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "valence-default",
+            "policy_hash": "5e7b6930a922e8ccb45ff9288e28adba073734b56971c3ad4860ee70e1652da2",
+            "input_hash": "6c585653c1984de828dea3a469cdb4a3f26d157b60cf3507288d1e02d7416605",
+            "receipt_hash": "5c0fd94ef55be6b197d3c2e77eca2583ce91c40fe66b256de6c55eeb5dd00df3",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "nickel-export",
+        "change": "adopt-owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "nickel-export-default",
+            "policy_hash": "d9678fc9605dd9ead1c60f2b11e40224f40c8da68617798c7b8a70e8d6ffe37e",
+            "input_hash": "7a105772a7da161952dc86c93580561a3527b51d0bf86c2fa8f3d731daa2f7ed",
+            "receipt_hash": "eab6926e48002d07fa3e3746027d26fac9700bc3fb0a49835ece23fbe25b57bd",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "nickel-export-default",
+            "policy_hash": "d9678fc9605dd9ead1c60f2b11e40224f40c8da68617798c7b8a70e8d6ffe37e",
+            "input_hash": "8adca3d6a34754c085c36896094b170b700fb47d180a528f8a72fd9d8cbb8e7d",
+            "receipt_hash": "e517f50b6b7363a06a2038c2f55390f94b7593927489fb72ad60d87aecc66561",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "nickel-export-default",
+            "policy_hash": "d9678fc9605dd9ead1c60f2b11e40224f40c8da68617798c7b8a70e8d6ffe37e",
+            "input_hash": "939b9a5b26c898e3f88bb63f2662ef8d996c396b8658993e6a68b23bae78f8e3",
+            "receipt_hash": "8247cf46bc709bc3b0602df2d6ef4cb19d68cc48bba3b662f8d9f5ee2693ffc2",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "content-identity-core",
+        "change": "owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "03014c51aac92f53696ea78c0ec6901711b6ece1d112a644e7b0e9a2f5b317f0",
+            "input_hash": "b1a25fca5b84e70c3d8341124c51b6728b365874603daccd9fd38e12ac4e813d",
+            "receipt_hash": "186c78c3eb3785db771d370fa67bb0d3414ce8b1957b6f15f5df86b4deb529c1",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "03014c51aac92f53696ea78c0ec6901711b6ece1d112a644e7b0e9a2f5b317f0",
+            "input_hash": "0c072b299f6e835c4bd3d060c8a33a30b1b4f1500dbc7c11f75ed4038a491cc0",
+            "receipt_hash": "9280cd20b4f3c2bc136ce3d3226e742cf9d04fc51dbc2fb662886376afc13d1e",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "03014c51aac92f53696ea78c0ec6901711b6ece1d112a644e7b0e9a2f5b317f0",
+            "input_hash": "108b212bcb2aa5e404e466ae1ffe85de2b77037fc046c377cfd6bc66a4df9641",
+            "receipt_hash": "0c99019715770192b684f91b8d6a9f5d755f6a786f6c524692ccee3c22b5414a",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "schema-identity-core",
+        "change": "owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "schema-identity-core-default",
+            "policy_hash": "3e86638087e65018870bdfefb44da4959d6d58829e43b3cb110e7f40c889222b",
+            "input_hash": "804ec89d3552e062c816d32e45d041f97d11588c3d7874fa766feac9a26a124d",
+            "receipt_hash": "9592608ab7f7188a02dc44518f694630be6d48c114b69e08035cf9ce70f2f31f",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "schema-identity-core-default",
+            "policy_hash": "3e86638087e65018870bdfefb44da4959d6d58829e43b3cb110e7f40c889222b",
+            "input_hash": "66016533eee503aec702a6b2514c19ffac985f35ea7cc04f71d714d2f10217ef",
+            "receipt_hash": "2138bd08e1e252d01e1033c9a55ee1eae7f4868b1a7ad08b742d51c98e14fca4",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "schema-identity-core-default",
+            "policy_hash": "3e86638087e65018870bdfefb44da4959d6d58829e43b3cb110e7f40c889222b",
+            "input_hash": "45da5c9cfb43720c43947b4333227a2589df37e96b44bd4dded372c2cf12cd24",
+            "receipt_hash": "445d9d07f1608b7d69133c10a3b4170ee239dbf4e628de5002fef1c9eb706130",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "schema-migration-core",
+        "change": "owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "schema-migration-core-default",
+            "policy_hash": "f9e85c6afeb40f628a4baa5885fccf7768fff418975b35bbfba5c8d8cc62f9d7",
+            "input_hash": "3c2f52b2508db03265115585675ca1a7d3409b1008ca278a2bd1e8768d7bf8a5",
+            "receipt_hash": "ce0f28dc13bd469ce13602295362b492a3651969192d9902644ad480200bf0d7",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "schema-migration-core-default",
+            "policy_hash": "f9e85c6afeb40f628a4baa5885fccf7768fff418975b35bbfba5c8d8cc62f9d7",
+            "input_hash": "cb7d9128cef795a4a969377c3a2b47c4939a5b54599f97327a0cc87eb0b570de",
+            "receipt_hash": "f44ad39163b7088271eb2d5441033c4b3a1ff9347f364b5bbb9d83e14c50da85",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "schema-migration-core-default",
+            "policy_hash": "f9e85c6afeb40f628a4baa5885fccf7768fff418975b35bbfba5c8d8cc62f9d7",
+            "input_hash": "9cf9b47378d1014bc183b139ef348297d625deb59ad9f1bfa572337ed3bbf1db",
+            "receipt_hash": "ec40b5b77db5c66d2fcaa3d3d7e7e9c3cad7894471d5cd549f3a419f378ff662",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "radicle-cob-git-store",
+        "change": "owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "6b7c4b6896b78ea1c54420ec7506ec01abcbf70ee95026f89020a59d6ed798bb",
+            "receipt_hash": "200798a01441feaaa3accde86ddf2c3a0c0c4cc1c4cf361cea1c995224bdaf26",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "41f062c9bccbb58df3c4ce9559cd0fcaaacb3266089f894d30ec69dc104f3333",
+            "receipt_hash": "ac43687e60430e770cb20e0f0d4a2831d4a1d91c9428e1bc372f560b029f9f35",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "9b7861e5ebc58d3ecc40ebe1b9f176278c062b102b4d7deb329c753a73b0d9db",
+            "receipt_hash": "a1c4bac1dfc5dd63847a189cbefa2cdb2d9a4a7e8adc3b985dd55177f8d0efb3",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "ucan",
+        "change": "prepare-owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "9afa2cc9ec976a9d1860f9d8e6fa65438ba9ba964de9836cafd50dd3c37be5d1",
+            "input_hash": "4f09392f2b3e6c66b4c6ac6d5bb9868a62b257437f845a97ffee3e0237082299",
+            "receipt_hash": "d59492541323f924329004ffb6db3978a4a2e8a60081b5b532a13e4aa7b6a0ba",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "9afa2cc9ec976a9d1860f9d8e6fa65438ba9ba964de9836cafd50dd3c37be5d1",
+            "input_hash": "2694f6c3d326606b6718a52bd07434d2dc5225ca09fd21ff97ce255b7d414016",
+            "receipt_hash": "b4bc430585c665610a861729d54449812a7b961ef1053928b94c2806936505d8",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "9afa2cc9ec976a9d1860f9d8e6fa65438ba9ba964de9836cafd50dd3c37be5d1",
+            "input_hash": "3f72703718ef67cab78aaa92ff4e173fe8db73e9e6a0b97b9b0c3e06c126f78c",
+            "receipt_hash": "1c413e3ebe8d95661ca4971eae17cdc09c24ba7fe9db3931b4112f5fb8ebc2fb",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "lattice",
+        "change": "adopt-owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "lattice-default",
+            "policy_hash": "a88e98316e48fb6e54901fd7a88dd890c86d1ab7c830098084fe5dfaa70d1a4a",
+            "input_hash": "a0dbe4650d9804217f79095fdac2622c13dc1de9a08c5a7bfc49adc5f1083295",
+            "receipt_hash": "3865e1d73cd81e8e4d7aa600296056e9e06a885bcc78101f88ae3dd6d0f292ff",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "lattice-default",
+            "policy_hash": "a88e98316e48fb6e54901fd7a88dd890c86d1ab7c830098084fe5dfaa70d1a4a",
+            "input_hash": "c52e8f3f71d363417f4e8018c75ae3808b9e8f47a5b21fb9454ac4be6ecbdb60",
+            "receipt_hash": "76964cd8b2e4d0240a791ccd624f2250437d8ddd77907315fecb261833530df7",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "lattice-default",
+            "policy_hash": "a88e98316e48fb6e54901fd7a88dd890c86d1ab7c830098084fe5dfaa70d1a4a",
+            "input_hash": "4dd9c348a72057ed196343cd3fccd169bcbd6ee85c7212c4a3dde291d85b1c90",
+            "receipt_hash": "643198f22dbea74ca520ad0ee4c6ba229d206929b9cbaf5c3af51dc027fb5eba",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "aspen",
+        "change": "complete-owned-license-package-policy",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "9816b7f373b82f96cb363ebe4b7fc179fca389770c69000e21d0a4ba03c39821",
+            "receipt_hash": "e91d4d33095a5815ba6c312519cee64367f66e07dec8cfef9047c6879a16ba56",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "a764de74d9e59bf83cca4703eeffa4f399bb6089a5f9d7adc3a235bf26f357e9",
+            "receipt_hash": "a1d4e3e4315df378f496ed59a495100526982827ee869f7f5f5d113b3d3dff50",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "cairn-default",
+            "policy_hash": "c8276321e0e82c524e09ad9357fa48a9d38ac8590263ee6f79c51a328dc6037d",
+            "input_hash": "a9e0ec43f2dd9b26376d9da7ed01f17bf40a46876d6ec526af08fce1ca9f8c79",
+            "receipt_hash": "802da03daa44d9d1103225ba379ff8984a9fa867c3637df31b0e5e4975c40ef4",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "mantle",
+        "change": "align-owned-example-template-licenses",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "mantle-default",
+            "policy_hash": "10455600e4ec15e5afa2b7759c70856ed9a1dc4ed1e18b635b32ee3d33cc6b4b",
+            "input_hash": "f9521aa7b166ed4eb23e63d6da5a7ba1a45cf390dbc7803f2b6883fa498ba762",
+            "receipt_hash": "70896a4096f10c1bed37f0a61469d8d6cfeacc792af0bf8e8d91397cbcf0d7aa",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "mantle-default",
+            "policy_hash": "10455600e4ec15e5afa2b7759c70856ed9a1dc4ed1e18b635b32ee3d33cc6b4b",
+            "input_hash": "c24944cd48e2ebf11cd010ab63b925459b777e90d6cb06483c3a46d8b9235755",
+            "receipt_hash": "961d3fcf0f5e76eeaf822a588ae731a3ed6037b941c00af431eda4d966b64d08",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "mantle-default",
+            "policy_hash": "10455600e4ec15e5afa2b7759c70856ed9a1dc4ed1e18b635b32ee3d33cc6b4b",
+            "input_hash": "cb31278d6264417dd3f721120b248c4ac30825a03ceabe54d23046deeea538f7",
+            "receipt_hash": "48f2d6597bfd33bf6f16666493dcd902da8eb95d4c4094f20319f24a6d9c63ad",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "trellis",
+        "change": "repair-native-policy-admission",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "trellis-default",
+            "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+            "input_hash": "2312e226aeb18959a1cf101842bf4610b6509c8319034fbd5fa51d91004d97a7",
+            "receipt_hash": "baa1fb701c616249d88832bddf9d3f0f89cb374404438c8d6a358548f59bcfb2",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "trellis-default",
+            "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+            "input_hash": "c970ba0c163ca9e5fd604f98280f6f9968f44cbcb981770fd5e96ef5989ac83a",
+            "receipt_hash": "b9e39d27e2d54c16c2aea11cbc6849c1cd9c65cb0ff2aca884236783d4daa0a6",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "trellis-default",
+            "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+            "input_hash": "d82bf0d42555296e5aa87f9c03311e37c3189fd9b0843c67765fb07078d19e5f",
+            "receipt_hash": "2411ec8736c8d0799b8b52a1c2bcb65d3161ec44491eab0bbfaab51d5078b30f",
+            "issues": [],
+            "error": null
+          }
+        ]
+      },
+      {
+        "owner": "trellis",
+        "change": "prepare-owned-source-agpl",
+        "results": [
+          {
+            "stage": "proposal",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "trellis-default",
+            "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+            "input_hash": "616b461192f38caef95e20dfe821133dc5bcfb462e93a6a3973f8eef2fad317b",
+            "receipt_hash": "03f8459985f53d73cfe751e24498be531ac44a1a18baaeaa9addab1140b05cbd",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "design",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "trellis-default",
+            "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+            "input_hash": "9c1606a9061213d92ff541f5ca75e109ba7765b4f21f3f7d6208e2029c22fc66",
+            "receipt_hash": "198e4200d00a1334abf08074684a051ef4764ff4a4bc6548d7d1f94bc70862bf",
+            "issues": [],
+            "error": null
+          },
+          {
+            "stage": "tasks",
+            "exit": 0,
+            "valid": true,
+            "verdict": "PASS",
+            "policy": "trellis-default",
+            "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+            "input_hash": "65588a1bf3e359b8beb4d44e87ce69b8e3cfa6b007c5aa58e68a1a3f289c6321",
+            "receipt_hash": "c1693ec973bc6be63a9f45415072fc7c570ed471eaac0817f183488037c9d2d6",
+            "issues": [],
+            "error": null
+          }
+        ]
+      }
+    ],
+    "repository_validation": [
+      {
+        "owner": "artifact",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "durable-file-publication",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "cairn",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "kamacite",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "valence",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "nickel-export",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "content-identity-core",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "schema-identity-core",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "schema-migration-core",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "radicle-cob-git-store",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "ucan",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "lattice",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "aspen",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "mantle",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      },
+      {
+        "owner": "trellis",
+        "exit": 0,
+        "valid": true,
+        "issues": [],
+        "error": null
+      }
+    ],
+    "sync_dry_runs": [
+      {
+        "owner": "artifact",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "8221fa317cfbfa452368445e1d2a16ebabd66cc746945bf67d9ca22a90b0bbe2",
+        "documents": [
+          {
+            "destination": ".cairn/specs/owned-source-license/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "owned_source.license.prospective"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "durable-file-publication",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "4af9488b80c40d1379d02b198f69310a6f78e3eb9bd35b7f5bea3404a92b3ddb",
+        "documents": [
+          {
+            "destination": ".cairn/specs/owned-source-license/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "owned_source.license.prospective"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "cairn",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "459cd4391c9cb7a336980c5d63279d3e710b25b72a78ab6080932cb2b58f8018",
+        "documents": [
+          {
+            "destination": ".cairn/specs/developer-experience/spec.md",
+            "blocked": false,
+            "changed": false,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "modified",
+                "requirement_id": "cairn.license_boundary.package_split"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "cairn.license_boundary.consumer_boundary"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "cairn.license_boundary.validation"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "cairn.license_boundary.policy_reuse_grant"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "cairn.license_boundary.artifacts"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "cairn.license_boundary.final_validation"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "kamacite",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "a5111ae7588b156fb6604e7d91cb525b48d55467142cad2acd511bd177530e49",
+        "documents": [
+          {
+            "destination": ".cairn/specs/packaging-and-validation-rails/spec.md",
+            "blocked": false,
+            "changed": false,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "modified",
+                "requirement_id": "kamacite.packaging.license_boundary.package_split"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "kamacite.packaging.license_boundary.validation"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "kamacite.packaging.license_boundary.owned_reuse"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "valence",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "675a983633384a96065563b2672748b68337eb21252789956e0f1ba082cb28f4",
+        "documents": [
+          {
+            "destination": ".cairn/specs/evidence-ir/spec.md",
+            "blocked": false,
+            "changed": false,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "modified",
+                "requirement_id": "valence.evidence_ir.license_boundary.package_split"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "valence.evidence_ir.license_boundary.artifacts"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "valence.evidence_ir.license_boundary.documentation"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "valence.evidence_ir.license_boundary.validation"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "valence.evidence_ir.license_boundary.final_validation"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "nickel-export",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "ab35992d992c3e7e03e5b06b040bb0cf061fbb78d7404e22bba5f9b06394b04c",
+        "error": null
+      },
+      {
+        "owner": "content-identity-core",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "7ae58883daf11e08fad527533ade7164497c21eb64dad3497d484714948f1ca2",
+        "error": null
+      },
+      {
+        "owner": "schema-identity-core",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "d8cedd8a5d9c4f296679390de7fd8317e3270c08d692ac3f25b45fec82cbca83",
+        "documents": [
+          {
+            "destination": ".cairn/specs/owned-source-licensing/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.current"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.history"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.verification"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "schema-migration-core",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "7fe2555653533e61bde957dac1de84c737ce5e11c0c9cb83e64a3057609c9924",
+        "documents": [
+          {
+            "destination": ".cairn/specs/owned-source-licensing/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.current"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.history"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.verification"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "radicle-cob-git-store",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "fb815b7640466c5c087b6ef4bc835eaaed1b52e4994cfd5ca880363b249d8cd0",
+        "documents": [
+          {
+            "destination": ".cairn/specs/owned-source-licensing/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.current"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.history"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "owned_source_licensing.verification"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "ucan",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "7932f5960bce2f0b61ebe72ab88e183ae09ecb06234e1f304284af5d1a77a8ed",
+        "documents": [
+          {
+            "destination": ".cairn/specs/license-boundary/spec.md",
+            "blocked": false,
+            "changed": false,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.package_split"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.trellis_snapshot"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.artifacts"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.documentation"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.validation"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.final_validation"
+              }
+            ]
+          },
+          {
+            "destination": ".cairn/specs/owned-source-agpl/spec.md",
+            "blocked": false,
+            "changed": false,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.preparation"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.consistency"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.boundaries"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.validation"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "lattice",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "34225db0dbd36f6a620471f2864ff5d0f7ec848539ce2f0c8a278d53fb87bf13",
+        "documents": [
+          {
+            "destination": ".cairn/specs/owned-source-license/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "lattice.owned_source_license.grant"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "lattice.owned_source_license.boundary"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "aspen",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "3adfc097564c5c23f24c810c2d6b8f605c1e5d70c552c86cda1b6d87807d9612",
+        "documents": [
+          {
+            "destination": ".cairn/specs/project/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "modified",
+                "requirement_id": "molten.project.license_boundary.final_validation"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "mantle",
+        "exit": 0,
+        "blocked": false,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [],
+        "receipt_hash": "9fa73db059ba25c97bd4e283f6842da554d06e6d94ab2fd42e9a8ae3b254a088",
+        "documents": [
+          {
+            "destination": ".cairn/specs/owned-source-licenses/spec.md",
+            "blocked": false,
+            "changed": true,
+            "diagnostics": [],
+            "operations": [
+              {
+                "kind": "added",
+                "requirement_id": "mantle.owned_source_licenses.declarations"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "mantle.owned_source_licenses.preservation"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "mantle.owned_source_licenses.gates"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "mantle.owned_source_licenses.verification"
+              }
+            ]
+          }
+        ],
+        "error": null
+      },
+      {
+        "owner": "trellis",
+        "change": "prepare-owned-source-agpl",
+        "exit": 0,
+        "blocked": true,
+        "dry_run": true,
+        "mutated": false,
+        "reasons": [
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Complete applicable license terms accompany source` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Consumer and proof claims remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Direct dependency is preferred over vendoring` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Focused evidence precedes lifecycle closeout` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Imported proofs remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: License drift is rejected` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: New owned verified-logic source declares AGPL` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Vendored snapshot compatibility report` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+          ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Verified-logic consumer profile` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2"
+        ],
+        "receipt_hash": "de4ad0023c1176e82170f058b3069e7c91b5ab5e0126e2daea57f69ebd488b35",
+        "documents": [],
+        "error": null
+      }
+    ],
+    "ucan_executed_sync": {
+      "exit": 0,
+      "actions": [
+        {
+          "description": "merge delta spec into main specs: ./.cairn/changes/prepare-owned-source-agpl/specs/license-boundary/spec.md",
+          "kind": "sync_delta_spec",
+          "path": "./.cairn/changes/prepare-owned-source-agpl/specs/license-boundary/spec.md"
+        },
+        {
+          "description": "merge delta spec into main specs: ./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md",
+          "kind": "sync_delta_spec",
+          "path": "./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md"
+        }
+      ],
+      "blocked": false,
+      "change": "prepare-owned-source-agpl",
+      "cross_repo_dependencies": {
+        "blocked_count": 0,
+        "dependency_count": 0,
+        "input_hash": "18c770f71e0fb43962449ca7faa64d507b79621601c9fae45dce646f715643fe",
+        "non_claims": [
+          "dependency satisfaction proves presented receipt linkage only",
+          "dependency satisfaction does not prove upstream correctness or remote trust",
+          "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+        ],
+        "policy_hash": "9afa2cc9ec976a9d1860f9d8e6fa65438ba9ba964de9836cafd50dd3c37be5d1",
+        "receipt_hash": "22dfea18a60473ae3e93d2b6bfcc03f22aebb69c62378adc008ff1cc2bc7ccac",
+        "rows": [],
+        "satisfied_count": 0,
+        "schema": "cairn.cross-repo-dependency-receipt.v1",
+        "valid": true,
+        "verdict": "PASS"
+      },
+      "cross_repo_evidence_issues": [],
+      "delta_specs": [
+        "./.cairn/changes/prepare-owned-source-agpl/specs/license-boundary/spec.md",
+        "./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md"
+      ],
+      "dry_run": false,
+      "input_hash": "0d863954a28704bc6ad57d579175900930cce28d93b6b5d320fbbe2e3eeb73cd",
+      "layout": "cairn",
+      "merge_preflight": {
+        "documents": [
+          {
+            "accepted_before_exists": true,
+            "accepted_before_hash": "c557875a586e58bf2d23910bc35927b502092861c9148eb242689c670ad670d7",
+            "blocked": false,
+            "changed": true,
+            "delta_hash": "d5e0f8de183a844aa3be76b4d88be05e2685da7eac80c3de874c2856f197f248",
+            "destination": ".cairn/specs/license-boundary/spec.md",
+            "diagnostics": [],
+            "expected_after_hash": "937e9649e1b9f63d520894e79e1edf8a272272fa96da7341aaab91ceb9b5ef3f",
+            "operations": [
+              {
+                "block_hash": "e291d1e66d723f65a4aa12e08d8dbbc2dab15355d85dc92c21fdcec1fc119189",
+                "heading": "### Requirement: All new owned packages use AGPL",
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.package_split"
+              },
+              {
+                "block_hash": "cc34efd9007f00380aff1100ac63467ea6bf8298fc05e3b1de9913ca1ff9aa35",
+                "heading": "### Requirement: Vendored Trellis preserves its recorded grant",
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.trellis_snapshot"
+              },
+              {
+                "block_hash": "aed5a311328c01d8e7aead107cb869298af85556753a3a4291fd9d6a87aee77c",
+                "heading": "### Requirement: Complete artifacts and grant boundaries accompany source",
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.artifacts"
+              },
+              {
+                "block_hash": "0ef7831627193789fa3e3d4a577f83e0a268cf04d5e98dd07f2bc92d894a1fe9",
+                "heading": "### Requirement: Documentation keeps grants and proof claims bounded",
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.documentation"
+              },
+              {
+                "block_hash": "7c59d31148c02c5dcb04cda7efb247dcb13eecf4e6836383799d26bc0a6932f5",
+                "heading": "### Requirement: License validation rejects owned-source drift",
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.validation"
+              },
+              {
+                "block_hash": "8e0b062b3388b20cbf20fa9d4433a6d6bad475340c5149d58473c22b4db5efe5",
+                "heading": "### Requirement: Focused evidence precedes lifecycle closeout",
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.final_validation"
+              }
+            ],
+            "outcomes": [
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.package_split",
+                "state": "applied"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.trellis_snapshot",
+                "state": "applied"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.artifacts",
+                "state": "applied"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.documentation",
+                "state": "applied"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.validation",
+                "state": "applied"
+              },
+              {
+                "kind": "modified",
+                "requirement_id": "ucan.packaging.license_boundary.final_validation",
+                "state": "applied"
+              }
+            ],
+            "source": ".cairn/changes/prepare-owned-source-agpl/specs/license-boundary/spec.md"
+          },
+          {
+            "accepted_before_exists": false,
+            "accepted_before_hash": "64e49a1263a9eadfd72ade875dd1a7fb4db1de02f28bc8f23dd19faa156db5cc",
+            "blocked": false,
+            "changed": true,
+            "delta_hash": "0dc784d83a7717064bf7068ee13e5ca2acc516ac7e8e15a327e9b0c0552d10e4",
+            "destination": ".cairn/specs/owned-source-agpl/spec.md",
+            "diagnostics": [],
+            "expected_after_hash": "299237cd5257396377ff001ff27a8f1749d8b359e0d47311a6617705199ef9c1",
+            "operations": [
+              {
+                "block_hash": "d1ebad24f4b1e10b74b5152b79f2f969a614cd4d16c1f6cbae195d7a41001866",
+                "heading": "### Requirement: Preimplementation approval",
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.preparation"
+              },
+              {
+                "block_hash": "eba1b38d5461abccda3c87e946e46bd4860fd3e28ba202ee0cc1d3c7b553bee8",
+                "heading": "### Requirement: Prospective owned-source consistency",
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.consistency"
+              },
+              {
+                "block_hash": "17943572146b605b7d45de3274e744c9a1f3811e7edad145399e5f7a8b38449f",
+                "heading": "### Requirement: Earlier grants and proof boundaries survive",
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.boundaries"
+              },
+              {
+                "block_hash": "9b077ba2b7e7de40032753174fe5c09535d267c1fa4ad05719fdbcb1ac1f9dfe",
+                "heading": "### Requirement: Evidence precedes closeout",
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.validation"
+              }
+            ],
+            "outcomes": [
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.preparation",
+                "state": "applied"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.consistency",
+                "state": "applied"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.boundaries",
+                "state": "applied"
+              },
+              {
+                "kind": "added",
+                "requirement_id": "ucan.owned_agpl.validation",
+                "state": "applied"
+              }
+            ],
+            "source": ".cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md"
+          }
+        ]
+      },
+      "mutated": true,
+      "mutation_manifest": {
+        "after": {
+          "entries": [
+            {
+              "content_hash": "937e9649e1b9f63d520894e79e1edf8a272272fa96da7341aaab91ceb9b5ef3f",
+              "exists": true,
+              "path": "./.cairn/specs/license-boundary/spec.md"
+            },
+            {
+              "content_hash": "299237cd5257396377ff001ff27a8f1749d8b359e0d47311a6617705199ef9c1",
+              "exists": true,
+              "path": "./.cairn/specs/owned-source-agpl/spec.md"
+            }
+          ],
+          "manifest_hash": "2d80af946cbfb6a27b726022167b26a6ca96944696e597696be8e81041ce0987"
+        },
+        "before": {
+          "entries": [
+            {
+              "content_hash": "c557875a586e58bf2d23910bc35927b502092861c9148eb242689c670ad670d7",
+              "exists": true,
+              "path": "./.cairn/specs/license-boundary/spec.md"
+            },
+            {
+              "content_hash": null,
+              "exists": false,
+              "path": "./.cairn/specs/owned-source-agpl/spec.md"
+            }
+          ],
+          "manifest_hash": "ff4a40101bd2b189a7cf3c275957bc95df409dc46e84bb25114496e222e8b4f1"
+        },
+        "kind": "sync",
+        "manifest_hash": "558055c81c869f61382033ee4a30e0137ae839ab97b58e897011d4c2eb7e80aa"
+      },
+      "plan_hash": "a83f1296149bd0900c6fda9f8c67296123f850f015962a948db92512a118d331",
+      "policy": "cairn-default",
+      "policy_hash": "9afa2cc9ec976a9d1860f9d8e6fa65438ba9ba964de9836cafd50dd3c37be5d1",
+      "reasons": [],
+      "receipt_hash": "046ea5ff6db736e81f4d0c2a1a60c2a789bb55f8005d11ea893925068869836d"
+    },
+    "other_sync_or_archive_claim": "Only the recorded UCAN sync and Trellis native-policy repair sync were executed. Other dry-run admission is not an executed sync or lifecycle completion; no archive or publication is claimed.",
+    "producer_changes_remain_open": true,
+    "trellis_executed_policy_repair_sync": {
+      "owner": "trellis",
+      "change": "repair-native-policy-admission",
+      "command": [
+        "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+        "sync",
+        "repair-native-policy-admission",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json",
+        "--execute"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/trellis",
+      "exit": 0,
+      "data": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "merge delta spec into main specs: ./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md",
+            "kind": "sync_delta_spec",
+            "path": "./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md"
+          }
+        ],
+        "blocked": false,
+        "change": "repair-native-policy-admission",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "14518a12c4cb3ccb761adc62c7b6e76e64e5b5e41757a4b66f4cab1b93427dbb",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+          "receipt_hash": "87d41ca8182f64867617da55e0e60f8a1b76f3d388573538627e3bdc85bc5d51",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "delta_specs": [
+          "./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md"
+        ],
+        "dry_run": false,
+        "input_hash": "7a7ead7d2fbdd9dc9d5b60ed6452046c8aca693ca26e29f6b9e056c9d02fcc20",
+        "layout": "cairn",
+        "merge_preflight": {
+          "documents": [
+            {
+              "accepted_before_exists": false,
+              "accepted_before_hash": "a336c15819a1106e909aee3bc272d2a15b9376f62602f61287fe8f7c34a5e7f5",
+              "blocked": false,
+              "changed": true,
+              "delta_hash": "7411a5e9d3bc1895e298d8505d8d94e236a2b0c862095821c160845bbe8ee0f6",
+              "destination": ".cairn/specs/native-policy-admission/spec.md",
+              "diagnostics": [],
+              "expected_after_hash": "449b42b29f6ba191ccb9730e32ca51cc6803b8367a383c4d6e913789d4e7bc51",
+              "operations": [
+                {
+                  "block_hash": "14dbcd3b48a4e85a865cc02d9e9d0a4a0a73e4fe0bc432c02ceeb7818d828ecc",
+                  "heading": "### Requirement: Complete-policy bootstrap",
+                  "kind": "added",
+                  "requirement_id": "trellis.native_policy_admission.bootstrap"
+                },
+                {
+                  "block_hash": "478acd65e8b43bd436aded488bce8e676f9637d898fe9157bc56f547f6a4a025",
+                  "heading": "### Requirement: Preserve owning obligations",
+                  "kind": "added",
+                  "requirement_id": "trellis.native_policy_admission.obligations"
+                },
+                {
+                  "block_hash": "c12a1f3ba75325c61372455fbd36baba981d5cbb38d258c5ee44ad634dbc0d5d",
+                  "heading": "### Requirement: Reject missing or invalid metadata",
+                  "kind": "added",
+                  "requirement_id": "trellis.native_policy_admission.rejection"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "added",
+                  "requirement_id": "trellis.native_policy_admission.bootstrap",
+                  "state": "applied"
+                },
+                {
+                  "kind": "added",
+                  "requirement_id": "trellis.native_policy_admission.obligations",
+                  "state": "applied"
+                },
+                {
+                  "kind": "added",
+                  "requirement_id": "trellis.native_policy_admission.rejection",
+                  "state": "applied"
+                }
+              ],
+              "source": ".cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md"
+            }
+          ]
+        },
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "449b42b29f6ba191ccb9730e32ca51cc6803b8367a383c4d6e913789d4e7bc51",
+                "exists": true,
+                "path": "./.cairn/specs/native-policy-admission/spec.md"
+              }
+            ],
+            "manifest_hash": "3493c4bd4c61df5afee5b57ecd0f20516ecf90e6e150e1e175b54b152b796acc"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/specs/native-policy-admission/spec.md"
+              }
+            ],
+            "manifest_hash": "f55e0112c4df0fffc0216d6552f34904329718d0fead482057f3f706cf4f60e5"
+          },
+          "kind": "sync",
+          "manifest_hash": "7aaf80727115e25eeb16b7a0fa9cc9b614fb28c8a81efb08e5996aa53a58e303"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "b8b436644e2218c72e61597dc80470510a57a904233029aae3757fe26954c7c5",
+        "policy": "trellis-default",
+        "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+        "profile_identity_hash": "e66a35ebafcf9ed5bf4f35561299c988832212fc94fcaa5b778a9e6e7265bcd4",
+        "reasons": [],
+        "receipt_hash": "51a9eec97f0b3db81fa4866f8e6d7bf28c223ccbfa15fd149475c02150e694ae",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    }
+  },
+  "consumer_integrity": {
+    "source_import_checks": [
+      {
+        "owner": "bounded-exec",
+        "label": "refreshed immutable consumer import bounded-exec",
+        "cwd": "/home/brittonr/git/OnixResearch/kiln",
+        "command": [
+          "bash",
+          "scripts/import-pinned-source.sh",
+          "bounded-exec",
+          "/home/brittonr/git/OnixResearch/bounded-exec"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "verified existing vendored bounded-exec source: 29dac88ecded94457572db3fdfaaaab95fa91525\n",
+        "stderr": ""
+      },
+      {
+        "owner": "artifact",
+        "label": "refreshed immutable consumer import artifact",
+        "cwd": "/home/brittonr/git/OnixResearch/kiln",
+        "command": [
+          "bash",
+          "scripts/import-pinned-source.sh",
+          "artifact",
+          "/home/brittonr/git/OnixResearch/artifact"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "verified existing vendored artifact source: e41340bec587b6d049b5cc518ec7db925dde84be\n",
+        "stderr": ""
+      },
+      {
+        "owner": "cairn",
+        "label": "refreshed immutable consumer import cairn",
+        "cwd": "/home/brittonr/git/OnixResearch/kiln",
+        "command": [
+          "bash",
+          "scripts/import-pinned-source.sh",
+          "cairn",
+          "/home/brittonr/git/OnixResearch/cairn"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "verified existing vendored cairn source: 15f00875562025e7ea7e0d1f4af24d1a2e2ac06f\n",
+        "stderr": ""
+      },
+      {
+        "owner": "valence",
+        "label": "refreshed immutable consumer import valence",
+        "cwd": "/home/brittonr/git/OnixResearch/kiln",
+        "command": [
+          "bash",
+          "scripts/import-pinned-source.sh",
+          "valence",
+          "/home/brittonr/git/OnixResearch/valence"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "verified existing vendored valence source: 220307a371e7bc4e3309447b09447d0fe6c4db5f\n",
+        "stderr": ""
+      },
+      {
+        "owner": "lattice",
+        "label": "refreshed immutable consumer import lattice",
+        "cwd": "/home/brittonr/git/OnixResearch/kiln",
+        "command": [
+          "bash",
+          "scripts/import-pinned-source.sh",
+          "lattice",
+          "/home/brittonr/git/OnixResearch/lattice"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "verified existing vendored lattice source: 70496e67c7fd4a8b05914161a8e09de2759bebc8\n",
+        "stderr": ""
+      },
+      {
+        "owner": "mantle",
+        "label": "refreshed immutable consumer import mantle",
+        "cwd": "/home/brittonr/git/OnixResearch/kiln",
+        "command": [
+          "bash",
+          "scripts/import-pinned-source.sh",
+          "mantle",
+          "/home/brittonr/git/OnixResearch/mantle"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "verified existing vendored mantle source: 0bbab77e23ab95caa4e4184b9945cfaa5c8040e2\n",
+        "stderr": ""
+      }
+    ],
+    "shared_store_import": {
+      "owner": "radicle-cob-git-store",
+      "label": "refreshed immutable consumer import radicle-cob-git-store",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "command": [
+        "bash",
+        "scripts/import-radicle-cob-git-store.sh",
+        "/home/brittonr/git/OnixResearch/radicle-cob-git-store"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "stdout": "verified existing vendored COB source: a87ca01412fb62e69171925d79d2d6b0a23a7e72\n",
+      "stderr": ""
+    },
+    "cargo_source_continuity": [
+      {
+        "lock": "Cargo.lock",
+        "selected_git_sources_unchanged": true,
+        "sources": []
+      },
+      {
+        "lock": "runtime/kiln-aspen-host/Cargo.lock",
+        "selected_git_sources_unchanged": true,
+        "sources": [
+          "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525",
+          "git+https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded26ca1907c29948e08b53f35df23080733",
+          "git+https://github.com/brittonr/chaoscontrol.git?rev=b8c440ea3b19df796542e58e8ee36200e1c3db85#b8c440ea3b19df796542e58e8ee36200e1c3db85",
+          "git+https://seed.radicle.garden/z1C4YVMgDGyVdQa72uPNj3UDS5cY.git?rev=4fe90e130f2871cf69a6febcdc70785adca98aea#4fe90e130f2871cf69a6febcdc70785adca98aea",
+          "git+https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc2697f4330005797256135ae81b2722a125c",
+          "git+https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e24b45f752d77145c4455385daaf6d6ab",
+          "git+https://seed.radicle.garden/z6gGpUJtzdVBCCtZTzh4cV1skv4H.git?rev=2562c8aa38a034061f9af9f3e17280494a5b8de2#2562c8aa38a034061f9af9f3e17280494a5b8de2",
+          "git+https://seed.radicle.garden/zA14jhTdwST4PxPBdsryc4zS7Kpq.git?rev=7f55597b5dc879b7601856e8d7fd0dbacaa2a498#7f55597b5dc879b7601856e8d7fd0dbacaa2a498",
+          "git+https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git?rev=b3e08e19750f53bdbcae970cdf58a47a791ed20b#b3e08e19750f53bdbcae970cdf58a47a791ed20b",
+          "git+ssh://git@github.com/OnixResearch/basalt.git?rev=d913dc01e765c9b297df5fcc57dfa06aac39bc74#d913dc01e765c9b297df5fcc57dfa06aac39bc74",
+          "git+ssh://git@github.com/OnixResearch/cairn.git?rev=3b4c280b893f2709aebea21fc51a4f9eeba3fe3b#3b4c280b893f2709aebea21fc51a4f9eeba3fe3b",
+          "git+ssh://git@github.com/OnixResearch/kamacite.git?rev=d76fe4abe543724d8fc0ac4b362187caf2e27622#d76fe4abe543724d8fc0ac4b362187caf2e27622",
+          "git+ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67c7fd4a8b05914161a8e09de2759bebc8",
+          "git+ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d880ddf4c2967f4c024b489b5c0022bf1",
+          "git+ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad993027d48ff148028c537cdaf91f6e5285ca",
+          "git+ssh://git@github.com/OnixResearch/valence.git?rev=5f1c2ba5072c6f9622fa59b1af20502985f569fd#5f1c2ba5072c6f9622fa59b1af20502985f569fd"
+        ]
+      },
+      {
+        "lock": "runtime/kiln-radicle-nix-provider/Cargo.lock",
+        "selected_git_sources_unchanged": true,
+        "sources": [
+          "git+https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88ecded94457572db3fdfaaaab95fa91525",
+          "git+https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e24b45f752d77145c4455385daaf6d6ab"
+        ]
+      }
+    ],
+    "nix_source_continuity": [
+      {
+        "lock": "flake.lock",
+        "source_rows": 0,
+        "all_selected_sources_unchanged": true,
+        "rows": []
+      },
+      {
+        "lock": "runtime/build-cohort/flake.lock",
+        "source_rows": 14,
+        "all_selected_sources_unchanged": true,
+        "rows": [
+          {
+            "name": "artifact",
+            "unchanged": true
+          },
+          {
+            "name": "cairn",
+            "unchanged": true
+          },
+          {
+            "name": "cairn_2",
+            "unchanged": true
+          },
+          {
+            "name": "cairn_3",
+            "unchanged": true
+          },
+          {
+            "name": "cairn_4",
+            "unchanged": true
+          },
+          {
+            "name": "kamacite-build-support",
+            "unchanged": true
+          },
+          {
+            "name": "nickel-export",
+            "unchanged": true
+          },
+          {
+            "name": "nickel-export_2",
+            "unchanged": true
+          },
+          {
+            "name": "octet",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar_2",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar_3",
+            "unchanged": true
+          },
+          {
+            "name": "slotcar_4",
+            "unchanged": true
+          },
+          {
+            "name": "valence",
+            "unchanged": true
+          }
+        ]
+      }
+    ],
+    "cairn_policy_projection": {
+      "exit": 0,
+      "stdout": "policy fresh: cairn-policy/generated/cairn-policy.json\n",
+      "stderr": ""
+    }
+  },
+  "rats_importer": {
+    "scope": "Lattice-owned import mechanism and generated workspace wrapper only; retained imported source is not refreshed or relicensed",
+    "revision": "ef26e13b2e9cbcb4a0c902f9caff641b6d013867",
+    "self_test": {
+      "owner": "lattice",
+      "label": "rats-importer-positive-negative-controls",
+      "cwd": "/home/brittonr/git/OnixResearch/lattice",
+      "command": [
+        "/dev/shm/kiln-agpl-tools/sync-rats",
+        "--self-test"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "stdout": "Rats sync self-test passed\n",
+      "stderr": ""
+    },
+    "final_compile": {
+      "owner": "lattice",
+      "label": "compile-final-pinned-resolver-importer",
+      "cwd": "/home/brittonr/git/OnixResearch/lattice",
+      "command": [
+        "rustc",
+        "--edition=2024",
+        "scripts/sync_rats.rs",
+        "-o",
+        "/dev/shm/kiln-agpl-tools/sync-rats"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "stdout": "",
+      "stderr": ""
+    },
+    "fresh_exact_revision_import": {
+      "owner": "lattice",
+      "label": "full-exact-rats-import-preserving-original-resolver",
+      "cwd": "/home/brittonr/git/OnixResearch/lattice",
+      "command": [
+        "/dev/shm/kiln-agpl-tools/sync-rats",
+        "/dev/shm/kiln-rats-import-smoke-IgKNS2/upstream",
+        "/dev/shm/kiln-rats-import-smoke-IgKNS2/import-resolver2/source"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "stdout": "synced Rats revision ef26e13b2e9cbcb4a0c902f9caff641b6d013867 into /dev/shm/kiln-rats-import-smoke-IgKNS2/import-resolver2/source\n",
+      "stderr": ""
+    },
+    "fresh_package_licenses": [
+      {
+        "name": "ratcore",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-canvas",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-chrome",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-editor",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-fuzzy",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-inline",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-markdown",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-keymap",
+        "license": null
+      },
+      {
+        "name": "rat-layers",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-nodegraph",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-spinner",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-streaming",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-table",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-tree",
+        "license": "MIT"
+      },
+      {
+        "name": "rat-widgets",
+        "license": "MIT"
+      }
+    ],
+    "operator_acquisition": {
+      "owner": "lattice",
+      "label": "operator-access-exact-rats-source-acquisition",
+      "cwd": "/home/brittonr/git/OnixResearch/lattice",
+      "command": [
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=5s",
+        "60s",
+        "env",
+        "GIT_TERMINAL_PROMPT=0",
+        "git",
+        "-C",
+        "/dev/shm/kiln-rats-import-smoke-IgKNS2/upstream",
+        "-c",
+        "core.sshCommand=ssh -o BatchMode=yes -o StrictHostKeyChecking=yes",
+        "fetch",
+        "--depth=1",
+        "--no-tags",
+        "ssh://git@github.com/brittonr/rats.git",
+        "ef26e13b2e9cbcb4a0c902f9caff641b6d013867"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "stdout": "",
+      "stderr": "From ssh://github.com/brittonr/rats\n * branch            ef26e13b2e9cbcb4a0c902f9caff641b6d013867 -> FETCH_HEAD\n"
+    },
+    "anonymous_acquisition_established": false,
+    "unrelated_workspace_rejection": {
+      "owner": "lattice",
+      "label": "reject-existing-different-workspace-without-overwrite",
+      "cwd": "/home/brittonr/git/OnixResearch/lattice",
+      "command": [
+        "/dev/shm/kiln-agpl-tools/sync-rats",
+        "/dev/shm/kiln-rats-import-smoke-IgKNS2/upstream",
+        "/dev/shm/kiln-rats-import-smoke-IgKNS2/import/source"
+      ],
+      "exit": 1,
+      "expected": "nonzero",
+      "matched": true,
+      "stdout": "",
+      "stderr": "refusing to overwrite unrelated workspace /dev/shm/kiln-rats-import-smoke-IgKNS2/import/Cargo.toml\n"
+    },
+    "unrelated_workspace_bytes_preserved": true,
+    "retained_snapshot_unchanged": {
+      "owner": "lattice",
+      "label": "recorded-rats-staging-byte-mode-and-link-identity",
+      "cwd": "/home/brittonr/git/OnixResearch/lattice",
+      "command": [
+        "git",
+        "diff",
+        "--no-index",
+        "--exit-code",
+        "--",
+        "/home/brittonr/git/OnixResearch/lattice/vendor-cargo-deps/rats/source",
+        "/dev/shm/kiln-rats-import-smoke-IgKNS2/stage-only/source"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "stdout": "",
+      "stderr": ""
+    },
+    "retained_snapshot_matches_declared_revision": false,
+    "preexisting_drift": "Both exact and whitespace-insensitive comparisons differ. Existing product snapshot bytes were retained; source identity reconciliation and upstream notice review remain publication prerequisites.",
+    "historical_root_license_observation": {
+      "command": [
+        "git",
+        "-C",
+        "/dev/shm/kiln-rats-import-smoke-IgKNS2/upstream",
+        "show",
+        "ef26e13b2e9cbcb4a0c902f9caff641b6d013867:LICENSE"
+      ],
+      "exit": 128,
+      "stderr": "fatal: path 'LICENSE' does not exist in 'ef26e13b2e9cbcb4a0c902f9caff641b6d013867'\n"
+    }
+  },
+  "blocked_checks": {
+    "nix": {
+      "requested": [
+        {
+          "owner": "artifact",
+          "attrs": [
+            "checks.x86_64-linux.nickel-contracts",
+            "checks.x86_64-linux.authority-audit",
+            "packages.x86_64-linux.artifact"
+          ]
+        },
+        {
+          "owner": "durable-file-publication",
+          "attrs": [
+            "checks.x86_64-linux.nickel-contracts",
+            "checks.x86_64-linux.authority-audit",
+            "packages.x86_64-linux.durable-file-publication"
+          ]
+        },
+        {
+          "owner": "nickel-export",
+          "attrs": [
+            "checks.x86_64-linux.license-boundary",
+            "checks.x86_64-linux.nickel-contracts"
+          ]
+        }
+      ],
+      "final_public_cache_attempts": [
+        {
+          "owner": "artifact",
+          "exit": 124,
+          "attrs": [
+            "checks.x86_64-linux.nickel-contracts",
+            "checks.x86_64-linux.authority-audit",
+            "packages.x86_64-linux.artifact"
+          ],
+          "stdout": "",
+          "stderr": "copying path '/nix/store/d1qrs4cfnhmkhkripp32pyn64c8ldjzq-source' from 'https://cache.nixos.org'...\n\rshutting down\u001b[Kerror: interrupted by the user\n"
+        },
+        {
+          "owner": "durable-file-publication",
+          "exit": 124,
+          "attrs": [
+            "checks.x86_64-linux.nickel-contracts",
+            "checks.x86_64-linux.authority-audit",
+            "packages.x86_64-linux.durable-file-publication"
+          ],
+          "stdout": "",
+          "stderr": "copying path '/nix/store/aiapnjc6w07cz0jxy8s3j8cg1vfh1k8b-source' from 'https://cache.nixos.org'...\n\rshutting down\u001b[Kerror: interrupted by the user\n"
+        },
+        {
+          "owner": "nickel-export",
+          "exit": 124,
+          "attrs": [
+            "checks.x86_64-linux.license-boundary",
+            "checks.x86_64-linux.nickel-contracts"
+          ],
+          "stdout": "",
+          "stderr": "copying path '/nix/store/xqn9dl7vvji4mmp8h57xc39p2dp752vx-source' from 'https://cache.nixos.org'...\n\rshutting down\u001b[Kerror: interrupted by the user\n"
+        }
+      ],
+      "verified_client_download": {
+        "owner": "artifact",
+        "label": "client-fetch-exact-signed-cache-source",
+        "cwd": "/home/brittonr/git/OnixResearch/artifact",
+        "command": [
+          "curl",
+          "--fail",
+          "--silent",
+          "--show-error",
+          "--connect-timeout",
+          "10",
+          "--max-time",
+          "120",
+          "--create-dirs",
+          "--output",
+          "/dev/shm/kiln-agpl-exact-cache-20261017/nar/1knbr9j7szzlppbp0r9rby06nml7b45vqhmskgycfbcnr1nanqnp.nar.zst",
+          "--write-out",
+          "status=%{http_code} bytes=%{size_download} total=%{time_total}\n",
+          "https://cache.nixos.org/nar/1knbr9j7szzlppbp0r9rby06nml7b45vqhmskgycfbcnr1nanqnp.nar.zst"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "status=200 bytes=48223913 total=1.284038\n",
+        "stderr": ""
+      },
+      "client_download_hash": {
+        "owner": "artifact",
+        "label": "verify-client-cache-file-protocol-hash",
+        "cwd": "/home/brittonr/git/OnixResearch/artifact",
+        "command": [
+          "nix",
+          "hash",
+          "file",
+          "--type",
+          "sha256",
+          "--base32",
+          "/dev/shm/kiln-agpl-exact-cache-20261017/nar/1knbr9j7szzlppbp0r9rby06nml7b45vqhmskgycfbcnr1nanqnp.nar.zst"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "17b8a9n4xvv2223cw41xi45c7qs57kb284qsfgs33dsxfgb8w3n3\n",
+        "stderr": ""
+      },
+      "file_hash_matches_signed_cache_metadata": true,
+      "unchanged_signed_local_cache_copy": {
+        "owner": "artifact",
+        "label": "copy-exact-source-through-unchanged-signed-local-cache",
+        "cwd": "/home/brittonr/git/OnixResearch/artifact",
+        "command": [
+          "timeout",
+          "--signal=TERM",
+          "--kill-after=5s",
+          "90s",
+          "nix",
+          "copy",
+          "--option",
+          "min-free",
+          "0",
+          "--option",
+          "max-free",
+          "0",
+          "--from",
+          "file:///dev/shm/kiln-agpl-exact-cache-20261017",
+          "/nix/store/d1qrs4cfnhmkhkripp32pyn64c8ldjzq-source"
+        ],
+        "exit": 137,
+        "expected": 0,
+        "matched": false,
+        "stdout": "",
+        "stderr": "copying 1 paths...\ncopying path '/nix/store/d1qrs4cfnhmkhkripp32pyn64c8ldjzq-source' from 'file:///dev/shm/kiln-agpl-exact-cache-20261017'...\n\rshutting down\u001b[K"
+      },
+      "classification": "Exact cache asset acquisition works from the client, but Nix store installation still stalls. These Nix check groups did not execute to completion; no pass or code-failure verdict is inferred."
+    },
+    "trellis_native_licensing_sync": {
+      "actual_target_root": "/home/brittonr/git/OnixResearch/trellis",
+      "native_change": "prepare-owned-source-agpl",
+      "classification": "Native accepted-spec synchronization, not source preparation, remains blocked; pre-existing accepted blocks carry multiple requirement IDs. No broader legacy migration or archive was performed.",
+      "exit": 0,
+      "blocked": true,
+      "mutated": false,
+      "diagnostic_code": "delta_merge.accepted_identity_cardinality",
+      "reasons": [
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Complete applicable license terms accompany source` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Consumer and proof claims remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Direct dependency is preferred over vendoring` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Focused evidence precedes lifecycle closeout` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Imported proofs remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: License drift is rejected` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: New owned verified-logic source declares AGPL` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Vendored snapshot compatibility report` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2",
+        ".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Verified-logic consumer profile` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2"
+      ],
+      "evidence": "trellis-verification.json"
+    }
+  },
+  "publication_prerequisites": [
+    "Prospective Trellis lifecycle closeout: resolve the pre-existing accepted requirement-ID layout before native licensing synchronization. Source preparation and the full-strength policy repair are complete; no broader legacy-format migration is claimed. This is not a condition added to the historical consumed snapshot's grant.",
+    "Prospective producer qualification: restore usable Nix store installation and complete the listed Artifact, Durable File Publication and Nickel Export check groups with the same exact inputs. The Trellis standalone export rail was exercised directly; its immutable Nix release rail is not claimed as run. These incomplete checks are not passes or new restrictions on Kiln's retained source grants.",
+    "Prospective Lattice full-source publication or any distribution containing Rats: reconcile the retained Rats snapshot with its declared source identity and complete historical upstream notice/redistribution review; no refresh or guessed grant was made. Kiln's selected Lattice source import contains the workflow contract and transport, not Rats.",
+    "Prospective Radicle COB Git Store producer publication: supply and separately authorize a remote; no remote, RID, or network availability is declared by that mechanism. Kiln's existing imported v0.2.0 source has its own retained MIT OR Apache-2.0 grant and needs no producer remote mutation for redistribution.",
+    "Before future consumer migration select immutable producer revisions and verify anonymous acquisition, candidate-specific checks, privacy/rights and combined-output licensing. Before unchanged Kiln source publication select and review the exact Kiln candidate under its retained grants instead; current-source-review.json scopes this handoff without legal clearance."
+  ],
+  "non_claims": [
+    "No new producer release, remote publication, signing, visibility change, mirror update, history rewrite or lifecycle archive is performed by this preparation.",
+    "Cargo metadata and package inclusion lists are not full product builds, published packages, or legal compliance certification.",
+    "License guards, Nickel contracts, gate receipts and import comparisons establish only their recorded bounded observations, not source correctness, copyright title, third-party permission, privacy clearance or release eligibility.",
+    "Existing imported packages, synthetic validation fixtures and third-party material may deliberately retain different or undeclared SPDX metadata; no new grant is inferred for that material.",
+    "Recorded local paths identify the actual observation roots and are not durable product dependencies."
+  ],
+  "kiln_lifecycle_evidence": "kiln-lifecycle.json",
+  "cleanup": {
+    "removed_owned_temporary_paths": [
+      "/dev/shm/kiln-rats-import-smoke-IgKNS2",
+      "/dev/shm/kiln-agpl-exact-cache-20261017",
+      "/dev/shm/kiln-agpl-tools",
+      "/dev/shm/trellis-native-policy-repair-20261017"
+    ],
+    "scope": "Throwaway importer source, clones, staging cache, isolated coverage state and compiled smoke/export tools only; no product repository, immutable import, lock, shared Nix daemon or global store was deleted or reconfigured."
+  },
+  "resolved_historical_blockers": [
+    {
+      "owner": "trellis",
+      "status": "resolved-by-separately-gated-full-strength-native-policy-repair-and-exercised-source-preparation",
+      "previous_blocker": {
+        "actual_target_root": "/home/brittonr/git/OnixResearch/trellis",
+        "native_change": "prepare-owned-source-agpl",
+        "blocking_evidence": ".cairn/changes/prepare-owned-source-agpl/evidence/preimplementation-blocker.txt",
+        "observed_errors": [
+          "installed cohorts: initial workflow profile is missing: outcome-machine",
+          "native bfa88df5b2ac5f05e4a977bb8d4b8248d4511449 and b6759012db4dab0158936e995b7bad39ac10465b: policy missing field traceability_policy.profiles.assurance_level"
+        ],
+        "current_read_only_metadata": {
+          "exit": 0,
+          "packages": [
+            {
+              "name": "verified-logic",
+              "license": "MPL-2.0"
+            }
+          ]
+        },
+        "required_prerequisite": "A demonstrated-compatible runtime evaluating the complete unchanged policy, or a separately authorized full-strength native owning-policy repair. Product cutover has not started."
+      },
+      "evidence": "trellis-verification.json"
+    }
+  ],
+  "additional_unpassed_checks": [
+    {
+      "owner": "trellis",
+      "check": "rustfmt --edition 2024 --check tools/check-license-boundary.rs",
+      "exit": 1,
+      "classification": "Formatter requests layout changes outside the changed license-fixture lines. Existing unrelated source layout was retained; no formatting pass is claimed.",
+      "evidence": "trellis-verification.json"
+    }
+  ],
+  "trellis_verification": "trellis-verification.json"
+}

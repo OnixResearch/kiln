@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Record producer-owned licensing preparation and exact check evidence in Kiln documentation without changing any accepted Kiln requirement, public API, runtime behavior, package license, immutable import, consumer cohort, or publication authority.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

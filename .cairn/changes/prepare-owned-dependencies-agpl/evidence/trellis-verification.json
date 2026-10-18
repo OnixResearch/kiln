@@ -1,0 +1,1038 @@
+{
+  "schema": "kiln.trellis-owned-source-preparation.evidence.v1",
+  "scope": {
+    "maintenance_owner": "Kiln maintainers retain the selected-consumer handoff; Trellis maintainers own producer source and repeatability checks",
+    "actual_target_root": "/home/brittonr/git/OnixResearch/trellis",
+    "producer_relative_reference_resolution": "Resolve embedded relative evidence references from the original producer artifact directory, not from this Kiln copy.",
+    "publication_or_consumer_cutover": false
+  },
+  "source_artifact_identities": {
+    "owner": "trellis",
+    "label": "bind original producer handoff receipts",
+    "cwd": "/home/brittonr/git/OnixResearch/trellis",
+    "command": [
+      "/nix/store/brfnb6wll2hqhq5dscr3wl6j5l7a3c3d-b3sum-1.8.3/bin/b3sum",
+      ".cairn/changes/prepare-owned-source-agpl/evidence/final-verification.json",
+      ".cairn/changes/repair-native-policy-admission/evidence/native-policy-repair.json"
+    ],
+    "exit": 0,
+    "expected": 0,
+    "matched": true,
+    "stdout": "b2b73f36949f682ed9863a307e834e80c513f5ee29f5e3141d03427818066db9  .cairn/changes/prepare-owned-source-agpl/evidence/final-verification.json\nf39950b82960129179a4cfbec313361e8982b35930aa1f15c2c3ed4514f925bf  .cairn/changes/repair-native-policy-admission/evidence/native-policy-repair.json\n",
+    "stderr": ""
+  },
+  "producer_artifacts": {
+    "producer_verification": ".cairn/changes/prepare-owned-source-agpl/evidence/final-verification.json",
+    "native_policy_repair_verification": ".cairn/changes/repair-native-policy-admission/evidence/native-policy-repair.json"
+  },
+  "producer_verification": {
+    "schema": "trellis.owned-source-agpl.local-verification.v1",
+    "scope": {
+      "actual_target_root": "/home/brittonr/git/OnixResearch/trellis",
+      "maintenance_owner": "Trellis maintainers",
+      "prospective_owned_source_grant": "AGPL-3.0-or-later",
+      "new_publication_or_consumer_cutover": false,
+      "earlier_grants_and_third_party_terms": "retained; immutable consumer release profiles and snapshots unchanged"
+    },
+    "outcome": {
+      "source_preparation_complete": true,
+      "license_boundary_passed": true,
+      "package_license": "AGPL-3.0-or-later",
+      "complete_current_license_bytes": 34523,
+      "full_library_verus": "11146 verified, 0 errors",
+      "tracey_uncovered": "0 uncovered out of 2270 rules",
+      "native_full_policy_gates": "PASS",
+      "native_repository_validation": "PASS",
+      "licensing_native_sync": "BLOCKED: pre-existing accepted requirement identity cardinality; no legacy migration or archive performed"
+    },
+    "licensing": {
+      "control": {
+        "owner": "trellis",
+        "label": "prospective AGPL licensing boundary and positive-negative controls",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/trellis-native-policy-repair-20261017/check-license-boundary",
+          "/home/brittonr/git/OnixResearch/trellis"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "license boundary valid: 19 rules\n",
+        "stderr": ""
+      },
+      "license_identities": {
+        "owner": "trellis",
+        "label": "complete current and historical license identities",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/nix/store/brfnb6wll2hqhq5dscr3wl6j5l7a3c3d-b3sum-1.8.3/bin/b3sum",
+          "LICENSE",
+          "LICENSES/AGPL-3.0-or-later.txt",
+          "LICENSES/MPL-2.0.txt"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "ca0292789c0a0ecba706f4b3f3493007a9951731c1d432c52c4aac1f1abba8ef  LICENSE\nca0292789c0a0ecba706f4b3f3493007a9951731c1d432c52c4aac1f1abba8ef  LICENSES/AGPL-3.0-or-later.txt\n7ad11002cb765572342fc15096832825a9071dfc7f4f427d92c6906d83ea9b54  LICENSES/MPL-2.0.txt\n",
+        "stderr": ""
+      },
+      "metadata_checker": {
+        "owner": "trellis",
+        "label": "maintained crate metadata validation",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/trellis-native-policy-repair-20261017/check-crate-metadata"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "✓ Cargo package metadata is discoverable and locally valid\n",
+        "stderr": ""
+      },
+      "cargo_metadata": {
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "cargo",
+          "metadata",
+          "--offline",
+          "--locked",
+          "--no-deps",
+          "--format-version",
+          "1"
+        ],
+        "exit": 0,
+        "packages": [
+          {
+            "name": "verified-logic",
+            "version": "0.2.0",
+            "license": "AGPL-3.0-or-later",
+            "manifest_path": "/home/brittonr/git/OnixResearch/trellis/Cargo.toml"
+          }
+        ]
+      },
+      "source_package": {
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "cargo",
+          "package",
+          "--list",
+          "--allow-dirty",
+          "--offline",
+          "--locked"
+        ],
+        "exit": 0,
+        "required_legal_files": [
+          {
+            "path": "LICENSE",
+            "included": true
+          },
+          {
+            "path": "LICENSES/AGPL-3.0-or-later.txt",
+            "included": true
+          },
+          {
+            "path": "LICENSES/MPL-2.0.txt",
+            "included": true
+          }
+        ],
+        "stderr": ""
+      }
+    },
+    "proof_and_coverage": {
+      "verus": {
+        "owner": "trellis",
+        "label": "required current full-library production Verus",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "env",
+          "-u",
+          "RUST_TOOLCHAIN",
+          "VERUS_ROOT=/nix/store/cb02jr7r1a2k8k2hlahmk8c90421czvq-octet-production-verus-0.2026.05.17.e479cce",
+          "./scripts/verus.sh",
+          "src/lib.rs",
+          "--triggers-mode",
+          "silent",
+          "--rlimit",
+          "20"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "verification results:: 11146 verified, 0 errors\n",
+        "stderr": "warning: use of deprecated method `vstd::prelude::OptionAdditionalFns::is_None`: is_Variant is deprecated - use `->` or `matches` instead: https://verus-lang.github.io/verus/guide/datatypes_enum.html\n  --> src/constraint_consistency.rs:20:145\n   |\n20 | ...nment) requires constraint_relation_assigned_tuple_spec(r,a).is_None() ensures !constraint_consistent_spec(r,a) {}\n   |                                                                 ^^^^^^^\n   |\n   = note: `#[warn(deprecated)]` on by default\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ability_effect.rs:12:10\n   |\n12 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ability_effect.rs:17:10\n   |\n17 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ability_effect.rs:28:10\n   |\n28 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/algebraic_effect.rs:35:10\n   |\n35 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/algebraic_effect.rs:40:10\n   |\n40 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/algebraic_effect.rs:45:10\n   |\n45 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/algebraic_effect.rs:51:10\n   |\n51 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/beam_process.rs:23:10\n   |\n23 | #[derive(Clone, Debug, PartialEq, Eq)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/content_addressed_code.rs:25:10\n   |\n25 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/content_addressed_code.rs:37:10\n   |\n37 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/remote_computation.rs:25:10\n   |\n25 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/remote_computation.rs:35:10\n   |\n35 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/semantic_refactoring.rs:59:10\n   |\n59 | #[derive(Clone, PartialEq, Eq, Debug)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n   --> src/typed_durable_reference.rs:112:10\n    |\n112 | #[derive(Clone, PartialEq, Eq, Debug)]\n    |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/loop_detection.rs:15:17\n   |\n15 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: autoderive Clone impl does not take the form Verus expects; continuing, but without adding a specification for the derived Clone impl\n  --> src/nickel_pattern_coverage.rs:95:17\n   |\n95 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/nix_closure.rs:15:10\n   |\n15 | #[derive(Clone, Debug, PartialEq, Eq)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/nix_drv_serialize.rs:12:10\n   |\n12 | #[derive(Clone)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/nix_drv_serialize.rs:20:10\n   |\n20 | #[derive(Clone)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/sel4_ready_queue.rs:16:10\n   |\n16 | #[derive(Clone)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/sel4_untyped.rs:30:10\n   |\n30 | #[derive(Clone)]\n   |          ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:41:17\n   |\n41 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:48:17\n   |\n48 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:53:17\n   |\n53 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:59:17\n   |\n59 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:66:17\n   |\n66 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:75:17\n   |\n75 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:81:17\n   |\n81 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:88:17\n   |\n88 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl\n  --> src/ssa_construction.rs:95:17\n   |\n95 | #[derive(Debug, Clone, PartialEq, Eq)]\n   |                 ^^^^^\n\nwarning: using ==> in `assert forall` does not currently assume the antecedent in the body; consider using `implies` instead of `==>`\n   --> src/drop_guard.rs:112:5\n    |\n112 |     assert forall|s: DropGuardState|\n    |     ^^^^^^\n    |\n    = help: If you didn't mean to assume the antecedent, we're very curious to hear why! To tell us, please open an issue on the Verus issue tracker on github with the title `Don't always make assert forall assume the antecedent`. If no one opens such an issue, we'll soon change the behavior of Verus to always assume the antecedent of the outermost implication\n\nWARNING: (17212,4): 'if' cannot be used in patterns.\nWARNING: (17342,5): 'if' cannot be used in patterns.\nWARNING: (19992,4): 'if' cannot be used in patterns.\nWARNING: (20169,1): 'if' cannot be used in patterns.\nwarning: 32 warnings emitted\n\nwarning: function `MODE_READ` should have a snake case name\n  --> src/access_mode.rs:26:18\n   |\n26 | pub open spec fn MODE_READ() -> u8 { 0 }\n   |                  ^^^^^^^^^ help: convert the identifier to snake case: `mode_read`\n   |\n   = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default\n\nwarning: function `MODE_WRITE` should have a snake case name\n  --> src/access_mode.rs:28:18\n   |\n28 | pub open spec fn MODE_WRITE() -> u8 { 1 }\n   |                  ^^^^^^^^^^ help: convert the identifier to snake case: `mode_write`\n\nwarning: function `MODE_DELETE` should have a snake case name\n  --> src/access_mode.rs:30:18\n   |\n30 | pub open spec fn MODE_DELETE() -> u8 { 2 }\n   |                  ^^^^^^^^^^^ help: convert the identifier to snake case: `mode_delete`\n\nwarning: function `MODE_FULL` should have a snake case name\n  --> src/access_mode.rs:32:18\n   |\n32 | pub open spec fn MODE_FULL() -> u8 { 3 }\n   |                  ^^^^^^^^^ help: convert the identifier to snake case: `mode_full`\n\nwarning: function `NO_BUDGET` should have a snake case name\n   --> src/cost_tracker.rs:251:18\n    |\n251 | pub open spec fn NO_BUDGET() -> u8 { 0 }\n    |                  ^^^^^^^^^ help: convert the identifier to snake case: `no_budget`\n\nwarning: function `BUDGET_OK` should have a snake case name\n   --> src/cost_tracker.rs:252:18\n    |\n252 | pub open spec fn BUDGET_OK() -> u8 { 1 }\n    |                  ^^^^^^^^^ help: convert the identifier to snake case: `budget_ok`\n\nwarning: function `BUDGET_WARNING` should have a snake case name\n   --> src/cost_tracker.rs:253:18\n    |\n253 | pub open spec fn BUDGET_WARNING() -> u8 { 2 }\n    |                  ^^^^^^^^^^^^^^ help: convert the identifier to snake case: `budget_warning`\n\nwarning: function `BUDGET_EXCEEDED` should have a snake case name\n   --> src/cost_tracker.rs:254:18\n    |\n254 | pub open spec fn BUDGET_EXCEEDED() -> u8 { 3 }\n    |                  ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `budget_exceeded`\n\nwarning: function `ROLE_SMOL` should have a snake case name\n   --> src/cost_tracker.rs:383:18\n    |\n383 | pub open spec fn ROLE_SMOL() -> u8 { 0 }\n    |                  ^^^^^^^^^ help: convert the identifier to snake case: `role_smol`\n\nwarning: function `ROLE_DEFAULT` should have a snake case name\n   --> src/cost_tracker.rs:384:18\n    |\n384 | pub open spec fn ROLE_DEFAULT() -> u8 { 1 }\n    |                  ^^^^^^^^^^^^ help: convert the identifier to snake case: `role_default`\n\nwarning: function `ROLE_SLOW` should have a snake case name\n   --> src/cost_tracker.rs:385:18\n    |\n385 | pub open spec fn ROLE_SLOW() -> u8 { 2 }\n    |                  ^^^^^^^^^ help: convert the identifier to snake case: `role_slow`\n\nwarning: function `MAX_DELEGATION_DEPTH` should have a snake case name\n  --> src/delegation.rs:19:18\n   |\n19 | pub open spec fn MAX_DELEGATION_DEPTH() -> u64 { 8 }\n   |                  ^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `max_delegation_depth`\n\nwarning: function `V_DELEGATE` should have a snake case name\n  --> src/delegation.rs:22:18\n   |\n22 | pub open spec fn V_DELEGATE() -> u8 { 7 }\n   |                  ^^^^^^^^^^ help: convert the identifier to snake case: `v_delegate`\n\nwarning: function `FS_PATH_SEG_EMPTY` should have a snake case name\n  --> src/fs_path_segment.rs:12:18\n   |\n12 | pub open spec fn FS_PATH_SEG_EMPTY() -> u8 { 0 }\n   |                  ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_seg_empty`\n\nwarning: function `FS_PATH_SEG_CURRENT` should have a snake case name\n  --> src/fs_path_segment.rs:13:18\n   |\n13 | pub open spec fn FS_PATH_SEG_CURRENT() -> u8 { 1 }\n   |                  ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_seg_current`\n\nwarning: function `FS_PATH_SEG_PARENT` should have a snake case name\n  --> src/fs_path_segment.rs:14:18\n   |\n14 | pub open spec fn FS_PATH_SEG_PARENT() -> u8 { 2 }\n   |                  ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_seg_parent`\n\nwarning: function `FS_PATH_SEG_NORMAL` should have a snake case name\n  --> src/fs_path_segment.rs:15:18\n   |\n15 | pub open spec fn FS_PATH_SEG_NORMAL() -> u8 { 3 }\n   |                  ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_seg_normal`\n\nwarning: function `FS_PATH_TRAVERSAL_ALLOW_ALL` should have a snake case name\n  --> src/fs_path_traversal.rs:12:18\n   |\n12 | pub open spec fn FS_PATH_TRAVERSAL_ALLOW_ALL() -> u8 { 0 }\n   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_traversal_allow_all`\n\nwarning: function `FS_PATH_TRAVERSAL_REJECT_PARENT` should have a snake case name\n  --> src/fs_path_traversal.rs:13:18\n   |\n13 | pub open spec fn FS_PATH_TRAVERSAL_REJECT_PARENT() -> u8 { 1 }\n   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_traversal_reject_parent`\n\nwarning: function `FS_PATH_TRAVERSAL_REJECT_CURRENT` should have a snake case name\n  --> src/fs_path_traversal.rs:14:18\n   |\n14 | pub open spec fn FS_PATH_TRAVERSAL_REJECT_CURRENT() -> u8 { 2 }\n   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_traversal_reject_current`\n\nwarning: function `FS_PATH_TRAVERSAL_REJECT_BOTH` should have a snake case name\n  --> src/fs_path_traversal.rs:15:18\n   |\n15 | pub open spec fn FS_PATH_TRAVERSAL_REJECT_BOTH() -> u8 { 3 }\n   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `fs_path_traversal_reject_both`\n\nwarning: function `GEOM_REL_DISJOINT` should have a snake case name\n --> src/geom_intersection.rs:6:18\n  |\n6 | pub open spec fn GEOM_REL_DISJOINT() -> u8 { 0 }\n  |                  ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `geom_rel_disjoint`\n\nwarning: function `GEOM_REL_TOUCHES` should have a snake case name\n --> src/geom_intersection.rs:7:18\n  |\n7 | pub open spec fn GEOM_REL_TOUCHES() -> u8 { 1 }\n  |                  ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `geom_rel_touches`\n\nwarning: function `GEOM_REL_OVERLAPS` should have a snake case name\n --> src/geom_intersection.rs:8:18\n  |\n8 | pub open spec fn GEOM_REL_OVERLAPS() -> u8 { 2 }\n  |                  ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `geom_rel_overlaps`\n\nwarning: function `GEOM_ORIENT_DEGENERATE` should have a snake case name\n --> src/geom_orientation.rs:6:18\n  |\n6 | pub open spec fn GEOM_ORIENT_DEGENERATE() -> u8 { 0 }\n  |                  ^^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `geom_orient_degenerate`\n\nwarning: function `GEOM_ORIENT_CLOCKWISE` should have a snake case name\n --> src/geom_orientation.rs:7:18\n  |\n7 | pub open spec fn GEOM_ORIENT_CLOCKWISE() -> u8 { 1 }\n  |                  ^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `geom_orient_clockwise`\n\nwarning: function `GEOM_ORIENT_COUNTERCLOCKWISE` should have a snake case name\n --> src/geom_orientation.rs:8:18\n  |\n8 | pub open spec fn GEOM_ORIENT_COUNTERCLOCKWISE() -> u8 { 2 }\n  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `geom_orient_counterclockwise`\n\nwarning: function `STAR` should have a snake case name\n  --> src/glob.rs:18:18\n   |\n18 | pub open spec fn STAR() -> u8 { 42 }\n   |                  ^^^^ help: convert the identifier to snake case: `star`\n\nwarning: function `WILDCARD` should have a snake case name\n  --> src/pattern.rs:20:18\n   |\n20 | pub open spec fn WILDCARD() -> int { -1 }\n   |                  ^^^^^^^^ help: convert the identifier to snake case: `wildcard`\n\nwarning: function `V_READ` should have a snake case name\n  --> src/subsumption.rs:16:18\n   |\n16 | pub open spec fn V_READ() -> u8 { 0 }\n   |                  ^^^^^^ help: convert the identifier to snake case: `v_read`\n\nwarning: function `V_WRITE` should have a snake case name\n  --> src/subsumption.rs:18:18\n   |\n18 | pub open spec fn V_WRITE() -> u8 { 1 }\n   |                  ^^^^^^^ help: convert the identifier to snake case: `v_write`\n\nwarning: function `V_DELETE` should have a snake case name\n  --> src/subsumption.rs:20:18\n   |\n20 | pub open spec fn V_DELETE() -> u8 { 2 }\n   |                  ^^^^^^^^ help: convert the identifier to snake case: `v_delete`\n\nwarning: function `V_WATCH` should have a snake case name\n  --> src/subsumption.rs:22:18\n   |\n22 | pub open spec fn V_WATCH() -> u8 { 3 }\n   |                  ^^^^^^^ help: convert the identifier to snake case: `v_watch`\n\nwarning: function `V_FULL` should have a snake case name\n  --> src/subsumption.rs:24:18\n   |\n24 | pub open spec fn V_FULL() -> u8 { 4 }\n   |                  ^^^^^^ help: convert the identifier to snake case: `v_full`\n\nwarning: function `V_PROMPT` should have a snake case name\n  --> src/subsumption.rs:26:18\n   |\n26 | pub open spec fn V_PROMPT() -> u8 { 5 }\n   |                  ^^^^^^^^ help: convert the identifier to snake case: `v_prompt`\n\nwarning: function `V_TOOL_USE` should have a snake case name\n  --> src/subsumption.rs:28:18\n   |\n28 | pub open spec fn V_TOOL_USE() -> u8 { 6 }\n   |                  ^^^^^^^^^^ help: convert the identifier to snake case: `v_tool_use`\n\nwarning: function `V_DELEGATE` should have a snake case name\n  --> src/subsumption.rs:30:18\n   |\n30 | pub open spec fn V_DELEGATE() -> u8 { 7 }\n   |                  ^^^^^^^^^^ help: convert the identifier to snake case: `v_delegate`\n\nwarning: function `COLD` should have a snake case name\n  --> src/tier.rs:18:18\n   |\n18 | pub open spec fn COLD() -> u8 { 0 }\n   |                  ^^^^ help: convert the identifier to snake case: `cold`\n\nwarning: function `WARM` should have a snake case name\n  --> src/tier.rs:20:18\n   |\n20 | pub open spec fn WARM() -> u8 { 1 }\n   |                  ^^^^ help: convert the identifier to snake case: `warm`\n\nwarning: function `HOT` should have a snake case name\n  --> src/tier.rs:22:18\n   |\n22 | pub open spec fn HOT() -> u8 { 2 }\n   |                  ^^^ help: convert the identifier to snake case: `hot`\n\nwarning: function `TOKEN_CLOCK_SKEW_SECS` should have a snake case name\n  --> src/token_timestamp.rs:12:18\n   |\n12 | pub open spec fn TOKEN_CLOCK_SKEW_SECS() -> u64 { 60 }\n   |                  ^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `token_clock_skew_secs`\n\nwarning: function `MAX_CAPABILITIES_PER_TOKEN` should have a snake case name\n  --> src/token_timestamp.rs:15:18\n   |\n15 | pub open spec fn MAX_CAPABILITIES_PER_TOKEN() -> u64 { 32 }\n   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `max_capabilities_per_token`\n\nwarning: function `TRANSFER_OK` should have a snake case name\n  --> src/transfer.rs:15:18\n   |\n15 | pub open spec fn TRANSFER_OK() -> u8 { 0 }\n   |                  ^^^^^^^^^^^ help: convert the identifier to snake case: `transfer_ok`\n\nwarning: function `INSUFFICIENT_FUNDS` should have a snake case name\n  --> src/transfer.rs:17:18\n   |\n17 | pub open spec fn INSUFFICIENT_FUNDS() -> u8 { 1 }\n   |                  ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `insufficient_funds`\n\nwarning: function `INVALID_AMOUNT` should have a snake case name\n  --> src/transfer.rs:19:18\n   |\n19 | pub open spec fn INVALID_AMOUNT() -> u8 { 2 }\n   |                  ^^^^^^^^^^^^^^ help: convert the identifier to snake case: `invalid_amount`\n\nwarning: function `RECEIVER_OVERFLOW` should have a snake case name\n  --> src/transfer.rs:21:18\n   |\n21 | pub open spec fn RECEIVER_OVERFLOW() -> u8 { 3 }\n   |                  ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `receiver_overflow`\n\nwarning: function `DUPLICATE_TRANSFER` should have a snake case name\n  --> src/transfer.rs:23:18\n   |\n23 | pub open spec fn DUPLICATE_TRANSFER() -> u8 { 4 }\n   |                  ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `duplicate_transfer`\n\nwarning: function `TYPE_STRING` should have a snake case name\n  --> src/type_lattice.rs:16:18\n   |\n16 | pub open spec fn TYPE_STRING() -> u8 { 0 }\n   |                  ^^^^^^^^^^^ help: convert the identifier to snake case: `type_string`\n\nwarning: function `TYPE_INTEGER` should have a snake case name\n  --> src/type_lattice.rs:18:18\n   |\n18 | pub open spec fn TYPE_INTEGER() -> u8 { 1 }\n   |                  ^^^^^^^^^^^^ help: convert the identifier to snake case: `type_integer`\n\nwarning: function `TYPE_FLOAT` should have a snake case name\n  --> src/type_lattice.rs:20:18\n   |\n20 | pub open spec fn TYPE_FLOAT() -> u8 { 2 }\n   |                  ^^^^^^^^^^ help: convert the identifier to snake case: `type_float`\n\nwarning: function `TYPE_BOOLEAN` should have a snake case name\n  --> src/type_lattice.rs:22:18\n   |\n22 | pub open spec fn TYPE_BOOLEAN() -> u8 { 3 }\n   |                  ^^^^^^^^^^^^ help: convert the identifier to snake case: `type_boolean`\n\nwarning: function `TYPE_DATE` should have a snake case name\n  --> src/type_lattice.rs:24:18\n   |\n24 | pub open spec fn TYPE_DATE() -> u8 { 4 }\n   |                  ^^^^^^^^^ help: convert the identifier to snake case: `type_date`\n\nwarning: function `TYPE_DATETIME` should have a snake case name\n  --> src/type_lattice.rs:26:18\n   |\n26 | pub open spec fn TYPE_DATETIME() -> u8 { 5 }\n   |                  ^^^^^^^^^^^^^ help: convert the identifier to snake case: `type_datetime`\n\nwarning: function `TYPE_ANY` should have a snake case name\n  --> src/type_lattice.rs:28:18\n   |\n28 | pub open spec fn TYPE_ANY() -> u8 { 6 }\n   |                  ^^^^^^^^ help: convert the identifier to snake case: `type_any`\n\nwarning: 54 warnings emitted\n\n"
+      },
+      "tracey": {
+        "first_attempt": {
+          "owner": "trellis",
+          "label": "required current tracey uncovered",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "tracey",
+            "query",
+            "uncovered"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "Error: Cancelled\n",
+          "stderr": "\u001b[2m2026-10-17T18:28:59.458846Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Auto-starting daemon for /home/brittonr/git/OnixResearch/trellis\n\u001b[2m2026-10-17T18:29:00.470004Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon.\n\u001b[2m2026-10-17T18:29:01.482123Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon..\n\u001b[2m2026-10-17T18:29:02.492487Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon...\n\u001b[2m2026-10-17T18:29:03.504754Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon....\n\u001b[2m2026-10-17T18:29:04.518734Z\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m daemon client: connect_inner failed \u001b[3melapsed_ms\u001b[0m\u001b[2m=\u001b[0m5062 \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mDaemon failed to start within 5s (last connect error: No such file or directory (os error 2)). Check logs at /home/brittonr/.local/state/tracey/9f6dda0d84519047/daemon.log \u001b[3mcallsite\u001b[0m\u001b[2m=\u001b[0m/home/runner/work/tracey/tracey/crates/tracey/src/daemon/client.rs:50\n\u001b[2m2026-10-17T18:29:19.481247Z\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Daemon PID 1513289 remained alive but socket \"/home/brittonr/.local/state/tracey/9f6dda0d84519047/daemon.sock\" stayed unavailable for 14s (last error: No such file or directory (os error 2))\n\u001b[2m2026-10-17T18:29:19.481290Z\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Daemon PID 1513289 alive but socket unavailable (connect error: No such file or directory (os error 2)); removing endpoint+pid and restarting\n\u001b[2m2026-10-17T18:29:19.481486Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Auto-starting daemon for /home/brittonr/git/OnixResearch/trellis\n"
+        },
+        "second_attempt": {
+          "owner": "trellis",
+          "label": "required current tracey uncovered after ready daemon",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "tracey",
+            "query",
+            "uncovered"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "Error: Cancelled\n",
+          "stderr": "\u001b[2m2026-10-17T18:33:48.535715Z\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m No PID file but endpoint exists at \"/home/brittonr/.local/state/tracey/9f6dda0d84519047/daemon.sock\"; removing stale endpoint\n\u001b[2m2026-10-17T18:33:48.535884Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Auto-starting daemon for /home/brittonr/git/OnixResearch/trellis\n\u001b[2m2026-10-17T18:33:49.548209Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon.\n\u001b[2m2026-10-17T18:33:50.559339Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon..\n\u001b[2m2026-10-17T18:33:51.571227Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon...\n\u001b[2m2026-10-17T18:33:52.582581Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon....\n\u001b[2m2026-10-17T18:33:53.594658Z\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m daemon client: connect_inner failed \u001b[3melapsed_ms\u001b[0m\u001b[2m=\u001b[0m5058 \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mDaemon failed to start within 5s (last connect error: No such file or directory (os error 2)). Check logs at /home/brittonr/.local/state/tracey/9f6dda0d84519047/daemon.log \u001b[3mcallsite\u001b[0m\u001b[2m=\u001b[0m/home/runner/work/tracey/tracey/crates/tracey/src/daemon/client.rs:50\n\u001b[2m2026-10-17T18:34:08.563387Z\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Daemon PID 1568260 remained alive but socket \"/home/brittonr/.local/state/tracey/9f6dda0d84519047/daemon.sock\" stayed unavailable for 14s (last error: No such file or directory (os error 2))\n\u001b[2m2026-10-17T18:34:08.563413Z\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Daemon PID 1568260 alive but socket unavailable (connect error: No such file or directory (os error 2)); removing endpoint+pid and restarting\n\u001b[2m2026-10-17T18:34:08.563687Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Auto-starting daemon for /home/brittonr/git/OnixResearch/trellis\n\u001b[2m2026-10-17T18:34:09.574950Z\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2mtracey::daemon::client\u001b[0m\u001b[2m:\u001b[0m Starting daemon.\n"
+        },
+        "persistent_isolated_backend_result": {
+          "owner": "trellis",
+          "label": "required uncovered against isolated persistent daemon",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "env",
+            "XDG_STATE_HOME=/dev/shm/trellis-native-policy-repair-20261017/tracey-state",
+            "tracey",
+            "query",
+            "uncovered"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "verified-logic/rust: 0 uncovered out of 2270 rules\n\n---\n→ Run `tracey query rule <rule-id>`\n→ Run `tracey query uncovered --prefix <prefix>`\n\n",
+          "stderr": ""
+        },
+        "resolution": "Use an owned persistent daemon with isolated XDG_STATE_HOME to avoid the automatic-start timeout; cancelled zero-exit attempts are not passes."
+      }
+    },
+    "policy_repair": {
+      "evidence": "../../repair-native-policy-admission/evidence/native-policy-repair.json",
+      "complete_original_preserved_except_four_required_leaves": true,
+      "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534",
+      "final_export_controls": [
+        {
+          "owner": "trellis",
+          "label": "final maintained export --check",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/trellis-native-policy-repair-20261017/cargo-target/debug/trellis-policy-export-checker",
+            "--root",
+            "/home/brittonr/git/OnixResearch/trellis",
+            "--nickel",
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "--nickel-export",
+            "/nix/store/yaqnsiidsq45x95gscbvdw9xxai29ydf-nickel-export-0.1.0/bin/nickel-export",
+            "--source-revision",
+            "257fafc1c746f1faf156207043a4c826bfb16d49",
+            "--check"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "standalone Nickel export check passed: 9 exact outputs, 35 invalid fixtures\n",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "final maintained export --self-test",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/trellis-native-policy-repair-20261017/cargo-target/debug/trellis-policy-export-checker",
+            "--root",
+            "/home/brittonr/git/OnixResearch/trellis",
+            "--nickel",
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "--nickel-export",
+            "/nix/store/yaqnsiidsq45x95gscbvdw9xxai29ydf-nickel-export-0.1.0/bin/nickel-export",
+            "--source-revision",
+            "257fafc1c746f1faf156207043a4c826bfb16d49",
+            "--self-test"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "standalone Nickel export self-test passed: 12 negative cases\n",
+          "stderr": ""
+        }
+      ],
+      "maintained_fixtures": {
+        "owner": "trellis",
+        "label": "maintained policy fixtures and legacy freshness",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "env",
+          "PATH=/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin:/home/brittonr/.local/bin:/home/brittonr/.nix-profile/bin:/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin:/nix/store/gzh2rx2sjwra135my0jw3va49hm7z4vf-bun-1.3.13/bin:/nix/store/jnsflr3i2c90hrlly1cgwvxr9s74kgab-docker-29.8.0/bin:/nix/store/f51vybn5cd5v88pk7hnrdr6db1q0rzw7-ghzinga-0.5.0/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/xvd6920kffyyshg7mbw5wvfk6lg9wfkl-jq-1.8.2-bin/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/ggcm0s524bsly3qc7kww945qs7003psf-openssh-10.5p1/bin:/nix/store/mcdxl3mmx2s8zy6gxy4ss5paiaz79qkc-pueue-4.0.4/bin:/nix/store/a8hj1bz1gd378sxz4fabmgrl61ad202p-socat-1.8.1.3/bin:/home/brittonr/.optmem:/run/wrappers/bin:/etc/profiles/per-user/brittonr/bin:/run/current-system/sw/bin",
+          "/dev/shm/trellis-native-policy-repair-20261017/check-verification-policy",
+          "--legacy-parity"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "PASS nickel export verification-policy/policy.ncl\nPASS verification policy fresh verification-policy/generated/policy.json\nPASS nickel export proof-review/policy.ncl\nPASS proof-review policy fresh proof-review/generated/policy.json\nPASS nickel export cairn-policy/default.ncl\nPASS cairn policy fresh cairn-policy/generated/cairn-policy.json\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-duplicate-checker.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-empty-checkers.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-missing-exemption-owner.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-unsafe-path.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-unsupported-severity.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/valid-minimal.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-dangling-mode.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-dangling-rule-reference.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-dangling-validation-gate.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-duplicate-rule.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-empty-rules.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-unsupported-severity.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/valid-minimal.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-artifact-dependency.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-determinism-surface-coverage.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-duplicate-marker.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-receipt-schema-hash-field.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-replay-group-case.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-missing-anchor.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-missing-assurance.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-unsupported-anchor.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-unsupported-assurance.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/valid-minimal.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/valid-traceability-metadata.ncl\nverification policy fixture checks: PASS\nverification policy legacy parity: PASS\n",
+        "stderr": ""
+      },
+      "repair_accepted_spec_sync": {
+        "owner": "trellis",
+        "label": "native metadata repair accepted-spec synchronization",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "sync",
+          "repair-native-policy-admission",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json",
+          "--execute"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"acceptance_ids\": [],\n  \"actions\": [\n    {\n      \"description\": \"merge delta spec into main specs: ./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"kind\": \"sync_delta_spec\",\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\"\n    }\n  ],\n  \"blocked\": false,\n  \"change\": \"repair-native-policy-admission\",\n  \"cross_repo_dependencies\": {\n    \"blocked_count\": 0,\n    \"dependency_count\": 0,\n    \"input_hash\": \"14518a12c4cb3ccb761adc62c7b6e76e64e5b5e41757a4b66f4cab1b93427dbb\",\n    \"non_claims\": [\n      \"dependency satisfaction proves presented receipt linkage only\",\n      \"dependency satisfaction does not prove upstream correctness or remote trust\",\n      \"dependency satisfaction does not prove downstream integration correctness or release eligibility\"\n    ],\n    \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n    \"receipt_hash\": \"87d41ca8182f64867617da55e0e60f8a1b76f3d388573538627e3bdc85bc5d51\",\n    \"rows\": [],\n    \"satisfied_count\": 0,\n    \"schema\": \"cairn.cross-repo-dependency-receipt.v1\",\n    \"valid\": true,\n    \"verdict\": \"PASS\"\n  },\n  \"cross_repo_evidence_issues\": [],\n  \"delta_specs\": [\n    \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\"\n  ],\n  \"dry_run\": false,\n  \"input_hash\": \"7a7ead7d2fbdd9dc9d5b60ed6452046c8aca693ca26e29f6b9e056c9d02fcc20\",\n  \"layout\": \"cairn\",\n  \"merge_preflight\": {\n    \"documents\": [\n      {\n        \"accepted_before_exists\": false,\n        \"accepted_before_hash\": \"a336c15819a1106e909aee3bc272d2a15b9376f62602f61287fe8f7c34a5e7f5\",\n        \"blocked\": false,\n        \"changed\": true,\n        \"delta_hash\": \"7411a5e9d3bc1895e298d8505d8d94e236a2b0c862095821c160845bbe8ee0f6\",\n        \"destination\": \".cairn/specs/native-policy-admission/spec.md\",\n        \"diagnostics\": [],\n        \"expected_after_hash\": \"449b42b29f6ba191ccb9730e32ca51cc6803b8367a383c4d6e913789d4e7bc51\",\n        \"operations\": [\n          {\n            \"block_hash\": \"14dbcd3b48a4e85a865cc02d9e9d0a4a0a73e4fe0bc432c02ceeb7818d828ecc\",\n            \"heading\": \"### Requirement: Complete-policy bootstrap\",\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.native_policy_admission.bootstrap\"\n          },\n          {\n            \"block_hash\": \"478acd65e8b43bd436aded488bce8e676f9637d898fe9157bc56f547f6a4a025\",\n            \"heading\": \"### Requirement: Preserve owning obligations\",\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.native_policy_admission.obligations\"\n          },\n          {\n            \"block_hash\": \"c12a1f3ba75325c61372455fbd36baba981d5cbb38d258c5ee44ad634dbc0d5d\",\n            \"heading\": \"### Requirement: Reject missing or invalid metadata\",\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.native_policy_admission.rejection\"\n          }\n        ],\n        \"outcomes\": [\n          {\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.native_policy_admission.bootstrap\",\n            \"state\": \"applied\"\n          },\n          {\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.native_policy_admission.obligations\",\n            \"state\": \"applied\"\n          },\n          {\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.native_policy_admission.rejection\",\n            \"state\": \"applied\"\n          }\n        ],\n        \"source\": \".cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\"\n      }\n    ]\n  },\n  \"mutated\": true,\n  \"mutation_manifest\": {\n    \"after\": {\n      \"entries\": [\n        {\n          \"content_hash\": \"449b42b29f6ba191ccb9730e32ca51cc6803b8367a383c4d6e913789d4e7bc51\",\n          \"exists\": true,\n          \"path\": \"./.cairn/specs/native-policy-admission/spec.md\"\n        }\n      ],\n      \"manifest_hash\": \"3493c4bd4c61df5afee5b57ecd0f20516ecf90e6e150e1e175b54b152b796acc\"\n    },\n    \"before\": {\n      \"entries\": [\n        {\n          \"content_hash\": null,\n          \"exists\": false,\n          \"path\": \"./.cairn/specs/native-policy-admission/spec.md\"\n        }\n      ],\n      \"manifest_hash\": \"f55e0112c4df0fffc0216d6552f34904329718d0fead482057f3f706cf4f60e5\"\n    },\n    \"kind\": \"sync\",\n    \"manifest_hash\": \"7aaf80727115e25eeb16b7a0fa9cc9b614fb28c8a81efb08e5996aa53a58e303\"\n  },\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"plan_hash\": \"b8b436644e2218c72e61597dc80470510a57a904233029aae3757fe26954c7c5\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"profile_identity_hash\": \"e66a35ebafcf9ed5bf4f35561299c988832212fc94fcaa5b778a9e6e7265bcd4\",\n  \"reasons\": [],\n  \"receipt_hash\": \"51a9eec97f0b3db81fa4866f8e6d7bf28c223ccbfa15fd149475c02150e694ae\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+        "stderr": ""
+      }
+    },
+    "native_lifecycle": {
+      "final_gates": [
+        {
+          "owner": "trellis",
+          "label": "final repair-native-policy-admission proposal",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "proposal",
+            "repair-native-policy-admission",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"2312e226aeb18959a1cf101842bf4610b6509c8319034fbd5fa51d91004d97a7\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"e66a35ebafcf9ed5bf4f35561299c988832212fc94fcaa5b778a9e6e7265bcd4\",\n  \"receipt_hash\": \"baa1fb701c616249d88832bddf9d3f0f89cb374404438c8d6a358548f59bcfb2\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        },
+        {
+          "owner": "trellis",
+          "label": "final repair-native-policy-admission design",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "design",
+            "repair-native-policy-admission",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"c970ba0c163ca9e5fd604f98280f6f9968f44cbcb981770fd5e96ef5989ac83a\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"e66a35ebafcf9ed5bf4f35561299c988832212fc94fcaa5b778a9e6e7265bcd4\",\n  \"receipt_hash\": \"b9e39d27e2d54c16c2aea11cbc6849c1cd9c65cb0ff2aca884236783d4daa0a6\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        },
+        {
+          "owner": "trellis",
+          "label": "final repair-native-policy-admission tasks",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "tasks",
+            "repair-native-policy-admission",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"d82bf0d42555296e5aa87f9c03311e37c3189fd9b0843c67765fb07078d19e5f\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"profile_identity_hash\": \"e66a35ebafcf9ed5bf4f35561299c988832212fc94fcaa5b778a9e6e7265bcd4\",\n  \"receipt_hash\": \"2411ec8736c8d0799b8b52a1c2bcb65d3161ec44491eab0bbfaab51d5078b30f\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 4,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 4,\n      \"task_done\": 4,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        },
+        {
+          "owner": "trellis",
+          "label": "final prepare-owned-source-agpl proposal",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "proposal",
+            "prepare-owned-source-agpl",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"change\": \"prepare-owned-source-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"616b461192f38caef95e20dfe821133dc5bcfb462e93a6a3973f8eef2fad317b\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"receipt_hash\": \"03f8459985f53d73cfe751e24498be531ac44a1a18baaeaa9addab1140b05cbd\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\"\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        },
+        {
+          "owner": "trellis",
+          "label": "final prepare-owned-source-agpl design",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "design",
+            "prepare-owned-source-agpl",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"change\": \"prepare-owned-source-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"9c1606a9061213d92ff541f5ca75e109ba7765b4f21f3f7d6208e2029c22fc66\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"receipt_hash\": \"198e4200d00a1334abf08074684a051ef4764ff4a4bc6548d7d1f94bc70862bf\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 4,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 5,\n      \"substantive_lines\": 20,\n      \"substantive_requirement_blocks\": 5,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 4,\n      \"substantive_lines\": 16,\n      \"substantive_requirement_blocks\": 4,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\"\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        },
+        {
+          "owner": "trellis",
+          "label": "final prepare-owned-source-agpl tasks",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "tasks",
+            "prepare-owned-source-agpl",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"change\": \"prepare-owned-source-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"65588a1bf3e359b8beb4d44e87ce69b8e3cfa6b007c5aa58e68a1a3f289c6321\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"receipt_hash\": \"c1693ec973bc6be63a9f45415072fc7c570ed471eaac0817f183488037c9d2d6\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 4,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 5,\n      \"substantive_lines\": 20,\n      \"substantive_requirement_blocks\": 5,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 4,\n      \"substantive_lines\": 16,\n      \"substantive_requirement_blocks\": 4,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 5,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 5,\n      \"task_done\": 4,\n      \"task_in_progress\": 0,\n      \"task_todo\": 1\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\"\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        }
+      ],
+      "repository_validation": {
+        "owner": "trellis",
+        "label": "final native full-policy repository validation",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "validate",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"change_issues\": [],\n  \"changes\": 9,\n  \"cross_repo_dependencies\": [],\n  \"cross_repo_evidence_issues\": [],\n  \"findings\": [],\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"trellis-default\",\n  \"profile_issues\": [],\n  \"resolution\": {\n    \"diagnostics\": [],\n    \"locator_consulted\": false,\n    \"registry_lookup\": \"local_locator_only\",\n    \"selected\": {\n      \"project_identity\": null,\n      \"root\": \".\",\n      \"source\": \"explicit_root\",\n      \"store_id\": null,\n      \"store_identity\": null\n    },\n    \"valid\": true\n  },\n  \"spec_findings\": [],\n  \"spec_issues\": [],\n  \"spec_substance\": [\n    {\n      \"path\": \"./.cairn/changes/add-ai-proof-assist-workflow/specs/ai-proof-assist/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/changes/add-model-bridge-lemma-corpus/specs/model-bridge-lemmas/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/changes/add-vermilion-lean-pilot/specs/vermilion-lean-pilot/spec.md\",\n      \"requirement_blocks\": 11,\n      \"scenario_blocks\": 20,\n      \"substantive_requirement_blocks\": 11\n    },\n    {\n      \"path\": \"./.cairn/changes/add-vermilion-proof-twin-rail/specs/vermilion-proof-twins/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/changes/consume-onixpkgs-tracey/specs/verification-tooling/spec.md\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 2,\n      \"substantive_requirement_blocks\": 1\n    },\n    {\n      \"path\": \"./.cairn/changes/measure-vermilion-lean-frontier/specs/vermilion-lean-frontier/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 8\n    },\n    {\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 5,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 4,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/changes/repair-proofs-with-nemotron/specs/nemotron-proof-campaign/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 5,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/aeneas-cross-verifier/spec.md\",\n      \"requirement_blocks\": 12,\n      \"scenario_blocks\": 25,\n      \"substantive_requirement_blocks\": 12\n    },\n    {\n      \"path\": \"./.cairn/specs/aeneas-lean-coverage/spec.md\",\n      \"requirement_blocks\": 9,\n      \"scenario_blocks\": 20,\n      \"substantive_requirement_blocks\": 9\n    },\n    {\n      \"path\": \"./.cairn/specs/aspen-verified-logic/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 7,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/backend-codegen-trace/spec.md\",\n      \"requirement_blocks\": 11,\n      \"scenario_blocks\": 19,\n      \"substantive_requirement_blocks\": 11\n    },\n    {\n      \"path\": \"./.cairn/specs/beam/spec.md\",\n      \"requirement_blocks\": 22,\n      \"scenario_blocks\": 37,\n      \"substantive_requirement_blocks\": 22\n    },\n    {\n      \"path\": \"./.cairn/specs/bounded-modular-tree-fold/spec.md\",\n      \"requirement_blocks\": 13,\n      \"scenario_blocks\": 26,\n      \"substantive_requirement_blocks\": 13\n    },\n    {\n      \"path\": \"./.cairn/specs/cache-hierarchy/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 15,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/cache-partitioning/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 14,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/cache-prefetch-validity/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 13,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/capability-auth/spec.md\",\n      \"requirement_blocks\": 43,\n      \"scenario_blocks\": 25,\n      \"substantive_requirement_blocks\": 43\n    },\n    {\n      \"path\": \"./.cairn/specs/chain/spec.md\",\n      \"requirement_blocks\": 18,\n      \"scenario_blocks\": 28,\n      \"substantive_requirement_blocks\": 18\n    },\n    {\n      \"path\": \"./.cairn/specs/chaoscontrol-coverage-oracle/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 13,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/chaoscontrol-fault-state/spec.md\",\n      \"requirement_blocks\": 2,\n      \"scenario_blocks\": 6,\n      \"substantive_requirement_blocks\": 2\n    },\n    {\n      \"path\": \"./.cairn/specs/chaoscontrol-heuristics/spec.md\",\n      \"requirement_blocks\": 2,\n      \"scenario_blocks\": 7,\n      \"substantive_requirement_blocks\": 2\n    },\n    {\n      \"path\": \"./.cairn/specs/chaoscontrol-properties/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/chaoscontrol-scheduler/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 10,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/chaoscontrol-validation/spec.md\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 2,\n      \"substantive_requirement_blocks\": 1\n    },\n    {\n      \"path\": \"./.cairn/specs/choreography-core/spec.md\",\n      \"requirement_blocks\": 17,\n      \"scenario_blocks\": 33,\n      \"substantive_requirement_blocks\": 17\n    },\n    {\n      \"path\": \"./.cairn/specs/choreography-projection/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 15,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/choreography-properties/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/composite-primitives/spec.md\",\n      \"requirement_blocks\": 30,\n      \"scenario_blocks\": 55,\n      \"substantive_requirement_blocks\": 30\n    },\n    {\n      \"path\": \"./.cairn/specs/consensus/spec.md\",\n      \"requirement_blocks\": 30,\n      \"scenario_blocks\": 58,\n      \"substantive_requirement_blocks\": 30\n    },\n    {\n      \"path\": \"./.cairn/specs/consistency-models/spec.md\",\n      \"requirement_blocks\": 19,\n      \"scenario_blocks\": 42,\n      \"substantive_requirement_blocks\": 19\n    },\n    {\n      \"path\": \"./.cairn/specs/constant-folding/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 14,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/control-flow-graph/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 19,\n      \"substantive_requirement_blocks\": 8\n    },\n    {\n      \"path\": \"./.cairn/specs/crate-packaging/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 14,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/cryptoshedding/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 16,\n      \"substantive_requirement_blocks\": 8\n    },\n    {\n      \"path\": \"./.cairn/specs/dead-code-elimination/spec.md\",\n      \"requirement_blocks\": 9,\n      \"scenario_blocks\": 8,\n      \"substantive_requirement_blocks\": 9\n    },\n    {\n      \"path\": \"./.cairn/specs/debruijn-substitution/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/directory-coherence/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/distributed/spec.md\",\n      \"requirement_blocks\": 34,\n      \"scenario_blocks\": 61,\n      \"substantive_requirement_blocks\": 34\n    },\n    {\n      \"path\": \"./.cairn/specs/documentation-catalog/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 23,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/domain-primitives/spec.md\",\n      \"requirement_blocks\": 325,\n      \"scenario_blocks\": 523,\n      \"substantive_requirement_blocks\": 325\n    },\n    {\n      \"path\": \"./.cairn/specs/dominator-tree/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 13,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/durable-execution/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 26,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/false-sharing-detection/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 11,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/fenced-attempt-admission/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 14,\n      \"substantive_requirement_blocks\": 8\n    },\n    {\n      \"path\": \"./.cairn/specs/fetch-add/spec.md\",\n      \"requirement_blocks\": 9,\n      \"scenario_blocks\": 20,\n      \"substantive_requirement_blocks\": 9\n    },\n    {\n      \"path\": \"./.cairn/specs/financial-accounting/spec.md\",\n      \"requirement_blocks\": 25,\n      \"scenario_blocks\": 41,\n      \"substantive_requirement_blocks\": 25\n    },\n    {\n      \"path\": \"./.cairn/specs/hardware-output/spec.md\",\n      \"requirement_blocks\": 18,\n      \"scenario_blocks\": 37,\n      \"substantive_requirement_blocks\": 18\n    },\n    {\n      \"path\": \"./.cairn/specs/hir-attribute-parsing/spec.md\",\n      \"requirement_blocks\": 9,\n      \"scenario_blocks\": 18,\n      \"substantive_requirement_blocks\": 9\n    },\n    {\n      \"path\": \"./.cairn/specs/hir-id-lowering/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 17,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/hypervisor/spec.md\",\n      \"requirement_blocks\": 17,\n      \"scenario_blocks\": 26,\n      \"substantive_requirement_blocks\": 17\n    },\n    {\n      \"path\": \"./.cairn/specs/instruction-selection/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 21,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/integration-adapters/spec.md\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 1\n    },\n    {\n      \"path\": \"./.cairn/specs/job-runner/spec.md\",\n      \"requirement_blocks\": 23,\n      \"scenario_blocks\": 43,\n      \"substantive_requirement_blocks\": 23\n    },\n    {\n      \"path\": \"./.cairn/specs/kani-boundary/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 10,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/left-right/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 8,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/liveness-analysis/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 10,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/loop-detection/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 17,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/mir-core/spec.md\",\n      \"requirement_blocks\": 13,\n      \"scenario_blocks\": 21,\n      \"substantive_requirement_blocks\": 13\n    },\n    {\n      \"path\": \"./.cairn/specs/mir-dataflow-framework/spec.md\",\n      \"requirement_blocks\": 12,\n      \"scenario_blocks\": 21,\n      \"substantive_requirement_blocks\": 12\n    },\n    {\n      \"path\": \"./.cairn/specs/mir-drop-elaboration/spec.md\",\n      \"requirement_blocks\": 11,\n      \"scenario_blocks\": 20,\n      \"substantive_requirement_blocks\": 11\n    },\n    {\n      \"path\": \"./.cairn/specs/mir-pass-pipeline/spec.md\",\n      \"requirement_blocks\": 11,\n      \"scenario_blocks\": 18,\n      \"substantive_requirement_blocks\": 11\n    },\n    {\n      \"path\": \"./.cairn/specs/mir-visitor-traversal/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 17,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/mmu/spec.md\",\n      \"requirement_blocks\": 87,\n      \"scenario_blocks\": 54,\n      \"substantive_requirement_blocks\": 87\n    },\n    {\n      \"path\": \"./.cairn/specs/module-scope/spec.md\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 1\n    },\n    {\n      \"path\": \"./.cairn/specs/moesi/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/nickel-export-infrastructure/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/nickel-toolchain/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 6,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/nickel/spec.md\",\n      \"requirement_blocks\": 27,\n      \"scenario_blocks\": 13,\n      \"substantive_requirement_blocks\": 27\n    },\n    {\n      \"path\": \"./.cairn/specs/nix-derivation/spec.md\",\n      \"requirement_blocks\": 24,\n      \"scenario_blocks\": 13,\n      \"substantive_requirement_blocks\": 24\n    },\n    {\n      \"path\": \"./.cairn/specs/nix/spec.md\",\n      \"requirement_blocks\": 37,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 37\n    },\n    {\n      \"path\": \"./.cairn/specs/per-core-rwlock/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 16,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/proof-artifact-manifest/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 13,\n      \"substantive_requirement_blocks\": 8\n    },\n    {\n      \"path\": \"./.cairn/specs/proof-artifact-provenance/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 10,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/proof-evidence-bundles/spec.md\",\n      \"requirement_blocks\": 11,\n      \"scenario_blocks\": 20,\n      \"substantive_requirement_blocks\": 11\n    },\n    {\n      \"path\": \"./.cairn/specs/proof-review-automation/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 16,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/property-spec/spec.md\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 2,\n      \"substantive_requirement_blocks\": 1\n    },\n    {\n      \"path\": \"./.cairn/specs/raft-replication/spec.md\",\n      \"requirement_blocks\": 46,\n      \"scenario_blocks\": 58,\n      \"substantive_requirement_blocks\": 46\n    },\n    {\n      \"path\": \"./.cairn/specs/register-allocation/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/repo-index/spec.md\",\n      \"requirement_blocks\": 9,\n      \"scenario_blocks\": 20,\n      \"substantive_requirement_blocks\": 9\n    },\n    {\n      \"path\": \"./.cairn/specs/runnable-proof-examples/spec.md\",\n      \"requirement_blocks\": 2,\n      \"scenario_blocks\": 5,\n      \"substantive_requirement_blocks\": 2\n    },\n    {\n      \"path\": \"./.cairn/specs/runtime-evidence/spec.md\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 1\n    },\n    {\n      \"path\": \"./.cairn/specs/rust-primitives/spec.md\",\n      \"requirement_blocks\": 33,\n      \"scenario_blocks\": 55,\n      \"substantive_requirement_blocks\": 33\n    },\n    {\n      \"path\": \"./.cairn/specs/rustc-metadata-identity/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 19,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/rustc-monomorphization/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 18,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/s-expression/spec.md\",\n      \"requirement_blocks\": 11,\n      \"scenario_blocks\": 23,\n      \"substantive_requirement_blocks\": 11\n    },\n    {\n      \"path\": \"./.cairn/specs/scheme-logic/spec.md\",\n      \"requirement_blocks\": 13,\n      \"scenario_blocks\": 32,\n      \"substantive_requirement_blocks\": 13\n    },\n    {\n      \"path\": \"./.cairn/specs/secret-sharing/spec.md\",\n      \"requirement_blocks\": 20,\n      \"scenario_blocks\": 34,\n      \"substantive_requirement_blocks\": 20\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-asid/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-cap-rights/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-cdt/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-cspace/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 4,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-endpoint/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 10,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-fault-ipc/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-invariants/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 10,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-invocation/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 4,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-irq/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-notification/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-ready-queue/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-reply/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 4,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-tcb/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-untyped/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 3,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/sel4-vspace/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 4,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/set-associative-lookup/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/ssa-construction/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 14,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/stack-frame-layout/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 8,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/store-buffer/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/surelock/spec.md\",\n      \"requirement_blocks\": 16,\n      \"scenario_blocks\": 22,\n      \"substantive_requirement_blocks\": 16\n    },\n    {\n      \"path\": \"./.cairn/specs/time/spec.md\",\n      \"requirement_blocks\": 16,\n      \"scenario_blocks\": 46,\n      \"substantive_requirement_blocks\": 16\n    },\n    {\n      \"path\": \"./.cairn/specs/tlb-shootdown/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 13,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/track-caller-abi/spec.md\",\n      \"requirement_blocks\": 12,\n      \"scenario_blocks\": 20,\n      \"substantive_requirement_blocks\": 12\n    },\n    {\n      \"path\": \"./.cairn/specs/type-unification/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 8,\n      \"substantive_requirement_blocks\": 5\n    },\n    {\n      \"path\": \"./.cairn/specs/ucan-ability/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 7,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/ucan-bridge-coverage/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 5,\n      \"substantive_requirement_blocks\": 4\n    },\n    {\n      \"path\": \"./.cairn/specs/ucan-caveat/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 8,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/ucan-cid/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 9,\n      \"substantive_requirement_blocks\": 8\n    },\n    {\n      \"path\": \"./.cairn/specs/ucan-did/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 8,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/ucan-token/spec.md\",\n      \"requirement_blocks\": 9,\n      \"scenario_blocks\": 12,\n      \"substantive_requirement_blocks\": 9\n    },\n    {\n      \"path\": \"./.cairn/specs/upstream-verus-corpus/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 18,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/verification-frontier/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 25,\n      \"substantive_requirement_blocks\": 8\n    },\n    {\n      \"path\": \"./.cairn/specs/verification-gaps/spec.md\",\n      \"requirement_blocks\": 16,\n      \"scenario_blocks\": 40,\n      \"substantive_requirement_blocks\": 16\n    },\n    {\n      \"path\": \"./.cairn/specs/verification-policy/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 21,\n      \"substantive_requirement_blocks\": 6\n    },\n    {\n      \"path\": \"./.cairn/specs/verification-tooling/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 14,\n      \"substantive_requirement_blocks\": 3\n    },\n    {\n      \"path\": \"./.cairn/specs/wasm/spec.md\",\n      \"requirement_blocks\": 28,\n      \"scenario_blocks\": 69,\n      \"substantive_requirement_blocks\": 28\n    },\n    {\n      \"path\": \"./.cairn/specs/web-of-trust/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 28,\n      \"substantive_requirement_blocks\": 10\n    },\n    {\n      \"path\": \"./.cairn/specs/write-back-write-through/spec.md\",\n      \"requirement_blocks\": 7,\n      \"scenario_blocks\": 15,\n      \"substantive_requirement_blocks\": 7\n    },\n    {\n      \"path\": \"./.cairn/specs/zircon-kernel/spec.md\",\n      \"requirement_blocks\": 38,\n      \"scenario_blocks\": 64,\n      \"substantive_requirement_blocks\": 38\n    }\n  ],\n  \"specs_validated\": 130,\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-ai-proof-assist-workflow/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 11,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-ai-proof-assist-workflow/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 15,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-ai-proof-assist-workflow/specs/ai-proof-assist/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 9,\n      \"substantive_lines\": 37,\n      \"substantive_requirement_blocks\": 6,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 8,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-ai-proof-assist-workflow/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 8,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 8,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 8\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-model-bridge-lemma-corpus/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 19,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-model-bridge-lemma-corpus/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-model-bridge-lemma-corpus/specs/model-bridge-lemmas/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 9,\n      \"substantive_lines\": 34,\n      \"substantive_requirement_blocks\": 6,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 6,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-model-bridge-lemma-corpus/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 6,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 6\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-lean-pilot/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 33,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-lean-pilot/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 20,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-lean-pilot/specs/vermilion-lean-pilot/spec.md\",\n      \"requirement_blocks\": 11,\n      \"scenario_blocks\": 20,\n      \"substantive_lines\": 72,\n      \"substantive_requirement_blocks\": 11,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 13,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-lean-pilot/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 13,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 13,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 13\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-proof-twin-rail/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 22,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-proof-twin-rail/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 13,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-proof-twin-rail/specs/vermilion-proof-twins/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 12,\n      \"substantive_lines\": 47,\n      \"substantive_requirement_blocks\": 10,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 12,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/add-vermilion-proof-twin-rail/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 12,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 12,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 12\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/consume-onixpkgs-tracey/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 7,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/consume-onixpkgs-tracey/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 8,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/consume-onixpkgs-tracey/specs/verification-tooling/spec.md\",\n      \"requirement_blocks\": 1,\n      \"scenario_blocks\": 2,\n      \"substantive_lines\": 7,\n      \"substantive_requirement_blocks\": 1,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 2,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/consume-onixpkgs-tracey/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 2,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 2,\n      \"task_done\": 2,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/measure-vermilion-lean-frontier/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 27,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/measure-vermilion-lean-frontier/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 12,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/measure-vermilion-lean-frontier/specs/vermilion-lean-frontier/spec.md\",\n      \"requirement_blocks\": 8,\n      \"scenario_blocks\": 12,\n      \"substantive_lines\": 45,\n      \"substantive_requirement_blocks\": 8,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 12,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/measure-vermilion-lean-frontier/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 12,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 12,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 12\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 4,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\",\n      \"requirement_blocks\": 5,\n      \"scenario_blocks\": 5,\n      \"substantive_lines\": 20,\n      \"substantive_requirement_blocks\": 5,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 4,\n      \"substantive_lines\": 16,\n      \"substantive_requirement_blocks\": 4,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 5,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 5,\n      \"task_done\": 4,\n      \"task_in_progress\": 0,\n      \"task_todo\": 1\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 4,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 4,\n      \"task_done\": 4,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-proofs-with-nemotron/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-proofs-with-nemotron/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 9,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-proofs-with-nemotron/specs/nemotron-proof-campaign/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 5,\n      \"substantive_lines\": 19,\n      \"substantive_requirement_blocks\": 4,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 8,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-proofs-with-nemotron/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 8,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 8,\n      \"task_done\": 8,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"substance_findings\": [],\n  \"substance_issues\": [],\n  \"valid\": true,\n  \"workflow_profiles\": [\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"a88f91d2e14a175499aecfcdac0eebc7ed6017b1b9dc6e1b76d70e56596ba983\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    },\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"f4c6fcb415b5b0b40946d3a7cc0e7bd6dfa7051a656d48b7dded8e8ae87593f3\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    },\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"a3e237b00b04a2abb7d5d71f37a725a076dd1f0f3b5305f44a1584cde484999f\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    },\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"9ef68daf1fbf6ee95a763ec6298b225bea06610cea5998dfc3642d9a58a9c86c\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    },\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"29f6fcbed6513d1c2953829e028d4a3bce23c292a2824f2d7bb4d9067a799cee\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    },\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"3a98c7c9099a16e75549561fb6b2e23cacf745fdfe16dd7fb88c3a94d7315ffd\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    },\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"e66a35ebafcf9ed5bf4f35561299c988832212fc94fcaa5b778a9e6e7265bcd4\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    },\n    {\n      \"acceptance_ids\": [],\n      \"non_claims\": [\n        \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n        \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n        \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n        \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n      ],\n      \"profile_identity_hash\": \"b5a06c62f42c52082eb203ab3c9b3e00a9f0cf5299f33758ecc71a144055b7ee\",\n      \"review_receipt_hashes\": [],\n      \"spec_effect\": \"delta\",\n      \"workflow_profile\": \"spec-driven\",\n      \"workflow_profile_compatibility_fallback\": false,\n      \"workflow_profile_source\": \"change_create\",\n      \"workflow_profile_version\": 1\n    }\n  ]\n}\n",
+        "stderr": ""
+      },
+      "licensing_sync_plan": {
+        "owner": "trellis",
+        "label": "final native AGPL sync plan without legacy migration",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "sync",
+          "prepare-owned-source-agpl",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"actions\": [],\n  \"blocked\": true,\n  \"change\": \"prepare-owned-source-agpl\",\n  \"cross_repo_dependencies\": {\n    \"blocked_count\": 0,\n    \"dependency_count\": 0,\n    \"input_hash\": \"14518a12c4cb3ccb761adc62c7b6e76e64e5b5e41757a4b66f4cab1b93427dbb\",\n    \"non_claims\": [\n      \"dependency satisfaction proves presented receipt linkage only\",\n      \"dependency satisfaction does not prove upstream correctness or remote trust\",\n      \"dependency satisfaction does not prove downstream integration correctness or release eligibility\"\n    ],\n    \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n    \"receipt_hash\": \"87d41ca8182f64867617da55e0e60f8a1b76f3d388573538627e3bdc85bc5d51\",\n    \"rows\": [],\n    \"satisfied_count\": 0,\n    \"schema\": \"cairn.cross-repo-dependency-receipt.v1\",\n    \"valid\": true,\n    \"verdict\": \"PASS\"\n  },\n  \"cross_repo_evidence_issues\": [],\n  \"delta_specs\": [\n    \"./.cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\",\n    \"./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\"\n  ],\n  \"dry_run\": true,\n  \"input_hash\": \"7b0afaeb5c2b499b518c685ae580bc0e45ac79692d201b052dc53eb3ed1f112c\",\n  \"layout\": \"cairn\",\n  \"merge_preflight\": {\n    \"documents\": [\n      {\n        \"accepted_before_exists\": true,\n        \"accepted_before_hash\": \"d16b31867311b4c4d552713a2e7c6990ea111d1d5bfbffff7d83bdd75ef2d54e\",\n        \"blocked\": true,\n        \"changed\": false,\n        \"delta_hash\": \"940a4007c4ff3723793395cd46eed216c1a559caa645cc4c67dfe572e8eedc60\",\n        \"destination\": \".cairn/specs/crate-packaging/spec.md\",\n        \"diagnostics\": [\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: Complete applicable license terms accompany source` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: Consumer and proof claims remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: Direct dependency is preferred over vendoring` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: Focused evidence precedes lifecycle closeout` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: Imported proofs remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: License drift is rejected` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: New owned verified-logic source declares AGPL` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: Vendored snapshot compatibility report` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          },\n          {\n            \"code\": \"delta_merge.accepted_identity_cardinality\",\n            \"message\": \"accepted requirement `### Requirement: Verified-logic consumer profile` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n          }\n        ],\n        \"expected_after_hash\": \"d16b31867311b4c4d552713a2e7c6990ea111d1d5bfbffff7d83bdd75ef2d54e\",\n        \"operations\": [\n          {\n            \"block_hash\": \"8b5a7ef800604a1fe1001adc1414f829543207c45771b79c66eeceb03884afb1\",\n            \"heading\": \"### Requirement: New owned verified-logic source declares AGPL\",\n            \"kind\": \"modified\",\n            \"requirement_id\": \"trellis.crate_packaging.license_boundary.package_metadata\"\n          },\n          {\n            \"block_hash\": \"6f27717fdc6346f5ee5204976fba419e562b7262cc25bca8e72c43eb67ba6f6a\",\n            \"heading\": \"### Requirement: Complete applicable license terms accompany source\",\n            \"kind\": \"modified\",\n            \"requirement_id\": \"trellis.crate_packaging.license_boundary.artifacts\"\n          },\n          {\n            \"block_hash\": \"150f96d622eb98607f24d64ca862e4ac9a38ede5f172a29ddf8775608be453f7\",\n            \"heading\": \"### Requirement: Consumer and proof claims remain bounded\",\n            \"kind\": \"modified\",\n            \"requirement_id\": \"trellis.crate_packaging.license_boundary.consumer_boundary\"\n          },\n          {\n            \"block_hash\": \"81eaf0cea0de9e568777a584ca814351ceb59de1318df7a2143f1371c7f8d895\",\n            \"heading\": \"### Requirement: License drift is rejected\",\n            \"kind\": \"modified\",\n            \"requirement_id\": \"trellis.crate_packaging.license_boundary.validation\"\n          },\n          {\n            \"block_hash\": \"f0e43fd18b8c9f9f446d2f744635b4d77d8cc1bfbe9cae69746be24df666b6ca\",\n            \"heading\": \"### Requirement: Focused evidence precedes lifecycle closeout\",\n            \"kind\": \"modified\",\n            \"requirement_id\": \"trellis.crate_packaging.license_boundary.final_validation\"\n          }\n        ],\n        \"outcomes\": [],\n        \"source\": \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\"\n      },\n      {\n        \"accepted_before_exists\": false,\n        \"accepted_before_hash\": \"64e49a1263a9eadfd72ade875dd1a7fb4db1de02f28bc8f23dd19faa156db5cc\",\n        \"blocked\": false,\n        \"changed\": true,\n        \"delta_hash\": \"95c6d966519621572c37929e773e245af541e56c028808d4cdbb786e663846db\",\n        \"destination\": \".cairn/specs/owned-source-agpl/spec.md\",\n        \"diagnostics\": [],\n        \"expected_after_hash\": \"bae80b92efe74613d5caa45a984ea7d2f1cf811f56e407fcc3307e26ace4fb77\",\n        \"operations\": [\n          {\n            \"block_hash\": \"b74d2f8eafc12164f4b736741ec04c94709ec0605a7212df114b4d051576b409\",\n            \"heading\": \"### Requirement: Preimplementation approval\",\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.preparation\"\n          },\n          {\n            \"block_hash\": \"271a64d3bdb4285c11b4daf6a192904d0c10e8a93b44561da01bd3cf2b31112a\",\n            \"heading\": \"### Requirement: Prospective owned-source consistency\",\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.consistency\"\n          },\n          {\n            \"block_hash\": \"e0c515d1d0be697541206eb18706f3aa2930dca61068a0c7f554a6998dbe44d4\",\n            \"heading\": \"### Requirement: Earlier grants and proof boundaries survive\",\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.boundaries\"\n          },\n          {\n            \"block_hash\": \"7f3b8f60806031d09b0cc3fe358dfad82acf2c9c8795d1c35a490cbc7f32ea4d\",\n            \"heading\": \"### Requirement: Evidence precedes closeout\",\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.validation\"\n          }\n        ],\n        \"outcomes\": [\n          {\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.preparation\",\n            \"state\": \"applied\"\n          },\n          {\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.consistency\",\n            \"state\": \"applied\"\n          },\n          {\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.boundaries\",\n            \"state\": \"applied\"\n          },\n          {\n            \"kind\": \"added\",\n            \"requirement_id\": \"trellis.owned_agpl.validation\",\n            \"state\": \"applied\"\n          }\n        ],\n        \"source\": \".cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\"\n      }\n    ]\n  },\n  \"mutated\": false,\n  \"mutation_manifest\": null,\n  \"plan_hash\": \"e56907e5b4d1076b0f80fae1d96614c9f8c876b5feaf4420d6184518c26b3996\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"reasons\": [\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Complete applicable license terms accompany source` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Consumer and proof claims remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Direct dependency is preferred over vendoring` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Focused evidence precedes lifecycle closeout` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Imported proofs remain bounded` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: License drift is rejected` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: New owned verified-logic source declares AGPL` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Vendored snapshot compatibility report` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\",\n    \".cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md: delta_merge.accepted_identity_cardinality: accepted requirement `### Requirement: Verified-logic consumer profile` must carry exactly one valid bare r[...] requirement ID before its first scenario; found 2\"\n  ],\n  \"receipt_hash\": \"de4ad0023c1176e82170f058b3069e7c91b5ab5e0126e2daea57f69ebd488b35\"\n}\n",
+        "stderr": ""
+      },
+      "accepted_license_clauses": "Five licensing clauses aligned narrowly after focused checks and required Verus/Tracey outputs; broader legacy consumer-profile identity layout retained",
+      "archive_performed": false
+    },
+    "additional_unpassed_check": {
+      "rustfmt": {
+        "owner": "trellis",
+        "label": "changed license checker format validation",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/nix/store/gbrj4zlys951xy55wqwr74m0kmiz6xr1-rust-default-1.96.0-nightly-2026-03-21/bin/rustfmt",
+          "--edition",
+          "2024",
+          "--check",
+          "tools/check-license-boundary.rs"
+        ],
+        "exit": 1,
+        "expected": 0,
+        "matched": false,
+        "stdout": "Diff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:2:\n \n use std::env;\n use std::fs;\n\u001b[31m-use std::path::{Path, PathBuf};\n\u001b(B\u001b[m\u001b[32m+use std::path::Path;\n\u001b(B\u001b[m\u001b[32m+use std::path::PathBuf;\n\u001b(B\u001b[m \n const POLICY_FILE: &str = \"license-policy.tsv\";\n const POLICY_FIELD_COUNT: usize = 3;\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:52:\n         let fields: Vec<&str> = line.split('\\t').collect();\n         if fields.len() != POLICY_FIELD_COUNT {\n             let display_line = line_index + 1;\n\u001b[31m-            return Err(format!(\n\u001b(B\u001b[m\u001b[31m-                \"policy line {display_line} must contain {POLICY_FIELD_COUNT} tab-separated fields\"\n\u001b(B\u001b[m\u001b[31m-            ));\n\u001b(B\u001b[m\u001b[32m+            return Err(format!(\"policy line {display_line} must contain {POLICY_FIELD_COUNT} tab-separated fields\"));\n\u001b(B\u001b[m         }\n         let kind = parse_rule_kind(fields[0])?;\n         let path = PathBuf::from(fields[1]);\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:118:\n         return Ok(value);\n     }\n     if package_uses_workspace_license(manifest) {\n\u001b[31m-        if let Some(value) =\n\u001b(B\u001b[m\u001b[31m-            section_assignment(workspace_manifest, WORKSPACE_PACKAGE_SECTION, LICENSE_KEY)\n\u001b(B\u001b[m\u001b[31m-        {\n\u001b(B\u001b[m\u001b[32m+        if let Some(value) = section_assignment(workspace_manifest, WORKSPACE_PACKAGE_SECTION, LICENSE_KEY) {\n\u001b(B\u001b[m             return Ok(value);\n         }\n         return Err(\"package inherits a missing workspace license\".to_owned());\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:128:\n     Err(\"package has no explicit or inherited license\".to_owned())\n }\n \n\u001b[31m-fn validate_package_license(\n\u001b(B\u001b[m\u001b[31m-    manifest: &str,\n\u001b(B\u001b[m\u001b[31m-    workspace_manifest: &str,\n\u001b(B\u001b[m\u001b[31m-    expected: &str,\n\u001b(B\u001b[m\u001b[31m-) -> Result<(), String> {\n\u001b(B\u001b[m\u001b[32m+fn validate_package_license(manifest: &str, workspace_manifest: &str, expected: &str) -> Result<(), String> {\n\u001b(B\u001b[m     let actual = declared_package_license(manifest, workspace_manifest)?;\n     if actual != expected {\n         return Err(format!(\"expected {expected}, found {actual}\"));\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:189:\n \n     let inherited_manifest = \"[package]\\nname = \\\"shell\\\"\\nlicense.workspace = true\\n\";\n     let workspace_manifest = \"[workspace.package]\\nlicense = \\\"AGPL-3.0-or-later\\\"\\n\";\n\u001b[31m-    assert!(\n\u001b(B\u001b[m\u001b[31m-        validate_package_license(inherited_manifest, workspace_manifest, \"AGPL-3.0-or-later\")\n\u001b(B\u001b[m\u001b[31m-            .is_ok()\n\u001b(B\u001b[m\u001b[31m-    );\n\u001b(B\u001b[m\u001b[32m+    assert!(validate_package_license(inherited_manifest, workspace_manifest, \"AGPL-3.0-or-later\").is_ok());\n\u001b(B\u001b[m     assert!(validate_package_license(inherited_manifest, \"\", \"AGPL-3.0-or-later\").is_err());\n \n     assert!(validate_artifact(None, \"GNU AFFERO GENERAL PUBLIC LICENSE\").is_err());\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:238:\n         }\n         RuleKind::Contains => {\n             let contents = read_required(&path)?;\n\u001b[31m-            validate_contains(&contents, &rule.value)\n\u001b(B\u001b[m\u001b[31m-                .map_err(|error| format!(\"{}: {error}\", rule.path.display()))\n\u001b(B\u001b[m\u001b[32m+            validate_contains(&contents, &rule.value).map_err(|error| format!(\"{}: {error}\", rule.path.display()))\n\u001b(B\u001b[m         }\n         RuleKind::Forbid => {\n             let contents = read_required(&path)?;\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:246:\n\u001b[31m-            validate_forbid(&contents, &rule.value)\n\u001b(B\u001b[m\u001b[31m-                .map_err(|error| format!(\"{}: {error}\", rule.path.display()))\n\u001b(B\u001b[m\u001b[32m+            validate_forbid(&contents, &rule.value).map_err(|error| format!(\"{}: {error}\", rule.path.display()))\n\u001b(B\u001b[m         }\n         RuleKind::ForbidAny => {\n             let contents = read_required(&path)?;\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:251:\n\u001b[31m-            validate_forbid_any(&contents, &rule.value)\n\u001b(B\u001b[m\u001b[31m-                .map_err(|error| format!(\"{}: {error}\", rule.path.display()))\n\u001b(B\u001b[m\u001b[32m+            validate_forbid_any(&contents, &rule.value).map_err(|error| format!(\"{}: {error}\", rule.path.display()))\n\u001b(B\u001b[m         }\n     }\n }\nDiff in /home/brittonr/git/OnixResearch/trellis/tools/check-license-boundary.rs:321:\n fn validate_workspace_coverage(workspace_manifest: &str, rules: &[Rule]) -> Result<(), String> {\n     let manifests = workspace_member_manifests(workspace_manifest);\n     for manifest in manifests {\n\u001b[31m-        let count = rules\n\u001b(B\u001b[m\u001b[31m-            .iter()\n\u001b(B\u001b[m\u001b[31m-            .filter(|rule| rule.kind == RuleKind::Package && rule.path == manifest)\n\u001b(B\u001b[m\u001b[31m-            .count();\n\u001b(B\u001b[m\u001b[32m+        let count = rules.iter().filter(|rule| rule.kind == RuleKind::Package && rule.path == manifest).count();\n\u001b(B\u001b[m         if count != 1 {\n             return Err(format!(\n                 \"workspace package {} must have exactly one package rule; found {count}\",\n",
+        "stderr": ""
+      },
+      "classification": "Formatter requests layout changes outside the changed license-fixture lines. Existing unrelated source layout was retained; no formatting pass is claimed."
+    },
+    "reproduction": {
+      "maintained_sources": [
+        "tools/check-license-boundary.rs",
+        "scripts/check-crate-metadata.rs",
+        "scripts/check-verification-policy.rs",
+        "scripts/check-nickel-export-cutover.rs"
+      ],
+      "tool_builds": [
+        {
+          "owner": "trellis",
+          "label": "maintained tooling build check-license-boundary",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/gbrj4zlys951xy55wqwr74m0kmiz6xr1-rust-default-1.96.0-nightly-2026-03-21/bin/rustc",
+            "--edition=2024",
+            "tools/check-license-boundary.rs",
+            "-o",
+            "/dev/shm/trellis-native-policy-repair-20261017/check-license-boundary"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "maintained tooling build check-crate-metadata",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/gbrj4zlys951xy55wqwr74m0kmiz6xr1-rust-default-1.96.0-nightly-2026-03-21/bin/rustc",
+            "--edition=2024",
+            "scripts/check-crate-metadata.rs",
+            "-o",
+            "/dev/shm/trellis-native-policy-repair-20261017/check-crate-metadata"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        }
+      ],
+      "policy_checker_build": {
+        "owner": "trellis",
+        "label": "maintained policy fixture checker build",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/nix/store/gbrj4zlys951xy55wqwr74m0kmiz6xr1-rust-default-1.96.0-nightly-2026-03-21/bin/rustc",
+          "--edition=2024",
+          "scripts/check-verification-policy.rs",
+          "-o",
+          "/dev/shm/trellis-native-policy-repair-20261017/check-verification-policy"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "",
+        "stderr": ""
+      },
+      "exporter_revision": "257fafc1c746f1faf156207043a4c826bfb16d49",
+      "nickel_version": "1.17.0",
+      "native_schema_revision": "b6759012db4dab0158936e995b7bad39ac10465b",
+      "release_rail_limit": "Cached local executables are diagnostic observations, not satisfaction of the immutable Nix release rail."
+    },
+    "non_claims": [
+      "Licensing does not relicense third-party code, revoke earlier grants or expand proof claims",
+      "Local preparation and checks do not prove copyright title, redistribution permission, privacy clearance, anonymous acquisition, AGPL compliance of every combined output or release eligibility",
+      "No publication, signing, visibility change, remote operation, consumer pin update or lifecycle archive occurred"
+    ]
+  },
+  "native_policy_repair_verification": {
+    "schema": "trellis.native-policy-admission.repair.local-evidence.v1",
+    "maintenance_owner": "Trellis maintainers",
+    "immediate_consumer": "prepare-owned-source-agpl",
+    "scope": "Metadata-only repair of the complete existing owning policy; no weakening or toolchain, proof, source-import, consumer-pin, licensing or publication cutover",
+    "bootstrap": {
+      "basis": "Complete pre-repair generated owning policy plus four required traceability metadata leaves",
+      "full_pinned_contract": "cairn-policy/upstream-source/contracts.ncl:Policy",
+      "owning_integrity_contract": "cairn-policy/contracts.ncl:PolicyIntegrity",
+      "preimplementation_gates": [
+        {
+          "owner": "trellis",
+          "label": "policy repair preimplementation proposal",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "proposal",
+            "repair-native-policy-admission",
+            "--root",
+            ".",
+            "--policy",
+            "/dev/shm/trellis-native-policy-repair-20261017/candidate-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"f4a0391cf773422e097327351ff7c18864983744f48da9f179f691f76c85b7e9\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"001ec600ff4d23c07b261f600ff8869bca44b632c1bf05c2307992ebc542f43e\",\n  \"receipt_hash\": \"e5153ebbf5226c4a481b36f8baa6fc94ec2f92b2aee975f89fca964dde15c808\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        },
+        {
+          "owner": "trellis",
+          "label": "policy repair preimplementation design",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "design",
+            "repair-native-policy-admission",
+            "--root",
+            ".",
+            "--policy",
+            "/dev/shm/trellis-native-policy-repair-20261017/candidate-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"e8e0f2bde87a92d7916e5b94bccb2180f019fd5c07548b5ea2d65102ccd48111\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"001ec600ff4d23c07b261f600ff8869bca44b632c1bf05c2307992ebc542f43e\",\n  \"receipt_hash\": \"c543ddce8226fa116f17beeff06890537480fb81388e49e6a34d53d28effac37\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        },
+        {
+          "owner": "trellis",
+          "label": "policy repair preimplementation tasks",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+            "gate",
+            "tasks",
+            "repair-native-policy-admission",
+            "--root",
+            ".",
+            "--policy",
+            "/dev/shm/trellis-native-policy-repair-20261017/candidate-policy.json"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"7c5b8aa6ef656672dec7ad03c9b8ae97dd8b2450e1910b30cd38e83eb8a3b278\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"profile_identity_hash\": \"001ec600ff4d23c07b261f600ff8869bca44b632c1bf05c2307992ebc542f43e\",\n  \"receipt_hash\": \"d09d40661c595964c9063099e0abd1834c5454a971da8c86e9742ccfa11ff7f9\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 4,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 4,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 4,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 4\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+          "stderr": "",
+          "semantic_verdict": "PASS",
+          "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+        }
+      ]
+    },
+    "semantic_comparison": {
+      "complete_original_preserved_after_removing_only_added_leaves": true,
+      "added_leaves": [
+        "traceability_policy.profiles[cairn-default].assurance_level",
+        "traceability_policy.profiles[cairn-default].anchor_kind",
+        "traceability_policy.profiles[trellis-rust].assurance_level",
+        "traceability_policy.profiles[trellis-rust].anchor_kind"
+      ],
+      "maintained_policy_equals_admitted_candidate": true,
+      "identities": [
+        {
+          "owner": "trellis",
+          "label": "original complete policy canonical BLAKE3",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/brfnb6wll2hqhq5dscr3wl6j5l7a3c3d-b3sum-1.8.3/bin/b3sum"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "fca83b82955f3bc57434a7674b9a569b47638781cf377cb49ca534381084ed97  -\n",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "repaired complete policy canonical BLAKE3",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/brfnb6wll2hqhq5dscr3wl6j5l7a3c3d-b3sum-1.8.3/bin/b3sum"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534  -\n",
+          "stderr": ""
+        }
+      ]
+    },
+    "generation": {
+      "legacy_generation_prerequisite": "The maintained writer rejects stale existing legacy observations. Refresh declared source-derived legacy outputs with the pinned evaluator before invoking writer; do not hand-edit generated JSON.",
+      "legacy_observations": [
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh verification-policy",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "verification-policy/generated/policy.json",
+            "verification-policy/policy.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh proof-review-policy",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "proof-review/generated/policy.json",
+            "proof-review/policy.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh cairn-policy",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "cairn-policy/generated/cairn-policy.json",
+            "cairn-policy/default.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh lifecycle-config",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "yaml",
+            "--output",
+            "cairn/config.yaml",
+            "cairn/config.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh proof-evidence-contract",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "nickel-export-cutover/generated/outputs/proof-evidence-contract.json",
+            "json-artifacts/proof-evidence-bundle.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh octet-baseline-contract",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "nickel-export-cutover/generated/outputs/octet-baseline-contract.json",
+            "json-artifacts/octet-baseline.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh verification-policy-contract",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "nickel-export-cutover/generated/outputs/verification-policy-contract.json",
+            "json-artifacts/verification-policy-generated.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh proof-review-policy-contract",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "nickel-export-cutover/generated/outputs/proof-review-policy-contract.json",
+            "json-artifacts/proof-review-policy-generated.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "owner": "trellis",
+          "label": "pinned legacy observation refresh cairn-policy-contract",
+          "cwd": "/home/brittonr/git/OnixResearch/trellis",
+          "command": [
+            "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+            "export",
+            "--format",
+            "json",
+            "--output",
+            "nickel-export-cutover/generated/outputs/cairn-policy-contract.json",
+            "json-artifacts/cairn-policy-generated.ncl"
+          ],
+          "exit": 0,
+          "expected": 0,
+          "matched": true,
+          "stdout": "",
+          "stderr": ""
+        }
+      ],
+      "maintained_export_write": {
+        "owner": "trellis",
+        "label": "maintained pinned policy export write",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/trellis-native-policy-repair-20261017/cargo-target/debug/trellis-policy-export-checker",
+          "--root",
+          "/home/brittonr/git/OnixResearch/trellis",
+          "--nickel",
+          "/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin/nickel",
+          "--nickel-export",
+          "/nix/store/yaqnsiidsq45x95gscbvdw9xxai29ydf-nickel-export-0.1.0/bin/nickel-export",
+          "--source-revision",
+          "257fafc1c746f1faf156207043a4c826bfb16d49",
+          "--write"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "standalone Nickel export write passed: 9 outputs, 35 invalid fixtures\n",
+        "stderr": ""
+      }
+    },
+    "fixture_validation": {
+      "owner": "trellis",
+      "label": "maintained policy fixtures and legacy freshness",
+      "cwd": "/home/brittonr/git/OnixResearch/trellis",
+      "command": [
+        "env",
+        "PATH=/nix/store/ck3a4k9az87z5rjwgy8nmpcs34xp9cc5-nickel-lang-rev-fixup-1.17.0/bin:/home/brittonr/.local/bin:/home/brittonr/.nix-profile/bin:/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin:/nix/store/gzh2rx2sjwra135my0jw3va49hm7z4vf-bun-1.3.13/bin:/nix/store/jnsflr3i2c90hrlly1cgwvxr9s74kgab-docker-29.8.0/bin:/nix/store/f51vybn5cd5v88pk7hnrdr6db1q0rzw7-ghzinga-0.5.0/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/xvd6920kffyyshg7mbw5wvfk6lg9wfkl-jq-1.8.2-bin/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/ggcm0s524bsly3qc7kww945qs7003psf-openssh-10.5p1/bin:/nix/store/mcdxl3mmx2s8zy6gxy4ss5paiaz79qkc-pueue-4.0.4/bin:/nix/store/a8hj1bz1gd378sxz4fabmgrl61ad202p-socat-1.8.1.3/bin:/home/brittonr/.optmem:/run/wrappers/bin:/etc/profiles/per-user/brittonr/bin:/run/current-system/sw/bin",
+        "/dev/shm/trellis-native-policy-repair-20261017/check-verification-policy",
+        "--legacy-parity"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "matched": true,
+      "stdout": "PASS nickel export verification-policy/policy.ncl\nPASS verification policy fresh verification-policy/generated/policy.json\nPASS nickel export proof-review/policy.ncl\nPASS proof-review policy fresh proof-review/generated/policy.json\nPASS nickel export cairn-policy/default.ncl\nPASS cairn policy fresh cairn-policy/generated/cairn-policy.json\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-duplicate-checker.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-empty-checkers.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-missing-exemption-owner.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-unsafe-path.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/invalid-unsupported-severity.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/verification-policy/fixtures/valid-minimal.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-dangling-mode.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-dangling-rule-reference.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-dangling-validation-gate.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-duplicate-rule.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-empty-rules.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/invalid-unsupported-severity.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/proof-review/fixtures/valid-minimal.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-artifact-dependency.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-determinism-surface-coverage.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-duplicate-marker.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-receipt-schema-hash-field.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-replay-group-case.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-missing-anchor.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-missing-assurance.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-unsupported-anchor.ncl\nPASS invalid fixture rejected /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/invalid-traceability-unsupported-assurance.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/valid-minimal.ncl\nPASS valid fixture /home/brittonr/git/OnixResearch/trellis/cairn-policy/fixtures/valid-traceability-metadata.ncl\nverification policy fixture checks: PASS\nverification policy legacy parity: PASS\n",
+      "stderr": ""
+    },
+    "native_full_policy_gates": [
+      {
+        "owner": "trellis",
+        "label": "repair-native-policy-admission native proposal",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "gate",
+          "proposal",
+          "repair-native-policy-admission",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"256a3e269a574bff28f312bf6d0c540bdab7207491ece1f9cbfa3f262ed78328\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"f9b345f9da2f25fdffe31c2ca37e11c3a7e4ee0c4043bb008ddb1a2661040267\",\n  \"receipt_hash\": \"76aac4f48d9efcc9d161ebad0bb934bf8579f94b80c6a7dec92799353c940e32\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+        "stderr": "",
+        "semantic_verdict": "PASS",
+        "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+      },
+      {
+        "owner": "trellis",
+        "label": "repair-native-policy-admission native design",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "gate",
+          "design",
+          "repair-native-policy-admission",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"3616584ea50c8f174c17edbed90b270f13564acfb06776327bc053bc9564cfa5\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"f9b345f9da2f25fdffe31c2ca37e11c3a7e4ee0c4043bb008ddb1a2661040267\",\n  \"receipt_hash\": \"4466e4b619c527ce4bd84ea34f2b6ae7df82bd9bbbe2ba72f949786119000960\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+        "stderr": "",
+        "semantic_verdict": "PASS",
+        "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+      },
+      {
+        "owner": "trellis",
+        "label": "repair-native-policy-admission native tasks",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "gate",
+          "tasks",
+          "repair-native-policy-admission",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"repair-native-policy-admission\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"6e23adb08ee7af19578ed6d961c560ffe3b7f9c65d39e5c4015c413f83ee5ede\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"profile_identity_hash\": \"f9b345f9da2f25fdffe31c2ca37e11c3a7e4ee0c4043bb008ddb1a2661040267\",\n  \"receipt_hash\": \"84cbff8e70ce09fd8915ed037c9d2ec05015c97f1066a1fb6f9fe7ec404c8de6\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/specs/native-policy-admission/spec.md\",\n      \"requirement_blocks\": 3,\n      \"scenario_blocks\": 6,\n      \"substantive_lines\": 21,\n      \"substantive_requirement_blocks\": 3,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 4,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/repair-native-policy-admission/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 4,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 4,\n      \"task_done\": 1,\n      \"task_in_progress\": 0,\n      \"task_todo\": 3\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n",
+        "stderr": "",
+        "semantic_verdict": "PASS",
+        "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+      },
+      {
+        "owner": "trellis",
+        "label": "prepare-owned-source-agpl native proposal",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "gate",
+          "proposal",
+          "prepare-owned-source-agpl",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"change\": \"prepare-owned-source-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"d9e3a75179ee2b5aacd7d6ba28aa90e0398a6becf17ed9180688ed9cfad249d3\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"receipt_hash\": \"70d02f08e7199076459af83f2a7500c913ec906471d5b9c1115e280ffd49eb75\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\"\n}\n",
+        "stderr": "",
+        "semantic_verdict": "PASS",
+        "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+      },
+      {
+        "owner": "trellis",
+        "label": "prepare-owned-source-agpl native design",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "gate",
+          "design",
+          "prepare-owned-source-agpl",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"change\": \"prepare-owned-source-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"ea75623e591f7823de7819faa48a07400411f779aadc275c7f1ad2ec27f70da6\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": null,\n  \"receipt_hash\": \"0cb7385d84f93e7aa57fcd4e4761a7835392464c13433763e29869673ee9ed61\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 4,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 14,\n      \"substantive_lines\": 53,\n      \"substantive_requirement_blocks\": 10,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 4,\n      \"substantive_lines\": 16,\n      \"substantive_requirement_blocks\": 4,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\"\n}\n",
+        "stderr": "",
+        "semantic_verdict": "PASS",
+        "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+      },
+      {
+        "owner": "trellis",
+        "label": "prepare-owned-source-agpl native tasks",
+        "cwd": "/home/brittonr/git/OnixResearch/trellis",
+        "command": [
+          "/dev/shm/kiln-agpl-cairn-b675-target/debug/cairn",
+          "gate",
+          "tasks",
+          "prepare-owned-source-agpl",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit": 0,
+        "expected": 0,
+        "matched": true,
+        "stdout": "{\n  \"change\": \"prepare-owned-source-agpl\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"852d3030e9b6ebffea537756ef670c55e65fbe64fd7813a1ef6ffbdfe968f8e9\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"trellis-default\",\n  \"policy_hash\": \"2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534\",\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"receipt_hash\": \"625b8f1f277fbf0cd19507bf89d4871ff11f55615954903b4bed706d1d78502d\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 4,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 6,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/crate-packaging/spec.md\",\n      \"requirement_blocks\": 10,\n      \"scenario_blocks\": 14,\n      \"substantive_lines\": 53,\n      \"substantive_requirement_blocks\": 10,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/specs/owned-source-agpl/spec.md\",\n      \"requirement_blocks\": 4,\n      \"scenario_blocks\": 4,\n      \"substantive_lines\": 16,\n      \"substantive_requirement_blocks\": 4,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 5,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/prepare-owned-source-agpl/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 5,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 5,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 5\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\"\n}\n",
+        "stderr": "",
+        "semantic_verdict": "PASS",
+        "policy_hash": "2ab312cf8f6622935d8039b9a91abeb1f4475703965564cf9df61f659314c534"
+      }
+    ],
+    "non_claims": [
+      "Native gates prove only selected bounded lifecycle structure, not review quality, source correctness, proof certification, legal clearance or release eligibility",
+      "Local executable paths are diagnostic inputs, not satisfaction of the immutable Nix release rail",
+      "No immutable upstream import, consumer pin or remote publication was changed"
+    ]
+  }
+}

@@ -40,3 +40,10 @@ occurred.
 
 - [x] [serial] Recheck the standalone quick start from a fresh anonymous main clone, document the tested Garden smart-HTTP client protocol, and retain exact public-source/build/hygiene observations without changing hosting or optional-runtime readiness. r[kiln.public_release.sources] r[kiln.public_release.claims]
 
+
+## Phase 6: Operator-approved public cutover
+
+- [ ] [serial] Finalize current-source license/provenance records, preserve unrelated work, and freeze one exact source-only candidate under the recorded operator authority. r[kiln.public_release.claims]
+- [ ] [serial] Review the candidate and published-history/forge exposure; exercise credential-isolated source acquisition, full x86_64 checks, native gates and actual CLI behavior with exact archive identities. r[kiln.public_release.sources] r[kiln.public_release.gates] r[kiln.public_release.claims]
+- [ ] [serial] Fast-forward canonical and GitHub main to the approved source, set the GitHub default to main, make its source projection public, and retain fresh anonymous readback plus a later evidence-only receipt without rewriting historical claims. r[kiln.public_release.claims]
+

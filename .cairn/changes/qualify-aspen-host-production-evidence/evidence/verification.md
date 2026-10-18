@@ -42,6 +42,17 @@ The actual built current-source CLI [admitted the complete receipt](artifacts/9a
 
 The same CLI [rejected 16 metadata variations](artifacts/20ce5af2af2a3b174b759140a7fea046514d12a77ac59992355e53a575199c26): missing, duplicate, failed or unknown observations, a failed required gate, stale and mixed cohorts, unsupported version and all eight stronger claims. It also [rejected changed retained bytes and an absent artifact root](artifacts/4d04fdc524bb69137682f2a76671a6938e92133ac2c91b835c66a8a37c033bbc). [Complete consumer proof](artifacts/a8e09121075d0bdb324e49a87bad6e474a095de49eb1c77ee082722cf943dbca) links the actual executable, inputs and command outputs. Admission checks supplied consistency and direct artifact bytes; it does not attest observation truth or recursively certify assertions inside those artifacts.
 
+## Authorized main publication
+
+The separately authorized [publication receipt](publication.json) records both declared `main` refs fast-forwarded from `2bf997aeb81b6c2047e816526a99b0a6d2847eae` to `c9266e05d3d44f8d0be06aa60c69edd6b3586adb`. This source-plus-evidence revision is distinct from the frozen executable-input revision above.
+
+Fresh GitHub SSH, namespace-scoped native Radicle and anonymous Garden HTTPS checkouts each reproduced all 1441 regular members and the 23767040-byte normalized USTAR archive, BLAKE3 `561e1106ae4c836d1042042818ad181b97b190214a98f92430015ea213826c61`. Native readback used the exact configured case-preserving `rad::rad://<RID>/<delegate>` helper URL; Garden used client-scoped Git protocol v0. Earlier malformed/decorated and lowercased native-URL attempts remain failed observations, not failed source identities.
+
+Iris, Rosa and Garden namespace APIs reported that same `main` at read time. Public visibility, the one delegate and threshold one remained unchanged. Exact post-push signed refs, acquisition commands and bounds are retained in the receipt. These observations do not prove seed trust, physical replica independence or future availability.
+
+Post-push receipts and readback observations are retained in a local evidence-only child and are not inside the published revision or its archive. No deployment, live-service change, lifecycle sync/archive or release action follows.
+
+
 ## Historical failures and superseded cohorts
 
 The [original blocked verification](artifacts/c0ad1feee13d0db6b61193dfda38d2c6f786b3a1153b8af7fc5e524499bf7be3), [incomplete receipt](receipt-incomplete.json) and [blocked receipt](receipt-blocked.json) retain their original unpublished payload/cohort. The [current-source CLI still rejects the historical blocked receipt](artifacts/edc45879fb3ed5c0f7dce7508193ae5f0e52e6ec0e69ee639f7f4f670eb3be7e). Historical source archives, publication receipts and failed or quarantined state were not relabeled current or passing.
