@@ -54,7 +54,7 @@ fn main() -> CoreResult<()> {
             .attempts
             .get(&attempt_id)
             .map(|attempt| attempt.outcome),
-        Some(Outcome::Success)
+        Some(Outcome::DomainFailure)
     );
     let late_success = CommandEnvelope {
         command_id: CommandId::new("live-ci-late-success")?,
