@@ -18,6 +18,9 @@ path = "src/main.rs"
 name = "kiln-github-job"
 path = "src/bin/github-job.rs"
 
+[dev-dependencies]
+lattice-workflow-contract.workspace = true
+
 [dependencies]
 kiln-core.workspace = true
 kiln-provider-api.workspace = true

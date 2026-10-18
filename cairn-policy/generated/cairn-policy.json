@@ -5777,6 +5777,13 @@
             ],
             "root": ".cairn/changes/qualify-live-github-iroh-ci/specs",
             "source_kind": "requirements_doc"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/add-local-ci-composition-e2e/specs",
+            "source_kind": "requirements_doc"
           }
         ]
       },

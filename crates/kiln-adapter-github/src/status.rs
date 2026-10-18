@@ -1408,6 +1408,17 @@ mod dns_tests {
             .is_some_and(|(_, rest)| !rest.starts_with('Z'))
     }
 
+    fn wait_until_stopped(pid: &str) {
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while process_is_running(pid) {
+            assert!(
+                Instant::now() < deadline,
+                "process {pid} remained running after process-group teardown"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
     // r[verify kiln.github.status]
     #[test]
     fn stalled_resolver_subprocess_deadline_kills_and_reaps_its_process_group() {
@@ -1439,8 +1450,10 @@ mod dns_tests {
             .unwrap_or_else(|_| unreachable!("resolver fixture records its process identity"));
         let descendant = std::fs::read_to_string(descendant)
             .unwrap_or_else(|_| unreachable!("resolver fixture records its process identity"));
-        assert!(!process_is_running(&leader));
-        assert!(!process_is_running(&descendant));
+        // Process-group teardown and reaping are asynchronous; bound the
+        // observation window instead of requiring an instantaneous exit.
+        wait_until_stopped(&leader);
+        wait_until_stopped(&descendant);
         // Bounded Exec owns and waits for the direct child; no unreaped leader.
         assert!(!std::path::Path::new(&format!("/proc/{leader}")).exists());
     }

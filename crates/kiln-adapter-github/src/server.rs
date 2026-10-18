@@ -52,7 +52,7 @@ pub fn runtime(
         &admitted.config.status_secret,
         "publish exact Kiln GitHub CI status",
     )?;
-    let status = GithubStatusClient::new(admitted.config.status.clone(), token)?;
+    let status = status_client(admitted, token)?;
     let transport = UnixWorkflowExchange::new(
         admitted.config.workflow.socket_path.clone(),
         admitted.transport.clone(),
@@ -66,6 +66,28 @@ pub fn runtime(
         open_store(admitted)?,
         admitted.config.clone(),
     ))
+}
+
+// Test-only status transport selection. The feature is absent from deployed
+// packages; production builds always use the fixed GitHub API endpoint.
+#[cfg(feature = "protocol-fixtures")]
+const FIXTURE_STATUS_ENDPOINT: &str = "KILN_GITHUB_FIXTURE_STATUS_ENDPOINT";
+
+fn status_client(
+    admitted: &AdmittedGithubConfig,
+    token: ResolvedSecret,
+) -> PortResult<GithubStatusClient> {
+    #[cfg(feature = "protocol-fixtures")]
+    if let Some(endpoint) = std::env::var_os(FIXTURE_STATUS_ENDPOINT) {
+        let endpoint = endpoint.to_str().ok_or_else(|| {
+            infrastructure(
+                "github_fixture_endpoint",
+                "Fixture status endpoint is not UTF-8",
+            )
+        })?;
+        return GithubStatusClient::new_fixture(admitted.config.status.clone(), token, endpoint);
+    }
+    GithubStatusClient::new(admitted.config.status.clone(), token)
 }
 
 // r[impl kiln.github.shell]
