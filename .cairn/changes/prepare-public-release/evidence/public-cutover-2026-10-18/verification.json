@@ -1,0 +1,647 @@
+{
+  "schema": "kiln.public-cutover-verification.v1",
+  "candidate": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+  "observed_at_utc": "2026-10-19T10:33:17.851072+00:00",
+  "owner": "Kiln maintainers",
+  "scope": "Source-only public cutover verification for one frozen candidate: source identity, archive recipe reproduction, credential-isolated acquisition, the credential-isolated check set, native fixtures, lifecycle gates, packaged CLI behavior, and bounded privacy exposure review. No production, deployment, or combined-binary claim.",
+  "source_identity": {
+    "revision": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+    "tree_equivalence": {
+      "check_source_root": "ephemeral clean copy of the candidate revision",
+      "method": "git ls-tree/cat-file export of the candidate revision compared per path and mode against the checked source copy",
+      "tracked_entries": 1560,
+      "checked_files": 1560,
+      "symlinks": 0,
+      "mode_counts": {
+        "100644": 1545,
+        "100755": 15
+      },
+      "missing": [],
+      "extra": [],
+      "mismatched": [],
+      "verdict": "identical",
+      "recheck_after_checks": "identical (the checked copy was not modified by any exercised check)"
+    },
+    "archive_equivalence": {
+      "method": "extracted archive compared recursively against the checked source copy",
+      "verdict": "identical"
+    },
+    "archive_recipe_reproduction": {
+      "method": "the same export/manifest/tar recipe regenerated local bookmark publication-candidate-2026-10-15 from its recorded revision",
+      "entries": 719,
+      "manifest_blake3": "b2910c76b9c20eeb8d3b0b81730e22a6ee10c6401ff19dc969e521ad2f7ad93e",
+      "archive_blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+      "archive_bytes": 6051840,
+      "recorded_previous_values": {
+        "manifest_blake3": "b2910c76b9c20eeb8d3b0b81730e22a6ee10c6401ff19dc969e521ad2f7ad93e",
+        "archive_blake3": "5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5",
+        "archive_bytes": 6051840
+      },
+      "verdict": "all recorded identities reproduced"
+    }
+  },
+  "credential_isolated_checks": {
+    "command": [
+      "nix",
+      "build",
+      "--no-write-lock-file",
+      "--no-link",
+      "--json",
+      "-L",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.aspen-runtime-profile",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.boundaries",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.cairn-gate-cohort",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.celld-boundaries",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.clippy",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.format",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.github-protocol-fixtures",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.mantle-build-cohort",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.nickel",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.nix-eval-fixture-process",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.nix-eval-jobs-cohort",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.no-std",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.package",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.pijul-cohort",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.pijul-native-fixtures",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.radicle-mutation-native-fixtures",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.radicle-source-contract-fixtures",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.radicle-source-native-fixtures",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.radicle-status-boundaries",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.radicle-status-cohort",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.radicle-status-native-fixtures",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.release-evidence",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.runtime-independence",
+      "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source#checks.x86_64-linux.tests"
+    ],
+    "scope": "All 24 documented root-workspace check attributes; six explicitly private optional runtime/Octet checks remain selected by the separate full check.",
+    "environment_keys": [
+      "CARGO_HOME",
+      "GIT_ASKPASS",
+      "GIT_CONFIG_GLOBAL",
+      "GIT_CONFIG_NOSYSTEM",
+      "GIT_SSH_COMMAND",
+      "GIT_TERMINAL_PROMPT",
+      "HOME",
+      "LANG",
+      "NIX_CONFIG",
+      "PATH",
+      "TMPDIR",
+      "USER",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME"
+    ],
+    "exit_code": 0,
+    "attributes": 24,
+    "attribute_names": [
+      "aspen-runtime-profile",
+      "boundaries",
+      "cairn-gate-cohort",
+      "celld-boundaries",
+      "clippy",
+      "format",
+      "github-protocol-fixtures",
+      "mantle-build-cohort",
+      "nickel",
+      "nix-eval-fixture-process",
+      "nix-eval-jobs-cohort",
+      "no-std",
+      "package",
+      "pijul-cohort",
+      "pijul-native-fixtures",
+      "radicle-mutation-native-fixtures",
+      "radicle-source-contract-fixtures",
+      "radicle-source-native-fixtures",
+      "radicle-status-boundaries",
+      "radicle-status-cohort",
+      "radicle-status-native-fixtures",
+      "release-evidence",
+      "runtime-independence",
+      "tests"
+    ],
+    "outputs": {
+      "kiln-aspen-runtime-profile": {
+        "output": "/nix/store/fq39p87lrlp3lz75bxv93xyv9br04cp3-kiln-aspen-runtime-profile",
+        "drv": "/nix/store/9lipmyy6w7i1x4hza21hj9g9b2pvz6f3-kiln-aspen-runtime-profile.drv"
+      },
+      "kiln-0.1.0": {
+        "output": "/nix/store/sdr4yh2ybnx0bpcn82vb1dx865pna6qn-kiln-0.1.0",
+        "drv": "/nix/store/7ny0dywgv9w28fyily86b49qrdfvcj5p-kiln-0.1.0.drv"
+      },
+      "kiln-cairn-gate-cohort": {
+        "output": "/nix/store/6faafykbgz4kakiazfn8jlc4xhm1wr7y-kiln-cairn-gate-cohort",
+        "drv": "/nix/store/74qv3vizpbkrfl0yk7m5q7g2a0fc7wr8-kiln-cairn-gate-cohort.drv"
+      },
+      "kiln-celld-boundaries-0.1.0": {
+        "output": "/nix/store/2lj3m3vys46i5n0f6qw867kjaxliy8cg-kiln-celld-boundaries-0.1.0",
+        "drv": "/nix/store/q9fxaccyzbf5fvcgkrr4526g808baw47-kiln-celld-boundaries-0.1.0.drv"
+      },
+      "kiln-clippy-0.1.0": {
+        "output": "/nix/store/s0d3c15iv91r4hz9ljxyxcj5lzpvi761-kiln-clippy-0.1.0",
+        "drv": "/nix/store/j7riyj9li7sxyj6kl994l832x190mp5z-kiln-clippy-0.1.0.drv"
+      },
+      "kiln-format": {
+        "output": "/nix/store/ml9pd02qwfr8p630wwkc8i96r3r6p5is-kiln-format",
+        "drv": "/nix/store/d9x2k8z23hfsinbpr7x3q5gdvicxvbgv-kiln-format.drv"
+      },
+      "kiln-github-protocol-fixtures-0.1.0": {
+        "output": "/nix/store/2m765l7fyzyzryym81asxxay3f2y2pzy-kiln-github-protocol-fixtures-0.1.0",
+        "drv": "/nix/store/jpb1b9ikph2sdd8avn38409yrpay3hva-kiln-github-protocol-fixtures-0.1.0.drv"
+      },
+      "kiln-mantle-build-cohort": {
+        "output": "/nix/store/9b9g77wkvshpw16fvs0wr2pk63d266ma-kiln-mantle-build-cohort",
+        "drv": "/nix/store/xgnjlxq18dpmay1ni271chzr11ab1v6b-kiln-mantle-build-cohort.drv"
+      },
+      "kiln-nickel": {
+        "output": "/nix/store/0pxfhz2c1k9xp2mwx81fxf7x17767880-kiln-nickel",
+        "drv": "/nix/store/k695qj4ig2pymy0bln27w1lhhkkwlqha-kiln-nickel.drv"
+      },
+      "kiln-nix-eval-fixture-process-0.1.0": {
+        "output": "/nix/store/bq2jf0nw5kigan25p4mjz8x2bawg610h-kiln-nix-eval-fixture-process-0.1.0",
+        "drv": "/nix/store/16qifcbamyqcs25d96dlh9h8j7xhr2wl-kiln-nix-eval-fixture-process-0.1.0.drv"
+      },
+      "kiln-nix-eval-jobs-cohort": {
+        "output": "/nix/store/4yxgf9p093lhazhmda7qrmrm8i8wj5fy-kiln-nix-eval-jobs-cohort",
+        "drv": "/nix/store/sv8bvhm4vissi2drc22f3dwpshhj8qg7-kiln-nix-eval-jobs-cohort.drv"
+      },
+      "kiln-no-std-0.1.0": {
+        "output": "/nix/store/7lfg73dn0lmgksl4cmzj4z8whic7zrfc-kiln-no-std-0.1.0",
+        "drv": "/nix/store/7ks8xvhhphbbg7n2rnsc8l194zra95sh-kiln-no-std-0.1.0.drv"
+      },
+      "kiln-pijul-cohort": {
+        "output": "/nix/store/fnw2mc3kvbjab7qak9gzs908hd2niz69-kiln-pijul-cohort",
+        "drv": "/nix/store/izyrnvxq04mz2hxnrpp112jf81rhxfh5-kiln-pijul-cohort.drv"
+      },
+      "kiln-pijul-native-fixtures-0.1.0": {
+        "output": "/nix/store/dkxx91xdsb63abyldagv4wm4vk5d1ibf-kiln-pijul-native-fixtures-0.1.0",
+        "drv": "/nix/store/1d4y2z9yzac17510rf0i1lsmwgbshk76-kiln-pijul-native-fixtures-0.1.0.drv"
+      },
+      "kiln-radicle-mutation-native-fixtures-0.1.0": {
+        "output": "/nix/store/8dn0cy9q906an9xzcnwr1ykn499fvldr-kiln-radicle-mutation-native-fixtures-0.1.0",
+        "drv": "/nix/store/mp08qwkkc2g7yg59r5gs09bn5jh2i397-kiln-radicle-mutation-native-fixtures-0.1.0.drv"
+      },
+      "kiln-radicle-source-contract-fixtures-0.1.0": {
+        "output": "/nix/store/06lpmni04cj1dkhq78x05gjn3plz8id0-kiln-radicle-source-contract-fixtures-0.1.0",
+        "drv": "/nix/store/qjd8g0nc6lc7p9c4asvzf23mawyvhf9k-kiln-radicle-source-contract-fixtures-0.1.0.drv"
+      },
+      "kiln-radicle-source-native-fixtures-0.1.0": {
+        "output": "/nix/store/vk28nxddgql1avgvifqfj9zq50m3xn1d-kiln-radicle-source-native-fixtures-0.1.0",
+        "drv": "/nix/store/8mzbb2il0c8pn7jnzq8dyz5cvcg7j8mi-kiln-radicle-source-native-fixtures-0.1.0.drv"
+      },
+      "kiln-radicle-status-boundaries-0.1.0": {
+        "output": "/nix/store/am6y4yrc2gd473pwx5cllyap08d8qjaa-kiln-radicle-status-boundaries-0.1.0",
+        "drv": "/nix/store/0mnqzczfrw88nc3qa2vmy41m8jm06bn3-kiln-radicle-status-boundaries-0.1.0.drv"
+      },
+      "kiln-radicle-status-cohort": {
+        "output": "/nix/store/j8g4qhjay8l16fc3v6fwm7ilsi16z66d-kiln-radicle-status-cohort",
+        "drv": "/nix/store/r974qr593fzafgviwip7ip921wqhlffv-kiln-radicle-status-cohort.drv"
+      },
+      "kiln-radicle-status-native-fixtures-0.1.0": {
+        "output": "/nix/store/vkmkfq1gx9w4y12wa4dsx8xwdn4yk1l4-kiln-radicle-status-native-fixtures-0.1.0",
+        "drv": "/nix/store/bj01k18c7k382xjh7zbyvm9hiiyqzwi8-kiln-radicle-status-native-fixtures-0.1.0.drv"
+      },
+      "kiln-release-evidence": {
+        "output": "/nix/store/7gkzyal6fzxpzrhsm9sbyplz5v72v3is-kiln-release-evidence",
+        "drv": "/nix/store/1akq5xxy8jn0q3j135a0azrhcxh7h9pk-kiln-release-evidence.drv"
+      }
+    },
+    "cli_smoke": {
+      "argv": [
+        "/nix/store/sdr4yh2ybnx0bpcn82vb1dx865pna6qn-kiln-0.1.0/bin/kiln",
+        "demo"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"revision\":1,\"runs\":{\"demo-run\":{\"active_attempt\":\"demo-attempt\",\"outcome\":\"Pending\"}},\"attempts\":{\"demo-attempt\":{\"run_id\":\"demo-run\",\"provider_profile\":\"standalone-build-v1\",\"outcome\":\"Pending\",\"external_reference\":null,\"products\":[],\"metrics\":[]}},\"holds\":[],\"seen_commands\":[\"demo-start\"]}\n",
+      "stderr": ""
+    },
+    "started_at_utc": "2026-10-18T22:19:37.022510+00:00",
+    "finished_at_utc": "2026-10-18T22:30:33.590828+00:00",
+    "isolation": "Cleared HOME/CARGO_HOME/XDG paths, no SSH (GIT_SSH_COMMAND=/bin/false, protocol.ssh.allow=never), no askpass, disabled credential helper, empty Nix access-tokens/secret-key-files and /dev/null netrc, builders disabled, only cache.nixos.org substituters."
+  },
+  "optional_runtime_checks_not_exercised": {
+    "attributes": [
+      "aspen-runtime-octet-deny-all",
+      "kiln-aspen-host-octet-deny-all",
+      "kiln-aspen-host-package",
+      "kiln-radicle-nix-provider-octet-deny-all",
+      "kiln-radicle-nix-provider-package",
+      "radicle-broker-wire-octet-deny-all"
+    ],
+    "state": "not exercised in this cutover run",
+    "observed_behavior": "Every attempt to instantiate these attributes against the frozen source stalled with the client blocked on the local Nix daemon socket and effectively zero CPU in the client (measured CPU time under 1s over hours; the same attributes also stalled with remote builders disabled and with the evaluation cache disabled), while all other attributes of the same flake evaluated in seconds. The shared host carries many long-hung Nix clients from unrelated sessions.",
+    "why_this_is_not_a_source_gap": "These attributes select the optional runtime and Octet producer cohorts whose exact upstream sources are private and are explicitly outside the credential-free contributor build; docs/reference-pins.md records that full `nix flake check` requires those producer sources and that unavailable sources must fail rather than be skipped. No source, cohort pin, gate, or policy was changed to work around the host behavior, and the stalled runs were cancelled rather than reported as passing.",
+    "operator_decision": "Operator selected publication with the completed evidence and explicit non-exercise of these six attributes.",
+    "evidence_for_previous_candidates": "All 30 x86_64-linux attributes passed for earlier frozen inputs, as recorded in docs/hosting-and-recovery.md; that result belongs to those inputs and is not reused as evidence for this candidate.",
+    "retained_attempts": [
+      {
+        "attempt": "full flake check, credential-disabling Nix settings",
+        "outcome": "cancelled after stalling at the same instantiation step"
+      },
+      {
+        "attempt": "full flake check, operator environment",
+        "outcome": "cancelled after stalling; log retained with the last line naming the optional package"
+      },
+      {
+        "attempt": "single-attribute dry runs and evaluations (eval cache on/off, builders on/off)",
+        "outcome": "stalled; the bisect shows the package attribute evaluates in about two seconds while the four Octet consumer checks and the Aspen package attribute stall"
+      }
+    ]
+  },
+  "supplemental_native_checks": {
+    "celld_worker_fixtures": {
+      "command": [
+        "node",
+        "--test",
+        "tests/celld-worker.test.mjs"
+      ],
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "scope": "signed Worker and real-SQLite fixtures"
+    },
+    "cairn_policy_fixtures": {
+      "command": [
+        "bash",
+        "tests/cairn-workflow-policy.sh"
+      ],
+      "exit_code": 0,
+      "observed": "policy export check passed; the selected spec-driven profile is accepted and a policy without the outcome machine is denied"
+    }
+  },
+  "lifecycle": {
+    "command": "/etc/profiles/per-user/brittonr/bin/cairn",
+    "cwd": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source",
+    "observed_at_utc": "2026-10-18T23:26:31.354605+00:00",
+    "checks": [
+      {
+        "name": "strict-validation",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "validate",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json",
+          "--strict"
+        ],
+        "exit_code": 0,
+        "verdict": null,
+        "receipt_hash": "bd7a799491ef01512fb59c33d1d78990ff441c82db24c60ba0f1feb89b72e4df",
+        "issues": []
+      },
+      {
+        "name": "traceability",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "traceability",
+          "coverage",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json",
+          "--json"
+        ],
+        "exit_code": 0,
+        "verdict": "pass",
+        "receipt_hash": "b5f18a5e80c8063fb557368a47fb732c2ddedbc412c15ff0f4a804b3b1975b46",
+        "issues": null
+      },
+      {
+        "name": "proposal-gate-prepare-public-release",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "gate",
+          "proposal",
+          "prepare-public-release",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit_code": 0,
+        "verdict": "PASS",
+        "receipt_hash": "f96d2891bf83b4a1538cf3c8113da3145cd0daa2b69d492f643b5710fb534298",
+        "issues": []
+      },
+      {
+        "name": "design-gate-prepare-public-release",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "gate",
+          "design",
+          "prepare-public-release",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit_code": 0,
+        "verdict": "PASS",
+        "receipt_hash": "cc3f24da87c304714ba6afcf6f9f24901694de8a48dfd3fb826610cdab9add16",
+        "issues": []
+      },
+      {
+        "name": "tasks-gate-prepare-public-release",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "gate",
+          "tasks",
+          "prepare-public-release",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit_code": 0,
+        "verdict": "PASS",
+        "receipt_hash": "83e4b6bea7dacbf3741e757a03d364c057d7ade3d03f536fc236ea495c8f68dc",
+        "issues": []
+      },
+      {
+        "name": "proposal-gate-prepare-owned-dependencies-agpl",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "gate",
+          "proposal",
+          "prepare-owned-dependencies-agpl",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit_code": 0,
+        "verdict": "PASS",
+        "receipt_hash": "dfbb3ce9452a5e0e4440e956dc5d55fccc26d6966b2439c06c5901c1556be296",
+        "issues": []
+      },
+      {
+        "name": "design-gate-prepare-owned-dependencies-agpl",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "gate",
+          "design",
+          "prepare-owned-dependencies-agpl",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit_code": 0,
+        "verdict": "PASS",
+        "receipt_hash": "df2917a25b82674e212f69622bafa43c118b0284ad90fbe937ef6dc49df351b3",
+        "issues": []
+      },
+      {
+        "name": "tasks-gate-prepare-owned-dependencies-agpl",
+        "argv": [
+          "/etc/profiles/per-user/brittonr/bin/cairn",
+          "gate",
+          "tasks",
+          "prepare-owned-dependencies-agpl",
+          "--root",
+          ".",
+          "--policy",
+          "cairn-policy/generated/cairn-policy.json"
+        ],
+        "exit_code": 0,
+        "verdict": "PASS",
+        "receipt_hash": "09d6df860e8a23158a859b198c0402a7362f4edc6d4211b512a5ed676918b7a6",
+        "issues": []
+      }
+    ],
+    "traceability": {
+      "verdict": "pass",
+      "missing": [],
+      "dangling": [],
+      "input_hash": "3dad9cbd59a958ce40535cacc2657c5f94ff7b8088f80e562f08cea6022f1b01"
+    }
+  },
+  "anonymous_acquisition": {
+    "cold_flake_sources": {
+      "command": [
+        "nix",
+        "flake",
+        "archive",
+        "--no-write-lock-file",
+        "--json",
+        "--store",
+        "local?root=/var/tmp/kiln-public-cutover-20261018-b66y33zr/confirmed-anonymous-acquisition/cold-store",
+        "path:/var/tmp/kiln-public-cutover-20261018-b66y33zr/clean-source"
+      ],
+      "environment": {
+        "PATH": "/run/current-system/sw/bin:/usr/bin:/bin",
+        "HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/confirmed-anonymous-acquisition/home",
+        "USER": "brittonr",
+        "TMPDIR": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/tmp",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "TERM": "dumb",
+        "XDG_CONFIG_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/confirmed-anonymous-acquisition/home/.config",
+        "XDG_CACHE_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/confirmed-anonymous-acquisition/home/.cache",
+        "XDG_DATA_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/confirmed-anonymous-acquisition/home/.local/share",
+        "CARGO_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/confirmed-anonymous-acquisition/cargo",
+        "CARGO_TARGET_DIR": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/confirmed-anonymous-acquisition/target",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_ASKPASS": "/bin/false",
+        "SSH_ASKPASS": "/bin/false",
+        "GIT_SSH_COMMAND": "/bin/false",
+        "GIT_CONFIG_COUNT": "2",
+        "GIT_CONFIG_KEY_0": "credential.helper",
+        "GIT_CONFIG_VALUE_0": "",
+        "GIT_CONFIG_KEY_1": "protocol.ssh.allow",
+        "GIT_CONFIG_VALUE_1": "never",
+        "NIX_USER_CONF_FILES": "/dev/null",
+        "NIX_CONFIG": "experimental-features = nix-command flakes\naccess-tokens =\nsecret-key-files =\nnetrc-file = /dev/null\nbuilders =\nsubstituters = https://cache.nixos.org\nextra-substituters =\nmin-free = 0\nmax-free = 0\n"
+      },
+      "initial_home_empty": true,
+      "initial_cold_store_absent": true,
+      "exit_code": 0,
+      "store_path": "/nix/store/46kkj1v4myy9s2q133qkwid6npq52rkr-source",
+      "inputs": {
+        "nix-eval-jobs": {
+          "inputs": {
+            "flake-parts": {
+              "inputs": {},
+              "path": "/nix/store/pqjppkj5kcs4001j5svlsz1595hcja0y-source"
+            },
+            "nix": {
+              "inputs": {},
+              "path": "/nix/store/mxqs2kx71n63lrrc1cgh037q9f862r3y-source"
+            },
+            "nixpkgs": {
+              "inputs": {},
+              "path": "/nix/store/qs19c087rpasj7p8h8l8z8y80gxz9pwi-source"
+            },
+            "treefmt-nix": {
+              "inputs": {},
+              "path": "/nix/store/j2wzjpy3yyr56yv1klygrm7mya0kb2f0-source"
+            }
+          },
+          "path": "/nix/store/xx7385j23r97ra2x4j9mdh6lcs4pnwcq-source"
+        },
+        "nixpkgs": {
+          "inputs": {},
+          "path": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source"
+        },
+        "rust-overlay": {
+          "inputs": {},
+          "path": "/nix/store/gjx3mziwj0g4azg30z4irhkl8jsw8y26-source"
+        }
+      },
+      "limit": "Cold flake source acquisition is not a toolchain/native dependency bootstrap. The dev shell and sandboxed product build reuse the system Nix store and public binary cache. No optional-runtime anonymous claim."
+    },
+    "cargo": {
+      "cargo_binary": "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin/cargo",
+      "cargo_binary_blake3": "b003e6a80e52c89c3b403138a0033c4574195f17ea95b23762fcdbd1687809b1",
+      "cargo_version": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "pinned_toolchain_channel": "[toolchain]; channel = \"1.88.0\"; components = [\"clippy\", \"rustfmt\"]; targets = [\"wasm32-unknown-unknown\"]; profile = \"minimal\"",
+      "commands": [
+        [
+          "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin/cargo",
+          "--version"
+        ],
+        [
+          "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin/cargo",
+          "fetch",
+          "--locked"
+        ],
+        [
+          "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin/cargo",
+          "metadata",
+          "--locked",
+          "--offline",
+          "--format-version",
+          "1"
+        ]
+      ],
+      "environment": {
+        "PATH": "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin:/run/current-system/sw/bin:/usr/bin:/bin",
+        "HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/cargo-acquisition/home",
+        "USER": "brittonr",
+        "TMPDIR": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/tmp",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "TERM": "dumb",
+        "CARGO_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/cargo-acquisition/cargo",
+        "CARGO_TARGET_DIR": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/cargo-acquisition/target",
+        "XDG_CONFIG_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/cargo-acquisition/home/.config",
+        "XDG_CACHE_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/cargo-acquisition/home/.cache",
+        "XDG_DATA_HOME": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/cargo-acquisition/home/.local/share",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_ASKPASS": "/bin/false",
+        "SSH_ASKPASS": "/bin/false",
+        "GIT_SSH_COMMAND": "/bin/false",
+        "GIT_CONFIG_COUNT": "2",
+        "GIT_CONFIG_KEY_0": "credential.helper",
+        "GIT_CONFIG_VALUE_0": "",
+        "GIT_CONFIG_KEY_1": "protocol.ssh.allow",
+        "GIT_CONFIG_VALUE_1": "never",
+        "NIX_USER_CONF_FILES": "/dev/null"
+      },
+      "workspace_resolution": {
+        "workspace_members": 28,
+        "resolved_packages": 649,
+        "git_packages": [],
+        "cargo_git_cache_present": false,
+        "cargo_registry_cache_present": true,
+        "cargo_registry_archives": 614
+      },
+      "verdict": "PASS",
+      "limit": "This proves credential-isolated Cargo registry acquisition for the frozen source with a pinned 1.88.0 toolchain binary taken from the local Nix store. It is not a toolchain bootstrap, and it makes no claim about the optional runtime cohorts, which do not build through this workspace."
+    }
+  },
+  "bounded_exposure_review": {
+    "candidate_scan": {
+      "findings": 50,
+      "classification_counts": {
+        "public_dependency_package_names": 1,
+        "public_ed25519_did": 19,
+        "public_fixture_actor_identity": 9,
+        "public_idempotency_digest": 19,
+        "public_pinned_source_revision": 2
+      },
+      "confirmed_operational_secret_disclosures": 0,
+      "automatic_scanner_result": "NOT PASS (50 generic-api-key findings, all adjudicated against exact source spans)",
+      "record": "candidate-review.json"
+    },
+    "published_history_scan": {
+      "source_scope": "all fetched GitHub remote refs and tags, 92 commits",
+      "findings_reviewed": 51,
+      "confirmed_operational_secret_disclosures": 0,
+      "record": "history-review.json"
+    },
+    "forge_inventory": {
+      "branches": 5,
+      "issues_all_states": 1,
+      "issue_kind": "design request, not a pull request",
+      "tags": 0,
+      "releases": 0,
+      "actions_workflows": 0,
+      "actions_runs": 0,
+      "actions_artifacts": 0,
+      "deployments": 0,
+      "hooks": 0,
+      "forks": 0,
+      "issue_comments": 0,
+      "review_comments": 0,
+      "wiki": false,
+      "discussions": false,
+      "pages": false,
+      "record": "forge-review.json"
+    },
+    "limit": "Bounded scanner and manual reviews. They are not proof that every secret, privacy, or rights risk is absent, and they grant no copyright or redistribution authority."
+  },
+  "publication_readback": {
+    "record": "publication.json",
+    "anonymous_clone_github": {
+      "url": "https://github.com/OnixResearch/kiln.git",
+      "head": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+      "manifest_matches": true,
+      "archive_matches": true
+    },
+    "anonymous_clone_canonical_https": {
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "head": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+      "manifest_matches": true,
+      "archive_matches": true
+    }
+  },
+  "retained_failures_and_corrections": [
+    {
+      "item": "invalid credential-isolated invocation",
+      "detail": "error: setting 'netrc-file' is a path and paths cannot be empty\nTry 'nix --help' for more information.",
+      "correction": "Use the explicit empty file /dev/null; no gate, source, cohort, or credential policy changed.",
+      "classification": "setup failure, not a product or gate result"
+    },
+    {
+      "item": "cancelled superseded runs",
+      "detail": "A duplicate cold-acquisition job and a credential-disabling full check were cancelled after start; the credential-disabling configuration is not the repository procedure.",
+      "classification": "cancelled work, not PASS"
+    },
+    {
+      "item": "cancelled dev-shell cargo attempt",
+      "detail": "nix develop instantiation of the optional runtime cohort proved slow under shared-machine load; the credential-isolated Cargo acquisition was re-run with the pinned store cargo 1.88.0 binary.",
+      "classification": "superseded, not PASS"
+    },
+    {
+      "item": "evaluation cache contention",
+      "detail": "Concurrent evaluations of the same flake contend on one eval-cache SQLite database and stall; the decisive runs were made single-client.",
+      "classification": "environment contention, not a product failure"
+    },
+    {
+      "item": "optional runtime/Octet attributes stalled",
+      "detail": "See optional_runtime_checks_not_exercised.",
+      "classification": "not exercised; explicitly recorded"
+    }
+  ],
+  "non_claims": [
+    "Checks bind one exact source revision and the observed environment; they do not prove arbitrary other machines, aarch64-linux, or live provider behavior",
+    "The six optional runtime/Octet attributes were not exercised in this cutover; their producer sources are private and outside the credential-free contributor build",
+    "No production eligibility, deployment, combined-binary distribution, sandboxing, or CI-correctness claim is established",
+    "Historical publication and release receipts retain their original meaning"
+  ]
+}

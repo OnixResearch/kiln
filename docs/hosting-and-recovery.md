@@ -264,6 +264,69 @@ The GitHub repository metadata declares a noncanonical source view; its canonica
 Radicle identity and immutable Radicle release-channel contract remain unchanged.
 This is not authorization to substitute GitHub objects in dependency admission.
 
+## Source-only publication of candidate `f748acd0`
+
+The operator authorized one exact source-only cutover
+([`operator-authority.ncl`](../.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/operator-authority.ncl)).
+Both declared `main` refs were fast-forwarded from
+`2c529b154d625735c43246cad2178d70813a01c3` to
+`f748acd0cc239f48bf3565ccb89d46ce88cbee2f` (three local commits; no history was
+replaced and no force push was used). The GitHub default branch changed from
+`publication-candidate-2026-10-15` to `main`, and the GitHub projection changed
+from private to public. No governance, delegate or threshold change was made.
+
+The candidate's deterministic normalized USTAR source archive is BLAKE3
+`00d59178898714dbe136ad451d88b418771cb1fcc525d3dd152b1885c85fe9dd`
+(30,709,760 bytes, 1,560 entries); its compact sorted-key source manifest is
+BLAKE3 `c2da897ba6c01a070916feb55fbda9e45c07ab598519d8718f3552d110831100`
+(330,268 bytes, 1,560 entries). The same export, manifest and archive recipe
+reproduced the earlier `publication-candidate-2026-10-15` identities exactly, so
+the recipe itself is not new. Every tracked path, mode and BLAKE3 of the checked
+copy matched the candidate revision, and extracting the archive reproduced that
+copy.
+
+Fresh anonymous clones with cleared HOME, no credentials, no SSH and no global
+Git configuration reproduced the revision and the archive identity: GitHub HTTPS
+`https://github.com/OnixResearch/kiln.git` and the read-only canonical projection
+`https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git` (Git smart-HTTP
+protocol v0) both read back `f748acd0`, all 1,560 entries, manifest
+`c2da897b…` and archive `00d59178…`. `iris`, `rosa` and `seed.radicle.garden`
+namespace APIs agreed on `main` and on the delegate namespace head, governance
+remained one delegate at threshold one, and the local node reported the revision
+in sync with 19 peers after the push.
+
+All 24 credential-isolated root-workspace `checks.x86_64-linux` attributes passed
+with cleared HOME/CARGO_HOME/XDG paths, disabled SSH, credential helper, askpass,
+Nix tokens and netrc, no remote builders, and only `cache.nixos.org` as a
+substituter; the packaged CLI accepted `demo-start`. Cold flake-source acquisition
+into an isolated store without substituters and a pinned `cargo 1.88.0` fetch with
+zero Git-sourced workspace packages passed separately.
+
+The six optional runtime and Octet attributes (`aspen-runtime-octet-deny-all`,
+`kiln-aspen-host-octet-deny-all`, `kiln-aspen-host-package`,
+`kiln-radicle-nix-provider-octet-deny-all`, `kiln-radicle-nix-provider-package`,
+`radicle-broker-wire-octet-deny-all`) were **not exercised** in this cutover.
+Instantiating them stalled in the host's shared Nix daemon: the client blocked on
+the daemon socket with effectively no client CPU for hours, with remote builders
+disabled and the evaluation cache disabled, while every other attribute of the
+same flake evaluated in seconds. They were cancelled rather than reported as
+passing; no source, pin, gate, policy or cohort was changed to work around the
+host behavior. These attributes select exactly the optional producer cohorts whose
+private upstream sources are already declared outside the credential-free
+contributor build. Earlier "all 30 `x86_64-linux` checks passed" results belong to
+their own frozen inputs and are not reused here.
+
+[`verification.json`](../.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/verification.json)
+retains the commands, environments, identities, the non-exercised attributes and
+the failed or cancelled attempts;
+[`publication.json`](../.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/publication.json)
+is the later evidence-only receipt for the published revision, together with the
+anonymous readbacks, GitHub projection settings and post-push governance
+observations in the same directory. Rollback for `main` is
+`2c529b154d625735c43246cad2178d70813a01c3`; the previous GitHub default branch and
+visibility are recorded in that receipt. Changing visibility back cannot retract
+already copied public data.
+
 ## Recovery
 
 Keep an independent source archive and signed-reference capture. Keep the rollback revision outside a running Kiln service.

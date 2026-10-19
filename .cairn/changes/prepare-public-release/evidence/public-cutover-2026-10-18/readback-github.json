@@ -1,0 +1,65 @@
+{
+  "schema": "kiln.public-cutover-readback.v1",
+  "label": "github",
+  "url": "https://github.com/OnixResearch/kiln.git",
+  "url_scope": "anonymous HTTPS clone with cleared HOME, no credentials, no SSH, no Git global config",
+  "candidate": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+  "git_protocol_settings": [],
+  "observed_at_utc": "2026-10-19T10:32:14.199036+00:00",
+  "expected": {
+    "tree_entries": 1560,
+    "manifest_blake3": "c2da897ba6c01a070916feb55fbda9e45c07ab598519d8718f3552d110831100",
+    "manifest_bytes": 330268,
+    "archive_blake3": "00d59178898714dbe136ad451d88b418771cb1fcc525d3dd152b1885c85fe9dd",
+    "archive_bytes": 30709760
+  },
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "https://github.com/OnixResearch/kiln.git",
+        "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github/clone"
+      ],
+      "cwd": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github",
+      "exit_code": 0,
+      "stdout": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github/clone.stdout",
+      "stderr": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github/clone.stderr",
+      "stderr_tail": "Cloning into '/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github/clone'..."
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github/clone",
+        "fsck",
+        "--no-dangling"
+      ],
+      "cwd": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github",
+      "exit_code": 0,
+      "stdout": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github/fsck.stdout",
+      "stderr": "/var/tmp/kiln-public-cutover-20261018-b66y33zr/readback-github/fsck.stderr",
+      "stderr_tail": ""
+    }
+  ],
+  "observed_head": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+  "head_matches_candidate": true,
+  "observed_refs": [
+    "refs/heads/main",
+    "refs/remotes/origin/HEAD",
+    "refs/remotes/origin/kiln-live-ci-validation-20261018",
+    "refs/remotes/origin/main",
+    "refs/remotes/origin/publication-candidate-2026-10-15",
+    "refs/remotes/origin/publication-evidence-2026-10-15",
+    "refs/remotes/origin/qualify-live-github-iroh-ci"
+  ],
+  "tree_entries": 1560,
+  "tree_matches_expected_count": true,
+  "manifest_blake3": "c2da897ba6c01a070916feb55fbda9e45c07ab598519d8718f3552d110831100",
+  "manifest_bytes": 330268,
+  "manifest_matches_expected": true,
+  "archive_blake3": "00d59178898714dbe136ad451d88b418771cb1fcc525d3dd152b1885c85fe9dd",
+  "archive_bytes": 30709760,
+  "archive_matches_expected": true
+}

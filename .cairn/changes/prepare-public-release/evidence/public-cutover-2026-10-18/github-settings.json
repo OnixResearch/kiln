@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.public-cutover-github-settings.v1",
+  "observed_at_utc": "2026-10-19T10:32:11.276Z",
+  "default_branch_change": {
+    "argv": [
+      "gh",
+      "api",
+      "-X",
+      "PATCH",
+      "repos/OnixResearch/kiln",
+      "-f",
+      "default_branch=main"
+    ],
+    "exit_code": 0
+  },
+  "visibility_change": {
+    "argv": [
+      "gh",
+      "api",
+      "-X",
+      "PATCH",
+      "repos/OnixResearch/kiln",
+      "-F",
+      "private=false"
+    ],
+    "exit_code": 0
+  },
+  "after": {
+    "default_branch": "main",
+    "private": false,
+    "visibility": "public"
+  }
+}

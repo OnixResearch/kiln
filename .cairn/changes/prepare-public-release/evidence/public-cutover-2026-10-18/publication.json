@@ -1,0 +1,150 @@
+{
+  "schema": "kiln.public-cutover-source-publication.v1",
+  "recorded_at_utc": "2026-10-19T10:33:17.851319+00:00",
+  "owner": "Kiln maintainers",
+  "state": "PASS-source-only-push-and-exact-anonymous-readback",
+  "authority": {
+    "basis": "Operator request \"do it\" recorded in operator-authority.ncl in this directory",
+    "scope": "Fast-forward both declared main refs to the frozen source-only candidate, set the GitHub default branch to main, and make the GitHub projection public",
+    "third_party_relicensing_authorized": false,
+    "history_rewrite_authorized": false,
+    "governance_change_authorized": false,
+    "production_deployment_authorized": false
+  },
+  "candidate_binding": "candidate.ncl",
+  "candidate_revision": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+  "published_main": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+  "source_manifest_blake3": "c2da897ba6c01a070916feb55fbda9e45c07ab598519d8718f3552d110831100",
+  "source_manifest_bytes": 330268,
+  "source_archive_blake3": "00d59178898714dbe136ad451d88b418771cb1fcc525d3dd152b1885c85fe9dd",
+  "source_archive_bytes": 30709760,
+  "source_archive_entries": 1560,
+  "hosting_profile": {
+    "source": "config/hosting-profile.ncl",
+    "source_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+    "export": "hosting-profile.json",
+    "export_blake3": "31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82",
+    "scope": "Unchanged profile; re-exporting the candidate file reproduced the identity recorded for earlier publications"
+  },
+  "history": {
+    "github_parent": "2c529b154d625735c43246cad2178d70813a01c3",
+    "canonical_radicle_parent": "2c529b154d625735c43246cad2178d70813a01c3",
+    "both_are_ancestors": true,
+    "commits_above_parent": 3,
+    "force_push_used": false
+  },
+  "targets": [
+    {
+      "name": "radicle",
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "ref": "refs/heads/main",
+      "revision": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+      "push_observation": "jj git push reported the canonical reference update and a sync with 3 seeds",
+      "authority": "Canonical Radicle governance unchanged: one delegate, threshold one, public visibility"
+    },
+    {
+      "name": "github",
+      "url": "git@github.com:OnixResearch/kiln.git",
+      "ref": "refs/heads/main",
+      "revision": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+      "push_observation": "jj git push fast-forwarded the projection from 2c529b154d62 to f748acd0cc23",
+      "authority": "Projection only; default branch and visibility changes are recorded in github-settings.json"
+    }
+  ],
+  "github_projection": {
+    "schema": "kiln.public-cutover-github-settings.v1",
+    "observed_at_utc": "2026-10-19T10:32:11.276Z",
+    "default_branch_change": {
+      "argv": [
+        "gh",
+        "api",
+        "-X",
+        "PATCH",
+        "repos/OnixResearch/kiln",
+        "-f",
+        "default_branch=main"
+      ],
+      "exit_code": 0
+    },
+    "visibility_change": {
+      "argv": [
+        "gh",
+        "api",
+        "-X",
+        "PATCH",
+        "repos/OnixResearch/kiln",
+        "-F",
+        "private=false"
+      ],
+      "exit_code": 0
+    },
+    "after": {
+      "default_branch": "main",
+      "private": false,
+      "visibility": "public"
+    }
+  },
+  "governance_after": "governance-after.json",
+  "replication": {
+    "announce": {
+      "command": [
+        "rad",
+        "sync",
+        "--announce",
+        "z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "observed": "nothing to announce, already in sync with 17 seeds"
+    },
+    "status": {
+      "command": [
+        "rad",
+        "sync",
+        "status",
+        "z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "in_sync": 19,
+      "out_of_sync": 39,
+      "not_announced": 1,
+      "scope": "Seed status rows are as reported by the local node; out-of-sync rows are peers that have not fetched this revision and are not availability evidence"
+    }
+  },
+  "independent_readback": {
+    "github_https": "readback-github.json",
+    "canonical_garden_https": "readback-garden.json",
+    "method": "Anonymous clone with cleared HOME, no credentials, no SSH, no global Git configuration, followed by a per-path comparison with the candidate revision and reproduction of the declared normalized USTAR recipe",
+    "observed": [
+      {
+        "url": "https://github.com/OnixResearch/kiln.git",
+        "head": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+        "tree_entries": 1560,
+        "manifest_blake3": "c2da897ba6c01a070916feb55fbda9e45c07ab598519d8718f3552d110831100",
+        "archive_blake3": "00d59178898714dbe136ad451d88b418771cb1fcc525d3dd152b1885c85fe9dd",
+        "archive_bytes": 30709760,
+        "fsck_exit_code": 0
+      },
+      {
+        "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "head": "f748acd0cc239f48bf3565ccb89d46ce88cbee2f",
+        "tree_entries": 1560,
+        "manifest_blake3": "c2da897ba6c01a070916feb55fbda9e45c07ab598519d8718f3552d110831100",
+        "archive_blake3": "00d59178898714dbe136ad451d88b418771cb1fcc525d3dd152b1885c85fe9dd",
+        "archive_bytes": 30709760,
+        "fsck_exit_code": 0
+      }
+    ]
+  },
+  "verification": "verification.json",
+  "rollback": {
+    "canonical_and_github_main": "2c529b154d625735c43246cad2178d70813a01c3",
+    "github_default_branch_before": "publication-candidate-2026-10-15 at db552f504236b3e330be46618e2fd29fb864f190",
+    "github_visibility_before": "private",
+    "warning": "Changing visibility back cannot retract already copied public data"
+  },
+  "non_claims": [
+    "Publication proves only that the named refs resolved to this exact revision at read time; it does not prove indefinite availability, seed trust, or replica independence",
+    "The six optional runtime/Octet check attributes were not exercised in this cutover; see verification.json",
+    "The GitHub projection remains a mirror: it has no governance authority and cannot replace Radicle refs",
+    "This receipt is a later evidence-only descendant of the revision it records",
+    "No production eligibility, release authority, combined-binary distribution clearance, or third-party rights transfer is established"
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "schema": "kiln.public-cutover-forge-review.v1",
+  "observed_at_utc": "2026-10-18T22:19:13.396Z",
+  "repository": "OnixResearch/kiln",
+  "visibility_before": "private",
+  "default_before": "publication-candidate-2026-10-15",
+  "has_wiki": false,
+  "has_discussions": false,
+  "has_pages": false,
+  "surfaces": [
+    {
+      "name": "branches",
+      "exit_code": 0,
+      "count": 5,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "tags",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "releases",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "issues_and_pull_requests",
+      "exit_code": 0,
+      "count": 1,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "issue_comments",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "review_comments",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "workflow_runs",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [
+        0
+      ],
+      "stderr": ""
+    },
+    {
+      "name": "artifacts",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [
+        0
+      ],
+      "stderr": ""
+    },
+    {
+      "name": "workflows",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [
+        0
+      ],
+      "stderr": ""
+    },
+    {
+      "name": "deployments",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "hooks",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [],
+      "stderr": ""
+    },
+    {
+      "name": "forks",
+      "exit_code": 0,
+      "count": 0,
+      "observed_totals": [],
+      "stderr": ""
+    }
+  ],
+  "scope": "Entire existing repository becomes public: all branches/history and forge surfaces, not only the selected candidate. No refs, issues, or other historical content removed.",
+  "issue_review": {
+    "all_states_count": 1,
+    "number": 1,
+    "kind": "issue, not pull request",
+    "subject": "Design-only four-version semantic merge orchestration request",
+    "scope": "Reviewed complete issue body; contains design tasks and public references, not operational credentials. No comments, Actions logs/artifacts, releases, deployments, hooks, forks, wiki, Pages, or discussions found."
+  }
+}
