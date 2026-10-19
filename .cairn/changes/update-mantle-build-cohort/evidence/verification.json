@@ -1,0 +1,97 @@
+{
+  "schema": "kiln.mantle-build-cohort-refresh-verification.v1",
+  "change": "update-mantle-build-cohort",
+  "observed_at_utc": "2026-10-19T12:45:00Z",
+  "selection_rule": "Pin the newest published Mantle revision whose canonical `nix build .#default` succeeds, including its own checkPhase. A build with checks disabled is not a substitute.",
+  "main_tip": "43ccd68840b748e03773fc1bff5eb1cfca99dffa",
+  "selected_revision": "d75158b00b080535f2ffea12430665ca3d57ea82",
+  "rejected_revisions": [
+    {
+      "revision": "43ccd68840b748e03773fc1bff5eb1cfca99dffa",
+      "observed": "nix build exit 1: error[E0428] the name `casita_local_build_without_policy_verifies_and_unlisted_cache_signer_cannot_substitute` is defined multiple times in tests/integration_build.rs (lines 1408 and 1509), so the `integration_build` test target cannot compile",
+      "classification": "producer checkPhase failure; not admitted"
+    },
+    {
+      "revision": "d20459c6db6d60ed2b08533911e279cbeadb742e",
+      "observed": "nix build exit 1: dependency build of `crunch-build` fails with `cc1: fatal error: audit/finish_dlopen_audit.c: No such file or directory`; that revision's flake sourceFilter omits the tracked `crates/crunch-build/audit` path, which newer and older revisions explicitly include",
+      "classification": "producer build failure; not admitted"
+    }
+  ],
+  "previous_cohort": {
+    "revision": "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+    "executable_path": "/nix/store/s16cv8qj77zsp2wg03qlvxj577frb6jr-mantle-0.1.0/bin/mantle",
+    "executable_blake3": "d8090e908e05f8fbd3c1154a77b95db9d20294a17a47856669199b11457c35c8",
+    "contract_blob": "bb3ceb3ed5d7fff307a8f7553b68c118cfd6be5c",
+    "fixture_blob": "17dcf29d0dfb9a68563581b7a21e4821e920e2bb",
+    "note": "The previous executable is recorded as pinned but is not present in this host's store, so its bytes were not re-observed during this change."
+  },
+  "selected_cohort": {
+    "repository": "ssh://git@github.com/OnixResearch/mantle.git",
+    "revision": "d75158b00b080535f2ffea12430665ca3d57ea82",
+    "revision_date": "2026-10-12T13:12:50-04:00",
+    "product_version": "0.1.0",
+    "contract_license": "MIT OR Apache-2.0",
+    "cli_license": "AGPL-3.0-or-later",
+    "platform": "x86_64-linux",
+    "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+    "archive_format": "git archive --format=tar <revision> -- LICENSE fixtures/mantle-build-contract contracts/mantle-build-contract.ncl",
+    "archive_blake3": "56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083",
+    "full_archive_blake3": "21077522609c359022218990cf5a5c036d99e891962b2e01f68339caf581a10a",
+    "contract_blob": "bb3ceb3ed5d7fff307a8f7553b68c118cfd6be5c",
+    "fixture_blob": "17dcf29d0dfb9a68563581b7a21e4821e920e2bb",
+    "vendored_bytes_identical": true
+  },
+  "producer_build": {
+    "method": "git archive export of the selected revision; producer flake built with remote builders disabled",
+    "argv": [
+      "nix", "build", "--no-write-lock-file", "--no-link", "--print-out-paths",
+      "--option", "builders", "", "--option", "eval-cache", "false", "-L",
+      "path:/var/tmp/kiln-mantle-d75158b0#default"
+    ],
+    "exit_code": 0,
+    "output": "/nix/store/7h26x5gxihsba9i4hsvmd0b5v2m5z7zl-mantle-0.1.0",
+    "derivation": "/nix/store/i5vggncmz5ncnrwna1s1mv5mv5x83gyc-mantle-0.1.0.drv",
+    "executable_path": "/nix/store/7h26x5gxihsba9i4hsvmd0b5v2m5z7zl-mantle-0.1.0/bin/mantle",
+    "executable_blake3": "f04277507402681d4deb02181f1dbe16877db548f4fa1dbd166c19d6879ea45e",
+    "version": "mantle 0.1.0",
+    "check_phase": {"suites": 76, "passed": 6278, "failed": 0},
+    "limit": "One x86_64-linux host with the producer's committed lock; not a cross-host reproducibility or supply-chain claim."
+  },
+  "wire_compatibility": {
+    "contract_bytes_identical": true,
+    "fixture_bytes_identical": true,
+    "producer_model_diff": "crates/mantle-build-contract differs only by lint attributes and crate feature/lib exports; no wire field or identity change",
+    "native_report_schema": "crunch-build-report-v1",
+    "report_required_top_level": ["schema", "store_dir", "counts", "outcomes", "failed"],
+    "adapter_native_model": "The adapter's native report structs do not deny unknown fields; the producer added unrelated top-level fields and kept every field the adapter reads.",
+    "outcome_required_fields": ["drv_key", "label", "cached", "log_file", "outputs"],
+    "output_required_fields": ["name", "path", "artifact_attestation"],
+    "attestation_required_fields": ["logical_path", "path"],
+    "cli_globals": ["--store", "--state-dir", "--json"],
+    "plan_mode_observation": "Upstream documents `build --plan` as plan-only at both the pinned and selected revisions. The adapter's invocation is unchanged by this refresh; the semantics are recorded here as a pre-existing observation for separate follow-up."
+  },
+  "checks": [
+    {"name": "producer canonical build", "result": "PASS", "detail": "76 suites, 6278 tests, 0 failed; executable identity recorded"},
+    {"name": "cargo test -p kiln-adapter-mantle --locked --offline", "result": "PASS", "detail": "9 passed, 0 failed; includes the independent producer-fixture consumer"},
+    {"name": "cargo clippy -p kiln-adapter-mantle --all-targets -- -D warnings", "result": "PASS", "detail": "no warnings"},
+    {"name": "nickel typecheck/export config/mantle-build-profile.ncl", "result": "PASS", "detail": "typed profile admits the new revision and executable identity"},
+    {"name": "nickel export config/stack-profiles.ncl and fixture source record", "result": "PASS"},
+    {"name": "negative Nickel fixtures", "result": "PASS", "detail": "bound, capability, digest, and revision negatives still rejected"},
+    {"name": "vendored contract and fixture comparison", "result": "PASS", "detail": "cmp identical to the selected revision's selected paths; importer verifies the revised record"},
+    {"name": "bound config identities", "result": "PASS", "detail": "plan 2a44f294…, policy 6a094f32…, worker 6f66ef1d…, store identity 4bd89c08… unchanged"},
+    {"name": "cairn validate --strict", "result": "PASS", "detail": "no issues or findings"},
+    {"name": "cairn traceability coverage", "result": "PASS", "detail": "no missing or dangling requirements"},
+    {"name": "cairn proposal/design/tasks gates", "result": "PASS", "detail": "recorded in the lifecycle receipts"}
+  ],
+  "retained_attempts": [
+    {"attempt": "nix build with the configured remote builders", "result": "cancelled", "detail": "the client stalled on the shared Nix daemon with effectively no CPU; no source or pin was changed to work around it, and the build was repeated locally with builders disabled"},
+    {"attempt": "pin at main tip 43ccd6884", "result": "rejected", "detail": "producer checkPhase cannot compile its own test target"},
+    {"attempt": "pin at d20459c6d", "result": "rejected", "detail": "producer source filter omits a tracked native source file, so the dependency build fails"}
+  ],
+  "non_claims": [
+    "The refresh binds one exact published producer revision and one executable identity; it does not prove producer correctness, sandbox completeness, cache truth, product semantics, reproducibility, or release readiness",
+    "Rejected revisions are recorded from their own builds; this change does not modify the producer",
+    "The adapter dispatch semantics and wire schemas are unchanged; this change does not adopt evaluation-stream or remote-builder surfaces",
+    "Historical release, publication, and verification receipts retain their original meaning"
+  ]
+}

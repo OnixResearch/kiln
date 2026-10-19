@@ -765,7 +765,7 @@
             nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-machine/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
-            nickel export fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/source.ncl >/dev/null
+            nickel export fixtures/mantle/build-contract/d75158b00b080535f2ffea12430665ca3d57ea82/source.ncl >/dev/null
             nickel export evidence/publication-candidate.ncl >/dev/null
             nickel export evidence/publication-receipt.ncl >/dev/null
             nickel export evidence/release-input.ncl >/dev/null
@@ -788,11 +788,11 @@
           mantle-build-cohort =
             pkgs.runCommand "kiln-mantle-build-cohort" { nativeBuildInputs = [ pkgs.b3sum ]; }
               ''
-                test '${mantleBuildRevision}' = '0bbab77e23ab95caa4e4184b9945cfaa5c8040e2'
+                test '${mantleBuildRevision}' = 'd75158b00b080535f2ffea12430665ca3d57ea82'
                 cmp ${mantleBuildSource}/fixtures/mantle-build-contract/producer/fixtures-v1.json \
-                  ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/producer-fixtures-v1.json
+                  ${self}/fixtures/mantle/build-contract/d75158b00b080535f2ffea12430665ca3d57ea82/producer-fixtures-v1.json
                 cmp ${mantleBuildSource}/contracts/mantle-build-contract.ncl \
-                  ${self}/fixtures/mantle/build-contract/0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/contract.ncl
+                  ${self}/fixtures/mantle/build-contract/d75158b00b080535f2ffea12430665ca3d57ea82/contract.ncl
                 test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-plan.ncl)" = \
                   '2a44f29408b31e620e9247134f0b7b8d55012c8ae286de29199eecef33e10473'
                 test "$(b3sum --no-names ${self}/config/fixtures/mantle-build-policy.ncl)" = \

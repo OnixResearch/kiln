@@ -6,7 +6,7 @@ Kiln uses `kiln-adapter-mantle` for one exact Mantle build cohort.
 
 The profile pins:
 
-- Mantle revision `0bbab77e23ab95caa4e4184b9945cfaa5c8040e2`;
+- Mantle revision `d75158b00b080535f2ffea12430665ca3d57ea82`;
 - request schema `mantle.build-request.v1`;
 - observation schema `mantle.build-observation.v1`;
 - receipt schema `mantle.build-receipt.v1`;
@@ -15,6 +15,18 @@ The profile pins:
 - Bounded Exec revision `29dac88ecded94457572db3fdfaaaab95fa91525`.
 
 `config/mantle-build-profile.ncl` owns the typed profile. It binds one plan, policy, store, worker, builder, and platform.
+
+The executable identity is observed from a clean export of the pinned revision;
+the producer's mutable working tree is never an input:
+
+```console
+git -C <mantle-checkout> archive <revision> | tar -x -C <clean-directory>
+nix build --no-write-lock-file --no-link --print-out-paths path:<clean-directory>#default
+b3sum --no-names <output>/bin/mantle
+```
+
+The plan, policy, worker, and store identities stay unchanged across cohort
+refreshes unless the producer contract bytes change.
 
 ## Dispatch
 

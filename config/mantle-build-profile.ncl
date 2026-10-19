@@ -11,7 +11,7 @@ let Blake3 = std.contract.from_predicate (fun value =>
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
 let Profile = {
   source | Exact "ssh://git@github.com/OnixResearch/mantle.git",
-  revision | Exact "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+  revision | Exact "d75158b00b080535f2ffea12430665ca3d57ea82",
   contract_license | Exact "MIT OR Apache-2.0",
   cli_license | Exact "AGPL-3.0-or-later",
   bounded_exec_source | Exact "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
@@ -25,8 +25,8 @@ let Profile = {
   platform | Exact "x86_64-linux",
   provider_profile_id | Exact "mantle-build-v1",
   capabilities | Exact ["cancel", "dispatch", "observe", "read_logs", "reconcile"],
-  executable_path | Exact "/nix/store/s16cv8qj77zsp2wg03qlvxj577frb6jr-mantle-0.1.0/bin/mantle",
-  executable_identity | Exact "d8090e908e05f8fbd3c1154a77b95db9d20294a17a47856669199b11457c35c8",
+  executable_path | Exact "/nix/store/7h26x5gxihsba9i4hsvmd0b5v2m5z7zl-mantle-0.1.0/bin/mantle",
+  executable_identity | Exact "f04277507402681d4deb02181f1dbe16877db548f4fa1dbd166c19d6879ea45e",
   plan_path | AbsolutePath,
   plan_identity | Blake3,
   policy_identity | Blake3,
@@ -82,7 +82,7 @@ let TeardownTimeoutMilliseconds = 1000 in
 {
   profile | Profile = {
     source = "ssh://git@github.com/OnixResearch/mantle.git",
-    revision = "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+    revision = "d75158b00b080535f2ffea12430665ca3d57ea82",
     contract_license = "MIT OR Apache-2.0",
     cli_license = "AGPL-3.0-or-later",
     bounded_exec_source = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
@@ -96,15 +96,15 @@ let TeardownTimeoutMilliseconds = 1000 in
     platform = "x86_64-linux",
     provider_profile_id = "mantle-build-v1",
     capabilities = ["cancel", "dispatch", "observe", "read_logs", "reconcile"],
-    executable_path = "/nix/store/s16cv8qj77zsp2wg03qlvxj577frb6jr-mantle-0.1.0/bin/mantle",
-    executable_identity = "d8090e908e05f8fbd3c1154a77b95db9d20294a17a47856669199b11457c35c8",
+    executable_path = "/nix/store/7h26x5gxihsba9i4hsvmd0b5v2m5z7zl-mantle-0.1.0/bin/mantle",
+    executable_identity = "f04277507402681d4deb02181f1dbe16877db548f4fa1dbd166c19d6879ea45e",
     plan_path = "/etc/kiln/mantle-plan.ncl",
     plan_identity = "2a44f29408b31e620e9247134f0b7b8d55012c8ae286de29199eecef33e10473",
     policy_identity = "6a094f32254723850459379582ef03c8d2dad65c25326ca526ba3fe62aa9d726",
     store_path = "/var/lib/kiln/mantle-store",
     state_path = "/var/lib/kiln/mantle-state",
     store_identity_path = "/var/lib/kiln/mantle-state/store-identity.json",
-    builder_identity = "d8090e908e05f8fbd3c1154a77b95db9d20294a17a47856669199b11457c35c8",
+    builder_identity = "f04277507402681d4deb02181f1dbe16877db548f4fa1dbd166c19d6879ea45e",
     worker_identity = "6f66ef1d446ead1d87f37176335a3876e6c98af108febf4ec98600b3a91a8d4e",
     store_identity = "4bd89c0869c39e8d17e5a6799f977bdac78bbc72c93d7b97cb8348b5d3f69b57",
     limits = {

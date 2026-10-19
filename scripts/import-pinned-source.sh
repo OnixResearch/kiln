@@ -12,22 +12,22 @@ source_root=$2
 case "$name" in
   lattice)
     source_commit=70496e67c7fd4a8b05914161a8e09de2759bebc8
-    archive_blake3=65c2190700bf8a5e6760116267935b151082be97ed2b0a2b62036e4917c0392d ;;
+    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   cairn)
     source_commit=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f
-    archive_blake3=fe983828dde8c99867f3479ca561fa2b88ffb3a4190bbea61a14ca3985ee6a0a ;;
+    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   valence)
     source_commit=220307a371e7bc4e3309447b09447d0fe6c4db5f
-    archive_blake3=219c641cbdc074054809bbc906b9cfce853c0691ea8b4119ca654f1a0c520572 ;;
+    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   artifact)
     source_commit=e41340bec587b6d049b5cc518ec7db925dde84be
-    archive_blake3=40817d2709fd99888a8aae951fca1c233c4a105a2f292e82ee755a987e54f109 ;;
+    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   bounded-exec)
     source_commit=29dac88ecded94457572db3fdfaaaab95fa91525
-    archive_blake3=d75d4f6f0df36c6b70080a37c0a88d5319035097aa4aecd0fab7cd25e571c33d ;;
+    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   mantle)
-    source_commit=0bbab77e23ab95caa4e4184b9945cfaa5c8040e2
-    archive_blake3=ff7c4a11d08625a977b4139367dc619fab5544f54c492080107f20e7e3c42bf5 ;;
+    source_commit=d75158b00b080535f2ffea12430665ca3d57ea82
+    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   *) printf 'unknown source import: %s\n' "$name" >&2; exit 2 ;;
 esac
 repo_root=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")

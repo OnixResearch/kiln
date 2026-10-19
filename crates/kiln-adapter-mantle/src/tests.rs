@@ -398,7 +398,7 @@ struct ProducerFixtures {
 fn independent_consumer_accepts_exact_producer_fixtures() {
     let fixtures: ProducerFixtures = serde_json::from_slice(include_bytes!(concat!(
         "../../../fixtures/mantle/build-contract/",
-        "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2/producer-fixtures-v1.json"
+        "d75158b00b080535f2ffea12430665ca3d57ea82/producer-fixtures-v1.json"
     )))
     .unwrap_or_else(|_| unreachable!());
     assert_eq!(fixtures.schema, "mantle.build-producer-fixtures.v1");

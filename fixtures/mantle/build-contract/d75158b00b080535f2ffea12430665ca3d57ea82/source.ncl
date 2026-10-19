@@ -11,7 +11,7 @@ let Source = {
 ({
   schema = "kiln.mantle-build-fixture-source.v1",
   repository = "ssh://git@github.com/OnixResearch/mantle.git",
-  revision = "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2",
+  revision = "d75158b00b080535f2ffea12430665ca3d57ea82",
   contract = "mantle-build-contract",
   license = "MIT OR Apache-2.0",
   fixture = "producer-fixtures-v1.json",

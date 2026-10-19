@@ -16,15 +16,15 @@ use crate::wire::{
 };
 
 pub const PINNED_MANTLE_SOURCE: &str = "ssh://git@github.com/OnixResearch/mantle.git";
-pub const PINNED_MANTLE_REVISION: &str = "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2";
+pub const PINNED_MANTLE_REVISION: &str = "d75158b00b080535f2ffea12430665ca3d57ea82";
 pub const PINNED_MANTLE_CONTRACT_LICENSE: &str = "MIT OR Apache-2.0";
 pub const PINNED_MANTLE_CLI_LICENSE: &str = "AGPL-3.0-or-later";
 pub const PINNED_MANTLE_PLATFORM: &str = "x86_64-linux";
 pub const PINNED_MANTLE_COMMAND: &str = "build";
 pub const PINNED_MANTLE_EXECUTABLE_PATH: &str =
-    "/nix/store/s16cv8qj77zsp2wg03qlvxj577frb6jr-mantle-0.1.0/bin/mantle";
+    "/nix/store/7h26x5gxihsba9i4hsvmd0b5v2m5z7zl-mantle-0.1.0/bin/mantle";
 pub const PINNED_MANTLE_EXECUTABLE_BLAKE3: &str =
-    "d8090e908e05f8fbd3c1154a77b95db9d20294a17a47856669199b11457c35c8";
+    "f04277507402681d4deb02181f1dbe16877db548f4fa1dbd166c19d6879ea45e";
 pub const PINNED_BOUNDED_EXEC_SOURCE: &str =
     "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git";
 pub const PINNED_BOUNDED_EXEC_REVISION: &str = "29dac88ecded94457572db3fdfaaaab95fa91525";
