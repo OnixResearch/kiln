@@ -1,0 +1,42 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling serde_core v1.0.229
+   Compiling autocfg v1.5.1
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.10
+   Compiling memchr v2.8.3
+   Compiling serde v1.0.229
+   Compiling arrayref v0.3.9
+   Compiling constant_time_eq v0.4.2
+   Compiling arrayvec v0.7.8
+   Compiling cfg-if v1.0.4
+   Compiling zmij v1.0.23
+   Compiling cpufeatures v0.3.0
+   Compiling regex-syntax v0.8.11
+   Compiling serde_json v1.0.151
+   Compiling itoa v1.0.18
+   Compiling bytemuck v1.25.2
+   Compiling dtoa v0.4.8
+   Compiling base64 v0.13.1
+   Compiling lazy_static v1.5.0
+   Compiling cc v1.4.2
+   Compiling num-traits v0.2.19
+   Compiling aho-corasick v1.1.5
+   Compiling syn v3.0.3
+   Compiling blake3 v1.8.6
+   Compiling num-integer v0.1.46
+   Compiling num-bigint v0.4.8
+   Compiling regex-automata v0.4.18
+   Compiling serde_bytes v0.11.19
+   Compiling serde_derive v1.0.229
+   Compiling regex v1.13.1
+   Compiling kiln-core v0.1.0 (/build/crates/kiln-core)
+   Compiling preserves v5.0.0-rc.7
+   Compiling kiln-provider-api v0.1.0 (/build/crates/kiln-provider-api)
+   Compiling kiln-codec v0.1.0 (/build/crates/kiln-codec)
+   Compiling kiln-standalone v0.1.0 (/build/crates/kiln-standalone)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.26s
+     Running `/target/debug/examples/live_ci_probe`
+kiln live CI: compiling completed; behavior probe started
+kiln live CI: Unknown stays unresolved; terminal failure rejects late success

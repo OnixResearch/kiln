@@ -122,13 +122,70 @@ change therefore does not claim that composition.
 
 ## Live GitHub smoke
 
-Not executed. A live smoke requires operator authority, a real repository ID,
-an HTTPS webhook secret, a commit-status token, an operator-managed HTTPS
-ingress, a reviewed Lattice workflow and route, and an isolated worker or
-single-host deployment. The maintained procedure is
-`docs/operator.md#github-ci-adapter` and
-`docs/operator.md#bounded-combined-live-ci-exercise`; this change did not
-receive those credentials or that authority. The local rail therefore proves
-only the protocol and process boundaries above, not live delivery, token
-validity, DNS/TLS behavior, rate limits, remote status mutation, or deployment
-success.
+Genuine combined exercise completed on 2026-10-19 against the authorized
+`OnixResearch/kiln` repository.
+
+### First attempt retained
+
+A first genuine delivery at revision `d22e961970c53e75c331bb89d69e5bfdc5fe52f5`
+was admitted by the controller and executed by the worker, but the worker job
+failed before compilation because the recorded cargo vendor store path
+`/nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir` had been
+garbage-collected. The worker exit was 101 and the canonical result was
+`DomainFailure`. The failed delivery, worker log, and failure status are
+retained in [pass-vendor-missing.json](live-github/pass-vendor-missing.json)
+and [worker-vendor-missing.log](live-github/worker-vendor-missing.log). This
+failure is not relabeled as a pass.
+
+### Repaired cohort
+
+The current workspace vendor directory was regenerated and added to the worker
+store as `/nix/store/4mgsydfhxaf78w585npl82km9w21cyvy-vendor-current`. The
+worker job profile was updated to that exact path, producing a new cohort:
+
+| Fact | Value |
+|---|---|
+| Job profile identity | `da772a711d69e99f18ec50aefe0e0653a77fa795ef975b2d214227e7d84d8037` |
+| Lattice workflow revision | `b3:730c253342a4db488264333cfd84a0665779950d4efce77f1b2d778c8d3ae847` |
+| Lattice graph identity | `b3:a2db54f4689bb07f3a5ce141ae5e3f12a39c576b9cb230d7ecd0f54a498bb892` |
+| Controller profile identity | `3336551ceeb95dadc825a60ad4a54a3528bc6968cf61c85eccc0c7abeefdd934` |
+| Controller host | `aspen1` (`100.100.103.95`) |
+| Worker host | `britton-desktop` (`100.110.43.11`) |
+| Ingress | operator-owned Cloudflare quick tunnel to loopback `127.0.0.1:8787` |
+
+The previous controller database is retained as
+`github-shell-pre-vendor-fix.sqlite`; the repaired cohort used a fresh
+`github-shell.sqlite` because the service profile identity changed.
+
+### Genuine passing result
+
+- Hook: `700577233`
+- Delivery: `3849253937345495040`
+- Response: `202`, accepted, not duplicate
+- Source revision: `4904c836d68262aecb1de8aa9fbb0a43a1228e2f`
+- Run identity: `b6348e588429f32757bcb65d395fca569c147edaa98e31b370339ab08b56370d`
+- Worker probe exit: `0`
+- Canonical outcome: `Success`
+- Pending GitHub status: `56738475142`
+- Terminal GitHub status: `56738521022`, state `success`
+- Remote status URL: `https://api.github.com/repos/OnixResearch/kiln/statuses/4904c836d68262aecb1de8aa9fbb0a43a1228e2f`
+
+The live path was: GitHub push webhook through the operator Cloudflare tunnel
+to the controller GitHub adapter; controller Iroh proxy to the separate Iroh
+worker; worker Lattice route to the exact-source job; job checkout of the
+pushed commit; reviewed probe compilation and execution; canonical Kiln
+`Success`; and a matching GitHub commit status. Evidence is retained in
+[live-github/pass.json](live-github/pass.json),
+[live-github/worker-live-pass.log](live-github/worker-live-pass.log), and
+[live-github/webhook.json](live-github/webhook.json).
+
+The hook, temporary status/source tokens, and live services were retired after
+the exercise. The validation branch remains the exact source record.
+
+### Claim boundary
+
+This proves one operator-authorized repository, branch, controller, and
+separate worker over the private Tailscale path plus a temporary HTTPS ingress.
+It does not prove public-WAN or relay availability, host confinement, exactly-
+once distributed effects, persistent deployment, token renewal, rate-limit
+behavior, or release eligibility.
