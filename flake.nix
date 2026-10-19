@@ -499,7 +499,7 @@
                 buildPhase = ''
                   runHook preBuild
                   export KILN_PIJUL_EXE=${pijulCohortPackageFor system}/bin/pijul
-                  cargo test -p kiln-adapter-pijul --features native-fixtures --test native_repository --offline
+                  cargo test -p kiln-adapter-pijul --features native-fixtures --tests --offline
                   runHook postBuild
                 '';
                 doCheck = false;
@@ -561,6 +561,23 @@
             buildPhase = ''
               runHook preBuild
               cargo test -p kiln-adapter-nix-eval --features fixture-process --test fixture_process --offline
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
+          nix-build-adapter-fixtures = rustPlatform.buildRustPackage {
+            pname = "kiln-nix-build-adapter-fixtures";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+            buildPhase = ''
+              runHook preBuild
+              cargo test -p kiln-adapter-nix --offline
               runHook postBuild
             '';
             doCheck = false;
@@ -710,7 +727,9 @@
             nickel format --check \
               config/radicle-nix-provider.ncl \
               config/fixtures/radicle-nix-provider-positive.ncl \
-              config/fixtures/negative-radicle-nix-provider-zero-user.ncl
+              config/fixtures/negative-radicle-nix-provider-zero-user.ncl \
+              config/nix-build-profile.ncl \
+              config/fixtures/nix-build-positive.ncl
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
@@ -720,6 +739,7 @@
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
+            nickel export config/nix-build-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel typecheck config/iroh-workflow.ncl
             nickel export config/fixtures/iroh-workflow-positive.ncl >/dev/null
@@ -749,6 +769,7 @@
             nickel export config/fixtures/cairn-gate-positive.ncl >/dev/null
             nickel export config/fixtures/mantle-build-positive.ncl >/dev/null
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
+            nickel export config/fixtures/nix-build-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-source-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-status-positive.ncl >/dev/null

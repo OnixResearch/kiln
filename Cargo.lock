@@ -2771,6 +2771,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-nix"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "bounded-exec",
+ "kiln-core",
+ "kiln-provider-api",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-nix-eval"
 version = "0.1.0"
 dependencies = [
@@ -2800,6 +2813,7 @@ name = "kiln-adapter-pijul"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bounded-exec",
  "kiln-codec",
  "kiln-core",
  "kiln-provider-api",

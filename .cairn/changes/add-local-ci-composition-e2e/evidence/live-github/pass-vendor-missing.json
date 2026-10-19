@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.live-ci-case.v1",
+  "case": "pass",
+  "revision": "d22e961970c53e75c331bb89d69e5bfdc5fe52f5",
+  "branch": "kiln-live-ci-validation-20261019",
+  "hook_id": "700577233",
+  "verdict": "INCOMPLETE",
+  "delivery": {
+    "id": 3849253294088183808,
+    "guid": "dbdd5c16-cc0a-11f1-813e-96773b229775",
+    "delivered_at": "2026-10-19T22:17:24.088Z",
+    "event": "push",
+    "redelivery": false,
+    "ref": "refs/heads/kiln-live-ci-validation-20261019",
+    "revision": "d22e961970c53e75c331bb89d69e5bfdc5fe52f5",
+    "response_status": 202,
+    "acknowledgement": {
+      "accepted": true,
+      "duplicate": false,
+      "run_identity": "b2becdf697f3aa51f20744d7a8bfae93fba7e027b79070dcf1f11cfed8a69586"
+    }
+  },
+  "error": "Canonical outcome mismatch: {'error_code': None, 'outcome': 'DomainFailure', 'phase': 'terminal', 'run_id': 'github-run-b2becdf697f3aa51f20744d7a8bfae93fba7e027b79070dcf1f11cfed8a69586', 'run_identity': 'b2becdf697f3aa51f20744d7a8bfae93fba7e027b79070dcf1f11cfed8a69586', 'schema': 'kiln.github-run-status.v1', 'source': {'provider': 'github', 'repository': {'contract_version': 1, 'native_id': 'onixresearch/kiln', 'native_kind': 'repository', 'provider_namespace': 'github'}, 'revision': {'contract_version': 1, 'native_id': 'd22e961970c53e75c331bb89d69e5bfdc5fe52f5', 'native_kind': 'revision', 'provider_namespace': 'github'}}, 'statuses': [{'error_code': None, 'phase': 'published', 'plan': {'context': 'kiln/ci', 'owner': 'onixresearch', 'repository': 'kiln', 'revision': 'd22e961970c53e75c331bb89d69e5bfdc5fe52f5', 'run_identity': 'b2becdf697f3aa51f20744d7a8bfae93fba7e027b79070dcf1f11cfed8a69586', 'state': 'pending'}, 'publication': {'request_identity': '266499a342663ca9d1bd08fa995e9507c414d3a49b9401adc3d704cc0b51a8f5', 'status_id': 56738207005}}, {'error_code': None, 'phase': 'published', 'plan': {'context': 'kiln/ci', 'owner': 'onixresearch', 'repository': 'kiln', 'revision': 'd22e961970c53e75c331bb89d69e5bfdc5fe52f5', 'run_identity': 'b2becdf697f3aa51f20744d7a8bfae93fba7e027b79070dcf1f11cfed8a69586', 'state': 'failure'}, 'publication': {'request_identity': '851d4579afb8f3d6cd9130953ac7793bdab8079e18533cfba22f3f7fef891831', 'status_id': 56738209450}}], 'workflow_polls': 1}"
+}

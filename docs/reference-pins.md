@@ -11,6 +11,7 @@ The review date is 2026-08-08. These references inform bounded Kiln contracts an
 | Choregraph | `2afbafb266c60530ae05a6862eb06ace72ae787a` | repository license | Pure bounded transitions | Execution authority in the graph core |
 | Aspen | `08e4dfa5443737c81577f6691c673ab1ad78db4d` | repository license | Optional runtime shell | Runtime types in Kiln core |
 | Mantle | `5dd6e8826e2934709e0b584ccf445a6fc5c57ba1` | repository license | Optional build observations | Builder authority transfer to Kiln |
+| Nix | `2.36.0` executable identity `0e670a46c789a33272d9193080b91affe8023af27bcfa9fad76d3d959178a8e7` | LGPL-2.1-or-later | Exact local `.drv` execution and native JSON products | Flake registry, substitution, remote-builder, or build-authority transfer to Nix |
 | Lattice | `5c9902f777412296c13e2347e45b3bede335b828` | repository license | Optional workflow execution | Workflow types as CI domain types |
 | Valence | `b37177bbdd9ca0665412e6600f401e5cb54908d2` | repository license | Optional evidence projection | Evidence linkage as behavioral proof |
 | Cairn | `837d730799faffe6a088cfd6dc49e08c7e0f1822` | repository license | Gates and six COB profiles | Lifecycle authority in Kiln |

@@ -1,0 +1,3 @@
+ff0ad586ca672f6f50e69b22585f1f026c98655fb4b8d1188f28a46ae901eb4e  Cargo.lock
+c77eb47f34bedabff5a48ed921a9bcde1015b70e1b964a5724c650fe1bb880aa  crates/kiln-core/src/domain.rs
+ac6db386b8463400e710b9389feeeb981f6a833fc078a8a032dccb7d95dcddfc  crates/kiln-standalone/examples/live_ci_probe.rs

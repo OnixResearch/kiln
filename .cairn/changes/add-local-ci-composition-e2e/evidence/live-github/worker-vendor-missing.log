@@ -1,0 +1,16 @@
+error: failed to get `blake3` as a dependency of package `kiln-core v0.1.0 (/build/crates/kiln-core)`
+
+Caused by:
+  failed to load source for dependency `blake3`
+
+Caused by:
+  Unable to update registry `crates-io`
+
+Caused by:
+  failed to update replaced source registry `crates-io`
+
+Caused by:
+  failed to read root of directory source: /nix/store/ri1q6k2qnd0icg0f7z8n98gcsf93zx81-cargo-vendor-dir
+
+Caused by:
+  No such file or directory (os error 2)

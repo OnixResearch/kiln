@@ -15,6 +15,7 @@ members = [
   "crates/kiln-adapter-github",
   "crates/kiln-adapter-cairn",
   "crates/kiln-adapter-mantle",
+  "crates/kiln-adapter-nix",
   "crates/kiln-adapter-nix-eval",
   "crates/kiln-adapter-remote",
   "crates/kiln-adapter-cdevents",

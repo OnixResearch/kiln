@@ -18,6 +18,7 @@ serde.workspace = true
 
 [dev-dependencies]
 anyhow = "1.0"
+bounded-exec.workspace = true
 tempfile = "3.24.0"
 
 [features]
@@ -26,6 +27,11 @@ native-fixtures = []
 [[test]]
 name = "native_repository"
 path = "tests/native_repository.rs"
+required-features = ["native-fixtures"]
+
+[[test]]
+name = "full_e2e"
+path = "tests/full_e2e.rs"
 required-features = ["native-fixtures"]
 
 [lints]
