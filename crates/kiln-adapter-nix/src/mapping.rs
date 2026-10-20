@@ -1,20 +1,22 @@
-use std::path::Path;
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
 
 use kiln_core::build::{
     BuildCacheKind, BuildEffectPlan, BuildEvaluationObservation, BuildEvaluationOutcome,
     BuildProductObservation, admit_build_evaluation, validate_build_effect_plan,
 };
-use kiln_core::types::{ContentId, Diagnostic};
+use kiln_core::types::{ContentId, Diagnostic, EffectId};
 use kiln_provider_api::{PortFailure, PortResult};
 
 use crate::profile::NixBuildProfile;
-use crate::wire::{BuildRequest, REQUEST_SCHEMA, is_safe_store_path, parse_native_report};
+use crate::wire::{BuildRequest, REQUEST_SCHEMA};
 
 const ARTIFACT_IDENTITY_DOMAIN: &str = "kiln.nix_build.artifact-reference.v1";
 const STORE_OBJECT_IDENTITY_DOMAIN: &str = "kiln.nix_build.store-object-reference.v1";
 const LOG_IDENTITY_DOMAIN: &str = "kiln.nix_build.log-reference.v1";
 const NATIVE_RECEIPT_DOMAIN: &str = "kiln.nix_build.native-receipt.v1";
 const SHELL_RECEIPT_DOMAIN: &str = "kiln.nix_build.shell-receipt.v1";
+const GC_ROOT_DOMAIN: &str = "kiln.nix_build.gc-root.v1";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct NormalizedBuild {
@@ -40,11 +42,17 @@ pub(crate) fn lower_request(
             "Nix build plan differs from the admitted provider, plan, policy, or platform",
         ));
     }
-    if plan.required_products != profile.runtime.required_products {
+    let expected_names = profile
+        .runtime
+        .expected_outputs
+        .iter()
+        .map(|output| output.name.clone())
+        .collect::<Vec<_>>();
+    if plan.required_products != expected_names {
         return Err(domain(
             "nix_request_products",
             "nix.request.required_products",
-            "Nix build plan products differ from the exact admitted derivation products",
+            "Nix build plan products differ from the exact admitted derivation outputs",
         ));
     }
     let derivation_path = profile.runtime.derivation_path.to_str().ok_or_else(|| {
@@ -71,27 +79,26 @@ pub(crate) fn lower_request(
     Ok(request)
 }
 
+pub(crate) fn gc_root_directory(
+    profile: &NixBuildProfile,
+    effect_id: &EffectId,
+) -> PortResult<PathBuf> {
+    let identity = content_identity(GC_ROOT_DOMAIN, &[effect_id.as_str().as_bytes()])?;
+    Ok(profile.runtime.gc_root_base.join(identity.as_str()))
+}
+
 // r[impl kiln.nix_build.completion]
-pub(crate) fn normalize_native_report(
+pub(crate) fn normalize_realisation(
     profile: &NixBuildProfile,
     plan: &BuildEffectPlan,
     request: &BuildRequest,
+    gc_root_directory: &Path,
+    realisations: &[(PathBuf, PathBuf)],
     stdout: &[u8],
     stderr: &[u8],
 ) -> PortResult<NormalizedBuild> {
     let log_identity = log_identity(stderr)?;
-    let Ok(result) = parse_native_report(stdout, profile.limits.max_products) else {
-        return shell_outcome(
-            profile,
-            plan,
-            request,
-            BuildEvaluationOutcome::ProviderError,
-            stdout,
-            stderr,
-            log_identity,
-        );
-    };
-    if result.drv_path != request.derivation_path {
+    if !realisation_set_is_admitted(profile, gc_root_directory, realisations) {
         return shell_outcome(
             profile,
             plan,
@@ -102,9 +109,12 @@ pub(crate) fn normalize_native_report(
             log_identity,
         );
     }
-    let mut products = Vec::with_capacity(plan.required_products.len());
-    for product in &plan.required_products {
-        let Some(path) = result.outputs.get(product.as_str()) else {
+    let mut products = Vec::with_capacity(profile.runtime.expected_outputs.len());
+    for expected in &profile.runtime.expected_outputs {
+        let Some((_root, target)) = realisations
+            .iter()
+            .find(|(_root, target)| target == &expected.path)
+        else {
             return shell_outcome(
                 profile,
                 plan,
@@ -115,24 +125,19 @@ pub(crate) fn normalize_native_report(
                 log_identity,
             );
         };
-        if !output_path_is_admitted(profile, path) {
-            return shell_outcome(
-                profile,
-                plan,
-                request,
-                BuildEvaluationOutcome::ProviderError,
-                stdout,
-                stderr,
-                log_identity,
-            );
-        }
         products.push(BuildProductObservation {
-            name: product.clone(),
+            name: expected.name.clone(),
             artifact_identity: content_identity(
                 ARTIFACT_IDENTITY_DOMAIN,
-                &[product.as_str().as_bytes(), path.as_bytes()],
+                &[
+                    expected.name.as_str().as_bytes(),
+                    target.as_os_str().as_encoded_bytes(),
+                ],
             )?,
-            store_identity: content_identity(STORE_OBJECT_IDENTITY_DOMAIN, &[path.as_bytes()])?,
+            store_identity: content_identity(
+                STORE_OBJECT_IDENTITY_DOMAIN,
+                &[target.as_os_str().as_encoded_bytes()],
+            )?,
         });
     }
     let receipt = content_identity(
@@ -151,6 +156,24 @@ pub(crate) fn normalize_native_report(
         observation,
         log_identity,
         log: stderr.to_vec(),
+    })
+}
+
+fn realisation_set_is_admitted(
+    profile: &NixBuildProfile,
+    gc_root_directory: &Path,
+    realisations: &[(PathBuf, PathBuf)],
+) -> bool {
+    if realisations.len() != profile.runtime.expected_outputs.len() {
+        return false;
+    }
+    let mut roots = BTreeSet::new();
+    let mut targets = BTreeSet::new();
+    realisations.iter().all(|(root, target)| {
+        root.parent() == Some(gc_root_directory)
+            && roots.insert(root.clone())
+            && target.parent() == Some(profile.runtime.store_path.as_path())
+            && targets.insert(target.clone())
     })
 }
 
@@ -173,7 +196,7 @@ pub(crate) fn shell_outcome(
             return Err(domain(
                 "nix_shell_success",
                 "nix.shell",
-                "Nix success requires one admitted native build report",
+                "Nix success requires one admitted native realisation",
             ));
         }
     };
@@ -242,11 +265,6 @@ fn observation(
 // r[impl kiln.nix_build.logs]
 pub(crate) fn log_identity(stderr: &[u8]) -> PortResult<ContentId> {
     content_identity(LOG_IDENTITY_DOMAIN, &[stderr])
-}
-
-fn output_path_is_admitted(profile: &NixBuildProfile, path: &str) -> bool {
-    is_safe_store_path(path)
-        && Path::new(path).parent() == Some(profile.runtime.store_path.as_path())
 }
 
 pub(crate) fn content_identity(domain_tag: &str, fields: &[&[u8]]) -> PortResult<ContentId> {

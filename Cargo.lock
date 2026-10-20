@@ -2956,6 +2956,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-nix-build"
+version = "0.1.0"
+dependencies = [
+ "kiln-adapter-nix",
+ "kiln-core",
+ "kiln-provider-api",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-provider-api"
 version = "0.1.0"
 dependencies = [

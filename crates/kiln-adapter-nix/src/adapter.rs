@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 
 use bounded_exec::ExecutionLimits;
@@ -11,17 +12,19 @@ use kiln_core::types::{ContentId, Diagnostic, EffectId};
 use kiln_provider_api::{BuildPort, InfrastructureFailure, PortFailure, PortResult};
 
 use crate::mapping::{
-    NormalizedBuild, log_identity, lower_request, normalize_native_report, shell_outcome,
+    NormalizedBuild, gc_root_directory, log_identity, lower_request, normalize_realisation,
+    shell_outcome,
 };
 use crate::profile::{NixBuildProfile, PINNED_NIX_CONFIG, admit_profile};
 use crate::runtime::{NixBuildProcessOutput, NixBuildRuntime, ProcessInvocation};
-use crate::wire::BuildRequest;
+use crate::wire::{BuildRequest, parse_realisation_roots};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct BuildRecord {
     plan: BuildEffectPlan,
     request: BuildRequest,
     observation: BuildEvaluationObservation,
+    gc_root: PathBuf,
     log: Option<(ContentId, Vec<u8>)>,
 }
 
@@ -44,6 +47,11 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
     }
 
     #[must_use]
+    pub fn profile_binding(&self) -> &NixBuildProfile {
+        &self.profile
+    }
+
+    #[must_use]
     pub fn runtime(&self) -> &R {
         &self.runtime
     }
@@ -63,6 +71,7 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
         observation: &BuildEvaluationObservation,
     ) -> PortResult<()> {
         let request = lower_request(&self.profile, plan)?;
+        let gc_root = gc_root_directory(&self.profile, &plan.effect_id)?;
         admit_build_evaluation(plan, observation)?;
         if let Some(record) = self.builds.get(&plan.effect_id) {
             if record.plan == *plan
@@ -83,10 +92,29 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
                 plan: plan.clone(),
                 request,
                 observation: observation.clone(),
+                gc_root,
                 log: None,
             },
         );
         Ok(())
+    }
+
+    /// Removes the run-scoped GC roots for an admitted build.
+    ///
+    /// Call only after the product set has been handed to durable downstream
+    /// state. The operation is idempotent.
+    // r[impl kiln.nix_build.retention]
+    pub fn release_output_roots(&mut self, effect_id: &EffectId) -> PortResult<()> {
+        let record = self.builds.get(effect_id).ok_or_else(|| {
+            domain(
+                "nix_build_missing",
+                "nix.build",
+                "Nix GC-root release names an unknown build",
+            )
+        })?;
+        let gc_root = record.gc_root.clone();
+        self.runtime
+            .cleanup_gc_root_directory(&gc_root, self.profile.limits.max_gc_roots)
     }
 
     fn dispatch_inner(
@@ -131,14 +159,27 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
                 "Nix request exceeds the selected profile bound",
             ));
         }
-        let invocation = invocation(&self.profile);
+        let gc_root = gc_root_directory(&self.profile, &plan.effect_id)?;
+        self.runtime
+            .prepare_gc_root_directory(&self.profile.runtime.gc_root_base)?;
+        self.runtime
+            .cleanup_gc_root_directory(&gc_root, self.profile.limits.max_gc_roots)?;
+        self.runtime.prepare_gc_root_directory(&gc_root)?;
+        let invocation = invocation(&self.profile, &gc_root);
         let output = match cancellation {
             Some(cancellation) => self
                 .runtime
                 .run_with_cancellation(&invocation, cancellation)?,
             None => self.runtime.run(&invocation)?,
         };
-        let normalized = interpret_output(&self.profile, plan, &request, output)?;
+        let normalized = interpret_output(
+            &self.profile,
+            plan,
+            &request,
+            output,
+            &gc_root,
+            &self.runtime,
+        )?;
         admit_build_evaluation(plan, &normalized.observation)?;
         let observation = normalized.observation.clone();
         self.builds.insert(
@@ -147,6 +188,7 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
                 plan: plan.clone(),
                 request,
                 observation: observation.clone(),
+                gc_root,
                 log: Some((normalized.log_identity, normalized.log)),
             },
         );
@@ -250,18 +292,63 @@ impl<R: NixBuildRuntime> BuildPort for NixBuildAdapter<R> {
 }
 
 // r[impl kiln.nix_build.execution]
-fn interpret_output(
+fn interpret_output<R: NixBuildRuntime>(
     profile: &NixBuildProfile,
     plan: &BuildEffectPlan,
     request: &BuildRequest,
     output: NixBuildProcessOutput,
+    gc_root: &std::path::Path,
+    runtime: &R,
 ) -> PortResult<NormalizedBuild> {
     match output {
         NixBuildProcessOutput::Exited {
             process_status: Some(0),
             stdout,
             stderr,
-        } => normalize_native_report(profile, plan, request, &stdout, &stderr),
+        } => {
+            let roots = match parse_realisation_roots(&stdout, profile.limits.max_gc_roots) {
+                Ok(roots) => roots,
+                Err(_) => {
+                    let identity = log_identity(&stderr)?;
+                    return shell_outcome(
+                        profile,
+                        plan,
+                        request,
+                        BuildEvaluationOutcome::ProviderError,
+                        &stdout,
+                        &stderr,
+                        identity,
+                    );
+                }
+            };
+            let mut realisations = Vec::with_capacity(roots.len());
+            for root in roots {
+                match runtime.read_link(&root) {
+                    Ok(target) => realisations.push((root, target)),
+                    Err(_) => {
+                        let identity = log_identity(&stderr)?;
+                        return shell_outcome(
+                            profile,
+                            plan,
+                            request,
+                            BuildEvaluationOutcome::ProviderError,
+                            &stdout,
+                            &stderr,
+                            identity,
+                        );
+                    }
+                }
+            }
+            normalize_realisation(
+                profile,
+                plan,
+                request,
+                gc_root,
+                &realisations,
+                &stdout,
+                &stderr,
+            )
+        }
         NixBuildProcessOutput::Exited {
             process_status: Some(_),
             stdout,
@@ -357,6 +444,17 @@ fn verify_runtime<R: NixBuildRuntime>(profile: &NixBuildProfile, runtime: &R) ->
             "Nix executable identity differs from the admitted profile",
         ));
     }
+    let nix_store = runtime.file_identity(
+        &profile.runtime.nix_store_executable_path,
+        profile.limits.max_executable_bytes,
+    )?;
+    if nix_store != profile.runtime.nix_store_executable_identity {
+        return Err(domain(
+            "nix_store_executable_identity",
+            "nix.nix_store_executable",
+            "Nix store executable identity differs from the admitted profile",
+        ));
+    }
     let derivation = runtime.file_identity(
         &profile.runtime.derivation_path,
         profile.limits.max_derivation_bytes,
@@ -371,19 +469,15 @@ fn verify_runtime<R: NixBuildRuntime>(profile: &NixBuildProfile, runtime: &R) ->
     Ok(())
 }
 
-fn invocation(profile: &NixBuildProfile) -> ProcessInvocation {
-    let expression = format!("import {}", profile.runtime.derivation_path.display());
+fn invocation(profile: &NixBuildProfile, gc_root: &std::path::Path) -> ProcessInvocation {
     ProcessInvocation {
-        program: profile.runtime.executable_path.clone(),
+        program: profile.runtime.nix_store_executable_path.clone(),
         args: vec![
-            OsString::from("--extra-experimental-features"),
-            OsString::from("nix-command"),
-            OsString::from("build"),
-            OsString::from("--no-link"),
-            OsString::from("--json"),
-            OsString::from("--offline"),
-            OsString::from("--expr"),
-            OsString::from(expression),
+            OsString::from("--add-root"),
+            gc_root.join("root").into_os_string(),
+            OsString::from("--indirect"),
+            OsString::from("--realise"),
+            profile.runtime.derivation_path.clone().into_os_string(),
         ],
         current_dir: profile.runtime.home_base.clone(),
         environment: vec![

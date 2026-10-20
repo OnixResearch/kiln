@@ -1,6 +1,7 @@
 use std::ffi::OsString;
-use std::fs::File;
+use std::fs::{self, File, Permissions};
 use std::io::Read;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
@@ -47,6 +48,9 @@ pub enum NixBuildProcessOutput {
 
 pub trait NixBuildRuntime {
     fn file_identity(&self, path: &Path, max_bytes: u64) -> PortResult<ContentId>;
+    fn prepare_gc_root_directory(&mut self, path: &Path) -> PortResult<()>;
+    fn cleanup_gc_root_directory(&mut self, path: &Path, max_roots: usize) -> PortResult<()>;
+    fn read_link(&self, path: &Path) -> PortResult<PathBuf>;
     fn run(&mut self, invocation: &ProcessInvocation) -> PortResult<NixBuildProcessOutput>;
     fn run_with_cancellation(
         &mut self,
@@ -61,6 +65,18 @@ pub struct BoundedNixBuildRuntime;
 impl NixBuildRuntime for BoundedNixBuildRuntime {
     fn file_identity(&self, path: &Path, max_bytes: u64) -> PortResult<ContentId> {
         hash_bounded_file(path, max_bytes)
+    }
+
+    fn prepare_gc_root_directory(&mut self, path: &Path) -> PortResult<()> {
+        prepare_gc_root_directory(path)
+    }
+
+    fn cleanup_gc_root_directory(&mut self, path: &Path, max_roots: usize) -> PortResult<()> {
+        cleanup_gc_root_directory(path, max_roots)
+    }
+
+    fn read_link(&self, path: &Path) -> PortResult<PathBuf> {
+        read_gc_root_link(path)
     }
 
     fn run(&mut self, invocation: &ProcessInvocation) -> PortResult<NixBuildProcessOutput> {
@@ -159,6 +175,112 @@ fn execution_may_have_started(error: &RunError) -> bool {
         | RunError::ChildTeardownTimedOut
         | RunError::ProcessIdentifierOverflow => true,
     }
+}
+
+fn prepare_gc_root_directory(path: &Path) -> PortResult<()> {
+    if !path.is_absolute() {
+        return Err(domain(
+            "nix_gc_root_path",
+            "nix.gc_root",
+            "GC-root directory must be absolute",
+        ));
+    }
+    if path.exists() {
+        if !path.is_dir() {
+            return Err(domain(
+                "nix_gc_root_path",
+                "nix.gc_root",
+                "GC-root path exists but is not a directory",
+            ));
+        }
+    } else {
+        fs::create_dir_all(path).map_err(|_| {
+            infrastructure(
+                "nix_gc_root_create",
+                "GC-root directory could not be created",
+            )
+        })?;
+    }
+    fs::set_permissions(path, Permissions::from_mode(0o700)).map_err(|_| {
+        infrastructure(
+            "nix_gc_root_permissions",
+            "GC-root directory permissions could not be restricted",
+        )
+    })
+}
+
+fn cleanup_gc_root_directory(path: &Path, max_roots: usize) -> PortResult<()> {
+    if !path.is_absolute() || max_roots == 0 {
+        return Err(domain(
+            "nix_gc_root_path",
+            "nix.gc_root",
+            "GC-root cleanup needs an absolute directory and a positive bound",
+        ));
+    }
+    let entries = match fs::read_dir(path) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(_) => {
+            return Err(infrastructure(
+                "nix_gc_root_read",
+                "GC-root directory could not be read",
+            ));
+        }
+    };
+    let mut count = 0_usize;
+    for entry in entries {
+        let entry = entry
+            .map_err(|_| infrastructure("nix_gc_root_read", "GC-root entry could not be read"))?;
+        count = count.saturating_add(1);
+        if count > max_roots {
+            return Err(domain(
+                "nix_gc_root_bound",
+                "nix.gc_root",
+                "GC-root directory exceeds its named entry bound",
+            ));
+        }
+        let file_type = entry
+            .file_type()
+            .map_err(|_| infrastructure("nix_gc_root_type", "GC-root entry type is unavailable"))?;
+        if file_type.is_dir() {
+            return Err(domain(
+                "nix_gc_root_entry",
+                "nix.gc_root",
+                "GC-root directory contains a nested directory",
+            ));
+        }
+        fs::remove_file(entry.path()).map_err(|_| {
+            infrastructure("nix_gc_root_remove", "GC-root entry could not be removed")
+        })?;
+    }
+    match fs::remove_dir(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(_) => Err(infrastructure(
+            "nix_gc_root_remove",
+            "GC-root directory could not be removed",
+        )),
+    }
+}
+
+fn read_gc_root_link(path: &Path) -> PortResult<PathBuf> {
+    if !path.is_absolute() {
+        return Err(domain(
+            "nix_gc_root_path",
+            "nix.gc_root",
+            "GC-root link path must be absolute",
+        ));
+    }
+    let target = fs::read_link(path)
+        .map_err(|_| infrastructure("nix_gc_root_link", "GC-root link could not be read"))?;
+    if !target.is_absolute() {
+        return Err(domain(
+            "nix_gc_root_target",
+            "nix.gc_root",
+            "GC-root target must be absolute",
+        ));
+    }
+    Ok(target)
 }
 
 fn hash_bounded_file(path: &Path, max_bytes: u64) -> PortResult<ContentId> {

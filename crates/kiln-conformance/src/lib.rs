@@ -26,6 +26,8 @@ pub const FORBIDDEN_CORE_DEPENDENCIES: &[&str] = &[
     "kiln_adapter_cairn::",
     "kiln-adapter-mantle =",
     "kiln_adapter_mantle::",
+    "kiln-nix-build =",
+    "kiln_nix_build::",
     "kiln-adapter-nix =",
     "kiln_adapter_nix::",
     "kiln-adapter-nix-eval =",

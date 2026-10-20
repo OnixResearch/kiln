@@ -20,7 +20,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - a standalone `kiln-aspen-host` composition shell that runs the real Aspen native service and concrete Lattice effect adapter;
 - exact-cohort host qualification receipt admission, retained-artifact identity checks, and stronger-claim rejection;
 - a standalone `kiln-radicle-nix-provider` shell for bounded checks and durable reports under Lattice;
-- an exact local Nix derivation build provider with native JSON product admission, bounded logs, and reconciliation;
+- an exact local Nix derivation build provider with discovery-task composition, rooted outputs, bounded logs, and reconciliation;
 - Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - authenticated GitHub push/PR intake, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;
 - typed Nickel configuration and Nix checks.
@@ -196,6 +196,6 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Jujutsu](https://github.com/jj-vcs/jj) — source-provider semantics for bookmarks, stable change IDs, exact commit IDs, divergent changes, operation observations, and Git-backed interoperability. Kiln does not treat Jujutsu as a forge or collaboration provider.
 - [Lattice](https://github.com/OnixResearch/lattice) — producer-owned workflow contract and bounded Unix transport at revision `70496e67c7fd4a8b05914161a8e09de2759bebc8`. Kiln retains CI state and outcome authority.
 - [nix-eval-jobs](https://github.com/NixOS/nix-eval-jobs) — optional stock Nix job-discovery provider at revision `a0cd02231c58974a6b5aaa3712069b071047162e`. Kiln retains source admission, task mapping, CI state, build dispatch, and release authority.
-- [Nix](https://nixos.org/) — exact local derivation build provider using Nix `2.36.0` and a pinned executable identity. Kiln retains build-plan, product, outcome, evidence, and release authority.
+- [Nix](https://nixos.org/) — exact local derivation build provider using Nix `2.34.8` and a pinned executable identity. Kiln retains build-plan, product, outcome, evidence, and release authority.
 - [Pijul](https://nest.pijul.com/pijul/pijul) — native channel states, content-addressed changes, and bounded local snapshot acquisition. Kiln does not claim source trust, history completeness, or collaboration authority.
 - [Aspen/Molten](https://github.com/brittonr/aspen) — workload-neutral runtime, native system-extension host, durability, content, transport, scheduling, and bounded-execution contracts at revision `22f8ded26ca1907c29948e08b53f35df23080733`. Kiln retains all CI meaning, provider selection, retry, outcome, and release authority.

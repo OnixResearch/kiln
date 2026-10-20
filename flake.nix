@@ -578,6 +578,7 @@
             buildPhase = ''
               runHook preBuild
               cargo test -p kiln-adapter-nix --offline
+              cargo test -p kiln-nix-build --offline
               runHook postBuild
             '';
             doCheck = false;
@@ -585,6 +586,27 @@
               touch "$out"
             '';
           };
+          nix-build-adapter-cohort =
+            pkgs.runCommand "kiln-nix-build-adapter-cohort"
+              {
+                nativeBuildInputs = [
+                  pkgs.b3sum
+                  pkgs.coreutils
+                  pkgs.nix
+                ];
+              }
+              ''
+                test '${pkgs.nix}/bin/nix' = \
+                  '/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix'
+                test '${pkgs.nix}/bin/nix-store' = \
+                  '/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store'
+                test "$(b3sum --no-names ${pkgs.nix}/bin/nix)" = \
+                  '82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852'
+                test "$(b3sum --no-names ${pkgs.nix}/bin/nix-store)" = \
+                  '82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852'
+                test "$(${pkgs.nix}/bin/nix --version 2>/dev/null)" = 'nix (Nix) 2.34.8'
+                touch "$out"
+              '';
           no-std = rustPlatform.buildRustPackage {
             pname = "kiln-no-std";
             version = "0.1.0";

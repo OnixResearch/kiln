@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
-use std::path::{Component, Path};
+use std::collections::BTreeSet;
+use std::path::{Component, Path, PathBuf};
 
 use kiln_core::types::{Alias, CoreResult, Diagnostic};
 use serde::{Deserialize, Serialize};
@@ -7,10 +7,11 @@ use serde::{Deserialize, Serialize};
 pub const REQUEST_SCHEMA: &str = "kiln.nix-build-request.v1";
 pub const OBSERVATION_SCHEMA: &str = "kiln.nix-build-observation.v1";
 pub const RECEIPT_SCHEMA: &str = "kiln.nix-build-receipt.v1";
-pub const NATIVE_REPORT_SCHEMA: &str = "nix.build-json.v1";
+pub const NATIVE_REPORT_SCHEMA: &str = "nix-store-realisations.v1";
 pub const MAXIMUM_REQUIRED_PRODUCTS: usize = 16;
 pub const MAXIMUM_PRODUCTS: usize = 64;
 pub const MAXIMUM_LOGS: usize = 1;
+pub const MAXIMUM_GC_ROOTS: usize = 256;
 pub const MAXIMUM_PATH_BYTES: usize = 4096;
 pub const MAXIMUM_PRODUCT_NAME_BYTES: usize = 64;
 
@@ -41,7 +42,7 @@ impl BuildRequest {
                 "Nix build request schema is unsupported",
             ));
         }
-        if !is_safe_store_path(&self.derivation_path)
+        if !is_safe_absolute_path(&self.derivation_path)
             || Path::new(&self.derivation_path)
                 .extension()
                 .is_none_or(|extension| extension != "drv")
@@ -84,53 +85,57 @@ impl BuildRequest {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct NativeBuildReport(Vec<NativeBuildResult>);
-
-#[derive(Debug, Deserialize)]
-pub struct NativeBuildResult {
-    #[serde(rename = "drvPath")]
-    pub drv_path: String,
-    pub outputs: BTreeMap<String, String>,
-}
-
-pub fn parse_native_report(bytes: &[u8], max_products: usize) -> CoreResult<NativeBuildResult> {
-    let report: NativeBuildReport = serde_json::from_slice(bytes).map_err(|_| {
+pub fn parse_realisation_roots(bytes: &[u8], max_roots: usize) -> CoreResult<Vec<PathBuf>> {
+    let text = std::str::from_utf8(bytes).map_err(|_| {
         diagnostic(
-            "nix_report_parse",
-            "nix.report",
-            "Nix build JSON is not a bounded native report",
+            "nix_realisation_roots_utf8",
+            "nix.realisation.roots",
+            "Nix realisation output is not valid UTF-8",
         )
     })?;
-    if report.0.is_empty() || report.0.len() > 1 {
+    let mut roots = Vec::new();
+    let mut unique = BTreeSet::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if !is_safe_absolute_path(line) {
+            return Err(diagnostic(
+                "nix_realisation_root_path",
+                "nix.realisation.roots",
+                "Nix realisation root is not a safe absolute path",
+            ));
+        }
+        let path = PathBuf::from(line);
+        if !unique.insert(path.clone()) {
+            return Err(diagnostic(
+                "nix_realisation_root_duplicate",
+                "nix.realisation.roots",
+                "Nix realisation output repeats a root path",
+            ));
+        }
+        roots.push(path);
+        if roots.len() > max_roots {
+            return Err(diagnostic(
+                "nix_realisation_root_bound",
+                "nix.realisation.roots",
+                "Nix realisation root count exceeds its named bound",
+            ));
+        }
+    }
+    if roots.is_empty() {
         return Err(diagnostic(
-            "nix_report_shape",
-            "nix.report",
-            "Nix build JSON must contain exactly one derivation result",
+            "nix_realisation_root_missing",
+            "nix.realisation.roots",
+            "Nix realisation output contains no roots",
         ));
     }
-    let result = report.0.into_iter().next().ok_or_else(|| {
-        diagnostic(
-            "nix_report_shape",
-            "nix.report",
-            "Nix build JSON must contain exactly one derivation result",
-        )
-    })?;
-    if result.drv_path.is_empty()
-        || !is_safe_store_path(&result.drv_path)
-        || result.outputs.len() > max_products
-    {
-        return Err(diagnostic(
-            "nix_report_bound",
-            "nix.report",
-            "Nix build JSON derivation or output collection exceeds its admitted shape",
-        ));
-    }
-    Ok(result)
+    Ok(roots)
 }
 
 #[must_use]
-pub fn is_safe_store_path(value: &str) -> bool {
+pub fn is_safe_absolute_path(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAXIMUM_PATH_BYTES
         && value.starts_with('/')
