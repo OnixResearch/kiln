@@ -1,0 +1,386 @@
+{
+  "schema": "kiln.onixos-pilot.rejected-attempts.v1",
+  "scope": "Actual rejected development attempts; not qualification passes",
+  "attempts": [
+    {
+      "attempt": "wrong_original_nixpkgs",
+      "scratch_root": "/var/tmp/kiln-onixos-pilot-success-20261020-05",
+      "qualified": false,
+      "failure": {
+        "diagnostic": "selected nixpkgs differs from the consumer's root flake.lock",
+        "kind": "ValueError"
+      },
+      "retirement": {
+        "errors": [],
+        "private_credentials_retired": true,
+        "production_state_or_status_mutated": false,
+        "services": []
+      }
+    },
+    {
+      "attempt": "explicit_lock_drift",
+      "scratch_root": "/var/tmp/kiln-onixos-pilot-lock-drift-20261020",
+      "qualified": false,
+      "failure": {
+        "diagnostic": "selected nixpkgs differs from the consumer's root flake.lock",
+        "kind": "ValueError"
+      },
+      "retirement": {
+        "errors": [],
+        "private_credentials_retired": true,
+        "production_state_or_status_mutated": false,
+        "services": []
+      }
+    },
+    {
+      "attempt": "oversized_build_failure_root",
+      "scratch_root": "/var/tmp/kiln-onixos-qualified-build-failure-20261020",
+      "qualified": false,
+      "failure": {
+        "diagnostic": "real worker failed before its durable result: kiln-onixos-worker: Domain(Diagnostic { code: \"gc_root_directory_missing\", field: \"discovery.gc_roots\", message: \"GC-root state requires its exact owned directory identity\" })\n",
+        "kind": "RuntimeError"
+      },
+      "retirement": {
+        "errors": [],
+        "private_credentials_retired": true,
+        "production_state_or_status_mutated": false,
+        "services": [
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--bind",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/lattice-tmp",
+              "/tmp",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice",
+              "--config",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/lattice.ncl",
+              "workflow-exchange",
+              "serve",
+              "--profile",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/handler-checked.ncl"
+            ],
+            "exit_code": -15,
+            "name": "lattice"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/radicle.json",
+              "--socket",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/aspen.sock",
+              "--extension",
+              "/nix/store/7qr0s5a67va3v2a39rgh9j9k6z2xdhpv-kiln-aspen-extension-pilot-20261020",
+              "--state-root",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/host-state",
+              "--max-requests",
+              "32",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": -9,
+            "name": "host-first"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/07nyxh06i35wdybm2viviwfg5d9zc54q-kiln-0.1.0/bin/kiln-onixos-pilot",
+              "start",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/profile.json",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/signed.json",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/journal.json"
+            ],
+            "exit_code": 0,
+            "name": "submit"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/radicle.json",
+              "--socket",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/aspen.sock",
+              "--extension",
+              "/nix/store/7qr0s5a67va3v2a39rgh9j9k6z2xdhpv-kiln-aspen-extension-pilot-20261020",
+              "--state-root",
+              "/var/tmp/kiln-onixos-qualified-build-failure-20261020/host-state",
+              "--max-requests",
+              "32",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": -15,
+            "name": "host-restarted"
+          }
+        ]
+      }
+    },
+    {
+      "attempt": "oversized_evaluation_failure_root",
+      "scratch_root": "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020",
+      "qualified": false,
+      "failure": {
+        "diagnostic": "real worker failed before its durable result: kiln-onixos-worker: Domain(Diagnostic { code: \"gc_root_directory_missing\", field: \"discovery.gc_roots\", message: \"GC-root state requires its exact owned directory identity\" })\n",
+        "kind": "RuntimeError"
+      },
+      "retirement": {
+        "errors": [],
+        "private_credentials_retired": true,
+        "production_state_or_status_mutated": false,
+        "services": [
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--bind",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/lattice-tmp",
+              "/tmp",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice",
+              "--config",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/lattice.ncl",
+              "workflow-exchange",
+              "serve",
+              "--profile",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/handler-checked.ncl"
+            ],
+            "exit_code": -15,
+            "name": "lattice"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/radicle.json",
+              "--socket",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/aspen.sock",
+              "--extension",
+              "/nix/store/7qr0s5a67va3v2a39rgh9j9k6z2xdhpv-kiln-aspen-extension-pilot-20261020",
+              "--state-root",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/host-state",
+              "--max-requests",
+              "32",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": -9,
+            "name": "host-first"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/07nyxh06i35wdybm2viviwfg5d9zc54q-kiln-0.1.0/bin/kiln-onixos-pilot",
+              "start",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/profile.json",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/signed.json",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/journal.json"
+            ],
+            "exit_code": 0,
+            "name": "submit"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/radicle.json",
+              "--socket",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/aspen.sock",
+              "--extension",
+              "/nix/store/7qr0s5a67va3v2a39rgh9j9k6z2xdhpv-kiln-aspen-extension-pilot-20261020",
+              "--state-root",
+              "/var/tmp/kiln-onixos-qualified-evaluation-failure-20261020/host-state",
+              "--max-requests",
+              "32",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": -15,
+            "name": "host-restarted"
+          }
+        ]
+      }
+    }
+  ],
+  "source_binding_correction": {
+    "rejected_nixpkgs_revision": "9cf7092bdd603554bd8b63c216e8943cf9b12512",
+    "original_root_nixpkgs_revision": "6201e203d09599479a3b3450ed24fa81537ebc4e",
+    "locked_input_edge": "nodes[root].inputs.nixpkgs -> nixpkgs_8",
+    "original_onix_wasm_is_not_silently_selected": true
+  },
+  "root_identity_correction": {
+    "failed_package": "/nix/store/07nyxh06i35wdybm2viviwfg5d9zc54q-kiln-0.1.0",
+    "failed_source": "/nix/store/2b29hph2zmirab8sxgmmas7pbvhx56hh-source",
+    "provider_reference_byte_bound": 128,
+    "measured_build_failure_root_bytes": 129,
+    "measured_evaluation_failure_root_bytes": 134,
+    "fix": "Reject unrepresentable derived GC-root identities during pure profile admission and construct the directory reference before evaluator effects; never discard its construction error",
+    "regression": "gc_root_identity_bound_admits_the_boundary_and_rejects_overflow_before_dispatch",
+    "failing_before": true,
+    "passing_after": true
+  },
+  "other_rejected_gate_attempts": [
+    {
+      "command": "nix build path:.#checks.x86_64-linux.clippy path:.#checks.x86_64-linux.format path:.#checks.x86_64-linux.no-std path:.#checks.x86_64-linux.octet --no-link --print-out-paths -L --keep-going",
+      "format_derivation": "/nix/store/dpkynv8ijqq1265fwnrjpv1137hl2rls-kiln-format.drv",
+      "exit_code": 1,
+      "diagnostic": "Rustfmt differences in source-binding changes and the worker",
+      "fix": "Format the changed crates and repeat the repository-owned format gate"
+    },
+    {
+      "command": "nix develop path:. -c cargo fmt --all --check",
+      "exit_code": 1,
+      "diagnostic": "The --all flag traverses the intentionally partial vendored Cairn workspace; vendor/cairn/crates/cairn-core/Cargo.toml is not imported",
+      "replacement_command": "nix develop path:. -c cargo fmt -- --check",
+      "replacement_exit_code": 0
+    }
+  ],
+  "maintenance_owner": "Kiln maintainers",
+  "post_result_cleanup_error": {
+    "qualified": false,
+    "source": "/nix/store/gg3qgwv594ifpmbvica8s96n1r7md758-source",
+    "package": "/nix/store/g93i8jqrqf9qylkjg4n7a7nly9aah7c8-kiln-0.1.0",
+    "canonical_outcome": "ProviderError",
+    "journal_identity": "39e6e1b7dd23184a2dcf859208b07abb572da9150f1f971d5509cdf7451196c6",
+    "worker_stderr": "kiln-onixos-worker: Domain(Diagnostic { code: \"nix_eval_cleanup_before_handoff\", field: \"nix_eval.gc_roots\", message: \"GC roots cannot be removed before durable downstream handoff\" })\n",
+    "disposition": "Primary evaluator ProviderError was preserved, but the worker incorrectly attempted cleanup after the core returned Keep; this is not accepted as a clean qualification",
+    "fix": "Use the existing adapter handoff decision once; only a nonempty authorized task handoff permits cleanup. The runner additionally rejects terminal worker errors after durable result publication and requires authorized release for complete discoveries.",
+    "final_correction": {
+      "source": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+      "package": "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0",
+      "decision": "Use the existing adapter handoff decision once; cleanup only a nonempty authorized handoff, retain failed/unknown discovery observations, and reject post-result worker errors during qualification",
+      "actual_rerun": {
+        "success": {
+          "canonical_outcome": "Success",
+          "journal_identity": "b4221804ff9e242ec3533021a847c07afae50b399dcaf5f9932a7238327701c8",
+          "receipt": "success/verification.json"
+        },
+        "build-failure": {
+          "canonical_outcome": "DomainFailure",
+          "journal_identity": "353d1e47c7a54de4bd333336bca12379c0d4040f3a677744f1b17f8984c5a524",
+          "receipt": "build-failure/verification.json"
+        },
+        "evaluation-failure": {
+          "canonical_outcome": "ProviderError",
+          "journal_identity": "273d12c1adf38cf25f7421dd3454cf941be26c3b6dbbfdaba480ae0ff6b496e6",
+          "receipt": "evaluation-failure/verification.json"
+        }
+      }
+    }
+  },
+  "non_gate_usage_lookup": {
+    "argv": [
+      "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+      "gate",
+      "--help"
+    ],
+    "exit_code": 1,
+    "diagnostic": "error: unknown gate stage: --help",
+    "disposition": "Usage lookup only, not a proposal/design/tasks result; root help supplied the correct positional stage/change contract, and all actual stage gates passed"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "schema": "kiln.onixos-pilot.qualification.v1",
+  "scope": "Actual isolated operator-authorized maintained-cohort OnixOS application-launcher qualification",
+  "maintenance_owner": "Kiln maintainers",
+  "consumer": "OnixOS examples/home-activation with real Nickel inventory/home-tools service",
+  "immediate_outcome": "Authenticated real discovery and rooted launcher realization, preserved genuine build/evaluation failure classes, original-operation recovery, and replay-backed UCAN observation",
+  "durable_capability": "Repeatable explicit-source discovery/rooted-build composition with canonical journal/replay and bounded private runtime ownership",
+  "adoption_path": "docs/operator.md#isolated-maintained-cohort-onixos-pilot",
+  "frozen_source": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+  "frozen_source_nar_hash": "sha256-LzvVLgnRqssiCj7gy9VMdKfKPdXZt//yGjavsV42qvk=",
+  "package": "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0",
+  "maintained_host": {
+    "blake3": "33b2e2d94fea23469d7fb1ee1b4723033382a7f5336c635c7b5a59451caf0f5d",
+    "path": "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host"
+  },
+  "maintained_host_kiln_dependency": "69afc2697f4330005797256135ae81b2722a125c",
+  "implementation_manifest": "implementation-files.json",
+  "matching_implementation_files": 37,
+  "runtime_inputs": "inputs.ncl",
+  "actual_runner_invocations": "runner-invocations.json",
+  "prerequisite_publication": "main-cutover/receipt.json",
+  "artifact_identity_inventory": "artifact-identities.json",
+  "lifecycle": {
+    "state": "native_closeout_complete",
+    "change": "qualify-maintained-onixos-ci-pilot",
+    "accepted_spec": ".cairn/specs/onixos-ci-pilot/spec.md",
+    "archive": ".cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot",
+    "active_changes_after_closeout": 0,
+    "sync": "gates/native-sync.json",
+    "archive_execution": "gates/native-archive-execute.json",
+    "current_conformance": "gates/native-after-closeout.json",
+    "traceability": {
+      "valid": true,
+      "missing": [],
+      "dangling": []
+    },
+    "repository_readiness_conformance": "pass",
+    "onix_release_ready": false,
+    "archive_receipt_boundary": "Native mutation manifests bind transition-time bytes; final conformance and qualification observations are added afterward"
+  },
+  "cases": {
+    "success": {
+      "canonical_outcome": "Success",
+      "cohort_identity": "724188b4afc4ad1e3c28203d523caa82c4b6d816c17836f8e25f94c3cbbf5895",
+      "job_identity": "099b5fcd95a8a8d21106a17ccfc6a69df5363db7de2ab3998f5496068c4adea4",
+      "journal_identity": "b4221804ff9e242ec3533021a847c07afae50b399dcaf5f9932a7238327701c8",
+      "verification": "success/verification.json",
+      "commands": "success/commands.json",
+      "retirement": "success/retirement.json",
+      "provider_invocations": 1,
+      "restarted_during_provider_execution": true,
+      "wrong_holder_status": 401,
+      "wrong_target_status": 401,
+      "replay_status": 401
+    },
+    "build-failure": {
+      "canonical_outcome": "DomainFailure",
+      "cohort_identity": "9437b25b6f3932b05251ab528cfa11ed821c6cd642eb16e21e9ceb8447702d80",
+      "job_identity": "869220485266af39a8bc05f9d0d591a5858fbe542a7cb5921a87b7484a0ab7fc",
+      "journal_identity": "353d1e47c7a54de4bd333336bca12379c0d4040f3a677744f1b17f8984c5a524",
+      "verification": "build-failure/verification.json",
+      "commands": "build-failure/commands.json",
+      "retirement": "build-failure/retirement.json",
+      "provider_invocations": 1,
+      "restarted_during_provider_execution": true,
+      "wrong_holder_status": 401,
+      "wrong_target_status": 401,
+      "replay_status": 401
+    },
+    "evaluation-failure": {
+      "canonical_outcome": "ProviderError",
+      "cohort_identity": "6e36d3b9cf1accef9701ca5ec7d285a558e22ea689d42e8bafca85bc96086447",
+      "job_identity": "5dc06cfd7a5d660c0d991a739c0535a709ffe8ad6f535b8d647b2a1dce2ee1da",
+      "journal_identity": "273d12c1adf38cf25f7421dd3454cf941be26c3b6dbbfdaba480ae0ff6b496e6",
+      "verification": "evaluation-failure/verification.json",
+      "commands": "evaluation-failure/commands.json",
+      "retirement": "evaluation-failure/retirement.json",
+      "provider_invocations": 1,
+      "restarted_during_provider_execution": true,
+      "wrong_holder_status": 401,
+      "wrong_target_status": 401,
+      "replay_status": 401
+    }
+  },
+  "exercised_gates": "gates/summary.json",
+  "workspace_tests": {
+    "passed": 511,
+    "failed": 0,
+    "ignored": 3
+  },
+  "build_boundary": "Generated activation and home-file dependencies were prepared separately; authenticated CI realises only the actual application launcher and does not execute activation",
+  "rejected_attempts": "rejected-attempts.json",
+  "non_claims": [
+    "operator initiation is not autonomous forge delivery",
+    "local restart evidence is not distributed exactly-once execution",
+    "a built application is not activation or deployment evidence",
+    "exact-cohort evidence is not general runtime or release qualification",
+    "prepared activation and home-file dependencies are not authenticated CI build evidence",
+    "No new pilot source publication, production state/status mutation, source trust, workload confinement or release approval",
+    "Selected x86_64-linux gates and flake output evaluation are not a complete all-system flake build"
+  ]
+}

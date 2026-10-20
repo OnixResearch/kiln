@@ -145,14 +145,18 @@ acquisition is not discovery, and the artifact check is not the live Kiln rail.
 
 The Nickel export selects closed profile facts, not a CLI launcher or direct
 Rust profile JSON. Provision an operator-owned absolute `home_base` and
-`gc_root_base`, then compose the exact `NixEvalRuntimeBinding` and finite limits
-and call `NixEvalProfile::onix` and `NixEvalAdapter::new`. Requests must select
-`onix-nix-eval-v1`, `Some(onix_cohort()?)`, the pinned source path/content identity,
-`jobs.x86_64-linux`, and `x86_64-linux`. Features are exactly `flakes`,
-`nix-command`, `wasm-builtin`; the source binds the exact Nickel WASM plugin and
-`evalNickel` entry point through a local NAR-pinned `builtins.fetchTree` import,
-not `--impure` or a network provisioning fallback. `nix_wasm_init_v1` is a source-defined host handshake,
-not a guarantee of a stable public ABI.
+`gc_root_base`, then compose the exact `NixEvalRuntimeBinding`, finite limits
+and an explicit `OnixSourceBinding` containing the immutable source reference,
+flake-byte BLAKE3, root selector and platform. Call
+`NixEvalProfile::onix(runtime, limits, source_binding)` and
+`NixEvalAdapter::new`. Requests must select `onix-nix-eval-v1`,
+`Some(onix_cohort()?)` and exactly match that source binding. The imported
+conformance fixture selects `jobs.x86_64-linux` and `x86_64-linux`; the pilot
+below independently binds its real consumer jobset. Features are exactly
+`flakes`, `nix-command`, `wasm-builtin`; the source binds the exact Nickel WASM
+plugin and `evalNickel` entry point through a local NAR-pinned
+`builtins.fetchTree` import, not `--impure` or a network provisioning fallback.
+The source-defined `nix_wasm_init_v1` handshake is not a guarantee of a stable public ABI.
 
 After provisioning, exercise the real evaluator, observation admission, task
 mapping and GC-root handoff through Kiln:
@@ -178,6 +182,98 @@ cache truth, build/output correctness, reproducibility, deployment, publication,
 or release authority. Review [license provenance](../LICENSES.md#optional-onix-discovery-provenance)
 before distributing the fixture or runtime cohort; wrapper `NOASSERTION` is not
 a permissive license grant.
+
+## Isolated maintained-cohort OnixOS pilot
+
+`scripts/onixos-ci-pilot.py` runs one fresh, private operation through the
+maintained Aspen host/extension, a real Lattice workflow, the explicit Onix
+evaluator and `kiln-onixos-worker`. `kiln-onixos-pilot` authenticates the
+operator request and persists existing core commands/events; HTTPS observation
+is rebuilt from that canonical journal, not a constructed fixture state.
+Kiln maintainers own the runner, source-binding contract and repeatability rail.
+Operators own acquisition, worker isolation and the selected runtime cohort.
+
+Provision the normal `kiln` package (which installs both pilot binaries), the
+separately pinned `kiln-aspen-host`, its matching extension, the reviewed Lattice
+producer and the optional Onix evaluator/plugin cohort before execution. Use a
+frozen Kiln source tree, not a changing checkout, for retained qualification.
+`nix develop path:$PWD` supplies Python and the normal Rust/Nickel tools; it does
+not provision the external runtime cohort or grant remote mutation authority.
+
+Supply an operator-owned Nickel input record admitted by
+[`config/onixos-ci-pilot-inputs.ncl`](../config/onixos-ci-pilot-inputs.ncl).
+Every executable is an explicit absolute path. The consumer, WASM shim and
+plugin are separate immutable NAR-pinned trees. `nixpkgs_url` must exactly match
+the consumer's **root input edge** in `flake.lock`, not an arbitrarily named
+`nodes.nixpkgs` entry. A different selected shim/plugin requires
+`producer_substitution_reason`; the receipt retains the original locked
+`onix-wasm` entry alongside that explicit substitution. Drift never selects a
+fallback. The Radicle RID, exact published revision and actor describe genuine
+operator ingress source facts; they do not pretend that the independently
+selected OnixOS snapshot was published as that revision.
+
+With `PILOT_SOURCE`, `PILOT_INPUTS`, `PILOT_NICKEL` and `PILOT_ROOT` naming the
+frozen Kiln source, admitted input record, exact bootstrap Nickel executable and
+a new private scratch prefix respectively, run each real case:
+
+```console
+for case in success build-failure evaluation-failure; do
+  python3 "$PILOT_SOURCE/scripts/onixos-ci-pilot.py" \
+    --inputs "$PILOT_INPUTS" --nickel "$PILOT_NICKEL" \
+    --root "$PILOT_ROOT-$case" --case "$case" || break
+done
+```
+
+Existing scratch roots are refused. Each run has finite process, output,
+request, journal and recovery bounds, fresh signing/UCAN/TLS credentials and
+private sockets/state. The Lattice worker's temporary directory is privately
+bound through Bubblewrap to avoid sharing its pathname-based temporary state;
+this is not a hostile-workload confinement claim.
+The UTF-8 `root/eval-roots/<64-byte BLAKE3 hex>` path must fit Kiln's
+128-byte provider-reference limit. Choose a short scratch prefix for every case;
+unrepresentable root identities are rejected during profile admission, before
+evaluator directories or processes are created.
+
+Preparation discovers the actual home-activation application generated by the
+consumer's inventory and Nickel `home-tools` service. It records and realises
+the selected derivation's dependencies separately, **including generated
+activation and home-file outputs**. Authenticated CI then realises the actual
+application **launcher** through the no-substitution, no-remote-builder Nix
+adapter. It does not freshly build the generated activation closure under CI,
+execute activation or mutate a home. `provisioning.json` records that boundary.
+
+The success case must produce canonical `Success` and exact retained output
+roots. The genuine failing derivation must produce `DomainFailure`; the
+explicit evaluator control must retain its native diagnostic, produce
+`ProviderError` and never create a build plan. Every case exercises tampered
+and expired request denial, duplicate delivery before and after completion,
+host restart while the independently owned workflow is still pending, and
+reconciliation of the original operation with exactly one provider invocation.
+Roots survive durable result/journal handoff, then explicit release is repeated
+to establish idempotence. UCAN HTTPS probes verify actual run/attempt views and
+their identities, and require wrong-holder, wrong-target and replay denial.
+Derivation-root cleanup requires a nonempty handoff authorized by the existing
+core decision. Failed or unknown discoveries keep their root observation;
+they do not invent a downstream handoff. Qualification also rejects terminal
+worker errors emitted after a durable result, and requires completed discovery
+to discharge its authorized derivation-root release.
+
+Retain `cohort.json`, admitted public profiles, the signed request's public
+facts, native discovery/build results and diagnostics, canonical journal,
+`verification.json` and `retirement.json`. Never retain private keys or
+invocation/bearer credentials. The runner stops its processes and retires
+private credential files on success or failure. A receipt is valid only for
+its measured source/input/executable/profile cohort. It establishes neither
+autonomous forge delivery, production state/status mutation, deployment,
+source trust, general exactly-once execution, reproducibility nor release
+eligibility. See the [license map](../LICENSES.md) before distribution.
+
+The [retained qualification receipt](../.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/verification.json)
+binds the actual `Success`, `DomainFailure` and `ProviderError` cases to frozen
+source, executable and input identities, with complete public command records
+and an implementation-byte manifest. Its native repository readiness
+conformance passes with `onix_release_ready = false`; this is not production
+readiness or release approval.
 
 ## Aspen native runtime
 

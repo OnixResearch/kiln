@@ -785,6 +785,8 @@
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export --field profile config/nix-eval-jobs-onix-profile.ncl >/dev/null
+            nickel typecheck config/onixos-ci-pilot-inputs.ncl
+            nickel typecheck config/onixos-ci-pilot.ncl
             nickel export config/observation-profile.ncl >/dev/null
             nickel export --format json config/observation-profile.ncl > observation-profile.json
             cmp observation-profile.json fixtures/observation/profile-v1.json
@@ -1177,6 +1179,7 @@
               pkgs.nickel
               pkgs.nixfmt
               pkgs.pkg-config
+              pkgs.python3
               pkgs.zlib
               pkgs.openssl
             ];

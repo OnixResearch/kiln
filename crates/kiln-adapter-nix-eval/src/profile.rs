@@ -7,7 +7,8 @@ use kiln_core::provider::{
     CapabilityProfile, Operation, OperationRequest, ProviderLimits, ProviderRole, admit_operation,
 };
 use kiln_core::types::{
-    CONTRACT_VERSION_V1, ContentId, Diagnostic, ExternalRef, ProviderProfileId,
+    BLAKE3_HEX_BYTES, CONTRACT_VERSION_V1, ContentId, DEFAULT_MAX_ID_BYTES, Diagnostic,
+    ExternalRef, ProviderProfileId,
 };
 use kiln_provider_api::{PortFailure, PortResult, role_matches_port};
 use serde::{Deserialize, Serialize};
@@ -15,7 +16,8 @@ use serde::{Deserialize, Serialize};
 use crate::onix::{
     ONIX_ADAPTER_VERSION, ONIX_EVALUATOR_REVISION, ONIX_EVALUATOR_SOURCE, ONIX_EXECUTABLE_BLAKE3,
     ONIX_EXECUTABLE_PATH, ONIX_FORK_REVISION, ONIX_FORK_SOURCE, ONIX_NIX_VERSION,
-    ONIX_NIXPKGS_REVISION, ONIX_PROFILE, ONIX_SOURCE_VERSION, admit_onix_cohort, onix_cohort,
+    ONIX_NIXPKGS_REVISION, ONIX_PROFILE, ONIX_SOURCE_VERSION, OnixSourceBinding, admit_onix_cohort,
+    admit_onix_source_binding, onix_cohort,
 };
 use crate::onix_pins::{ONIX_MANIFEST_BLAKE3, ONIX_MANIFEST_PATH};
 
@@ -137,6 +139,8 @@ pub struct NixEvalProfile {
     pub provider: CapabilityProfile,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evaluator_cohort: Option<DiscoveryEvaluatorCohort>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub onix_source_binding: Option<OnixSourceBinding>,
     pub runtime: NixEvalRuntimeBinding,
     pub policy: NixEvalPolicy,
     pub limits: NixEvalLimits,
@@ -234,6 +238,7 @@ impl NixEvalProfile {
                 },
             },
             evaluator_cohort: if onix { Some(onix_cohort()?) } else { None },
+            onix_source_binding: None,
             runtime,
             policy: pinned_policy(),
             limits,
@@ -249,8 +254,15 @@ impl NixEvalProfile {
     }
 
     // r[impl kiln.nix_eval_jobs_onix.profile]
-    pub fn onix(runtime: NixEvalRuntimeBinding, limits: NixEvalLimits) -> PortResult<Self> {
-        let profile = Self::cohort(ProviderProfileId::new(ONIX_PROFILE)?, runtime, limits, true)?;
+    // r[impl kiln.onixos_pilot.source]
+    pub fn onix(
+        runtime: NixEvalRuntimeBinding,
+        limits: NixEvalLimits,
+        binding: OnixSourceBinding,
+    ) -> PortResult<Self> {
+        let mut profile =
+            Self::cohort(ProviderProfileId::new(ONIX_PROFILE)?, runtime, limits, true)?;
+        profile.onix_source_binding = Some(binding);
         admit_profile(&profile)?;
         Ok(profile)
     }
@@ -261,6 +273,18 @@ impl NixEvalProfile {
 // r[impl kiln.nix_eval_jobs.onix_boundary]
 pub fn admit_profile(profile: &NixEvalProfile) -> PortResult<()> {
     let onix = profile.evaluator_cohort.is_some();
+    // r[impl kiln.onixos_pilot.source]
+    match (onix, &profile.onix_source_binding) {
+        (true, Some(binding)) => admit_onix_source_binding(binding)?,
+        (false, None) => {}
+        _ => {
+            return Err(domain(
+                "onix_source_binding",
+                "nix_eval.profile.onix_source_binding",
+                "an explicit source binding is required only for the Onix cohort",
+            ));
+        }
+    }
     if let Some(cohort) = &profile.evaluator_cohort {
         if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
             return Err(domain(
@@ -420,6 +444,26 @@ fn validate_paths(profile: &NixEvalProfile) -> PortResult<()> {
             "nix_eval_path",
             "nix_eval.profile.runtime",
             "Nix evaluation runtime paths must be absolute",
+        ));
+    }
+    let root_base = runtime.gc_root_base.to_str().ok_or_else(|| {
+        domain(
+            "nix_eval_gc_root_identity",
+            "nix_eval.profile.runtime.gc_root_base",
+            "GC-root directory identity requires a UTF-8 path",
+        )
+    })?;
+    let separator_bytes = if root_base.ends_with(std::path::MAIN_SEPARATOR) {
+        0
+    } else {
+        std::path::MAIN_SEPARATOR_STR.len()
+    };
+    let maximum_base_bytes = DEFAULT_MAX_ID_BYTES - BLAKE3_HEX_BYTES - separator_bytes;
+    if root_base.len() > maximum_base_bytes {
+        return Err(domain(
+            "nix_eval_gc_root_identity",
+            "nix_eval.profile.runtime.gc_root_base",
+            "GC-root base and its BLAKE3 directory name exceed the provider-reference bound",
         ));
     }
     Ok(())

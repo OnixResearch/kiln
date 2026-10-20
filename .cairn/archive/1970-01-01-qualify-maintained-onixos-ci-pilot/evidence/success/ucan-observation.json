@@ -1,0 +1,10 @@
+{
+  "attempt_view_identity": "12c5fd4b336dc008ea8794f766bde2e1b8a0f64deca8135fbdd1d4a24d82b58c",
+  "canonical_run_outcome": "Success",
+  "replay_status": 401,
+  "revision": 2,
+  "run_view_identity": "f35be84076b5508920050100b91f8516997035bb5894d3f2086e81ea6536dd70",
+  "schema": "kiln.onixos-pilot.ucan-probe.v1",
+  "wrong_holder_status": 401,
+  "wrong_target_status": 401
+}

@@ -1,0 +1,23 @@
+[package]
+name = "kiln-onixos-worker"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+blake3.workspace = true
+fs2.workspace = true
+kiln-adapter-nix.workspace = true
+kiln-adapter-nix-eval.workspace = true
+kiln-core.workspace = true
+kiln-nix-build.workspace = true
+kiln-onixos-pilot.workspace = true
+kiln-provider-api.workspace = true
+libc = "0.2.189"
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

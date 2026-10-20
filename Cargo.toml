@@ -21,6 +21,8 @@ members = [
   "crates/kiln-adapter-nix",
   "crates/kiln-nix-build",
   "crates/kiln-adapter-nix-eval",
+  "crates/kiln-onixos-pilot",
+  "crates/kiln-onixos-worker",
   "crates/kiln-adapter-remote",
   "crates/kiln-adapter-cdevents",
   "crates/kiln-adapter-opentelemetry",
@@ -54,6 +56,11 @@ version = "0.1.0"
 
 [workspace.dependencies]
 blake3 = "1.8.2"
+base64 = "0.22.1"
+ed25519-dalek = "=2.2.0"
+fs2 = "0.4.3"
+rustls = { version = "0.23.43", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pemfile = "2.2.0"
 zeroize = "1.8.1"
 preserves = { version = "5.0.0-rc.7", features = ["serde"] }
 serde = { version = "1.0.228", default-features = false, features = ["alloc", "derive"] }
@@ -95,6 +102,9 @@ kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
 kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
 kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }
 kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
+kiln-adapter-nix = { path = "crates/kiln-adapter-nix" }
+kiln-nix-build = { path = "crates/kiln-nix-build" }
+kiln-onixos-pilot = { path = "crates/kiln-onixos-pilot" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
 kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
 kiln-aspen-extension = { path = "crates/kiln-aspen-extension" }

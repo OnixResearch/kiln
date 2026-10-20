@@ -114,7 +114,7 @@ A cleanup error changes the root state to `CleanupFailed`. It does not become cl
 
 ## Explicit optional Onix profile
 
-Stock Nix remains the default cohort above. `NixEvalProfile::onix(runtime, limits)` selects the separate executable `onix-nix-eval-v1` profile on `x86_64-linux`; `NixEvalProfile::pinned` cannot select it. Stock admission rejects an Onix profile or evaluator requirement before GC-root creation or process launch. Requests without cohort facts retain the stock serialized shape and observation identity. Neither selection searches `PATH`, substitutes another plugin/evaluator, or falls back between stock and Onix.
+Stock Nix remains the default cohort above. `NixEvalProfile::onix(runtime, limits, source_binding)` selects the separate executable `onix-nix-eval-v1` profile on `x86_64-linux`; `NixEvalProfile::pinned` cannot select it. Stock admission rejects an Onix profile or evaluator requirement before GC-root creation or process launch. Stock profiles carry no Onix source binding, and absent optional fields retain the stock serialized shape and observation identity. Neither selection searches `PATH`, substitutes another plugin/evaluator, or falls back between stock and Onix.
 
 ### Frozen source and measured runtime
 
@@ -169,9 +169,22 @@ nickel export --field profile config/nix-eval-jobs-onix-profile.ncl
 
 The manifest references the source root; provision and retain the evaluator, plugin, manifest and jobset closures on the actual discovery host. The last Nix check measures artifacts and manifest facts; it does not run the Kiln discovery/handoff API. The typed Nickel export is the human-authored selection contract, not an automatic executable launcher or a serialized Rust `NixEvalProfile`. Only absolute `home_base` and `gc_root_base` are operator-variable in that contract; provision an owned home and root base with appropriate permissions.
 
-Compose `NixEvalRuntimeBinding` from the exact exported executable/manifest paths and BLAKE3 values plus the owned absolute home/root paths, then call `NixEvalProfile::onix(binding, limits)` and `NixEvalAdapter::new(profile, BoundedNixEvalRuntime)`. A discovery plan must select `ONIX_PROFILE`, carry `Some(onix_cohort()?)`, use the exact source `ExternalRef` (`kiln-source`, `nix-store-path`, source root above) and `ONIX_SOURCE_BLAKE3`, and select `ONIX_ROOT_SELECTOR` and `x86_64-linux`. Pipeline, policy, task mapping, build-provider selection and finite limits remain explicit consumer inputs.
+The GC-root base must be UTF-8 and leave room for a path separator and the
+64-byte BLAKE3 directory name inside Kiln's 128-byte provider-reference bound.
+The same bound applies to stock and explicit Onix profiles. Profile admission
+rejects unrepresentable derived root identities before directories or evaluator
+processes are created; the shell must not silently discard a failed directory
+reference and report missing retention only after evaluation.
 
-At adapter construction and before each new discovery, bounded no-final-symlink opens measure the executable, manifest, plugin, seven linked Nix libraries, and source `flake.nix`. `O_NOFOLLOW` rejects a symlink final component; this is not a promise that all parent directory components are symlink-free or that the process is confined. Manifest schema/provenance and all plan identities are checked before creating GC roots or launching the evaluator. Drift is a domain failure (`onix_executable_drift`, `onix_manifest_drift`, `onix_plugin_drift`, `onix_component_drift`, `onix_source_drift`, or the corresponding profile/feature/handshake mismatch), not permission to try stock or an ambient executable.
+<!-- r[impl kiln.onixos_pilot.source] -->
+
+Compose `NixEvalRuntimeBinding` from the exact exported executable/manifest paths and BLAKE3 values plus the owned absolute home/root paths. Separately supply `OnixSourceBinding { source: ExternalRef, source_identity: ContentId, root_selector: Alias, system: Alias }`, then call `NixEvalProfile::onix(runtime, limits, source_binding)` and `NixEvalAdapter::new(profile, BoundedNixEvalRuntime)`. The source reference must use `kiln-source` / `nix-store-path` and a direct canonical `/nix/store/<32-character Nix base32 hash>-<name>` root, not a mutable checkout, URI, nested path, traversal or fragment/query. Supported source names contain ASCII letters, digits, `+`, `-`, `.`, and `_`. The identity is BLAKE3 of that root's exact `flake.nix` bytes, not a directory/NAR hash. The selector must use the existing supported attribute-selector syntax; the system is exactly `x86_64-linux`, and requests must use Flake mode. Pure admission compares the request's complete source reference, identity, selector and system to this binding.
+
+The fixed evaluator/plugin cohort is independent of this explicit consumer binding. A discovery plan must select `ONIX_PROFILE` and carry `Some(onix_cohort()?)`; pipeline, policy, task mapping, build-provider selection and finite limits remain explicit consumer inputs. The fixture above remains one explicitly selected conformance consumer: supply its source reference, `ONIX_SOURCE_BLAKE3`, `ONIX_ROOT_SELECTOR`, and `x86_64-linux`. There is no fixture default or compatibility constructor. A different frozen source needs its own explicit measured binding; fixture compatibility does not qualify that consumer or its build.
+
+`config/nix-eval-jobs-onix-profile.ncl` remains the human-authored exact fixture-selection contract described above, not a generic source-binding builder or serialized Rust profile. Its fixed source fields select that fixture only; they must not be represented as the separately frozen OnixOS pilot consumer. Its only operator-variable fields remain the two owned absolute runtime directories.
+
+At adapter construction and before each new discovery, bounded no-final-symlink opens measure the executable, manifest, plugin, seven linked Nix libraries, and the explicitly bound source's `flake.nix`. `O_NOFOLLOW` rejects a symlink final component; this is not a promise that all parent directory components are symlink-free or that the process is confined. Profile/source-binding admission, manifest schema/provenance, measured bound flake bytes and all request identities are checked before creating GC roots or launching the evaluator. Drift is a domain failure (`onix_executable_drift`, `onix_manifest_drift`, `onix_plugin_drift`, `onix_component_drift`, `onix_source_drift`, or the corresponding profile/feature/handshake mismatch), not permission to try stock or an ambient executable.
 
 ### Live rail and outcome contract
 

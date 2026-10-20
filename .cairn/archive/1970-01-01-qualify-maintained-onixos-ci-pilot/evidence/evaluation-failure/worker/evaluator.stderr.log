@@ -1,0 +1,18 @@
+error:
+       … while calling the 'throw' builtin
+         at «path:/nix/store/rm17zd8i6in5qbr37w5m0jd05na4vl3b-kiln-onixos-application-jobset?lastModified=1&narHash=sha256-cmzn8gb7KNy6T7OMgTNBa6KWGFONtJNQa4VcHAhMAYk%3D»/jobset.nix:30:26:
+           29|     });
+           30|     evaluation-failure = throw "kiln-onixos-pilot: explicit evaluation failure control";
+             |                          ^
+           31|   };
+
+       error: kiln-onixos-pilot: explicit evaluation failure control
+error: worker error: error:
+              … while calling the 'throw' builtin
+                at «path:/nix/store/rm17zd8i6in5qbr37w5m0jd05na4vl3b-kiln-onixos-application-jobset?lastModified=1&narHash=sha256-cmzn8gb7KNy6T7OMgTNBa6KWGFONtJNQa4VcHAhMAYk%3D»/jobset.nix:30:26:
+                  29|     });
+                  30|     evaluation-failure = throw "kiln-onixos-pilot: explicit evaluation failure control";
+                    |                          ^
+                  31|   };
+
+              error: kiln-onixos-pilot: explicit evaluation failure control

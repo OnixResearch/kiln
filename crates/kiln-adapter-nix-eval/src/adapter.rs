@@ -122,8 +122,17 @@ impl<R: NixEvalRuntime> NixEvalAdapter<R> {
                 },
             ));
         }
-        verify_runtime(&self.profile, &self.runtime)?;
         let root_directory = gc_root_directory(&self.profile, plan);
+        let directory = root_directory.to_str().ok_or_else(|| {
+            domain(
+                "nix_eval_gc_root_identity",
+                "nix_eval.profile.runtime.gc_root_base",
+                "GC-root directory identity requires a UTF-8 path",
+            )
+        })?;
+        let directory =
+            ExternalRef::new("nix", "gc-root-directory", directory).map_err(PortFailure::Domain)?;
+        verify_runtime(&self.profile, &self.runtime)?;
         self.runtime.prepare_gc_root_directory(&root_directory)?;
         let process_result = match cancellation {
             Some(cancellation) => self.runtime.run_with_cancellation(
@@ -144,7 +153,7 @@ impl<R: NixEvalRuntime> NixEvalAdapter<R> {
         };
         let interpreted = interpret_process(&self.profile, process);
         let (gc_roots, gc_root_observation_ready) =
-            observe_gc_roots(&self.profile, &self.runtime, &root_directory);
+            observe_gc_roots(&self.profile, &self.runtime, &root_directory, directory);
         let expected_roots: BTreeSet<_> = interpreted
             .stream
             .jobs
@@ -430,14 +439,12 @@ fn observe_gc_roots<R: NixEvalRuntime>(
     profile: &NixEvalProfile,
     runtime: &R,
     root_directory: &Path,
+    directory: ExternalRef,
 ) -> (GcRootObservation, bool) {
-    let directory = root_directory
-        .to_str()
-        .and_then(|path| ExternalRef::new("nix", "gc-root-directory", path).ok());
     match runtime.list_gc_roots(root_directory, profile.limits.max_gc_roots) {
         Ok(derivations) => (
             GcRootObservation {
-                directory,
+                directory: Some(directory),
                 derivations,
                 state: GcRootState::Retained,
             },
@@ -445,7 +452,7 @@ fn observe_gc_roots<R: NixEvalRuntime>(
         ),
         Err(_) => (
             GcRootObservation {
-                directory,
+                directory: Some(directory),
                 derivations: Vec::new(),
                 state: GcRootState::Unknown,
             },
@@ -458,7 +465,13 @@ fn observe_gc_roots<R: NixEvalRuntime>(
 fn verify_runtime<R: NixEvalRuntime>(profile: &NixEvalProfile, runtime: &R) -> PortResult<()> {
     if profile.evaluator_cohort.is_some() {
         use crate::onix::{denied, verify_file, verify_onix_files};
-        use crate::onix_pins::{ONIX_SOURCE_BLAKE3, ONIX_SOURCE_PATH};
+        // r[impl kiln.onixos_pilot.source]
+        let binding = profile.onix_source_binding.as_ref().ok_or_else(|| {
+            denied(
+                "onix_source_binding",
+                "explicit Onix source binding is required",
+            )
+        })?;
         verify_file(
             runtime,
             &profile.runtime.executable_path,
@@ -493,8 +506,8 @@ fn verify_runtime<R: NixEvalRuntime>(profile: &NixEvalProfile, runtime: &R) -> P
         verify_onix_files(runtime)?;
         verify_file(
             runtime,
-            &Path::new(ONIX_SOURCE_PATH).join("flake.nix"),
-            ONIX_SOURCE_BLAKE3,
+            &Path::new(binding.source.native_id.as_str()).join("flake.nix"),
+            binding.source_identity.as_str(),
             profile.limits.max_manifest_bytes,
             "onix_source_drift",
         )?;

@@ -1,0 +1,129 @@
+{
+  "effect_id": "pilot-discovery-9437b25b6f3932b05251ab528cfa11ed821c6cd642eb16e21e9ceb8447702d80",
+  "evaluation_id": "pilot-evaluation-9437b25b6f3932b05251ab528cfa11ed821c6cd642eb16e21e9ceb8447702d80",
+  "project_id": "onixos-home-application",
+  "pipeline_revision_id": "pilot-pipeline-9437b25b6f3932b05251ab528cfa11ed821c6cd642eb16e21e9ceb8447702d80",
+  "discovery_policy_id": "onixos-explicit-cohort-v1",
+  "provider_profile": "onix-nix-eval-v1",
+  "idempotency_key": "9437b25b6f3932b05251ab528cfa11ed821c6cd642eb16e21e9ceb8447702d80",
+  "source_identity": "9c158d872010909234ceb989b405a3d709fb594c1937c860ede851b35eb97927",
+  "observation_identity": "322b24ef846cce31f3221020df24d0f3a90a27b927920fe36fd361321cbc234d",
+  "terminal": "Complete",
+  "jobs": [
+    {
+      "attribute": "home-activation",
+      "attribute_path": [
+        "home-activation"
+      ],
+      "name": "kiln-onixos-home-application-negative-control",
+      "system": "x86_64-linux",
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/7r6fzh5m06qyk7v3g0h0cfig5789dg7f-kiln-onixos-home-application-negative-control.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/jwpfp4zd5ip3kbfhbyprk6rq2rqvwj4s-kiln-onixos-home-application-negative-control"
+          }
+        }
+      ],
+      "input_derivations": [
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/ggkdrv677lc6g8d7wf4hrkf4z9flwavz-bash-5.3p9.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/jdb8q5n8cjcw8b8lljaprdqlvhl9qsk3-onix-home-activation-workstation-alice.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/l6bi2ln3vlv6mkkw95bvh09pgy4d3xra-coreutils-9.10.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/n6dq8ck4644r9gc7cs1l9a27vvhjb0qa-stdenv-linux.drv"
+        }
+      ],
+      "metadata_identity": "daac9651f7660436741f17c9d8fa68a6c783ac0b7a51bb85fe94afe10b76ad55",
+      "cache": "NotBuilt"
+    }
+  ],
+  "job_errors": [],
+  "tasks": [
+    {
+      "task_id": "discovered:3c3ea4def4d5271d1ce9d015918ddc1ae132876e4421f2d8cd097218a910e00c",
+      "mapping_identity": "3c3ea4def4d5271d1ce9d015918ddc1ae132876e4421f2d8cd097218a910e00c",
+      "build_provider": "nix-build-v1",
+      "native_attribute": {
+        "contract_version": 1,
+        "provider_namespace": "nix-eval-jobs",
+        "native_kind": "attribute",
+        "native_id": "home-activation"
+      },
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/7r6fzh5m06qyk7v3g0h0cfig5789dg7f-kiln-onixos-home-application-negative-control.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/jwpfp4zd5ip3kbfhbyprk6rq2rqvwj4s-kiln-onixos-home-application-negative-control"
+          }
+        }
+      ],
+      "dependencies": [],
+      "cache": "NotBuilt"
+    }
+  ],
+  "completion": {
+    "stream_complete": true,
+    "stream_valid": true,
+    "stderr_within_bound": true,
+    "gc_roots_ready": true,
+    "fatal_job_error": false,
+    "process": {
+      "Exited": {
+        "status": 0
+      }
+    }
+  },
+  "gc_roots": {
+    "directory": {
+      "contract_version": 1,
+      "provider_namespace": "nix",
+      "native_kind": "gc-root-directory",
+      "native_id": "/var/tmp/kiln-qf-b-20261020/eval-roots/12f7a53eadfdbc9742d2a1254875ef6de67e77deba3ab70747aceaad778d53fd"
+    },
+    "derivations": [
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/7r6fzh5m06qyk7v3g0h0cfig5789dg7f-kiln-onixos-home-application-negative-control.drv"
+      }
+    ],
+    "state": "Retained"
+  }
+}

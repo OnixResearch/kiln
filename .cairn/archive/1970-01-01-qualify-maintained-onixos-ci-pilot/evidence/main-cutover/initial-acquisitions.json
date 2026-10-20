@@ -1,0 +1,104 @@
+{
+  "source_revision": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+  "acquisitions": [
+    {
+      "name": "github",
+      "url": "git@github.com:OnixResearch/kiln.git",
+      "anonymous": false,
+      "clone": {
+        "argv": [
+          "jj",
+          "--config",
+          "user.name=\"Qualification\"",
+          "--config",
+          "user.email=\"qualification@localhost\"",
+          "git",
+          "clone",
+          "git@github.com:OnixResearch/kiln.git",
+          "/tmp/kiln-main-cutover-20261020-pjpymekb/github"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/kiln-main-cutover-20261020-pjpymekb/github\"\nbookmark: add-local-ci-composition-e2e@origin     [new] untracked\nbookmark: kiln-live-ci-validation-20261018@origin [new] untracked\nbookmark: kiln-live-ci-validation-20261019@origin [new] untracked\nbookmark: main@origin                             [new] tracked\nbookmark: publication-candidate-2026-10-15@origin [new] untracked\nbookmark: publication-evidence-2026-10-15@origin  [new] untracked\nbookmark: qualify-live-github-iroh-ci@origin      [new] untracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: zwqqktts cadb02d0 (empty) (no description set)\nParent commit (@-)      : qpolvzqp 6c6e4f22 main | Qualify published Aspen host cohort and close runtime lifecycle changes\nAdded 2924 files, modified 0 files, removed 0 files\n"
+      },
+      "readback": {
+        "exit_code": 0,
+        "revision": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+        "stderr": "",
+        "matches": true
+      },
+      "archive": {
+        "exit_code": 0,
+        "stderr": "",
+        "bytes": 44595200,
+        "blake3": "edabde13121bd234a853e72fd12b3d8687d9fa1ebd24b202bf60f370b762daa5"
+      }
+    },
+    {
+      "name": "radicle",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "anonymous": false,
+      "clone": {
+        "argv": [
+          "jj",
+          "--config",
+          "user.name=\"Qualification\"",
+          "--config",
+          "user.email=\"qualification@localhost\"",
+          "git",
+          "clone",
+          "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+          "/tmp/kiln-main-cutover-20261020-pjpymekb/radicle"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/kiln-main-cutover-20261020-pjpymekb/radicle\"\nbookmark: cairn-adapter-portfolio@origin                              [new] untracked\nbookmark: cairn/add-git-source-adapter-20260820@origin                [new] untracked\nbookmark: cairn/add-lattice-workflow-adapter-20260820@origin          [new] untracked\nbookmark: cairn/add-mantle-build-adapter-20260821@origin              [new] untracked\nbookmark: cairn/add-nix-eval-jobs-provider-adapter-20260821@origin    [new] untracked\nbookmark: cairn/add-pijul-source-adapter-20260821@origin              [new] untracked\nbookmark: cairn/align-provider-port-ownership-20260820@origin         [new] untracked\nbookmark: cairn/close-duplicate-radicle-cob-20260820@origin           [new] untracked\nbookmark: cairn/migrate-native-lifecycle-20260810@origin              [new] untracked\nbookmark: cairn/mutate-radicle-cobs-single-writer-20260821@origin     [new] untracked\nbookmark: cairn/operationalize-radicle-provider-shell-20260821@origin [new] untracked\nbookmark: cairn/publish-radicle-ci-status-20260821@origin             [new] untracked\nbookmark: cairn/publish-radicle-source-contract-20260821@origin       [new] untracked\nbookmark: cairn/record-radicle-transport-blocker-20260820@origin      [new] untracked\nbookmark: cairn/split-radicle-provider-changes-20260821@origin        [new] untracked\nbookmark: candidate@origin                                            [new] untracked\nbookmark: change/add-aspen-host-bridge-20260827@origin                [new] untracked\nbookmark: change/admit-radicle-broker-031-wire-20260829@origin        [new] untracked\nbookmark: change/bind-aspen-extension-runtime-profile-20260828@origin [new] untracked\nbookmark: change/pace-aspen-lattice-observation-20260828@origin       [new] untracked\nbookmark: change/plan-aspen-runtime-backend-20260826@origin           [new] untracked\nbookmark: change/productionize-aspen-radicle-host-20260828@origin     [new] untracked\nbookmark: implement-kiln@origin                                       [new] untracked\nbookmark: kiln-observability-drain@origin                             [new] untracked\nbookmark: main@origin                                                 [new] untracked\nbookmark: publication-candidate-2026-10-15@origin                     [new] untracked\nbookmark: publication-evidence-2026-10-15@origin                      [new] untracked\nbookmark: publication-evidence-2026-10-18@origin                      [new] untracked\nbookmark: qualify-live-github-iroh-ci@origin                          [new] untracked\nbookmark: seaglass-kiln-executor@origin                               [new] untracked\n"
+      },
+      "readback": {
+        "exit_code": 0,
+        "revision": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+        "stderr": "",
+        "matches": true
+      },
+      "archive": {
+        "exit_code": 0,
+        "stderr": "",
+        "bytes": 10240,
+        "blake3": "77d90e44e6b60145228046084f90e66c2a7f2834e0052de22e1513956a9ad9dd"
+      }
+    },
+    {
+      "name": "garden",
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "anonymous": true,
+      "clone": {
+        "argv": [
+          "jj",
+          "--config",
+          "user.name=\"Qualification\"",
+          "--config",
+          "user.email=\"qualification@localhost\"",
+          "git",
+          "clone",
+          "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+          "/tmp/kiln-main-cutover-20261020-pjpymekb/garden"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/kiln-main-cutover-20261020-pjpymekb/garden\"\ngit: warning: no common commits        \nbookmark: main@origin [new] tracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: rqtvmusv 4e168b20 (empty) (no description set)\nParent commit (@-)      : qpolvzqp 6c6e4f22 main | Qualify published Aspen host cohort and close runtime lifecycle changes\nAdded 2924 files, modified 0 files, removed 0 files\n"
+      },
+      "readback": {
+        "exit_code": 0,
+        "revision": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+        "stderr": "",
+        "matches": true
+      },
+      "archive": {
+        "exit_code": 0,
+        "stderr": "",
+        "bytes": 44595200,
+        "blake3": "edabde13121bd234a853e72fd12b3d8687d9fa1ebd24b202bf60f370b762daa5"
+      }
+    }
+  ]
+}

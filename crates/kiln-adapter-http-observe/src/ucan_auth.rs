@@ -326,14 +326,16 @@ pub fn verify_ucan_header(
         .map_err(|_| ObserveError::new("ucan_denied", "UCAN holder invocation was not authorized"))
 }
 
+/// The versioned operation profile used by both observation verifiers and clients.
 #[must_use]
-pub(crate) fn ucan_operation_profile_id() -> OperationProfileId {
+pub fn ucan_operation_profile_id() -> OperationProfileId {
     OperationProfileId::from_bytes(
         *blake3::hash(UCAN_OBSERVATION_OPERATION_PROFILE.as_bytes()).as_bytes(),
     )
 }
 
-pub(crate) fn ucan_request_binding(
+/// Binds a holder invocation to the exact HTTP request and canonical state revision.
+pub fn ucan_request_binding(
     method: &str,
     target: &str,
     body: &[u8],

@@ -1468,6 +1468,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs2"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "fs4"
 version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3033,6 +3043,47 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "kiln-onixos-pilot"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "blake3",
+ "ed25519-dalek 2.2.0",
+ "fs2",
+ "kiln-adapter-aspen",
+ "kiln-adapter-http-observe",
+ "kiln-adapter-lattice",
+ "kiln-adapter-radicle",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-observe-core",
+ "kiln-provider-api",
+ "rustls",
+ "rustls-pemfile",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "ucan",
+]
+
+[[package]]
+name = "kiln-onixos-worker"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "fs2",
+ "kiln-adapter-nix",
+ "kiln-adapter-nix-eval",
+ "kiln-core",
+ "kiln-nix-build",
+ "kiln-onixos-pilot",
+ "kiln-provider-api",
+ "libc",
  "serde",
  "serde_json",
 ]

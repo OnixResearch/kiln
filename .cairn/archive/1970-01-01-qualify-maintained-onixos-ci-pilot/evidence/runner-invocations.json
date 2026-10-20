@@ -1,0 +1,88 @@
+{
+  "schema": "kiln.onixos-pilot.runner-invocations.v1",
+  "scope": "Actual final frozen-source shell invocations; fresh scratch roots are mandatory on repetition",
+  "invocations": [
+    {
+      "case": "success",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "argv": [
+        "nix",
+        "develop",
+        "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "-c",
+        "python3",
+        "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/var/tmp/kiln-oq-final-inputs-20261020.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kiln-qf-s-20261020",
+        "--case",
+        "success"
+      ],
+      "outcome": "pass",
+      "wall_seconds": 35.51,
+      "startup_diagnostics": [],
+      "verification": "success/verification.json",
+      "public_inner_commands": "success/commands.json",
+      "retained_inputs": "inputs.ncl"
+    },
+    {
+      "case": "build-failure",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "argv": [
+        "nix",
+        "develop",
+        "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "-c",
+        "python3",
+        "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/var/tmp/kiln-oq-final-inputs-20261020.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kiln-qf-b-20261020",
+        "--case",
+        "build-failure"
+      ],
+      "outcome": "pass",
+      "wall_seconds": 35.59,
+      "startup_diagnostics": [
+        "error (ignored): SQLite database '/home/brittonr/.cache/nix/eval-cache-v6/92df9cfbac4bc64a13b6055472f8ce01ca4e94d5785c7e8d745d38699f93643a.sqlite' is busy"
+      ],
+      "verification": "build-failure/verification.json",
+      "public_inner_commands": "build-failure/commands.json",
+      "retained_inputs": "inputs.ncl"
+    },
+    {
+      "case": "evaluation-failure",
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "argv": [
+        "nix",
+        "develop",
+        "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "-c",
+        "python3",
+        "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/var/tmp/kiln-oq-final-inputs-20261020.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kiln-qf-e-20261020",
+        "--case",
+        "evaluation-failure"
+      ],
+      "outcome": "pass",
+      "wall_seconds": 31.29,
+      "startup_diagnostics": [
+        "error (ignored): SQLite database '/home/brittonr/.cache/nix/eval-cache-v6/92df9cfbac4bc64a13b6055472f8ce01ca4e94d5785c7e8d745d38699f93643a.sqlite' is busy"
+      ],
+      "verification": "evaluation-failure/verification.json",
+      "public_inner_commands": "evaluation-failure/commands.json",
+      "retained_inputs": "inputs.ncl"
+    }
+  ]
+}

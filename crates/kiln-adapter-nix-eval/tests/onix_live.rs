@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use kiln_adapter_nix_eval::{
     BoundedNixEvalRuntime, NixEvalAdapter, NixEvalLimits, NixEvalProfile, NixEvalRuntimeBinding,
     ONIX_EXECUTABLE_BLAKE3, ONIX_EXECUTABLE_PATH, ONIX_MANIFEST_BLAKE3, ONIX_MANIFEST_PATH,
-    ONIX_PROFILE, ONIX_ROOT_SELECTOR, ONIX_SOURCE_BLAKE3, ONIX_SOURCE_PATH,
+    ONIX_PROFILE, ONIX_ROOT_SELECTOR, ONIX_SOURCE_BLAKE3, ONIX_SOURCE_PATH, OnixSourceBinding,
     PINNED_COHORT_MANIFEST_BLAKE3, PINNED_COHORT_MANIFEST_PATH, PINNED_EXECUTABLE_BLAKE3,
     PINNED_EXECUTABLE_PATH, admit_plan, gc_root_directory, onix_cohort,
 };
@@ -87,7 +87,15 @@ fn exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots() -> Resu
         gc_root_base: temporary.path().join("roots"),
         home_base: home,
     };
-    let profile = NixEvalProfile::onix(binding.clone(), limits())
+    // r[verify kiln.onixos_pilot.source]
+    let source_binding = OnixSourceBinding {
+        source: ExternalRef::new("kiln-source", "nix-store-path", ONIX_SOURCE_PATH)
+            .unwrap_or_else(|_| unreachable!()),
+        source_identity: identity(ONIX_SOURCE_BLAKE3),
+        root_selector: Alias::new(ONIX_ROOT_SELECTOR).unwrap_or_else(|_| unreachable!()),
+        system: Alias::new("x86_64-linux").unwrap_or_else(|_| unreachable!()),
+    };
+    let profile = NixEvalProfile::onix(binding.clone(), limits(), source_binding)
         .map_err(|error| format!("Onix profile: {error:?}"))?;
     let plan = DiscoveryEffectPlan {
         effect_id: EffectId::new("onix-live-discovery").unwrap_or_else(|_| unreachable!()),

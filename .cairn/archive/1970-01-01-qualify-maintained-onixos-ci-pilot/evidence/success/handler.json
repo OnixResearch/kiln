@@ -1,0 +1,51 @@
+{
+  "maximum_active_executions": 8,
+  "non_claims": [
+    "handler admission does not prove workflow correctness",
+    "route authority does not prove host confinement",
+    "execution observation does not prove an external effect succeeded",
+    "peer identity does not prove peer intent",
+    "handler checks do not establish release readiness"
+  ],
+  "routes": [
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:b0cb3236f42c788247df377bc82193b47b87a34618fbcf62d02873b23b2c71bb",
+      "nodes": [
+        {
+          "operation_identity": "b3:724188b4afc4ad1e3c28203d523caa82c4b6d816c17836f8e25f94c3cbbf5895",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        }
+      ],
+      "profile_identity": "b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5",
+      "source_binding": "shell_environment",
+      "workflow_name": "onixos-home-application",
+      "workflow_revision": "b3:d67f64baf31fa14dbd4bfbf8776b12e5f6a99554213ab33152f93912db5ac511"
+    }
+  ],
+  "schema": "lattice.workflow-exchange-handler-profile.v1",
+  "socket_path": "/var/tmp/kiln-qf-s-20261020/lattice.sock",
+  "transport": {
+    "limits": {
+      "maximum_connections": 2062,
+      "maximum_frame_bytes": 33554432,
+      "maximum_log_bytes": 16777216,
+      "read_deadline_milliseconds": 30000,
+      "write_deadline_milliseconds": 30000
+    },
+    "non_claims": [
+      "transport admission does not prove workflow correctness",
+      "transport peer identity does not prove peer intent",
+      "transport acceptance does not prove an operation executed",
+      "transport response does not prove an external effect succeeded",
+      "transport checks do not establish production deployment"
+    ],
+    "peers": {
+      "allowed_user_ids": [
+        1555
+      ]
+    },
+    "schema": "lattice.workflow-transport-profile.v1"
+  }
+}

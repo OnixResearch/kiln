@@ -1,0 +1,70 @@
+{
+  "adapter_limits": {
+    "max_in_flight": 64,
+    "max_request_bytes": 1048576,
+    "max_response_bytes": 16777216
+  },
+  "allowed_user_ids": [
+    1555
+  ],
+  "capabilities": {
+    "collaboration": false,
+    "source": false,
+    "status": false,
+    "trigger": true
+  },
+  "lattice_license": "MIT",
+  "lattice_revision": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+  "lattice_source": "ssh://git@github.com/OnixResearch/lattice.git",
+  "maximum_polls": 1023,
+  "maximum_replay_records": 4096,
+  "mode": "production",
+  "non_claims": [
+    "broker admission does not prove event completeness",
+    "source context does not prove source trust or revision availability",
+    "workflow acceptance does not prove an external effect started",
+    "workflow observation does not replace canonical Kiln CI state",
+    "local replay admission does not prove distributed exactly-once delivery",
+    "adapter checks do not establish release readiness"
+  ],
+  "radicle_broker_revision": "a688afde1f730ef60402a809d9cdadc55e8dd749",
+  "radicle_license": "MIT OR Apache-2.0",
+  "radicle_runtime_revision": "radicle-0.24.0",
+  "replay_database_path": "/var/tmp/kiln-qf-s-20261020/radicle-replay.sqlite",
+  "schema": "kiln.radicle-workflow-shell.v1",
+  "socket_path": "/var/tmp/kiln-qf-s-20261020/lattice.sock",
+  "transport_limits": {
+    "maximum_connections": 2062,
+    "maximum_frame_bytes": 33554432,
+    "maximum_log_bytes": 16777216,
+    "read_deadline_milliseconds": 30000,
+    "write_deadline_milliseconds": 30000
+  },
+  "workflow": {
+    "bounds": {
+      "max_edges": 1024,
+      "max_log_read_bytes": 1048576,
+      "max_log_references": 256,
+      "max_nodes": 256,
+      "max_total_log_bytes": 16777216
+    },
+    "controls": {
+      "cancel": true,
+      "pause": false,
+      "resume": false
+    },
+    "edges": [],
+    "nodes": [
+      {
+        "adapter_kind": "local",
+        "effect_class": "build",
+        "id": "build",
+        "kind": "build",
+        "operation_identity": "724188b4afc4ad1e3c28203d523caa82c4b6d816c17836f8e25f94c3cbbf5895"
+      }
+    ],
+    "platform": "linux-x86_64",
+    "policy_id": "radicle-ci-workflow-v1",
+    "provider_profile_id": "lattice-v1"
+  }
+}

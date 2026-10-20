@@ -25,11 +25,18 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - exact-cohort host qualification receipt admission, retained-artifact identity checks, and stronger-claim rejection;
 - a standalone `kiln-radicle-nix-provider` shell for bounded checks and durable reports under Lattice;
 - an exact local Nix derivation build provider with discovery-task composition, durable state, rooted outputs, bounded logs, and reconciliation;
+- an isolated signed-operator OnixOS pilot joining the maintained Aspen/Lattice runtime to source-bound discovery, rooted application builds, canonical journal replay and UCAN-authenticated observation;
 - Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - authenticated GitHub push/PR intake, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;
 - typed Nickel configuration and Nix checks.
 
 Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. Use its signed Radicle refs for current branch identities. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. The later source-only cutover to `f748acd0cc239f48bf3565ccb89d46ce88cbee2f` and its candidate-bound checks, including the optional runtime attributes that were not exercised, are recorded in [`.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/`](.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/publication.json). See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
+
+The subsequent operator-authorized main cutover to
+`6c6e4f220fe0234ce607085fa622b580fd1cd016` has its own
+[source/acquisition receipt](.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/main-cutover/receipt.json).
+The pilot's frozen-cohort qualification is independent of later source
+publication; publishing these sources does not qualify changed executables.
 
 ## Quick start
 
@@ -64,6 +71,16 @@ Provision its separate pinned cohort and run the real discovery rail using the
 [immutable fixture receipt](runtime/onix-eval-cohort/jobset.source.json) records
 the imported OnixOS source. Core and stock-only builds do not acquire the Onix
 evaluator or plugin; passing discovery does not prove a build or deployment.
+
+The [isolated maintained-cohort OnixOS pilot](docs/operator.md#isolated-maintained-cohort-onixos-pilot)
+exercises a real home-activation application launcher, duplicate delivery,
+host restart/reconciliation and genuine evaluation/build failures. Its exact
+input and runtime receipts bound the claim: generated activation/home-file
+dependencies are prepared separately, and the pilot neither executes activation
+nor establishes autonomous forge delivery, production cutover or release authority.
+The [cohort-bound qualification receipt](.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/verification.json)
+retains the actual outcomes, source/input identities, exercised gates and native
+lifecycle closeout. It does not qualify another source or executable cohort.
 
 Read `docs/architecture.md` for crate boundaries. Read `docs/observation-projection.md` for the bounded read-only observation model. Read `docs/http-observation.md` for the HTTPS view and SSE transport contract. Read `docs/iroh-observation.md` for the peer-verified iroh transport and equivalence contract. Read `docs/nix-build-adapter.md` for the exact local Nix derivation build provider. Read `runtime/kiln-aspen-host/README.md` for the deployable Aspen host composition and its bounded claims. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-nix-provider.md` for bounded hosted Nix checks and durable reports. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary. Read `docs/aspen-runtime-backend.md` for Aspen setup, ownership, recovery, status, and rollout gates.
 

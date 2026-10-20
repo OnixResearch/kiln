@@ -1,0 +1,397 @@
+these 4 derivations will be built:
+  /nix/store/5bwpiy8f5b3zlbj3bpgixwvh6xswc58b-kiln-nix-eval-fixture-process-0.1.0.drv
+  /nix/store/i5vgplqn7r6iclph4qdq18sq7jc6hxy7-kiln-nix-build-adapter-fixtures-0.1.0.drv
+  /nix/store/j4jxj3zpa78c3wj290w4r0ixclbf0b78-kiln-nix-eval-jobs-cohort.drv
+  /nix/store/zai9pyaq17h43apabjn8i292arfq4857-kiln-nickel.drv
+building '/nix/store/zai9pyaq17h43apabjn8i292arfq4857-kiln-nickel.drv' on 'ssh-ng://root@aspen1.local'...
+building '/nix/store/i5vgplqn7r6iclph4qdq18sq7jc6hxy7-kiln-nix-build-adapter-fixtures-0.1.0.drv' on 'ssh-ng://root@aspen1.local'...
+building '/nix/store/5bwpiy8f5b3zlbj3bpgixwvh6xswc58b-kiln-nix-eval-fixture-process-0.1.0.drv' on 'ssh-ng://root@aspen1.local'...
+building '/nix/store/j4jxj3zpa78c3wj290w4r0ixclbf0b78-kiln-nix-eval-jobs-cohort.drv' on 'ssh-ng://root@aspen1.local'...
+building '/nix/store/zai9pyaq17h43apabjn8i292arfq4857-kiln-nickel.drv'...
+building '/nix/store/i5vgplqn7r6iclph4qdq18sq7jc6hxy7-kiln-nix-build-adapter-fixtures-0.1.0.drv'...
+kiln-nix-build-adapter-fixtures> Running phase: unpackPhase
+kiln-nix-build-adapter-fixtures> unpacking source archive /nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source
+building '/nix/store/5bwpiy8f5b3zlbj3bpgixwvh6xswc58b-kiln-nix-eval-fixture-process-0.1.0.drv'...
+kiln-nix-build-adapter-fixtures> source root is source
+kiln-nix-build-adapter-fixtures> Executing cargoSetupPostUnpackHook
+kiln-nix-eval-fixture-process> Running phase: unpackPhase
+kiln-nix-eval-fixture-process> unpacking source archive /nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source
+kiln-nix-eval-fixture-process> source root is source
+kiln-nix-eval-fixture-process> Executing cargoSetupPostUnpackHook
+copying 1 paths...
+copying path '/nix/store/wasviibxqrxh6h8wckaifm2s6lancgpn-kiln-nix-eval-jobs-cohort.json' to 'ssh-ng://root@aspen1.local'...
+kiln-nix-build-adapter-fixtures> Finished cargoSetupPostUnpackHook
+kiln-nix-build-adapter-fixtures> Running phase: patchPhase
+kiln-nix-build-adapter-fixtures> Executing cargoSetupPostPatchHook
+kiln-nix-build-adapter-fixtures> Validating consistency between /build/source/Cargo.lock and /build/cargo-vendor-dir/Cargo.lock
+kiln-nix-build-adapter-fixtures> Finished cargoSetupPostPatchHook
+kiln-nix-build-adapter-fixtures> Running phase: updateAutotoolsGnuConfigScriptsPhase
+kiln-nix-build-adapter-fixtures> Running phase: configurePhase
+kiln-nix-build-adapter-fixtures> Running phase: buildPhase
+kiln-nix-eval-fixture-process> Finished cargoSetupPostUnpackHook
+kiln-nix-eval-fixture-process> Running phase: patchPhase
+kiln-nix-eval-fixture-process> Executing cargoSetupPostPatchHook
+kiln-nix-eval-fixture-process> Validating consistency between /build/source/Cargo.lock and /build/cargo-vendor-dir/Cargo.lock
+kiln-nix-eval-fixture-process> Finished cargoSetupPostPatchHook
+kiln-nix-eval-fixture-process> Running phase: updateAutotoolsGnuConfigScriptsPhase
+kiln-nix-build-adapter-fixtures>    Compiling proc-macro2 v1.0.107
+kiln-nix-build-adapter-fixtures>    Compiling cfg-if v1.0.4
+kiln-nix-build-adapter-fixtures>    Compiling unicode-ident v1.0.24
+kiln-nix-build-adapter-fixtures>    Compiling quote v1.0.47
+kiln-nix-build-adapter-fixtures>    Compiling libc v0.2.189
+kiln-nix-build-adapter-fixtures>    Compiling find-msvc-tools v0.1.10
+kiln-nix-build-adapter-fixtures>    Compiling shlex v2.0.1
+kiln-nix-build-adapter-fixtures>    Compiling serde_core v1.0.229
+kiln-nix-build-adapter-fixtures>    Compiling serde v1.0.229
+kiln-nix-eval-fixture-process> Running phase: configurePhase
+kiln-nix-build-adapter-fixtures>    Compiling cfg_aliases v0.2.2
+kiln-nix-build-adapter-fixtures>    Compiling bitflags v2.13.1
+kiln-nix-eval-fixture-process> Running phase: buildPhase
+kiln-nix-build-adapter-fixtures>    Compiling constant_time_eq v0.4.2
+kiln-nix-build-adapter-fixtures>    Compiling arrayvec v0.7.8
+kiln-nix-build-adapter-fixtures>    Compiling zmij v1.0.23
+kiln-nix-build-adapter-fixtures>    Compiling cpufeatures v0.3.0
+kiln-nix-build-adapter-fixtures>    Compiling arrayref v0.3.9
+kiln-nix-build-adapter-fixtures>    Compiling rustix v1.1.4
+kiln-nix-build-adapter-fixtures>    Compiling serde_json v1.0.149
+kiln-nix-build-adapter-fixtures>    Compiling getrandom v0.4.3
+kiln-nix-build-adapter-fixtures>    Compiling memchr v2.8.3
+kiln-nix-build-adapter-fixtures>    Compiling itoa v1.0.18
+kiln-nix-build-adapter-fixtures>    Compiling bounded-exec-core v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec-core)
+kiln-nix-build-adapter-fixtures>    Compiling linux-raw-sys v0.12.1
+kiln-nix-build-adapter-fixtures>    Compiling once_cell v1.21.4
+kiln-nix-build-adapter-fixtures>    Compiling fastrand v2.5.0
+kiln-nix-build-adapter-fixtures>    Compiling nix v0.30.1
+kiln-nix-build-adapter-fixtures>    Compiling cc v1.4.2
+building '/nix/store/j4jxj3zpa78c3wj290w4r0ixclbf0b78-kiln-nix-eval-jobs-cohort.drv'...
+kiln-nix-eval-fixture-process>    Compiling proc-macro2 v1.0.107
+kiln-nix-eval-fixture-process>    Compiling quote v1.0.47
+kiln-nix-eval-fixture-process>    Compiling unicode-ident v1.0.24
+kiln-nix-eval-fixture-process>    Compiling cfg-if v1.0.4
+kiln-nix-eval-fixture-process>    Compiling zeroize v1.8.2
+kiln-nix-eval-fixture-process>    Compiling version_check v0.9.5
+kiln-nix-eval-fixture-process>    Compiling typenum v1.20.1
+kiln-nix-eval-fixture-process>    Compiling libc v0.2.189
+kiln-nix-eval-fixture-process>    Compiling subtle v2.6.1
+kiln-nix-eval-fixture-process>    Compiling find-msvc-tools v0.1.10
+kiln-nix-eval-fixture-process>    Compiling shlex v2.0.1
+kiln-nix-eval-fixture-process>    Compiling const-oid v0.9.6
+kiln-nix-eval-fixture-process>    Compiling serde_core v1.0.229
+kiln-nix-eval-fixture-process>    Compiling autocfg v1.5.1
+kiln-nix-eval-fixture-process>    Compiling serde v1.0.229
+kiln-nix-eval-fixture-process>    Compiling cpufeatures v0.2.17
+kiln-nix-eval-fixture-process>    Compiling libm v0.2.16
+kiln-nix-eval-fixture-process>    Compiling memchr v2.8.3
+kiln-nix-eval-fixture-process>    Compiling pkg-config v0.3.34
+kiln-nix-eval-fixture-process>    Compiling bitflags v2.13.1
+kiln-nix-eval-fixture-process>    Compiling spin v0.9.9
+kiln-nix-eval-fixture-process>    Compiling vcpkg v0.2.15
+kiln-nix-eval-fixture-process>    Compiling zmij v1.0.23
+kiln-nix-eval-fixture-process>    Compiling cpufeatures v0.3.0
+kiln-nix-eval-fixture-process>    Compiling constant_time_eq v0.4.2
+kiln-nix-eval-fixture-process>    Compiling smallvec v1.15.2
+kiln-nix-eval-fixture-process>    Compiling arrayref v0.3.9
+kiln-nix-eval-fixture-process>    Compiling arrayvec v0.7.8
+kiln-nix-eval-fixture-process>    Compiling serde_json v1.0.149
+kiln-nix-eval-fixture-process>    Compiling itoa v1.0.18
+kiln-nix-eval-fixture-process>    Compiling stable_deref_trait v1.2.1
+kiln-nix-eval-fixture-process>    Compiling base16ct v0.2.0
+kiln-nix-eval-fixture-process>    Compiling zerocopy v0.8.56
+kiln-nix-eval-fixture-process>    Compiling cfg_aliases v0.2.2
+kiln-nix-eval-fixture-process>    Compiling opaque-debug v0.3.1
+kiln-nix-eval-fixture-process>    Compiling semver v1.0.28
+kiln-nix-eval-fixture-process>    Compiling lazy_static v1.5.0
+kiln-nix-eval-fixture-process>    Compiling num-bigint-dig v0.8.6
+kiln-nix-eval-fixture-process>    Compiling regex-syntax v0.8.11
+kiln-nix-eval-fixture-process>    Compiling thiserror v2.0.20
+kiln-nix-eval-fixture-process>    Compiling log v0.4.33
+kiln-nix-eval-fixture-process>    Compiling base64ct v1.8.3
+kiln-nix-eval-jobs-cohort> error:
+kiln-nix-eval-jobs-cohort>        … while calling the 'throw' builtin
+kiln-nix-eval-jobs-cohort>          at /build/nix-store/jsh1kxm2fyk3qkka3pzzv5xv37599v60-source/flake.nix:36:18:
+kiln-nix-eval-jobs-cohort>            35|         };
+kiln-nix-eval-jobs-cohort>            36|         broken = throw "Kiln fixture evaluation error";
+kiln-nix-eval-jobs-cohort>              |                  ^
+kiln-nix-eval-jobs-cohort>            37|       };
+kiln-nix-eval-jobs-cohort> 
+kiln-nix-eval-jobs-cohort>        error: Kiln fixture evaluation error
+kiln-nix-eval-fixture-process>    Compiling der v0.7.10
+kiln-nix-eval-fixture-process>    Compiling writeable v0.6.4
+kiln-nix-eval-fixture-process>    Compiling litemap v0.8.3
+kiln-nix-eval-fixture-process>    Compiling byteorder v1.5.0
+kiln-nix-eval-fixture-process>    Compiling bytemuck v1.25.2
+kiln-nix-eval-fixture-process>    Compiling icu_properties_data v2.3.0
+kiln-nix-eval-jobs-cohort> error:
+kiln-nix-eval-jobs-cohort>        … while evaluating the 'name' attribute of a derivation
+kiln-nix-eval-jobs-cohort> 
+kiln-nix-eval-jobs-cohort>        error: attribute 'wasm' missing
+kiln-nix-eval-jobs-cohort>        at /build/nix-store/jsh1kxm2fyk3qkka3pzzv5xv37599v60-source/flake.nix:40:18:
+kiln-nix-eval-jobs-cohort>            39|         unsupported = derivation {
+kiln-nix-eval-jobs-cohort>            40|           name = builtins.wasm;
+kiln-nix-eval-jobs-cohort>              |                  ^
+kiln-nix-eval-jobs-cohort>            41|           system = System;
+kiln-nix-eval-jobs-cohort>        Did you mean warn?
+copying 1 paths...
+copying path '/nix/store/yw3nswfxy3xv7f673v484760x2xh0i4j-kiln-nix-eval-jobs-cohort' from 'ssh-ng://root@aspen1.local'...
+kiln-nix-eval-fixture-process>    Compiling utf8_iter v1.0.4
+kiln-nix-eval-fixture-process>    Compiling base64 v0.13.1
+kiln-nix-eval-fixture-process>    Compiling icu_normalizer_data v2.3.0
+kiln-nix-eval-fixture-process>    Compiling dtoa v0.4.8
+kiln-nix-eval-fixture-process>    Compiling generic-array v0.14.7
+kiln-nix-eval-fixture-process>    Compiling data-encoding v2.11.1
+kiln-nix-eval-fixture-process>    Compiling const-str v0.4.3
+kiln-nix-eval-fixture-process>    Compiling secrecy v0.10.3
+kiln-nix-eval-fixture-process>    Compiling nix v0.30.1
+kiln-nix-eval-fixture-process>    Compiling rustc_version v0.4.1
+kiln-nix-eval-fixture-process>    Compiling base-x v0.2.11
+kiln-nix-eval-fixture-process>    Compiling base45 v3.2.0
+kiln-nix-eval-fixture-process>    Compiling nix v0.31.3
+kiln-nix-eval-fixture-process>    Compiling ref-cast v1.0.27
+kiln-nix-eval-fixture-process>    Compiling fastrand v2.5.0
+kiln-nix-eval-fixture-process>    Compiling num-traits v0.2.19
+kiln-nix-eval-fixture-process>    Compiling memoffset v0.9.1
+kiln-nix-eval-fixture-process>    Compiling pem-rfc7468 v0.7.0
+kiln-nix-eval-fixture-process>    Compiling bounded-exec-core v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec-core)
+kiln-nix-eval-fixture-process>    Compiling rustix v1.1.4
+kiln-nix-eval-fixture-process>    Compiling percent-encoding v2.3.2
+kiln-nix-eval-fixture-process>    Compiling getrandom v0.4.3
+kiln-nix-eval-fixture-process>    Compiling dyn-clone v1.0.20
+kiln-nix-eval-fixture-process>    Compiling base64 v0.22.1
+kiln-nix-eval-fixture-process>    Compiling linux-raw-sys v0.12.1
+kiln-nix-eval-fixture-process>    Compiling fallible-streaming-iterator v0.1.9
+kiln-nix-eval-fixture-process>    Compiling fallible-iterator v0.3.0
+kiln-nix-eval-fixture-process>    Compiling form_urlencoded v1.2.2
+kiln-nix-eval-fixture-process>    Compiling radicle-dag v0.10.0
+kiln-nix-eval-fixture-process>    Compiling once_cell v1.21.4
+kiln-nix-eval-fixture-process>    Compiling curve25519-dalek v4.1.3
+kiln-nix-eval-fixture-process>    Compiling aho-corasick v1.1.5
+kiln-nix-build-adapter-fixtures>    Compiling syn v3.0.3
+kiln-nix-eval-fixture-process>    Compiling syn v3.0.3
+kiln-nix-eval-fixture-process>    Compiling syn v2.0.119
+kiln-nix-build-adapter-fixtures>    Compiling blake3 v1.8.4
+kiln-nix-eval-fixture-process>    Compiling spki v0.7.3
+kiln-nix-eval-fixture-process>    Compiling pkcs8 v0.10.2
+kiln-nix-eval-fixture-process>    Compiling jobserver v0.1.35
+kiln-nix-eval-fixture-process>    Compiling crypto-common v0.1.7
+kiln-nix-eval-fixture-process>    Compiling block-buffer v0.10.4
+kiln-nix-eval-fixture-process>    Compiling block-padding v0.3.3
+kiln-nix-eval-fixture-process>    Compiling sec1 v0.7.3
+kiln-nix-eval-fixture-process>    Compiling universal-hash v0.5.1
+kiln-nix-eval-fixture-process>    Compiling aead v0.5.2
+kiln-nix-eval-fixture-process>    Compiling pkcs1 v0.7.5
+kiln-nix-eval-fixture-process>    Compiling inout v0.1.4
+kiln-nix-eval-fixture-process>    Compiling digest v0.10.7
+kiln-nix-eval-fixture-process>    Compiling polyval v0.6.2
+kiln-nix-eval-fixture-process>    Compiling poly1305 v0.8.0
+kiln-nix-eval-fixture-process>    Compiling cc v1.4.2
+kiln-nix-eval-fixture-process>    Compiling cipher v0.4.4
+kiln-nix-eval-fixture-process>    Compiling sha2 v0.10.9
+kiln-nix-eval-fixture-process>    Compiling hmac v0.12.1
+kiln-nix-eval-fixture-process>    Compiling pbkdf2 v0.12.2
+kiln-nix-eval-fixture-process>    Compiling ghash v0.5.1
+kiln-nix-eval-fixture-process>    Compiling rfc6979 v0.4.0
+kiln-nix-eval-fixture-process>    Compiling ctr v0.9.2
+kiln-nix-eval-fixture-process>    Compiling aes v0.8.4
+kiln-nix-eval-fixture-process>    Compiling blowfish v0.9.1
+kiln-nix-eval-fixture-process>    Compiling cbc v0.1.2
+kiln-nix-eval-fixture-process>    Compiling chacha20 v0.9.1
+kiln-nix-build-adapter-fixtures>    Compiling tempfile v3.27.0
+kiln-nix-eval-fixture-process>    Compiling ssh-encoding v0.2.0
+kiln-nix-eval-fixture-process>    Compiling bcrypt-pbkdf v0.10.0
+kiln-nix-eval-fixture-process>    Compiling regex-automata v0.4.18
+kiln-nix-eval-fixture-process>    Compiling num-integer v0.1.46
+copying 1 paths...
+copying path '/nix/store/67l34jmxvli8ydkk65dmclsadr2vj8qk-kiln-nickel' from 'ssh-ng://root@aspen1.local'...
+kiln-nix-eval-fixture-process>    Compiling getrandom v0.2.17
+kiln-nix-eval-fixture-process>    Compiling aes-gcm v0.10.3
+kiln-nix-eval-fixture-process>    Compiling num-iter v0.1.46
+kiln-nix-eval-fixture-process>    Compiling num-bigint v0.4.8
+kiln-nix-eval-fixture-process>    Compiling ssh-cipher v0.2.0
+kiln-nix-eval-fixture-process>    Compiling rand_core v0.6.4
+kiln-nix-eval-fixture-process>    Compiling serde_bytes v0.11.19
+kiln-nix-eval-fixture-process>    Compiling signature v2.2.0
+kiln-nix-eval-fixture-process>    Compiling ff v0.13.1
+kiln-nix-eval-fixture-process>    Compiling crypto-bigint v0.5.5
+kiln-nix-build-adapter-fixtures>    Compiling bounded-exec v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec)
+kiln-nix-eval-fixture-process>    Compiling ed25519 v2.2.3
+kiln-nix-eval-fixture-process>    Compiling group v0.13.0
+kiln-nix-eval-fixture-process>    Compiling tempfile v3.27.0
+kiln-nix-build-adapter-fixtures>    Compiling serde_derive v1.0.229
+kiln-nix-eval-fixture-process>    Compiling blake3 v1.8.4
+kiln-nix-eval-fixture-process>    Compiling libz-sys v1.1.29
+kiln-nix-eval-fixture-process>    Compiling libgit2-sys v0.18.7+1.9.6
+kiln-nix-eval-fixture-process>    Compiling libsqlite3-sys v0.38.2
+kiln-nix-eval-fixture-process>    Compiling bounded-exec v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec)
+kiln-nix-eval-fixture-process>    Compiling serde_derive_internals v0.30.0
+kiln-nix-eval-fixture-process>    Compiling serde_derive v1.0.229
+kiln-nix-eval-fixture-process>    Compiling zerovec-derive v0.11.5
+kiln-nix-eval-fixture-process>    Compiling displaydoc v0.2.7
+kiln-nix-eval-fixture-process>    Compiling thiserror-impl v2.0.20
+kiln-nix-eval-fixture-process>    Compiling data-encoding-macro-internal v0.1.19
+kiln-nix-eval-fixture-process>    Compiling ref-cast-impl v1.0.27
+kiln-nix-eval-fixture-process>    Compiling data-encoding-macro v0.1.21
+kiln-nix-eval-fixture-process>    Compiling schemars_derive v1.2.2
+kiln-nix-eval-fixture-process>    Compiling elliptic-curve v0.13.8
+kiln-nix-eval-fixture-process>    Compiling ecdsa v0.16.9
+kiln-nix-eval-fixture-process>    Compiling primeorder v0.13.6
+kiln-nix-eval-fixture-process>    Compiling regex v1.13.1
+kiln-nix-eval-fixture-process>    Compiling ppv-lite86 v0.2.21
+kiln-nix-eval-fixture-process>    Compiling p521 v0.13.3
+kiln-nix-eval-fixture-process>    Compiling p384 v0.13.1
+kiln-nix-eval-fixture-process>    Compiling p256 v0.13.2
+kiln-nix-eval-fixture-process>    Compiling radicle-git-ref-format v0.2.0
+kiln-nix-eval-fixture-process>    Compiling radicle-git-metadata v0.2.1
+kiln-nix-eval-fixture-process>    Compiling synstructure v0.13.2
+kiln-nix-eval-fixture-process>    Compiling rand_chacha v0.3.1
+kiln-nix-eval-fixture-process>    Compiling rand v0.8.7
+kiln-nix-eval-fixture-process>    Compiling zerofrom-derive v0.1.7
+kiln-nix-eval-fixture-process>    Compiling yoke-derive v0.8.2
+kiln-nix-eval-fixture-process>    Compiling curve25519-dalek-derive v0.1.1
+kiln-nix-eval-fixture-process>    Compiling match-lookup v0.1.2
+kiln-nix-eval-fixture-process>    Compiling base256emoji v1.0.2
+kiln-nix-eval-fixture-process>    Compiling multibase v0.9.3
+kiln-nix-build-adapter-fixtures>    Compiling kiln-core v0.1.0 (/build/source/crates/kiln-core)
+kiln-nix-eval-fixture-process>    Compiling zerofrom v0.1.8
+kiln-nix-eval-fixture-process>    Compiling yoke v0.8.3
+kiln-nix-eval-fixture-process>    Compiling zerovec v0.11.8
+kiln-nix-eval-fixture-process>    Compiling zerotrie v0.2.5
+kiln-nix-eval-fixture-process>    Compiling rsa v0.9.10
+kiln-nix-eval-fixture-process>    Compiling ed25519-dalek v2.2.0
+kiln-nix-eval-fixture-process>    Compiling kiln-core v0.1.0 (/build/source/crates/kiln-core)
+kiln-nix-eval-fixture-process>    Compiling preserves v5.0.0-rc.7
+kiln-nix-eval-fixture-process>    Compiling lattice-workflow-contract v0.1.0 (/build/source/vendor/lattice/crates/lattice-workflow-contract)
+kiln-nix-eval-fixture-process>    Compiling nonempty v0.9.0
+kiln-nix-eval-fixture-process>    Compiling schemars v1.2.2
+kiln-nix-eval-fixture-process>    Compiling kiln-radicle-source-contract v0.1.0 (/build/source/crates/kiln-radicle-source-contract)
+kiln-nix-eval-fixture-process>    Compiling tinystr v0.8.4
+kiln-nix-eval-fixture-process>    Compiling potential_utf v0.1.6
+kiln-nix-eval-fixture-process>    Compiling ssh-key v0.6.7
+kiln-nix-eval-fixture-process>    Compiling git2 v0.21.0
+kiln-nix-eval-fixture-process>    Compiling icu_collections v2.3.0
+kiln-nix-eval-fixture-process>    Compiling icu_locale_core v2.3.0
+kiln-nix-eval-fixture-process>    Compiling lattice-workflow-transport v0.1.0 (/build/source/vendor/lattice/crates/lattice-workflow-contract/transport)
+kiln-nix-eval-fixture-process>    Compiling icu_provider v2.3.0
+kiln-nix-eval-fixture-process>    Compiling icu_properties v2.3.0
+kiln-nix-eval-fixture-process>    Compiling icu_normalizer v2.3.0
+kiln-nix-eval-fixture-process>    Compiling ssh-agent-lib v0.6.0
+kiln-nix-eval-fixture-process>    Compiling radicle-crypto v0.19.0
+kiln-nix-eval-fixture-process>    Compiling idna_adapter v1.2.2
+kiln-nix-eval-fixture-process>    Compiling idna v1.1.0
+kiln-nix-eval-fixture-process>    Compiling url v2.5.8
+kiln-nix-eval-fixture-process>    Compiling radicle-oid v0.2.2
+kiln-nix-eval-fixture-process>    Compiling radicle-cob v0.21.1
+kiln-nix-eval-fixture-process>    Compiling radicle-core v0.4.1
+kiln-nix-eval-fixture-process>    Compiling git2 v0.20.2
+kiln-nix-eval-fixture-process>    Compiling onix-radicle-cob-git-store v0.2.0 (/build/source/vendor/radicle-cob-git-store)
+kiln-nix-build-adapter-fixtures>    Compiling kiln-provider-api v0.1.0 (/build/source/crates/kiln-provider-api)
+kiln-nix-build-adapter-fixtures>    Compiling kiln-adapter-nix v0.1.0 (/build/source/crates/kiln-adapter-nix)
+kiln-nix-eval-fixture-process>    Compiling rusqlite v0.40.2
+kiln-nix-eval-fixture-process>    Compiling kiln-provider-api v0.1.0 (/build/source/crates/kiln-provider-api)
+kiln-nix-eval-fixture-process>    Compiling kiln-codec v0.1.0 (/build/source/crates/kiln-codec)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-lattice v0.1.0 (/build/source/crates/kiln-adapter-lattice)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-aspen v0.1.0 (/build/source/crates/kiln-adapter-aspen)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-nix-eval v0.1.0 (/build/source/crates/kiln-adapter-nix-eval)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-jj v0.1.0 (/build/source/crates/kiln-adapter-jj)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-cob v0.1.0 (/build/source/crates/kiln-adapter-cob)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-git v0.1.0 (/build/source/crates/kiln-adapter-git)
+kiln-nix-eval-fixture-process>    Compiling kiln-standalone v0.1.0 (/build/source/crates/kiln-standalone)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-remote v0.1.0 (/build/source/crates/kiln-adapter-remote)
+kiln-nix-build-adapter-fixtures>     Finished `test` profile [unoptimized + debuginfo] target(s) in 12.41s
+kiln-nix-build-adapter-fixtures>      Running unittests src/lib.rs (target/debug/deps/kiln_adapter_nix-136ee539f4c54bb3)
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> running 14 tests
+kiln-nix-build-adapter-fixtures> test tests::flat_profile_config_is_admitted ... ok
+kiln-nix-build-adapter-fixtures> test tests::inconsistent_limits_are_rejected ... ok
+kiln-nix-build-adapter-fixtures> test tests::duplicate_dispatch_reuses_the_record ... ok
+kiln-nix-build-adapter-fixtures> test tests::conflicting_or_mismatched_plans_do_not_execute ... ok
+kiln-nix-build-adapter-fixtures> test tests::executable_derivation_and_profile_drift_fail_before_dispatch ... ok
+kiln-nix-build-adapter-fixtures> test tests::multi_output_build_is_admitted ... ok
+kiln-nix-build-adapter-fixtures> test tests::log_requests_are_identity_bound_and_bounded ... ok
+kiln-nix-build-adapter-fixtures> test tests::nonzero_exit_is_failed_with_a_terminal_receipt ... ok
+kiln-nix-build-adapter-fixtures> test tests::pinned_profile_is_admitted ... ok
+kiln-nix-build-adapter-fixtures> test tests::missing_product_or_wrong_path_is_a_provider_error ... ok
+kiln-nix-build-adapter-fixtures> test tests::successful_build_is_recorded_and_readable ... ok
+kiln-nix-build-adapter-fixtures> test tests::timeout_and_cancellation_are_terminal ... ok
+kiln-nix-build-adapter-fixtures> test tests::unknown_outcome_has_no_terminal_receipt ... ok
+kiln-nix-build-adapter-fixtures> test tests::observation_only_restore_has_no_log_and_rejects_conflicts ... ok
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures>    Doc-tests kiln_adapter_nix
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> running 0 tests
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures>    Compiling kiln-adapter-nix-eval v0.1.0 (/build/source/crates/kiln-adapter-nix-eval)
+kiln-nix-build-adapter-fixtures>    Compiling kiln-nix-build v0.1.0 (/build/source/crates/kiln-nix-build)
+kiln-nix-eval-fixture-process>    Compiling kiln-adapter-radicle v0.1.0 (/build/source/crates/kiln-adapter-radicle)
+kiln-nix-build-adapter-fixtures>     Finished `test` profile [unoptimized + debuginfo] target(s) in 1.52s
+kiln-nix-build-adapter-fixtures>      Running unittests src/lib.rs (target/debug/deps/kiln_nix_build-03f5e689aeac50a5)
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> running 0 tests
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures>      Running unittests src/main.rs (target/debug/deps/kiln_nix_build-bea11561112123da)
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> running 0 tests
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures>      Running tests/composition.rs (target/debug/deps/composition-20dafe67c509792e)
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> running 5 tests
+kiln-nix-build-adapter-fixtures> test task_maps_to_exact_profile_and_plan ... ok
+kiln-nix-build-adapter-fixtures> test preflight_failure_stops_before_build ... ok
+kiln-nix-build-adapter-fixtures> test task_drift_is_rejected ... ok
+kiln-nix-build-adapter-fixtures> test task_build_is_admitted_and_rooted ... ok
+kiln-nix-build-adapter-fixtures> test durable_state_round_trips_bound_profile ... ok
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures>      Running tests/discovery_live.rs (target/debug/deps/discovery_live-542283c7ff705c10)
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> running 0 tests
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures>    Doc-tests kiln_nix_build
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> running 0 tests
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+kiln-nix-build-adapter-fixtures> 
+kiln-nix-build-adapter-fixtures> Running phase: installPhase
+kiln-nix-build-adapter-fixtures> Running phase: fixupPhase
+kiln-nix-build-adapter-fixtures> shrinking RPATHs of ELF executables and libraries in /nix/store/ljna9lgl67l1n89141as0c1993qxxmx5-kiln-nix-build-adapter-fixtures-0.1.0
+kiln-nix-build-adapter-fixtures> checking for references to /build/ in /nix/store/ljna9lgl67l1n89141as0c1993qxxmx5-kiln-nix-build-adapter-fixtures-0.1.0...
+kiln-nix-build-adapter-fixtures> patching script interpreter paths in /nix/store/ljna9lgl67l1n89141as0c1993qxxmx5-kiln-nix-build-adapter-fixtures-0.1.0
+kiln-nix-eval-fixture-process>    Compiling kiln-conformance v0.1.0 (/build/source/crates/kiln-conformance)
+copying 1 paths...
+copying path '/nix/store/ljna9lgl67l1n89141as0c1993qxxmx5-kiln-nix-build-adapter-fixtures-0.1.0' from 'ssh-ng://root@aspen1.local'...
+kiln-nix-eval-fixture-process>     Finished `test` profile [unoptimized + debuginfo] target(s) in 14.86s
+kiln-nix-eval-fixture-process>      Running tests/fixture_process.rs (target/debug/deps/fixture_process-164d92e1d5745704)
+kiln-nix-eval-fixture-process> 
+kiln-nix-eval-fixture-process> running 3 tests
+kiln-nix-eval-fixture-process> test fixture_stream_modes_reach_the_intended_schema_boundary ... ok
+kiln-nix-eval-fixture-process> test cancellation_late_output_and_descendants_finish_under_owned_teardown ... ok
+kiln-nix-eval-fixture-process> test deterministic_fixture_processes_preserve_process_classes ... ok
+kiln-nix-eval-fixture-process> 
+kiln-nix-eval-fixture-process> test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+kiln-nix-eval-fixture-process> 
+kiln-nix-eval-fixture-process> Running phase: installPhase
+kiln-nix-eval-fixture-process> Running phase: fixupPhase
+kiln-nix-eval-fixture-process> shrinking RPATHs of ELF executables and libraries in /nix/store/frgp2cngwnrasicyqij3lm8pprmmgr15-kiln-nix-eval-fixture-process-0.1.0
+kiln-nix-eval-fixture-process> checking for references to /build/ in /nix/store/frgp2cngwnrasicyqij3lm8pprmmgr15-kiln-nix-eval-fixture-process-0.1.0...
+kiln-nix-eval-fixture-process> patching script interpreter paths in /nix/store/frgp2cngwnrasicyqij3lm8pprmmgr15-kiln-nix-eval-fixture-process-0.1.0
+copying 1 paths...
+copying path '/nix/store/frgp2cngwnrasicyqij3lm8pprmmgr15-kiln-nix-eval-fixture-process-0.1.0' from 'ssh-ng://root@aspen1.local'...
+/nix/store/67l34jmxvli8ydkk65dmclsadr2vj8qk-kiln-nickel
+/nix/store/frgp2cngwnrasicyqij3lm8pprmmgr15-kiln-nix-eval-fixture-process-0.1.0
+/nix/store/ljna9lgl67l1n89141as0c1993qxxmx5-kiln-nix-build-adapter-fixtures-0.1.0
+/nix/store/yw3nswfxy3xv7f673v484760x2xh0i4j-kiln-nix-eval-jobs-cohort
+/nix/store/f3skndbhyizcfdcl2z6dbcvc60n8ppv7-kiln-nix-build-adapter-cohort
+
+
+Wall time: 21.06 seconds

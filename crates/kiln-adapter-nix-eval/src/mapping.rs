@@ -80,6 +80,7 @@ pub fn admit_cohort_manifest(profile: &NixEvalProfile, bytes: &[u8]) -> PortResu
 
 // r[impl kiln.nix_eval_jobs.input_admission]
 pub fn admit_plan(profile: &NixEvalProfile, plan: &DiscoveryEffectPlan) -> PortResult<()> {
+    admit_profile(profile)?;
     if profile.evaluator_cohort.is_none()
         && (plan.evaluator_cohort.is_some() || plan.provider_profile.as_str() == ONIX_PROFILE)
     {
@@ -98,7 +99,14 @@ pub fn admit_plan(profile: &NixEvalProfile, plan: &DiscoveryEffectPlan) -> PortR
             )
         })?;
         admit_onix_cohort(cohort)?;
-        admit_onix_source(plan)?;
+        let binding = profile.onix_source_binding.as_ref().ok_or_else(|| {
+            domain(
+                "onix_source_binding",
+                "nix_eval.profile.onix_source_binding",
+                "explicit Onix source binding is required",
+            )
+        })?;
+        admit_onix_source(binding, plan)?;
     }
     validate_discovery_plan(plan).map_err(PortFailure::Domain)?;
     if plan.provider_profile != profile.provider.profile_id
@@ -277,7 +285,7 @@ pub fn build_observation(
     })
 }
 
-fn selector_is_supported(selector: &str) -> bool {
+pub(crate) fn selector_is_supported(selector: &str) -> bool {
     !selector.is_empty()
         && selector
             .bytes()

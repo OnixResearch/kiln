@@ -1,0 +1,85 @@
+{
+  "schema": "kiln.onixos-pilot.exercised-gates.v1",
+  "frozen_source": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+  "source_nar_hash": "sha256-LzvVLgnRqssiCj7gy9VMdKfKPdXZt//yGjavsV42qvk=",
+  "implementation_manifest": "../implementation-files.json",
+  "native_derivations": "derivations.json",
+  "compiled_gates": {
+    "observed_argv": [
+      "nix",
+      "build",
+      "--refresh",
+      "path:.#kiln",
+      "path:.#checks.x86_64-linux.clippy",
+      "path:.#checks.x86_64-linux.format",
+      "path:.#checks.x86_64-linux.no-std",
+      "path:.#checks.x86_64-linux.octet",
+      "--no-link",
+      "--print-out-paths",
+      "-L",
+      "--keep-going"
+    ],
+    "repeat_argv": [
+      "nix",
+      "build",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#kiln",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.clippy",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.format",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.no-std",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.octet",
+      "--no-link",
+      "--print-out-paths",
+      "-L",
+      "--keep-going"
+    ],
+    "cwd": "/home/brittonr/git/OnixResearch/kiln",
+    "outcome": "pass",
+    "full_output": "sandbox-build.log",
+    "workspace_tests": {
+      "passed": 511,
+      "failed": 0,
+      "ignored": 3
+    },
+    "strict_clippy": "workspace all-targets all-features, -D warnings",
+    "format": "pass",
+    "no_std": "pass",
+    "octet": "pass"
+  },
+  "provider_gates": {
+    "observed_argv": [
+      "nix",
+      "build",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.nickel",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.nix-eval-fixture-process",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.nix-build-adapter-fixtures",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.nix-eval-jobs-cohort",
+      "path:/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source#checks.x86_64-linux.nix-build-adapter-cohort",
+      "--no-link",
+      "--print-out-paths",
+      "-L",
+      "--keep-going"
+    ],
+    "cwd": "/home/brittonr/git/OnixResearch/kiln",
+    "outcome": "pass",
+    "full_output": "provider-conformance.log"
+  },
+  "flake_output_evaluation": {
+    "observed_argv": [
+      "nix",
+      "flake",
+      "check",
+      "path:.",
+      "--no-write-lock-file",
+      "--no-build"
+    ],
+    "outcome": "pass",
+    "boundary": "x86_64-linux output evaluation only; not a full flake build or aarch64 execution"
+  },
+  "native_lifecycle_prerequisites": "native-before-closeout.json",
+  "native_sync_and_conformance": "native-sync.json",
+  "readiness_boundary": {
+    "repository_conformance": "pass",
+    "onix_release_ready": false,
+    "meaning": "No release/deployment approval; checked fixture/structural conformance is not live production qualification"
+  }
+}

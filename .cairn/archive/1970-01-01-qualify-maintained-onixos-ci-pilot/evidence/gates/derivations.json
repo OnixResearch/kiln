@@ -1,0 +1,1268 @@
+{
+  "derivations": {
+    "4fjxn6c4kz3dpfnaqg0fvk54428q6qrg-kiln-clippy-0.1.0.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "PKG_CONFIG_ALLOW_CROSS": "0",
+        "RUST_LOG": "",
+        "__structuredAttrs": "",
+        "buildInputs": "/nix/store/h4si9iyvqy1aaqy4piqw0pj2c6snmz69-zlib-1.3.2-dev /nix/store/dbvxz51s7m6401ycyp3l38407y11hq6p-openssl-3.6.3-dev",
+        "buildPhase": "runHook preBuild\ncargo clippy --workspace --all-targets --all-features -- -D warnings\nrunHook postBuild\n",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cargoBuildFeatures": "",
+        "cargoBuildNoDefaultFeatures": "",
+        "cargoBuildType": "release",
+        "cargoCheckFeatures": "",
+        "cargoCheckNoDefaultFeatures": "",
+        "cargoCheckType": "release",
+        "cargoDeps": "/nix/store/3pn6s6h973n4rjcamipjgcm112902kdm-cargo-vendor-dir",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "configurePhase": "runHook preConfigure\nrunHook postConfigure\n",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "installPhase": "touch \"$out\"\n",
+        "mesonFlags": "",
+        "name": "kiln-clippy-0.1.0",
+        "nativeBuildInputs": "/nix/store/lav2qs01gd9v1j2msbky6dilasayv104-clippy-1.97.1 /nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4 /nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2 /nix/store/qayvjvcfn5z4vlf31mrs34ja029zw7l3-auditable-rust-minimal-1.88.0 /nix/store/hrgaaskaksv6ljipdi7d399mms6yp0z3-cargo-build-hook.sh /nix/store/ll82w2gr2k69kc85xvn9h45rv9i03rga-cargo-check-hook.sh /nix/store/z15dnhdfa7fwphd4gv2qnjdjn55jqq8j-cargo-install-hook.sh /nix/store/vmaws8b0byjp9hmnpmvpv0b3c1d5ana5-cargo-setup-hook.sh /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0 /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0",
+        "out": "/nix/store/d6qny5yyspi8pqx5fl5hkigrpy4rlwp2-kiln-clippy-0.1.0",
+        "outputs": "out",
+        "patches": "",
+        "pname": "kiln-clippy",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "src": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "stdenv": "/nix/store/kmmhih3r2027rbq0ndw4vm6srdq6pl2c-stdenv-linux",
+        "strictDeps": "1",
+        "system": "x86_64-linux",
+        "version": "0.1.0"
+      },
+      "inputs": {
+        "drvs": {
+          "059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "6mxvqwm1c8ccqy0vv1vwbhy5d14p34w5-openssl-3.6.3.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev"
+            ]
+          },
+          "c1m9y344056j482d3qxvncbhbf856dq5-cmake-4.3.4.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "gwxr8k7z6lvjwj5ckqq70gsnijw8ima2-zlib-1.3.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev"
+            ]
+          },
+          "gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "lixjsy80p66nlj9b8qf1x9dqs12sqmpc-clippy-1.97.1.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pxkb1ydc17i8ssi0anm8xmh0l8ykz1hj-cargo-vendor-dir.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-clippy-0.1.0",
+      "outputs": {
+        "out": {
+          "path": "d6qny5yyspi8pqx5fl5hkigrpy4rlwp2-kiln-clippy-0.1.0"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "6yacqn4j3vj1x7bvhkj9f51h5r1mhkj5-kiln-format.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "__structuredAttrs": "",
+        "buildCommand": "cp -r /nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source source\nchmod -R u+w source\ncd source\n\n# Check every member, not the pristine partial producer workspaces.\ncargo fmt -- --check\ntouch \"$out\"\n",
+        "buildInputs": "",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "enableParallelBuilding": "1",
+        "enableParallelChecking": "1",
+        "enableParallelInstalling": "1",
+        "mesonFlags": "",
+        "name": "kiln-format",
+        "nativeBuildInputs": "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0",
+        "out": "/nix/store/dv6bagbycsq3j28b9sawxklhdxiybc1f-kiln-format",
+        "outputs": "out",
+        "passAsFile": "buildCommand",
+        "patches": "",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "stdenv": "/nix/store/7hl43a3zjil847l66i3ml2adhnmbyw3p-stdenv-linux-no-cc",
+        "strictDeps": "",
+        "system": "x86_64-linux"
+      },
+      "inputs": {
+        "drvs": {
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "7j8c27vydzhv0yhpp4bk2hgkpdzzgv9i-stdenv-linux-no-cc.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-format",
+      "outputs": {
+        "out": {
+          "path": "dv6bagbycsq3j28b9sawxklhdxiybc1f-kiln-format"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "jhvh37i21mm9by64w0icw9n8bj5dnskz-kiln-no-std-0.1.0.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "PKG_CONFIG_ALLOW_CROSS": "0",
+        "RUST_LOG": "",
+        "__structuredAttrs": "",
+        "buildInputs": "",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cargoBuildFeatures": "",
+        "cargoBuildFlags": "-p kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target=wasm32-unknown-unknown",
+        "cargoBuildNoDefaultFeatures": "",
+        "cargoBuildType": "release",
+        "cargoCheckFeatures": "",
+        "cargoCheckNoDefaultFeatures": "",
+        "cargoCheckType": "release",
+        "cargoDeps": "/nix/store/3pn6s6h973n4rjcamipjgcm112902kdm-cargo-vendor-dir",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "configurePhase": "runHook preConfigure\nrunHook postConfigure\n",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "installPhase": "touch \"$out\"\n",
+        "mesonFlags": "",
+        "name": "kiln-no-std-0.1.0",
+        "nativeBuildInputs": "/nix/store/qayvjvcfn5z4vlf31mrs34ja029zw7l3-auditable-rust-minimal-1.88.0 /nix/store/hrgaaskaksv6ljipdi7d399mms6yp0z3-cargo-build-hook.sh /nix/store/ll82w2gr2k69kc85xvn9h45rv9i03rga-cargo-check-hook.sh /nix/store/z15dnhdfa7fwphd4gv2qnjdjn55jqq8j-cargo-install-hook.sh /nix/store/vmaws8b0byjp9hmnpmvpv0b3c1d5ana5-cargo-setup-hook.sh /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0 /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0",
+        "out": "/nix/store/17yi7qa6h7amyqlhj550w73kv1k5406w-kiln-no-std-0.1.0",
+        "outputs": "out",
+        "patches": "",
+        "pname": "kiln-no-std",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "src": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "stdenv": "/nix/store/kmmhih3r2027rbq0ndw4vm6srdq6pl2c-stdenv-linux",
+        "strictDeps": "1",
+        "system": "x86_64-linux",
+        "version": "0.1.0"
+      },
+      "inputs": {
+        "drvs": {
+          "059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pxkb1ydc17i8ssi0anm8xmh0l8ykz1hj-cargo-vendor-dir.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-no-std-0.1.0",
+      "outputs": {
+        "out": {
+          "path": "17yi7qa6h7amyqlhj550w73kv1k5406w-kiln-no-std-0.1.0"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "padbv1bh1x28amb6b51wapzr27g6az0f-kiln-aspen-host-0.1.0.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "PKG_CONFIG_ALLOW_CROSS": "0",
+        "RUST_LOG": "",
+        "__structuredAttrs": "",
+        "buildInputs": "/nix/store/h4si9iyvqy1aaqy4piqw0pj2c6snmz69-zlib-1.3.2-dev",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cargoBuildFeatures": "",
+        "cargoBuildFlags": "--bin kiln-aspen-host",
+        "cargoBuildNoDefaultFeatures": "",
+        "cargoBuildType": "release",
+        "cargoCheckFeatures": "",
+        "cargoCheckNoDefaultFeatures": "",
+        "cargoCheckType": "release",
+        "cargoDeps": "/nix/store/j46m2i2s2lg29a8d7bzzxnx4ybj8vm49-cargo-vendor-dir",
+        "cargoTestFlags": "--workspace --all-targets --all-features -- --nocapture",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "configurePhase": "runHook preConfigure\nrunHook postConfigure\n",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "1",
+        "doInstallCheck": "",
+        "mesonFlags": "",
+        "name": "kiln-aspen-host-0.1.0",
+        "nativeBuildInputs": "/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4 /nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2 /nix/store/r46zrvq0asvsyqgf295aqxkhcjzb9cc4-auditable-rust-default-1.98.0-nightly-2026-05-26 /nix/store/hrgaaskaksv6ljipdi7d399mms6yp0z3-cargo-build-hook.sh /nix/store/ll82w2gr2k69kc85xvn9h45rv9i03rga-cargo-check-hook.sh /nix/store/z15dnhdfa7fwphd4gv2qnjdjn55jqq8j-cargo-install-hook.sh /nix/store/vmaws8b0byjp9hmnpmvpv0b3c1d5ana5-cargo-setup-hook.sh /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26 /nix/store/0jsqavgj195cin01hkhwa5bx3dmcsfan-rust-default-1.98.0-nightly-2026-05-26",
+        "out": "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0",
+        "outputs": "out",
+        "patches": "",
+        "pname": "kiln-aspen-host",
+        "preBuild": "mkdir -p \"$NIX_BUILD_TOP/adapters/spacewasm-mvp/generated\"\ncp \\\n  /nix/store/j4jgdvkjlvvhh357iwq6i163k07v66bn-source/adapters/spacewasm-mvp/generated/profile.json \\\n  \"$NIX_BUILD_TOP/adapters/spacewasm-mvp/generated/profile.json\"\n",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "src": "/nix/store/95sichizlpf40w2ns8maxwpn1cbk9r8f-kiln-aspen-host",
+        "stdenv": "/nix/store/kmmhih3r2027rbq0ndw4vm6srdq6pl2c-stdenv-linux",
+        "strictDeps": "1",
+        "system": "x86_64-linux",
+        "version": "0.1.0"
+      },
+      "inputs": {
+        "drvs": {
+          "059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "9hy0qd9x2137211lmbqvrafmkrpkscxy-auditable-rust-default-1.98.0-nightly-2026-05-26.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "c1m9y344056j482d3qxvncbhbf856dq5-cmake-4.3.4.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "gwxr8k7z6lvjwj5ckqq70gsnijw8ima2-zlib-1.3.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev"
+            ]
+          },
+          "h6iih9cb87lqnqsb1bvv0fgks5kk8hs1-cargo-vendor-dir.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "x2xnb82925vqdlm5a4fks00pw6m5y6ic-rust-default-1.98.0-nightly-2026-05-26.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "95sichizlpf40w2ns8maxwpn1cbk9r8f-kiln-aspen-host",
+          "j4jgdvkjlvvhh357iwq6i163k07v66bn-source",
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-aspen-host-0.1.0",
+      "outputs": {
+        "out": {
+          "path": "nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "whs6482q215p4ic0nfc3a99rli79p506-kiln-octet.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "__structuredAttrs": "",
+        "buildCommand": "touch \"$out\"\n",
+        "buildInputs": "",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "enableParallelBuilding": "1",
+        "enableParallelChecking": "1",
+        "enableParallelInstalling": "1",
+        "mesonFlags": "",
+        "name": "kiln-octet",
+        "nativeBuildInputs": "/nix/store/ifw8xl56n40ynfry60icpykadn9q6waq-octet-consumer-check /nix/store/nfs4jb7ymi84b7qs11mwrq67lpnkc21r-octet-consumer-check /nix/store/7sm0jbd0pv5c3ssbs6vnywfj3g5vhsv3-octet-consumer-check /nix/store/qfsdax6q9krsr25vdpr41mxgmm2321zs-octet-consumer-check",
+        "out": "/nix/store/cjasq3v9s5ksdaj2yjd00qgk1zgifdy2-kiln-octet",
+        "outputs": "out",
+        "passAsFile": "buildCommand",
+        "patches": "",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "stdenv": "/nix/store/7hl43a3zjil847l66i3ml2adhnmbyw3p-stdenv-linux-no-cc",
+        "strictDeps": "",
+        "system": "x86_64-linux"
+      },
+      "inputs": {
+        "drvs": {
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "7j8c27vydzhv0yhpp4bk2hgkpdzzgv9i-stdenv-linux-no-cc.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "a3xjf9hgrsdzrmfqcsad2ac76vbjq1np-octet-consumer-check.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "bhn5p2nzv2b1pxqlgcrlz7imxwnapmv0-octet-consumer-check.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "bnyxkg24lkcabrpp8a2glqvab7qzivrp-octet-consumer-check.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "y180s6l6awkjxz8g8wa8qcvwbgcc1vqd-octet-consumer-check.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-octet",
+      "outputs": {
+        "out": {
+          "path": "cjasq3v9s5ksdaj2yjd00qgk1zgifdy2-kiln-octet"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "wszi6d2pyg8c0dqjpjm0sfhfasg4qd0m-kiln-0.1.0.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "PKG_CONFIG_ALLOW_CROSS": "0",
+        "RUST_LOG": "",
+        "__structuredAttrs": "",
+        "buildInputs": "/nix/store/h4si9iyvqy1aaqy4piqw0pj2c6snmz69-zlib-1.3.2-dev /nix/store/dbvxz51s7m6401ycyp3l38407y11hq6p-openssl-3.6.3-dev",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cargoBuildFeatures": "",
+        "cargoBuildFlags": "--workspace --all-targets",
+        "cargoBuildNoDefaultFeatures": "",
+        "cargoBuildType": "release",
+        "cargoCheckFeatures": "",
+        "cargoCheckNoDefaultFeatures": "",
+        "cargoCheckType": "release",
+        "cargoDeps": "/nix/store/3pn6s6h973n4rjcamipjgcm112902kdm-cargo-vendor-dir",
+        "cargoTestFlags": "--workspace",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "configurePhase": "runHook preConfigure\nrunHook postConfigure\n",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "1",
+        "doInstallCheck": "",
+        "mesonFlags": "",
+        "name": "kiln-0.1.0",
+        "nativeBuildInputs": "/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4 /nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2 /nix/store/qayvjvcfn5z4vlf31mrs34ja029zw7l3-auditable-rust-minimal-1.88.0 /nix/store/hrgaaskaksv6ljipdi7d399mms6yp0z3-cargo-build-hook.sh /nix/store/ll82w2gr2k69kc85xvn9h45rv9i03rga-cargo-check-hook.sh /nix/store/z15dnhdfa7fwphd4gv2qnjdjn55jqq8j-cargo-install-hook.sh /nix/store/vmaws8b0byjp9hmnpmvpv0b3c1d5ana5-cargo-setup-hook.sh /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0 /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0",
+        "out": "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0",
+        "outputs": "out",
+        "patches": "",
+        "pname": "kiln",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "src": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "stdenv": "/nix/store/kmmhih3r2027rbq0ndw4vm6srdq6pl2c-stdenv-linux",
+        "strictDeps": "1",
+        "system": "x86_64-linux",
+        "version": "0.1.0"
+      },
+      "inputs": {
+        "drvs": {
+          "059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "6mxvqwm1c8ccqy0vv1vwbhy5d14p34w5-openssl-3.6.3.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev"
+            ]
+          },
+          "c1m9y344056j482d3qxvncbhbf856dq5-cmake-4.3.4.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "gwxr8k7z6lvjwj5ckqq70gsnijw8ima2-zlib-1.3.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev"
+            ]
+          },
+          "gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pxkb1ydc17i8ssi0anm8xmh0l8ykz1hj-cargo-vendor-dir.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-0.1.0",
+      "outputs": {
+        "out": {
+          "path": "gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "5bwpiy8f5b3zlbj3bpgixwvh6xswc58b-kiln-nix-eval-fixture-process-0.1.0.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "PKG_CONFIG_ALLOW_CROSS": "0",
+        "RUST_LOG": "",
+        "__structuredAttrs": "",
+        "buildInputs": "/nix/store/h4si9iyvqy1aaqy4piqw0pj2c6snmz69-zlib-1.3.2-dev",
+        "buildPhase": "runHook preBuild\ncargo test -p kiln-adapter-nix-eval --features fixture-process --test fixture_process --offline\nrunHook postBuild\n",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cargoBuildFeatures": "",
+        "cargoBuildNoDefaultFeatures": "",
+        "cargoBuildType": "release",
+        "cargoCheckFeatures": "",
+        "cargoCheckNoDefaultFeatures": "",
+        "cargoCheckType": "release",
+        "cargoDeps": "/nix/store/3pn6s6h973n4rjcamipjgcm112902kdm-cargo-vendor-dir",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "configurePhase": "runHook preConfigure\nrunHook postConfigure\n",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "installPhase": "touch \"$out\"\n",
+        "mesonFlags": "",
+        "name": "kiln-nix-eval-fixture-process-0.1.0",
+        "nativeBuildInputs": "/nix/store/jfdn7bk2k40afmmaqv85b8v043jrigm5-cmake-4.3.4 /nix/store/2l3a3fhc1nyp69mlq5ifb4mkb9mryb98-pkg-config-wrapper-0.29.2 /nix/store/qayvjvcfn5z4vlf31mrs34ja029zw7l3-auditable-rust-minimal-1.88.0 /nix/store/hrgaaskaksv6ljipdi7d399mms6yp0z3-cargo-build-hook.sh /nix/store/ll82w2gr2k69kc85xvn9h45rv9i03rga-cargo-check-hook.sh /nix/store/z15dnhdfa7fwphd4gv2qnjdjn55jqq8j-cargo-install-hook.sh /nix/store/vmaws8b0byjp9hmnpmvpv0b3c1d5ana5-cargo-setup-hook.sh /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0 /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0",
+        "out": "/nix/store/frgp2cngwnrasicyqij3lm8pprmmgr15-kiln-nix-eval-fixture-process-0.1.0",
+        "outputs": "out",
+        "patches": "",
+        "pname": "kiln-nix-eval-fixture-process",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "src": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "stdenv": "/nix/store/kmmhih3r2027rbq0ndw4vm6srdq6pl2c-stdenv-linux",
+        "strictDeps": "1",
+        "system": "x86_64-linux",
+        "version": "0.1.0"
+      },
+      "inputs": {
+        "drvs": {
+          "059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "c1m9y344056j482d3qxvncbhbf856dq5-cmake-4.3.4.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "gwxr8k7z6lvjwj5ckqq70gsnijw8ima2-zlib-1.3.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev"
+            ]
+          },
+          "gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pxkb1ydc17i8ssi0anm8xmh0l8ykz1hj-cargo-vendor-dir.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-nix-eval-fixture-process-0.1.0",
+      "outputs": {
+        "out": {
+          "path": "frgp2cngwnrasicyqij3lm8pprmmgr15-kiln-nix-eval-fixture-process-0.1.0"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "i5vgplqn7r6iclph4qdq18sq7jc6hxy7-kiln-nix-build-adapter-fixtures-0.1.0.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "PKG_CONFIG_ALLOW_CROSS": "0",
+        "RUST_LOG": "",
+        "__structuredAttrs": "",
+        "buildInputs": "",
+        "buildPhase": "runHook preBuild\ncargo test -p kiln-adapter-nix --offline\ncargo test -p kiln-nix-build --offline\nrunHook postBuild\n",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cargoBuildFeatures": "",
+        "cargoBuildNoDefaultFeatures": "",
+        "cargoBuildType": "release",
+        "cargoCheckFeatures": "",
+        "cargoCheckNoDefaultFeatures": "",
+        "cargoCheckType": "release",
+        "cargoDeps": "/nix/store/3pn6s6h973n4rjcamipjgcm112902kdm-cargo-vendor-dir",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "configurePhase": "runHook preConfigure\nrunHook postConfigure\n",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "installPhase": "touch \"$out\"\n",
+        "mesonFlags": "",
+        "name": "kiln-nix-build-adapter-fixtures-0.1.0",
+        "nativeBuildInputs": "/nix/store/qayvjvcfn5z4vlf31mrs34ja029zw7l3-auditable-rust-minimal-1.88.0 /nix/store/hrgaaskaksv6ljipdi7d399mms6yp0z3-cargo-build-hook.sh /nix/store/ll82w2gr2k69kc85xvn9h45rv9i03rga-cargo-check-hook.sh /nix/store/z15dnhdfa7fwphd4gv2qnjdjn55jqq8j-cargo-install-hook.sh /nix/store/vmaws8b0byjp9hmnpmvpv0b3c1d5ana5-cargo-setup-hook.sh /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0 /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0",
+        "out": "/nix/store/ljna9lgl67l1n89141as0c1993qxxmx5-kiln-nix-build-adapter-fixtures-0.1.0",
+        "outputs": "out",
+        "patches": "",
+        "pname": "kiln-nix-build-adapter-fixtures",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "src": "/nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+        "stdenv": "/nix/store/kmmhih3r2027rbq0ndw4vm6srdq6pl2c-stdenv-linux",
+        "strictDeps": "1",
+        "system": "x86_64-linux",
+        "version": "0.1.0"
+      },
+      "inputs": {
+        "drvs": {
+          "059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pxkb1ydc17i8ssi0anm8xmh0l8ykz1hj-cargo-vendor-dir.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-nix-build-adapter-fixtures-0.1.0",
+      "outputs": {
+        "out": {
+          "path": "ljna9lgl67l1n89141as0c1993qxxmx5-kiln-nix-build-adapter-fixtures-0.1.0"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "j4jxj3zpa78c3wj290w4r0ixclbf0b78-kiln-nix-eval-jobs-cohort.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "__structuredAttrs": "",
+        "buildCommand": "test 'a0cd02231c58974a6b5aaa3712069b071047162e' = 'a0cd02231c58974a6b5aaa3712069b071047162e'\nexecutable=/nix/store/bcv7hkwwpmfjmvxh6i106gdwr956svsp-nix-eval-jobs-2.35.0/bin/nix-eval-jobs\nmanifest=/nix/store/wasviibxqrxh6h8wckaifm2s6lancgpn-kiln-nix-eval-jobs-cohort.json\ntest \"$executable\" = \\\n  '/nix/store/bcv7hkwwpmfjmvxh6i106gdwr956svsp-nix-eval-jobs-2.35.0/bin/nix-eval-jobs'\ntest \"$manifest\" = \\\n  '/nix/store/wasviibxqrxh6h8wckaifm2s6lancgpn-kiln-nix-eval-jobs-cohort.json'\ntest \"$(b3sum --no-names \"$executable\")\" = \\\n  'dc42bc0e330c598ec93c2361afbb493417fa5c3364722897bd156d3f2ba9c063'\ntest \"$(b3sum --no-names \"$manifest\")\" = \\\n  '102b4af9a753d00dfb6489e1593dd4b9ac8ffe9eed42518705329c6018e63c31'\ngrep -F '\"nix_version\":\"2.35.2\"' \"$manifest\" >/dev/null\ngrep -F '\"nix_revision\":\"aa2613fa02ca6199fe0ebf61a0f7f6d781d32a47\"' \"$manifest\" >/dev/null\n\nexport HOME=$TMPDIR/home\nexport NIX_STATE_DIR=$TMPDIR/nix-state\nexport NIX_STORE_DIR=$TMPDIR/nix-store\nexport NIX_DATA_DIR=$TMPDIR/nix-data\nexport NIX_LOG_DIR=$TMPDIR/nix-log\nexport NIX_CONF_DIR=$TMPDIR/nix-conf\nmkdir -p \"$HOME\" \"$NIX_STATE_DIR\" \"$NIX_STORE_DIR\" \"$NIX_DATA_DIR\" \"$NIX_LOG_DIR\" \"$NIX_CONF_DIR\" roots roots-onix\ncp -r /nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source/fixtures/nix-eval-jobs/cohort/a0cd02231c58974a6b5aaa3712069b071047162e/jobset jobset\nchmod -R u+w jobset\ncat > \"$NIX_CONF_DIR/nix.conf\" <<'EOF'\nexperimental-features = nix-command flakes\naccept-flake-config = false\nflake-registry =\nsubstituters =\nsandbox = false\nEOF\n\n\"$executable\" \\\n  --gc-roots-dir roots \\\n  --workers 1 \\\n  --max-memory-size 512 \\\n  --extra-experimental-features 'nix-command flakes' \\\n  --meta \\\n  --show-input-drvs \\\n  --check-cache-status \\\n  --flake \"$PWD/jobset#jobs\" \\\n  > producer.jsonl\ntest \"$(wc -l < producer.jsonl)\" -eq 3\ntest \"$(find roots -mindepth 1 -maxdepth 1 | wc -l)\" -eq 2\ngrep -F '\"attr\":\"job-a\"' producer.jsonl >/dev/null\ngrep -F '\"attr\":\"job-b\"' producer.jsonl >/dev/null\ngrep -F '\"attr\":\"broken\"' producer.jsonl >/dev/null\ngrep -F '\"cacheStatus\":\"notBuilt\"' producer.jsonl >/dev/null\ngrep -F '\"inputDrvs\"' producer.jsonl >/dev/null\n\n\"$executable\" \\\n  --gc-roots-dir roots-onix \\\n  --workers 1 \\\n  --max-memory-size 512 \\\n  --extra-experimental-features 'nix-command flakes' \\\n  --meta \\\n  --show-input-drvs \\\n  --check-cache-status \\\n  --flake \"$PWD/jobset#onix-only\" \\\n  > onix.jsonl\ntest \"$(wc -l < onix.jsonl)\" -eq 1\ngrep -F '\"attr\":\"unsupported\"' onix.jsonl >/dev/null\ngrep -F \"attribute 'wasm' missing\" onix.jsonl >/dev/null\ntouch \"$out\"\n",
+        "buildInputs": "",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "enableParallelBuilding": "1",
+        "enableParallelChecking": "1",
+        "enableParallelInstalling": "1",
+        "mesonFlags": "",
+        "name": "kiln-nix-eval-jobs-cohort",
+        "nativeBuildInputs": "/nix/store/bcv7hkwwpmfjmvxh6i106gdwr956svsp-nix-eval-jobs-2.35.0 /nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5 /nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11 /nix/store/aak8d9mrdv9sgn0lcg7xss7wxdg9sqh3-gnugrep-3.12 /nix/store/36gj634d0x04awfq96h98723dr2zddhn-nix-2.34.8-dev",
+        "out": "/nix/store/yw3nswfxy3xv7f673v484760x2xh0i4j-kiln-nix-eval-jobs-cohort",
+        "outputs": "out",
+        "passAsFile": "buildCommand",
+        "patches": "",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "stdenv": "/nix/store/7hl43a3zjil847l66i3ml2adhnmbyw3p-stdenv-linux-no-cc",
+        "strictDeps": "",
+        "system": "x86_64-linux"
+      },
+      "inputs": {
+        "drvs": {
+          "3pnis76r6y9icxvc1905wm51d27m564d-b3sum-1.8.5.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "7j8c27vydzhv0yhpp4bk2hgkpdzzgv9i-stdenv-linux-no-cc.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "az7qpsszbkj34xgp7cb129n9v79jrgjy-gnugrep-3.12.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "l5sjvph4c3d3yc8vyc8ma68d1lassmqj-nix-eval-jobs-2.35.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "nnc0maixp3x77bh988kvv16rvi7d4cwi-nix-2.34.8.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev"
+            ]
+          },
+          "q4jwrg859qjfqbhhdab6bvm80hswninh-kiln-nix-eval-jobs-cohort.json.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "wpdcwb9xd1gy3lhr514q4xzpy7s188v8-coreutils-9.11.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-nix-eval-jobs-cohort",
+      "outputs": {
+        "out": {
+          "path": "yw3nswfxy3xv7f673v484760x2xh0i4j-kiln-nix-eval-jobs-cohort"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "ppdxq824i8dvz8dxar80zjgkjmi9i9ws-kiln-nix-build-adapter-cohort.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "__structuredAttrs": "",
+        "buildCommand": "test '/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix' = \\\n  '/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix'\ntest '/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store' = \\\n  '/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store'\ntest \"$(b3sum --no-names /nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix)\" = \\\n  '82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852'\ntest \"$(b3sum --no-names /nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store)\" = \\\n  '82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852'\ntest \"$(/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix --version 2>/dev/null)\" = 'nix (Nix) 2.34.8'\ntouch \"$out\"\n",
+        "buildInputs": "",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "enableParallelBuilding": "1",
+        "enableParallelChecking": "1",
+        "enableParallelInstalling": "1",
+        "mesonFlags": "",
+        "name": "kiln-nix-build-adapter-cohort",
+        "nativeBuildInputs": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5 /nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11 /nix/store/36gj634d0x04awfq96h98723dr2zddhn-nix-2.34.8-dev",
+        "out": "/nix/store/f3skndbhyizcfdcl2z6dbcvc60n8ppv7-kiln-nix-build-adapter-cohort",
+        "outputs": "out",
+        "passAsFile": "buildCommand",
+        "patches": "",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "stdenv": "/nix/store/7hl43a3zjil847l66i3ml2adhnmbyw3p-stdenv-linux-no-cc",
+        "strictDeps": "",
+        "system": "x86_64-linux"
+      },
+      "inputs": {
+        "drvs": {
+          "3pnis76r6y9icxvc1905wm51d27m564d-b3sum-1.8.5.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "7j8c27vydzhv0yhpp4bk2hgkpdzzgv9i-stdenv-linux-no-cc.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "nnc0maixp3x77bh988kvv16rvi7d4cwi-nix-2.34.8.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "dev",
+              "out"
+            ]
+          },
+          "wpdcwb9xd1gy3lhr514q4xzpy7s188v8-coreutils-9.11.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-nix-build-adapter-cohort",
+      "outputs": {
+        "out": {
+          "path": "f3skndbhyizcfdcl2z6dbcvc60n8ppv7-kiln-nix-build-adapter-cohort"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    },
+    "zai9pyaq17h43apabjn8i292arfq4857-kiln-nickel.drv": {
+      "args": [
+        "-e",
+        "/nix/store/l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+        "/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+      ],
+      "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "env": {
+        "__structuredAttrs": "",
+        "buildCommand": "cp -r /nix/store/m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source source\nchmod -R u+w source\ncd source\n\nnickel format --check \\\n  config/radicle-nix-provider.ncl \\\n  config/fixtures/radicle-nix-provider-positive.ncl \\\n  config/fixtures/negative-radicle-nix-provider-zero-user.ncl \\\n  config/nix-build-profile.ncl \\\n  config/fixtures/nix-build-positive.ncl \\\n  config/observation-profile.ncl \\\n  config/fixtures/observation-positive.ncl \\\n  config/fixtures/negative-observation-*.ncl \\\n  config/http-observation-profile.ncl \\\n  config/fixtures/http-observation-positive.ncl \\\n  config/fixtures/negative-http-observation-*.ncl \\\n  config/fixtures/ucan-observation-positive.ncl \\\n  config/fixtures/negative-ucan-*.ncl \\\n  config/iroh-observation-profile.ncl \\\n  config/fixtures/iroh-observation-positive.ncl \\\n  config/fixtures/negative-iroh-observation-*.ncl\nnickel export config/default.ncl >/dev/null\nnickel export config/hosting-profile.ncl >/dev/null\nnickel export config/cob-profiles.ncl >/dev/null\nnickel export config/git-source-profile.ncl >/dev/null\nnickel export config/pijul-source-profile.ncl >/dev/null\nnickel export config/lattice-workflow-profile.ncl >/dev/null\nnickel export config/cairn-gate-profile.ncl >/dev/null\nnickel export config/mantle-build-profile.ncl >/dev/null\nnickel export config/nix-eval-jobs-profile.ncl >/dev/null\nnickel export --field profile config/nix-eval-jobs-onix-profile.ncl >/dev/null\nnickel typecheck config/onixos-ci-pilot-inputs.ncl\nnickel typecheck config/onixos-ci-pilot.ncl\nnickel export config/observation-profile.ncl >/dev/null\nnickel export --format json config/observation-profile.ncl > observation-profile.json\ncmp observation-profile.json fixtures/observation/profile-v1.json\nnickel export config/http-observation-profile.ncl >/dev/null\nnickel export --format json config/http-observation-profile.ncl > http-observation-profile.json\ncmp http-observation-profile.json fixtures/http-observation/profile-v1.json\nnickel export config/fixtures/ucan-observation-positive.ncl >/dev/null\nnickel export --format json config/fixtures/ucan-observation-positive.ncl > ucan-observation-profile.json\ncmp ucan-observation-profile.json fixtures/http-observation/ucan-profile-v1.json\nnickel export config/iroh-observation-profile.ncl >/dev/null\nnickel export --format json config/iroh-observation-profile.ncl > iroh-observation-profile.json\ncmp iroh-observation-profile.json fixtures/iroh-observation/profile-v1.json\nnickel export config/nix-build-profile.ncl >/dev/null\nnickel export config/radicle-workflow-shell.ncl >/dev/null\nnickel typecheck config/iroh-workflow.ncl\nnickel export config/fixtures/iroh-workflow-positive.ncl >/dev/null\nnickel format --check config/iroh-workflow.ncl config/fixtures/*iroh-workflow*.ncl\nnickel typecheck config/github-contracts.ncl\nnickel typecheck config/github-ci.ncl\nnickel typecheck config/github-job.ncl\nnickel export --format json fixtures/github/service-profile.ncl >/dev/null\nnickel export --format json fixtures/github/job-profile.ncl >/dev/null\nnickel export config/radicle-source-profile.ncl >/dev/null\nnickel export config/radicle-status-profile.ncl >/dev/null\nnickel export config/radicle-mutation-profile.ncl >/dev/null\nnickel export config/stack-profiles.ncl >/dev/null\nnickel export config/cdevents-profile.ncl >/dev/null\nnickel export config/opentelemetry-profile.ncl >/dev/null\nnickel export config/valence-profile.ncl >/dev/null\nnickel export config/webhook-profile.ncl >/dev/null\nnickel export config/sqlite-profile.ncl >/dev/null\nnickel export config/aspen-runtime-profile.ncl >/dev/null\nnickel export config/celld-profile.ncl >/dev/null\nnickel export config/celld-wrangler.ncl >/dev/null\nnickel export config/fixtures/celld-positive.ncl >/dev/null\nnickel export config/fixtures/aspen-runtime-positive.ncl >/dev/null\nnickel export config/fixtures/git-source-positive.ncl >/dev/null\nnickel export config/fixtures/pijul-source-positive.ncl >/dev/null\nnickel export config/fixtures/lattice-workflow-positive.ncl >/dev/null\nnickel export config/fixtures/cairn-gate-positive.ncl >/dev/null\nnickel export config/fixtures/mantle-build-positive.ncl >/dev/null\nnickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null\nnickel export config/fixtures/observation-positive.ncl >/dev/null\nnickel export config/fixtures/http-observation-positive.ncl >/dev/null\nnickel export config/fixtures/iroh-observation-positive.ncl >/dev/null\nnickel export config/fixtures/nix-build-positive.ncl >/dev/null\nnickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null\nnickel export config/fixtures/radicle-source-positive.ncl >/dev/null\nnickel export config/fixtures/radicle-status-positive.ncl >/dev/null\nnickel export config/fixtures/radicle-mutation-positive.ncl >/dev/null\nnickel export config/fixtures/radicle-nix-provider-positive.ncl >/dev/null\nnickel export config/fixtures/cairn-cob-external.ncl >/dev/null\nnickel export fixtures/radicle-source-contract/positive/receipt.ncl >/dev/null\nfor fixture in fixtures/radicle-source-contract/negative/*.ncl; do\n  if nickel export \"$fixture\" >/dev/null 2>&1; then\n    echo \"negative Radicle source contract fixture passed: $fixture\" >&2\n    exit 1\n  fi\ndone\nnickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null\nnickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null\nnickel export fixtures/cairn/gate-machine/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null\nnickel export fixtures/mantle/build-contract/d75158b00b080535f2ffea12430665ca3d57ea82/source.ncl >/dev/null\nnickel export evidence/publication-candidate.ncl >/dev/null\nnickel export evidence/publication-receipt.ncl >/dev/null\nnickel export evidence/release-input.ncl >/dev/null\nfor fixture in config/fixtures/negative-*.ncl; do\n  if nickel export \"$fixture\" >/dev/null 2>&1; then\n    echo \"negative Nickel fixture passed: $fixture\" >&2\n    exit 1\n  fi\ndone\ntouch \"$out\"\n",
+        "buildInputs": "",
+        "builder": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+        "cmakeFlags": "",
+        "configureFlags": "",
+        "depsBuildBuild": "",
+        "depsBuildBuildPropagated": "",
+        "depsBuildTarget": "",
+        "depsBuildTargetPropagated": "",
+        "depsHostHost": "",
+        "depsHostHostPropagated": "",
+        "depsTargetTarget": "",
+        "depsTargetTargetPropagated": "",
+        "doCheck": "",
+        "doInstallCheck": "",
+        "enableParallelBuilding": "1",
+        "enableParallelChecking": "1",
+        "enableParallelInstalling": "1",
+        "mesonFlags": "",
+        "name": "kiln-nickel",
+        "nativeBuildInputs": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0",
+        "out": "/nix/store/67l34jmxvli8ydkk65dmclsadr2vj8qk-kiln-nickel",
+        "outputs": "out",
+        "passAsFile": "buildCommand",
+        "patches": "",
+        "propagatedBuildInputs": "",
+        "propagatedNativeBuildInputs": "",
+        "stdenv": "/nix/store/7hl43a3zjil847l66i3ml2adhnmbyw3p-stdenv-linux-no-cc",
+        "strictDeps": "",
+        "system": "x86_64-linux"
+      },
+      "inputs": {
+        "drvs": {
+          "4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "6gcxi33sspm35983f049ng29xp0c33nc-nickel-1.17.0.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "7j8c27vydzhv0yhpp4bk2hgkpdzzgv9i-stdenv-linux-no-cc.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "l622p70vy8k5sh7y5wizi5f2mic6ynpg-source-stdenv.sh",
+          "m1k3mgg9sdhqzmpnkb9m2gk9zbw3h573-source",
+          "shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+        ]
+      },
+      "name": "kiln-nickel",
+      "outputs": {
+        "out": {
+          "path": "67l34jmxvli8ydkk65dmclsadr2vj8qk-kiln-nickel"
+        }
+      },
+      "system": "x86_64-linux",
+      "version": 4
+    }
+  },
+  "version": 4
+}

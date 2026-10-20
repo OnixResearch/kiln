@@ -35,7 +35,7 @@ pub use server::{
     MemoryObservationSource, ObservationClock, ObservationSnapshot, ObservationSource, SystemClock,
     load_tls_config, serve, serve_on,
 };
-pub use ucan_auth::verify_ucan_header;
+pub use ucan_auth::{ucan_operation_profile_id, ucan_request_binding, verify_ucan_header};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ObserveError {

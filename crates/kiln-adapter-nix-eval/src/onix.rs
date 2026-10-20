@@ -1,15 +1,17 @@
 use std::path::Path;
 
 use kiln_core::discovery::{
-    DiscoveryEffectPlan, DiscoveryEvaluatorCohort, DiscoveryEvaluatorComponent,
+    DiscoveryEffectPlan, DiscoveryEvaluatorCohort, DiscoveryEvaluatorComponent, DiscoverySourceMode,
 };
-use kiln_core::types::{Alias, ContentId, Diagnostic, ExternalRef};
+use kiln_core::types::{Alias, BLAKE3_HEX_BYTES, ContentId, Diagnostic, ExternalRef};
 use kiln_provider_api::{PortFailure, PortResult};
 use serde::{Deserialize, Serialize};
 
+use crate::mapping::selector_is_supported;
 use crate::onix_pins::{
     ONIX_FIXTURE_REVISION, ONIX_MANIFEST_BLAKE3, ONIX_SOURCE_BLAKE3, ONIX_SOURCE_PATH,
 };
+use crate::profile::PINNED_PLATFORM;
 use crate::runtime::NixEvalRuntime;
 
 pub const ONIX_PROFILE: &str = "onix-nix-eval-v1";
@@ -115,6 +117,58 @@ pub struct OnixProvenance {
     pub fixture_source: ExternalRef,
     pub fixture_source_identity: ContentId,
     pub fixture_revision: String,
+}
+
+/// One explicitly admitted consumer, independent of evaluator/plugin provenance.
+// r[impl kiln.onixos_pilot.source]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OnixSourceBinding {
+    pub source: ExternalRef,
+    /// BLAKE3 of the exact source root's `flake.nix` bytes (not a NAR hash).
+    pub source_identity: ContentId,
+    pub root_selector: Alias,
+    pub system: Alias,
+}
+
+// r[impl kiln.onixos_pilot.source]
+pub(crate) fn admit_onix_source_binding(binding: &OnixSourceBinding) -> PortResult<()> {
+    binding.source.validate().map_err(PortFailure::Domain)?;
+    if binding.source.provider_namespace.as_str() != "kiln-source"
+        || binding.source.native_kind.as_str() != "nix-store-path"
+        || !direct_store_root(binding.source.native_id.as_str())
+        || binding.source_identity.as_str().len() != BLAKE3_HEX_BYTES
+        || !binding
+            .source_identity
+            .as_str()
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+        || !selector_is_supported(binding.root_selector.as_str())
+        || binding.system.as_str() != PINNED_PLATFORM
+    {
+        return Err(denied(
+            "onix_source_binding",
+            "Onix requires a direct immutable store root, supported selector, and x86_64-linux",
+        ));
+    }
+    Ok(())
+}
+
+fn direct_store_root(path: &str) -> bool {
+    let Some(name) = path.strip_prefix("/nix/store/") else {
+        return false;
+    };
+    let Some((hash, name)) = name.split_once('-') else {
+        return false;
+    };
+    const STORE_HASH_LENGTH: usize = 32;
+    const NIX_BASE32: &[u8] = b"0123456789abcdfghijklmnpqrsvwxyz";
+    hash.len() == STORE_HASH_LENGTH
+        && hash.bytes().all(|byte| NIX_BASE32.contains(&byte))
+        && !name.is_empty()
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'-' | b'.' | b'_'))
 }
 
 pub fn onix_cohort() -> PortResult<DiscoveryEvaluatorCohort> {
@@ -241,16 +295,21 @@ pub(crate) fn admit_onix_cohort(cohort: &DiscoveryEvaluatorCohort) -> PortResult
 }
 
 // r[impl kiln.nix_eval_jobs_onix.functional_core]
-pub(crate) fn admit_onix_source(plan: &DiscoveryEffectPlan) -> PortResult<()> {
-    if plan.source.provider_namespace.as_str() != "kiln-source"
-        || plan.source.native_kind.as_str() != "nix-store-path"
-        || plan.source.native_id.as_str() != ONIX_SOURCE_PATH
-        || plan.source_identity.as_str() != ONIX_SOURCE_BLAKE3
-        || plan.root_selector.as_str() != ONIX_ROOT_SELECTOR
+// r[impl kiln.onixos_pilot.source]
+pub(crate) fn admit_onix_source(
+    binding: &OnixSourceBinding,
+    plan: &DiscoveryEffectPlan,
+) -> PortResult<()> {
+    admit_onix_source_binding(binding)?;
+    if plan.source != binding.source
+        || plan.source_identity != binding.source_identity
+        || plan.root_selector != binding.root_selector
+        || plan.system != binding.system
+        || plan.source_mode != DiscoverySourceMode::Flake
     {
         return Err(denied(
             "onix_source_drift",
-            "source path, identity, or root selector differs from the published fixture",
+            "source, flake identity, selector, platform, or mode differs from the explicit binding",
         ));
     }
     Ok(())

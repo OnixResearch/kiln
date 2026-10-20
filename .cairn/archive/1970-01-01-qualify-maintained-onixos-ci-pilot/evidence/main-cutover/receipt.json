@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.main-cutover.prerequisite.v1",
+  "source_revision": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+  "scope": "Separately completed operator-authorized host closeout publication; not the subsequently implemented pilot",
+  "repository": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "native_inspection": {
+    "identity_command": ["rad", "inspect", "--identity", "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"],
+    "signed_refs_command": ["rad", "inspect", "--sigrefs", "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"],
+    "exit_code": 0,
+    "default_branch": "main",
+    "delegates": ["did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"],
+    "threshold": 1,
+    "signed_refs_revision": "e3a82b095d55038993affc190618b4eb8ffab716",
+    "governance_non_claim": "Fresh read-only native observation; the existing publication history supplies the prior governance baseline. No new governance or remote mutation was performed for this inspection."
+  },
+  "exact_archive": {
+    "bytes": 44595200,
+    "blake3": "edabde13121bd234a853e72fd12b3d8687d9fa1ebd24b202bf60f370b762daa5",
+    "compared_paths": ["/tmp/kiln-main-cutover-20261020-pjpymekb/source-tracked.tar", "/tmp/kiln-main-cutover-20261020-pjpymekb/radicle-selected-main.tar"],
+    "observation": "Explicit selected-main Radicle and tracked source archives have the same measured BLAKE3; GitHub and anonymous Garden acquisition archives retain the same identity in initial-acquisitions.json."
+  },
+  "retained_failures": [
+    "Initial Radicle archive exited zero but produced a 10240-byte non-equivalent archive. It is retained as a rejected attempt, not successful source-acquisition evidence; the explicitly selected main archive is the matching replacement.",
+    "The working-directory Radicle inspection was rejected because this jj working copy is not recognized as a Radicle repository; explicit-RID native inspection succeeded.",
+    "The known pre-existing Nickel formatter failure was disclosed and not rerun for confirmation; see native-gates.json and the historical host-closeout verification."
+  ],
+  "fresh_acquisition_receipt": "initial-acquisitions.json",
+  "native_gate_receipt": "native-gates.json",
+  "non_claims": ["No new pilot source publication", "No new production-runtime qualification", "Historical and optional-cohort evidence does not qualify changed pilot executable bytes"]
+}

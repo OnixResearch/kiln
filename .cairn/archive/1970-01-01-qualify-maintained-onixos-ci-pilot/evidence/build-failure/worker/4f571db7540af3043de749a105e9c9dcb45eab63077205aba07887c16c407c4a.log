@@ -1,0 +1,7 @@
+this derivation will be built:
+  /nix/store/7r6fzh5m06qyk7v3g0h0cfig5789dg7f-kiln-onixos-home-application-negative-control.drv
+building '/nix/store/7r6fzh5m06qyk7v3g0h0cfig5789dg7f-kiln-onixos-home-application-negative-control.drv'...
+error: Cannot build '/nix/store/7r6fzh5m06qyk7v3g0h0cfig5789dg7f-kiln-onixos-home-application-negative-control.drv'.
+       Reason: builder failed with exit code 19.
+       Output paths:
+         /nix/store/jwpfp4zd5ip3kbfhbyprk6rq2rqvwj4s-kiln-onixos-home-application-negative-control
