@@ -42,6 +42,8 @@ Every request is admitted against the profile auth policy before any projection 
 
 Planned reference implementation: observation authority through a versioned observation-authn port using the basalt boundary contract with ucan enforcement. Nickel policy declares who may observe which project and tenant scope; UCAN capabilities grant bounded observation rights; principals are `did:key` Ed25519. The spec keeps the requirement policy-neutral; the technology choice is a design fact subject to the cross-stack evaluation below.
 
+Reference implementation in this source candidate: the same versioned `ObservationAuth` port with an `ed25519_request_v1` verifier. The profile pins one Ed25519 principal (64 lowercase hex or a `did:key` Ed25519 multicodec), a maximum clock skew, a replay window, and a bounded nonce cache. The verifier signs a canonical method, path, body digest, nonce, issue time, and state revision payload. Basalt/UCAN remains the planned backend behind the same port but is not imported in this source candidate; see the evaluation outcome below.
+
 ### Decision: Rejections are bounded and specific
 
 Unknown view kinds, unknown targets, oversized requests, TLS failures, and timeouts each return a bounded, specific result. None claim a projection or an effect.
@@ -54,8 +56,8 @@ The HTTP shell performs no command intake. Controls are a later change through t
 
 Sibling reuse follows the OnixResearch owner grant: public license conflicts do not block reuse of source the stack exclusively controls. Third-party notices and vendored material (including n0 crates, celld, and the vendored verified-logic snapshot) remain documented and preserved.
 
-- `host-control-core` provides snapshot-first streams and bounded observations and is already consumed by tile through `tile-host-control-adapter`. It is adopted as the wire-contract framing substrate for this leg; CI content stays in Kiln-owned payloads under the host-control product-neutral boundary. Adoption scope is confirmed by an evaluation milestone that gates the wire-format freeze, never the pure projection core.
-- Observation authority uses the basalt boundary with ucan enforcement behind the observation-authn port as described in the auth decision above.
+- `host-control-core` provides snapshot-first streams and bounded observations and is already consumed by tile through `tile-host-control-adapter`. Evaluation outcome: **not adopted for this change**. The crate has host-topology and host-event DTOs but no HTTP request, response, or SSE frame contract; mapping CI observation into its topology commands would invent a lossy second vocabulary. The shell defines a Kiln-owned `kiln.observe.http.*` JSON/SSE contract and keeps the wire boundary explicit. No host-control source is imported, so no pin or third-party notice is added. Host-control remains a candidate for a future snapshot-first host-control stream.
+- Observation authority uses the basalt boundary with ucan enforcement behind the observation-authn port as described in the auth decision above. Evaluation outcome: **not imported in this source candidate**. The repository has no pinned basalt/UCAN cohort; basalt adds bounded-http, replay-ledger, revocation, secretspec, and an AGPL UCAN/verified-logic snapshot. Importing it would widen the dependency, license, and third-party-notice boundary. The versioned port remains the binding point; a future import must record the exact source revision, license map, third-party notices, and runtime cohort before binding.
 - `valence` (through the existing adapter) may record each served view as `recorded_only` evidence bound to its `kiln.observe.view.v1` identity.
 
 Recorded pins follow the existing accepted-spec discipline.

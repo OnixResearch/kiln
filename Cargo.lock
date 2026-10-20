@@ -2715,6 +2715,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-http-observe"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "blake3",
+ "ed25519-dalek 2.2.0",
+ "kiln-core",
+ "kiln-observe-core",
+ "rustls",
+ "rustls-pemfile",
+ "serde",
+ "serde_json",
+ "signal-hook",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-iroh"
 version = "0.1.0"
 dependencies = [
