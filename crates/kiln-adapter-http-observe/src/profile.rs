@@ -7,6 +7,9 @@ use crate::auth::parse_principal;
 use crate::{ObserveError, ObserveResult};
 
 pub const HTTP_OBSERVATION_PROFILE_SCHEMA_VERSION: u16 = 1;
+pub const ED25519_AUTH_KIND: &str = "ed25519_request_v1";
+pub const UCAN_AUTH_KIND: &str = "ucan_holder_invocation_v1";
+pub const UCAN_OBSERVATION_OPERATION_PROFILE: &str = "kiln.observe.http.v1";
 
 // r[impl kiln.observe.http.nonclaims]
 pub const HTTP_OBSERVATION_NON_CLAIMS: &[&str] = &[
@@ -43,6 +46,144 @@ pub struct AuthProfile {
     pub replay_window_seconds: u64,
     pub max_replay_entries: u64,
     pub max_nonce_bytes: u64,
+    #[serde(default)]
+    pub issuer: String,
+    #[serde(default)]
+    pub resource: String,
+    #[serde(default)]
+    pub ability: String,
+    #[serde(default)]
+    pub operation_profile: String,
+    #[serde(default)]
+    pub holder_keys: Vec<String>,
+    #[serde(default)]
+    pub proof_tokens: Vec<String>,
+    #[serde(default)]
+    pub revoked_proof_references: Vec<String>,
+    #[serde(default)]
+    pub max_proof_depth: u64,
+    #[serde(default)]
+    pub max_proof_count: u64,
+    #[serde(default)]
+    pub max_token_bytes: u64,
+    #[serde(default)]
+    pub max_holder_audience_bytes: u64,
+    #[serde(default)]
+    pub max_holder_resource_bytes: u64,
+    #[serde(default)]
+    pub max_holder_ability_bytes: u64,
+}
+
+impl AuthProfile {
+    fn admit_kind(&self) -> ObserveResult<()> {
+        match self.kind.as_str() {
+            ED25519_AUTH_KIND => {
+                parse_principal(&self.principal)?;
+            }
+            UCAN_AUTH_KIND => self.admit_ucan()?,
+            _ => {
+                return Err(ObserveError::new(
+                    "unsupported_auth_kind",
+                    "HTTP observation auth kind is unsupported",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    // r[impl kiln.observe.http.ucan_profile]
+    // r[impl kiln.observe.http.ucan_profile.scenario.drift]
+    fn admit_ucan(&self) -> ObserveResult<()> {
+        let root = parse_principal(&self.issuer)?;
+        let principal = parse_principal(&self.principal)?;
+        if root != principal {
+            return Err(ObserveError::new(
+                "invalid_auth_principal",
+                "UCAN issuer and principal public keys differ",
+            ));
+        }
+        if self.operation_profile != UCAN_OBSERVATION_OPERATION_PROFILE {
+            return Err(ObserveError::new(
+                "unsupported_operation_profile",
+                "UCAN observation operation profile is unsupported",
+            ));
+        }
+        if self.resource.is_empty()
+            || self.ability.is_empty()
+            || self.resource.len() as u64 > self.max_holder_resource_bytes
+            || self.ability.len() as u64 > self.max_holder_ability_bytes
+            || self.issuer.len() as u64 > self.max_holder_audience_bytes
+        {
+            return Err(ObserveError::new(
+                "invalid_ucan_capability",
+                "UCAN capability fields are empty or exceed their bounds",
+            ));
+        }
+        if self.max_proof_depth == 0
+            || self.max_proof_depth > 16
+            || self.max_proof_count == 0
+            || self.max_proof_count > 16
+            || self.max_token_bytes == 0
+            || self.max_token_bytes > 65_536
+            || self.max_holder_audience_bytes == 0
+            || self.max_holder_audience_bytes > 256
+            || self.max_holder_resource_bytes == 0
+            || self.max_holder_resource_bytes > 256
+            || self.max_holder_ability_bytes == 0
+            || self.max_holder_ability_bytes > 256
+        {
+            return Err(ObserveError::new(
+                "invalid_ucan_bounds",
+                "UCAN observation auth bounds are invalid",
+            ));
+        }
+        if self.holder_keys.is_empty()
+            || self.holder_keys.len() as u64 > self.max_proof_count
+            || self
+                .holder_keys
+                .iter()
+                .any(|key| parse_principal(key).is_err())
+        {
+            return Err(ObserveError::new(
+                "invalid_holder_keys",
+                "UCAN holder keys are empty, unparseable, or exceed their bound",
+            ));
+        }
+        if self.proof_tokens.len() as u64 > self.max_proof_count
+            || self.proof_tokens.iter().any(|token| {
+                token.is_empty()
+                    || token.len() as u64 > self.max_token_bytes
+                    || token.contains(char::is_whitespace)
+            })
+        {
+            return Err(ObserveError::new(
+                "invalid_proof_tokens",
+                "UCAN proof tokens are empty, oversized, or contain whitespace",
+            ));
+        }
+        if self
+            .revoked_proof_references
+            .iter()
+            .any(|reference| !is_blake3_hex(reference))
+        {
+            return Err(ObserveError::new(
+                "invalid_revocation_reference",
+                "UCAN revoked proof reference is not a BLAKE3 identity",
+            ));
+        }
+        if self.max_nonce_bytes < 32 {
+            return Err(ObserveError::new(
+                "invalid_nonce_bound",
+                "UCAN holder nonces require at least 32 bytes",
+            ));
+        }
+        crate::ucan_auth::verify_ucan_proof_anchors(self)?;
+        Ok(())
+    }
+}
+
+fn is_blake3_hex(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -152,13 +293,7 @@ impl HttpObservationProfile {
                 "HTTP observation TLS minimum version is unsupported",
             ));
         }
-        if self.auth.kind != "ed25519_request_v1" {
-            return Err(ObserveError::new(
-                "unsupported_auth_kind",
-                "HTTP observation auth kind is unsupported",
-            ));
-        }
-        parse_principal(&self.auth.principal)?;
+        self.auth.admit_kind()?;
         if self.auth.replay_window_seconds == 0
             || self.auth.max_replay_entries == 0
             || !(16..=128).contains(&self.auth.max_nonce_bytes)

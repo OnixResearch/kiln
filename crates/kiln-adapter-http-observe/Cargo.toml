@@ -16,6 +16,7 @@ rustls = { version = "0.23.43", default-features = false, features = ["ring", "s
 rustls-pemfile = "2.2.0"
 serde.workspace = true
 serde_json.workspace = true
+ucan.workspace = true
 signal-hook = "0.3.18"
 
 [dev-dependencies]

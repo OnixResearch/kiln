@@ -1,0 +1,8 @@
+:[
+  ::Cargo.toml,
+  ::LICENSE,
+  ::README.md,
+  ::build.rs,
+  ::.cargo/,
+  ::src/
+]

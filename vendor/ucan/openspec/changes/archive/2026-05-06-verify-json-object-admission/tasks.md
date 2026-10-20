@@ -1,0 +1,6 @@
+- [x] Add verified-logic JSON object byte-admission primitive and sibling tests.
+- [x] Sync the vendored verified-logic snapshot into UCAN.
+- [x] Add the UCAN bridge helper and route header/payload JSON decode through it.
+- [x] Add UCAN tests for accepted object JSON and rejected arrays/scalars/whitespace-only decoded bytes.
+- [x] Update docs and bridge guard patterns.
+- [x] Run sibling and UCAN validation, archive this change, commit, push, and update the audit reference.

@@ -1,0 +1,103 @@
+{
+  "blocker": {
+    "diagnostic_artifact": "proofs/aeneas-time-bounds/evidence/exact-item-selection.log",
+    "diagnostic_blake3": "88544876111259d653a8ff428dce71284818b61e381b6df67bd3c14549716fed",
+    "diagnostic_class": "charon-start-from-inherent-impl-unsupported",
+    "next_discriminating_check": "rerun the same exact production methods with a reviewed Charon provider that supports inherent impl --start-from roots, or approve production-source start_from attributes; require a three-item non-errorful manifest before theorem work",
+    "stage": "charon-item-selection",
+    "supplementary_probe_artifact": "proofs/aeneas-time-bounds/evidence/broad-public-probe.log",
+    "supplementary_probe_blake3": "147c60cd75c962ae12077514cbc7f2392aa23e75443f2fc974391be1052e49f4",
+    "unsupported_boundary": "the reviewed Charon revision does not support inherent impl methods as --start-from roots; this is a provider selection boundary, not evidence that const fn, Result, Error, or getters are unsupported"
+  },
+  "budgets": {
+    "broad_probe_timeout_ms": 300000,
+    "exact_stage_timeout_ms": 30000,
+    "identity": "ucan-aeneas-feasibility-budget/v1",
+    "outcome": "within-budget",
+    "retained_artifact_max_bytes": 8388608,
+    "stderr_max_bytes": 4096,
+    "stdout_max_bytes": 4096
+  },
+  "evidence_admission": {
+    "aeneas_property_proved": false,
+    "octet_artifact_verification": "not-applicable-no-theorem-artifacts",
+    "octet_property_receipt_emitted": false,
+    "theorem_map_emitted": false,
+    "theorem_status": "not-run",
+    "valence_chain_validation": "not-applicable-no-property-chain",
+    "valence_property_handoff_emitted": false
+  },
+  "extraction": {
+    "borrow_check_preserved": true,
+    "def_id_policy": "run-local-only-not-durable",
+    "endianness": "little",
+    "exact_command": [
+      "charon",
+      "cargo",
+      "--preset",
+      "aeneas",
+      "--start-from",
+      "{impl ucan_core::token::TimeBounds}::new",
+      "--start-from",
+      "{impl ucan_core::token::TimeBounds}::not_before_seconds",
+      "--start-from",
+      "{impl ucan_core::token::TimeBounds}::expires_at_seconds",
+      "--dest-file",
+      "time-bounds.llbc",
+      "--",
+      "-p",
+      "ucan-core"
+    ],
+    "has_errors": false,
+    "network_isolation": "bubblewrap-unshare-net",
+    "pointer_width_bits": 64,
+    "preset": "aeneas",
+    "skip_borrowck": false,
+    "target_triple": "x86_64-unknown-linux-gnu",
+    "translation_manifest_status": "not-produced"
+  },
+  "manifest_source": "proofs/aeneas-time-bounds/manifest.ncl",
+  "manifest_source_blake3": "7d868745e4e511d213e80872e5c01d1867065b0ef1d6d7e4b745997ae033817c",
+  "non_claims": [
+    "no Aeneas theorem was checked for TimeBounds",
+    "the broad public-item LLBC is supplementary and is not exact three-item evidence",
+    "the selection blocker does not establish that const fn, Result, the Error enum, struct construction, or getters are unsupported",
+    "no token validity, ambient clock correctness, parser, codec, cryptographic, proof-chain, caveat, revocation, replay, authorization, interoperability, whole-program, or whole-system property is proved",
+    "BLAKE3 binds observed bytes but does not establish translation or verifier soundness"
+  ],
+  "outcome": "blocked",
+  "pilot_id": "ucan-core.time-bounds.aeneas-pilot",
+  "provider": {
+    "aeneas_revision": "bc2eb6f941369fa3c695e30598b5758b11e4f0de",
+    "charon_revision": "cb50ff16b9f1066b8a97dc06da704de2da2fa41c",
+    "compatibility_matrix_blake3": "403656d75de41b955cd2493ef289ba17308da65a3d214babc1ea606aeae248f5",
+    "compatibility_matrix_id": "octet-aeneas-lean-compatibility-0.1.0-bc2eb6f-cb50ff16",
+    "octet_revision": "ef18352bf579bb7c6eb39070d917e3d005385a61",
+    "package": "octet#octet-aeneas-lean-provider-closure",
+    "profile_blake3": "cd11b49d1acede2c6a91fa26f0b7a6b4b28db4007b4601a65b3269706a0ce625",
+    "profile_id": "octet-aeneas-lean-0.1.0-bc2eb6f",
+    "valence_profile": "aeneas-lean/v1",
+    "valence_revision": "8eccac35fcd8aae8ef64b3d1021e7f1a53656180"
+  },
+  "requirements": [
+    "ucan.aeneas_time_bounds.provider_dependencies",
+    "ucan.aeneas_time_bounds.exact_source",
+    "ucan.aeneas_time_bounds.translation_manifest",
+    "ucan.aeneas_time_bounds.feasibility",
+    "ucan.aeneas_time_bounds.resource_budget",
+    "ucan.aeneas_time_bounds.runtime_boundary",
+    "ucan.aeneas_time_bounds.claim_boundary",
+    "ucan.aeneas_time_bounds.final_validation"
+  ],
+  "schema_version": "ucan-aeneas-time-bounds-blocked-receipt/v1",
+  "source": {
+    "blake3": "001764bbd4036024de07cb4565fe5044d17531d5e1dac51523efedadbecc0022",
+    "item_count": 3,
+    "items": [
+      "ucan_core::token::{TimeBounds}::new",
+      "ucan_core::token::{TimeBounds}::not_before_seconds",
+      "ucan_core::token::{TimeBounds}::expires_at_seconds"
+    ],
+    "path": "crates/ucan-core/src/token.rs"
+  }
+}

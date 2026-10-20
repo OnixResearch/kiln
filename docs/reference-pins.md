@@ -47,6 +47,7 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
 | Bounded Exec | `29dac88ecded94457572db3fdfaaaab95fa91525` | AGPL-3.0-or-later shell and core | [`vendor/bounded-exec.source.json`](../vendor/bounded-exec.source.json) |
 | Mantle | `d75158b00b080535f2ffea12430665ca3d57ea82` | Build-contract producer fixtures and Nickel contract only | [`vendor/mantle.source.json`](../vendor/mantle.source.json) |
+| UCAN | `d46816f19606b518307ba21ab33e8b93b6ebf646` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
 
 These are selected upstream Git-object archives, not copies of mutable working
 trees. The imports preserve original source, manifests, license texts, and
@@ -90,6 +91,7 @@ scripts/import-pinned-source.sh valence "$VALENCE_SOURCE"
 scripts/import-pinned-source.sh artifact "$ARTIFACT_SOURCE"
 scripts/import-pinned-source.sh bounded-exec "$BOUNDED_EXEC_SOURCE"
 scripts/import-pinned-source.sh mantle "$MANTLE_SOURCE"
+scripts/import-pinned-source.sh ucan "$UCAN_SOURCE"
 ```
 
 The importer runs `git archive --format=tar COMMIT -- PATHS...` in the exact

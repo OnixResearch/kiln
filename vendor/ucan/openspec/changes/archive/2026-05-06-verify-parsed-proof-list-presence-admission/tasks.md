@@ -1,0 +1,5 @@
+- [x] Extend verified-logic parsed claims presence primitive with proof-list presence.
+- [x] Sync the vendored verified-logic snapshot into UCAN.
+- [x] Route decoded `prf` presence through the UCAN verified parsed-claims bridge.
+- [x] Add bridge/integration tests, docs, and guard coverage.
+- [x] Run UCAN validation and archive the OpenSpec change.

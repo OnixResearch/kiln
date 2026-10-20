@@ -14,7 +14,7 @@ use rustls_pemfile::{certs, private_key};
 
 use crate::auth::{AuthRequest, ReplayState, parse_principal, verify_auth_header};
 use crate::live::{LiveEventBuffer, LiveFrame, sse_frame};
-use crate::profile::HttpObservationProfile;
+use crate::profile::{ED25519_AUTH_KIND, HttpObservationProfile, UCAN_AUTH_KIND};
 use crate::request::{HttpRequest, map_live_request, map_view_request, read_request};
 use crate::response::{write_error, write_sse_headers, write_view};
 use crate::{HttpError, ObserveError, ObserveResult};
@@ -351,28 +351,38 @@ fn admit_auth(
         .headers
         .get("authorization")
         .ok_or_else(unauthorized)?;
-    let principal = parse_principal(&profile.auth.principal).map_err(|_| unauthorized())?;
     let now = clock.now_unix();
-    let max_nonce = usize::try_from(profile.auth.max_nonce_bytes).unwrap_or(128);
-    let payload = verify_auth_header(
-        header,
-        &principal,
-        &AuthRequest {
-            method: "GET",
-            path: &http_request.target,
-            body: b"",
-            state_revision: snapshot.state.revision,
-        },
-        now,
-        profile.auth.max_clock_skew_seconds,
-        max_nonce,
-    )
-    .map_err(|_| unauthorized())?;
-    let mut replay = match replay.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
+    let request = AuthRequest {
+        method: "GET",
+        path: &http_request.target,
+        body: b"",
+        state_revision: snapshot.state.revision,
     };
-    replay.admit(&payload, now).map_err(|_| unauthorized())?;
+    match profile.auth.kind.as_str() {
+        ED25519_AUTH_KIND => {
+            let principal = parse_principal(&profile.auth.principal).map_err(|_| unauthorized())?;
+            let max_nonce = usize::try_from(profile.auth.max_nonce_bytes).unwrap_or(128);
+            let payload = verify_auth_header(
+                header,
+                &principal,
+                &request,
+                now,
+                profile.auth.max_clock_skew_seconds,
+                max_nonce,
+            )
+            .map_err(|_| unauthorized())?;
+            let mut replay = match replay.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            replay.admit(&payload, now).map_err(|_| unauthorized())?;
+        }
+        UCAN_AUTH_KIND => {
+            crate::verify_ucan_header(header, &profile.auth, &request, now, replay)
+                .map_err(|_| unauthorized())?;
+        }
+        _ => return Err(unauthorized()),
+    }
     Ok(())
 }
 

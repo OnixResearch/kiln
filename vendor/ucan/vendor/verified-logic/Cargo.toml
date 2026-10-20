@@ -1,0 +1,155 @@
+[package]
+name = "verified-logic"
+version = "0.2.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Trellis: composable verified-logic building blocks, machine-checked with Verus"
+repository = "https://github.com/OnixResearch/trellis"
+homepage = "https://github.com/OnixResearch/trellis"
+documentation = "https://docs.rs/verified-logic"
+readme = "README.md"
+keywords = ["verification", "verus", "logic", "proofs", "systems"]
+categories = ["algorithms", "data-structures", "development-tools"]
+
+[workspace]
+members = ["."]
+resolver = "3"
+
+[workspace.metadata.octet]
+default_scope = ["-p", "verified-logic"]
+cargo_check_args = ["--lib"]
+
+[dependencies]
+anyhow = "1.0"
+blake3 = "1.8"
+bs58 = "0.5"
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+redb = "2.6"
+regex = "1.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+vstd = "=0.0.0-2026-01-25-0057"
+
+[package.metadata.verus]
+verify = true
+
+[dev-dependencies]
+pretty_assertions = "1.0"
+proptest = "1.0"
+tempfile = "3.23"
+
+[features]
+default = []
+
+# -- Lint policy for a verified logic library --
+# Functions here are deliberately hand-written so Verus can reason about them.
+# Clippy's "use the stdlib method" suggestions conflict with that goal.
+# We allow those at the function level and keep everything else strict.
+[lints.rust]
+unsafe_code = "forbid"
+# Documentation coverage is enforced by Tracey annotations (r[impl], r[verify])
+# and check-coverage.rs, not by rustdoc `///` comments. Many Verus exec fns
+# inside verus! blocks are documented by their spec fn + module docstring.
+missing_docs = "allow"
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(verus_keep_ghost)', 'cfg(verus_keep_ghost_body)'] }
+# Verus ghost variables and #[cfg(verus_keep_ghost)] imports are erased in
+# normal builds, causing false-positive unused warnings.
+unused_imports = "allow"
+unused_variables = "allow"
+
+[lints.clippy]
+# --- Deny: correctness and suspicious code ---
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+cast_possible_truncation = "deny"
+cast_sign_loss = "deny"
+cast_possible_wrap = "deny"
+as_underscore = "deny"
+default_numeric_fallback = "deny"
+
+# --- Warn: style and complexity ---
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# --- Allow: lints that conflict with verified implementations ---
+# These fire on manual reimplementations of stdlib methods, but
+# we write them by hand so Verus can verify the logic.
+manual_abs_diff = "allow"
+manual_map = "allow"
+manual_saturating_arithmetic = "allow"
+manual_unwrap_or = "allow"
+manual_is_power_of_two = "allow"
+manual_filter = "allow"
+manual_unwrap_or_default = "allow"
+manual_is_multiple_of = "allow"
+implicit_saturating_sub = "allow"
+
+# Verus loop patterns: `i = i + 1` (not `i += 1`), integer midpoint,
+# and if-chains comparing a value (Verus assert-forall blocks break match).
+assign_op_pattern = "allow"
+integer_division = "allow"
+comparison_chain = "allow"
+
+# --- Allow: lints that conflict with Verus syntax ---
+# `as u128` inside verus! — Verus parser doesn't support From::from().
+cast_lossless = "allow"
+# Verus `pub fn` uses `&Vec<T>` for Verus spec methods (@, .set()).
+ptr_arg = "allow"
+# Verus specs use `.len() == 0` (not `.is_empty()`) for Z3 triggers.
+len_zero = "allow"
+# Explicit if-chains aid Z3 case-split reasoning in verus! blocks.
+collapsible_if = "allow"
+collapsible_else_if = "allow"
+if_same_then_else = "allow"
+# Explicit boolean form aids Z3 trigger matching in Verus specs.
+nonminimal_bool = "allow"
+needless_bool = "allow"
+# Verus proofs use constant assertions to provide Z3 witnesses.
+assertions_on_constants = "allow"
+# Wildcard imports in test modules are intentional.
+wildcard_imports = "allow"
+
+# --- Allow: pedantic lints that add noise in a verified library ---
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Doc backticks: many identifiers in module-level docs reference Verus
+# spec fn names and Raft terms that read better without backticks.
+doc_markdown = "allow"
+# Test code uses `usize as f64` for histogram/distribution assertions.
+cast_precision_loss = "allow"
+# Verus loop patterns use explicit index variables, not iterators.
+needless_range_loop = "allow"
+# Test helper fns use `sort` on primitives (intentional, not performance-critical).
+stable_sort_primitive = "allow"
+# Verus exec fns return booleans via explicit comparisons for spec matching.
+bool_to_int_with_if = "allow"
+unnecessary_cast = "allow"
+redundant_pattern_matching = "allow"
+manual_range_contains = "allow"
+match_single_binding = "allow"
+# Verus uses `vec!` in test setup for dynamic-length data.
+useless_vec = "allow"
+map_unwrap_or = "allow"
+let_and_return = "allow"
+manual_memcpy = "allow"
+similar_names = "allow"
+# Verus specs use explicit negation and match patterns for Z3 reasoning.
+if_not_else = "allow"
+single_match_else = "allow"
+unnecessary_map_or = "allow"
+int_plus_one = "allow"
+unreadable_literal = "allow"
+# Verus test patterns: enumerate for index access.
+unused_enumerate_index = "allow"
+# Composite facade APIs intentionally mirror multi-input requirement clauses.
+too_many_arguments = "allow"
+fn_params_excessive_bools = "allow"
+# Verus proof/control-flow shapes and test helpers can be clearer left explicit.
+manual_let_else = "allow"
+needless_pass_by_value = "allow"
+match_wildcard_for_single_variants = "allow"
+type_complexity = "allow"

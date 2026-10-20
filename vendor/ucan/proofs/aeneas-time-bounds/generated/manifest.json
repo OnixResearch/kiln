@@ -1,0 +1,312 @@
+{
+  "budgets": {
+    "broad_probe_timeout_ms": 300000,
+    "exact_stage_timeout_ms": 30000,
+    "identity": "ucan-aeneas-feasibility-budget/v1",
+    "outcome": "within-budget",
+    "retained_artifact_max_bytes": 8388608,
+    "stderr_max_bytes": 4096,
+    "stdout_max_bytes": 4096
+  },
+  "claims": {
+    "aeneas_property_proved": false,
+    "non_claims": [
+      "no Aeneas theorem was checked for TimeBounds",
+      "the broad public-item LLBC is supplementary and is not exact three-item evidence",
+      "the selection blocker does not establish that const fn, Result, the Error enum, struct construction, or getters are unsupported",
+      "no token validity, ambient clock correctness, parser, codec, cryptographic, proof-chain, caveat, revocation, replay, authorization, interoperability, whole-program, or whole-system property is proved",
+      "BLAKE3 binds observed bytes but does not establish translation or verifier soundness"
+    ],
+    "octet_property_receipt_emitted": false,
+    "theorem_map_emitted": false,
+    "valence_property_handoff_emitted": false
+  },
+  "extraction": {
+    "borrow_check_preserved": true,
+    "endianness": "little",
+    "exact_command": [
+      "charon",
+      "cargo",
+      "--preset",
+      "aeneas",
+      "--start-from",
+      "{impl ucan_core::token::TimeBounds}::new",
+      "--start-from",
+      "{impl ucan_core::token::TimeBounds}::not_before_seconds",
+      "--start-from",
+      "{impl ucan_core::token::TimeBounds}::expires_at_seconds",
+      "--dest-file",
+      "time-bounds.llbc",
+      "--",
+      "-p",
+      "ucan-core"
+    ],
+    "has_errors": false,
+    "network_isolation": "bubblewrap-unshare-net",
+    "pointer_width_bits": 64,
+    "preset": "aeneas",
+    "serialization_format": "llbc-json-v1",
+    "skip_borrowck": false,
+    "target_triple": "x86_64-unknown-linux-gnu"
+  },
+  "feasibility": {
+    "diagnostic_artifact": "proofs/aeneas-time-bounds/evidence/exact-item-selection.log",
+    "diagnostic_blake3": "88544876111259d653a8ff428dce71284818b61e381b6df67bd3c14549716fed",
+    "diagnostic_class": "charon-start-from-inherent-impl-unsupported",
+    "next_discriminating_check": "rerun the same exact production methods with a reviewed Charon provider that supports inherent impl --start-from roots, or approve production-source start_from attributes; require a three-item non-errorful manifest before theorem work",
+    "octet_artifact_verification": "not-applicable-no-theorem-artifacts",
+    "outcome": "blocked",
+    "stage": "charon-item-selection",
+    "supplementary_llbc_blake3": "22887882f43b64f140880fd1cc7b32b5a99b855982d2230f0c06af5b8bbdde6c",
+    "supplementary_llbc_retained": false,
+    "supplementary_probe_artifact": "proofs/aeneas-time-bounds/evidence/broad-public-probe.log",
+    "supplementary_probe_blake3": "147c60cd75c962ae12077514cbc7f2392aa23e75443f2fc974391be1052e49f4",
+    "theorem_status": "not-run",
+    "unsupported_boundary": "the reviewed Charon revision does not support inherent impl methods as --start-from roots; this is a provider selection boundary, not evidence that const fn, Result, Error, or getters are unsupported",
+    "valence_chain_validation": "not-applicable-no-property-chain"
+  },
+  "negative_cases": [
+    {
+      "applicability": "always",
+      "expected_code": "provider-identity",
+      "id": "wrong-provider-identity",
+      "mutation": "change the Octet revision or provider closure identity"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "extraction-identity",
+      "id": "wrong-extraction-identity",
+      "mutation": "change the effective extraction contract"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "profile-identity",
+      "id": "wrong-profile-identity",
+      "mutation": "change the Octet profile BLAKE3"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "source-identity",
+      "id": "source-mismatch",
+      "mutation": "change production source bytes"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "source-path",
+      "id": "shadow-source",
+      "mutation": "select a copied source path"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "extraction-errors",
+      "id": "has-errors",
+      "mutation": "set Charon has_errors"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "borrow-check",
+      "id": "skip-borrowck",
+      "mutation": "set Charon skip_borrowck"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "target-metadata",
+      "id": "target-drift",
+      "mutation": "change target triple, width, or endianness"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "manifest-freshness",
+      "id": "stale-manifest",
+      "mutation": "retain an old manifest identity"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "run-local-id",
+      "id": "cross-run-def-id",
+      "mutation": "promote a run-local def_id to durable identity"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "outcome-class",
+      "id": "tool-failure",
+      "mutation": "replace a source support outcome with process failure"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "budget-outcome",
+      "id": "budget-exhaustion",
+      "mutation": "exceed a named stage or artifact budget"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "unsupported-boundary",
+      "id": "unsupported-const-fn",
+      "mutation": "classify const fn as unsupported without an exact diagnostic"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "unsupported-boundary",
+      "id": "unsupported-result",
+      "mutation": "classify Result as unsupported without an exact diagnostic"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "unsupported-boundary",
+      "id": "unsupported-error-representation",
+      "mutation": "classify the error enum as unsupported without an exact diagnostic"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "llbc-identity",
+      "id": "stale-llbc",
+      "mutation": "change LLBC after extraction"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "translation-manifest",
+      "id": "stale-translation-manifest",
+      "mutation": "change translation.json rows"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "generated-boundary",
+      "id": "stale-generated-lean",
+      "mutation": "change generated Lean bytes"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "theorem-identity",
+      "id": "wrong-theorem-identity",
+      "mutation": "change theorem or statement approval"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "claim-identity",
+      "id": "wrong-requirement-or-claim",
+      "mutation": "change requirement or claim class"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "trust-closure",
+      "id": "undeclared-trust-input",
+      "mutation": "add or change a model, axiom, or opaque definition"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "receipt-identity",
+      "id": "swapped-receipt",
+      "mutation": "substitute another Octet receipt"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "artifact-verification",
+      "id": "absent-artifact-verification",
+      "mutation": "omit Octet artifact verification"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "lean-check",
+      "id": "false-theorem",
+      "mutation": "select an intentionally false theorem"
+    },
+    {
+      "applicability": "when-supported",
+      "expected_code": "theorem-adequacy",
+      "id": "vacuous-theorem",
+      "mutation": "select a True-style theorem"
+    },
+    {
+      "applicability": "always",
+      "expected_code": "claim-boundary",
+      "id": "overclaim-text",
+      "mutation": "claim Aeneas proof success for a blocked receipt"
+    }
+  ],
+  "pilot_id": "ucan-core.time-bounds.aeneas-pilot",
+  "provider": {
+    "octet": {
+      "adapter_blake3": "19a10c8d3e4ce29b4a058bd2202ff52fc42cee7508f04312840d0bfd398b00a8",
+      "adapter_schema": "octet-aeneas-lean-valence-adapter/v1",
+      "adequacy_policy_blake3": "f19f3cc971b6802083d721daf72e77b9d8e44d7cccce300cb52d3a35f7e9ef54",
+      "adequacy_policy_id": "octet.aeneas_lean_proof_rail.theorem_adequacy",
+      "aeneas_binary_blake3": "428ce05d0f32c3bc3eceb24c1ead80b0dc742bfda22cba9c4b91b6a7f40a3819",
+      "aeneas_revision": "bc2eb6f941369fa3c695e30598b5758b11e4f0de",
+      "charon_binary_blake3": "64ee129c4553574e1686d87560af0699dba9010c998dd68fe4a6b25f6b2e64b5",
+      "charon_pin_blake3": "c7eb373f69fb075192a96fe193c9e60b58bca251bbeb9885e1d9fee08a0b13ba",
+      "charon_revision": "cb50ff16b9f1066b8a97dc06da704de2da2fa41c",
+      "closure_schema": "octet-aeneas-lean-provider-closure/v1",
+      "compatibility_matrix_blake3": "403656d75de41b955cd2493ef289ba17308da65a3d214babc1ea606aeae248f5",
+      "compatibility_matrix_id": "octet-aeneas-lean-compatibility-0.1.0-bc2eb6f-cb50ff16",
+      "compatibility_schema": "octet-aeneas-lean-compatibility-matrix/v1",
+      "lake_binary_blake3": "9c0b74bac6d9436481da3be2f158f9abfb76b940a18aa723d2c493b29ac9f2b5",
+      "lean_binary_blake3": "e9e24ff8e9efd3e7f7a692d2411e0bb39316b626aeda1c3f1bce21bf21daea5d",
+      "leantar_binary_blake3": "b9f350bec0f839bb2e6157fdac2c8cc877f26a961ce81b16e5bcc97957d257fe",
+      "network_sandbox_blake3": "c87d8bcc11f0c5d61e2598dbc08b801d7e1220753ba47b543525835bc1288b6b",
+      "package": "octet#octet-aeneas-lean-provider-closure",
+      "profile_blake3": "cd11b49d1acede2c6a91fa26f0b7a6b4b28db4007b4601a65b3269706a0ce625",
+      "profile_id": "octet-aeneas-lean-0.1.0-bc2eb6f",
+      "revision": "ef18352bf579bb7c6eb39070d917e3d005385a61"
+    },
+    "schema_version": "ucan-aeneas-provider-identity/v1",
+    "valence": {
+      "chain_schema": "valence.formal-proof.aeneas-lean-chain.v1",
+      "profile": "aeneas-lean/v1",
+      "revision": "8eccac35fcd8aae8ef64b3d1021e7f1a53656180",
+      "status_for_blocked_pilot": "not-applicable-no-property-chain"
+    }
+  },
+  "provider_identity_source": "proofs/aeneas-time-bounds/provider-identity.ncl",
+  "provider_identity_source_blake3": "8e379498e5219a84c73ab463dfd24e08720194ec1201312a403e83b3186dd266",
+  "runtime_boundary": {
+    "proof_receipt_runtime_loading": false,
+    "proof_tool_runtime_discovery": false,
+    "ucan_core_dependency_added": false
+  },
+  "schema_version": "ucan-aeneas-time-bounds-feasibility/v1",
+  "status": "blocked",
+  "target": {
+    "copied_source_allowed": false,
+    "crate_name": "ucan_core",
+    "items": [
+      {
+        "required_markers": [
+          "pub const fn new",
+          "InvalidTimeBounds",
+          "not_before_seconds >= expires_at_seconds"
+        ],
+        "rust_path": "ucan_core::token::{TimeBounds}::new",
+        "source_begin_line": 519,
+        "source_end_line": 530
+      },
+      {
+        "required_markers": [
+          "pub const fn not_before_seconds",
+          "self.not_before_seconds"
+        ],
+        "rust_path": "ucan_core::token::{TimeBounds}::not_before_seconds",
+        "source_begin_line": 532,
+        "source_end_line": 535
+      },
+      {
+        "required_markers": [
+          "pub const fn expires_at_seconds",
+          "self.expires_at_seconds"
+        ],
+        "rust_path": "ucan_core::token::{TimeBounds}::expires_at_seconds",
+        "source_begin_line": 537,
+        "source_end_line": 540
+      }
+    ],
+    "package_name": "ucan-core",
+    "source_blake3": "001764bbd4036024de07cb4565fe5044d17531d5e1dac51523efedadbecc0022",
+    "source_path": "crates/ucan-core/src/token.rs",
+    "time_bounds_declaration_begin_line": 507
+  },
+  "translation_manifest": {
+    "def_id_policy": "run-local-only-not-durable",
+    "reason": "the reviewed Charon revision rejects inherent impl methods as exact --start-from roots before selected LLBC can be emitted",
+    "rows": [],
+    "status": "not-produced"
+  }
+}

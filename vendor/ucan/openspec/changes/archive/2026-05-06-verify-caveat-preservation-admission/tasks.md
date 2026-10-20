@@ -1,0 +1,6 @@
+- [x] Add verified-logic opaque caveat identifier preservation primitive and sibling tests.
+- [x] Sync the vendored verified-logic snapshot into UCAN.
+- [x] Add the UCAN bridge helper and public exports.
+- [x] Route attenuation caveat preservation through the verified bridge without claiming caveat semantics or identifier-encoding provenance.
+- [x] Add bridge/integration tests, docs, and guard coverage.
+- [x] Run UCAN validation and archive the OpenSpec change.

@@ -1,0 +1,13 @@
+# Negative fixture: the RUSTSEC-2024-0436 pin is missing, so the detected
+# unmaintained `paste` advisory is not approved and the check must fail.
+
+[advisories]
+ignore = [
+  {
+    id = "RUSTSEC-2026-0190",
+    reason = "the vendored repo_index module never calls downcast_mut.",
+  },
+]
+
+[licenses]
+allow = ["MIT", "Apache-2.0", "MPL-2.0", "AGPL-3.0-or-later", "0BSD", "ISC", "CC0-1.0"]

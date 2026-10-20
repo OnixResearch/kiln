@@ -1,0 +1,14 @@
+schema: ucan-aeneas-bounded-diagnostic/v1
+stage: charon-item-selection
+network: bubblewrap --unshare-net
+source: crates/ucan-core/src/token.rs
+source_blake3: 001764bbd4036024de07cb4565fe5044d17531d5e1dac51523efedadbecc0022
+command: charon cargo --preset aeneas --start-from '{impl ucan_core::token::TimeBounds}::new' --start-from '{impl ucan_core::token::TimeBounds}::not_before_seconds' --start-from '{impl ucan_core::token::TimeBounds}::expires_at_seconds' --dest-file time-bounds.llbc -- -p ucan-core
+outcome: blocked
+diagnostic_class: charon-start-from-inherent-impl-unsupported
+diagnostic:
+warning: failed to resolve item path `{impl ucan_core::token::TimeBounds}::new`: `--start-from` does not support inherent impls
+warning: failed to resolve item path `{impl ucan_core::token::TimeBounds}::not_before_seconds`: `--start-from` does not support inherent impls
+warning: failed to resolve item path `{impl ucan_core::token::TimeBounds}::expires_at_seconds`: `--start-from` does not support inherent impls
+ERROR Code failed to compile
+classification: reviewed-provider-selection-boundary

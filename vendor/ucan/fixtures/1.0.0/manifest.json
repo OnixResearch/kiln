@@ -1,0 +1,36 @@
+{
+  "schema": "ucan.ucan-wg-1.0.0-fixture-manifest.v1",
+  "fixture_source_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+  "entries": [
+    {
+      "id": "delegation-json",
+      "source_url": "https://github.com/ucan-wg/spec",
+      "source_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+      "path": "delegation.json",
+      "git_blob": "99b84b7c0028edabcae5796bbd0d485f4b7b7b96",
+      "blake3": "23ddd201dd206cebacfce06b181916519f5635aa645ab3c71db08703d8ca9db4",
+      "case_class": "positive",
+      "expected_status": "pass"
+    },
+    {
+      "id": "invocation-json",
+      "source_url": "https://github.com/ucan-wg/spec",
+      "source_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+      "path": "invocation.json",
+      "git_blob": "2f6e10c8a6016046ad79f0123aa5b6b176bdb2eb",
+      "blake3": "01aeb9aa8f82530fd5bc177acd4401aeacd8d72d3301e3df34b78b54efb8c380",
+      "case_class": "positive",
+      "expected_status": "pass"
+    },
+    {
+      "id": "policy-json",
+      "source_url": "https://github.com/ucan-wg/spec",
+      "source_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+      "path": "policy.json",
+      "git_blob": "8f291e0d400e323c3ecdcb91e90e722ca9ea6e46",
+      "blake3": "8c2bdedee1be764ee7ef9e5e75fa138287c92979e43c53fc429889f37296e0bc",
+      "case_class": "positive",
+      "expected_status": "pass"
+    }
+  ]
+}

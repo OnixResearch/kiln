@@ -8,6 +8,7 @@ mod profile;
 mod request;
 mod response;
 mod server;
+mod ucan_auth;
 
 #[cfg(test)]
 mod tests;
@@ -24,8 +25,9 @@ pub use conformance::{
 };
 pub use live::{LiveEventBuffer, LiveFrame, LiveSnapshot, sse_frame};
 pub use profile::{
-    AuthProfile, ContentProfile, HTTP_OBSERVATION_NON_CLAIMS, HttpBounds, HttpObservationProfile,
-    LiveProfile, OriginProfile, TlsProfile,
+    AuthProfile, ContentProfile, ED25519_AUTH_KIND, HTTP_OBSERVATION_NON_CLAIMS, HttpBounds,
+    HttpObservationProfile, LiveProfile, OriginProfile, TlsProfile, UCAN_AUTH_KIND,
+    UCAN_OBSERVATION_OPERATION_PROFILE,
 };
 pub use request::{HttpRequest, map_live_request, map_view_request, parse_request, read_request};
 pub use response::{ErrorBody, encode_view, error_response};
@@ -33,6 +35,7 @@ pub use server::{
     MemoryObservationSource, ObservationClock, ObservationSnapshot, ObservationSource, SystemClock,
     load_tls_config, serve, serve_on,
 };
+pub use ucan_auth::verify_ucan_header;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ObserveError {

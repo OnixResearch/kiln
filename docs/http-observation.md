@@ -60,9 +60,27 @@ state revision, issue-time skew, nonce bound, and signature. Each admitted nonce
 is retained in a bounded replay cache for the declared replay window. A failed
 check returns a bounded `401 unauthorized` response without running projection.
 
-The profile principal is either 64 lowercase hexadecimal characters or a
-`did:key` Ed25519 multicodec reference. Basalt/UCAN is the planned backend behind
-the same versioned port; see the evaluation outcome below.
+The Ed25519 profile principal is either 64 lowercase hexadecimal characters or
+a `did:key` Ed25519 multicodec reference.
+
+The profile also admits the optional `ucan_holder_invocation_v1` backend:
+
+```text
+Authorization: UCAN <base64url(compact-token)>.<base64url(signature)>.<base64url(nonce)>
+```
+
+The profile declares the root issuer DID, authorized holder keys, observation
+resource and ability, operation profile `kiln.observe.http.v1`, bounded proof
+tokens, revoked proof references, and token/proof/nonce/field bounds. The server
+verifies the compact token, proof chain, revocation status, capability,
+operation profile, request binding over the method, full target, body digest and
+state revision, token time window, holder signature, and one bounded replay
+commit. Every token must be issued by the profile root or delegated from it
+through the configured anchored proof set; holder keys cannot self-issue
+observation authority. Caveats are denied in this backend. The UCAN cohort is vendored at
+`d46816f19606b518307ba21ab33e8b93b6ebf646`; the root `ucan` crate is
+`AGPL-3.0-or-later`, and `ucan-core` and `verified-logic` are `MPL-2.0` at that
+revision. Basalt policy authority remains a deferred follow-up.
 
 ## TLS
 
@@ -124,12 +142,13 @@ SSE frame contract; mapping CI observation into its topology commands would
 invent a lossy second vocabulary. No host-control source is imported, so no pin
 or third-party notice is added.
 
-Basalt/UCAN was evaluated and is not imported in this source candidate. The
-repository has no pinned basalt/UCAN cohort; basalt adds bounded-http,
-replay-ledger, revocation, secretspec, and an AGPL UCAN/verified-logic snapshot.
-The versioned observation-auth port remains the binding point for a future
-import, which must record the exact source revision, license map, third-party
-notices, and runtime cohort before use.
+UCAN is now imported as the exact vendored cohort
+`d46816f19606b518307ba21ab33e8b93b6ebf646` and used by the optional
+`ucan_holder_invocation_v1` auth backend. Basalt policy authority is still not
+imported; basalt adds bounded-http, replay-ledger, revocation, and secretspec
+beyond the UCAN holder/capability boundary. A future Basalt import must record
+the exact source revision, license map, third-party notices, and runtime cohort
+before binding it behind the same auth port.
 
 ## Non-claims
 

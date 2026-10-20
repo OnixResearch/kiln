@@ -1,0 +1,5 @@
+- [x] Add verified-logic parsed temporal-order primitive.
+- [x] Sync the vendored verified-logic snapshot into UCAN.
+- [x] Route decoded `nbf`/`exp` order through the UCAN verified bridge.
+- [x] Add bridge/integration tests, docs, and guard coverage.
+- [x] Run UCAN validation and archive the OpenSpec change.

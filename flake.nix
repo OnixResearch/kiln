@@ -770,6 +770,8 @@
               config/http-observation-profile.ncl \
               config/fixtures/http-observation-positive.ncl \
               config/fixtures/negative-http-observation-*.ncl \
+              config/fixtures/ucan-observation-positive.ncl \
+              config/fixtures/negative-ucan-*.ncl \
               config/iroh-observation-profile.ncl \
               config/fixtures/iroh-observation-positive.ncl \
               config/fixtures/negative-iroh-observation-*.ncl
@@ -788,6 +790,9 @@
             nickel export config/http-observation-profile.ncl >/dev/null
             nickel export --format json config/http-observation-profile.ncl > http-observation-profile.json
             cmp http-observation-profile.json fixtures/http-observation/profile-v1.json
+            nickel export config/fixtures/ucan-observation-positive.ncl >/dev/null
+            nickel export --format json config/fixtures/ucan-observation-positive.ncl > ucan-observation-profile.json
+            cmp ucan-observation-profile.json fixtures/http-observation/ucan-profile-v1.json
             nickel export config/iroh-observation-profile.ncl >/dev/null
             nickel export --format json config/iroh-observation-profile.ncl > iroh-observation-profile.json
             cmp iroh-observation-profile.json fixtures/iroh-observation/profile-v1.json

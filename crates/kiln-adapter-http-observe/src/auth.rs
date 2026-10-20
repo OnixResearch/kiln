@@ -4,6 +4,8 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
+use ucan::HolderInvocationReplayCandidate;
+use ucan::HolderInvocationReplayError;
 
 use crate::{ObserveError, ObserveResult};
 
@@ -130,7 +132,8 @@ impl ReplayState {
     pub fn admit(&mut self, payload: &AuthPayload, now_unix: u64) -> ObserveResult<()> {
         self.entries
             .retain(|_, issued_at| now_unix.saturating_sub(*issued_at) <= self.window_seconds);
-        let nonce = payload.nonce.as_bytes().to_vec();
+        let mut nonce = b"ed25519:".to_vec();
+        nonce.extend_from_slice(payload.nonce.as_bytes());
         if self.entries.contains_key(&nonce) {
             return Err(ObserveError::new(
                 "auth_replay",
@@ -144,6 +147,30 @@ impl ReplayState {
             ));
         }
         self.entries.insert(nonce, payload.issued_at);
+        Ok(())
+    }
+
+    // r[impl kiln.observe.http.ucan_replay.scenario.replay]
+    // r[impl kiln.observe.http.ucan_replay.scenario.bound]
+    pub fn admit_ucan(
+        &mut self,
+        candidate: &HolderInvocationReplayCandidate<'_>,
+        now_unix: u64,
+    ) -> Result<(), HolderInvocationReplayError> {
+        self.entries
+            .retain(|_, issued_at| now_unix.saturating_sub(*issued_at) <= self.window_seconds);
+        let mut key = b"ucan:".to_vec();
+        key.extend_from_slice(candidate.audience().as_str().as_bytes());
+        key.push(0);
+        key.extend_from_slice(candidate.nonce().as_bytes());
+        key.extend_from_slice(candidate.request_digest().as_bytes());
+        if self.entries.contains_key(&key) {
+            return Err(HolderInvocationReplayError::Duplicate);
+        }
+        if self.entries.len() >= self.max_entries {
+            return Err(HolderInvocationReplayError::Denied);
+        }
+        self.entries.insert(key, now_unix);
         Ok(())
     }
 }

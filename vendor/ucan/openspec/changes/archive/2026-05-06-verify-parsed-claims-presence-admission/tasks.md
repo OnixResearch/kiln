@@ -1,0 +1,6 @@
+- [x] Add verified-logic parsed claims presence primitive and sibling tests.
+- [x] Sync the vendored verified-logic snapshot into UCAN.
+- [x] Add UCAN bridge helpers and public exports.
+- [x] Route decoded-claims validation through the verified parsed-presence bridge.
+- [x] Add bridge/integration tests, docs, and guard coverage.
+- [x] Run UCAN validation and archive the OpenSpec change.

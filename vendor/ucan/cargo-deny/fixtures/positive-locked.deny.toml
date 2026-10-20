@@ -1,0 +1,17 @@
+# Positive fixture: a locked advisory policy that pins both applicable
+# advisories with an explicit non-exploitable rationale.
+
+[advisories]
+ignore = [
+  {
+    id = "RUSTSEC-2024-0436",
+    reason = "paste is dev-only via hegeltest; no runtime impact.",
+  },
+  {
+    id = "RUSTSEC-2026-0190",
+    reason = "the vendored repo_index module never calls downcast_mut.",
+  },
+]
+
+[licenses]
+allow = ["MIT", "Apache-2.0", "MPL-2.0", "AGPL-3.0-or-later", "0BSD", "ISC", "CC0-1.0"]

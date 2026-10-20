@@ -1,0 +1,5 @@
+- [x] Add focused typed caveat policy bridge OpenSpec and validate it.
+- [x] Implement typed caveat policy set and deterministic payload parsing.
+- [x] Add authorization/invocation tests for satisfied, expired, rate-limited, malformed, and unknown caveats.
+- [x] Update public docs and bridge guards.
+- [x] Run full validation, archive the change, commit, and push.

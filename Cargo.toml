@@ -40,6 +40,7 @@ exclude = [
   "vendor/valence",
   "vendor/artifact",
   "vendor/bounded-exec",
+  "vendor/ucan",
   "runtime/kiln-aspen-host",
   "runtime/kiln-radicle-nix-provider",
 ]
@@ -82,6 +83,7 @@ kiln-codec = { path = "crates/kiln-codec" }
 kiln-observe-core = { path = "crates/kiln-observe-core" }
 kiln-adapter-http-observe = { path = "crates/kiln-adapter-http-observe" }
 kiln-adapter-iroh-observe = { path = "crates/kiln-adapter-iroh-observe" }
+ucan = { path = "vendor/ucan" }
 kiln-standalone = { path = "crates/kiln-standalone" }
 kiln-radicle-source-contract = { path = "crates/kiln-radicle-source-contract" }
 kiln-adapter-radicle = { path = "crates/kiln-adapter-radicle" }

@@ -1,0 +1,6 @@
+- [x] Add verified-logic caveat evaluation transcript primitive and sibling tests.
+- [x] Sync the vendored verified-logic snapshot into UCAN.
+- [x] Add UCAN bridge helpers and public exports.
+- [x] Route authorization caveat evaluation aggregation through the verified transcript bridge.
+- [x] Add bridge/integration tests, docs, and guard coverage.
+- [x] Run UCAN validation and archive the OpenSpec change.

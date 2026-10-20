@@ -48,13 +48,31 @@ let Tls = {
   min_version | TlsVersion,
 }
 in
+let AuthKind =
+  std.contract.from_predicate (fun value =>
+    value == "ed25519_request_v1" || value == "ucan_holder_invocation_v1"
+  )
+in
 let Auth = {
-  kind | Exact "ed25519_request_v1",
+  kind | AuthKind,
   principal | Principal,
   max_clock_skew_seconds | NonNegative,
   replay_window_seconds | Positive,
   max_replay_entries | Positive,
   max_nonce_bytes | Positive,
+  issuer | String | default = "",
+  resource | String | default = "",
+  ability | String | default = "",
+  operation_profile | String | default = "",
+  holder_keys | Array Principal | default = [],
+  proof_tokens | Array String | default = [],
+  revoked_proof_references | Array String | default = [],
+  max_proof_depth | NonNegative | default = 0,
+  max_proof_count | NonNegative | default = 0,
+  max_token_bytes | NonNegative | default = 0,
+  max_holder_audience_bytes | NonNegative | default = 0,
+  max_holder_resource_bytes | NonNegative | default = 0,
+  max_holder_ability_bytes | NonNegative | default = 0,
 }
 in
 let Content = {

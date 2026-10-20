@@ -1,0 +1,5 @@
+schema: spec-driven
+created_at: "2026-05-06T20:03:17Z"
+status: proposed
+owner: hermes-agent
+summary: Add generic consumer integration hooks for resolver, proof, revocation, and replay infrastructure without baking Aspen or Clankers policy into ucan.

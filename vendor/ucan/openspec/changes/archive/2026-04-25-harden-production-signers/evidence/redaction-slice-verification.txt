@@ -1,0 +1,169 @@
+# Redaction slice verification
+Date: 2026-04-25T01:08:28Z
+
+$ openspec validate harden-production-signers --strict
+Change 'harden-production-signers' is valid
+
+$ git ls-files --error-unmatch Cargo.lock
+Cargo.lock
+
+$ grep -R "git+ssh\\|ssh://\\|git@" Cargo.toml crates/ucan-core/Cargo.toml Cargo.lock; status=$?; test $status -eq 1
+no SSH-only Cargo sources found
+
+$ cargo fmt --manifest-path Cargo.toml -p ucan -p ucan-core --check
+cargo fmt check passed
+
+$ cargo test --manifest-path Cargo.toml -p ucan --lib token::tests
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (target/agent/debug/deps/ucan-56c8cda71eaf42f6)
+
+running 18 tests
+test token::tests::ed25519_signing_key_debug_redacts_secret_bytes ... ok
+test token::tests::invalid_secret_key_errors_do_not_echo_input_bytes ... ok
+test token::tests::assertion_failure_formatting_redacts_secret_bytes ... ok
+test token::tests::malformed_compact_token_returns_structured_error ... ok
+test token::tests::issue_request_debug_redacts_embedded_signing_key ... ok
+test token::tests::malformed_public_api_inputs_fail_deterministically ... ok
+test token::tests::missing_required_claim_returns_core_error ... ok
+test token::tests::issued_token_uses_required_compact_shape_and_claim_names ... ok
+test token::tests::signature_mismatch_is_rejected ... ok
+test token::tests::issues_and_verifies_token_round_trip ... ok
+test token::tests::expired_parent_is_rejected_as_temporal_error ... ok
+test token::tests::missing_proof_material_is_proof_chain_error ... ok
+test token::tests::self_delegation_is_rejected_directly_and_in_chain ... ok
+test token::tests::valid_delegation_chain_exposes_effective_constraints ... ok
+test token::tests::over_broad_child_capability_is_rejected ... ok
+test token::tests::broken_issuer_audience_link_is_proof_chain_error ... ok
+test token::tests::self_delegating_parent_is_rejected_in_chain ... ok
+test token::tests::widened_child_window_is_rejected_as_temporal_error ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.01s
+
+
+$ cargo test --manifest-path Cargo.toml -p ucan -p ucan-core --all-targets
+   Compiling ucan v0.1.0 (/home/brittonr/git/ucan)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running unittests src/lib.rs (target/agent/debug/deps/ucan-56c8cda71eaf42f6)
+
+running 38 tests
+test shell::tests::rejects_invalid_capability_from_reader ... ok
+test shell::tests::loads_valid_capability_from_reader ... ok
+test shell::tests::loads_valid_capability_from_path ... ok
+test shell::tests::reports_missing_file_from_path ... ok
+test token::tests::ed25519_signing_key_debug_redacts_secret_bytes ... ok
+test shell::tests::writes_valid_capability_document ... ok
+test token::tests::invalid_secret_key_errors_do_not_echo_input_bytes ... ok
+test token::tests::malformed_compact_token_returns_structured_error ... ok
+test token::tests::malformed_public_api_inputs_fail_deterministically ... ok
+test token::tests::issue_request_debug_redacts_embedded_signing_key ... ok
+test token::tests::assertion_failure_formatting_redacts_secret_bytes ... ok
+test token::tests::missing_required_claim_returns_core_error ... ok
+test verified::tests::composes_time_window_chain_by_intersection ... ok
+test verified::tests::rejects_empty_time_window_chain ... ok
+test verified::tests::rejects_wrong_public_key_length_for_did_encoding ... ok
+test verified::tests::encodes_ed25519_did_key_with_verified_logic ... ok
+test verified::tests::token_envelope_rejects_missing_issuer ... ok
+test verified::tests::token_refresh_threshold_matches_verified_logic ... ok
+test verified::tests::token_time_valid_respects_verified_clock_skew ... ok
+test verified::tests::validates_token_envelope_with_verified_logic ... ok
+test token::tests::issued_token_uses_required_compact_shape_and_claim_names ... ok
+test verified::tests::verified_attenuation_chain_accepts_narrower_resource ... ok
+test verified::tests::verified_attenuation_chain_rejects_ability_change ... ok
+test verified::tests::verified_capability_contains_narrower_resource_and_globbed_ability ... ok
+test verified::tests::verified_capability_rejects_embedded_wildcard_segment ... ok
+test verified::tests::verified_capability_rejects_other_namespace ... ok
+test verified::tests::ed25519_verification_rejects_wrong_message ... ok
+test token::tests::self_delegation_is_rejected_directly_and_in_chain ... ok
+test token::tests::issues_and_verifies_token_round_trip ... ok
+test verified::tests::signs_and_verifies_ed25519_messages ... ok
+test token::tests::signature_mismatch_is_rejected ... ok
+test token::tests::missing_proof_material_is_proof_chain_error ... ok
+test token::tests::expired_parent_is_rejected_as_temporal_error ... ok
+test token::tests::over_broad_child_capability_is_rejected ... ok
+test token::tests::self_delegating_parent_is_rejected_in_chain ... ok
+test token::tests::broken_issuer_audience_link_is_proof_chain_error ... ok
+test token::tests::widened_child_window_is_rejected_as_temporal_error ... ok
+test token::tests::valid_delegation_chain_exposes_effective_constraints ... ok
+
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/prop_capability_validation.rs (target/agent/debug/deps/prop_capability_validation-d62118cb691e912c)
+
+running 3 tests
+test prop_embedded_wildcards_are_rejected ... ok
+test prop_known_invalid_ability_forms_are_rejected ... ok
+test prop_valid_capability_parts_round_trip ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running unittests examples/issue_and_verify.rs (target/agent/debug/examples/issue_and_verify-0229b48d3fcd6362)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/proof_chain.rs (target/agent/debug/examples/proof_chain-27273b8e82ecea59)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/agent/debug/deps/ucan_core-3a94b074f7e4c58d)
+
+running 24 tests
+test tests::allows_glob_ability_segments ... ok
+test tests::constructs_capability_from_valid_parts ... ok
+test tests::parses_valid_capability_document ... ok
+test tests::rejects_empty_ability_segments ... ok
+test tests::rejects_uppercase_ability_characters ... ok
+test tests::rejects_missing_ability_field ... ok
+test tests::rejects_duplicate_resource_field ... ok
+test tests::rejects_wildcard_inside_ability_segment ... ok
+test tests::rejects_untrimmed_resource_value ... ok
+test token::tests::accepts_empty_proof_list_when_prf_claim_is_present ... ok
+test token::tests::builds_borrowed_claim_view_from_valid_parts ... ok
+test token::tests::builds_owned_claims_from_valid_input ... ok
+test token::tests::owned_capability_round_trips_to_borrowed_view ... ok
+test token::tests::rejects_empty_capability_claim ... ok
+test token::tests::rejects_empty_proof_reference ... ok
+test token::tests::rejects_invalid_capability_claim ... ok
+test token::tests::rejects_missing_capability_claim ... ok
+test token::tests::rejects_missing_expiration_claim ... ok
+test token::tests::rejects_missing_issuer_claim ... ok
+test token::tests::rejects_missing_proof_claim ... ok
+test token::tests::rejects_time_bounds_with_no_positive_duration ... ok
+test token::tests::rejects_too_many_capabilities ... ok
+test token::tests::rejects_too_many_proof_references ... ok
+test token::tests::rejects_untrimmed_audience_claim ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+$ cargo run --manifest-path Cargo.toml --example issue_and_verify
+   Compiling ucan v0.1.0 (/home/brittonr/git/ucan)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running `target/agent/debug/examples/issue_and_verify`
+issued token: eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJkaWQ6a2V5Ono2TWt2RHFHVDU0Y1hlc1lHdkFCcEYxVWFwVk53akNxUmNhZmk0UHg2VGh2NVQzWiIsImF1ZCI6ImRpZDprZXk6ejZNa3dWRGZDZzlMYmJZNnhqSDNFWms4WVNGUVp1alY1WTR5MVpXZUVSOXREaU4zIiwiYXR0IjpbeyJ3aXRoIjoiZGlkOmtleTp6Nk1rcmVzb3VyY2UiLCJjYW4iOiJzdG9yZS9hZGQifV0sInByZiI6W10sImV4cCI6MjAwMCwibmJmIjoxMDAwfQ.82CE_hECS-_fn5Z6XGYF8x-QjO66Q_Or2OXVKGvT0fU_SkltnVE0vzHMaVniW_RKhminovYm_j0sQgVecFDFDA
+issuer: did:key:z6MkvDqGT54cXesYGvABpF1UapVNwjCqRcafi4Px6Thv5T3Z
+audience: did:key:z6MkwVDfCg9LbbY6xjH3EZk8YSFQZujV5Y4y1ZWeER9tDiN3
+capability count: 1
+
+$ cargo run --manifest-path Cargo.toml --example proof_chain
+   Compiling ucan v0.1.0 (/home/brittonr/git/ucan)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.24s
+     Running `target/agent/debug/examples/proof_chain`
+child issuer: did:key:z6MkwVDfCg9LbbY6xjH3EZk8YSFQZujV5Y4y1ZWeER9tDiN3
+effective window: 1100..1900
+direct proof count: 1
+
+$ cargo clippy --manifest-path Cargo.toml -p ucan -p ucan-core --all-targets --no-deps -- -D warnings -A clippy::cargo-common-metadata
+    Checking ucan v0.1.0 (/home/brittonr/git/ucan)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.56s
+
+$ ./scripts/check-ucan-bridge.sh
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Locking 1 package to latest Rust 1.97.0-nightly compatible version
+    Checking ucan-core-no-std-smoke v0.0.0 (/tmp/nix-shell.2as1T3/tmp.2JadyTWQJ5)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s
+
+VERIFICATION: PASS

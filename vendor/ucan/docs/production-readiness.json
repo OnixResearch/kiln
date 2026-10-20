@@ -1,0 +1,318 @@
+{
+  "projection_schema": "ucan.support-catalog-projection.v1",
+  "catalog_blake3": "2bd91f2d23540781ded43e409130bb23dd77785ac641a33394f8514edd2c6f25",
+  "catalog": {
+    "schema": "ucan.support-catalog.v1",
+    "report_schema_version": 1,
+    "crate_level": "controlled-integration-ready",
+    "surfaces": [
+      {
+        "id": "ed25519-did-key-compact-token",
+        "level": "controlled-integration-ready",
+        "evidence": "issue/parse/verify APIs, signer abstraction, examples, tests, and nix flake checks cover Ed25519 did:key compact tokens",
+        "boundary": "caller owns key custody, key provenance, request policy, and deployment hardening",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "ucan-wg-1.0.0-authorization",
+        "level": "controlled-integration-ready",
+        "evidence": "pinned final-profile wire fixtures, command and policy matrices, ordered CID-bound Delegation chains, exact executor admission, one replay commit, private live values, and redacted receipt tests pass",
+        "boundary": "callers own key truth, proof transport and availability, executor identity, clock truth, revocation freshness, replay durability, policy completeness, transport security, resource ownership, and effect correctness",
+        "baseline_level": null,
+        "promotion_review": {
+          "from": "unsupported",
+          "to": "controlled-integration-ready",
+          "migration_id": "implement-ucan-1-authorization",
+          "evidence": [
+            "positive-tests",
+            "negative-fail-closed-tests",
+            "operator-evidence",
+            "migration-review"
+          ]
+        }
+      },
+      {
+        "id": "caller-supplied-key-resolution",
+        "level": "controlled-integration-ready",
+        "evidence": "KeyResolver injection and KeyResolutionContext support deterministic local resolution; backend errors fail closed",
+        "boundary": "remote DID method support, trust roots, freshness, and cache behavior are application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "caller-supplied-proof-store",
+        "level": "controlled-integration-ready",
+        "evidence": "ProofStore injection, ProofCollection, bounded traversal, proof-link checks, and cycle/limit failures are tested",
+        "boundary": "network, filesystem, database, IPFS, content-addressed freshness, and proof provenance are application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "caller-supplied-revocation",
+        "level": "controlled-integration-ready",
+        "evidence": "RevocationChecker injection, NoRevocations, RevocationList, and leaf/proof-chain denial failures are covered",
+        "boundary": "registry truth, persistence, duplicate semantics, freshness, and backend availability are application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "generic-consumer-integration-hooks",
+        "level": "controlled-integration-ready",
+        "evidence": "generic key, proof, revocation, profile, caveat, and replay hooks are public and tested without consumer-specific adapters",
+        "boundary": "consumer-specific resource, ability, request, identity, envelope, backend, freshness, retry, persistence, and execution semantics are application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "caller-supplied-replay-admission",
+        "level": "controlled-integration-ready",
+        "evidence": "ReplayAdmission and verify_invocation_with_replay allow caller-owned duplicate, stale, malformed, denial, and backend policies to fail closed",
+        "boundary": "durable replay detection, crash recovery, backend corruption handling, and cross-process freshness are application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "holder-signed-invocation-admission",
+        "level": "controlled-integration-ready",
+        "evidence": "borrowed direct and delegated tests bind the complete token reference, verified audience, resource, ability, operation profile, request digest, and fixed nonce to an audience-key signature before one final replay commit",
+        "boundary": "profile registry truth, request canonicalizer provenance, nonce durability, transport identity, action semantics, consumptive rate limits, and execution effects remain application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "verified-replay-admission-transcript",
+        "level": "controlled-integration-ready",
+        "evidence": "ReplayAdmission outcomes are routed through a vendored verified finite transcript that accepts only allowed outcomes and reports the first duplicate, stale, malformed, denied, backend, or unknown failure",
+        "boundary": "nonce uniqueness truth, request identity provenance, durable replay storage, crash consistency, backend freshness, and consumer envelope semantics are application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "verified-proof-traversal-orchestration",
+        "level": "controlled-integration-ready",
+        "evidence": "Proof traversal budget, cycle/visited-reference, proof-link, and effective-delegation transcript facts are routed through vendored verified finite traversal predicates before delegated authorization is accepted",
+        "boundary": "proof-store truth, parser output, signature checks, revocation freshness, backend provenance, and runtime recursion remain caller/runtime-owned boundaries",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "verified-compact-token-codec-structure",
+        "level": "controlled-integration-ready",
+        "evidence": "Compact segment framing, exact signing-input/compact reconstruction, base64url segment admission, and decoded JSON object-envelope index discovery route through vendored verified structural predicates",
+        "boundary": "base64url decoding, serde JSON semantics, duplicate-key behavior, canonicalization, UTF-8/string handling, and Ed25519 correctness remain runtime boundaries",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "verified-core-structural-validators",
+        "level": "controlled-integration-ready",
+        "evidence": "DID claim shape, required-claim presence, temporal order, proof-reference/capability/caveat list bounds, and parsed caveat payload shape route through vendored verified finite validators",
+        "boundary": "serde extraction truth, runtime parser behavior, DID method semantics, clock truth, proof/backend truth, and consumer caveat policy remain outside the structural claim",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "verified-ability-helper-predicates",
+        "level": "controlled-integration-ready",
+        "evidence": "VerifiedCapability wildcard-segment and concrete-ability helpers route full-segment wildcard classification through vendored verified ability predicates",
+        "boundary": "consumer-specific resource/action/session policy and mapping for Aspen, Clankers, or other integrations remain downstream-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "verified-backend-transcript-aggregation",
+        "level": "controlled-integration-ready",
+        "evidence": "Key-resolution, proof-load, revocation-check, and replay-admission backend operation facts route through vendored verified transcript aggregation with first-failure semantics",
+        "boundary": "actual key material, proof bytes, registry state, nonce-store freshness, storage durability, network availability, and backend authorization semantics are caller-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "opaque-caveat-policy-evaluation",
+        "level": "controlled-integration-ready",
+        "evidence": "CaveatPolicySet requires every caveat to have an explicit non-consuming policy observation; missing or rejected policies deny authorization",
+        "boundary": "arbitrary caveat semantics, clocks, counters, consumptive quota or rate-limit effects, and external policy truth are application-owned",
+        "baseline_level": "controlled-integration-ready",
+        "promotion_review": null
+      },
+      {
+        "id": "finite-typed-caveat-helpers",
+        "level": "preview",
+        "evidence": "verified finite time-bound and rate-limit helper predicates are exposed for advanced callers",
+        "boundary": "adopting those helpers as a production vocabulary requires integration-specific policy and provenance evidence",
+        "baseline_level": "preview",
+        "promotion_review": null
+      },
+      {
+        "id": "web-of-trust-helpers",
+        "level": "preview",
+        "evidence": "finite WOT evidence, threshold, and UCAN authorization helpers are exposed below the compact-token shell",
+        "boundary": "DID/CID decoding, evidence fetching, trust-store discovery, revocation freshness, and persistence are not supplied",
+        "baseline_level": "preview",
+        "promotion_review": null
+      },
+      {
+        "id": "nostr-identity-adapter",
+        "level": "preview",
+        "evidence": "the optional ucan-nostr package verifies bounded NIP-01, NIP-42, NIP-98, and application challenge facts with exact digest roles",
+        "boundary": "relay access, DNS, signing, clocks, replay storage, subject resolution, and authorization remain caller-owned",
+        "baseline_level": null,
+        "promotion_review": {
+          "from": "unsupported",
+          "to": "preview",
+          "migration_id": "add-nostr-identity-adapter",
+          "evidence": [
+            "positive-tests",
+            "negative-fail-closed-tests",
+            "operator-evidence",
+            "migration-review"
+          ]
+        }
+      },
+      {
+        "id": "remote-did-resolution",
+        "level": "unsupported",
+        "evidence": "no built-in remote resolver is provided",
+        "boundary": "integrators must supply resolver trust, method admission, freshness, cache, and fail-closed behavior",
+        "baseline_level": "unsupported",
+        "promotion_review": null
+      },
+      {
+        "id": "proof-transport-backends",
+        "level": "unsupported",
+        "evidence": "no built-in network, filesystem, database, IPFS, or content-addressed proof transport is provided",
+        "boundary": "integrators must supply proof provenance, freshness, bounds, and reference matching",
+        "baseline_level": "unsupported",
+        "promotion_review": null
+      },
+      {
+        "id": "registry-backed-revocation",
+        "level": "unsupported",
+        "evidence": "no built-in registry client or persistence layer is provided",
+        "boundary": "integrators must supply registry truth, freshness, duplicate handling, and outage behavior",
+        "baseline_level": "unsupported",
+        "promotion_review": null
+      },
+      {
+        "id": "replay-persistence-store",
+        "level": "unsupported",
+        "evidence": "receipt validation helpers do not store receipts or reject duplicate invocations across restarts",
+        "boundary": "integrators must supply durable replay detection, recovery, corruption handling, and freshness policy",
+        "baseline_level": "unsupported",
+        "promotion_review": null
+      },
+      {
+        "id": "non-ed25519-key-algorithms",
+        "level": "unsupported",
+        "evidence": "compact-token signing and verification admit Ed25519 did:key with EdDSA only",
+        "boundary": "future algorithms need parsing, admission, mismatch, signature, and unsupported-algorithm evidence",
+        "baseline_level": "unsupported",
+        "promotion_review": null
+      }
+    ],
+    "did_methods": [
+      {
+        "id": "did:key",
+        "level": "controlled-integration-ready",
+        "evidence": "compact-token issuance and verification support Ed25519 did:key identifiers",
+        "boundary": "key provenance, custody, trust roots, and resolver freshness remain caller-owned"
+      },
+      {
+        "id": "remote-did-method",
+        "level": "unsupported",
+        "evidence": "no remote DID method resolver is built into this crate",
+        "boundary": "method admission, network resolution, trust roots, caching, and freshness remain caller-owned"
+      }
+    ],
+    "signing_algorithms": [
+      {
+        "id": "EdDSA",
+        "level": "controlled-integration-ready",
+        "evidence": "compact-token signing and verification support Ed25519 with the EdDSA header",
+        "boundary": "key custody, key provenance, and deployment hardening remain caller-owned"
+      },
+      {
+        "id": "non-EdDSA",
+        "level": "unsupported",
+        "evidence": "no alternative compact-token signature algorithm is admitted",
+        "boundary": "future algorithms require explicit parsing, mismatch, signature, and failure evidence"
+      }
+    ],
+    "key_classes": [
+      {
+        "id": "Ed25519",
+        "level": "controlled-integration-ready",
+        "evidence": "Ed25519 signing and verification are covered by compact-token tests and examples",
+        "boundary": "secret material storage, rotation, provenance, and custody remain caller-owned"
+      },
+      {
+        "id": "non-Ed25519",
+        "level": "unsupported",
+        "evidence": "no other signing or verification key class is admitted",
+        "boundary": "future key classes require explicit format, algorithm, mismatch, and failure evidence"
+      }
+    ],
+    "integration_modes": [
+      {
+        "id": "key_resolution",
+        "admitted_value": "caller-supplied"
+      },
+      {
+        "id": "proof_loading",
+        "admitted_value": "caller-supplied"
+      },
+      {
+        "id": "revocation",
+        "admitted_value": "caller-supplied"
+      },
+      {
+        "id": "replay",
+        "admitted_value": "caller-supplied"
+      },
+      {
+        "id": "verification_time",
+        "admitted_value": "explicit"
+      },
+      {
+        "id": "caveat_policy",
+        "admitted_value": "caller-supplied"
+      },
+      {
+        "id": "signer_custody",
+        "admitted_value": "caller-owned"
+      },
+      {
+        "id": "backend_failure",
+        "admitted_value": "fail-closed"
+      }
+    ],
+    "verification_limit_ceiling": {
+      "id": "ucan-default-ceilings",
+      "max_proof_depth": 16,
+      "max_proof_count": 64,
+      "max_input_bytes": 65536
+    },
+    "promotion_policy": {
+      "ordered_levels": [
+        "unsupported",
+        "preview",
+        "controlled-integration-ready",
+        "production-supported"
+      ],
+      "required_evidence": [
+        "positive-tests",
+        "negative-fail-closed-tests",
+        "operator-evidence",
+        "migration-review"
+      ]
+    },
+    "required_non_claims": [
+      "Profile conformance does not prove resolver truth.",
+      "Profile conformance does not prove key custody or cryptographic correctness.",
+      "Profile conformance does not prove revocation or replay freshness.",
+      "Profile conformance does not prove backend durability.",
+      "Profile conformance does not prove application authorization completeness."
+    ]
+  }
+}

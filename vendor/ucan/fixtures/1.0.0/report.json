@@ -1,0 +1,37 @@
+{
+  "schema": "ucan.protocol-conformance-report.v1",
+  "manifest_schema": "ucan.ucan-wg-1.0.0-fixture-manifest.v1",
+  "upstream_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+  "rows": [
+    {
+      "fixture_id": "delegation-json",
+      "profile_id": "ucan-wg-1.0.0",
+      "implementation_revision": "ucan-crate-0.1.0",
+      "upstream_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+      "fixture_blake3": "23ddd201dd206cebacfce06b181916519f5635aa645ab3c71db08703d8ca9db4",
+      "stage": "execution",
+      "reason_code": "executed-case-accepted",
+      "class": "pass"
+    },
+    {
+      "fixture_id": "invocation-json",
+      "profile_id": "ucan-wg-1.0.0",
+      "implementation_revision": "ucan-crate-0.1.0",
+      "upstream_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+      "fixture_blake3": "01aeb9aa8f82530fd5bc177acd4401aeacd8d72d3301e3df34b78b54efb8c380",
+      "stage": "execution",
+      "reason_code": "executed-case-accepted",
+      "class": "pass"
+    },
+    {
+      "fixture_id": "policy-json",
+      "profile_id": "ucan-wg-1.0.0",
+      "implementation_revision": "ucan-crate-0.1.0",
+      "upstream_revision": "9955aa1fb7b32897f80b57651f4ee8b22ebf35a7",
+      "fixture_blake3": "8c2bdedee1be764ee7ef9e5e75fa138287c92979e43c53fc429889f37296e0bc",
+      "stage": "execution",
+      "reason_code": "executed-with-pinned-json-normalization",
+      "class": "pass"
+    }
+  ]
+}

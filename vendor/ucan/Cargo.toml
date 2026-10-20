@@ -1,0 +1,57 @@
+[workspace]
+members = ["crates/ucan-core", "crates/ucan-nostr"]
+exclude = ["vendor/verified-logic"]
+resolver = "2"
+
+[workspace.metadata.tigerstyle]
+default_scope = ["-p", "ucan", "-p", "ucan-core", "-p", "ucan-nostr"]
+cargo_check_args = ["--workspace", "--all-targets"]
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+
+[package]
+name = "ucan"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "UCAN token and authority primitives with explicit consumer-owned boundaries."
+repository = "https://github.com/OnixResearch/ucan"
+readme = "README.md"
+keywords = ["ucan", "capabilities", "authorization"]
+categories = ["authentication"]
+
+[[bin]]
+name = "check-production-readiness"
+path = "tools/check-production-readiness/main.rs"
+
+[[bin]]
+name = "check-aeneas-time-bounds-proof"
+path = "tools/check-aeneas-time-bounds-proof/main.rs"
+
+[dependencies]
+base64 = "0.22"
+blake3 = "1.5"
+ed25519-dalek = "=2.2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "=1.0.149"
+sha2 = "=0.10.9"
+snafu = "0.8"
+ucan-core = { path = "crates/ucan-core", default-features = false, features = ["verification-cache"] }
+zeroize = "=1.8.2"
+verified-logic = { path = "vendor/verified-logic" }
+
+[dev-dependencies]
+hegeltest = "0.2"
+pretty_assertions = "1.0"
+proptest = "1.0"
+tempfile = "3"
+
+[lints]
+workspace = true

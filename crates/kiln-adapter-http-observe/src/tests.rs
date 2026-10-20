@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{BufReader, Cursor, ErrorKind, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base64::Engine;
@@ -16,8 +16,16 @@ use kiln_core::types::{AttemptId, CommandId, ExternalRef, ProviderProfileId, Run
 use kiln_observe_core::{LogWindow, ObservationView, ViewBody, ViewRequest};
 use rustls::pki_types::ServerName;
 use serde::Deserialize;
+use ucan::{
+    AudienceDid, CapabilityDocument, CapabilitySet, CaveatDocument, CompactToken,
+    Ed25519InMemorySigner, HolderInvocationLimits, HolderInvocationNonce,
+    HolderInvocationSigningRequest, OperationBinding, OperationProfileId, ProofReferences,
+    TokenSigner, TokenTimeBounds, VerificationLimits, issue_token_with_signer, proof_reference,
+    sign_holder_invocation,
+};
 
 use crate::auth::AUTH_HEADER_SCHEME;
+use crate::ucan_auth::{ucan_operation_profile_id, ucan_request_binding};
 use crate::*;
 
 const NOW: u64 = 1_700_000_000;
@@ -114,6 +122,19 @@ fn profile() -> HttpObservationProfile {
             replay_window_seconds: 300,
             max_replay_entries: 64,
             max_nonce_bytes: 64,
+            issuer: String::new(),
+            resource: String::new(),
+            ability: String::new(),
+            operation_profile: String::new(),
+            holder_keys: Vec::new(),
+            proof_tokens: Vec::new(),
+            revoked_proof_references: Vec::new(),
+            max_proof_depth: 0,
+            max_proof_count: 0,
+            max_token_bytes: 0,
+            max_holder_audience_bytes: 0,
+            max_holder_resource_bytes: 0,
+            max_holder_ability_bytes: 0,
         },
         content: ContentProfile {
             view_content_type: String::from("application/json"),
@@ -390,6 +411,18 @@ fn nickel_http_profile_fixture_is_admitted() {
     assert_eq!(document.profile.profile_id, "http-observation-v1");
 }
 
+// r[verify kiln.observe.http.ucan_profile]
+// r[verify kiln.observe.http.ucan_profile.scenario.match]
+#[test]
+fn nickel_ucan_profile_fixture_is_admitted() {
+    let document: HttpProfileDocument = serde_json::from_str(include_str!(
+        "../../../fixtures/http-observation/ucan-profile-v1.json"
+    ))
+    .unwrap_or_else(|_| unreachable!());
+    document.profile.admit().unwrap_or_else(|_| unreachable!());
+    assert_eq!(document.profile.auth.kind, UCAN_AUTH_KIND);
+}
+
 // r[verify kiln.observe.http.profile.scenario.drift]
 #[test]
 fn profile_admission_rejects_drift() {
@@ -606,6 +639,461 @@ fn auth_verifies_and_rejects() {
     );
 }
 
+fn ucan_profile() -> HttpObservationProfile {
+    let document: HttpProfileDocument = serde_json::from_str(include_str!(
+        "../../../fixtures/http-observation/ucan-profile-v1.json"
+    ))
+    .unwrap_or_else(|_| unreachable!());
+    document.profile
+}
+
+fn ucan_root() -> Ed25519InMemorySigner {
+    Ed25519InMemorySigner::from_seed_bytes([1; 32])
+}
+
+fn ucan_holder() -> Ed25519InMemorySigner {
+    Ed25519InMemorySigner::from_seed_bytes([2; 32])
+}
+
+fn ucan_audience(signer: &Ed25519InMemorySigner) -> AudienceDid {
+    AudienceDid::from(signer.issuer().unwrap_or_else(|_| unreachable!()))
+}
+
+fn ucan_token(
+    issuer: &Ed25519InMemorySigner,
+    audience: &AudienceDid,
+    resource: &str,
+    ability: &str,
+    proofs: &ProofReferences,
+    now: u64,
+) -> String {
+    let capabilities = CapabilitySet::single(resource, ability).unwrap_or_else(|_| unreachable!());
+    let bounds = TokenTimeBounds::new(now.saturating_sub(10), now.saturating_add(3_600))
+        .unwrap_or_else(|_| unreachable!());
+    issue_token_with_signer(issuer, audience, &capabilities, proofs, bounds)
+        .unwrap_or_else(|_| unreachable!())
+        .as_str()
+        .to_string()
+}
+
+fn ucan_header(
+    profile: &HttpObservationProfile,
+    token: &str,
+    target: &str,
+    nonce: [u8; 32],
+) -> String {
+    ucan_header_with(
+        profile,
+        token,
+        &profile.auth.resource,
+        &profile.auth.ability,
+        target,
+        ucan_operation_profile_id(),
+        nonce,
+    )
+}
+
+fn ucan_header_with(
+    profile: &HttpObservationProfile,
+    token: &str,
+    resource: &str,
+    ability: &str,
+    target: &str,
+    operation: OperationProfileId,
+    nonce: [u8; 32],
+) -> String {
+    let holder = ucan_holder();
+    let audience = ucan_audience(&holder);
+    let binding = ucan_request_binding("GET", target, b"", 1).unwrap_or_else(|_| unreachable!());
+    let operation = OperationBinding::new(operation, binding);
+    let nonce = HolderInvocationNonce::from_bytes(nonce);
+    let signing =
+        HolderInvocationSigningRequest::new(token, &audience, resource, ability, operation, nonce);
+    let limits = VerificationLimits::new(
+        usize::try_from(profile.auth.max_proof_depth).unwrap_or(usize::MAX),
+        usize::try_from(profile.auth.max_proof_count).unwrap_or(usize::MAX),
+        usize::try_from(profile.auth.max_token_bytes).unwrap_or(usize::MAX),
+    )
+    .with_clock_skew_tolerance_seconds(profile.auth.max_clock_skew_seconds);
+    let holder_limits = HolderInvocationLimits::try_new(
+        usize::try_from(profile.auth.max_holder_audience_bytes).unwrap_or(usize::MAX),
+        usize::try_from(profile.auth.max_holder_resource_bytes).unwrap_or(usize::MAX),
+        usize::try_from(profile.auth.max_holder_ability_bytes).unwrap_or(usize::MAX),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let signature = sign_holder_invocation(&signing, &holder, limits, holder_limits)
+        .unwrap_or_else(|_| unreachable!());
+    format!(
+        "UCAN {}.{}.{}",
+        URL_SAFE_NO_PAD.encode(token.as_bytes()),
+        URL_SAFE_NO_PAD.encode(signature.as_bytes()),
+        URL_SAFE_NO_PAD.encode(nonce.as_bytes())
+    )
+}
+
+fn ucan_verify(
+    profile: &HttpObservationProfile,
+    header: &str,
+    target: &str,
+    state_revision: u64,
+    now: u64,
+    replay: &Mutex<ReplayState>,
+) -> ObserveResult<()> {
+    let request = AuthRequest {
+        method: "GET",
+        path: target,
+        body: b"",
+        state_revision,
+    };
+    verify_ucan_header(header, &profile.auth, &request, now, replay)
+}
+
+// r[verify kiln.observe.http.ucan_holder.scenario.authorized]
+// r[verify kiln.observe.http.ucan_replay]
+// r[verify kiln.observe.http.ucan_replay.scenario.replay]
+#[test]
+fn ucan_holder_invocation_is_admitted_and_replayed_nonce_denied() {
+    let profile = ucan_profile();
+    let root = ucan_root();
+    let holder = ucan_holder();
+    let token = ucan_token(
+        &root,
+        &ucan_audience(&holder),
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let target = "/v1/views/state-summary";
+    let header = ucan_header(&profile, &token, target, [3; 32]);
+    let replay = Mutex::new(ReplayState::new(300, 64));
+    ucan_verify(&profile, &header, target, 1, NOW, &replay).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        ucan_verify(&profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+}
+
+// r[verify kiln.observe.http.ucan_holder.scenario.denied]
+#[test]
+fn ucan_rejects_wrong_target_capability_operation_and_expired_token() {
+    let profile = ucan_profile();
+    let root = ucan_root();
+    let holder = ucan_holder();
+    let audience = ucan_audience(&holder);
+    let token = ucan_token(
+        &root,
+        &audience,
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let target = "/v1/views/state-summary";
+    let header = ucan_header(&profile, &token, target, [4; 32]);
+    let replay = Mutex::new(ReplayState::new(300, 64));
+    assert_eq!(
+        ucan_verify(&profile, &header, "/v1/views/runs", 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+    let wrong_capability = ucan_token(
+        &root,
+        &audience,
+        "kiln:other",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let header = ucan_header_with(
+        &profile,
+        &wrong_capability,
+        "kiln:other",
+        "observe",
+        target,
+        ucan_operation_profile_id(),
+        [5; 32],
+    );
+    assert_eq!(
+        ucan_verify(&profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+    let wrong_audience = ucan_token(
+        &root,
+        &ucan_audience(&root),
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let header = ucan_header(&profile, &wrong_audience, target, [14; 32]);
+    assert_eq!(
+        ucan_verify(&profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+    let wrong_operation = OperationProfileId::from_bytes(*blake3::hash(b"wrong").as_bytes());
+    let header = ucan_header_with(
+        &profile,
+        &token,
+        "kiln:observe",
+        "observe",
+        target,
+        wrong_operation,
+        [6; 32],
+    );
+    assert_eq!(
+        ucan_verify(&profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+    let expired = ucan_token(
+        &root,
+        &audience,
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW.saturating_sub(7_200),
+    );
+    let header = ucan_header(&profile, &expired, target, [7; 32]);
+    assert_eq!(
+        ucan_verify(&profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+    assert_eq!(
+        ucan_verify(&profile, "Bearer token", target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_shape")
+    );
+}
+
+// r[verify kiln.observe.http.ucan_holder]
+#[test]
+fn ucan_proof_chain_is_admitted_and_revocation_is_denied() {
+    let profile = ucan_profile();
+    let root = ucan_root();
+    let intermediate = Ed25519InMemorySigner::from_seed_bytes([3; 32]);
+    let holder = ucan_holder();
+    let root_token = ucan_token(
+        &root,
+        &ucan_audience(&intermediate),
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let root_compact = CompactToken::new(&root_token).unwrap_or_else(|_| unreachable!());
+    let reference = proof_reference(&root_compact);
+    let proofs = ProofReferences::from_references(vec![reference.clone()]);
+    let child_token = ucan_token(
+        &intermediate,
+        &ucan_audience(&holder),
+        "kiln:observe",
+        "observe",
+        &proofs,
+        NOW,
+    );
+    let mut proof_profile = profile;
+    proof_profile.auth.proof_tokens = vec![root_token];
+    proof_profile.auth.holder_keys = vec![
+        ucan_audience(&holder).as_str().to_string(),
+        intermediate
+            .issuer()
+            .unwrap_or_else(|_| unreachable!())
+            .as_str()
+            .to_string(),
+    ];
+    proof_profile.admit().unwrap_or_else(|_| unreachable!());
+    let target = "/v1/views/state-summary";
+    let header = ucan_header(&proof_profile, &child_token, target, [8; 32]);
+    let replay = Mutex::new(ReplayState::new(300, 64));
+    ucan_verify(&proof_profile, &header, target, 1, NOW, &replay)
+        .unwrap_or_else(|_| unreachable!());
+    proof_profile.auth.revoked_proof_references = vec![hex(reference.as_bytes())];
+    proof_profile.admit().unwrap_or_else(|_| unreachable!());
+    let header = ucan_header(&proof_profile, &child_token, target, [9; 32]);
+    let replay = Mutex::new(ReplayState::new(300, 64));
+    assert_eq!(
+        ucan_verify(&proof_profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+}
+
+// r[verify kiln.observe.http.ucan_holder.scenario.denied]
+#[test]
+fn ucan_rejects_caveated_token() {
+    let profile = ucan_profile();
+    let root = ucan_root();
+    let holder = ucan_holder();
+    let audience = ucan_audience(&holder);
+    let caveat = CaveatDocument::new(
+        "kiln.observe".to_owned(),
+        "test".to_owned(),
+        "key".to_owned(),
+        vec![1],
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let capability = CapabilityDocument::with_caveats(
+        "kiln:observe".to_owned(),
+        "observe".to_owned(),
+        vec![caveat],
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let capabilities = CapabilitySet::new(vec![capability]).unwrap_or_else(|_| unreachable!());
+    let bounds = TokenTimeBounds::new(NOW.saturating_sub(10), NOW.saturating_add(3_600))
+        .unwrap_or_else(|_| unreachable!());
+    let token = issue_token_with_signer(
+        &root,
+        &audience,
+        &capabilities,
+        &ProofReferences::empty(),
+        bounds,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let target = "/v1/views/state-summary";
+    let header = ucan_header(&profile, token.as_str(), target, [13; 32]);
+    let replay = Mutex::new(ReplayState::new(300, 64));
+    assert_eq!(
+        ucan_verify(&profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+}
+
+// r[verify kiln.observe.http.ucan_profile.scenario.anchor]
+#[test]
+fn ucan_profile_rejects_unanchored_proof_token() {
+    let holder = ucan_holder();
+    let unanchored = ucan_token(
+        &holder,
+        &ucan_audience(&holder),
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let mut invalid = ucan_profile();
+    invalid.auth.proof_tokens = vec![unanchored];
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("invalid_ucan_anchor")
+    );
+}
+
+// r[verify kiln.observe.http.ucan_holder.scenario.root]
+#[test]
+fn ucan_rejects_self_issued_holder_token() {
+    let profile = ucan_profile();
+    let holder = ucan_holder();
+    let audience = ucan_audience(&holder);
+    let token = ucan_token(
+        &holder,
+        &audience,
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let target = "/v1/views/state-summary";
+    let header = ucan_header(&profile, &token, target, [12; 32]);
+    let replay = Mutex::new(ReplayState::new(300, 64));
+    assert_eq!(
+        ucan_verify(&profile, &header, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+}
+
+// r[verify kiln.observe.http.ucan_profile.scenario.drift]
+// r[verify kiln.observe.http.ucan_nonclaims]
+// r[verify kiln.observe.http.ucan_nonclaims.scenario.scope]
+#[test]
+fn ucan_profile_admission_rejects_drift_and_missing_nonclaims() {
+    let mut invalid = ucan_profile();
+    invalid.auth.kind = String::from("bearer");
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("unsupported_auth_kind")
+    );
+    let mut invalid = ucan_profile();
+    invalid.auth.issuer = ucan_audience(&ucan_holder()).as_str().to_string();
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("invalid_auth_principal")
+    );
+    let mut invalid = ucan_profile();
+    invalid.auth.operation_profile = String::from("kiln.observe.http.v2");
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("unsupported_operation_profile")
+    );
+    let mut invalid = ucan_profile();
+    invalid.auth.max_token_bytes = 0;
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("invalid_ucan_bounds")
+    );
+    let mut invalid = ucan_profile();
+    invalid.auth.holder_keys.clear();
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("invalid_holder_keys")
+    );
+    let mut invalid = ucan_profile();
+    invalid.auth.revoked_proof_references = vec![String::from("not-a-digest")];
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("invalid_revocation_reference")
+    );
+    let mut invalid = ucan_profile();
+    let _ = invalid.non_claims.pop();
+    assert_eq!(
+        invalid.admit().err().map(|error| error.code),
+        Some("missing_required_http_non_claim")
+    );
+}
+
+// r[verify kiln.observe.http.ucan_replay.scenario.bound]
+#[test]
+fn ucan_replay_cache_bound_denies_new_nonce() {
+    let profile = ucan_profile();
+    let root = ucan_root();
+    let holder = ucan_holder();
+    let token = ucan_token(
+        &root,
+        &ucan_audience(&holder),
+        "kiln:observe",
+        "observe",
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let target = "/v1/views/state-summary";
+    let first = ucan_header(&profile, &token, target, [10; 32]);
+    let second = ucan_header(&profile, &token, target, [11; 32]);
+    let replay = Mutex::new(ReplayState::new(300, 1));
+    ucan_verify(&profile, &first, target, 1, NOW, &replay).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        ucan_verify(&profile, &second, target, 1, NOW, &replay)
+            .err()
+            .map(|error| error.code),
+        Some("ucan_denied")
+    );
+}
+
 // r[verify kiln.observe.http.live.scenario.loss]
 #[test]
 fn live_buffer_drops_oldest_and_reports_loss() {
@@ -661,6 +1149,59 @@ fn server_serves_identity_bearing_view() {
     let view: ObservationView =
         serde_json::from_slice(response_body(&response)).unwrap_or_else(|_| unreachable!());
     assert!(matches!(view.body, ViewBody::StateSummary(_)));
+    server.stop();
+}
+
+// r[verify kiln.observe.http.ucan_holder.scenario.authorized]
+#[test]
+fn server_serves_ucan_holder_invocation() {
+    let mut profile = ucan_profile();
+    profile.tls.certificate_path = tls_path("chain.pem");
+    profile.tls.private_key_path = tls_path("key.pem");
+    profile.origin.host = String::from("localhost");
+    let source = Arc::new(MemoryObservationSource::new(snapshot()));
+    let live = Arc::new(LiveEventBuffer::new(4));
+    let mut server = start_server(profile.clone(), source, live);
+    let target = "/v1/views/state-summary";
+    let holder = ucan_holder();
+    let token = ucan_token(
+        &ucan_root(),
+        &ucan_audience(&holder),
+        &profile.auth.resource,
+        &profile.auth.ability,
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let authorization = ucan_header(&profile, &token, target, [21; 32]);
+    let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+    assert_eq!(status(&response), 200);
+    assert!(header_present(&response, b"X-Kiln-View-Identity"));
+    server.stop();
+}
+
+// r[verify kiln.observe.http.ucan_holder.scenario.root]
+#[test]
+fn server_rejects_unanchored_ucan_invocation() {
+    let mut profile = ucan_profile();
+    profile.tls.certificate_path = tls_path("chain.pem");
+    profile.tls.private_key_path = tls_path("key.pem");
+    profile.origin.host = String::from("localhost");
+    let source = Arc::new(MemoryObservationSource::new(snapshot()));
+    let live = Arc::new(LiveEventBuffer::new(4));
+    let mut server = start_server(profile.clone(), source, live);
+    let target = "/v1/views/state-summary";
+    let holder = ucan_holder();
+    let token = ucan_token(
+        &holder,
+        &ucan_audience(&holder),
+        &profile.auth.resource,
+        &profile.auth.ability,
+        &ProofReferences::empty(),
+        NOW,
+    );
+    let authorization = ucan_header(&profile, &token, target, [22; 32]);
+    let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+    assert_eq!(status(&response), 401);
     server.stop();
 }
 

@@ -1,0 +1,31 @@
+# Checked dependency-advisory policy for the locked UCAN workspace.
+#
+# Enforced by the `dependency-posture` Nix check against the committed
+# Cargo.lock. `cargo-deny check advisories -D warnings` treats any unpinned
+# applicable advisory as an error; an advisory is only accepted when it is
+# pinned here with an explicit non-exploitable rationale. The check never
+# resolves a fresh dependency set. See docs/dependency-posture.md for the
+# full audit record.
+
+[advisories]
+ignore = [
+  {
+    id = "RUSTSEC-2024-0436",
+    reason = "paste is unmaintained but dev-only via hegeltest; it has no runtime impact on this workspace.",
+  },
+  {
+    id = "RUSTSEC-2026-0190",
+    reason = "the anyhow downcast_mut unsoundness reaches only the vendored repo_index tooling module, which uses chain() and never calls downcast_mut.",
+  },
+]
+
+[licenses]
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "MPL-2.0",
+  "AGPL-3.0-or-later",
+  "0BSD",
+  "ISC",
+  "CC0-1.0",
+]

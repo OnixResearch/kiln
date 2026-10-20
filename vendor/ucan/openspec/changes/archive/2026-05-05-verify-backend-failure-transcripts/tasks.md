@@ -1,0 +1,6 @@
+- [x] Inspect backend call sites and current typed error propagation.
+- [x] Add verified backend transcript primitive and validate sibling verified-logic.
+- [x] Sync vendored verified-logic into UCAN and expose bridge helpers.
+- [x] Integrate transcript checks at live key resolver, proof store, and revocation call sites.
+- [x] Add tests/docs/guard coverage for fail-closed backend transcripts.
+- [x] Run full validation and archive this change.

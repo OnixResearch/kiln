@@ -1,0 +1,19 @@
+schema: ucan-aeneas-bounded-diagnostic/v1
+purpose: discriminate exact-item selection from source compilation and broad translation
+network: bubblewrap --unshare-net
+source: crates/ucan-core/src/token.rs
+source_blake3: 001764bbd4036024de07cb4565fe5044d17531d5e1dac51523efedadbecc0022
+charon_command: charon cargo --preset aeneas --start-from-pub --dest-file ucan-core-public.llbc -- -p ucan-core
+charon_outcome: passed
+llbc_blake3: 22887882f43b64f140880fd1cc7b32b5a99b855982d2230f0c06af5b8bbdde6c
+llbc_retained: false
+selected_items_observed:
+- ucan_core::token::{TimeBounds}::new
+- ucan_core::token::{TimeBounds}::not_before_seconds
+- ucan_core::token::{TimeBounds}::expires_at_seconds
+aeneas_command: aeneas -backend lean -emit-json -dest public-translation -no-progress-bar ucan-core-public.llbc
+aeneas_outcome: tool-failure
+aeneas_diagnostic_class: aeneas-translation-cfailure
+aeneas_diagnostic: Aeneas.Errors.CFailure raised while translating a broader public method signature
+classification: supplementary-probe-not-property-evidence
+note: the broad extraction is not an exact three-item selection and its Aeneas failure is not classified as a TimeBounds source-language limitation

@@ -1,0 +1,62 @@
+## Phase 1: Resolver/store model
+
+- [x] Preflight: from the repo root, verify `Cargo.lock` is tracked with `git ls-files --error-unmatch Cargo.lock`. [process-guardrail]
+- [x] Preflight: from the repo root, verify locked dependency metadata with `nix develop -c cargo metadata --manifest-path Cargo.toml --locked --format-version 1`. [process-guardrail]
+- [x] Preflight: from the repo root, reject SSH-only Cargo sources with `bash -lc 'grep -R "git+ssh\\|ssh://\\|git@" Cargo.toml crates/ucan-core/Cargo.toml Cargo.lock; status=$?; test $status -eq 1'`. [process-guardrail]
+- [x] Preflight: from the repo root, run the current delegation-chain tests with `nix develop -c cargo test --manifest-path Cargo.toml -p ucan -p ucan-core --all-targets`. [process-guardrail]
+- [x] Preflight: from the repo root, run `nix develop -c cargo run --manifest-path Cargo.toml --example issue_and_verify`. [process-guardrail]
+- [x] Preflight: from the repo root, run `nix develop -c cargo run --manifest-path Cargo.toml --example proof_chain`. [process-guardrail]
+- [x] Define synchronous shell-owned `KeyResolver` trait(s) in the `ucan` std shell, not `ucan-core`, without adding an async runtime dependency in this change. [covers=library.resolver-proof-store.key-resolver library.resolver-proof-store.fcis-boundary]
+- [x] Define structured key resolver errors, including missing-key errors that carry the issuer DID. [covers=library.resolver-proof-store.key-resolver.missing-issuer-key-is-structured]
+- [x] Define generic key-resolver backend-error mapping into public verification errors that preserve resolver origin, issuer DID context, and backend/source detail through a typed error field and/or `Error::source`. [covers=library.resolver-proof-store.key-resolver]
+- [x] Define synchronous shell-owned `ProofStore` trait(s) and proof-reference lookup types in the `ucan` std shell, not `ucan-core`, without adding an async runtime dependency in this change. [covers=library.resolver-proof-store.proof-store library.resolver-proof-store.fcis-boundary]
+- [x] Require proof lookups to return a serialized compact token string/bytes or another explicitly size-checkable pre-parse representation. [covers=library.resolver-proof-store.proof-store library.resolver-proof-store.verification-limits.serialized-token-size-limit]
+- [x] Define structured proof-store errors, including missing-proof errors. [covers=library.resolver-proof-store.proof-store.missing-proof-is-structured]
+- [x] Define generic proof-store backend-error mapping into public verification errors that preserve proof-store origin, proof-reference context, and backend/source detail through a typed error field and/or `Error::source`. [covers=library.resolver-proof-store.proof-store]
+- [x] Define `VerificationLimits` with visible defaults for proof depth, proof count, and serialized compact-token byte length applied to the input token and each resolved proof token before parsing. [covers=library.resolver-proof-store.verification-limits library.resolver-proof-store.verification-limits.serialized-token-size-limit library.resolver-proof-store.verification-limits.depth-limit-stops-recursion library.resolver-proof-store.verification-limits.proof-count-limit-stops-traversal]
+- [x] Define structured limit-exceeded error variants for depth, proof-count, and serialized-token-size failures. [covers=library.resolver-proof-store.verification-limits library.resolver-proof-store.verification-limits.depth-limit-stops-recursion library.resolver-proof-store.verification-limits.proof-count-limit-stops-traversal library.resolver-proof-store.verification-limits.serialized-token-size-limit]
+
+## Phase 2: Adapter and verifier integration
+
+- [x] Make existing in-memory key context implement or adapt to the key resolver trait. [covers=library.resolver-proof-store.key-resolver library.resolver-proof-store.key-resolver.in-memory-resolver-verifies-existing-tokens]
+- [x] Make existing proof collection implement or adapt to the proof store trait. [covers=library.resolver-proof-store.proof-store library.resolver-proof-store.proof-store.supplies-parent-by-reference]
+- [x] Provide backwards-compatible constructors or migration wrappers around existing key/proof collection inputs so current examples keep working during migration. [covers=library.resolver-proof-store.key-resolver.in-memory-resolver-verifies-existing-tokens library.resolver-proof-store.proof-store.supplies-parent-by-reference]
+- [x] Update `VerificationContext` or a verifier builder/public API to require caller-supplied `KeyResolver`, `ProofStore`, and `VerificationLimits`, and use those abstractions for issuer-key and proof-token lookup before parsing proofs. [covers=library.resolver-proof-store.key-resolver library.resolver-proof-store.proof-store library.resolver-proof-store.verification-limits]
+- [x] Accept the input token as a serialized compact token string/bytes so serialized-token-size limits can run before parsing the input token. [covers=library.resolver-proof-store.verification-limits.serialized-token-size-limit]
+- [x] Reject hidden global resolver/proof lookup state: verification MUST NOT use static, `OnceLock`, `lazy_static`, thread-local, environment, filesystem, network, or process-global fallback resolvers/stores. [covers=library.resolver-proof-store.fcis-boundary]
+- [x] Update proof traversal to resolve direct parent tokens from the proof store as references are encountered. [covers=library.resolver-proof-store.proof-store.supplies-parent-by-reference]
+- [x] Expose caller-supplied `VerificationLimits` through `VerificationContext` or a verifier builder so callers can configure depth, proof-count, and serialized-token-size limits. [covers=library.resolver-proof-store.verification-limits.depth-limit-stops-recursion library.resolver-proof-store.verification-limits.proof-count-limit-stops-traversal library.resolver-proof-store.verification-limits.serialized-token-size-limit]
+- [x] Thread verification limits through recursive traversal, enforce serialized token-size limits before parsing each input/proof token, and keep cycle detection active. [covers=library.resolver-proof-store.verification-limits.serialized-token-size-limit library.resolver-proof-store.verification-limits.depth-limit-stops-recursion library.resolver-proof-store.verification-limits.cycle-detection-with-proof-store]
+
+## Phase 3: Tests, examples, docs
+
+- [x] Add positive tests proving in-memory resolvers/stores preserve current verification behavior, including a child token that resolves a valid parent by proof reference through the new proof store path with valid linkage, time, and attenuation. [covers=library.resolver-proof-store.key-resolver.in-memory-resolver-verifies-existing-tokens library.resolver-proof-store.proof-store.supplies-parent-by-reference]
+- [x] Add missing-key and missing-proof negative tests, asserting missing issuer keys include the issuer DID and missing proof tokens return the structured missing-proof error. [covers=library.resolver-proof-store.key-resolver.missing-issuer-key-is-structured library.resolver-proof-store.proof-store.missing-proof-is-structured]
+- [x] Add generic resolver/store backend-error tests, asserting public errors preserve resolver-vs-store origin, issuer/proof-reference context, and backend/source detail through the documented typed field and/or `Error::source`. [covers=library.resolver-proof-store.key-resolver library.resolver-proof-store.proof-store]
+- [x] Add proof-cycle negative tests asserting the structured proof-chain error shape. [covers=library.resolver-proof-store.verification-limits.cycle-detection-with-proof-store]
+- [x] Add depth-limit negative tests asserting structured depth exhaustion. [covers=library.resolver-proof-store.verification-limits.depth-limit-stops-recursion]
+- [x] Add proof-count negative tests asserting structured proof-count exhaustion. [covers=library.resolver-proof-store.verification-limits.proof-count-limit-stops-traversal]
+- [x] Add serialized-token-size negative tests for input and resolved proof tokens, including oversized malformed tokens that must return the limit error before any parse error. [covers=library.resolver-proof-store.verification-limits.serialized-token-size-limit]
+- [x] Add an instrumented proof-store test for proof-count exhaustion that asserts no further proof lookups happen after the configured proof-count limit is reached. [covers=library.resolver-proof-store.verification-limits.proof-count-limit-stops-traversal]
+- [x] Add or extend `scripts/check-ucan-core-no-std.sh` so resolver/proof-store trait definitions, resolver/proof-store exports, storage, network, filesystem, clock, JSON, and compact-token codec dependencies fail the check if they enter `ucan-core`. [covers=library.resolver-proof-store.fcis-boundary.core-independent-of-resolvers]
+- [x] Add or extend `scripts/check-ucan-bridge.sh` with a deterministic source audit that rejects hidden global resolver/proof lookup state such as static resolver/store values, `OnceLock`, `lazy_static`, thread-local lookup, environment lookup, filesystem fallback, network fallback, or process-global default resolvers/stores. [covers=library.resolver-proof-store.fcis-boundary]
+- [x] Add `examples/proof_store.rs` showing a simple proof store map resolving parent tokens by reference. [covers=library.resolver-proof-store.consumer-onboarding.proof-store-example library.resolver-proof-store.proof-store.supplies-parent-by-reference]
+- [x] Update README/API docs to explain resolver/store injection and default limits. [covers=library.resolver-proof-store.consumer-onboarding]
+- [x] Add or use a deterministic dependency-source audit that inspects workspace manifests and `Cargo.lock` for SSH-only dependency sources including `git+ssh`, `ssh://`, and `git@` URLs. [process-guardrail]
+- [x] Confirm no async runtime dependency was added for resolver/store traits by checking `Cargo.toml`, `crates/ucan-core/Cargo.toml`, and `Cargo.lock` for deny-listed runtime crates such as `tokio`, `async-std`, and `smol`. [process-guardrail]
+- [x] Confirm no built-in HTTP, IPFS, or database fetchers or related shell dependencies were added in this change; resolver/store traits must remain injection points only. [process-guardrail]
+
+## Phase 4: Verification commands
+
+- [x] Run `openspec validate add-resolver-and-proof-store-traits --strict` from the repo root. [process-guardrail]
+- [x] Run `git ls-files --error-unmatch Cargo.lock` and `nix develop -c cargo metadata --manifest-path Cargo.toml --locked --format-version 1` from the repo root. [process-guardrail]
+- [x] Run `bash -lc 'grep -R "git+ssh\\|ssh://\\|git@" Cargo.toml crates/ucan-core/Cargo.toml Cargo.lock; status=$?; test $status -eq 1'` from the repo root. [process-guardrail]
+- [x] Run `bash -lc 'grep -R "tokio\\|async-std\\|smol" Cargo.toml crates/ucan-core/Cargo.toml Cargo.lock; status=$?; test $status -eq 1'` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c cargo test --manifest-path Cargo.toml -p ucan -p ucan-core --all-targets` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c cargo run --manifest-path Cargo.toml --example issue_and_verify` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c cargo run --manifest-path Cargo.toml --example proof_chain` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c cargo run --manifest-path Cargo.toml --example proof_store` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c cargo fmt --manifest-path Cargo.toml -p ucan -p ucan-core --check` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c cargo clippy --manifest-path Cargo.toml -p ucan -p ucan-core --all-targets --no-deps -- -D warnings -A clippy::cargo-common-metadata` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c ./scripts/check-ucan-core-no-std.sh` from the repo root. [process-guardrail]
+- [x] Run `nix develop -c ./scripts/check-ucan-bridge.sh` from the repo root. [process-guardrail]

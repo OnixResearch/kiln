@@ -1,0 +1,5 @@
+schema: spec-driven
+created_at: "2026-05-06T20:33:53Z"
+status: proposed
+owner: hermes-agent
+summary: Specify verified mirrors for no_std ucan-core structural validators.
