@@ -42,7 +42,7 @@ r[kiln.nix_build.request.scenario.mismatch]
 
 ### Requirement: Local rooted execution
 
-r[kiln.nix_build.execution] The adapter MUST execute the exact derivation through `nix-store --add-root … --indirect --realise` with a cleared environment, fixed `HOME` and `NIX_CONFIG`, no remote builders or substituters, null stdin, bounded stdout/stderr, a deadline, process-group teardown, and optional cancellation.
+r[kiln.nix_build.execution] The adapter MUST execute the exact derivation through `nix-store --add-root … --indirect --realise` with a cleared environment, fixed `HOME`, `NIX_CONF_DIR`, and `NIX_CONFIG`, no remote builders or substituters, the Nix sandbox enabled, null stdin, bounded stdout/stderr, a deadline, process-group teardown, and optional cancellation.
 
 #### Scenario: Exact invocation
 
@@ -138,6 +138,38 @@ r[kiln.nix_build.reconciliation.scenario.conflict]
 - GIVEN a recorded effect
 - WHEN a changed plan or request is dispatched, reconciled, or restored
 - THEN it MUST fail without rewriting the record
+
+### Requirement: Bounded local-input preflight
+
+r[kiln.nix_build.preflight] The shell MUST run a bounded `nix-store --realise --dry-run` preflight of the exact derivation before the rooted build and MUST fail without starting effects when the preflight fails, times out, is cancelled, or exceeds its output bound.
+
+#### Scenario: Preflight succeeds
+
+r[kiln.nix_build.preflight.scenario.success]
+- GIVEN a mapped or explicitly bound derivation with local inputs
+- WHEN the preflight runs
+- THEN it MUST succeed without creating output roots
+- AND the subsequent build MUST proceed
+
+#### Scenario: Preflight fails
+
+r[kiln.nix_build.preflight.scenario.failure]
+- GIVEN a derivation whose local inputs are unavailable or whose preflight is rejected
+- WHEN the preflight runs
+- THEN it MUST return a failure before the rooted build
+- AND no build output or observation MUST be admitted
+
+### Requirement: Durable build state
+
+r[kiln.nix_build.state] The operator shell MUST persist an intent before dispatch and a terminal observation after dispatch, MUST restore an exact observation without rebuilding, and MUST make root release idempotent and explicit in that durable state.
+
+#### Scenario: State round trip
+
+r[kiln.nix_build.state.scenario.round_trip]
+- GIVEN a bound or task-derived profile and plan
+- WHEN the state is stored and loaded
+- THEN the profile source, plan, observation, and release state MUST round-trip
+- AND a task-derived state MUST rehydrate to the same exact profile and plan
 
 ### Requirement: Discovery-task composition
 

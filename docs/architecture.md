@@ -21,7 +21,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-cairn` | Exact Cairn gate lowering, bounded execution, result admission, and reconciliation. |
 | `kiln-adapter-mantle` | Exact Mantle build lowering, bounded execution, product admission, logs, and reconciliation. |
 | `kiln-adapter-nix` | Exact local Nix derivation execution, native realisation admission, rooted products, bounded logs, and reconciliation. |
-| `kiln-nix-build` | Discovery-task to exact Nix profile/plan mapping, operator CLI, and output GC-root lifecycle. |
+| `kiln-nix-build` | Discovery-task to exact Nix profile/plan mapping, durable build state, operator CLI, and output GC-root lifecycle. |
 | `kiln-adapter-nix-eval` | Exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Exact local signed-source acquisition, trigger compatibility, bounded ci-job status publication, and declared single-writer patch reviews. |

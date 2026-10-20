@@ -117,6 +117,58 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
             .cleanup_gc_root_directory(&gc_root, self.profile.limits.max_gc_roots)
     }
 
+    // r[impl kiln.nix_build.execution] r[impl kiln.nix_build.preflight]
+    pub fn preflight(&mut self) -> PortResult<()> {
+        let invocation = preflight_invocation(&self.profile);
+        match self.runtime.run(&invocation)? {
+            NixBuildProcessOutput::Exited {
+                process_status: Some(0),
+                ..
+            } => Ok(()),
+            NixBuildProcessOutput::Exited {
+                process_status: Some(_),
+                stderr,
+                ..
+            } => Err(domain(
+                "nix_preflight_failed",
+                "nix.preflight",
+                &format!(
+                    "Nix local-input preflight failed: {}",
+                    String::from_utf8_lossy(&stderr)
+                ),
+            )),
+            NixBuildProcessOutput::Exited {
+                process_status: None,
+                ..
+            } => Err(domain(
+                "nix_preflight_signalled",
+                "nix.preflight",
+                "Nix local-input preflight ended without a process status",
+            )),
+            NixBuildProcessOutput::TimedOut { .. } => {
+                Err(PortFailure::TimedOut(InfrastructureFailure {
+                    code: "nix_preflight_timeout".to_string(),
+                    message: "Nix local-input preflight timed out".to_string(),
+                }))
+            }
+            NixBuildProcessOutput::Cancelled { .. } => {
+                Err(PortFailure::Cancelled(InfrastructureFailure {
+                    code: "nix_preflight_cancelled".to_string(),
+                    message: "Nix local-input preflight was cancelled".to_string(),
+                }))
+            }
+            NixBuildProcessOutput::OutputLimitExceeded { .. } => Err(domain(
+                "nix_preflight_output",
+                "nix.preflight",
+                "Nix local-input preflight exceeded its output bound",
+            )),
+            NixBuildProcessOutput::Unknown => Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "nix_preflight_unknown".to_string(),
+                message: "Nix local-input preflight outcome is ambiguous".to_string(),
+            })),
+        }
+    }
+
     fn dispatch_inner(
         &mut self,
         plan: &BuildEffectPlan,
@@ -469,6 +521,40 @@ fn verify_runtime<R: NixBuildRuntime>(profile: &NixBuildProfile, runtime: &R) ->
     Ok(())
 }
 
+fn preflight_invocation(profile: &NixBuildProfile) -> ProcessInvocation {
+    ProcessInvocation {
+        program: profile.runtime.nix_store_executable_path.clone(),
+        args: vec![
+            OsString::from("--realise"),
+            OsString::from("--dry-run"),
+            profile.runtime.derivation_path.clone().into_os_string(),
+        ],
+        current_dir: profile.runtime.home_base.clone(),
+        environment: vec![
+            (
+                OsString::from("HOME"),
+                profile.runtime.home_base.clone().into_os_string(),
+            ),
+            (
+                OsString::from("NIX_CONF_DIR"),
+                profile.runtime.home_base.clone().into_os_string(),
+            ),
+            (
+                OsString::from("NIX_CONFIG"),
+                OsString::from(PINNED_NIX_CONFIG),
+            ),
+        ],
+        limits: ExecutionLimits {
+            timeout_ms: profile.limits.timeout_milliseconds,
+            stdin_max_bytes: profile.limits.stdin_max_bytes,
+            stdout_max_bytes: profile.limits.max_result_bytes,
+            stderr_max_bytes: profile.limits.max_stderr_bytes,
+            poll_interval_ms: profile.limits.poll_interval_milliseconds,
+            teardown_timeout_ms: profile.limits.teardown_timeout_milliseconds,
+        },
+    }
+}
+
 fn invocation(profile: &NixBuildProfile, gc_root: &std::path::Path) -> ProcessInvocation {
     ProcessInvocation {
         program: profile.runtime.nix_store_executable_path.clone(),
@@ -483,6 +569,10 @@ fn invocation(profile: &NixBuildProfile, gc_root: &std::path::Path) -> ProcessIn
         environment: vec![
             (
                 OsString::from("HOME"),
+                profile.runtime.home_base.clone().into_os_string(),
+            ),
+            (
+                OsString::from("NIX_CONF_DIR"),
                 profile.runtime.home_base.clone().into_os_string(),
             ),
             (

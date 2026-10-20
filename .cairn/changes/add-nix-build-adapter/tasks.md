@@ -26,6 +26,14 @@
 - [x] [serial] Add real local adapter and composition tests behind `nix-live` and a host live-build script. r[kiln.nix_build.execution] r[kiln.nix_build.composition]
 - [x] [serial] Update the typed Nickel profile, documentation, workspace members, conformance boundaries, and Nix checks. r[kiln.nix_build.cohort] r[kiln.nix_build.composition]
 
+## Phase 4b: State, preflight, and host policy
+
+- [x] [serial] Add a bounded local-input preflight and a failure path before rooted execution. r[kiln.nix_build.preflight]
+- [x] [serial] Add durable bound/task state with store/load/rehydrate, observe, reconcile, and idempotent release. r[kiln.nix_build.state]
+- [x] [serial] Pin the sandbox, `NIX_CONF_DIR`, and no-experimental-features Nix policy. r[kiln.nix_build.execution]
+- [x] [serial] Add real timeout, cancellation, and multi-output live cases. r[kiln.nix_build.execution] r[kiln.nix_build.completion]
+- [x] [serial] Add a real `NixEvalAdapter` discovery-to-build live E2E and extend the host rail. r[kiln.nix_build.composition]
+
 ## Phase 5: Verification
 
 - [x] [serial] Run both fixture suites, both live suites, strict Clippy, formatting, Nickel checks, and the Nix checks. r[kiln.nix_build.execution] r[kiln.nix_build.completion]

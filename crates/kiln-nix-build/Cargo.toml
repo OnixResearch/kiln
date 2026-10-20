@@ -17,6 +17,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
+kiln-adapter-nix-eval = { path = "../kiln-adapter-nix-eval" }
 tempfile = "3.27.0"
 
 [lints]

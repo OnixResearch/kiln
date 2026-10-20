@@ -43,11 +43,13 @@ binding, sorts product names, and rejects drift before hashing or execution.
 ## Execution and retention
 
 The invocation uses the pinned `nix-store` executable with a cleared
-environment containing only `HOME` and a fixed `NIX_CONFIG`. The configuration
-disables flake configuration, the flake registry, substituters, and remote
-builders. Inputs must already be in the local store. The process receives null
-stdin, bounded stdout and stderr, a deadline, process-group teardown, and
-optional cancellation.
+environment containing only `HOME`, a fixed `NIX_CONF_DIR`, and a fixed
+`NIX_CONFIG`. The configuration enables the sandbox and disables substituters,
+remote builders, and experimental features. Inputs must already be in the local
+store. A bounded `nix-store --realise --dry-run` preflight runs before the
+rooted build, and a preflight failure returns before any effect. The build
+process receives null stdin, bounded stdout and stderr, a deadline,
+process-group teardown, and optional cancellation.
 
 The adapter prepares a private effect-specific directory under `gc_root_base`
 and asks `nix-store` to create indirect roots there. Every output is retained
@@ -79,16 +81,21 @@ claim its old log bytes or roots.
 ## Operator surface
 
 `kiln-nix-build` loads a Nickel-exported profile wrapper or flat profile JSON.
-`doctor` admits a fully bound profile without a build. `build` dispatches an
-explicit plan. `from-task` consumes a discovery task and intent, hashes the task
-derivation, builds, optionally writes the bounded log, and optionally releases
-roots. The CLI does not infer CI authority; it is a shell over the same pure
-mapping and adapter.
+`doctor` admits a fully bound profile and runs the preflight. `build` dispatches
+an explicit plan. `from-task` consumes a discovery task and intent, hashes the
+task derivation, builds, optionally writes the bounded log, and optionally
+releases roots. With `--state`, the shell writes an intent before dispatch,
+records the terminal observation, restores it without rebuilding, and exposes
+observe, reconcile, and idempotent release. The real live test uses a pinned
+`NixEvalAdapter` discovery of the fixture flake as the task source. The CLI does
+not infer CI authority; it is a shell over the same pure mapping and adapter.
 
 ## Non-claims
 
-The adapter proves only exact cohort, request, process, native-realisation,
-output, receipt, log, retention, composition, and reconciliation admission. It
-does not prove build correctness, sandbox completeness, derivation provenance
-or source trust, output content semantics, cache truth, reproducibility, or
-release readiness.
+The adapter deliberately uses the content-addressed store path as the bounded
+product identity; it does not query a separate NAR hash. The adapter proves
+only exact cohort, request, preflight, process, native-realisation, output,
+receipt, log, retention, composition, durable-state, and reconciliation
+admission. It does not prove build correctness, sandbox completeness,
+derivation provenance or source trust, output content semantics, cache truth,
+reproducibility, or release readiness.

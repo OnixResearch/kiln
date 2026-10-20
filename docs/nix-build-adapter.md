@@ -43,11 +43,16 @@ nix-store --add-root /var/lib/kiln/nix-build-roots/…/root --indirect \
   --realise /nix/store/…-name.drv
 ```
 
-Bounded Exec runs it with a cleared environment, a fixed `HOME`, null stdin, a
-timeout, bounded stdout/stderr, and process-group teardown. `NIX_CONFIG`
-disables flake configuration, the flake registry, substituters, and remote
-builders. The derivation and all of its inputs therefore must already be
-available in the local store. The command creates a GC root for every realised
+Bounded Exec runs it with a cleared environment, a fixed `HOME` and
+`NIX_CONF_DIR`, null stdin, a timeout, bounded stdout/stderr, and process-group
+teardown. `NIX_CONFIG` disables substituters and remote builders, enables the
+Nix sandbox, and leaves experimental features unset. The derivation and all of
+its inputs therefore must already be available in the local store.
+
+Before the rooted build, the shell runs a bounded
+`nix-store --realise --dry-run <drv>` preflight with the same environment. A
+failed, timed-out, cancelled, or oversized preflight returns before any rooted
+effect. The command creates a GC root for every realised
 output under the effect-specific private root directory, so a successful
 product cannot be collected before the shell releases it. This is intentional:
 the adapter does not claim network acquisition, substitution, remote execution,
@@ -70,7 +75,9 @@ A zero exit is a successful build only when the native realisation contains
 exactly one root per expected output, every root is inside the effect-specific
 GC-root directory, and every root target equals the exact expected store path
 bound in the profile. Each product binds a Kiln BLAKE3 artifact identity over
-the output name and path and a separate store-object identity over the path. The observation also records
+the output name and path and a separate store-object identity over the path.
+The adapter deliberately uses the content-addressed store path as the bounded
+product identity; it does not query a separate NAR hash. The observation also records
 the executable identity as the builder identity, the profile worker and store
 identities, a native receipt, and one bounded stderr log identity.
 
@@ -114,9 +121,30 @@ kiln-nix-build from-task --profile base.json --task task.json \
 `from-task` is the discovery-to-build composition and accepts the Nickel base
 profile because the task supplies the exact derivation and output paths.
 `build` and `doctor` require a fully bound profile whose derivation identity
-and expected outputs are already concrete. `--release` removes the output
-GC roots after the observation is printed; omit it when a downstream durable
-handoff still needs the products.
+and expected outputs are already concrete. Both dispatch paths run the bounded
+preflight. `--release` removes the output GC roots after the observation is
+printed; omit it when a downstream durable handoff still needs the products.
+
+### Durable state
+
+Add `--state STATE.json` to `from-task` or `build` to persist an intent before
+dispatch and the terminal observation after dispatch. On restart:
+
+```console
+kiln-nix-build observe --state state.json
+kiln-nix-build reconcile --state state.json
+kiln-nix-build release --state state.json
+```
+
+The state stores the exact profile source, plan, observation, and release
+state. An existing observation is restored without rebuilding. A state without
+an observation is an interrupted intent and is refused rather than silently
+rebuilt. `release` is idempotent and updates the state.
+
+A task-derived state rehydrates by hashing the task derivation. Keep the
+discovery adapter's derivation GC roots until the terminal observation is
+stored, then release them. The build adapter roots realized outputs, not the
+derivation itself; the state does not add a derivation root.
 
 ## Verification
 
@@ -134,13 +162,26 @@ and checks its rooted output:
 tests/nix-build-live.sh
 ```
 
-The host rail runs both `--features nix-live` suites; it requires a writable
-local Nix store and the pinned executable.
+The host rail first realizes the pinned `nix-eval-jobs` cohort and adds the
+fixture flake as an immutable store source, then runs both `--features
+nix-live` suites, including real discovery → build, timeout, cancellation, and
+multi-output cases. It requires a writable local Nix store and the pinned
+executables. It is the CI-worker entrypoint; the Nix sandbox runs only the
+fixture and cohort checks.
 
 The Nix checks `nix-build-adapter-fixtures` and `nix-build-adapter-cohort` run
 the fixture-only tests and verify the repo-pinned Nix executable inside the Nix
 sandbox. A real build is deliberately outside that sandbox because the sandbox
 cannot write a nested Nix store; `tests/nix-build-live.sh` is the host rail.
+
+### Cohort refresh
+
+When the root nixpkgs lock changes, run
+`nix build path:$PWD#checks.x86_64-linux.nix-build-adapter-cohort -L`. The
+check fails if the pinned `nix`/`nix-store` paths, Nix version, or BLAKE3 no
+longer match `pkgs.nix`. Refresh the Rust constants, the Nickel profile, the
+documentation, and the evidence together; never update only one surface. The
+cohort check is the guard, and the live rail must be rerun after the refresh.
 
 ## Non-claims
 

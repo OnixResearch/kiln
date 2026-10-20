@@ -103,6 +103,7 @@ pub fn build_task<R: NixBuildRuntime>(
     let profile = profile_for_task(base, task, intent, derivation_identity)?;
     let plan = plan_for_task(base, task, intent)?;
     let mut adapter = NixBuildAdapter::new(profile, runtime)?;
+    adapter.preflight()?;
     let observation = adapter.dispatch(&plan)?;
     Ok((adapter, plan, observation))
 }

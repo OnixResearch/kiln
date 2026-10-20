@@ -31,7 +31,7 @@ pub const PINNED_NIX_STORE_EXECUTABLE_PATH: &str =
 pub const PINNED_NIX_STORE_EXECUTABLE_BLAKE3: &str =
     "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852";
 pub const PINNED_NIX_CONFIG: &str =
-    "accept-flake-config = false\nflake-registry =\nsubstituters =\nbuilders =\n";
+    "substituters =\nbuilders =\nsandbox = true\nexperimental-features =\n";
 pub const PINNED_BOUNDED_EXEC_SOURCE: &str =
     "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git";
 pub const PINNED_BOUNDED_EXEC_REVISION: &str = "29dac88ecded94457572db3fdfaaaab95fa91525";
@@ -80,7 +80,7 @@ pub struct NixRuntimeBinding {
     pub expected_outputs: Vec<NixOutputBinding>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NixBuildProfileConfig {
     pub nixpkgs_revision: String,

@@ -2960,6 +2960,7 @@ name = "kiln-nix-build"
 version = "0.1.0"
 dependencies = [
  "kiln-adapter-nix",
+ "kiln-adapter-nix-eval",
  "kiln-core",
  "kiln-provider-api",
  "serde",

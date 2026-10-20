@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use kiln_core::domain::Outcome;
 use kiln_core::provider::{
@@ -193,9 +193,9 @@ pub fn admit_profile(profile: &NixEvalProfile) -> PortResult<()> {
             "Nix evaluation profile differs from the pinned producer cohort",
         ));
     }
-    if profile.runtime.executable_path != PathBuf::from(PINNED_EXECUTABLE_PATH)
+    if profile.runtime.executable_path != Path::new(PINNED_EXECUTABLE_PATH)
         || profile.runtime.executable_identity.as_str() != PINNED_EXECUTABLE_BLAKE3
-        || profile.runtime.cohort_manifest_path != PathBuf::from(PINNED_COHORT_MANIFEST_PATH)
+        || profile.runtime.cohort_manifest_path != Path::new(PINNED_COHORT_MANIFEST_PATH)
         || profile.runtime.cohort_manifest_identity.as_str() != PINNED_COHORT_MANIFEST_BLAKE3
         || profile.policy != pinned_policy()
         || profile.required_non_claims

@@ -1,92 +1,21 @@
+mod support;
+
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 #[cfg(feature = "nix-live")]
 use kiln_adapter_nix::BoundedNixBuildRuntime;
 use kiln_adapter_nix::{
-    NixBuildProcessOutput, NixBuildProfile, NixBuildRuntime, NixOutputBinding, ProcessInvocation,
-    gc_root_directory,
+    NixBuildProcessOutput, NixBuildRuntime, ProcessInvocation, gc_root_directory,
 };
 use kiln_core::discovery::{CacheAdvisory, DiscoveredOutput, TaskProposal};
-use kiln_core::types::{
-    Alias, AttemptId, CandidateId, ContentId, EffectId, ExternalRef, PipelineRevisionId,
-    ProviderProfileId, TaskId,
-};
-use kiln_nix_build::{NixBuildIntent, build_task, plan_for_task, profile_for_task};
+use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId, TaskId};
+use kiln_nix_build::{NixBuildState, build_task, plan_for_task, profile_for_task};
 use kiln_provider_api::PortResult;
+use support::{alias, base, content, intent};
 
-const IDENTITY_HEX_BYTES: usize = 64;
-const STORE_PATH: &str = "/nix/store";
-const BASE_DRV: &str = "/nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-base.drv";
 const TASK_DRV: &str = "/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-task.drv";
 const OUT_PATH: &str = "/nix/store/cccccccccccccccccccccccccccccccc-task";
-const BASE_OUT: &str = "/nix/store/dddddddddddddddddddddddddddddddd-base";
-const GC_ROOT_BASE: &str = "/tmp/kiln-nix-composition-roots";
-const HOME_PATH: &str = "/tmp/kiln-nix-composition-home";
-
-fn content(character: char) -> ContentId {
-    ContentId::from_blake3_hex(character.to_string().repeat(IDENTITY_HEX_BYTES))
-        .unwrap_or_else(|_| unreachable!())
-}
-
-fn alias(value: &str) -> Alias {
-    Alias::new(value).unwrap_or_else(|_| unreachable!())
-}
-
-fn limits() -> kiln_adapter_nix::NixBuildLimits {
-    kiln_adapter_nix::NixBuildLimits {
-        max_required_products: 8,
-        max_products: 8,
-        max_logs: 1,
-        max_gc_roots: 16,
-        max_request_bytes: 1_048_576,
-        max_result_bytes: 1_048_576,
-        max_stderr_bytes: 65_536,
-        max_log_bytes: 65_536,
-        max_executable_bytes: 268_435_456,
-        max_derivation_bytes: 1_048_576,
-        max_in_flight: 4,
-        stdin_max_bytes: 1,
-        timeout_milliseconds: 30_000,
-        poll_interval_milliseconds: 5,
-        teardown_timeout_milliseconds: 1_000,
-    }
-}
-
-fn base() -> NixBuildProfile {
-    NixBuildProfile::pinned(
-        ProviderProfileId::new("nix-build-v1").unwrap_or_else(|_| unreachable!()),
-        kiln_adapter_nix::NixRuntimeBinding {
-            executable_path: PathBuf::from(kiln_adapter_nix::PINNED_NIX_EXECUTABLE_PATH),
-            executable_identity: ContentId::from_blake3_hex(
-                kiln_adapter_nix::PINNED_NIX_EXECUTABLE_BLAKE3,
-            )
-            .unwrap_or_else(|_| unreachable!()),
-            nix_store_executable_path: PathBuf::from(
-                kiln_adapter_nix::PINNED_NIX_STORE_EXECUTABLE_PATH,
-            ),
-            nix_store_executable_identity: ContentId::from_blake3_hex(
-                kiln_adapter_nix::PINNED_NIX_STORE_EXECUTABLE_BLAKE3,
-            )
-            .unwrap_or_else(|_| unreachable!()),
-            derivation_path: PathBuf::from(BASE_DRV),
-            derivation_identity: content('2'),
-            plan_identity: content('3'),
-            policy_identity: content('4'),
-            store_path: PathBuf::from(STORE_PATH),
-            gc_root_base: PathBuf::from(GC_ROOT_BASE),
-            home_base: PathBuf::from(HOME_PATH),
-            worker_identity: content('5'),
-            store_identity: content('6'),
-            expected_outputs: vec![NixOutputBinding {
-                name: alias("out"),
-                path: PathBuf::from(BASE_OUT),
-            }],
-        },
-        limits(),
-    )
-    .unwrap_or_else(|_| unreachable!())
-}
 
 fn task() -> TaskProposal {
     TaskProposal {
@@ -107,17 +36,31 @@ fn task() -> TaskProposal {
     }
 }
 
-fn intent() -> NixBuildIntent {
-    NixBuildIntent {
-        effect_id: EffectId::new("build-effect-a").unwrap_or_else(|_| unreachable!()),
-        attempt_id: AttemptId::new("attempt-a").unwrap_or_else(|_| unreachable!()),
-        idempotency_key: content('1'),
-        candidate_id: CandidateId::new("candidate-a").unwrap_or_else(|_| unreachable!()),
-        pipeline_revision: PipelineRevisionId::new("pipeline-a").unwrap_or_else(|_| unreachable!()),
-        plan_identity: content('3'),
-        policy_identity: content('4'),
-        platform: alias("x86_64-linux"),
-    }
+// r[verify kiln.nix_build.preflight] r[verify kiln.nix_build.preflight.scenario.failure]
+#[test]
+fn preflight_failure_stops_before_build() {
+    let mut runtime = FakeRuntime::new();
+    runtime.preflight_fails = true;
+    assert!(build_task(&base(), &task(), &intent(), runtime).is_err());
+}
+
+// r[verify kiln.nix_build.state] r[verify kiln.nix_build.state.scenario.round_trip]
+#[test]
+fn durable_state_round_trips_bound_profile() {
+    let plan = plan_for_task(&base(), &task(), &intent()).unwrap_or_else(|_| unreachable!());
+    let state = NixBuildState::new_bound(support::config(), plan.clone());
+    let temp = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = temp.path().join("state.json");
+    state.store(&path).unwrap_or_else(|_| unreachable!());
+    let loaded = NixBuildState::load(&path).unwrap_or_else(|_| unreachable!());
+    assert_eq!(loaded.plan, plan);
+    assert!(loaded.observation.is_none());
+    let (profile, restored_plan) = loaded.rehydrate().unwrap_or_else(|_| unreachable!());
+    assert_eq!(restored_plan, plan);
+    assert_eq!(
+        profile.runtime.expected_outputs,
+        base().runtime.expected_outputs
+    );
 }
 
 // r[verify kiln.nix_build.composition] r[verify kiln.nix_build.composition.scenario.mapping]
@@ -170,6 +113,7 @@ fn task_drift_is_rejected() {
 #[derive(Debug)]
 struct FakeRuntime {
     derivation_identity: ContentId,
+    preflight_fails: bool,
     run_count: usize,
     cleaned: Vec<PathBuf>,
 }
@@ -178,6 +122,7 @@ impl FakeRuntime {
     fn new() -> Self {
         Self {
             derivation_identity: content('8'),
+            preflight_fails: false,
             run_count: 0,
             cleaned: Vec::new(),
         }
@@ -213,6 +158,17 @@ impl NixBuildRuntime for FakeRuntime {
 
     fn run(&mut self, invocation: &ProcessInvocation) -> PortResult<NixBuildProcessOutput> {
         self.run_count = self.run_count.saturating_add(1);
+        if invocation
+            .args
+            .iter()
+            .any(|value| value.to_str() == Some("--dry-run"))
+        {
+            return Ok(NixBuildProcessOutput::Exited {
+                process_status: Some(if self.preflight_fails { 1 } else { 0 }),
+                stdout: Vec::new(),
+                stderr: b"preflight fixture".to_vec(),
+            });
+        }
         let root = invocation
             .args
             .windows(2)
@@ -239,6 +195,7 @@ impl NixBuildRuntime for FakeRuntime {
 }
 
 // r[verify kiln.nix_build.composition] r[verify kiln.nix_build.retention]
+// r[verify kiln.nix_build.preflight] r[verify kiln.nix_build.preflight.scenario.success]
 // r[verify kiln.nix_build.composition.scenario.build] r[verify kiln.nix_build.retention.scenario.release]
 #[test]
 fn task_build_is_admitted_and_rooted() {
@@ -250,7 +207,7 @@ fn task_build_is_admitted_and_rooted() {
         kiln_core::build::BuildEvaluationOutcome::Success
     );
     assert_eq!(observation.products.len(), 1);
-    assert_eq!(adapter.runtime().run_count, 1);
+    assert_eq!(adapter.runtime().run_count, 2);
     adapter
         .release_output_roots(&plan.effect_id)
         .unwrap_or_else(|_| unreachable!());

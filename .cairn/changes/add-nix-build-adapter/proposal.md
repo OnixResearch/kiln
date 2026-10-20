@@ -28,7 +28,10 @@ shell:
 6. make duplicate dispatch, conflict rejection, observe, reconcile,
    observation-only restore, and explicit root release explicit; and
 7. map a discovery `TaskProposal` to the exact profile and build plan, with
-   `doctor`, `build`, and `from-task` operator modes.
+   `doctor`, `build`, and `from-task` operator modes;
+8. run a bounded local-input preflight before rooted execution; and
+9. persist an intent and terminal observation so restart observe, reconcile,
+   and release are explicit and do not rebuild.
 
 The first slice supports one exact local derivation with local store inputs.
 It does not evaluate flakes, use registries, substitute outputs, or use remote
@@ -48,7 +51,12 @@ builders.
 - Every non-unknown observation has a bounded receipt, and logs are bounded,
   identity-bound, and unavailable after an observation-only restore.
 - A discovery-shaped task maps to the exact profile and plan, builds through
-  the real pinned Nix store, and releases its roots.
+  the real pinned Nix store, and releases its roots; a real `NixEvalAdapter`
+  discovery feeds the composition.
+- Real timeout, cancellation, and multi-output cases are terminal and rooted.
+- A bounded preflight rejects unavailable local inputs before rooted execution.
+- Durable state restores an exact observation without rebuilding and makes
+  release idempotent.
 - Fixture tests, live tests, the repo-pinned cohort check, and the
   fixture-only Nix check pass.
 

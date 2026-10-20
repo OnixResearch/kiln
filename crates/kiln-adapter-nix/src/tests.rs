@@ -1,6 +1,12 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::path::{Path, PathBuf};
+#[cfg(feature = "nix-live")]
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+#[cfg(feature = "nix-live")]
+use std::thread;
+#[cfg(feature = "nix-live")]
+use std::time::Duration;
 
 use kiln_core::build::{
     BuildEffectPlan, BuildEvaluationOutcome, BuildLogReadRequest, admit_build_evaluation,
@@ -297,6 +303,13 @@ fn flat_profile_config_is_admitted() {
         built.runtime.expected_outputs,
         profile.runtime.expected_outputs
     );
+}
+
+#[cfg(feature = "nix-live")]
+fn plan_with_products(products: &[&str]) -> BuildEffectPlan {
+    let mut plan = plan();
+    plan.required_products = products.iter().map(|name| alias(name)).collect();
+    plan
 }
 
 // r[verify kiln.nix_build.cohort] r[verify kiln.nix_build.nonclaims]
@@ -754,6 +767,201 @@ fn live_nix_build_is_admitted() {
     assert_eq!(observation.products.len(), 1);
     let content = std::fs::read_to_string(&expected_path).unwrap_or_else(|_| unreachable!());
     assert_eq!(content, "live\n");
+    let gc_root = gc_root_directory(adapter.profile_binding(), &plan.effect_id)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(gc_root.exists());
+    adapter
+        .release_output_roots(&plan.effect_id)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(!gc_root.exists());
+}
+
+#[cfg(feature = "nix-live")]
+fn live_derivation(
+    expression: &str,
+    names: &[&str],
+    home: &Path,
+) -> (String, ContentId, Vec<NixOutputBinding>) {
+    let derivation_expression = format!("({expression}).drvPath");
+    let evaluation = std::process::Command::new(PINNED_NIX_EXECUTABLE_PATH)
+        .args([
+            "--extra-experimental-features",
+            "nix-command",
+            "eval",
+            "--raw",
+            "--expr",
+            &derivation_expression,
+        ])
+        .env_clear()
+        .env("HOME", home)
+        .env("NIX_CONFIG", PINNED_NIX_CONFIG)
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(evaluation.status.success());
+    let derivation_path = String::from_utf8(evaluation.stdout)
+        .unwrap_or_else(|_| unreachable!())
+        .trim()
+        .to_string();
+    let derivation_bytes = std::fs::read(&derivation_path).unwrap_or_else(|_| unreachable!());
+    let derivation_identity =
+        ContentId::from_blake3_hex(blake3::hash(&derivation_bytes).to_hex().to_string())
+            .unwrap_or_else(|_| unreachable!());
+    let query = std::process::Command::new(PINNED_NIX_STORE_EXECUTABLE_PATH)
+        .args(["-q", "--outputs", &derivation_path])
+        .env_clear()
+        .env("HOME", home)
+        .env("NIX_CONFIG", PINNED_NIX_CONFIG)
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(query.status.success());
+    let paths = String::from_utf8(query.stdout)
+        .unwrap_or_else(|_| unreachable!())
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    assert_eq!(paths.len(), names.len());
+    let mut outputs = names
+        .iter()
+        .zip(paths)
+        .map(|(name, path)| output(name, &path))
+        .collect::<Vec<_>>();
+    outputs.sort_by(|left, right| left.name.cmp(&right.name));
+    (derivation_path, derivation_identity, outputs)
+}
+
+#[cfg(feature = "nix-live")]
+fn live_profile(
+    temp: &tempfile::TempDir,
+    home: &Path,
+    derivation_path: String,
+    derivation_identity: ContentId,
+    expected_outputs: Vec<NixOutputBinding>,
+    timeout_milliseconds: u64,
+) -> NixBuildProfile {
+    let mut profile = profile();
+    profile.runtime.derivation_path = PathBuf::from(derivation_path);
+    profile.runtime.derivation_identity = derivation_identity;
+    profile.runtime.home_base = home.to_path_buf();
+    profile.runtime.gc_root_base = temp.path().join("roots");
+    profile.runtime.expected_outputs = expected_outputs;
+    profile.limits.timeout_milliseconds = timeout_milliseconds;
+    profile.limits.teardown_timeout_milliseconds = 1_000;
+    profile
+}
+
+// r[verify kiln.nix_build.execution.scenario.terminal]
+#[cfg(feature = "nix-live")]
+#[test]
+fn live_timeout_is_terminal_and_releasable() {
+    let temp = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let home = temp.path().join("home");
+    std::fs::create_dir(&home).unwrap_or_else(|_| unreachable!());
+    let expression = r#"derivation { name = "kiln-nix-timeout-busy"; system = "x86_64-linux"; builder = "/bin/sh"; args = [ "-c" "while :; do :; done" ]; }"#;
+    let (derivation_path, derivation_identity, outputs) =
+        live_derivation(expression, &["out"], &home);
+    let profile = live_profile(
+        &temp,
+        &home,
+        derivation_path,
+        derivation_identity,
+        outputs,
+        1_000,
+    );
+    let plan = plan_with_products(&["out"]);
+    let mut adapter =
+        NixBuildAdapter::new(profile, BoundedNixBuildRuntime).unwrap_or_else(|_| unreachable!());
+    let observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.outcome, BuildEvaluationOutcome::TimedOut);
+    assert!(observation.receipt_identity.is_some());
+    let gc_root = gc_root_directory(adapter.profile_binding(), &plan.effect_id)
+        .unwrap_or_else(|_| unreachable!());
+    adapter
+        .release_output_roots(&plan.effect_id)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(!gc_root.exists());
+}
+
+// r[verify kiln.nix_build.execution.scenario.terminal]
+#[cfg(feature = "nix-live")]
+#[test]
+fn live_cancellation_is_terminal_and_releasable() {
+    let temp = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let home = temp.path().join("home");
+    std::fs::create_dir(&home).unwrap_or_else(|_| unreachable!());
+    let expression = r#"derivation { name = "kiln-nix-cancel-busy"; system = "x86_64-linux"; builder = "/bin/sh"; args = [ "-c" "while :; do :; done" ]; }"#;
+    let (derivation_path, derivation_identity, outputs) =
+        live_derivation(expression, &["out"], &home);
+    let profile = live_profile(
+        &temp,
+        &home,
+        derivation_path,
+        derivation_identity,
+        outputs,
+        30_000,
+    );
+    let plan = plan_with_products(&["out"]);
+    let mut adapter =
+        NixBuildAdapter::new(profile, BoundedNixBuildRuntime).unwrap_or_else(|_| unreachable!());
+    let cancellation = Arc::new(AtomicBool::new(false));
+    let trigger = Arc::clone(&cancellation);
+    let handle = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(300));
+        trigger.store(true, std::sync::atomic::Ordering::Release);
+    });
+    let observation = adapter
+        .dispatch_with_cancellation(&plan, &cancellation)
+        .unwrap_or_else(|_| unreachable!());
+    handle.join().unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.outcome, BuildEvaluationOutcome::Cancelled);
+    assert!(observation.receipt_identity.is_some());
+    let gc_root = gc_root_directory(adapter.profile_binding(), &plan.effect_id)
+        .unwrap_or_else(|_| unreachable!());
+    adapter
+        .release_output_roots(&plan.effect_id)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(!gc_root.exists());
+}
+
+// r[verify kiln.nix_build.completion.scenario.success] r[verify kiln.nix_build.retention.scenario.release]
+#[cfg(feature = "nix-live")]
+#[test]
+fn live_multi_output_is_rooted_and_released() {
+    let temp = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let home = temp.path().join("home");
+    std::fs::create_dir(&home).unwrap_or_else(|_| unreachable!());
+    let expression = r#"derivation { name = "kiln-nix-multi-live"; system = "x86_64-linux"; outputs = [ "out" "dev" ]; builder = "/bin/sh"; args = [ "-c" "echo multi-out > $out; echo multi-dev > $dev" ]; }"#;
+    let (derivation_path, derivation_identity, outputs) =
+        live_derivation(expression, &["out", "dev"], &home);
+    let output_paths = outputs
+        .iter()
+        .map(|output| output.path.clone())
+        .collect::<Vec<_>>();
+    let profile = live_profile(
+        &temp,
+        &home,
+        derivation_path,
+        derivation_identity,
+        outputs,
+        30_000,
+    );
+    let plan = plan_with_products(&["dev", "out"]);
+    let mut adapter =
+        NixBuildAdapter::new(profile, BoundedNixBuildRuntime).unwrap_or_else(|_| unreachable!());
+    let observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.outcome, BuildEvaluationOutcome::Success);
+    assert_eq!(observation.products.len(), 2);
+    assert_eq!(
+        std::fs::read_to_string(output_paths.first().unwrap_or_else(|| unreachable!()))
+            .unwrap_or_else(|_| unreachable!()),
+        "multi-out\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(output_paths.get(1).unwrap_or_else(|| unreachable!()))
+            .unwrap_or_else(|_| unreachable!()),
+        "multi-dev\n"
+    );
     let gc_root = gc_root_directory(adapter.profile_binding(), &plan.effect_id)
         .unwrap_or_else(|_| unreachable!());
     assert!(gc_root.exists());
