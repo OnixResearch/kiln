@@ -4,7 +4,7 @@
   "registry_id": "kiln-release-gates",
   "registry_hash": "26b0658874a8db02dd98521d06710f0b304c204499e32a879a04d7dcb7bfea7c",
   "selection_hash": "88011a3c4ff4f5327c44fa1e55fd2830c975ffd1dcf9de7030869eafc9ed51f4",
-  "policy_hash": "1b82f87d7720a3ee4bcc5a57f7e00a535836d5eaf4b48fc076c7c18888fe2945",
+  "policy_hash": "8b5239caac9fdd29f67b5c7325924510af74d7f6d23a8394416441c4f1c8596d",
   "final_subject_hash": "87022e101f0ee8750810913eff7e8ba9a28b53015ae4c28447ceb554ba22f49b",
   "required_checks": [
     {

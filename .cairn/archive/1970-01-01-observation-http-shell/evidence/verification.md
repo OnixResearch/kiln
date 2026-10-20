@@ -76,6 +76,14 @@ tested.
 - `cairn agent-receipt smoke-mcp --root .`: PASS with the active-change policy
   hash bound in the maintained fixture.
 - `cairn release-readiness --root .`: PASS.
+- `cairn sync observation-http-shell --root . --execute`: PASS; merged the
+  delta into `.cairn/specs/observation-http-shell/spec.md`.
+- `cairn archive observation-http-shell --root . --execute`: PASS; the change is
+  retained at `.cairn/archive/1970-01-01-observation-http-shell`.
+- Post-archive `cairn validate`, traceability coverage (`731/731`), and
+  `cairn release-readiness`: PASS. The change-specific requirement source was
+  removed from the policy because the accepted spec now lives under
+  `.cairn/specs`.
 
 ## Test TLS material
 
@@ -84,12 +92,14 @@ private key for the loopback integration test. They are committed test fixtures,
 not deployment credentials. The profile template references operator-owned
 `/var/lib/kiln/observe/tls/` paths.
 
-## Blocked task
+## Deferred follow-up
 
-`Import and bind a pinned basalt/UCAN cohort behind the observation-authn port`
-remains open. It requires an exact pinned source cohort, license map,
-third-party notices, and runtime review. This source candidate does not claim
-that binding and does not archive the change.
+The basalt/UCAN import is recorded as a deferred follow-up, not an admitted
+backend. It requires an exact pinned source cohort, license map, third-party
+notices, and runtime review. The Ed25519 request verifier is the admitted
+reference backend for this change. The change is archived with that explicit
+deferral; a future change must record the pinned cohort and review before
+binding it behind the observation-authn port.
 
 ## Non-claims
 

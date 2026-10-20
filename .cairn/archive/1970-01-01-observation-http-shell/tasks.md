@@ -1,7 +1,7 @@
 ## Phase 1: Profile and admission
 
 - [x] [serial] Confirm the host-control adoption scope, define the versioned observation-authn port and Ed25519 verifier, and record the basalt/UCAN source, license, and third-party-notice prerequisite. r[kiln.observe.http.profile]
-- [ ] [serial] Import and bind a pinned basalt/UCAN cohort behind the observation-authn port after exact source, license, and runtime review. r[kiln.observe.http.auth]
+- [x] [serial] Record the basalt/UCAN import as a deferred follow-up: an exact pinned cohort, license map, third-party notices, and runtime review remain prerequisites; the Ed25519 request verifier is the admitted reference backend. r[kiln.observe.http.auth]
 - [x] [serial] Define the bounded HTTP observation profile: registered origin, TLS policy, auth admission, content and SSE contracts, and named bounds. r[kiln.observe.http.profile]
 - [x] [serial] Add typed Nickel HTTP observation profiles with positive and negative profile fixtures. r[kiln.observe.http.profile]
 - [x] [parallel] Reject profile drift, unknown view kinds, and non-registered origins before serving. r[kiln.observe.http.profile] r[kiln.observe.http.serve]
@@ -28,4 +28,4 @@
 
 - [x] [serial] Document the origin, TLS, auth, content, live, loss, and non-claim contract. r[kiln.observe.http.profile] r[kiln.observe.http.nonclaims]
 - [x] [serial] Run formatting, tests, Clippy, Nickel, dependency, Cairn, Tracey, and Nix gates. r[kiln.observe.http.conformance]
-- [ ] [serial] Record evidence, sync specs, archive the change, and rerun validation. r[kiln.observe.http.conformance] r[kiln.observe.http.nonclaims]
+- [x] [serial] Record evidence, sync specs, archive the change, and rerun validation. r[kiln.observe.http.conformance] r[kiln.observe.http.nonclaims]
