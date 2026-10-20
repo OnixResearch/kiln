@@ -3,8 +3,6 @@ let KilnTraceabilityProfile = {
   id = "cairn-default",
   requirement_sources = [
     { root = ".cairn/specs", source_kind = "accepted_specs", extensions = ["md"] },
-    { root = ".cairn/changes/bind-aspen-extension-runtime-profile/specs", source_kind = "requirements_doc", extensions = ["md"] },
-    { root = ".cairn/changes/pace-aspen-lattice-observation/specs", source_kind = "requirements_doc", extensions = ["md"] },
   ],
   evidence_sources = [
     { root = "crates", source_kind = "rust_source", extensions = ["rs"] },

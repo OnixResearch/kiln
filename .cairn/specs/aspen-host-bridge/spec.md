@@ -176,3 +176,48 @@ r[kiln.aspen_host.production_evidence.rejected]
 - GIVEN only machine-local journal, ledger, callback value, workflow, and report observations
 - WHEN evidence claims global durability, exactly-once delivery, CI correctness, external provider truth, host sandboxing, or release eligibility by implication
 - THEN validation MUST reject the stronger claim
+
+### Requirement: Exact extension runtime profile binding
+
+r[kiln.aspen_host.extension_profile_binding] The production Aspen host MUST bind every extension callback execution to the same exact admitted runtime profile used for host ingress.
+
+#### Scenario: Matching non-default profile is accepted
+
+r[kiln.aspen_host.extension_profile_binding.accepted]
+- GIVEN the host admits an explicit runtime profile with a non-default positive bound
+- AND the host supplies its canonical path and exact BLAKE3 profile identity to the extension process
+- WHEN the extension admits the same profile document
+- THEN it MUST handle the callback with that admitted profile
+- AND lifecycle, trigger, and recovery meaning MUST use one profile identity
+
+#### Scenario: Profile input is absent or differs
+
+r[kiln.aspen_host.extension_profile_binding.rejected]
+- GIVEN the profile arguments or document are missing, duplicated, malformed, unreadable, oversized, invalid, changed, or identity-mismatched
+- WHEN extension shell admission runs
+- THEN execution MUST fail before callback handling
+- AND it MUST NOT select the compiled fixture, another profile, or another runtime
+- AND an already reserved operation MUST remain `Unknown`
+- AND reconciliation MUST NOT redispatch that operation
+
+### Requirement: Paced bounded Lattice observation
+
+r[kiln.aspen_host.lattice_poll_pacing] The production Aspen host MUST use one explicit positive interval between non-terminal Lattice observations while preserving the existing finite poll bound.
+
+#### Scenario: Delayed workflow reaches a terminal observation
+
+r[kiln.aspen_host.lattice_poll_pacing.accepted]
+- GIVEN Lattice accepts one workflow and first returns a non-terminal observation
+- AND the host has a positive observation interval and finite poll count
+- WHEN Lattice reaches a terminal observation before that count is exhausted
+- THEN the host MUST wait between observe calls
+- AND it MUST persist the exact terminal observation without provider redispatch
+
+#### Scenario: Pacing is invalid or exhausted
+
+r[kiln.aspen_host.lattice_poll_pacing.rejected]
+- GIVEN the observation interval is missing, duplicated, zero, malformed, or the finite poll count expires
+- WHEN host admission or workflow routing runs
+- THEN invalid admission MUST fail before the host binds its socket
+- AND bound exhaustion MUST remain `Unknown`
+- AND recovery MUST use `RecoverDispatch` and observation without normal redispatch

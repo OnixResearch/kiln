@@ -13,5 +13,5 @@
 ## Phase 3: Evidence and publication
 
 - [x] [serial] Run focused tests before and after the change, workspace tests, strict Clippy, Octet deny-all, Cairn validation, and Nix checks. r[kiln.aspen_host.extension_profile_binding]
-- [ ] [serial] Publish an immutable Kiln revision and prove one fresh provider-backed Onix shadow. r[kiln.aspen_host.extension_profile_binding.accepted]
-- [ ] [serial] Sync and archive the accepted requirement with exact evidence and non-claims. r[kiln.aspen_host.extension_profile_binding]
+- [x] [serial] Publish an immutable Kiln revision and prove one fresh provider-backed Onix shadow. r[kiln.aspen_host.extension_profile_binding.accepted]
+- [x] [serial] Sync and archive the accepted requirement with exact evidence and non-claims. r[kiln.aspen_host.extension_profile_binding]

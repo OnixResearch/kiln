@@ -105,6 +105,8 @@ The test-only process helpers are explicitly `cfg(test)` modules. Each drill inj
 
 The [current source-bound observations](../../.cairn/archive/1970-01-01-qualify-aspen-host-production-evidence/evidence/verification.md) retain the actual commands, frozen executable identities, native per-case profile bytes, positive and negative process results, and receipt-consumer outcomes. The cohort's host-input binding enumerates those profile variants explicitly; a closed-transport drill is not relabeled as execution of the separately recorded real Lattice/Nix profile. The primary profile fields name that actual isolated service configuration, not an approval of an operator deployment.
 
+The [status-disabled Onix shadow](../../.cairn/archive/1970-01-01-bind-aspen-extension-runtime-profile/evidence/verification.md#fresh-status-disabled-onix-shadow-2026-10-20) separately records a real delayed Lattice/Nix completion and a correctly retained provider failure under the non-default runtime profile. Its frozen host and extension derivations are reproduced from published Kiln revision `8c9338e5c10a0e16ee3042d11583ccccf6efe7e9`, including a fresh read-only HTTPS source acquisition. This historical exercised cohort is not the later maintained standalone dependency cohort listed above; it does not qualify a newer revision or authorize production cutover.
+
 ## Non-claims
 
 The host proves only bounded local process and machine-local persistence facts for the exact reviewed cohort. It does not prove production availability, workflow correctness, CI correctness, host sandboxing, global durability, storage-device persistence, credential freshness, external effect truth, distributed exactly-once execution, or release eligibility.

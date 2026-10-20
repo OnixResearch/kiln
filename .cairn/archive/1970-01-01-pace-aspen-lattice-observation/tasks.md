@@ -13,5 +13,5 @@
 ## Phase 3: Evidence and publication
 
 - [x] [serial] Run host tests before and after the change, strict Clippy, Octet deny-all, Cairn validation, and Nix checks. r[kiln.aspen_host.lattice_poll_pacing]
-- [ ] [serial] Publish an immutable Kiln revision and prove one real provider-backed shadow through Onix. r[kiln.aspen_host.lattice_poll_pacing.accepted]
-- [ ] [serial] Sync and archive the accepted requirement with exact evidence and non-claims. r[kiln.aspen_host.lattice_poll_pacing]
+- [x] [serial] Publish an immutable Kiln revision and prove one real provider-backed shadow through Onix. r[kiln.aspen_host.lattice_poll_pacing.accepted]
+- [x] [serial] Sync and archive the accepted requirement with exact evidence and non-claims. r[kiln.aspen_host.lattice_poll_pacing]
