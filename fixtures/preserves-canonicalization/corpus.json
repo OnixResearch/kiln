@@ -1,0 +1,62 @@
+[
+  {
+    "id": "empty_string",
+    "description": "Empty string value",
+    "value": "",
+    "expected_hash": "83340ceaa7454f7d3454650933497618cb76132edff48cee97673c45ccd5d6f8"
+  },
+  {
+    "id": "unicode_string",
+    "description": "Unicode string value",
+    "value": "receipt \u2713 snowman \u2603",
+    "expected_hash": "6bf55357041d180a6326f2895e991ceb5ca91b3118dc06109bde6a7aebc91bee"
+  },
+  {
+    "id": "mixed_array",
+    "description": "Mixed primitive array value",
+    "value": [
+      null,
+      true,
+      false,
+      7,
+      "seven"
+    ],
+    "expected_hash": "d29fbb50c5472eb871f51526ab2a47194bda91bf2c127c0a6727009ed47095fa"
+  },
+  {
+    "id": "nested_object",
+    "description": "Nested object with sorted-key-sensitive material",
+    "value": {
+      "outer": {
+        "b": [
+          2,
+          1
+        ],
+        "a": {
+          "ok": true
+        }
+      },
+      "kind": "nested"
+    },
+    "expected_hash": "e550da7855598efa07131555acb8f6078421352532afa14429cc4f60176bcc2e"
+  },
+  {
+    "id": "receipt_shaped",
+    "description": "Kiln receipt-shaped deterministic evidence payload",
+    "value": {
+      "schema": "kiln.fixture.v1",
+      "valid": true,
+      "artifacts": [
+        {
+          "role": "receipt",
+          "hash": "abc123"
+        }
+      ],
+      "metadata": {
+        "tool": "kiln",
+        "version": 1
+      }
+    },
+    "expected_hash": "6777297c82d7daaaa2e3a19fbf8485e9147005c220fc6400eff7e15521a3ccce"
+  }
+]

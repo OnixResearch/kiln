@@ -1,6 +1,10 @@
-# Nix Build Specification Delta
+# Nix Build Specification
 
-## Added Requirements
+## Purpose
+
+Defines the `nix-build` capability.
+
+## Requirements
 
 ### Requirement: Exact Nix build cohort
 

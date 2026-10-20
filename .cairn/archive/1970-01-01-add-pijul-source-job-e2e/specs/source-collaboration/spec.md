@@ -1,6 +1,6 @@
 # Source Collaboration Specification Delta
 
-## Added Requirements
+## ADDED Requirements
 
 ### Requirement: Pijul source-to-CI E2E
 

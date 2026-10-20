@@ -4,6 +4,8 @@ Radicle is the canonical source and collaboration host. Kiln is published at `ra
 
 ## Local candidate
 
+r[impl kiln.public_release.sources]
+
 A publication candidate binds these facts:
 
 - exact source revision;
@@ -17,6 +19,8 @@ Candidate validation performs no signing, push, synchronization, announcement, o
 
 ## Historical publication receipt
 
+r[impl kiln.mantle.cohort_refresh.records]
+
 The operator published exact candidate `36984e367eafd44c22d2b4f4f47121deb51eece3`. Its source archive BLAKE3 identity is `ce60d4c323a3966eecd7a93fda32c55c0442c434a2216eaa9fc002fd12ff28f2`.
 
 The publication uses one delegate, threshold one, and parent-feature signed refs. Native acquisition from Rosa and HTTPS acquisition from `seed.radicle.garden` reproduced the exact commit and archive identity.
@@ -25,14 +29,17 @@ See `evidence/publication-receipt.ncl` for those historical bounded publication 
 
 ## Current local preparation
 
+r[impl kiln.public_release.claims]
+
 Record fresh checks against one exact source revision or explicitly identified source payload. Keep the source manifest and observed results together, distinguish the validated payload from a later evidence-only record, and retain failures rather than copying historical PASS declarations.
 
-The `release-evidence` Nix check verifies deterministic rendering of the historical input. It does not execute those declared checks, rehash current source files, or establish a new candidate's readiness.
+The `release-evidence` Nix check verifies deterministic rendering of the historical input. It does not execute those declared checks, rehash current source files, or establish a new candidate's readiness. The input imports `evidence/release-stack-profiles.ncl`, a frozen snapshot of the stack profiles rendered into the historical evidence. Do not refresh that snapshot when current provider cohorts change; a new candidate requires a new input and evidence.
 
 A new canonical publication requires a separately authorized operation and a new consistent receipt: candidate/archive, hosting profile, governed signed refs, native and HTTPS acquisition, and required replica observations must all refer to the same revision. Do not rewrite the original receipt to imply that local preparation signed, pushed, synchronized, or published new source.
 
 ## Source integration and production eligibility
 
+r[impl kiln.public_release.gates]
 r[related kiln.aspen_host.production_evidence]
 
 Kiln maintainers and the authorized operator own production-eligibility review.
@@ -61,14 +68,14 @@ mark those tasks complete, run a live workload, or promote their delta specs int
 accepted requirements. Their implemented local paths remain covered by the
 standalone conformance and isolated process checks.
 
-The operator authorized a bounded [source-only publication exception](../.cairn/changes/integrate-canonical-main/evidence/source-only-exception.ncl)
+The operator authorized a bounded [source-only publication exception](../.cairn/archive/1970-01-01-integrate-canonical-main/evidence/source-only-exception.ncl)
 for checked merge candidate `d11c5592ff990594d3ad53e8dd80240f6ad8e927`.
 All 30 x86_64 Nix checks passed and all 619 accepted parent requirement bodies
 were preserved. At that candidate, declared traceability was **FAIL**: 622 of 625 referenced,
 with the three `kiln.aspen_host.production_evidence` obligations still missing
 implementation/verification evidence and no dangling IDs. The six implemented
 staged IDs were declared requirement documents, not newly accepted specs.
-The [candidate-bound verification record](../.cairn/changes/integrate-canonical-main/evidence/verification.json)
+The [candidate-bound verification record](../.cairn/archive/1970-01-01-integrate-canonical-main/evidence/verification.json)
 retains the failure and the isolated runtime scopes. This exception covers only
 this source and evidence-only descendants; it does not approve production use,
 waive the production obligations, or change the default gate into a PASS.
@@ -80,7 +87,7 @@ expected cohort, all required observation kinds, bounded claims and retained
 BLAKE3 artifact bytes. It does not attest observation truth or grant production,
 publication, release or deployment authority.
 
-The [qualification evidence](../.cairn/changes/qualify-aspen-host-production-evidence/evidence/verification.md)
+The [qualification evidence](../.cairn/archive/1970-01-01-qualify-aspen-host-production-evidence/evidence/verification.md)
 binds frozen source candidate `afd06231e8e616c86a6f507fb2a69c41babd1f84`
 and frozen native executables; its publication binding was explicitly unpublished
 at qualification time, independently of any later authorized source push.
@@ -96,11 +103,11 @@ acknowledgement alone is not provider success. All 30 x86_64 Nix checks and the
 separate native host/provider gates passed for this frozen input. The actual
 receipt consumer admitted only the complete bounded-local-host receipt and
 rejected missing, failed, stale, mixed, stronger-claim and damaged-artifact
-inputs. Current declared traceability is 625/625; this is linkage, not execution
-truth or release authority. Exact gate and consumer results belong to the linked
-evidence, not the historical source-only exception.
+inputs. Declared traceability at that source was 625/625; this is linkage, not
+execution truth or release authority. Exact gate and consumer results belong to
+the linked evidence, not the historical source-only exception.
 
-The separately authorized [qualified-candidate publication](../.cairn/changes/qualify-aspen-host-production-evidence/evidence/publication.json) advanced both declared `main` refs to `c9266e05d3d44f8d0be06aa60c69edd6b3586adb`. Fresh GitHub SSH, namespace-scoped native Radicle and anonymous Garden HTTPS checkouts reproduced all 1441 regular members and the 23767040-byte normalized USTAR archive, BLAKE3 `561e1106ae4c836d1042042818ad181b97b190214a98f92430015ea213826c61`. Iris, Rosa and Garden namespace APIs agreed at read time; public visibility, the delegate and threshold were unchanged. The post-push receipt is retained in a local evidence-only child, outside that published source archive. This source publication grants no deployment, release or credential authority.
+The separately authorized [qualified-candidate publication](../.cairn/archive/1970-01-01-qualify-aspen-host-production-evidence/evidence/publication.json) advanced both declared `main` refs to `c9266e05d3d44f8d0be06aa60c69edd6b3586adb`. Fresh GitHub SSH, namespace-scoped native Radicle and anonymous Garden HTTPS checkouts reproduced all 1441 regular members and the 23767040-byte normalized USTAR archive, BLAKE3 `561e1106ae4c836d1042042818ad181b97b190214a98f92430015ea213826c61`. Iris, Rosa and Garden namespace APIs agreed at read time; public visibility, the delegate and threshold were unchanged. The post-push receipt is retained in a local evidence-only child, outside that published source archive. This source publication grants no deployment, release or credential authority.
 
 
 
@@ -119,7 +126,7 @@ Rosa, Iris and Garden delegate APIs reported the same `main`; governance retaine
 the original delegate and threshold. These are bounded observations, not seed
 trust, indefinite availability or production qualification.
 
-The [publication receipt](../.cairn/changes/integrate-canonical-main/evidence/publication.json)
+The [publication receipt](../.cairn/archive/1970-01-01-integrate-canonical-main/evidence/publication.json)
 binds the checked source, archive, hosting profile, signed refs, acquisitions and
 operator exception. It is a later evidence-only descendant of the revision it
 records. Current tips remain moving refs; evidence-only descendants do not imply
@@ -137,9 +144,9 @@ named by local bookmark `publication-candidate-2026-10-15`. Its deterministic
 USTAR source archive BLAKE3 is
 `5a9a22c6f642027c77a428835d53082208bcb04287ee0747369c1a47651806c5`.
 
-The [typed candidate binding](../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/candidate.ncl)
+The [typed candidate binding](../.cairn/archive/1970-01-01-prepare-public-release/evidence/candidates/2026-10-15-db552f504236/candidate.ncl)
 records the exact license-map, lifecycle, hosting-profile, rollback, and source
-identities. [Fresh clean-archive observations](../.cairn/changes/prepare-public-release/evidence/candidates/2026-10-15-db552f504236/verification.json)
+identities. [Fresh clean-archive observations](../.cairn/archive/1970-01-01-prepare-public-release/evidence/candidates/2026-10-15-db552f504236/verification.json)
 retain commands, cleared-environment scope, logs, failures, and non-claims.
 Kiln maintainers own this repeatable preparation path.
 
@@ -195,7 +202,7 @@ delegate-only heads; both continued to advertise only `main`. Use the delegate
 namespace for readback rather than interpreting absent canonical heads as a
 failed push. See the upstream [canonical-reference model](https://radicle.dev/2025/08/12/canonical-references).
 
-The [bounded push receipt](../.cairn/changes/prepare-public-release/evidence/push-2026-10-15.json)
+The [bounded push receipt](../.cairn/archive/1970-01-01-prepare-public-release/evidence/push-2026-10-15.json)
 retains authorization, exact refs, commands, observed failures, readback excerpts,
 and non-claims. Kiln maintainers own this repeatable verification path. This
 receipt is a later local record, not part of the already-pushed immutable
@@ -221,7 +228,7 @@ returned HTTP 404, while the available `gh` metadata lookup returned HTTP 401.
 Public access and GitHub visibility were not established; visibility settings
 were not changed. This is not a claim of anonymous GitHub source availability.
 
-The [GitHub projection receipt](../.cairn/changes/prepare-public-release/evidence/github-push-2026-10-15.json)
+The [GitHub projection receipt](../.cairn/archive/1970-01-01-prepare-public-release/evidence/github-push-2026-10-15.json)
 retains the explicit destination, push and authenticated readback commands,
 source identities, and access limitations. It is a later local record, not part
 of either already-pushed frozen revision. Kiln maintainers own the repeatable
@@ -243,10 +250,10 @@ reachable commit. Private development history was not uploaded, and the original
 `OnixResearch/kiln` repository remains private. Actions are disabled in the new
 repository.
 
-The [source-publication receipt](../.cairn/changes/prepare-public-release/evidence/github-source-publication-2026-10-17.json)
+The [source-publication receipt](../.cairn/archive/1970-01-01-prepare-public-release/evidence/github-source-publication-2026-10-17.json)
 records this projection and eight producer source repositories, their exact
 payload selections, anonymous acquisition observations, and disabled Actions.
-The [bounded scan review](../.cairn/changes/prepare-public-release/evidence/github-source-projections-2026-10-17/scan-review.json)
+The [bounded scan review](../.cairn/archive/1970-01-01-prepare-public-release/evidence/github-source-projections-2026-10-17/scan-review.json)
 retains the original scanner exit codes and evidence for known matches; it is
 not exhaustive privacy, rights, or legal-compatibility clearance. Trellis has
 only an empty private staging repository pending its required qualified
@@ -267,7 +274,7 @@ This is not authorization to substitute GitHub objects in dependency admission.
 ## Source-only publication of candidate `f748acd0`
 
 The operator authorized one exact source-only cutover
-([`operator-authority.ncl`](../.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/operator-authority.ncl)).
+([`operator-authority.ncl`](../.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/operator-authority.ncl)).
 Both declared `main` refs were fast-forwarded from
 `2c529b154d625735c43246cad2178d70813a01c3` to
 `f748acd0cc239f48bf3565ccb89d46ce88cbee2f` (three local commits; no history was
@@ -316,10 +323,10 @@ private upstream sources are already declared outside the credential-free
 contributor build. Earlier "all 30 `x86_64-linux` checks passed" results belong to
 their own frozen inputs and are not reused here.
 
-[`verification.json`](../.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/verification.json)
+[`verification.json`](../.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/verification.json)
 retains the commands, environments, identities, the non-exercised attributes and
 the failed or cancelled attempts;
-[`publication.json`](../.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/publication.json)
+[`publication.json`](../.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/publication.json)
 is the later evidence-only receipt for the published revision, together with the
 anonymous readbacks, GitHub projection settings and post-push governance
 observations in the same directory. Rollback for `main` is

@@ -147,10 +147,10 @@ remote is not required to redistribute the already imported shared COB store
 under its retained public grant. None of these distinctions certifies rights
 for a future producer release, standalone runtime closure, or combined binary.
 
-The [current-source review](.cairn/changes/prepare-owned-dependencies-agpl/evidence/current-source-review.json)
+The [current-source review](.cairn/archive/1970-01-01-prepare-owned-dependencies-agpl/evidence/current-source-review.json)
 records retained grants, notices and the applicability of each prerequisite.
-The [producer verification receipt](.cairn/changes/prepare-owned-dependencies-agpl/evidence/final-verification.json)
-and [executed command record](.cairn/changes/prepare-owned-dependencies-agpl/evidence/commands.json)
+The [producer verification receipt](.cairn/archive/1970-01-01-prepare-owned-dependencies-agpl/evidence/final-verification.json)
+and [executed command record](.cairn/archive/1970-01-01-prepare-owned-dependencies-agpl/evidence/commands.json)
 retain the actual target roots and all observed failures. An exact Kiln source
 candidate still needs its own anonymous acquisition, privacy/rights and
 distribution-scope review. This inventory does not prove copyright title,

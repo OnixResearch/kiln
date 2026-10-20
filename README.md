@@ -8,7 +8,8 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 
 - deterministic CI commands, events, effects, and replay;
 - versioned provider capability admission;
-- bounded read-only source snapshots from local Git and Pijul repositories;
+- bounded read-only source snapshots from local Git and Pijul repositories,
+  including a pinned native Pijul source-to-CI E2E rail;
 - versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
 - authenticated Iroh workflow transport through a private local Unix proxy and worker-local Lattice endpoint;
 - exact Cairn gate request, process, result, and reconciliation admission;
@@ -25,7 +26,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - authenticated GitHub push/PR intake, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;
 - typed Nickel configuration and Nix checks.
 
-Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. Use its signed Radicle refs for current branch identities. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. The later source-only cutover to `f748acd0cc239f48bf3565ccb89d46ce88cbee2f` and its candidate-bound checks, including the optional runtime attributes that were not exercised, are recorded in [`.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/`](.cairn/changes/prepare-public-release/evidence/public-cutover-2026-10-18/publication.json). See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
+Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. Use its signed Radicle refs for current branch identities. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. The later source-only cutover to `f748acd0cc239f48bf3565ccb89d46ce88cbee2f` and its candidate-bound checks, including the optional runtime attributes that were not exercised, are recorded in [`.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/`](.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/publication.json). See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
 
 ## Quick start
 
@@ -47,9 +48,12 @@ cargo test --locked --workspace
 cargo run --locked -p kiln-cli -- demo
 ```
 
+The full local release gate list, including `cairn release-readiness`, is in
+[the operator guide](docs/operator.md#local-reference-run).
+
 The committed, revision-verified imports cover direct and transitive workspace Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal workspace builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports. Standalone runtime products retain their separately reviewed source cohorts and acquisition boundaries.
 
-The [fresh standalone contributor check](.cairn/changes/prepare-public-release/evidence/verification.md#current-standalone-contributor-recheck) records the exact public revision, acquisition environment, test/demo results, and bounded source-hygiene review.
+The [fresh standalone contributor check](.cairn/archive/1970-01-01-prepare-public-release/evidence/verification.md#current-standalone-contributor-recheck) records the exact public revision, acquisition environment, test/demo results, and bounded source-hygiene review.
 
 Read `docs/architecture.md` for crate boundaries. Read `docs/nix-build-adapter.md` for the exact local Nix derivation build provider. Read `runtime/kiln-aspen-host/README.md` for the deployable Aspen host composition and its bounded claims. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-nix-provider.md` for bounded hosted Nix checks and durable reports. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary. Read `docs/aspen-runtime-backend.md` for Aspen setup, ownership, recovery, status, and rollout gates.
 
@@ -72,11 +76,11 @@ the [scoped GitHub CI evidence](evidence/github-ci-local-runtime.ncl).
 For remote workflow execution over Iroh, use `kiln-adapter-iroh` with the existing
 consumer's Lattice socket setting. Follow [peer enrollment, private keys, profiles,
 startup, and recovery](docs/operator.md#iroh-remote-workflow-execution). The
-[change-local evidence](.cairn/changes/add-iroh-workflow-transport/evidence/verification.json)
+[change-local evidence](.cairn/archive/1970-01-01-add-iroh-workflow-transport/evidence/verification.json)
 records actual local execution and exact recovery after both bridges restart,
 not WAN/relay availability or deployment authority.
 
-The [combined live CI proof](.cairn/changes/qualify-live-github-iroh-ci/evidence/verification.json)
+The [combined live CI proof](.cairn/archive/1970-01-01-qualify-live-github-iroh-ci/evidence/verification.json)
 joins genuine GitHub deliveries to exact-source compile/test jobs on a separate
 Iroh worker, canonical passing/failing results, and matching Published GitHub
 statuses. It also records controller/bridge restart recovery of the original

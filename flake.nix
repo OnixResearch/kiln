@@ -27,7 +27,7 @@
       # content-addressed subflake retains the canonical lock and nixpkgs follow.
       runtimeBuildCohort = builtins.getFlake (builtins.unsafeDiscardStringContext
         "path:${./runtime/build-cohort}?narHash=sha256-PcsYctZPpAGWzSNCAqmog3Dvqk7hePUu0TYwvbgpcu8=");
-      octet =
+      octetInput =
         assert runtimeBuildCohort.inputs.nixpkgs.rev == nixpkgs.rev;
         runtimeBuildCohort.inputs.octet;
       kamacite-build-support = runtimeBuildCohort.inputs.kamacite-build-support;
@@ -471,8 +471,8 @@
           };
           kiln-radicle-nix-provider-package = radicleNixProviderPackage;
           kiln-radicle-nix-provider-octet-deny-all =
-            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
-            (octet.lib.mkConsumerCheck {
+            assert octetInput.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octetInput.lib.mkConsumerCheck {
               inherit system;
               src = ./runtime/kiln-radicle-nix-provider;
               packages = [ "kiln-radicle-nix-provider" ];
@@ -607,6 +607,16 @@
                 test "$(${pkgs.nix}/bin/nix --version 2>/dev/null)" = 'nix (Nix) 2.34.8'
                 touch "$out"
               '';
+          octet = pkgs.runCommand "kiln-octet" {
+            nativeBuildInputs = [
+              self.checks.${system}.aspen-runtime-octet-deny-all
+              self.checks.${system}.kiln-aspen-host-octet-deny-all
+              self.checks.${system}.kiln-radicle-nix-provider-octet-deny-all
+              self.checks.${system}.radicle-broker-wire-octet-deny-all
+            ];
+          } ''
+            touch "$out"
+          '';
           no-std = rustPlatform.buildRustPackage {
             pname = "kiln-no-std";
             version = "0.1.0";
@@ -628,8 +638,8 @@
           };
           kiln-aspen-host-package = hostPackage;
           kiln-aspen-host-octet-deny-all =
-            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
-            (octet.lib.mkConsumerCheck {
+            assert octetInput.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octetInput.lib.mkConsumerCheck {
               inherit system;
               src = ./runtime/kiln-aspen-host;
               packages = [ "kiln-aspen-host" ];
@@ -644,7 +654,7 @@
               (
                 previous:
                 let
-                  octetCommand = "${octet.packages.${system}.cargo-octet}/bin/cargo-octet check";
+                  octetCommand = "${octetInput.packages.${system}.cargo-octet}/bin/cargo-octet check";
                   octetNeedle = builtins.unsafeDiscardStringContext octetCommand;
                   patchedOctetCommand = ''
                     first_vendor_directory="$(${pkgs.gnused}/bin/sed -n 's/^directory = "\(.*\)"$/\1/p' "$CARGO_HOME/config.toml" | ${pkgs.coreutils}/bin/head -n 1)"
@@ -678,8 +688,8 @@
                 }
               );
           aspen-runtime-octet-deny-all =
-            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
-            (octet.lib.mkConsumerCheck {
+            assert octetInput.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octetInput.lib.mkConsumerCheck {
               inherit system;
               src = aspenRuntimeOctetWorkspace;
               packages = [
@@ -695,8 +705,8 @@
                 DYLINT_RUSTFLAGS = "--deny warnings";
               });
           radicle-broker-wire-octet-deny-all =
-            assert octet.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
-            (octet.lib.mkConsumerCheck {
+            assert octetInput.rev == "cf04e894e53eb0947230118a086ef6066ddba38c";
+            (octetInput.lib.mkConsumerCheck {
               inherit system;
               src = radicleBrokerWireOctetWorkspace;
               packages = [ "kiln-radicle-broker-wire-octet" ];

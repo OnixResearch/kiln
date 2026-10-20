@@ -100,20 +100,24 @@ fn run_command(checkout: &Path, script: &str) -> io::Result<bool> {
 
 fn plan(observation: &PijulReadObservation, suffix: &str) -> anyhow::Result<WorkflowEffectPlan> {
     Ok(WorkflowEffectPlan {
-        effect_id: core(EffectId::new(&format!("pijul-e2e-effect-{suffix}")))?,
-        attempt_id: core(AttemptId::new(&format!("pijul-e2e-attempt-{suffix}")))?,
-        candidate_id: core(CandidateId::new(&format!("pijul-e2e-candidate-{suffix}")))?,
-        pipeline_revision_id: core(PipelineRevisionId::new(&format!(
+        effect_id: core(EffectId::new(format!("pijul-e2e-effect-{suffix}")))?,
+        attempt_id: core(AttemptId::new(format!("pijul-e2e-attempt-{suffix}")))?,
+        candidate_id: core(CandidateId::new(format!("pijul-e2e-candidate-{suffix}")))?,
+        pipeline_revision_id: core(PipelineRevisionId::new(format!(
             "pijul-e2e-pipeline-{suffix}"
         )))?,
-        workflow_policy_id: core(PolicyId::new(&format!("pijul-e2e-policy-{suffix}")))?,
+        workflow_policy_id: core(PolicyId::new(format!("pijul-e2e-policy-{suffix}")))?,
         provider_profile: core(ProviderProfileId::new("pijul-source-v1"))?,
         idempotency_key: core(ContentId::from_blake3_hex("c".repeat(64)))?,
         platform: core(Alias::new("linux-x86_64"))?,
         source: Some(WorkflowSourceContext {
             provider: core(Alias::new("pijul"))?,
             repository: observation.repository.clone(),
-            revision: observation.observed_state_before.clone(),
+            revision: core(ExternalRef::new(
+                "pijul",
+                "revision",
+                observation.observed_state_before.native_id.as_str(),
+            ))?,
         }),
         nodes: vec![WorkflowNode {
             id: core(Alias::new("test"))?,
@@ -225,10 +229,10 @@ fn run_case(
     let admitted = core(admit_workflow_observation(&plan, &observation))?;
     assert_eq!(admitted, expected);
 
-    let run_id = core(RunId::new(&format!("pijul-e2e-run-{suffix}")))?;
+    let run_id = core(RunId::new(format!("pijul-e2e-run-{suffix}")))?;
     let start = CommandEnvelope {
         contract_version: CONTRACT_VERSION_V1,
-        command_id: core(CommandId::new(&format!("pijul-e2e-start-{suffix}")))?,
+        command_id: core(CommandId::new(format!("pijul-e2e-start-{suffix}")))?,
         expected_revision: 0,
         command: Command::StartRun {
             run_id: run_id.clone(),
@@ -240,7 +244,7 @@ fn run_case(
     let state = apply(&State::default(), &start)?;
     let complete = CommandEnvelope {
         contract_version: CONTRACT_VERSION_V1,
-        command_id: core(CommandId::new(&format!("pijul-e2e-complete-{suffix}")))?,
+        command_id: core(CommandId::new(format!("pijul-e2e-complete-{suffix}")))?,
         expected_revision: state.revision,
         command: Command::CompleteAttempt {
             attempt_id: plan.attempt_id.clone(),

@@ -21,8 +21,19 @@
    cargo clippy --locked --workspace --all-targets -- -D warnings
    cairn validate --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
    cairn traceability coverage --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --json
+   cairn release-readiness --root .
+   nix build path:$PWD#checks.x86_64-linux.octet --no-link -L
    nix flake check path:$PWD --no-write-lock-file -L
    ```
+
+   `cairn release-readiness` consumes two checked-in gate fixtures.
+   `fixtures/agent-completion/` binds the maintained repository gate commands
+   to the current generated policy hash; regenerate its command and selection
+   hashes whenever those commands or the policy change.
+   `fixtures/preserves-canonicalization/corpus.json` binds canonical Preserves
+   values to their BLAKE3 hashes; run
+   `cairn preserves-corpus update --path fixtures/preserves-canonicalization/corpus.json --execute`
+   after adding or changing a case.
 
 Run credential-isolated acquisition separately from a normal operator build: existing Cargo/Nix caches and credential helpers can conceal an inaccessible source input. Use a fresh temporary HOME/source cache with no Git/SSH credentials or global Git configuration, and acquire all direct and transitive sources before claiming the public quick start is reproducible. Consult `LICENSES.md` before combining adapters into a distributed executable.
 
@@ -448,7 +459,7 @@ publication or release authority.
 
 ### Bounded combined live CI exercise
 
-The [operated proof](../.cairn/changes/qualify-live-github-iroh-ci/evidence/verification.json)
+The [operated proof](../.cairn/archive/1970-01-01-qualify-live-github-iroh-ci/evidence/verification.json)
 uses ordinary default-feature GitHub/job/Iroh binaries, real SecretSpec 0.19.0
 file-provider resolution, a reviewed immutable Lattice producer, and two distinct
 hosts. No protocol-fixtures build or fabricated webhook satisfies this rail.

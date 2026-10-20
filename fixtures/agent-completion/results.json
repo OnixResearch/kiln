@@ -1,0 +1,183 @@
+[
+  {
+    "check_id": "format",
+    "status": "passed",
+    "command": [
+      "cargo",
+      "fmt",
+      "--check"
+    ],
+    "command_hash": "874189b9c3fee43b47bd53d42f250e50e9a9cbfe87ae079a62dc519645d9e521",
+    "subject_hash": "87022e101f0ee8750810913eff7e8ba9a28b53015ae4c28447ceb554ba22f49b",
+    "registry_hash": "26b0658874a8db02dd98521d06710f0b304c204499e32a879a04d7dcb7bfea7c",
+    "selection_hash": "88011a3c4ff4f5327c44fa1e55fd2830c975ffd1dcf9de7030869eafc9ed51f4",
+    "policy_hash": "8b5239caac9fdd29f67b5c7325924510af74d7f6d23a8394416441c4f1c8596d",
+    "evidence_hash": "f4b645f05d707219945774b1ba97c25c80f7e1f52a3208424e06b26849481f2d",
+    "execution_receipt_hash": "80734fed993019645b7febc75521b8d0a36434351c2bd9a92c56f6a6397c5a8d",
+    "artifacts": [
+      {
+        "path": "target/agent-completion/format.json",
+        "hash": "ff292bd86f3e5731c2c29638b793aa404cc79b5b81570dd53a8e8ffdb1172acf"
+      }
+    ],
+    "diagnostic": {
+      "remediation_label": "rerun-format",
+      "summary": "rerun the format repository gate",
+      "reproduction_argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "working_root": "<repository-root>",
+      "source": null
+    }
+  },
+  {
+    "check_id": "tests",
+    "status": "passed",
+    "command": [
+      "cargo",
+      "test",
+      "--workspace"
+    ],
+    "command_hash": "108c657f5483b5a83731f413b62146dece87980abb850a1019b643bc9b37a55f",
+    "subject_hash": "87022e101f0ee8750810913eff7e8ba9a28b53015ae4c28447ceb554ba22f49b",
+    "registry_hash": "26b0658874a8db02dd98521d06710f0b304c204499e32a879a04d7dcb7bfea7c",
+    "selection_hash": "88011a3c4ff4f5327c44fa1e55fd2830c975ffd1dcf9de7030869eafc9ed51f4",
+    "policy_hash": "8b5239caac9fdd29f67b5c7325924510af74d7f6d23a8394416441c4f1c8596d",
+    "evidence_hash": "5705f2103d62cebf99f62db5a96931df20c5bf3c423aa4a236771c6d43b53287",
+    "execution_receipt_hash": "0e34334d129372233b729b345e7951761012adb48910e6d24004cb46a39c16b6",
+    "artifacts": [
+      {
+        "path": "target/agent-completion/tests.json",
+        "hash": "0fd35e62d1adfa97eb438f4e7b70a0801faef54d0417683a8c89a57c253f461d"
+      }
+    ],
+    "diagnostic": {
+      "remediation_label": "rerun-tests",
+      "summary": "rerun the tests repository gate",
+      "reproduction_argv": [
+        "cargo",
+        "test",
+        "--workspace"
+      ],
+      "working_root": "<repository-root>",
+      "source": null
+    }
+  },
+  {
+    "check_id": "clippy",
+    "status": "passed",
+    "command": [
+      "cargo",
+      "clippy",
+      "--workspace",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "command_hash": "6abfeda462ce5dc98d1aac663c2de398f51bebd75a38bdbb7d01eba912df44e8",
+    "subject_hash": "87022e101f0ee8750810913eff7e8ba9a28b53015ae4c28447ceb554ba22f49b",
+    "registry_hash": "26b0658874a8db02dd98521d06710f0b304c204499e32a879a04d7dcb7bfea7c",
+    "selection_hash": "88011a3c4ff4f5327c44fa1e55fd2830c975ffd1dcf9de7030869eafc9ed51f4",
+    "policy_hash": "8b5239caac9fdd29f67b5c7325924510af74d7f6d23a8394416441c4f1c8596d",
+    "evidence_hash": "d77b4a9d0a650767e71cedc3c502f8017b27ce0f328c59a33cfabc6922f681cb",
+    "execution_receipt_hash": "f19648ab3bb2d71e0813f7a53220c83f24996adb3a979c6f4d6377cb268524d5",
+    "artifacts": [
+      {
+        "path": "target/agent-completion/clippy.json",
+        "hash": "7c7a3243ec3d35962c00f5e77a8f5ffe569df0ac69be4146c9426d0a164cd546"
+      }
+    ],
+    "diagnostic": {
+      "remediation_label": "rerun-clippy",
+      "summary": "rerun the clippy repository gate",
+      "reproduction_argv": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "working_root": "<repository-root>",
+      "source": null
+    }
+  },
+  {
+    "check_id": "octet",
+    "status": "passed",
+    "command": [
+      "nix",
+      "build",
+      ".#checks.x86_64-linux.octet",
+      "--no-link",
+      "-L"
+    ],
+    "command_hash": "3ba1cf648681c8505bcd9e39984076b678239e62434cc9d0eb7b84ed4dd35eb8",
+    "subject_hash": "87022e101f0ee8750810913eff7e8ba9a28b53015ae4c28447ceb554ba22f49b",
+    "registry_hash": "26b0658874a8db02dd98521d06710f0b304c204499e32a879a04d7dcb7bfea7c",
+    "selection_hash": "88011a3c4ff4f5327c44fa1e55fd2830c975ffd1dcf9de7030869eafc9ed51f4",
+    "policy_hash": "8b5239caac9fdd29f67b5c7325924510af74d7f6d23a8394416441c4f1c8596d",
+    "evidence_hash": "d52a89264a55e7ed03f1c2ba64ba88f943b14d0338227ebc172a080b9f57a0c8",
+    "execution_receipt_hash": "72fc8c59d70492928071b1f1c3678e99b68f6bf412bffe50f96d59c071a9098d",
+    "artifacts": [
+      {
+        "path": "target/agent-completion/octet.json",
+        "hash": "f3cf63a87cb49c66342fad17c117e56ebae5b5fa54793402428e4217037d25d2"
+      }
+    ],
+    "diagnostic": {
+      "remediation_label": "rerun-octet",
+      "summary": "rerun the octet repository gate",
+      "reproduction_argv": [
+        "nix",
+        "build",
+        ".#checks.x86_64-linux.octet",
+        "--no-link",
+        "-L"
+      ],
+      "working_root": "<repository-root>",
+      "source": null
+    }
+  },
+  {
+    "check_id": "nix-flake",
+    "status": "passed",
+    "command": [
+      "nix",
+      "flake",
+      "check",
+      "path:$PWD",
+      "-L"
+    ],
+    "command_hash": "31c9d3296cbe39668c21e0d3fe437c85746786a4767d4bd83ca06d15b990b51a",
+    "subject_hash": "87022e101f0ee8750810913eff7e8ba9a28b53015ae4c28447ceb554ba22f49b",
+    "registry_hash": "26b0658874a8db02dd98521d06710f0b304c204499e32a879a04d7dcb7bfea7c",
+    "selection_hash": "88011a3c4ff4f5327c44fa1e55fd2830c975ffd1dcf9de7030869eafc9ed51f4",
+    "policy_hash": "8b5239caac9fdd29f67b5c7325924510af74d7f6d23a8394416441c4f1c8596d",
+    "evidence_hash": "e354b431103fffdf0d959e740dda5a6576be62d9030cf87c425e02999a2ddd21",
+    "execution_receipt_hash": "765047769cfbb0dd7ef9c1aef33f21a193687f122c2c16682d7c1167af6ae4a8",
+    "artifacts": [
+      {
+        "path": "target/agent-completion/nix-flake.json",
+        "hash": "dcb923c12d76b6eb5e9ae13b330ef802bab66deb922ea11405790a9fac31850d"
+      }
+    ],
+    "diagnostic": {
+      "remediation_label": "rerun-nix-flake",
+      "summary": "rerun the nix-flake repository gate",
+      "reproduction_argv": [
+        "nix",
+        "flake",
+        "check",
+        "path:$PWD",
+        "-L"
+      ],
+      "working_root": "<repository-root>",
+      "source": null
+    }
+  }
+]

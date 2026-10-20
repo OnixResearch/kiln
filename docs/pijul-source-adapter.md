@@ -83,6 +83,21 @@ The adapter keeps these conditions distinct:
 
 No failure returns partial source success.
 
+## Native source-to-CI E2E
+
+`nix build path:$PWD#checks.x86_64-linux.pijul-native-fixtures -L` runs both
+native test targets with `KILN_PIJUL_EXE` set to the pinned producer. The
+`full_e2e` target resolves one exact channel, materializes only admitted entries,
+runs a reviewed Bounded Exec command over the checkout, admits the workflow
+observation, and records `Success` or `DomainFailure` through `StartRun` and
+`CompleteAttempt`. It also rejects unsafe materialization paths and maps the
+exact native state to the workflow source revision.
+
+This rail proves only the local fixture repository, the pinned cohort, the
+reviewed commands, and the selected Kiln transitions. It does not prove source
+trust, signatures, complete history, remote availability, collaboration status,
+host confinement, or release readiness.
+
 ## Non-claims
 
 A passing result proves only the checked local state, bytes, profile, bounds, and identities. It does not prove:

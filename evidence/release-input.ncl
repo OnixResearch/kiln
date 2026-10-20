@@ -36,7 +36,7 @@ let Identity = {
     radicle_broker = "radicle-ci-broker-v1",
     remote_execution = "build.bazel.remote.execution.v2",
     cobs = import "../config/cob-profiles.ncl",
-    stack = import "../config/stack-profiles.ncl",
+    stack = import "release-stack-profiles.ncl",
     hosting_candidate = import "publication-candidate.ncl",
     hosting_publication = import "publication-receipt.ncl",
   },

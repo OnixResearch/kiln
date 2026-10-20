@@ -5,10 +5,6 @@ let KilnTraceabilityProfile = {
     { root = ".cairn/specs", source_kind = "accepted_specs", extensions = ["md"] },
     { root = ".cairn/changes/bind-aspen-extension-runtime-profile/specs", source_kind = "requirements_doc", extensions = ["md"] },
     { root = ".cairn/changes/pace-aspen-lattice-observation/specs", source_kind = "requirements_doc", extensions = ["md"] },
-    { root = ".cairn/changes/qualify-live-github-iroh-ci/specs", source_kind = "requirements_doc", extensions = ["md"] },
-    { root = ".cairn/changes/add-local-ci-composition-e2e/specs", source_kind = "requirements_doc", extensions = ["md"] },
-    { root = ".cairn/changes/add-pijul-source-job-e2e/specs", source_kind = "requirements_doc", extensions = ["md"] },
-    { root = ".cairn/changes/add-nix-build-adapter/specs", source_kind = "requirements_doc", extensions = ["md"] },
   ],
   evidence_sources = [
     { root = "crates", source_kind = "rust_source", extensions = ["rs"] },

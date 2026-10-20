@@ -1,6 +1,6 @@
 # GitHub CI Specification Delta
 
-## Added Requirements
+## ADDED Requirements
 
 ### Requirement: Local CI composition E2E rail
 

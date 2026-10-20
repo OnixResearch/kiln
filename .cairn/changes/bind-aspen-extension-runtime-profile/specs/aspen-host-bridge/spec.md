@@ -1,6 +1,6 @@
 # Aspen Host Bridge Specification Delta
 
-## Added Requirements
+## ADDED Requirements
 
 ### Requirement: Exact extension runtime profile binding
 

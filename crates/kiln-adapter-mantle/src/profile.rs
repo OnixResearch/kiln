@@ -15,6 +15,9 @@ use crate::wire::{
     NATIVE_REPORT_SCHEMA, OBSERVATION_SCHEMA, RECEIPT_SCHEMA, REQUEST_SCHEMA, REQUIRED_NON_CLAIMS,
 };
 
+// r[impl kiln.mantle.cohort_refresh]
+// r[impl kiln.mantle.cohort_refresh.contract]
+// r[impl kiln.mantle.cohort_refresh.identity]
 pub const PINNED_MANTLE_SOURCE: &str = "ssh://git@github.com/OnixResearch/mantle.git";
 pub const PINNED_MANTLE_REVISION: &str = "d75158b00b080535f2ffea12430665ca3d57ea82";
 pub const PINNED_MANTLE_CONTRACT_LICENSE: &str = "MIT OR Apache-2.0";

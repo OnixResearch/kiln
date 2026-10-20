@@ -199,7 +199,10 @@ nix build path:$PWD#checks.x86_64-linux.kiln-radicle-nix-provider-package --no-l
 nix build path:$PWD#checks.x86_64-linux.kiln-radicle-nix-provider-octet-deny-all --no-link -L
 nix build path:$PWD#checks.x86_64-linux.aspen-runtime-octet-deny-all --no-link -L
 nix build path:$PWD#checks.x86_64-linux.radicle-broker-wire-octet-deny-all --no-link -L
+nix build path:$PWD#checks.x86_64-linux.octet --no-link -L
 ```
+
+The final command builds all four admitted Octet consumer checks as one gate.
 
 The retained Bounded Exec URL returned HTTP 530 during integration verification.
 The declared same-RID projection

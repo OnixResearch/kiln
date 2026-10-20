@@ -313,6 +313,7 @@ fn repeated_effect_rejects_candidate_and_plan_substitution() {
 }
 
 // r[verify kiln.mantle.profile.scenario.drift]
+// r[verify kiln.mantle.cohort_refresh.drift]
 #[test]
 fn profile_and_file_identity_drift_fail_before_dispatch() {
     let mut revision = profile();

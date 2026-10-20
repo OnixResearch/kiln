@@ -1,0 +1,77 @@
+{
+  "schema": "cairn.agent-completion.v2",
+  "repository_id": "onixresearch/kiln",
+  "registry_id": "kiln-release-gates",
+  "registry_hash": "26b0658874a8db02dd98521d06710f0b304c204499e32a879a04d7dcb7bfea7c",
+  "selection_hash": "88011a3c4ff4f5327c44fa1e55fd2830c975ffd1dcf9de7030869eafc9ed51f4",
+  "policy_hash": "8b5239caac9fdd29f67b5c7325924510af74d7f6d23a8394416441c4f1c8596d",
+  "final_subject_hash": "87022e101f0ee8750810913eff7e8ba9a28b53015ae4c28447ceb554ba22f49b",
+  "required_checks": [
+    {
+      "check_id": "format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "command_hash": "874189b9c3fee43b47bd53d42f250e50e9a9cbfe87ae079a62dc519645d9e521",
+      "prerequisites": []
+    },
+    {
+      "check_id": "tests",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace"
+      ],
+      "command_hash": "108c657f5483b5a83731f413b62146dece87980abb850a1019b643bc9b37a55f",
+      "prerequisites": []
+    },
+    {
+      "check_id": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "command_hash": "6abfeda462ce5dc98d1aac663c2de398f51bebd75a38bdbb7d01eba912df44e8",
+      "prerequisites": [
+        "tests"
+      ]
+    },
+    {
+      "check_id": "octet",
+      "command": [
+        "nix",
+        "build",
+        ".#checks.x86_64-linux.octet",
+        "--no-link",
+        "-L"
+      ],
+      "command_hash": "3ba1cf648681c8505bcd9e39984076b678239e62434cc9d0eb7b84ed4dd35eb8",
+      "prerequisites": [
+        "tests",
+        "clippy"
+      ]
+    },
+    {
+      "check_id": "nix-flake",
+      "command": [
+        "nix",
+        "flake",
+        "check",
+        "path:$PWD",
+        "-L"
+      ],
+      "command_hash": "31c9d3296cbe39668c21e0d3fe437c85746786a4767d4bd83ca06d15b990b51a",
+      "prerequisites": [
+        "tests",
+        "clippy"
+      ]
+    }
+  ]
+}
