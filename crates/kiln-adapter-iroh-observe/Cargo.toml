@@ -1,0 +1,23 @@
+[package]
+name = "kiln-adapter-iroh-observe"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+blake3.workspace = true
+iroh = { version = "=0.95.1", default-features = false }
+kiln-adapter-http-observe.workspace = true
+kiln-core.workspace = true
+kiln-observe-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { version = "1.44.1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

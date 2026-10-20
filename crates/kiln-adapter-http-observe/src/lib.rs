@@ -28,7 +28,7 @@ pub use profile::{
     LiveProfile, OriginProfile, TlsProfile,
 };
 pub use request::{HttpRequest, map_live_request, map_view_request, parse_request, read_request};
-pub use response::{ErrorBody, error_response};
+pub use response::{ErrorBody, encode_view, error_response};
 pub use server::{
     MemoryObservationSource, ObservationClock, ObservationSnapshot, ObservationSource, SystemClock,
     load_tls_config, serve, serve_on,

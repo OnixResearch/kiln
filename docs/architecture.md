@@ -11,6 +11,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-codec` | Packed Preserves encoding and BLAKE3 identity. |
 | `kiln-observe-core` | Pure `no_std + alloc` bounded, deterministic, read-only observation projection with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities. |
 | `kiln-adapter-http-observe` | Bounded HTTPS shell serving accepted observation views as canonical JSON plus a bounded SSE event leg, with Ed25519 request auth, TLS, and no control authority. |
+| `kiln-adapter-iroh-observe` | Bounded `kiln.observe.v1` iroh shell serving accepted views to allowlisted peers with BLAKE3-verified payloads and HTTP/iroh view equivalence. |
 | `kiln-standalone` | Reference journal, outbox, log store, and recovery shell. |
 | `kiln-radicle-source-contract` | Pure `no_std + alloc` signed-reference request, observation, snapshot, and receipt admission. |
 | `kiln-adapter-jj` | Jujutsu source-provider compatibility. |

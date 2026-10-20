@@ -2751,6 +2751,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-iroh-observe"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "iroh",
+ "kiln-adapter-http-observe",
+ "kiln-core",
+ "kiln-observe-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "kiln-adapter-jj"
 version = "0.1.0"
 dependencies = [

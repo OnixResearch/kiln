@@ -22,9 +22,11 @@ False completion includes a claim of delivery without identity verification, an 
 
 Rejected alternatives: consuming tile's `WorkspaceTransport` contract (terminal-workspace semantics Kiln does not own); copying tile transport source (violates the stack reuse rule); building a custom QUIC layer (iroh already provides it).
 
-### Decision: Pin the n0 cohort
+### Decision: Pin the consumed n0 cohort
 
-The profile pins `iroh`, `iroh-blobs`, and `bao-tree` with exact versions and revisions and records the ALPN identity `kiln.observe.v1`. Cohort drift fails before serving.
+The profile pins the consumed `iroh` cohort at version `0.95.1` and records the ALPN identity `kiln.observe.v1`. Cohort drift fails before serving.
+
+Evaluation outcome: `iroh-blobs` and `bao-tree` are **not consumed** in this source candidate. The shell's bounded one-stream request/response framing carries a Kiln-owned BLAKE3 payload identity for log bytes and event-record ranges, and the recipient verifies it before claiming delivery. The verified-streaming path remains the binding point for a future `iroh-blobs`/`bao-tree` import; adding that cohort now would widen the dependency and review boundary without changing the accepted observation identity or the payload-verification requirement.
 
 ### Decision: Dial by key with explicit trust
 
@@ -32,7 +34,7 @@ Nodes hold a stable Ed25519 secret identity. Peers dial by public key under an a
 
 ### Decision: Verify before claiming delivery
 
-Log and record ranges stream as content-addressed payloads through the `iroh-blobs` and `bao-tree` path. A recipient claims delivery only after the declared BLAKE3 identity verifies. Corruption is rejected or refetched and reported.
+Log and record ranges stream as content-addressed payloads over the bounded iroh request/response stream. A recipient claims delivery only after the declared BLAKE3 identity verifies. Corruption is rejected or refetched and reported.
 
 ### Decision: Prove equivalence with the HTTP leg
 
@@ -56,7 +58,7 @@ Sibling reuse follows the OnixResearch owner grant: public license conflicts do 
 
 - `host-control-core` is adopted as the wire-contract framing substrate shared with the HTTP leg: snapshot-first streams, bounded observations, selectors, waits, and feature negotiation. CI content stays in Kiln-owned payloads.
 - Observation authority uses the basalt boundary with ucan enforcement behind the observation-authn port. Peer principals align to `did:key` Ed25519 so iroh public keys and capability principals share one identity model.
-- `molten` (aspen) is the stack's runtime and transport owner and is evaluated as an alternative transport home for this leg. Adoption is not assumed: its `iroh_sam_dataspace` still carries unestablished tracey debt, so the committed plan keeps the pinned n0 cohort behind the transport port, and molten may replace the transport only on passing evaluation evidence.
+- `molten` (aspen) is the stack's runtime and transport owner and is evaluated as an alternative transport home for this leg. Evaluation outcome: **not adopted** for this change. No pinned molten runtime cohort is present in this source candidate, and its `iroh_sam_dataspace` still carries unestablished tracey debt. The committed plan keeps the pinned iroh cohort behind the transport port; molten may replace the transport only on passing producer evidence and its own exact revision, license, and runtime review.
 - `valence` (through the existing adapter) may record each served view as `recorded_only` evidence.
 
 The n0 cohort pins remain independent of any sibling component.

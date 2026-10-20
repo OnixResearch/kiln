@@ -1,0 +1,79 @@
+{
+  "profile": {
+    "cohort": {
+      "alpn": "kiln.observe.v1",
+      "bao_tree": "deferred",
+      "iroh_blobs": "deferred",
+      "iroh_version": "0.95.1"
+    },
+    "core": {
+      "bounds": {
+        "max_attempts_per_run": 1,
+        "max_encoded_bytes": 65536,
+        "max_event_records": 4,
+        "max_log_bytes": 4,
+        "max_log_segments": 2,
+        "max_log_window_bytes": 64,
+        "max_metrics_per_attempt": 1,
+        "max_page_items": 2,
+        "max_products_per_attempt": 1,
+        "max_text_bytes": 256
+      },
+      "non_claims": [
+        "bounded observation projection does not prove transport delivery",
+        "bounded observation projection does not prove live freshness",
+        "bounded observation projection does not prove control execution",
+        "bounded observation projection does not prove provider correctness",
+        "bounded observation projection does not prove CI success",
+        "bounded observation projection does not establish release readiness"
+      ],
+      "profile_id": "observation-v1",
+      "redaction": {
+        "visible_fields": [
+          "provider_profile",
+          "external_reference",
+          "products",
+          "metrics",
+          "command_id",
+          "log_bytes"
+        ]
+      },
+      "schema_version": 1,
+      "views": [
+        "state_summary",
+        "run_list",
+        "run_detail",
+        "attempt_detail",
+        "event_tail",
+        "log_range"
+      ]
+    },
+    "endpoint": {
+      "bind_address": "127.0.0.1:0",
+      "max_connections": 16,
+      "max_frame_bytes": 4194304,
+      "max_payload_bytes": 4194304,
+      "relay_urls": [],
+      "request_timeout_milliseconds": 5000,
+      "write_timeout_milliseconds": 5000
+    },
+    "non_claims": [
+      "iroh observation does not prove transport acceptance",
+      "iroh observation does not prove live completeness",
+      "verified payload delivery does not prove source truth",
+      "iroh observation does not prove control execution",
+      "iroh observation does not prove provider correctness",
+      "iroh observation does not prove CI success",
+      "iroh observation does not establish release readiness"
+    ],
+    "peers": {
+      "allowed": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "max_peers": 64,
+      "revoked": []
+    },
+    "profile_id": "iroh-observation-v1",
+    "schema_version": 1
+  }
+}

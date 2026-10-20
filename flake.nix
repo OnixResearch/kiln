@@ -769,7 +769,10 @@
               config/fixtures/negative-observation-*.ncl \
               config/http-observation-profile.ncl \
               config/fixtures/http-observation-positive.ncl \
-              config/fixtures/negative-http-observation-*.ncl
+              config/fixtures/negative-http-observation-*.ncl \
+              config/iroh-observation-profile.ncl \
+              config/fixtures/iroh-observation-positive.ncl \
+              config/fixtures/negative-iroh-observation-*.ncl
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
@@ -785,6 +788,9 @@
             nickel export config/http-observation-profile.ncl >/dev/null
             nickel export --format json config/http-observation-profile.ncl > http-observation-profile.json
             cmp http-observation-profile.json fixtures/http-observation/profile-v1.json
+            nickel export config/iroh-observation-profile.ncl >/dev/null
+            nickel export --format json config/iroh-observation-profile.ncl > iroh-observation-profile.json
+            cmp iroh-observation-profile.json fixtures/iroh-observation/profile-v1.json
             nickel export config/nix-build-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel typecheck config/iroh-workflow.ncl
@@ -817,6 +823,7 @@
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
             nickel export config/fixtures/observation-positive.ncl >/dev/null
             nickel export config/fixtures/http-observation-positive.ncl >/dev/null
+            nickel export config/fixtures/iroh-observation-positive.ncl >/dev/null
             nickel export config/fixtures/nix-build-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-source-positive.ncl >/dev/null
