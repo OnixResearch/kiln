@@ -50,6 +50,15 @@ Status has three separate facets:
 
 Status is a rebuildable projection. It cannot mutate journal state.
 
+## Observation projection
+
+`kiln-observe-core` is the pure read-only projection layer for operator surfaces.
+It admits a typed profile, an exact state revision, and an explicit event or log
+window supplied by a shell, then returns deterministic bounded views with
+`kiln.observe.view.v1` identities. It provides no transport, CLI, control, or
+authority; HTTP and Iroh shells remain separate changes. See
+[observation projection](observation-projection.md).
+
 ## Logs and follow
 
 A cursor binds one exact stream and byte offset. A read reports gaps when retained data no longer contains that offset.

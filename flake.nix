@@ -628,6 +628,8 @@
               "-p"
               "kiln-core"
               "-p"
+              "kiln-observe-core"
+              "-p"
               "kiln-radicle-source-contract"
               "--target=wasm32-unknown-unknown"
             ];
@@ -761,7 +763,10 @@
               config/fixtures/radicle-nix-provider-positive.ncl \
               config/fixtures/negative-radicle-nix-provider-zero-user.ncl \
               config/nix-build-profile.ncl \
-              config/fixtures/nix-build-positive.ncl
+              config/fixtures/nix-build-positive.ncl \
+              config/observation-profile.ncl \
+              config/fixtures/observation-positive.ncl \
+              config/fixtures/negative-observation-*.ncl
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
@@ -771,6 +776,9 @@
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
+            nickel export config/observation-profile.ncl >/dev/null
+            nickel export --format json config/observation-profile.ncl > observation-profile.json
+            cmp observation-profile.json fixtures/observation/profile-v1.json
             nickel export config/nix-build-profile.ncl >/dev/null
             nickel export config/radicle-workflow-shell.ncl >/dev/null
             nickel typecheck config/iroh-workflow.ncl
@@ -801,6 +809,7 @@
             nickel export config/fixtures/cairn-gate-positive.ncl >/dev/null
             nickel export config/fixtures/mantle-build-positive.ncl >/dev/null
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
+            nickel export config/fixtures/observation-positive.ncl >/dev/null
             nickel export config/fixtures/nix-build-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-workflow-positive.ncl >/dev/null
             nickel export config/fixtures/radicle-source-positive.ncl >/dev/null

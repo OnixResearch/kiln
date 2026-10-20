@@ -3,6 +3,7 @@ members = [
   "crates/kiln-core",
   "crates/kiln-provider-api",
   "crates/kiln-codec",
+  "crates/kiln-observe-core",
   "crates/kiln-standalone",
   "crates/kiln-radicle-source-contract",
   "crates/kiln-adapter-radicle",
@@ -76,6 +77,7 @@ bounded-exec = { path = "vendor/bounded-exec/crates/bounded-exec" }
 kiln-core = { path = "crates/kiln-core" }
 kiln-provider-api = { path = "crates/kiln-provider-api" }
 kiln-codec = { path = "crates/kiln-codec" }
+kiln-observe-core = { path = "crates/kiln-observe-core" }
 kiln-standalone = { path = "crates/kiln-standalone" }
 kiln-radicle-source-contract = { path = "crates/kiln-radicle-source-contract" }
 kiln-adapter-radicle = { path = "crates/kiln-adapter-radicle" }

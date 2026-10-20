@@ -9,6 +9,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-core` | Pure `no_std + alloc` decisions, events, projections, and validation. |
 | `kiln-provider-api` | Narrow versioned provider ports. |
 | `kiln-codec` | Packed Preserves encoding and BLAKE3 identity. |
+| `kiln-observe-core` | Pure `no_std + alloc` bounded, deterministic, read-only observation projection with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities. |
 | `kiln-standalone` | Reference journal, outbox, log store, and recovery shell. |
 | `kiln-radicle-source-contract` | Pure `no_std + alloc` signed-reference request, observation, snapshot, and receipt admission. |
 | `kiln-adapter-jj` | Jujutsu source-provider compatibility. |

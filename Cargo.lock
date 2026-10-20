@@ -2969,6 +2969,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-observe-core"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "kiln-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kiln-provider-api"
 version = "0.1.0"
 dependencies = [
