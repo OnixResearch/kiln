@@ -33,6 +33,8 @@ package-specific declarations.
 | Artifact authentication core, imported transitively through Valence | `artifact-auth-core`: `MIT OR Apache-2.0`. Retained upstream license texts, [`NOTICE`](vendor/artifact/NOTICE), and [`provenance/SOURCE_GRANT.md`](vendor/artifact/provenance/SOURCE_GRANT.md) are in [`vendor/artifact/`](vendor/artifact/). Any source-grant scope remains exactly as recorded upstream; it is not a new grant for other imported material. |
 | Mantle contract/fixture source, revision `d75158b00b080535f2ffea12430665ca3d57ea82` | The imported build-contract schema and fixtures retain Mantle's upstream AGPL license in [`vendor/mantle/LICENSE`](vendor/mantle/LICENSE); no Mantle Rust producer code is imported. This is distinct from the license of Kiln's own Mantle adapter source and its linked Bounded Exec dependency. |
 | `kiln-adapter-nix` and the separately executed Nix CLI | Kiln adapter source: `MIT OR Apache-2.0`; its linked Bounded Exec dependency is `AGPL-3.0-or-later`. The pinned Nix `2.34.8` executable is a separately executed program with its own `LGPL-2.1-or-later` terms. No Nix source or library is imported into Kiln. See [the Nix build adapter documentation](docs/nix-build-adapter.md). |
+| `kiln-adapter-nix-eval` and stock `nix-eval-jobs` | Kiln adapter source: `MIT OR Apache-2.0`; linked Bounded Exec: `AGPL-3.0-or-later`. The separately executed stock evaluator at `NixOS/nix-eval-jobs@a0cd02231c58974a6b5aaa3712069b071047162e` declares `GPL-3.0`; retain that exact declaration rather than infer later-version rights. Its Nix libraries retain their own terms. The adapter does not link Nix libraries into Kiln core. See [the discovery adapter](docs/nix-eval-jobs-adapter.md). |
+| Optional Onix discovery fixture and runtime cohort | Imported fixture: `AGPL-3.0-or-later` SPDX declaration. Separately executed evaluator: recorded `GPL-3.0`; fork: `LGPL-2.1-or-later`; vendored Nickel: `MIT`. Plugin and onixpkgs wrapper license status remains `NOASSERTION`, not an inferred permissive grant. See the exact provenance below. |
 | Shared Git COB store, `onix-radicle-cob-git-store` version `0.2.0` | `MIT OR Apache-2.0`. Original [MIT](vendor/radicle-cob-git-store/LICENSE-MIT) and [Apache-2.0](vendor/radicle-cob-git-store/LICENSE-APACHE) texts are retained in the separate [`vendor/radicle-cob-git-store/`](vendor/radicle-cob-git-store/) import. |
 | GitHub service and exact-source job (`kiln-adapter-github`, `kiln-github-job`) | Kiln-owned source inherits `MIT OR Apache-2.0`; both mechanisms use linked Bounded Exec (`AGPL-3.0-or-later`), not just a separately executed tool. SecretSpec is separately executed under its own upstream terms. The adapter's permissive metadata is not a permissive-only license claim for the combined binaries. |
 | Iroh workflow transport, registry version `0.95.1` | Iroh and Kiln's adapter declare `MIT OR Apache-2.0`; imported Lattice workflow packages retain `MIT`. Registry cryptography, QUIC, TLS and native dependencies retain their individual terms. The generated root lock binds the selected cohort; this row is not a permissive-only claim for every combined workspace artifact. |
@@ -49,6 +51,33 @@ applicable. Check the actual selected dependency graph and shipped contents,
 including native code and any locally patched dependency source, when preparing
 a source or binary distribution. Preserving an immutable upstream pin does not
 waive obligations for modifications applied during a build.
+
+## Optional Onix discovery provenance
+
+The explicit `onix-nix-eval-v1` profile does not relicense stock discovery or
+change the workspace default. Its sources are acquired separately through
+[`runtime/onix-eval-cohort/flake.nix`](runtime/onix-eval-cohort/flake.nix) and its
+generated lock, including the exact onixpkgs SSH review-source input. Default
+core/workspace builds and stock discovery do not acquire that optional cohort.
+Kiln runs the evaluator as a process; it does not import the evaluator/fork
+libraries into core. Bounded Exec remains linked into the Kiln adapter under
+its AGPL terms regardless of the selected external evaluator.
+
+| Exact source and scope | Observed/recorded declaration and limit |
+|---|---|
+| OnixOS `fixtures/kiln-wasm-discovery/flake.nix`, imported verbatim at [`runtime/onix-eval-cohort/jobset/flake.nix`](runtime/onix-eval-cohort/jobset/flake.nix) | The file declares `SPDX-License-Identifier: AGPL-3.0-or-later`. Its dedicated immutable source commit and original Git-object path/content identity are retained in [`jobset.source.json`](runtime/onix-eval-cohort/jobset.source.json). This imported producer file is not covered by Kiln's permissive workspace default, nor is this declaration a license finding for all of OnixOS. |
+| Evaluator `NixOS/nix-eval-jobs@9f1553afabd95f9f59951f5c946e86005af7196a`, package version `2.36.4` | The selected package/manifest records `GPL-3.0`. Preserve this spelling; this notice does not invent a later-version grant. The package applies two measured fork-2.36 source patches recorded in [`manifest.nix`](runtime/onix-eval-cohort/manifest.nix); distributing a modified executable requires assessing its actual corresponding-source and notice obligations. |
+| Evaluator-linked fork `onixcomputer/nix@f93f28ad9dce007baae13aa461c16abf656d1171` | The selected provenance records `LGPL-2.1-or-later`. The seven measured `libnix*.so.2.36.0` files belong to the evaluator closure, not the independently built OnixOS CLI closure. This is not an exhaustive license inventory of native/transitive libraries. |
+| Plugin `onixcomputer/onix-wasm@54bf09574c42a21f9f38dc7e01bc44440e6fbc07` | Its pinned [`nickel-plugin/Cargo.toml`](https://github.com/onixcomputer/onix-wasm/blob/54bf09574c42a21f9f38dc7e01bc44440e6fbc07/nickel-plugin/Cargo.toml) declares package name/version and dependencies but no package license. The manifest deliberately records `NOASSERTION (plugin wrapper); vendored Nickel MIT`. Vendored Nickel's MIT terms do not establish a license grant for the wrapper or the entire WASM artifact. |
+| Nickel WASM vendor `brittonr/nickel-wasm@5de51b8976cf6a35ae8d026a4f28916df5f259fa`, based on `nickel-lang/nickel@1320a983e6c3d1e2fb53dd2464b084b4903b1426` | Its pinned [`Cargo.toml`](https://github.com/brittonr/nickel-wasm/blob/5de51b8976cf6a35ae8d026a4f28916df5f259fa/Cargo.toml) declares workspace version `1.17.0` and `license = "MIT"`. The retained fixture identifies both producer revisions and the optional lock pins the vendor source. Preserve upstream license/copyright material and separately assess all actual shipped dependencies. |
+| Package wrapper `OnixResearch/onixpkgs@3bdf51c00947ffd6b8bd3355ff83509a03752042` | The manifest records `NOASSERTION (package wrapper); evaluator GPL-3.0`. A package's evaluator license does not establish the wrapper's license. This is a review-source pin, not a production release or evidence of publication to main/Radicle. |
+
+`NOASSERTION` means no wrapper grant is asserted by this notice. It is not public
+domain, permissive licensing, a compatibility determination, or authorization
+to redistribute an otherwise unlicensed component. Resolve missing grants and
+preserve applicable license texts/notices before distribution. Exact hashes,
+successful pure discovery, and owner approval of a bounded source-review
+exercise do not supply additional license rights or establish release readiness.
 
 ## External programs, linked libraries, and combined outputs
 

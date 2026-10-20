@@ -52,6 +52,14 @@ let Profile = {
       authority_boundary = "nix-eval-jobs owns evaluator observations; Kiln owns task admission, CI state, and build dispatch",
     },
     {
+      id = "onix-nix-eval-v1",
+      role = "discovery",
+      source_revision = "9f1553afabd95f9f59951f5c946e86005af7196a",
+      capabilities = ["discover", "observe", "cancel", "reconcile", "gc_root_handoff", "nickel_wasm"],
+      unsupported_capabilities = ["build", "cache_truth", "floating_source", "automatic_selection", "plugin_fallback", "release"],
+      authority_boundary = "OnixOS owns the frozen Nickel fixture; Onix providers supply measured evaluator/plugin facts; Kiln owns exact cohort admission, task mapping and CI state",
+    },
+    {
       id = "mantle-build-v1",
       role = "build",
       source_revision = "d75158b00b080535f2ffea12430665ca3d57ea82",

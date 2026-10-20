@@ -105,6 +105,80 @@ Restore the latest committed journal snapshot. Then classify each outbox lease.
 
 Reconcile expired or ambiguous effects before redispatch. Do not claim exactly-once provider execution.
 
+## Nix job discovery
+
+`kiln-adapter-nix-eval` discovers jobs; it does not realize derivations, authorize
+substitution, or change canonical CI state directly. Keep the stock
+`NixEvalProfile::pinned` cohort and default root flake unchanged unless explicitly
+selecting the separate `NixEvalProfile::onix` executable profile. Core crates
+retain provider-neutral discovery facts and no Nix/Onix implementation dependency.
+
+### Explicit Onix selection and provisioning
+
+`onix-nix-eval-v1` is an optional `x86_64-linux` discovery profile, not a replacement
+for stock Nix. Its acquisition boundary is the separately locked
+`runtime/onix-eval-cohort` flake, including an exact onixpkgs SSH review-source
+input that may require read credentials. Normal root development/package and
+stock discovery do not acquire it. A stock request carrying Onix requirements is
+denied before external effects; missing artifacts or drift never authorize a
+stock, ambient evaluator, plugin, or impurity fallback.
+
+With `ONIXOS_CHECKOUT` naming a checkout containing the frozen fixture Git object,
+run from the Kiln root in the normal `nix develop path:$PWD` tooling shell:
+
+```console
+scripts/import-onix-discovery-fixture.sh "$ONIXOS_CHECKOUT"
+nix flake archive --no-write-lock-file path:$PWD/runtime/onix-eval-cohort
+nix build --no-write-lock-file path:$PWD/runtime/onix-eval-cohort#evaluator path:$PWD/runtime/onix-eval-cohort#plugin path:$PWD/runtime/onix-eval-cohort#manifest --no-link -L
+nix eval --raw --no-write-lock-file path:$PWD/runtime/onix-eval-cohort#lib.jobset
+nix build --no-write-lock-file path:$PWD/runtime/onix-eval-cohort#checks.x86_64-linux.cohort --no-link -L
+nickel export --field profile config/nix-eval-jobs-onix-profile.ncl
+```
+
+The importer verifies the exact committed `fixtures/kiln-wasm-discovery/flake.nix`
+and preserves it verbatim at `runtime/onix-eval-cohort/jobset/flake.nix`; it refuses
+different existing bytes. See the [immutable source receipt](../runtime/onix-eval-cohort/jobset.source.json)
+and [exact runtime paths, hashes and manifest contract](nix-eval-jobs-adapter.md#frozen-source-and-measured-runtime).
+Provision all selected closures on the actual discovery host and retain their
+GC roots; a path on a development host is not worker provisioning. Source
+acquisition is not discovery, and the artifact check is not the live Kiln rail.
+
+The Nickel export selects closed profile facts, not a CLI launcher or direct
+Rust profile JSON. Provision an operator-owned absolute `home_base` and
+`gc_root_base`, then compose the exact `NixEvalRuntimeBinding` and finite limits
+and call `NixEvalProfile::onix` and `NixEvalAdapter::new`. Requests must select
+`onix-nix-eval-v1`, `Some(onix_cohort()?)`, the pinned source path/content identity,
+`jobs.x86_64-linux`, and `x86_64-linux`. Features are exactly `flakes`,
+`nix-command`, `wasm-builtin`; the source binds the exact Nickel WASM plugin and
+`evalNickel` entry point through a local NAR-pinned `builtins.fetchTree` import,
+not `--impure` or a network provisioning fallback. `nix_wasm_init_v1` is a source-defined host handshake,
+not a guarantee of a stable public ABI.
+
+After provisioning, exercise the real evaluator, observation admission, task
+mapping and GC-root handoff through Kiln:
+
+```console
+cargo test --locked -p kiln-adapter-nix-eval --test onix_live exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots -- --ignored --exact --nocapture
+```
+
+Retain the actual result bound to the exact source and measured runtime. The
+[integration qualification receipt](../.cairn/archive/1970-01-01-add-onix-nix-evaluator-cohort/evidence/verification.json)
+is the evidence boundary, not the presence of this command. The rail expects
+real Nickel seed/report jobs, their dependency, an independent `broken` job error,
+stock rejection and root lifecycle checks. The adapter measures evaluator,
+manifest, plugin, seven evaluator-linked Nix libraries and source with bounded
+no-final-symlink opens before new discovery; it does not provide hostile-code
+confinement. Preserve distinct provider failure, timeout, cancellation and unknown
+outcomes rather than treating a zero exit or partial JSONL stream as completion.
+Persist every task handoff, call `handoff_gc_roots` with the durable task IDs, then
+`cleanup_gc_roots`; premature cleanup is denied and cleanup failure stays visible.
+
+Discovery does not establish general Onix/stock compatibility, source trust,
+cache truth, build/output correctness, reproducibility, deployment, publication,
+or release authority. Review [license provenance](../LICENSES.md#optional-onix-discovery-provenance)
+before distributing the fixture or runtime cohort; wrapper `NOASSERTION` is not
+a permissive license grant.
+
 ## Aspen native runtime
 
 Radicle trigger intake requires an explicit runtime selection. Keep the direct

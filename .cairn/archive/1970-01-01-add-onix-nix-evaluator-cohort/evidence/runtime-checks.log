@@ -1,0 +1,1100 @@
+   Compiling kiln-adapter-nix-eval v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix-eval)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.39s
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_nix_eval-af0baad090180f46)
+
+running 20 tests
+test tests::error_classification_uses_the_selected_cohort ... ok
+test tests::executable_manifest_source_and_cohort_drift_fail_before_launch ... ok
+test tests::bounded_runtime_hashes_files_and_rejects_non_root_entries ... ok
+test tests::onix_policy_and_nonclaims_cannot_be_promoted ... ok
+test tests::stock_profile_rejects_onix_cohort_before_process_launch ... ok
+test tests::explicit_cancellation_uses_the_cancellation_path ... ok
+test tests::spawn_failure_cleans_the_private_gc_root_directory ... ok
+test tests::producer_statistics_are_typed_and_do_not_widen_the_stock_schema ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::onix_request_drift_rejects_before_roots_or_process ... ok
+test tests::complete_stream_maps_tasks_and_preserves_job_error ... ok
+test tests::duplicate_jobs_oversized_lines_and_gc_root_loss_fail_closed ... ok
+test tests::onix_manifest_provenance_and_fatal_jobs_fail_closed ... ok
+test tests::gc_roots_require_complete_handoff_and_preserve_cleanup_failure ... ok
+test tests::onix_runtime_drift_rejects_before_roots_or_process ... ok
+test tests::shared_discovery_conformance_accepts_the_exact_adapter ... ok
+test tests::malformed_truncated_and_conflicting_cache_streams_fail_closed ... ok
+test tests::exact_onix_discovery_maps_tasks_and_retains_roots_until_handoff ... ok
+test tests::timeout_cancellation_crash_and_unknown_remain_distinct ... ok
+test tests::incremental_decoder_is_invariant_across_chunk_boundaries ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running unittests src/bin/nix_eval_fixture.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_nix_eval_fixture-6dbb12222541c3de)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fixture_process.rs (/tmp/kiln-onix-eval-target/debug/deps/fixture_process-f5a3d6e15f3f2cc1)
+
+running 3 tests
+test fixture_stream_modes_reach_the_intended_schema_boundary ... ok
+test cancellation_late_output_and_descendants_finish_under_owned_teardown ... ok
+test deterministic_fixture_processes_preserve_process_classes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/onix_live.rs (/tmp/kiln-onix-eval-target/debug/deps/onix_live-07c98f0d848527c8)
+
+running 1 test
+test exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots ... ignored, requires the exact optional Onix evaluator, plugin, manifest and immutable fixture
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_nix_eval
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling kiln-adapter-nix-eval v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix-eval)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.80s
+     Running tests/onix_live.rs (/tmp/kiln-onix-eval-target/debug/deps/onix_live-43a6f078cd398b49)
+
+running 1 test
+{"effect_id":"onix-live-discovery","evaluation_id":"onix-live-evaluation","project_id":"onix-live-project","pipeline_revision_id":"onix-live-pipeline","discovery_policy_id":"onix-live-policy","provider_profile":"onix-nix-eval-v1","idempotency_key":"dbb21080c65c18ce318cf95106f8b112edb1c29219700f846d0721c77d5abbfb","source_identity":"dbb21080c65c18ce318cf95106f8b112edb1c29219700f846d0721c77d5abbfb","observation_identity":"ed75af9d9497d933af4e98b87f1daae255e32555ccdcba137368eee9687a9e87","terminal":"Complete","jobs":[{"attribute":"report","attribute_path":["report"],"name":"onix-nickel-report","system":"x86_64-linux","derivation":{"contract_version":1,"provider_namespace":"nix","native_kind":"derivation","native_id":"/nix/store/4in2n531shagj4a37i8mnsd305hxxi70-onix-nickel-report.drv"},"outputs":[{"name":"out","path":{"contract_version":1,"provider_namespace":"nix","native_kind":"store-path","native_id":"/nix/store/abdl8slwpwk9jn68qjj05gdcvs5gmws1-onix-nickel-report"}}],"input_derivations":[{"contract_version":1,"provider_namespace":"nix","native_kind":"derivation","native_id":"/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"}],"metadata_identity":null,"cache":"NotBuilt"},{"attribute":"seed","attribute_path":["seed"],"name":"onix-nickel-seed","system":"x86_64-linux","derivation":{"contract_version":1,"provider_namespace":"nix","native_kind":"derivation","native_id":"/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"},"outputs":[{"name":"out","path":{"contract_version":1,"provider_namespace":"nix","native_kind":"store-path","native_id":"/nix/store/7r418gp3l4sziyg72q2lk7x39103glz2-onix-nickel-seed"}}],"input_derivations":[],"metadata_identity":null,"cache":"NotBuilt"}],"job_errors":[{"attribute":"broken","diagnostic":{"code":"nix_job_evaluation_error","field":"nix_eval.job","message":"error:\n       … while calling the 'throw' builtin\n         at «path:/nix/store/yxjjwvja5c8qfz10b6qh14bjd2bwrpww-kiln-onix-discovery-jobset-v1?lastModified=1&narHash=sha256-zpLxYG31qrwH%2BRS4cCEG2LfJfJie5P%2ByjdjKiAI%2BGLo%3D»/flake.nix:58:18:\n           57|         inherit seed report;\n           58|         broken = throw \"kiln-wasm-discovery: intentional independent job error\";\n             |                  ^\n           59|       };\n\n       error: kiln-wasm-discovery: intentional independent job error"},"fatal":false}],"tasks":[{"task_id":"discovered:221b5037a99f8f92daae436f3d3d0358f39172083a4300abce73fdb2dec4b6de","mapping_identity":"221b5037a99f8f92daae436f3d3d0358f39172083a4300abce73fdb2dec4b6de","build_provider":"nix-build-v1","native_attribute":{"contract_version":1,"provider_namespace":"nix-eval-jobs","native_kind":"attribute","native_id":"seed"},"derivation":{"contract_version":1,"provider_namespace":"nix","native_kind":"derivation","native_id":"/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"},"outputs":[{"name":"out","path":{"contract_version":1,"provider_namespace":"nix","native_kind":"store-path","native_id":"/nix/store/7r418gp3l4sziyg72q2lk7x39103glz2-onix-nickel-seed"}}],"dependencies":[],"cache":"NotBuilt"},{"task_id":"discovered:2931c7a0ecb27705a135b070d2f104ae337884281fce0c07a6ddedcd9796be1f","mapping_identity":"2931c7a0ecb27705a135b070d2f104ae337884281fce0c07a6ddedcd9796be1f","build_provider":"nix-build-v1","native_attribute":{"contract_version":1,"provider_namespace":"nix-eval-jobs","native_kind":"attribute","native_id":"report"},"derivation":{"contract_version":1,"provider_namespace":"nix","native_kind":"derivation","native_id":"/nix/store/4in2n531shagj4a37i8mnsd305hxxi70-onix-nickel-report.drv"},"outputs":[{"name":"out","path":{"contract_version":1,"provider_namespace":"nix","native_kind":"store-path","native_id":"/nix/store/abdl8slwpwk9jn68qjj05gdcvs5gmws1-onix-nickel-report"}}],"dependencies":["discovered:221b5037a99f8f92daae436f3d3d0358f39172083a4300abce73fdb2dec4b6de"],"cache":"NotBuilt"}],"completion":{"stream_complete":true,"stream_valid":true,"stderr_within_bound":true,"gc_roots_ready":true,"fatal_job_error":false,"process":{"Exited":{"status":0}}},"gc_roots":{"directory":{"contract_version":1,"provider_namespace":"nix","native_kind":"gc-root-directory","native_id":"/tmp/nix-shell.lsYOVE/.tmpQSYiRy/roots/4ec1833c7e66f4040da109704ddedd8554e34b7f55bc7d527bb8d4608a8904cf"},"derivations":[{"contract_version":1,"provider_namespace":"nix","native_kind":"derivation","native_id":"/nix/store/4in2n531shagj4a37i8mnsd305hxxi70-onix-nickel-report.drv"},{"contract_version":1,"provider_namespace":"nix","native_kind":"derivation","native_id":"/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"}],"state":"Released"}}
+test exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.97s
+
+   Compiling kiln-adapter-nix-eval v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix-eval)
+   Compiling kiln-nix-build v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-nix-build)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.20s
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_aspen-552afc371a1a6519)
+
+running 16 tests
+test tests::contracts::equal_digest_text_keeps_roles_and_namespaces_distinct ... ok
+test tests::completion::hosted_provider_completion_maps_exact_terminal_and_rejects_linkage_drift ... ok
+test tests::contracts::independent_consumer_accepts_the_static_producer_fixture ... ok
+test tests::contracts::architecture_keeps_aspen_out_of_core_and_ambient_effects_out_of_callback ... ok
+test tests::contracts::runtime_composition_is_explicit_and_never_falls_back ... ok
+test tests::contracts::denied_and_stale_effects_never_produce_a_fabric_plan ... ok
+test tests::contracts::callback_frames_are_canonical_bounded_and_strict ... ok
+test tests::runtime::remote_disconnect_after_acceptance_remains_unknown ... ok
+test tests::runtime::journal_and_outbox_commit_atomically_and_conflicts_change_nothing ... ok
+test tests::runtime::content_mapping_rejects_missing_corrupt_and_overbound_objects ... ok
+test tests::contracts::exact_profile_admits_and_drift_fails_without_fallback ... ok
+test tests::runtime::workflow_exchange_preserves_response_and_unknown_acceptance ... ok
+test tests::runtime::timeout_and_cancellation_do_not_commit ... ok
+test tests::unix::unix_server_codec_rejects_operation_shape_unknown_fields_and_bounds ... ok
+test tests::runtime::lost_commit_acknowledgement_reconciles_without_duplicate_mutation ... ok
+test tests::unix::unix_aspen_transport_accepts_exact_response_and_denies_missing_endpoint ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_cairn-925fe5d99af4bfd8)
+
+running 14 tests
+test tests::core_and_provider_manifests_do_not_import_cairn_or_bounded_exec ... ok
+test tests::profile_rejects_revision_schema_and_limit_drift ... ok
+test tests::executable_substitution_fails_before_process_execution ... ok
+test tests::controlled_policy_error_preserves_diagnostic_class ... ok
+test tests::malformed_and_truncated_outputs_are_provider_errors ... ok
+test tests::tampered_native_receipt_identity_is_rejected ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::independent_consumer_accepts_producer_fixture_and_rejects_substitution ... ok
+test tests::exact_machine_fixture_preserves_blocked_findings ... ok
+test tests::repeated_effect_rejects_candidate_and_policy_substitution ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_rerun ... ok
+test tests::exact_machine_fixture_admits_pass_repeat_and_reconciliation ... ok
+test tests::bounded_runtime_preserves_timeout_and_cancellation ... ok
+test tests::bounded_runtime_hashes_exact_file_and_rejects_missing_executable ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.81s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_cdevents-72ff81cc1658e5d3)
+
+running 6 tests
+test tests::lossy_profile_is_rejected ... ok
+test tests::imported_success_is_observational_and_duplicates_are_explicit ... ok
+test tests::independent_fixture_decodes_with_the_pinned_profile ... ok
+test tests::missing_correlation_rejects_without_canonical_action ... ok
+test tests::unknown_event_type_and_missing_fields_fail_closed ... ok
+test tests::task_run_round_trip_preserves_declared_fields ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_celld-e95cf6731f3e8a48)
+
+running 54 tests
+test admission::tests::ambiguous_provider_outcome_requires_reconciliation ... ok
+test admission::tests::completed_lease_requires_no_action ... ok
+test admission::tests::checked_replay_rejects_corrupted_identity_before_evolution ... ok
+test admission::tests::admits_one_batch_at_the_expected_revision ... ok
+test admission::tests::checked_replay_evolves_valid_history_without_provider_dispatch ... ok
+test admission::tests::expired_lease_requires_reconcile ... ok
+test admission::tests::plans_a_known_migration ... ok
+test admission::tests::leases_move_unclaimed_to_leased ... ok
+test admission::tests::rejects_a_migration_cycle ... ok
+test admission::tests::rejects_a_migration_exceeding_the_step_bound ... ok
+test admission::tests::rejects_a_duplicate_event_identity ... ok
+test admission::tests::classifies_repeats_and_conflicts ... ok
+test admission::tests::rejects_a_stale_expected_revision ... ok
+test admission::tests::rejects_an_empty_append ... ok
+test admission::tests::rejects_a_non_contiguous_append ... ok
+test admission::tests::rejects_an_unknown_migration_edge ... ok
+test client::tests::a_missing_authenticated_read_never_fabricates_an_empty_journal ... ok
+test client::tests::append_classifies_a_disconnection ... ok
+test client::tests::append_classifies_a_key_mismatch ... ok
+test client::tests::append_classifies_a_malformed_response ... ok
+test client::tests::append_classifies_a_timeout ... ok
+test client::tests::append_classifies_a_redirect ... ok
+test client::tests::append_classifies_an_unknown_outcome ... ok
+test client::tests::append_rejects_a_stale_request_before_dispatch ... ok
+test client::tests::append_commits_on_acceptance ... ok
+test client::tests::append_rejects_a_second_partition_before_transport ... ok
+test client::tests::append_classifies_a_tls_failure ... ok
+test partition::tests::maps_different_streams_within_the_partition_policy ... ok
+test profile::tests::local_sqlite_only_cannot_admit_an_unobserved_runtime ... ok
+test partition::tests::rejects_zero_partition_count ... ok
+test partition::tests::maps_a_partition_deterministically ... ok
+test profile::tests::rejects_drifted_release ... ok
+test profile::tests::rejects_hostile_tenants_on_the_alpha_cohort ... ok
+test profile::tests::rejects_private_route_and_untrusted_origin_before_worker_dispatch ... ok
+test profile::tests::rejects_output_gate_disabled ... ok
+test profile::tests::rejects_storage_probe_disabled ... ok
+test profile::tests::rejects_stale_cohort_observations_and_observed_disabled_storage ... ok
+test profile::tests::rejects_undeclared_trust_domain ... ok
+test profile::tests::rejects_zero_bounds ... ok
+test profile::tests::rejects_unobserved_artifact_deployment_storage_and_ingress_changes ... ok
+test protocol::tests::classifies_accepted_and_rejected_responses ... ok
+test protocol::tests::rejects_an_empty_nonce ... ok
+test worker::tests::cohort_admission_requires_output_gate_and_probe ... ok
+test protocol::tests::rejects_a_wrong_signature ... ok
+test protocol::tests::length_framing_rejects_equal_legacy_nonce_and_operation_bytes ... ok
+test protocol::tests::signs_and_verifies_an_envelope ... ok
+test worker::tests::worker_rejects_a_bad_signature ... ok
+test worker::tests::worker_commits_one_append ... ok
+test worker::tests::worker_does_not_commit_past_a_rejection ... ok
+test worker::tests::cohort_restart_preserves_committed_facts ... ok
+test worker::tests::worker_commits_outbox_and_event_together ... ok
+test worker::tests::compatible_cohort_differential_is_identical ... ok
+test worker::tests::worker_replays_equal_operation_without_mutation ... ok
+test worker::tests::conflicting_payload_is_rejected_after_commit ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/live_control.rs (/tmp/kiln-onix-eval-target/debug/deps/live_control-2312d317300303bd)
+
+running 1 test
+test actual_worker_controls ... ignored, requires the pinned loopback Celld HTTPS cohort runner
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/live_worker.rs (/tmp/kiln-onix-eval-target/debug/deps/live_worker-ba598559b28fd75c)
+
+running 1 test
+test actual_worker_persists_event_outbox_and_reconciles_a_lost_append_response ... ignored, requires the loopback Celld cohort runner tests/celld-live-cohort.sh
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_cob-1969ff0e21f973ba)
+
+running 5 tests
+test tests::every_cairn_profile_has_a_read_only_adapter ... ok
+test tests::registry_requires_all_cairn_profiles ... ok
+test tests::dispatch_orders_observation_signer_preview_and_effect ... ok
+test tests::unknown_profile_has_no_implicit_adapter ... ok
+test tests::stale_observation_and_missing_signer_block_effects ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_git-b96ce590894bd80a)
+
+running 8 tests
+test tests::pinned_profile_is_read_only ... ok
+test tests::profile_rejects_network_and_format_drift ... ok
+test tests::adapter_exposes_no_network_or_mutation_surface ... ok
+test tests::missing_repository_and_unsupported_features_fail_closed ... ok
+test tests::missing_commit_object_fails_closed ... ok
+test tests::moved_reference_is_rejected_before_identity_return ... ok
+test tests::real_repository_resolves_and_acquires_repeatably ... ok
+test tests::detached_commit_annotated_tag_and_empty_tree_are_supported ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_github-7db08190768a46a0)
+
+running 43 tests
+test events::tests::hmac_matches_rfc4231_vector_and_rejects_modified_bytes ... ok
+test events::tests::authentication_precedes_json_decode_and_failure_does_not_reveal_payload ... ok
+test events::tests::body_and_header_bounds_and_delivery_guid_are_enforced ... ok
+test events::tests::malformed_signature_forms_fail_closed ... ok
+test events::tests::case_normalization_preserves_native_spelling_without_dedup_bypass ... ok
+test events::tests::repository_policy_respects_core_native_identity_boundary ... ok
+test events::tests::forks_require_explicit_policy_and_retain_exact_source_facts ... ok
+test events::tests::push_retains_native_facts_but_dispatches_exact_sha_and_canonical_repository ... ok
+test events::tests::delivery_and_incidental_payload_changes_do_not_change_semantic_candidate ... ok
+test events::tests::all_selected_pr_actions_use_head_not_base_or_merge_sha ... ok
+test events::tests::malformed_json_missing_fields_and_duplicate_critical_fields_are_rejected ... ok
+test events::tests::repository_name_id_and_internal_name_consistency_are_required ... ok
+test secret::tests::debug_discloses_neither_secret_material_nor_secret_length ... ok
+test secret::tests::secret_values_reject_header_injection_and_invalid_encoding ... ok
+test events::tests::pr_base_number_and_head_repository_consistency_are_enforced ... ok
+test events::tests::deleted_pushes_closed_prs_and_unselected_events_are_ignored ... ok
+test status::tests::client_debug_discloses_neither_token_material_nor_length ... ok
+test events::tests::pr_action_redelivery_deduplicates_but_distinct_prs_and_event_kinds_do_not ... ok
+test status::tests::plan_identity_binds_every_semantic_field_and_full_run_marker ... ok
+test status::tests::real_http_publish_retains_exact_projection_and_uses_fixed_protocol ... ok
+test tests::unsupported_graph_controls_and_unbounded_acknowledgement_fail_before_resources ... ok
+test events::tests::malformed_sha_and_reference_never_become_executable_candidates ... ok
+test job::tests::rejects_wrong_source_and_profile_bytes_before_execution ... ok
+test tests::retention_and_changed_profile_never_erase_prior_replay_state ... ok
+test tests::durable_delivery_and_candidate_dedup_reject_conflict_and_stale_cas ... ok
+test tests::interrupted_reservation_never_becomes_permission_to_dispatch ... ok
+test tests::accepted_dispatch_with_failed_recovery_stays_unknown_and_recovers_without_redispatch ... ok
+test tests::stale_observations_consume_durable_budget_and_never_publish_success ... ok
+test job::tests::missing_unsafe_and_oversized_tree_never_materialize ... ok
+test tests::terminal_intent_does_not_hide_an_ambiguous_pending_status ... ok
+test status::tests::denied_rate_limited_and_redirect_responses_never_follow_or_retry ... ok
+test status::tests::reconciliation_allows_lifecycle_history_but_rejects_conflicting_exact_markers ... ok
+test tests::incomplete_connection_does_not_block_another_webhook_and_overload_does_not_stop_daemon ... ok
+test job::tests::exact_checkout_content_and_real_exit_outcome ... ok
+test status::dns_tests::dns_protocol_admits_only_bounded_fixed_port_addresses_and_fixed_destination ... ok
+test status::tests::provider_repository_case_normalization_preserves_exact_origin_endpoint_and_revision ... ok
+test secret::tests::declared_resolution_checks_arguments_and_clears_environment ... ok
+test job::tests::deadline_cancellation_and_output_overflow_are_not_success ... ok
+test tests::http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_headers ... ok
+test secret::tests::drift_failures_and_malformed_output_are_redacted ... ok
+test status::dns_tests::stalled_resolver_subprocess_deadline_kills_and_reaps_its_process_group ... ok
+test status::tests::reconciliation_paginates_and_exhaustion_cannot_prove_absence_or_complete_match ... ok
+test status::tests::post_mismatches_malformed_lost_timeout_and_oversized_responses_are_unknown ... ok
+
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+
+     Running unittests src/main.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_github-d06c51bdc72dc0fa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/github-job.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_github_job-623026352e43f4b8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/job.rs (/tmp/kiln-onix-eval-target/debug/deps/job-2926176daebe31a9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/local_ci_e2e.rs (/tmp/kiln-onix-eval-target/debug/deps/local_ci_e2e-1f10ca9f690110e3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_http_observe-688ef250e263ab0d)
+
+running 25 tests
+test tests::live_buffer_drops_oldest_and_reports_loss ... ok
+test tests::conformance_manifest_requires_all_cases ... ok
+test tests::nickel_http_profile_fixture_is_admitted ... ok
+test tests::profile_admission_accepts_complete_profile ... ok
+test tests::nickel_ucan_profile_fixture_is_admitted ... ok
+test tests::request_reader_enforces_bounds_and_timeouts ... ok
+test tests::sse_frame_is_bounded_and_identified ... ok
+test tests::request_mapping_admits_views_and_rejects_unknowns ... ok
+test tests::profile_admission_rejects_drift ... ok
+test tests::ucan_profile_admission_rejects_drift_and_missing_nonclaims ... ok
+test tests::ucan_profile_rejects_unanchored_proof_token ... ok
+test tests::ucan_rejects_self_issued_holder_token ... ok
+test tests::server_tls_failure_does_not_break_service ... ok
+test tests::server_serves_identity_bearing_view ... ok
+test tests::server_rejects_unanchored_ucan_invocation ... ok
+test tests::auth_verifies_and_rejects ... ok
+test tests::ucan_rejects_caveated_token ... ok
+test tests::server_serves_ucan_holder_invocation ... ok
+test tests::ucan_holder_invocation_is_admitted_and_replayed_nonce_denied ... ok
+test tests::ucan_replay_cache_bound_denies_new_nonce ... ok
+test tests::ucan_proof_chain_is_admitted_and_revocation_is_denied ... ok
+test tests::server_rejects_unauthorized_unknown_and_malformed ... ok
+test tests::ucan_rejects_wrong_target_capability_operation_and_expired_token ... ok
+test tests::server_live_delivers_new_committed_event ... ok
+test tests::server_live_delivers_and_reports_loss ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_iroh-ec6ded3fc2267e5f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_iroh-fa6a834f938cce6c)
+
+running 1 test
+test tests::identity_is_private_create_once_and_rejects_unsafe_inputs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/workflow.rs (/tmp/kiln-onix-eval-target/debug/deps/workflow-27defb4ffecda2d8)
+
+running 8 tests
+test profile_admission_rejects_drift_empty_authority_and_invalid_bounds ... ok
+test a_valid_but_unlinked_provider_response_is_not_success ... ok
+test lost_response_stays_unknown_to_unix_consumer_and_exact_recovery_does_not_redispatch ... ok
+test authenticated_native_operations_preserve_acceptance_controls_logs_and_recovery ... ok
+test proxy_denies_unlisted_local_user_without_opening_worker_provider_socket ... ok
+test deadline_after_provider_acceptance_stays_unknown_and_recovers_original_request ... ok
+test unavailable_provider_is_unknown_not_safe_retry_through_proxy ... ok
+test denied_peer_profile_drift_stale_identity_and_bad_frames_never_open_provider_socket ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.13s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_iroh_observe-deca4bd532392af6)
+
+running 12 tests
+test tests::conformance_manifest_requires_all_cases ... ok
+test tests::did_key_is_stable_and_aligned_with_endpoint_identity ... ok
+test tests::profile_admission_accepts_complete_profile ... ok
+test tests::nickel_iroh_profile_fixture_is_admitted ... ok
+test tests::equivalence_accepts_equal_views_and_rejects_divergence ... ok
+test tests::corrupted_payload_identity_is_rejected ... ok
+test tests::payload_identity_binds_log_bytes_and_event_records ... ok
+test tests::profile_admission_rejects_drift_and_missing_bounds ... ok
+test tests::trusted_peer_serves_equal_http_and_iroh_views ... ok
+test tests::log_range_delivers_verified_payload ... ok
+test tests::unknown_and_revoked_peers_are_denied ... ok
+test tests::transport_failure_is_bounded_and_never_claims_a_view ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.01s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_jj-dd3653d9e977495d)
+
+running 2 tests
+test tests::rejects_divergent_change_before_acquisition ... ok
+test tests::resolves_exact_commit_and_tree ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_lattice-15510413536d6765)
+
+running 19 tests
+test tests::profile_rejects_missing_operation_and_capability_drift ... ok
+test tests::pinned_profile_is_exact_and_admitted ... ok
+test tests::source_context_preserves_mixed_case_provider_identity ... ok
+test tests::unsupported_node_fails_before_transport ... ok
+test tests::unix::pinned_recovery_fixtures_pass_producer_admission ... ok
+test tests::disconnect_after_acceptance_stays_unknown_with_execution_identity ... ok
+test tests::unavailable_provider_fails_without_fallback ... ok
+test tests::unrequested_control_fails_before_transport ... ok
+test tests::request_lowering_is_deterministic ... ok
+test tests::pinned_producer_fixtures_pass_independent_consumer_admission ... ok
+test tests::recovery_only_dispatch_never_sends_a_new_dispatch ... ok
+test tests::dispatch_and_observe_preserve_linkage_and_complete ... ok
+test tests::unix::unavailable_socket_fails_without_fallback ... ok
+test tests::cancellation_returns_a_linked_terminal_observation ... ok
+test tests::stale_execution_is_rejected_without_state_change ... ok
+test tests::unix::not_found_recovery_remains_unknown_without_retry_authority ... ok
+test tests::unix::unknown_dispatch_recovers_acceptance_without_redispatch ... ok
+test tests::pause_and_log_operations_are_bounded ... ok
+test tests::unix::concrete_socket_client_covers_every_exchange_operation ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_mantle-1abb1f6ba259e68c)
+
+running 9 tests
+test tests::core_and_provider_manifests_do_not_import_mantle_or_bounded_exec ... ok
+test tests::profile_and_file_identity_drift_fail_before_dispatch ... ok
+test tests::bounded_runtime_hashes_files_and_enforces_log_bounds ... ok
+test tests::independent_consumer_accepts_exact_producer_fixtures ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::exact_native_report_admits_success_repeat_logs_and_reconciliation ... ok
+test tests::cache_cannot_hide_a_missing_required_product ... ok
+test tests::repeated_effect_rejects_candidate_and_plan_substitution ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_redispatch ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_nix-05b825bef6609e74)
+
+running 14 tests
+test tests::flat_profile_config_is_admitted ... ok
+test tests::inconsistent_limits_are_rejected ... ok
+test tests::pinned_profile_is_admitted ... ok
+test tests::executable_derivation_and_profile_drift_fail_before_dispatch ... ok
+test tests::duplicate_dispatch_reuses_the_record ... ok
+test tests::conflicting_or_mismatched_plans_do_not_execute ... ok
+test tests::log_requests_are_identity_bound_and_bounded ... ok
+test tests::multi_output_build_is_admitted ... ok
+test tests::nonzero_exit_is_failed_with_a_terminal_receipt ... ok
+test tests::missing_product_or_wrong_path_is_a_provider_error ... ok
+test tests::successful_build_is_recorded_and_readable ... ok
+test tests::unknown_outcome_has_no_terminal_receipt ... ok
+test tests::timeout_and_cancellation_are_terminal ... ok
+test tests::observation_only_restore_has_no_log_and_rejects_conflicts ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_nix_eval-5cf7112ddc621814)
+
+running 20 tests
+test tests::error_classification_uses_the_selected_cohort ... ok
+test tests::executable_manifest_source_and_cohort_drift_fail_before_launch ... ok
+test tests::onix_policy_and_nonclaims_cannot_be_promoted ... ok
+test tests::bounded_runtime_hashes_files_and_rejects_non_root_entries ... ok
+test tests::stock_profile_rejects_onix_cohort_before_process_launch ... ok
+test tests::spawn_failure_cleans_the_private_gc_root_directory ... ok
+test tests::producer_statistics_are_typed_and_do_not_widen_the_stock_schema ... ok
+test tests::explicit_cancellation_uses_the_cancellation_path ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::onix_request_drift_rejects_before_roots_or_process ... ok
+test tests::duplicate_jobs_oversized_lines_and_gc_root_loss_fail_closed ... ok
+test tests::complete_stream_maps_tasks_and_preserves_job_error ... ok
+test tests::onix_manifest_provenance_and_fatal_jobs_fail_closed ... ok
+test tests::gc_roots_require_complete_handoff_and_preserve_cleanup_failure ... ok
+test tests::onix_runtime_drift_rejects_before_roots_or_process ... ok
+test tests::shared_discovery_conformance_accepts_the_exact_adapter ... ok
+test tests::malformed_truncated_and_conflicting_cache_streams_fail_closed ... ok
+test tests::exact_onix_discovery_maps_tasks_and_retains_roots_until_handoff ... ok
+test tests::timeout_cancellation_crash_and_unknown_remain_distinct ... ok
+test tests::incremental_decoder_is_invariant_across_chunk_boundaries ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/onix_live.rs (/tmp/kiln-onix-eval-target/debug/deps/onix_live-4656cec86a495d2a)
+
+running 1 test
+test exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots ... ignored, requires the exact optional Onix evaluator, plugin, manifest and immutable fixture
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_opentelemetry-24ce11810cdeab70)
+
+running 7 tests
+test tests::profile_drift_and_authority_promotion_fail_closed ... ok
+test tests::unregistered_metric_name_is_rejected ... ok
+test tests::independent_fixture_preserves_batch_identity_and_all_signals ... ok
+test tests::projection_is_deterministic_and_keeps_kiln_links ... ok
+test tests::backend_acceptance_does_not_create_ci_success ... ok
+test tests::backend_loss_does_not_change_canonical_state ... ok
+test tests::secret_is_redacted_before_batch_encoding ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_pijul-bdb2b350ca7da48e)
+
+running 10 tests
+test archive::tests::archive_accepts_regular_file_and_rejects_special_permissions ... ok
+test tests::core_standalone_and_cli_remain_independent_of_pijul_runtime ... ok
+test tests::missing_busy_and_damaged_provider_failures_remain_distinct ... ok
+test tests::pinned_profile_is_exact_and_read_only ... ok
+test tests::moving_or_substituted_state_fails_without_partial_success ... ok
+test tests::profile_rejects_version_format_capability_and_bound_drift ... ok
+test tests::equal_snapshots_do_not_collapse_distinct_pijul_histories ... ok
+test tests::exact_native_observation_resolves_repeatably ... ok
+test tests::concrete_shell_uses_native_library_without_mutation_or_network_surface ... ok
+test tests::malformed_and_bounded_snapshots_fail_closed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_radicle-65a855a3f406fb0c)
+
+running 39 tests
+test defelo::tests::deployed_push_maps_and_emits_exact_protocol_lines ... ok
+test mutation::tests::write_outcomes_keep_timeout_and_unknown_distinct ... ok
+test defelo::tests::published_broker_fixture_maps_only_authoritative_trigger_facts ... ok
+test mutation::tests::rendered_review_matches_the_pinned_radicle_shape ... ok
+test mutation::tests::pinned_profile_and_declared_plan_are_admitted ... ok
+test mutation::tests::undeclared_target_and_action_are_rejected ... ok
+test source::tests::authority_contract_and_cohort_drift_fail_closed ... ok
+test mutation::tests::zero_deadline_executable_substitution_and_merge_authority_are_rejected ... ok
+test source::tests::pinned_source_profile_is_narrow_and_admitted ... ok
+test status::tests::authority_expansion_is_rejected ... ok
+test status::tests::empty_resolution_reason_fails_before_executable_access ... ok
+test status::tests::exact_expected_head_is_admitted_and_stale_head_is_rejected ... ok
+test source::tests::malformed_native_identities_fail_before_repository_access ... ok
+test defelo::tests::invalid_envelopes_and_unknown_outcome_fail_closed ... ok
+test status::tests::first_write_and_own_single_head_are_admitted ... ok
+test status::tests::foreign_and_multiple_heads_are_rejected ... ok
+test status::tests::foreign_repository_is_rejected ... ok
+test status::tests::malformed_and_zero_signers_are_rejected ... ok
+test status::tests::executable_identity_drift_fails_closed ... ok
+test status::tests::missing_secret_declaration_is_rejected ... ok
+test status::tests::oversized_payload_fails_before_signer_or_storage_access ... ok
+test status::tests::pinned_profile_and_allowed_plan_are_admitted ... ok
+test status::tests::production_profile_rejects_executable_substitution ... ok
+test status::tests::replayed_key_requires_equal_run_and_outcome ... ok
+test status::tests::terminal_outcomes_are_classified_and_unknown_is_rejected ... ok
+test status::tests::unlisted_object_type_is_rejected ... ok
+test status::tests::zero_profile_bound_is_rejected ... ok
+test status::tests::status_dispatch_round_trips_and_rejects_unknown_fields ... ok
+test tests::maps_patch_and_preserves_failure ... ok
+test tests::maps_push_and_emits_two_protocol_lines ... ok
+test status::tests::resolved_signer_debug_is_redacted ... ok
+test tests::rejects_run_substitution_and_preserves_timeout_failure ... ok
+test tests::rejects_stdout_noise_fields ... ok
+test tests::rejects_zero_poll_bound_before_provider_calls ... ok
+test tests::rejects_unknown_version ... ok
+test tests::production_composition_has_no_fixture_direct_nix_or_core_provider_edge ... ok
+test workflow::tests::profile_admits_trigger_only_and_rejects_fixture_or_collaboration ... ok
+test replay::tests::sqlite_replay_reserves_once_and_rejects_conflicting_transition ... ok
+test workflow::tests::uncertain_dispatch_recovers_without_redispatch_after_restart ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_radicle-2d18ebea341c6d13)
+
+running 2 tests
+test tests::runtime_selection_is_explicit_and_aspen_requires_exact_paths ... ok
+test tests::protocol_preflight_accepts_published_wire_and_rejects_malformed_input ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/mutation_native.rs (/tmp/kiln-onix-eval-target/debug/deps/mutation_native-18a41d5eb3816db0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/source_native.rs (/tmp/kiln-onix-eval-target/debug/deps/source_native-183c72d88274f2b0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/status_native.rs (/tmp/kiln-onix-eval-target/debug/deps/status_native-cf553b0e8c8c4a7c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_remote-a1d7d05ec2f3e208)
+
+running 3 tests
+test tests::missing_digest_fails_before_upload ... ok
+test tests::disconnect_after_acceptance_stays_unknown ... ok
+test tests::observation_mode_admission_blocks_unsupported_wait ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_sqlite-85c914c25efb1651)
+
+running 9 tests
+test tests::unsafe_profile_is_rejected_without_durability_claim ... ok
+test tests::pure_append_model_rejects_stale_duplicate_and_gap_inputs ... ok
+test tests::explicit_migration_accepts_known_edge_and_rejects_unknown_version ... ok
+test tests::interrupted_transaction_exposes_neither_side ... ok
+test tests::committed_events_and_outbox_replay_after_restart ... ok
+test tests::lease_survives_restart_and_expiry_requires_reconciliation ... ok
+test tests::retention_preserves_stream_revision_and_replays_from_exact_snapshot ... ok
+test tests::damaged_event_bytes_stop_replay ... ok
+test tests::lock_backup_snapshot_and_bounds_are_explicit ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_valence-e8726f6cf0b52c3c)
+
+running 7 tests
+test tests::profile_drift_and_kiln_builder_promotion_fail_closed ... ok
+test tests::missing_nonclaim_and_malformed_span_are_rejected ... ok
+test tests::pinned_producer_fixture_passes_independent_import ... ok
+test tests::unavailable_provider_does_not_promote_or_mutate_state ... ok
+test tests::attempt_projection_is_valid_recorded_only_evidence ... ok
+test tests::imported_success_does_not_change_canonical_state ... ok
+test tests::stale_subject_is_rejected ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_adapter_webhook-2679e310ccd1373a)
+
+running 8 tests
+test tests::dynamic_destination_and_oversized_body_stop_before_effects ... ok
+test tests::blake3_signature_is_deterministic_and_redacted ... ok
+test tests::private_address_stops_before_secret_access ... ok
+test tests::accepted_receiver_is_bounded_and_secret_debug_is_redacted ... ok
+test tests::rate_limit_tls_and_response_bounds_are_explicit ... ok
+test tests::redirect_and_definite_rejection_are_not_followed ... ok
+test tests::request_projection_is_deterministic_and_exact ... ok
+test tests::timeout_after_possible_acceptance_is_unknown_without_unsafe_retry ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_aspen_extension-af4af00648e36969)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_aspen_extension-928b0f0ed3a5aaf0)
+
+running 3 tests
+test tests::runtime_profile_arguments_reject_missing_duplicate_and_unsafe_values ... ok
+test tests::exact_non_default_runtime_profile_is_admitted ... ok
+test tests::runtime_profile_rejects_changed_invalid_missing_and_oversized_documents ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/callback.rs (/tmp/kiln-onix-eval-target/debug/deps/callback-7b2aae1a3f89bda6)
+
+running 3 tests
+test callback_checkpoints_recovers_drains_and_stops_with_generation_fencing ... ok
+test callback_accepts_valid_trigger_deterministically_and_denies_without_effects ... ok
+test callback_rejects_stale_authority_and_duplicate_completion ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hosted.rs (/tmp/kiln-onix-eval-target/debug/deps/hosted-75ab07a4aa148f92)
+
+running 4 tests
+test post_accept_disconnect_is_unknown_until_exact_reconciliation ... ok
+test local_service_accepts_rejects_replays_and_recovers_after_restart ... ok
+test process::separate_callback_process_accepts_canonical_input_and_rejects_bad_frames ... ok
+test process::native_host_frames_repeat_and_denials_release_no_effects ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/main.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln-1bdf770a1f88d58d)
+
+running 2 tests
+test tests::evidence_rejects_missing_input ... ok
+test tests::evidence_identity_is_deterministic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_codec-7058007695546e91)
+
+running 2 tests
+test tests::rejects_output_above_bound ... ok
+test tests::equal_values_have_equal_packed_identity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_conformance-cacbb75ed7703ba6)
+
+running 9 tests
+test tests::conformance_rejects_provider_substitution ... ok
+test tests::dependency_boundaries_reject_reference_runtime ... ok
+test tests::dependency_boundaries_reject_provider_runtime ... ok
+test tests::provider_contract_gate_rejects_adapter_owned_ports ... ok
+test tests::reusable_provider_conformance_covers_repeat_cancel_timeout_and_reconcile ... ok
+test tests::dependency_boundaries_reject_every_forbidden_edge ... ok
+test tests::reference_boundary_allows_docs_and_rejects_product_integration ... ok
+test tests::provider_contracts_have_one_application_owner ... ok
+test tests::dependency_boundaries_accept_current_core ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/core_contracts.rs (/tmp/kiln-onix-eval-target/debug/deps/core_contracts-cfe3fe7194dba954)
+
+running 10 tests
+test cursor_gap_is_explicit ... ok
+test consistent_publication_bundle_passes ... ok
+test cob_profile_and_fresh_plan_pass ... ok
+test cyclic_or_reversed_dependency_fails ... ok
+test exact_candidate_and_merge_preflight_pass ... ok
+test rollback_sequence_fails ... ok
+test unsupported_pause_dispatches_nothing ... ok
+test unknown_cob_schema_fails_closed ... ok
+test wait_predicate_is_read_only ... ok
+test status_filter_covers_every_exact_selection_dimension ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/provider_contract.rs (/tmp/kiln-onix-eval-target/debug/deps/provider_contract-51b8aac1ee05e12f)
+
+running 2 tests
+test undeclared_pause_fails_closed ... ok
+test declared_lifecycle_is_admitted ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_core-bf0dbe8b1d5ac75d)
+
+running 72 tests
+test cob::tests::detects_missing_initial_profile ... ok
+test build::tests::exact_build_observation_is_admitted ... ok
+test build::tests::stale_candidate_and_missing_products_are_rejected ... ok
+test cob::tests::complete_resolution_rejects_partial_heads ... ok
+test discovery::tests::terminal_classification_preserves_uncertainty ... ok
+test domain::tests::starts_run_deterministically ... ok
+test domain::tests::unknown_outcome_is_not_terminal_success ... ok
+test domain::tests::rejects_terminal_mutation ... ok
+test gating::tests::exact_gate_plan_is_admitted ... ok
+test gating::tests::failed_candidate_shrinks_window ... ok
+test gating::tests::exact_pass_and_block_map_to_candidate_results ... ok
+test gating::tests::serial_admission_never_speculates ... ok
+test gating::tests::speculative_admission_is_bounded_by_candidate_count ... ok
+test gating::tests::gate_plan_rejects_noncanonical_evidence_and_pipeline_drift ... ok
+test discovery::tests::duplicate_derivations_and_cycles_fail_closed ... ok
+test gating::tests::stale_result_does_not_apply ... ok
+test gating::tests::substituted_candidate_policy_and_receipt_facts_fail_closed ... ok
+test gating::tests::unknown_outcome_never_becomes_a_gate_result ... ok
+test hosting::qualification::tests::admits_complete_exact_cohort_with_only_bounded_local_claim ... ok
+test discovery::tests::exact_jobs_map_deterministically_with_dependencies ... ok
+test hosting::qualification::tests::bounded_claim_does_not_hide_added_release_authority ... ok
+test hosting::qualification::tests::complete_local_evidence_does_not_establish_global_durability ... ok
+test hosting::qualification::tests::duplicate_cannot_replace_missing_kind ... ok
+test hosting::qualification::tests::failed_gate_cannot_be_promoted_to_qualification ... ok
+test hosting::qualification::tests::individual_observation_cannot_be_spliced_from_another_cohort ... ok
+test hosting::qualification::tests::missing_observation_cannot_qualify ... ok
+test hosting::qualification::tests::stale_receipt_is_rejected_against_expected_cohort ... ok
+test hosting::qualification::tests::uncertain_case_cannot_be_promoted_to_success ... ok
+test hosting::qualification::tests::unsupported_receipt_version_is_not_admitted ... ok
+test hosting::tests::readonly_mirror_rejects_write ... ok
+test hosting::tests::published_profile_requires_rid ... ok
+test interchange::tests::builder_and_control_plane_are_distinct ... ok
+test interchange::tests::imported_success_has_no_state_authority ... ok
+test interchange::tests::projections_cannot_promote_authority ... ok
+test operations::tests::dominant_share_rejects_missing_capacity ... ok
+test provider::tests::failure_translation_preserves_each_class ... ok
+test provider::tests::admits_declared_operation ... ok
+test operations::tests::larger_share_ranks_first_for_equal_usage ... ok
+test provider::tests::rejects_hidden_fallback ... ok
+test provider::tests::rejects_observation_from_substituted_profile ... ok
+test remote::tests::cache_hit_without_output_is_not_success ... ok
+test remote::tests::capability_admission_is_value_based ... ok
+test remote::tests::disconnect_after_acceptance_is_unknown ... ok
+test remote::tests::equal_native_text_keeps_distinct_kinds ... ok
+test source::tests::admits_exact_jujutsu_commit ... ok
+test source::tests::admits_stable_local_git_resolution ... ok
+test source::tests::git_snapshot_manifest_is_deterministic ... ok
+test source::tests::git_snapshot_rejects_unsafe_duplicate_and_gitlink_entries ... ok
+test source::tests::local_git_profile_has_no_network_or_mutation_authority ... ok
+test source::tests::pijul_snapshot_is_deterministic_and_rejects_invalid_entries ... ok
+test source::tests::native_source_profiles_keep_distinct_identity_namespaces ... ok
+test source::tests::rejects_ambiguous_jujutsu_revision ... ok
+test trigger::tests::admits_matching_bounded_observation ... ok
+test trigger::tests::rejects_substitution_and_oversized_log_url ... ok
+test discovery::tests::observation_identity_and_gc_handoff_bind_exact_facts ... ok
+test trigger::tests::rejects_zero_poll_bound ... ok
+test types::tests::accepts_namespaced_external_identity ... ok
+test types::tests::rejects_oversized_identifier ... ok
+test task_ops::tests::admits_ready_task ... ok
+test workflow::tests::ordered_acyclic_plan_is_admitted ... ok
+test workflow::tests::cyclic_plan_is_rejected ... ok
+test workflow::tests::linked_completion_maps_to_success ... ok
+test source::tests::pijul_facts_bind_complete_stable_state ... ok
+test source::tests::narrow_source_profile_does_not_gain_forge_authority ... ok
+test source::tests::replayed_or_invalidly_signed_trigger_fails_closed ... ok
+test types::tests::rejects_malformed_content_identity ... ok
+test task_ops::tests::redacts_secret_value ... ok
+test workflow::tests::stale_attempt_is_rejected ... ok
+test source::tests::rejects_moved_or_unsupported_git_resolution ... ok
+test workflow::tests::paused_execution_cannot_claim_terminal_success ... ok
+test task_ops::tests::denies_delayed_task_without_time ... ok
+test discovery::tests::evaluator_cohort_drift_changes_observation_identity ... ok
+
+test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_nix_build-751f9472429e28f4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_nix_build-f10914e8c3a512ea)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/composition.rs (/tmp/kiln-onix-eval-target/debug/deps/composition-2955ac55f05e9b47)
+
+running 5 tests
+test task_drift_is_rejected ... ok
+test task_maps_to_exact_profile_and_plan ... ok
+test preflight_failure_stops_before_build ... ok
+test task_build_is_admitted_and_rooted ... ok
+test durable_state_round_trips_bound_profile ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/discovery_live.rs (/tmp/kiln-onix-eval-target/debug/deps/discovery_live-42ca228fb259fa82)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_observe_core-30327706bd8feb11)
+
+running 17 tests
+test tests::conformance_manifest_requires_all_cases ... ok
+test tests::encoded_bound_is_enforced ... ok
+test tests::complete_log_cursor_reports_empty_terminal_window ... ok
+test tests::attempt_detail_bounds_products_and_metrics ... ok
+test tests::nickel_profile_fixture_matches_rust_profile ... ok
+test tests::profile_admission_requires_declared_non_claims ... ok
+test tests::event_tail_rejects_non_tail_gap_and_ahead_windows ... ok
+test tests::profile_identity_is_stable_and_binds_non_claims ... ok
+test tests::event_tail_caps_and_reports_earlier_history ... ok
+test tests::unknown_state_revision_and_view_are_rejected ... ok
+test tests::identity_binds_request_state_window_and_profile ... ok
+test tests::run_detail_bounds_attempts ... ok
+test tests::log_range_reports_retained_gap_and_bounds ... ok
+test tests::run_list_caps_page_and_reports_more ... ok
+test tests::state_summary_is_deterministic_and_read_only ... ok
+test tests::unexpected_window_fact_is_rejected ... ok
+test tests::redaction_omits_fields_and_reports_them ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_provider_api-03906d13792f5058)
+
+running 2 tests
+test tests::infrastructure_outcomes_remain_distinct ... ok
+test tests::roles_remain_distinct ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_radicle_source_contract-b3b653a838cc6b94)
+
+running 10 tests
+test tests::contract_manifest_has_no_provider_runtime_dependency ... ok
+test tests::accepts_exact_parent_level_receipt ... ok
+test tests::contract_publishes_explicit_non_claims ... ok
+test tests::rejects_feature_and_verification_downgrades ... ok
+test tests::rejects_digest_and_snapshot_bound_failures ... ok
+test tests::rejects_floating_or_malformed_request_facts ... ok
+test tests::rejects_identity_and_revision_substitution ... ok
+test tests::rejects_zero_and_inconsistent_bounds ... ok
+test tests::rejects_moved_or_unexpected_signed_refs ... ok
+test tests::rejects_unknown_wire_fields ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/producer_fixtures.rs (/tmp/kiln-onix-eval-target/debug/deps/producer_fixtures-da7b04c9ffca7c1b)
+
+running 1 test
+test producer_fixtures_match_independent_admission ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/kiln_standalone-fef31e38d6b08d9a)
+
+running 9 tests
+test tests::client_deadline_does_not_change_attempt_outcome ... ok
+test tests::hold_wires_to_canonical_command_without_provider_effect ... ok
+test tests::bounded_log_survives_store_clone ... ok
+test tests::interruption_commits_nothing ... ok
+test tests::event_and_outbox_commit_together ... ok
+test tests::recovery_rejects_partial_log_metadata ... ok
+test tests::machine_status_output_is_versioned_and_bounded ... ok
+test tests::unknown_outcome_survives_recovery ... ok
+test tests::reference_profile_completes_accepted_and_rejected_runs ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/kiln-onix-eval-target/debug/deps/onix_radicle_cob_git_store-646b39f9e725120f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/git_store.rs (/tmp/kiln-onix-eval-target/debug/deps/git_store-b814e778eedfc327)
+
+running 4 tests
+test stale_exact_head_is_rejected_even_when_operation_ancestry_matches_current ... ok
+test malformed_symbolic_foreign_author_and_tampered_signatures_fail_closed ... ok
+test signed_cob_roundtrip_with_borrowed_repository_and_exact_update ... ok
+test bounded_scan_counts_distinct_ids_not_valid_namespace_refs ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+   Doc-tests kiln_adapter_aspen
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cairn
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cdevents
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_celld
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cob
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_git
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_github
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_http_observe
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_iroh
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_iroh_observe
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_jj
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_lattice
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_mantle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_nix
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_nix_eval
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_opentelemetry
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_pijul
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_radicle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_remote
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_sqlite
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_valence
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_webhook
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_aspen_extension
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_codec
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_conformance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_nix_build
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_observe_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_provider_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_radicle_source_contract
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_standalone
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests onix_radicle_cob_git_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+    Checking kiln-adapter-nix-eval v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix-eval)
+    Checking kiln-nix-build v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-nix-build)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.94s
+

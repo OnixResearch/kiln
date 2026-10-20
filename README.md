@@ -14,7 +14,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - authenticated Iroh workflow transport through a private local Unix proxy and worker-local Lattice endpoint;
 - exact Cairn gate request, process, result, and reconciliation admission;
 - exact Mantle build request, bounded process, product, log, and reconciliation admission;
-- exact stock Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
+- exact stock and separately selected Onix Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
 - packed Preserves and BLAKE3 canonical identity;
 - bounded, deterministic, read-only observation projection over admitted state with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities;
@@ -57,6 +57,13 @@ The full local release gate list, including `cairn release-readiness`, is in
 The committed, revision-verified imports cover direct and transitive workspace Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal workspace builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports. Standalone runtime products retain their separately reviewed source cohorts and acquisition boundaries.
 
 The [fresh standalone contributor check](.cairn/archive/1970-01-01-prepare-public-release/evidence/verification.md#current-standalone-contributor-recheck) records the exact public revision, acquisition environment, test/demo results, and bounded source-hygiene review.
+
+Onix Nickel/WASM discovery is an explicit optional profile, not the stock default.
+Provision its separate pinned cohort and run the real discovery rail using the
+[Onix procedure](docs/nix-eval-jobs-adapter.md#explicit-optional-onix-profile). The
+[immutable fixture receipt](runtime/onix-eval-cohort/jobset.source.json) records
+the imported OnixOS source. Core and stock-only builds do not acquire the Onix
+evaluator or plugin; passing discovery does not prove a build or deployment.
 
 Read `docs/architecture.md` for crate boundaries. Read `docs/observation-projection.md` for the bounded read-only observation model. Read `docs/http-observation.md` for the HTTPS view and SSE transport contract. Read `docs/iroh-observation.md` for the peer-verified iroh transport and equivalence contract. Read `docs/nix-build-adapter.md` for the exact local Nix derivation build provider. Read `runtime/kiln-aspen-host/README.md` for the deployable Aspen host composition and its bounded claims. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-nix-provider.md` for bounded hosted Nix checks and durable reports. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary. Read `docs/aspen-runtime-backend.md` for Aspen setup, ownership, recovery, status, and rollout gates.
 

@@ -1,0 +1,80 @@
+kiln-nix-eval-jobs-cohort>            40|           name = builtins.wasm;
+kiln-nix-eval-jobs-cohort>              |                  ^
+kiln-nix-eval-jobs-cohort>            41|           system = System;
+kiln-nix-eval-jobs-cohort>        Did you mean warn?
+building '/nix/store/sp6kw0gifddmwcsmg573f8996qy0fsld-octet-consumer-check.drv'...
+octet-consumer-check>    Compiling proc-macro2 v1.0.107
+octet-consumer-check>    Compiling unicode-ident v1.0.24
+octet-consumer-check>    Compiling quote v1.0.47
+octet-consumer-check>    Compiling find-msvc-tools v0.1.11
+octet-consumer-check>    Compiling serde_core v1.0.229
+octet-consumer-check>    Compiling shlex v2.0.1
+octet-consumer-check>    Compiling serde v1.0.229
+octet-consumer-check>     Checking cfg-if v1.0.4
+octet-consumer-check>     Checking constant_time_eq v0.4.2
+octet-consumer-check>     Checking cpufeatures v0.3.1
+octet-consumer-check>    Compiling zmij v1.0.23
+octet-consumer-check>     Checking arrayvec v0.7.8
+octet-consumer-check>    Compiling serde_json v1.0.151
+octet-consumer-check>     Checking itoa v1.0.18
+octet-consumer-check>     Checking memchr v2.8.3
+octet-consumer-check>    Compiling cfg_if v1.0.4
+octet-consumer-check>    Compiling cpufeatures v0.3.1
+octet-consumer-check>    Compiling constant_time_eq v0.4.2
+octet-consumer-check>    Compiling unicode_ident v1.0.24
+octet-consumer-check>    Compiling itoa v1.0.18
+octet-consumer-check>    Compiling cc v1.4.4
+octet-consumer-check>    Compiling shlex v2.0.1
+octet-consumer-check>    Compiling build-script-build v1.0.151
+octet-consumer-check>    Compiling arrayvec v0.7.8
+octet-consumer-check>    Compiling find_msvc_tools v0.1.11
+octet-consumer-check>    Compiling build-script-build v1.0.47
+octet-consumer-check>    Compiling build-script-build v1.0.229
+octet-consumer-check>    Compiling build-script-build v1.0.23
+octet-consumer-check>    Compiling build-script-build v1.0.229
+octet-consumer-check>    Compiling build-script-build v1.0.107
+octet-consumer-check>    Compiling zmij v1.0.23
+octet-consumer-check>    Compiling memchr v2.8.3
+octet-consumer-check>    Compiling proc_macro2 v1.0.107
+octet-consumer-check>    Compiling syn v3.0.4
+octet-consumer-check>    Compiling quote v1.0.47
+octet-consumer-check>    Compiling cc v1.4.4
+octet-consumer-check>    Compiling blake3 v1.8.7
+octet-consumer-check>    Compiling build-script-build v1.8.7
+octet-consumer-check>    Compiling blake3 v1.8.7
+octet-consumer-check>    Compiling serde_core v1.0.229
+octet-consumer-check>    Compiling syn v3.0.4   Compiling serde_derive v1.0.229
+octet-consumer-check> 
+octet-consumer-check>    Compiling serde_json v1.0.151
+octet-consumer-check>    Compiling serde_derive v1.0.229
+octet-consumer-check>    Compiling serde v1.0.229
+octet-consumer-check>     Checking kiln-core v0.1.0 (/nix/store/ynbs99ffjkqs9wc4ffq3fkakanb093ka-source/crates/kiln-core)
+octet-consumer-check>    Compiling kiln_core v0.1.0
+octet-consumer-check>     Checking kiln-provider-api v0.1.0 (/nix/store/ynbs99ffjkqs9wc4ffq3fkakanb093ka-source/crates/kiln-provider-api)
+octet-consumer-check>    Compiling kiln_provider_api v0.1.0
+octet-consumer-check>     Checking kiln-radicle-broker-wire-octet v0.1.0 (/build/source/crates/kiln-radicle-broker-wire-octet)
+octet-consumer-check>    Compiling kiln_radicle_broker_wire_octet v0.1.0
+octet-consumer-check>    Compiling kiln_radicle_broker_wire_octet v0.1.0
+octet-consumer-check>     Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.58s
+octet-consumer-check>     Finished checking
+octet-consumer-check> --- octet summary ---
+octet-consumer-check> Status: clean
+octet-consumer-check> Findings: 0
+octet-consumer-check> Warnings: 0
+octet-consumer-check> Errors: 0
+octet-consumer-check> Autofixable: 0
+octet-consumer-check> Tool: cargo-octet 0.1.0
+octet-consumer-check> Toolchain: nightly-2026-03-21-x86_64-unknown-linux-gnu
+octet-consumer-check> Profile: workspace-metadata
+octet-consumer-check> Config hash: b3:341d76ac1f8ffdee227fdf59d72438da55774ec69499ae40fdeafeff06cb1063
+octet-consumer-check> Profile hash: b3:442258ca787c7203a62fb47607b48c81f6a35204b21ca6a8d64723338c6e6e5f
+octet-consumer-check> ---
+building '/nix/store/8i9d04vq4jg69dia1c2h9cdzjjwzygf0-kiln-octet.drv'...
+/nix/store/yf13n8f2hza2zb7l7sv964f845l2dw2w-kiln-nickel
+/nix/store/ddm2cad9yrh3dfi9qkm4jal9j11iz25h-kiln-format
+/nix/store/md3sj70zh602vpjdjj5v2x5wgg05ybq8-kiln-no-std-0.1.0
+/nix/store/br9mzzd9pi11h5jxaq29w2bra03iknsr-kiln-nix-eval-jobs-cohort
+/nix/store/h78bxiw6n5dvsh21gqqa0asphzrmy459-kiln-octet
+
+
+Wall time: 49.29 seconds

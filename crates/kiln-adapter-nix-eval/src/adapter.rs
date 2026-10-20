@@ -380,7 +380,11 @@ fn interpret_process(profile: &NixEvalProfile, output: NixEvalProcessOutput) -> 
 }
 
 fn decode_stream(profile: &NixEvalProfile, bytes: &[u8]) -> (StreamAdmission, bool) {
-    let mut decoder = IncrementalDecoder::new(profile.limits);
+    let mut decoder = if profile.evaluator_cohort.is_some() {
+        IncrementalDecoder::onix(profile.limits)
+    } else {
+        IncrementalDecoder::new(profile.limits)
+    };
     for chunk in bytes.chunks(STREAM_PARSE_CHUNK_BYTES) {
         if let Err(error) = decoder.push(chunk) {
             return (invalid_stream(error), false);
@@ -452,6 +456,50 @@ fn observe_gc_roots<R: NixEvalRuntime>(
 
 // r[impl kiln.nix_eval_jobs.cohort_admission]
 fn verify_runtime<R: NixEvalRuntime>(profile: &NixEvalProfile, runtime: &R) -> PortResult<()> {
+    if profile.evaluator_cohort.is_some() {
+        use crate::onix::{denied, verify_file, verify_onix_files};
+        use crate::onix_pins::{ONIX_SOURCE_BLAKE3, ONIX_SOURCE_PATH};
+        verify_file(
+            runtime,
+            &profile.runtime.executable_path,
+            profile.runtime.executable_identity.as_str(),
+            profile.limits.max_executable_bytes,
+            "onix_executable_drift",
+        )?;
+        verify_file(
+            runtime,
+            &profile.runtime.cohort_manifest_path,
+            profile.runtime.cohort_manifest_identity.as_str(),
+            profile.limits.max_manifest_bytes,
+            "onix_manifest_drift",
+        )?;
+        let manifest = runtime
+            .read_file_no_follow(
+                &profile.runtime.cohort_manifest_path,
+                profile.limits.max_manifest_bytes,
+            )
+            .map_err(|_| {
+                denied(
+                    "onix_manifest_drift",
+                    "published manifest cannot be read within its no-follow bound",
+                )
+            })?;
+        admit_cohort_manifest(profile, &manifest).map_err(|_| {
+            denied(
+                "onix_manifest_drift",
+                "published manifest schema or provenance differs",
+            )
+        })?;
+        verify_onix_files(runtime)?;
+        verify_file(
+            runtime,
+            &Path::new(ONIX_SOURCE_PATH).join("flake.nix"),
+            ONIX_SOURCE_BLAKE3,
+            profile.limits.max_manifest_bytes,
+            "onix_source_drift",
+        )?;
+        return Ok(());
+    }
     let executable = runtime.file_identity(
         &profile.runtime.executable_path,
         profile.limits.max_executable_bytes,

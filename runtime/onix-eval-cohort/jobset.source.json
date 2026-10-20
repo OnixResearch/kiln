@@ -1,0 +1,10 @@
+{
+  "source_repository": "ssh://git@github.com/onixcomputer/onix-modules.git",
+  "source_commit": "69a131d71a509f9c57646b71113f75f39ab637b1",
+  "source_path": "fixtures/kiln-wasm-discovery/flake.nix",
+  "source_blake3": "dbb21080c65c18ce318cf95106f8b112edb1c29219700f846d0721c77d5abbfb",
+  "source_license": "AGPL-3.0-or-later",
+  "importer": "scripts/import-onix-discovery-fixture.sh",
+  "scope": "One unmodified, commit-bound discovery-only flake; no sibling checkout is required to build Kiln.",
+  "nonclaims": "Import identity is not source trust, remote publication, build success, deployment safety, or release eligibility."
+}

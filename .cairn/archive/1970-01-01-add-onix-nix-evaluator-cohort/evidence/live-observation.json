@@ -1,0 +1,187 @@
+{
+  "effect_id": "onix-live-discovery",
+  "evaluation_id": "onix-live-evaluation",
+  "project_id": "onix-live-project",
+  "pipeline_revision_id": "onix-live-pipeline",
+  "discovery_policy_id": "onix-live-policy",
+  "provider_profile": "onix-nix-eval-v1",
+  "idempotency_key": "dbb21080c65c18ce318cf95106f8b112edb1c29219700f846d0721c77d5abbfb",
+  "source_identity": "dbb21080c65c18ce318cf95106f8b112edb1c29219700f846d0721c77d5abbfb",
+  "observation_identity": "ed75af9d9497d933af4e98b87f1daae255e32555ccdcba137368eee9687a9e87",
+  "terminal": "Complete",
+  "jobs": [
+    {
+      "attribute": "report",
+      "attribute_path": [
+        "report"
+      ],
+      "name": "onix-nickel-report",
+      "system": "x86_64-linux",
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/4in2n531shagj4a37i8mnsd305hxxi70-onix-nickel-report.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/abdl8slwpwk9jn68qjj05gdcvs5gmws1-onix-nickel-report"
+          }
+        }
+      ],
+      "input_derivations": [
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"
+        }
+      ],
+      "metadata_identity": null,
+      "cache": "NotBuilt"
+    },
+    {
+      "attribute": "seed",
+      "attribute_path": [
+        "seed"
+      ],
+      "name": "onix-nickel-seed",
+      "system": "x86_64-linux",
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/7r418gp3l4sziyg72q2lk7x39103glz2-onix-nickel-seed"
+          }
+        }
+      ],
+      "input_derivations": [],
+      "metadata_identity": null,
+      "cache": "NotBuilt"
+    }
+  ],
+  "job_errors": [
+    {
+      "attribute": "broken",
+      "diagnostic": {
+        "code": "nix_job_evaluation_error",
+        "field": "nix_eval.job",
+        "message": "error:\n       … while calling the 'throw' builtin\n         at «path:/nix/store/yxjjwvja5c8qfz10b6qh14bjd2bwrpww-kiln-onix-discovery-jobset-v1?lastModified=1&narHash=sha256-zpLxYG31qrwH%2BRS4cCEG2LfJfJie5P%2ByjdjKiAI%2BGLo%3D»/flake.nix:58:18:\n           57|         inherit seed report;\n           58|         broken = throw \"kiln-wasm-discovery: intentional independent job error\";\n             |                  ^\n           59|       };\n\n       error: kiln-wasm-discovery: intentional independent job error"
+      },
+      "fatal": false
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "discovered:221b5037a99f8f92daae436f3d3d0358f39172083a4300abce73fdb2dec4b6de",
+      "mapping_identity": "221b5037a99f8f92daae436f3d3d0358f39172083a4300abce73fdb2dec4b6de",
+      "build_provider": "nix-build-v1",
+      "native_attribute": {
+        "contract_version": 1,
+        "provider_namespace": "nix-eval-jobs",
+        "native_kind": "attribute",
+        "native_id": "seed"
+      },
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/7r418gp3l4sziyg72q2lk7x39103glz2-onix-nickel-seed"
+          }
+        }
+      ],
+      "dependencies": [],
+      "cache": "NotBuilt"
+    },
+    {
+      "task_id": "discovered:2931c7a0ecb27705a135b070d2f104ae337884281fce0c07a6ddedcd9796be1f",
+      "mapping_identity": "2931c7a0ecb27705a135b070d2f104ae337884281fce0c07a6ddedcd9796be1f",
+      "build_provider": "nix-build-v1",
+      "native_attribute": {
+        "contract_version": 1,
+        "provider_namespace": "nix-eval-jobs",
+        "native_kind": "attribute",
+        "native_id": "report"
+      },
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/4in2n531shagj4a37i8mnsd305hxxi70-onix-nickel-report.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/abdl8slwpwk9jn68qjj05gdcvs5gmws1-onix-nickel-report"
+          }
+        }
+      ],
+      "dependencies": [
+        "discovered:221b5037a99f8f92daae436f3d3d0358f39172083a4300abce73fdb2dec4b6de"
+      ],
+      "cache": "NotBuilt"
+    }
+  ],
+  "completion": {
+    "stream_complete": true,
+    "stream_valid": true,
+    "stderr_within_bound": true,
+    "gc_roots_ready": true,
+    "fatal_job_error": false,
+    "process": {
+      "Exited": {
+        "status": 0
+      }
+    }
+  },
+  "gc_roots": {
+    "directory": {
+      "contract_version": 1,
+      "provider_namespace": "nix",
+      "native_kind": "gc-root-directory",
+      "native_id": "/tmp/nix-shell.lsYOVE/.tmpQSYiRy/roots/4ec1833c7e66f4040da109704ddedd8554e34b7f55bc7d527bb8d4608a8904cf"
+    },
+    "derivations": [
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/4in2n531shagj4a37i8mnsd305hxxi70-onix-nickel-report.drv"
+      },
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/785mb3k878rgn0msqwxd1999cmx6m1ds-onix-nickel-seed.drv"
+      }
+    ],
+    "state": "Released"
+  }
+}

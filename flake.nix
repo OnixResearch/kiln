@@ -784,6 +784,7 @@
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
+            nickel export --field profile config/nix-eval-jobs-onix-profile.ncl >/dev/null
             nickel export config/observation-profile.ncl >/dev/null
             nickel export --format json config/observation-profile.ncl > observation-profile.json
             cmp observation-profile.json fixtures/observation/profile-v1.json

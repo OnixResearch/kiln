@@ -49,6 +49,8 @@ pub enum NixEvalProcessOutput {
 pub trait NixEvalRuntime {
     fn file_identity(&self, path: &Path, max_bytes: u64) -> PortResult<ContentId>;
     fn read_file(&self, path: &Path, max_bytes: u64) -> PortResult<Vec<u8>>;
+    fn file_identity_no_follow(&self, path: &Path, max_bytes: u64) -> PortResult<ContentId>;
+    fn read_file_no_follow(&self, path: &Path, max_bytes: u64) -> PortResult<Vec<u8>>;
     fn prepare_gc_root_directory(&mut self, path: &Path) -> PortResult<()>;
     fn list_gc_roots(&self, path: &Path, max_roots: usize) -> PortResult<Vec<ExternalRef>>;
     fn cleanup_gc_root_directory(&mut self, path: &Path, max_roots: usize) -> PortResult<()>;
@@ -70,6 +72,42 @@ impl NixEvalRuntime for BoundedNixEvalRuntime {
 
     fn read_file(&self, path: &Path, max_bytes: u64) -> PortResult<Vec<u8>> {
         read_bounded_file(path, max_bytes)
+    }
+
+    fn file_identity_no_follow(&self, path: &Path, max_bytes: u64) -> PortResult<ContentId> {
+        hash_file(open_no_follow(path)?, max_bytes)
+    }
+
+    fn read_file_no_follow(&self, path: &Path, max_bytes: u64) -> PortResult<Vec<u8>> {
+        let mut file = open_no_follow(path)?;
+        let metadata = file.metadata().map_err(|_| {
+            infrastructure("nix_eval_file_metadata", "file metadata is unavailable")
+        })?;
+        if max_bytes == 0 || !metadata.is_file() || metadata.len() > max_bytes {
+            return Err(domain(
+                "nix_eval_file_bound",
+                "nix_eval.file",
+                "file is not a bounded regular file",
+            ));
+        }
+        let mut bytes = Vec::new();
+        (&mut file)
+            .take(max_bytes.saturating_add(1))
+            .read_to_end(&mut bytes)
+            .map_err(|_| {
+                infrastructure(
+                    "nix_eval_file_read",
+                    "file could not be read under its admitted bound",
+                )
+            })?;
+        if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
+            return Err(domain(
+                "nix_eval_file_bound",
+                "nix_eval.file",
+                "file exceeds its named byte bound",
+            ));
+        }
+        Ok(bytes)
     }
 
     fn prepare_gc_root_directory(&mut self, path: &Path) -> PortResult<()> {
@@ -205,12 +243,54 @@ fn hash_bounded_file(path: &Path, max_bytes: u64) -> PortResult<ContentId> {
             "file hashing needs an absolute path and a positive bound",
         ));
     }
-    let mut file = File::open(path).map_err(|_| {
+    let file = File::open(path).map_err(|_| {
         infrastructure(
             "nix_eval_file_open",
             "file is unavailable at the admitted path",
         )
     })?;
+    hash_file(file, max_bytes)
+}
+
+#[cfg(unix)]
+fn open_no_follow(path: &Path) -> PortResult<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    if !path.is_absolute() {
+        return Err(domain(
+            "nix_eval_file_bound",
+            "nix_eval.file",
+            "file path must be absolute",
+        ));
+    }
+    fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+        .map_err(|_| {
+            infrastructure(
+                "nix_eval_file_open",
+                "file cannot be opened without following final symlinks",
+            )
+        })
+}
+
+#[cfg(not(unix))]
+fn open_no_follow(_path: &Path) -> PortResult<File> {
+    Err(domain(
+        "nix_eval_platform_unsupported",
+        "nix_eval.file",
+        "no-follow file observations require Unix",
+    ))
+}
+
+fn hash_file(mut file: File, max_bytes: u64) -> PortResult<ContentId> {
+    if max_bytes == 0 {
+        return Err(domain(
+            "nix_eval_file_bound",
+            "nix_eval.file",
+            "file hashing needs a positive bound",
+        ));
+    }
     let metadata = file
         .metadata()
         .map_err(|_| infrastructure("nix_eval_file_metadata", "file metadata is unavailable"))?;

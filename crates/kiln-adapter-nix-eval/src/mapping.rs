@@ -11,11 +11,10 @@ use kiln_core::types::Diagnostic;
 use kiln_provider_api::{PortFailure, PortResult};
 use serde::{Deserialize, Serialize};
 
-use crate::profile::{
-    COHORT_MANIFEST_SCHEMA, NixEvalProfile, PINNED_ADAPTER_VERSION, PINNED_NIX_REVISION,
-    PINNED_NIX_VERSION, PINNED_NIXPKGS_REVISION, PINNED_PLATFORM, PINNED_SOURCE_VERSION,
-    PINNED_UPSTREAM_REVISION,
+use crate::onix::{
+    ONIX_PROFILE, OnixProvenance, admit_onix_cohort, admit_onix_source, onix_provenance,
 };
+use crate::profile::{COHORT_MANIFEST_SCHEMA, NixEvalProfile, admit_profile};
 use crate::runtime::ProcessInvocation;
 use crate::wire::StreamAdmission;
 
@@ -35,9 +34,12 @@ pub struct CohortManifest {
     pub nixpkgs_revision: String,
     pub platform: String,
     pub executable: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub onix: Option<OnixProvenance>,
 }
 
 pub fn admit_cohort_manifest(profile: &NixEvalProfile, bytes: &[u8]) -> PortResult<CohortManifest> {
+    admit_profile(profile)?;
     let manifest: CohortManifest = serde_json::from_slice(bytes).map_err(|_| {
         domain(
             "nix_eval_manifest_schema",
@@ -46,13 +48,13 @@ pub fn admit_cohort_manifest(profile: &NixEvalProfile, bytes: &[u8]) -> PortResu
         )
     })?;
     if manifest.schema != COHORT_MANIFEST_SCHEMA
-        || manifest.upstream_revision != PINNED_UPSTREAM_REVISION
-        || manifest.adapter_version != PINNED_ADAPTER_VERSION
-        || manifest.source_version != PINNED_SOURCE_VERSION
-        || manifest.nix_revision != PINNED_NIX_REVISION
-        || manifest.nix_version != PINNED_NIX_VERSION
-        || manifest.nixpkgs_revision != PINNED_NIXPKGS_REVISION
-        || manifest.platform != PINNED_PLATFORM
+        || manifest.upstream_revision != profile.upstream_revision
+        || manifest.adapter_version != profile.adapter_version
+        || manifest.source_version != profile.source_version
+        || manifest.nix_revision != profile.nix_revision
+        || manifest.nix_version != profile.nix_version
+        || manifest.nixpkgs_revision != profile.nixpkgs_revision
+        || manifest.platform != profile.platform
         || manifest.executable != profile.runtime.executable_path.to_string_lossy()
     {
         return Err(domain(
@@ -61,14 +63,45 @@ pub fn admit_cohort_manifest(profile: &NixEvalProfile, bytes: &[u8]) -> PortResu
             "cohort manifest does not bind the selected executable and evaluator versions",
         ));
     }
+    let expected_onix = if profile.evaluator_cohort.is_some() {
+        Some(onix_provenance()?)
+    } else {
+        None
+    };
+    if manifest.onix != expected_onix {
+        return Err(domain(
+            "nix_eval_manifest_cohort",
+            "nix_eval.cohort_manifest",
+            "manifest Onix provenance differs from the admitted source cohort",
+        ));
+    }
     Ok(manifest)
 }
 
 // r[impl kiln.nix_eval_jobs.input_admission]
 pub fn admit_plan(profile: &NixEvalProfile, plan: &DiscoveryEffectPlan) -> PortResult<()> {
+    if profile.evaluator_cohort.is_none()
+        && (plan.evaluator_cohort.is_some() || plan.provider_profile.as_str() == ONIX_PROFILE)
+    {
+        return Err(domain(
+            "nix_eval_unsupported_evaluator",
+            "nix_eval.plan.evaluator_cohort",
+            "stock Nix does not support an Onix evaluator requirement; select the explicit Onix profile",
+        ));
+    }
+    if profile.evaluator_cohort.is_some() {
+        let cohort = plan.evaluator_cohort.as_ref().ok_or_else(|| {
+            domain(
+                "onix_cohort_missing",
+                "nix_eval.plan.evaluator_cohort",
+                "explicit Onix evaluator facts are required",
+            )
+        })?;
+        admit_onix_cohort(cohort)?;
+        admit_onix_source(plan)?;
+    }
     validate_discovery_plan(plan).map_err(PortFailure::Domain)?;
     if plan.provider_profile != profile.provider.profile_id
-        || plan.evaluator_cohort.is_some()
         || plan.source_mode != DiscoverySourceMode::Flake
         || plan.system.as_str() != profile.platform
         || plan.options.partial_admission != profile.policy.partial_admission
@@ -133,7 +166,11 @@ pub fn invocation(
         OsString::from("--max-memory-size"),
         OsString::from(plan.options.max_memory_mebibytes.to_string()),
         OsString::from("--extra-experimental-features"),
-        OsString::from(EXPERIMENTAL_FEATURES),
+        OsString::from(if profile.evaluator_cohort.is_some() {
+            "flakes nix-command wasm-builtin"
+        } else {
+            EXPERIMENTAL_FEATURES
+        }),
     ];
     if plan.options.include_metadata {
         args.push(OsString::from("--meta"));

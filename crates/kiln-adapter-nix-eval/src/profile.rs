@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+use kiln_core::discovery::DiscoveryEvaluatorCohort;
 use kiln_core::domain::Outcome;
 use kiln_core::provider::{
     CapabilityProfile, Operation, OperationRequest, ProviderLimits, ProviderRole, admit_operation,
@@ -10,6 +11,13 @@ use kiln_core::types::{
 };
 use kiln_provider_api::{PortFailure, PortResult, role_matches_port};
 use serde::{Deserialize, Serialize};
+
+use crate::onix::{
+    ONIX_ADAPTER_VERSION, ONIX_EVALUATOR_REVISION, ONIX_EVALUATOR_SOURCE, ONIX_EXECUTABLE_BLAKE3,
+    ONIX_EXECUTABLE_PATH, ONIX_FORK_REVISION, ONIX_FORK_SOURCE, ONIX_NIX_VERSION,
+    ONIX_NIXPKGS_REVISION, ONIX_PROFILE, ONIX_SOURCE_VERSION, admit_onix_cohort, onix_cohort,
+};
+use crate::onix_pins::{ONIX_MANIFEST_BLAKE3, ONIX_MANIFEST_PATH};
 
 pub const PINNED_UPSTREAM_SOURCE: &str = "ssh://git@github.com/NixOS/nix-eval-jobs.git";
 pub const PINNED_UPSTREAM_REVISION: &str = "a0cd02231c58974a6b5aaa3712069b071047162e";
@@ -44,6 +52,20 @@ pub const REQUIRED_NON_CLAIMS: &[&str] = &[
     "stock Nix cohort evidence does not prove Onix Nix compatibility",
     "discovery observation does not prove reproducibility",
     "discovery observation does not establish release readiness",
+];
+
+pub const ONIX_REQUIRED_NON_CLAIMS: &[&str] = &[
+    "discovery observation does not prove Nix or Nickel evaluation correctness",
+    "source identity does not prove source trust",
+    "task mapping does not prove complete dependency semantics",
+    "cache advisory does not prove cache truth or output presence",
+    "discovery observation does not prove build execution or output correctness",
+    "exact Onix fixture compatibility does not prove general stock Nix compatibility",
+    "discovery observation does not prove reproducibility",
+    "discovery observation does not establish release readiness",
+    "local process execution does not prove hostile-code confinement",
+    "source-defined Wasm handshake does not prove a versioned public host ABI",
+    "owner-approved package review source does not establish a production release",
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -113,6 +135,8 @@ pub struct NixEvalProfile {
     pub bounded_exec_revision: String,
     pub bounded_exec_license: String,
     pub provider: CapabilityProfile,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evaluator_cohort: Option<DiscoveryEvaluatorCohort>,
     pub runtime: NixEvalRuntimeBinding,
     pub policy: NixEvalPolicy,
     pub limits: NixEvalLimits,
@@ -125,16 +149,72 @@ impl NixEvalProfile {
         runtime: NixEvalRuntimeBinding,
         limits: NixEvalLimits,
     ) -> PortResult<Self> {
+        if profile_id.as_str() == ONIX_PROFILE {
+            return Err(domain(
+                "nix_eval_unsupported_evaluator",
+                "nix_eval.profile",
+                "Onix requires the explicit Onix constructor",
+            ));
+        }
+        Self::cohort(profile_id, runtime, limits, false)
+    }
+
+    fn cohort(
+        profile_id: ProviderProfileId,
+        runtime: NixEvalRuntimeBinding,
+        limits: NixEvalLimits,
+        onix: bool,
+    ) -> PortResult<Self> {
+        let revision = if onix {
+            ONIX_EVALUATOR_REVISION
+        } else {
+            PINNED_UPSTREAM_REVISION
+        };
         Ok(Self {
-            upstream_source: PINNED_UPSTREAM_SOURCE.to_string(),
-            upstream_revision: PINNED_UPSTREAM_REVISION.to_string(),
+            upstream_source: if onix {
+                ONIX_EVALUATOR_SOURCE
+            } else {
+                PINNED_UPSTREAM_SOURCE
+            }
+            .to_string(),
+            upstream_revision: revision.to_string(),
             upstream_license: PINNED_UPSTREAM_LICENSE.to_string(),
-            adapter_version: PINNED_ADAPTER_VERSION.to_string(),
-            source_version: PINNED_SOURCE_VERSION.to_string(),
-            nix_source: PINNED_NIX_SOURCE.to_string(),
-            nix_revision: PINNED_NIX_REVISION.to_string(),
-            nix_version: PINNED_NIX_VERSION.to_string(),
-            nixpkgs_revision: PINNED_NIXPKGS_REVISION.to_string(),
+            adapter_version: if onix {
+                ONIX_ADAPTER_VERSION
+            } else {
+                PINNED_ADAPTER_VERSION
+            }
+            .to_string(),
+            source_version: if onix {
+                ONIX_SOURCE_VERSION
+            } else {
+                PINNED_SOURCE_VERSION
+            }
+            .to_string(),
+            nix_source: if onix {
+                ONIX_FORK_SOURCE
+            } else {
+                PINNED_NIX_SOURCE
+            }
+            .to_string(),
+            nix_revision: if onix {
+                ONIX_FORK_REVISION
+            } else {
+                PINNED_NIX_REVISION
+            }
+            .to_string(),
+            nix_version: if onix {
+                ONIX_NIX_VERSION
+            } else {
+                PINNED_NIX_VERSION
+            }
+            .to_string(),
+            nixpkgs_revision: if onix {
+                ONIX_NIXPKGS_REVISION
+            } else {
+                PINNED_NIXPKGS_REVISION
+            }
+            .to_string(),
             platform: PINNED_PLATFORM.to_string(),
             cohort_manifest_schema: COHORT_MANIFEST_SCHEMA.to_string(),
             bounded_exec_source: PINNED_BOUNDED_EXEC_SOURCE.to_string(),
@@ -144,11 +224,7 @@ impl NixEvalProfile {
                 contract_version: CONTRACT_VERSION_V1,
                 profile_id,
                 role: ProviderRole::Discovery,
-                namespace: ExternalRef::new(
-                    "nix-eval-jobs",
-                    "discovery-provider",
-                    PINNED_UPSTREAM_REVISION,
-                )?,
+                namespace: ExternalRef::new("nix-eval-jobs", "discovery-provider", revision)?,
                 operations: required_operations(),
                 outcomes: required_outcomes(),
                 limits: ProviderLimits {
@@ -157,14 +233,26 @@ impl NixEvalProfile {
                     max_in_flight: limits.max_in_flight,
                 },
             },
+            evaluator_cohort: if onix { Some(onix_cohort()?) } else { None },
             runtime,
             policy: pinned_policy(),
             limits,
-            required_non_claims: REQUIRED_NON_CLAIMS
-                .iter()
-                .map(|claim| (*claim).to_string())
-                .collect(),
+            required_non_claims: if onix {
+                ONIX_REQUIRED_NON_CLAIMS
+            } else {
+                REQUIRED_NON_CLAIMS
+            }
+            .iter()
+            .map(|claim| (*claim).to_string())
+            .collect(),
         })
+    }
+
+    // r[impl kiln.nix_eval_jobs_onix.profile]
+    pub fn onix(runtime: NixEvalRuntimeBinding, limits: NixEvalLimits) -> PortResult<Self> {
+        let profile = Self::cohort(ProviderProfileId::new(ONIX_PROFILE)?, runtime, limits, true)?;
+        admit_profile(&profile)?;
+        Ok(profile)
     }
 }
 
@@ -172,15 +260,81 @@ impl NixEvalProfile {
 // r[impl kiln.nix_eval_jobs.input_admission]
 // r[impl kiln.nix_eval_jobs.onix_boundary]
 pub fn admit_profile(profile: &NixEvalProfile) -> PortResult<()> {
-    if profile.upstream_source != PINNED_UPSTREAM_SOURCE
-        || profile.upstream_revision != PINNED_UPSTREAM_REVISION
+    let onix = profile.evaluator_cohort.is_some();
+    if let Some(cohort) = &profile.evaluator_cohort {
+        if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+            return Err(domain(
+                "onix_platform_unsupported",
+                "nix_eval.profile",
+                "the measured Onix evaluator cohort requires x86_64 Linux",
+            ));
+        }
+        if profile.provider.profile_id.as_str() != ONIX_PROFILE {
+            return Err(domain(
+                "nix_eval_unsupported_evaluator",
+                "nix_eval.profile",
+                "Onix requires its explicit provider profile",
+            ));
+        }
+        admit_onix_cohort(cohort)?;
+        if profile.provider.namespace.provider_namespace.as_str() != "nix-eval-jobs"
+            || profile.provider.namespace.native_kind.as_str() != "discovery-provider"
+            || profile.provider.namespace.native_id.as_str() != ONIX_EVALUATOR_REVISION
+        {
+            return Err(domain(
+                "onix_profile_mismatch",
+                "nix_eval.profile",
+                "Onix provider namespace differs from its source revision",
+            ));
+        }
+    } else if profile.provider.profile_id.as_str() == ONIX_PROFILE {
+        return Err(domain(
+            "nix_eval_unsupported_evaluator",
+            "nix_eval.profile",
+            "Onix provider profile requires exact evaluator facts",
+        ));
+    }
+    let (
+        upstream_source,
+        upstream_revision,
+        adapter_version,
+        source_version,
+        nix_source,
+        nix_revision,
+        nix_version,
+        nixpkgs_revision,
+    ) = if onix {
+        (
+            ONIX_EVALUATOR_SOURCE,
+            ONIX_EVALUATOR_REVISION,
+            ONIX_ADAPTER_VERSION,
+            ONIX_SOURCE_VERSION,
+            ONIX_FORK_SOURCE,
+            ONIX_FORK_REVISION,
+            ONIX_NIX_VERSION,
+            ONIX_NIXPKGS_REVISION,
+        )
+    } else {
+        (
+            PINNED_UPSTREAM_SOURCE,
+            PINNED_UPSTREAM_REVISION,
+            PINNED_ADAPTER_VERSION,
+            PINNED_SOURCE_VERSION,
+            PINNED_NIX_SOURCE,
+            PINNED_NIX_REVISION,
+            PINNED_NIX_VERSION,
+            PINNED_NIXPKGS_REVISION,
+        )
+    };
+    if profile.upstream_source != upstream_source
+        || profile.upstream_revision != upstream_revision
         || profile.upstream_license != PINNED_UPSTREAM_LICENSE
-        || profile.adapter_version != PINNED_ADAPTER_VERSION
-        || profile.source_version != PINNED_SOURCE_VERSION
-        || profile.nix_source != PINNED_NIX_SOURCE
-        || profile.nix_revision != PINNED_NIX_REVISION
-        || profile.nix_version != PINNED_NIX_VERSION
-        || profile.nixpkgs_revision != PINNED_NIXPKGS_REVISION
+        || profile.adapter_version != adapter_version
+        || profile.source_version != source_version
+        || profile.nix_source != nix_source
+        || profile.nix_revision != nix_revision
+        || profile.nix_version != nix_version
+        || profile.nixpkgs_revision != nixpkgs_revision
         || profile.platform != PINNED_PLATFORM
         || profile.cohort_manifest_schema != COHORT_MANIFEST_SCHEMA
         || profile.bounded_exec_source != PINNED_BOUNDED_EXEC_SOURCE
@@ -193,16 +347,34 @@ pub fn admit_profile(profile: &NixEvalProfile) -> PortResult<()> {
             "Nix evaluation profile differs from the pinned producer cohort",
         ));
     }
-    if profile.runtime.executable_path != Path::new(PINNED_EXECUTABLE_PATH)
-        || profile.runtime.executable_identity.as_str() != PINNED_EXECUTABLE_BLAKE3
-        || profile.runtime.cohort_manifest_path != Path::new(PINNED_COHORT_MANIFEST_PATH)
-        || profile.runtime.cohort_manifest_identity.as_str() != PINNED_COHORT_MANIFEST_BLAKE3
+    let (executable_path, executable_identity, manifest_path, manifest_identity, non_claims) =
+        if onix {
+            (
+                ONIX_EXECUTABLE_PATH,
+                ONIX_EXECUTABLE_BLAKE3,
+                ONIX_MANIFEST_PATH,
+                ONIX_MANIFEST_BLAKE3,
+                ONIX_REQUIRED_NON_CLAIMS,
+            )
+        } else {
+            (
+                PINNED_EXECUTABLE_PATH,
+                PINNED_EXECUTABLE_BLAKE3,
+                PINNED_COHORT_MANIFEST_PATH,
+                PINNED_COHORT_MANIFEST_BLAKE3,
+                REQUIRED_NON_CLAIMS,
+            )
+        };
+    if profile.runtime.executable_path != Path::new(executable_path)
+        || profile.runtime.executable_identity.as_str() != executable_identity
+        || profile.runtime.cohort_manifest_path != Path::new(manifest_path)
+        || profile.runtime.cohort_manifest_identity.as_str() != manifest_identity
         || profile.policy != pinned_policy()
-        || profile.required_non_claims
-            != REQUIRED_NON_CLAIMS
-                .iter()
-                .map(|claim| (*claim).to_string())
-                .collect::<Vec<_>>()
+        || !profile
+            .required_non_claims
+            .iter()
+            .map(String::as_str)
+            .eq(non_claims.iter().copied())
         || profile.provider.operations != required_operations()
         || profile.provider.outcomes != required_outcomes()
         || profile.provider.limits

@@ -1,15 +1,18 @@
-#[cfg(target_os = "linux")]
-use std::fs::OpenOptions;
-#[cfg(target_os = "linux")]
-use std::io::Read;
-#[cfg(target_os = "linux")]
-use std::os::unix::fs::OpenOptionsExt;
+use std::path::Path;
 
-use kiln_core::discovery::{DiscoveryEffectPlan, validate_discovery_plan};
-use kiln_core::types::Diagnostic;
+use kiln_core::discovery::{
+    DiscoveryEffectPlan, DiscoveryEvaluatorCohort, DiscoveryEvaluatorComponent,
+};
+use kiln_core::types::{Alias, ContentId, Diagnostic, ExternalRef};
 use kiln_provider_api::{PortFailure, PortResult};
+use serde::{Deserialize, Serialize};
 
-pub const ONIX_CANDIDATE_PROFILE: &str = "onix-nix-eval-v1";
+use crate::onix_pins::{
+    ONIX_FIXTURE_REVISION, ONIX_MANIFEST_BLAKE3, ONIX_SOURCE_BLAKE3, ONIX_SOURCE_PATH,
+};
+use crate::runtime::NixEvalRuntime;
+
+pub const ONIX_PROFILE: &str = "onix-nix-eval-v1";
 pub const ONIX_EVALUATOR_KIND: &str = "onix-nix";
 pub const ONIX_HOST_ABI_SOURCE_SYMBOL: &str = "nix_wasm_init_v1";
 pub const ONIX_FORK_REVISION: &str = "f93f28ad9dce007baae13aa461c16abf656d1171";
@@ -61,108 +64,210 @@ pub const ONIX_LINKED_COMPONENTS: &[(&str, &str)] = &[
     ),
 ];
 
-const MAX_EVALUATOR_BYTES: u64 = 536_870_912;
+pub const ONIX_ROOT_SELECTOR: &str = "jobs.x86_64-linux";
+pub const ONIX_EVALUATOR_SOURCE: &str = "https://github.com/NixOS/nix-eval-jobs";
+pub const ONIX_FORK_SOURCE: &str = "https://github.com/onixcomputer/nix";
+pub const ONIX_PLUGIN_SOURCE: &str = "https://github.com/onixcomputer/onix-wasm";
+pub const ONIX_PLUGIN_REVISION: &str = "54bf09574c42a21f9f38dc7e01bc44440e6fbc07";
+pub const ONIX_ADAPTER_VERSION: &str = "2.36.4";
+pub const ONIX_NIXPKGS_REVISION: &str = "34ca302a9572963c02e385c056be37c85ff51b77";
+pub const ONIX_SOURCE_VERSION: &str = "0.1.6";
+pub const ONIX_NIX_VERSION: &str = "2.36.0";
+pub const ONIX_EVALUATOR_LICENSE: &str = "GPL-3.0";
+pub const ONIX_FORK_LICENSE: &str = "LGPL-2.1-or-later";
+pub const ONIX_PLUGIN_LICENSE: &str = "NOASSERTION (plugin wrapper); vendored Nickel MIT";
+pub const ONIX_PACKAGE_SOURCE: &str = "https://github.com/OnixResearch/onixpkgs";
+pub const ONIX_PACKAGE_REVISION: &str = "3bdf51c00947ffd6b8bd3355ff83509a03752042";
+pub const ONIX_PACKAGE_LICENSE: &str = "NOASSERTION (package wrapper); evaluator GPL-3.0";
+pub const ONIX_FIXTURE_UPSTREAM: &str = "https://github.com/onixcomputer/onix-modules";
+pub const ONIX_FIXTURE_LICENSE: &str = "AGPL-3.0-or-later";
+
 const MAX_PLUGIN_BYTES: u64 = 67_108_864;
 const MAX_LINKED_COMPONENT_BYTES: u64 = 536_870_912;
 
-fn denied(code: &str, message: &str) -> PortFailure {
-    PortFailure::Domain(Diagnostic::new(code, "nix_eval.onix_candidate", message))
+/// Source provenance excludes the manifest's own identity to avoid a circular hash.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OnixProvenance {
+    pub evaluator_kind: String,
+    pub evaluator_source: String,
+    pub evaluator_license: String,
+    pub evaluator_nar_hash: String,
+    pub fork_source: String,
+    pub fork_license: String,
+    pub fork_nar_hash: String,
+    pub api_patch_blake3: String,
+    pub derivations_patch_blake3: String,
+    pub executable_identity: ContentId,
+    pub host_abi: Alias,
+    pub features: Vec<Alias>,
+    pub plugin: ExternalRef,
+    pub plugin_identity: ContentId,
+    pub plugin_source: String,
+    pub plugin_revision: String,
+    pub components: Vec<DiscoveryEvaluatorComponent>,
+    pub plugin_license: String,
+    pub package_source: String,
+    pub package_revision: String,
+    pub package_license: String,
+    pub fixture_upstream: String,
+    pub fixture_license: String,
+    pub fixture_source: ExternalRef,
+    pub fixture_source_identity: ContentId,
+    pub fixture_revision: String,
 }
 
-/// Check measured evaluator facts and fail closed until the source and manifest
-/// have published identities. Never grants authority to evaluate a jobset.
-pub fn admit_onix_candidate(plan: &DiscoveryEffectPlan) -> PortResult<()> {
-    validate_discovery_plan(plan).map_err(PortFailure::Domain)?;
-    let cohort = plan.evaluator_cohort.as_ref().ok_or_else(|| {
-        denied(
-            "onix_cohort_missing",
-            "explicit Onix evaluator facts are required",
-        )
-    })?;
-    if plan.provider_profile.as_str() != ONIX_CANDIDATE_PROFILE
-        || cohort.kind.as_str() != ONIX_EVALUATOR_KIND
-    {
-        return Err(denied(
+pub fn onix_cohort() -> PortResult<DiscoveryEvaluatorCohort> {
+    Ok(DiscoveryEvaluatorCohort {
+        kind: Alias::new(ONIX_EVALUATOR_KIND)?,
+        executable_identity: ContentId::from_blake3_hex(ONIX_EXECUTABLE_BLAKE3)?,
+        manifest_identity: ContentId::from_blake3_hex(ONIX_MANIFEST_BLAKE3)?,
+        host_abi: Alias::new(ONIX_HOST_ABI_SOURCE_SYMBOL)?,
+        features: ONIX_REQUIRED_FEATURES
+            .iter()
+            .map(|feature| Alias::new(*feature))
+            .collect::<Result<_, _>>()?,
+        plugin: ExternalRef::new("nix", "store-path", ONIX_PLUGIN_PATH)?,
+        plugin_identity: ContentId::from_blake3_hex(ONIX_PLUGIN_BLAKE3)?,
+        components: ONIX_LINKED_COMPONENTS
+            .iter()
+            .map(|(path, identity)| {
+                Ok(DiscoveryEvaluatorComponent {
+                    library: ExternalRef::new("nix", "shared-library", path)?,
+                    identity: ContentId::from_blake3_hex(*identity)?,
+                })
+            })
+            .collect::<PortResult<_>>()?,
+    })
+}
+
+// r[impl kiln.nix_eval_jobs_onix.cohort]
+pub fn onix_provenance() -> PortResult<OnixProvenance> {
+    let cohort = onix_cohort()?;
+    Ok(OnixProvenance {
+        evaluator_kind: ONIX_EVALUATOR_KIND.to_string(),
+        evaluator_license: ONIX_EVALUATOR_LICENSE.to_string(),
+        evaluator_source: ONIX_EVALUATOR_SOURCE.to_string(),
+        evaluator_nar_hash: ONIX_EVALUATOR_NAR_HASH.to_string(),
+        fork_license: ONIX_FORK_LICENSE.to_string(),
+        fork_source: ONIX_FORK_SOURCE.to_string(),
+        fork_nar_hash: ONIX_FORK_NAR_HASH.to_string(),
+        api_patch_blake3: ONIX_API_PATCH_BLAKE3.to_string(),
+        derivations_patch_blake3: ONIX_DERIVATIONS_PATCH_BLAKE3.to_string(),
+        executable_identity: cohort.executable_identity,
+        host_abi: cohort.host_abi,
+        features: cohort.features,
+        plugin: cohort.plugin,
+        plugin_identity: cohort.plugin_identity,
+        plugin_source: ONIX_PLUGIN_SOURCE.to_string(),
+        plugin_license: ONIX_PLUGIN_LICENSE.to_string(),
+        package_source: ONIX_PACKAGE_SOURCE.to_string(),
+        package_revision: ONIX_PACKAGE_REVISION.to_string(),
+        package_license: ONIX_PACKAGE_LICENSE.to_string(),
+        fixture_upstream: ONIX_FIXTURE_UPSTREAM.to_string(),
+        fixture_license: ONIX_FIXTURE_LICENSE.to_string(),
+        plugin_revision: ONIX_PLUGIN_REVISION.to_string(),
+        components: cohort.components,
+        fixture_source: ExternalRef::new("kiln-source", "nix-store-path", ONIX_SOURCE_PATH)?,
+        fixture_source_identity: ContentId::from_blake3_hex(ONIX_SOURCE_BLAKE3)?,
+        fixture_revision: ONIX_FIXTURE_REVISION.to_string(),
+    })
+}
+
+// r[impl kiln.nix_eval_jobs_onix.admission]
+// r[impl kiln.nix_eval_jobs_onix.fallback]
+pub(crate) fn admit_onix_cohort(cohort: &DiscoveryEvaluatorCohort) -> PortResult<()> {
+    let drift = if cohort.kind.as_str() != ONIX_EVALUATOR_KIND {
+        Some((
             "onix_profile_mismatch",
-            "the Onix candidate profile must be explicitly selected",
-        ));
-    }
-    if cohort.executable_identity.as_str() != ONIX_EXECUTABLE_BLAKE3 {
-        return Err(denied(
+            "the explicit Onix evaluator kind differs",
+        ))
+    } else if cohort.executable_identity.as_str() != ONIX_EXECUTABLE_BLAKE3 {
+        Some((
             "onix_executable_drift",
-            "the measured evaluator bytes differ",
-        ));
-    }
-    if cohort.host_abi.as_str() != ONIX_HOST_ABI_SOURCE_SYMBOL {
-        return Err(denied(
+            "the measured evaluator identity differs",
+        ))
+    } else if cohort.manifest_identity.as_str() != ONIX_MANIFEST_BLAKE3 {
+        Some((
+            "onix_manifest_drift",
+            "the published manifest identity differs",
+        ))
+    } else if cohort.host_abi.as_str() != ONIX_HOST_ABI_SOURCE_SYMBOL {
+        Some((
             "onix_host_abi_drift",
             "the source-defined Wasm host handshake differs",
-        ));
-    }
-    if cohort.features.len() != ONIX_REQUIRED_FEATURES.len()
+        ))
+    } else if cohort.features.len() != ONIX_REQUIRED_FEATURES.len()
         || !cohort
             .features
             .iter()
-            .zip(ONIX_REQUIRED_FEATURES.iter())
+            .zip(ONIX_REQUIRED_FEATURES)
             .all(|(actual, expected)| actual.as_str() == *expected)
     {
-        return Err(denied(
+        Some((
             "onix_feature_drift",
-            "the admitted experimental feature set differs",
-        ));
-    }
-    if cohort.plugin_identity.as_str() != ONIX_PLUGIN_BLAKE3
+            "the exact experimental feature set differs",
+        ))
+    } else if cohort.plugin_identity.as_str() != ONIX_PLUGIN_BLAKE3
         || cohort.plugin.provider_namespace.as_str() != "nix"
         || cohort.plugin.native_kind.as_str() != "store-path"
         || cohort.plugin.native_id.as_str() != ONIX_PLUGIN_PATH
     {
-        return Err(denied(
+        Some((
             "onix_plugin_drift",
-            "the source-bound Nickel plugin bytes or path differ",
-        ));
-    }
-    if cohort.components.len() != ONIX_LINKED_COMPONENTS.len()
-        || !cohort
-            .components
-            .iter()
-            .zip(ONIX_LINKED_COMPONENTS.iter())
-            .all(|(actual, (path, identity))| {
+            "the source-bound Nickel plugin differs",
+        ))
+    } else if cohort.components.len() != ONIX_LINKED_COMPONENTS.len()
+        || !cohort.components.iter().zip(ONIX_LINKED_COMPONENTS).all(
+            |(actual, (path, identity))| {
                 actual.library.provider_namespace.as_str() == "nix"
                     && actual.library.native_kind.as_str() == "shared-library"
                     && actual.library.native_id.as_str() == *path
                     && actual.identity.as_str() == *identity
-            })
+            },
+        )
     {
-        return Err(denied(
+        Some((
             "onix_component_drift",
-            "the evaluator's linked Nix library closure differs",
-        ));
+            "the evaluator linked Nix library closure differs",
+        ))
+    } else {
+        None
+    };
+    match drift {
+        Some((code, message)) => Err(denied(code, message)),
+        None => Ok(()),
     }
-    Err(denied(
-        "onix_source_unpublished",
-        "no published immutable source and manifest identities are available for this cohort",
-    ))
 }
 
-/// Hash the already measured evaluator closure without following final path
-/// symlinks, without spawning any program, and without a fallback file source.
-#[cfg(target_os = "linux")]
-pub fn verify_onix_candidate_files() -> PortResult<()> {
-    verify_bounded_file(
-        ONIX_EXECUTABLE_PATH,
-        ONIX_EXECUTABLE_BLAKE3,
-        MAX_EVALUATOR_BYTES,
-        "onix_executable_drift",
-    )?;
-    verify_bounded_file(
-        ONIX_PLUGIN_PATH,
+// r[impl kiln.nix_eval_jobs_onix.functional_core]
+pub(crate) fn admit_onix_source(plan: &DiscoveryEffectPlan) -> PortResult<()> {
+    if plan.source.provider_namespace.as_str() != "kiln-source"
+        || plan.source.native_kind.as_str() != "nix-store-path"
+        || plan.source.native_id.as_str() != ONIX_SOURCE_PATH
+        || plan.source_identity.as_str() != ONIX_SOURCE_BLAKE3
+        || plan.root_selector.as_str() != ONIX_ROOT_SELECTOR
+    {
+        return Err(denied(
+            "onix_source_drift",
+            "source path, identity, or root selector differs from the published fixture",
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn verify_onix_files<R: NixEvalRuntime>(runtime: &R) -> PortResult<()> {
+    verify_file(
+        runtime,
+        Path::new(ONIX_PLUGIN_PATH),
         ONIX_PLUGIN_BLAKE3,
         MAX_PLUGIN_BYTES,
         "onix_plugin_drift",
     )?;
     for (path, identity) in ONIX_LINKED_COMPONENTS {
-        verify_bounded_file(
-            path,
+        verify_file(
+            runtime,
+            Path::new(path),
             identity,
             MAX_LINKED_COMPONENT_BYTES,
             "onix_component_drift",
@@ -171,127 +276,30 @@ pub fn verify_onix_candidate_files() -> PortResult<()> {
     Ok(())
 }
 
-#[cfg(not(target_os = "linux"))]
-pub fn verify_onix_candidate_files() -> PortResult<()> {
-    Err(denied(
-        "onix_platform_unsupported",
-        "the measured evaluator cohort requires Linux",
-    ))
-}
-
-#[cfg(target_os = "linux")]
-fn verify_bounded_file(
-    path: &str,
-    identity: &str,
+pub(crate) fn verify_file<R: NixEvalRuntime>(
+    runtime: &R,
+    path: &Path,
+    expected: &str,
     max_bytes: u64,
-    drift_code: &str,
+    code: &str,
 ) -> PortResult<()> {
-    let mut file = OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW)
-        .open(path)
+    let actual = runtime
+        .file_identity_no_follow(path, max_bytes)
         .map_err(|_| {
             denied(
-                "onix_file_unavailable",
-                "a measured file cannot be opened without following symlinks",
+                code,
+                "pinned file cannot be observed within its no-follow bound",
             )
         })?;
-    let metadata = file.metadata().map_err(|_| {
-        denied(
-            "onix_file_unavailable",
-            "a measured file has no readable metadata",
-        )
-    })?;
-    if !metadata.is_file() || metadata.len() > max_bytes {
+    if actual.as_str() != expected {
         return Err(denied(
-            "onix_file_bound",
-            "a measured file is not a bounded regular file",
-        ));
-    }
-    let mut hasher = blake3::Hasher::new();
-    let mut observed = 0_u64;
-    let mut buffer = [0_u8; 65_536];
-    loop {
-        let count = file
-            .read(&mut buffer)
-            .map_err(|_| denied("onix_file_unavailable", "a measured file cannot be read"))?;
-        if count == 0 {
-            break;
-        }
-        let count_u64 = u64::try_from(count)
-            .map_err(|_| denied("onix_file_bound", "a measured file exceeds its byte bound"))?;
-        observed = observed
-            .checked_add(count_u64)
-            .ok_or_else(|| denied("onix_file_bound", "a measured file exceeds its byte bound"))?;
-        if observed > max_bytes {
-            return Err(denied(
-                "onix_file_bound",
-                "a measured file exceeds its byte bound",
-            ));
-        }
-        let bytes = buffer
-            .get(..count)
-            .ok_or_else(|| denied("onix_file_bound", "a measured file exceeds its byte bound"))?;
-        hasher.update(bytes);
-    }
-    if hasher.finalize().to_hex().as_str() != identity {
-        return Err(denied(
-            drift_code,
-            "measured file bytes differ from their exact pin",
+            code,
+            "pinned file bytes differ from the exact cohort",
         ));
     }
     Ok(())
 }
 
-#[cfg(all(test, target_os = "linux"))]
-mod tests {
-    use std::os::unix::fs::symlink;
-
-    use super::*;
-
-    #[test]
-    fn measured_file_preflight_binds_bytes_bounds_and_no_follow() {
-        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
-        let regular = directory.path().join("measured");
-        let link = directory.path().join("link");
-        std::fs::write(&regular, b"measured bytes").unwrap_or_else(|_| unreachable!());
-        symlink(&regular, &link).unwrap_or_else(|_| unreachable!());
-        let identity = blake3::hash(b"measured bytes").to_hex().to_string();
-        assert_eq!(
-            verify_bounded_file(
-                regular.to_str().unwrap_or_else(|| unreachable!()),
-                &identity,
-                64,
-                "onix_test_drift",
-            ),
-            Ok(())
-        );
-        assert!(matches!(
-            verify_bounded_file(
-                link.to_str().unwrap_or_else(|| unreachable!()),
-                &identity,
-                64,
-                "onix_test_drift",
-            ),
-            Err(PortFailure::Domain(reason)) if reason.code == "onix_file_unavailable"
-        ));
-        assert!(matches!(
-            verify_bounded_file(
-                regular.to_str().unwrap_or_else(|| unreachable!()),
-                &identity,
-                12,
-                "onix_test_drift",
-            ),
-            Err(PortFailure::Domain(reason)) if reason.code == "onix_file_bound"
-        ));
-        assert!(matches!(
-            verify_bounded_file(
-                regular.to_str().unwrap_or_else(|| unreachable!()),
-                blake3::hash(b"other bytes").to_hex().as_str(),
-                64,
-                "onix_test_drift",
-            ),
-            Err(PortFailure::Domain(reason)) if reason.code == "onix_test_drift"
-        ));
-    }
+pub(crate) fn denied(code: &str, message: &str) -> PortFailure {
+    PortFailure::Domain(Diagnostic::new(code, "nix_eval.onix", message))
 }

@@ -240,6 +240,53 @@ pins/follows, then run `nix hash path runtime/build-cohort` and update the exact
 subflake NAR identity in root `flake.nix`. Keep the root/cohort `nixpkgs` equality
 and rerun the selected owning checks. Never hand-edit either lockfile.
 
+### Optional Onix evaluator cohort
+
+Stock `nix-eval-jobs` remains pinned by the root flake and its existing executable
+profile. The explicit `onix-nix-eval-v1` profile is separately provisioned from
+[`runtime/onix-eval-cohort/`](../runtime/onix-eval-cohort/); its generated
+`flake.lock` is independent of the root and `runtime/build-cohort` locks. Root
+workspace/default development and package builds and stock discovery do not
+acquire this cohort. No Onix provider implementation or Nix library is added to
+`kiln-core`: the adapter runs the exact evaluator as a bounded external process.
+
+| Optional source | Exact revision | Locked source NAR |
+|---|---|---|
+| Nix fork (`onixcomputer/nix`) | `f93f28ad9dce007baae13aa461c16abf656d1171` | `sha256-sxgxa7OyG4WPBehA05IfYrgs1REwnIS3m+SW6utVX+A=` |
+| Plugin (`onixcomputer/onix-wasm`) | `54bf09574c42a21f9f38dc7e01bc44440e6fbc07` | `sha256-PIn8f3ANIumP18TUsucR+tvIlpdGOZmD2udVc1issks=` |
+| Package review (`OnixResearch/onixpkgs`) | `3bdf51c00947ffd6b8bd3355ff83509a03752042` | `sha256-tJfyRFzMQFtfICX6tTN0TNGuGGbpHX/Phnu+RQrmP8g=` |
+| Nixpkgs | `34ca302a9572963c02e385c056be37c85ff51b77` | `sha256-ym4BG18Pu2awiJIehla1Lo9xiB2QYRcCzW3SB74gEBY=` |
+| Nickel WASM vendor (`brittonr/nickel-wasm`) | `5de51b8976cf6a35ae8d026a4f28916df5f259fa` | `sha256-QGAlV8Kii2rBLJj/EGkG1ZswirIJ7F/OzXVrdORmMGk=` |
+
+The onixpkgs review source is an exact `git+ssh` input and may need the operator's
+read credentials. This is a separate acquisition boundary, not a credential-free
+root quick-start claim. A cached source does not prove public acquisition. The
+package builds `NixOS/nix-eval-jobs@9f1553afabd95f9f59951f5c946e86005af7196a`
+(`sha256-t1FbcjvTWQ1WO3hJNKN+viNXuz4BX9Pte5K4F+IJLDk=`) with two explicitly
+measured fork-2.36 patches; their identities and all runtime provenance are in
+[`manifest.nix`](../runtime/onix-eval-cohort/manifest.nix). The review pin is not
+a main/production release or a Radicle publication.
+
+The separate fixture upstream is `https://github.com/onixcomputer/onix-modules`.
+Its dedicated immutable review commit and `fixtures/kiln-wasm-discovery/flake.nix`
+Git-object provenance are recorded in
+[`jobset.source.json`](../runtime/onix-eval-cohort/jobset.source.json). The
+[drift-refusing importer](../scripts/import-onix-discovery-fixture.sh) verifies
+the exact object content and keeps the runtime `jobset/flake.nix` verbatim; a
+mutable checkout or store prefix alone is not source authority. Source content
+identity means the imported flake file's BLAKE3, separately from source NARs,
+plugin-tree NAR and executable/manifest BLAKE3 identities.
+
+Use the [explicit provisioning and live-rail commands](operator.md#explicit-onix-selection-and-provisioning).
+The [adapter contract](nix-eval-jobs-adapter.md#frozen-source-and-measured-runtime)
+lists the exact runtime paths and hashes. The optional artifact check and real
+Kiln API rail are distinct evidence: source acquisition or successful hashing
+does not prove discovery, a derivation build, deployment or release eligibility.
+Do not substitute stock, `PATH`, an unpinned plugin or impure evaluation when
+selected sources/artifacts are unavailable. Changes require producer review,
+Nix-generated lock updates where applicable, remeasured pins/provenance and the
+owning checks, not hand-edited lock files or fallback sources.
+
 ## Maturity and non-claims
 
 Hydra, Concourse, Buildbot, Jujutsu, and the Remote Execution API are mature references. Their maturity does not transfer to Kiln.

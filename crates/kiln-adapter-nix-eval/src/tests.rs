@@ -1,12 +1,11 @@
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 use kiln_core::discovery::{
-    DiscoveryBounds, DiscoveryEffectPlan, DiscoveryEvaluatorCohort, DiscoveryEvaluatorComponent,
-    DiscoveryOptions, DiscoverySourceMode, DiscoveryTerminal, GcRootState,
-    admit_discovery_observation,
+    DiscoveryBounds, DiscoveryEffectPlan, DiscoveryEvaluatorCohort, DiscoveryOptions,
+    DiscoverySourceMode, DiscoveryTerminal, GcRootState, admit_discovery_observation,
 };
 use kiln_core::types::{
     Alias, BLAKE3_HEX_BYTES, ContentId, EffectId, EvaluationId, ExternalRef, PipelineRevisionId,
@@ -51,6 +50,7 @@ struct FakeRuntime {
     executable_identity: ContentId,
     manifest_identity: ContentId,
     manifest: Vec<u8>,
+    file_overrides: BTreeMap<PathBuf, ContentId>,
     outputs: VecDeque<NixEvalProcessOutput>,
     roots: Vec<ExternalRef>,
     run_count: usize,
@@ -67,6 +67,7 @@ impl FakeRuntime {
             executable_identity: content_id(PINNED_EXECUTABLE_BLAKE3),
             manifest_identity: content_id(PINNED_COHORT_MANIFEST_BLAKE3),
             manifest: cohort_manifest(),
+            file_overrides: BTreeMap::new(),
             outputs: outputs.into(),
             roots: vec![
                 ExternalRef::new("nix", "derivation", "/nix/store/aaaaaaaa-job-a.drv")
@@ -82,13 +83,53 @@ impl FakeRuntime {
             run_fails_before_start: false,
         }
     }
+
+    fn onix(outputs: Vec<NixEvalProcessOutput>) -> Self {
+        let mut runtime = Self::new(outputs);
+        runtime.executable_identity = content_id(ONIX_EXECUTABLE_BLAKE3);
+        runtime.manifest_identity = content_id(ONIX_MANIFEST_BLAKE3);
+        let profile = onix_profile();
+        runtime.manifest = serde_json::to_vec(&CohortManifest {
+            schema: profile.cohort_manifest_schema,
+            upstream_revision: profile.upstream_revision,
+            adapter_version: profile.adapter_version,
+            source_version: profile.source_version,
+            nix_revision: profile.nix_revision,
+            nix_version: profile.nix_version,
+            nixpkgs_revision: profile.nixpkgs_revision,
+            platform: profile.platform,
+            executable: ONIX_EXECUTABLE_PATH.to_string(),
+            onix: Some(onix_provenance().unwrap_or_else(|_| unreachable!())),
+        })
+        .unwrap_or_else(|_| unreachable!());
+        runtime.file_overrides.insert(
+            PathBuf::from(ONIX_PLUGIN_PATH),
+            content_id(ONIX_PLUGIN_BLAKE3),
+        );
+        runtime.file_overrides.insert(
+            Path::new(ONIX_SOURCE_PATH).join("flake.nix"),
+            content_id(ONIX_SOURCE_BLAKE3),
+        );
+        for (path, identity) in ONIX_LINKED_COMPONENTS {
+            runtime
+                .file_overrides
+                .insert(PathBuf::from(path), content_id(identity));
+        }
+        runtime
+    }
 }
 
 impl NixEvalRuntime for FakeRuntime {
     fn file_identity(&self, path: &Path, _max_bytes: u64) -> PortResult<ContentId> {
-        if path == Path::new(PINNED_EXECUTABLE_PATH) {
+        if let Some(identity) = self.file_overrides.get(path) {
+            Ok(identity.clone())
+        } else if path == Path::new(PINNED_EXECUTABLE_PATH)
+            || path == Path::new(ONIX_EXECUTABLE_PATH)
+        {
             Ok(self.executable_identity.clone())
-        } else if path == Path::new(PINNED_COHORT_MANIFEST_PATH) {
+        } else if path == Path::new(PINNED_COHORT_MANIFEST_PATH)
+            || path == Path::new(ONIX_MANIFEST_PATH)
+        {
             Ok(self.manifest_identity.clone())
         } else {
             Err(PortFailure::Domain(kiln_core::Diagnostic::new(
@@ -100,7 +141,7 @@ impl NixEvalRuntime for FakeRuntime {
     }
 
     fn read_file(&self, path: &Path, _max_bytes: u64) -> PortResult<Vec<u8>> {
-        if path == Path::new(PINNED_COHORT_MANIFEST_PATH) {
+        if path == Path::new(PINNED_COHORT_MANIFEST_PATH) || path == Path::new(ONIX_MANIFEST_PATH) {
             Ok(self.manifest.clone())
         } else {
             Err(PortFailure::Domain(kiln_core::Diagnostic::new(
@@ -109,6 +150,14 @@ impl NixEvalRuntime for FakeRuntime {
                 "fixture received an unknown manifest path",
             )))
         }
+    }
+
+    fn file_identity_no_follow(&self, path: &Path, max_bytes: u64) -> PortResult<ContentId> {
+        self.file_identity(path, max_bytes)
+    }
+
+    fn read_file_no_follow(&self, path: &Path, max_bytes: u64) -> PortResult<Vec<u8>> {
+        self.read_file(path, max_bytes)
     }
 
     fn prepare_gc_root_directory(&mut self, path: &Path) -> PortResult<()> {
@@ -281,6 +330,7 @@ fn cohort_manifest() -> Vec<u8> {
         nixpkgs_revision: PINNED_NIXPKGS_REVISION.to_string(),
         platform: PINNED_PLATFORM.to_string(),
         executable: PINNED_EXECUTABLE_PATH.to_string(),
+        onix: None,
     })
     .unwrap_or_else(|_| unreachable!())
 }
@@ -331,6 +381,27 @@ fn valid_stream() -> Vec<u8> {
         "fatal": false
     });
     format!("{first}\n{second}\n{error}\n").into_bytes()
+}
+
+fn onix_stream(allocated_bytes: u64, wall_milliseconds: u64) -> Vec<u8> {
+    let mut stream = Vec::new();
+    for line in valid_stream()
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+    {
+        let mut record: serde_json::Value =
+            serde_json::from_slice(line).unwrap_or_else(|_| unreachable!());
+        record
+            .as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .insert(
+                "stats".to_string(),
+                serde_json::json!({"allocBytes": allocated_bytes, "wallMs": wall_milliseconds}),
+            );
+        serde_json::to_writer(&mut stream, &record).unwrap_or_else(|_| unreachable!());
+        stream.push(b'\n');
+    }
+    stream
 }
 
 fn exited(stdout: Vec<u8>) -> NixEvalProcessOutput {
@@ -406,12 +477,26 @@ fn malformed_truncated_and_conflicting_cache_streams_fail_closed() {
         })
         .unwrap_or_else(|| unreachable!());
     for bytes in [malformed, truncated, conflicting] {
-        let runtime = FakeRuntime::new(vec![exited(bytes)]);
-        let mut adapter =
-            NixEvalAdapter::new(profile(), runtime).unwrap_or_else(|_| unreachable!());
-        let observation = adapter.discover(&plan()).unwrap_or_else(|_| unreachable!());
-        assert_eq!(observation.terminal, DiscoveryTerminal::ProviderError);
-        assert!(observation.tasks.is_empty());
+        for (selected, request, runtime) in [
+            (
+                profile(),
+                plan(),
+                FakeRuntime::new(vec![exited(bytes.clone())]),
+            ),
+            (
+                onix_profile(),
+                onix_plan(),
+                FakeRuntime::onix(vec![exited(bytes.clone())]),
+            ),
+        ] {
+            let mut adapter =
+                NixEvalAdapter::new(selected, runtime).unwrap_or_else(|_| unreachable!());
+            let observation = adapter
+                .discover(&request)
+                .unwrap_or_else(|_| unreachable!());
+            assert_eq!(observation.terminal, DiscoveryTerminal::ProviderError);
+            assert!(observation.tasks.is_empty());
+        }
     }
 }
 
@@ -461,13 +546,23 @@ fn timeout_cancellation_crash_and_unknown_remain_distinct() {
         (NixEvalProcessOutput::Unknown, DiscoveryTerminal::Unknown),
     ];
     for (output, expected) in cases {
-        let runtime = FakeRuntime::new(vec![output]);
-        let mut adapter =
-            NixEvalAdapter::new(profile(), runtime).unwrap_or_else(|_| unreachable!());
-        let observation = adapter.discover(&plan()).unwrap_or_else(|_| unreachable!());
-        assert_eq!(observation.terminal, expected);
-        assert!(observation.tasks.is_empty());
-        assert_eq!(adapter.runtime().run_count, 1);
+        for (selected, request, runtime) in [
+            (profile(), plan(), FakeRuntime::new(vec![output.clone()])),
+            (
+                onix_profile(),
+                onix_plan(),
+                FakeRuntime::onix(vec![output.clone()]),
+            ),
+        ] {
+            let mut adapter =
+                NixEvalAdapter::new(selected, runtime).unwrap_or_else(|_| unreachable!());
+            let observation = adapter
+                .discover(&request)
+                .unwrap_or_else(|_| unreachable!());
+            assert_eq!(observation.terminal, expected);
+            assert!(observation.tasks.is_empty());
+            assert_eq!(adapter.runtime().run_count, 1);
+        }
     }
 }
 
@@ -629,102 +724,288 @@ fn stock_profile_rejects_onix_cohort_before_process_launch() {
     let denied = adapter.discover(&attempted);
     assert!(matches!(
         &denied,
-        Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_plan_profile"
+        Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_unsupported_evaluator"
     ));
     assert_eq!(adapter.runtime().run_count, 0);
     assert!(adapter.runtime().prepared.is_empty());
 }
 
-#[test]
-fn named_onix_candidate_rejects_unpublished_source_and_measured_drift() {
-    let mut candidate = plan();
-    candidate.provider_profile =
-        ProviderProfileId::new(ONIX_CANDIDATE_PROFILE).unwrap_or_else(|_| unreachable!());
-    candidate.evaluator_cohort = Some(DiscoveryEvaluatorCohort {
-        kind: Alias::new(ONIX_EVALUATOR_KIND).unwrap_or_else(|_| unreachable!()),
-        executable_identity: content_id(ONIX_EXECUTABLE_BLAKE3),
-        // The stock manifest is deliberately not an Onix publication authority.
-        manifest_identity: content_id(PINNED_COHORT_MANIFEST_BLAKE3),
-        host_abi: Alias::new(ONIX_HOST_ABI_SOURCE_SYMBOL).unwrap_or_else(|_| unreachable!()),
-        features: ONIX_REQUIRED_FEATURES
-            .iter()
-            .map(|feature| Alias::new(*feature).unwrap_or_else(|_| unreachable!()))
-            .collect(),
-        plugin_identity: content_id(ONIX_PLUGIN_BLAKE3),
-        plugin: ExternalRef::new("nix", "store-path", ONIX_PLUGIN_PATH)
-            .unwrap_or_else(|_| unreachable!()),
-        components: ONIX_LINKED_COMPONENTS
-            .iter()
-            .map(|(path, identity)| DiscoveryEvaluatorComponent {
-                library: ExternalRef::new("nix", "shared-library", path)
-                    .unwrap_or_else(|_| unreachable!()),
-                identity: content_id(identity),
-            })
-            .collect(),
-    });
-    assert!(matches!(
-        admit_onix_candidate(&candidate),
-        Err(PortFailure::Domain(reason)) if reason.code == "onix_source_unpublished"
-    ));
+fn onix_profile() -> NixEvalProfile {
+    let mut runtime = profile().runtime;
+    runtime.executable_path = PathBuf::from(ONIX_EXECUTABLE_PATH);
+    runtime.executable_identity = content_id(ONIX_EXECUTABLE_BLAKE3);
+    runtime.cohort_manifest_path = PathBuf::from(ONIX_MANIFEST_PATH);
+    runtime.cohort_manifest_identity = content_id(ONIX_MANIFEST_BLAKE3);
+    NixEvalProfile::onix(runtime, limits()).unwrap_or_else(|_| unreachable!())
+}
 
-    let mut missing_feature = candidate.clone();
-    if let Some(cohort) = &mut missing_feature.evaluator_cohort {
-        cohort.features.pop();
-    }
-    assert!(matches!(
-        admit_onix_candidate(&missing_feature),
-        Err(PortFailure::Domain(reason)) if reason.code == "onix_feature_drift"
-    ));
-    let mut wrong_plugin = candidate.clone();
-    if let Some(cohort) = &mut wrong_plugin.evaluator_cohort {
-        cohort.plugin_identity = repeated_id('5');
-    }
-    assert!(matches!(
-        admit_onix_candidate(&wrong_plugin),
-        Err(PortFailure::Domain(reason)) if reason.code == "onix_plugin_drift"
-    ));
-    let mut wrong_library = candidate.clone();
-    if let Some(cohort) = &mut wrong_library.evaluator_cohort {
-        cohort
-            .components
-            .get_mut(0)
-            .unwrap_or_else(|| unreachable!())
-            .identity = repeated_id('6');
-    }
-    assert!(matches!(
-        admit_onix_candidate(&wrong_library),
-        Err(PortFailure::Domain(reason)) if reason.code == "onix_component_drift"
-    ));
-    let mut wrong_abi = candidate.clone();
-    if let Some(cohort) = &mut wrong_abi.evaluator_cohort {
-        cohort.host_abi = Alias::new("other-abi").unwrap_or_else(|_| unreachable!());
-    }
-    assert!(matches!(
-        admit_onix_candidate(&wrong_abi),
-        Err(PortFailure::Domain(reason)) if reason.code == "onix_host_abi_drift"
-    ));
-    let mut traversal_source = candidate.clone();
-    traversal_source.source = ExternalRef::new(
-        "kiln-source",
-        "nix-store-path",
-        "/nix/store/../tmp/dirty-source",
+fn onix_plan() -> DiscoveryEffectPlan {
+    let mut request = plan();
+    request.provider_profile = onix_profile().provider.profile_id;
+    request.evaluator_cohort = Some(onix_cohort().unwrap_or_else(|_| unreachable!()));
+    request.source = ExternalRef::new("kiln-source", "nix-store-path", ONIX_SOURCE_PATH)
+        .unwrap_or_else(|_| unreachable!());
+    request.source_identity = content_id(ONIX_SOURCE_BLAKE3);
+    request.root_selector = Alias::new(ONIX_ROOT_SELECTOR).unwrap_or_else(|_| unreachable!());
+    request
+}
+
+#[test]
+fn exact_onix_discovery_maps_tasks_and_retains_roots_until_handoff() {
+    let request = onix_plan();
+    let mut first = NixEvalAdapter::new(
+        onix_profile(),
+        FakeRuntime::onix(vec![exited(onix_stream(0, 0))]),
     )
     .unwrap_or_else(|_| unreachable!());
+    let mut second = NixEvalAdapter::new(
+        onix_profile(),
+        FakeRuntime::onix(vec![exited(onix_stream(u64::MAX, u64::MAX))]),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let observation = first.discover(&request).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        observation,
+        second
+            .discover(&request.clone())
+            .unwrap_or_else(|_| unreachable!())
+    );
+    assert_eq!(observation.terminal, DiscoveryTerminal::Complete);
+    assert_eq!(observation.gc_roots.state, GcRootState::Retained);
+    assert_eq!(
+        observation
+            .job_errors
+            .first()
+            .map(|error| error.attribute.as_str()),
+        Some("broken")
+    );
+    assert_eq!(observation.tasks.len(), EXPECTED_TASKS);
+    assert_eq!(
+        observation
+            .tasks
+            .iter()
+            .map(|task| task.dependencies.len())
+            .sum::<usize>(),
+        1
+    );
+    assert_eq!(
+        admit_discovery_observation(&request, &observation),
+        Ok(observation.tasks.clone())
+    );
+    assert!(first.cleanup_gc_roots(&request).is_err());
+    let accepted = observation
+        .tasks
+        .iter()
+        .map(|task| task.task_id.clone())
+        .collect();
+    assert_eq!(
+        first
+            .handoff_gc_roots(&request, &accepted)
+            .unwrap_or_else(|_| unreachable!()),
+        observation.tasks
+    );
+    assert_eq!(
+        first
+            .cleanup_gc_roots(&request)
+            .unwrap_or_else(|_| unreachable!())
+            .gc_roots
+            .state,
+        GcRootState::Released
+    );
+    assert_eq!(first.runtime().run_count, 1);
+}
+
+// r[verify kiln.nix_eval_jobs_onix.fixtures]
+#[test]
+fn producer_statistics_are_typed_and_do_not_widen_the_stock_schema() {
+    for statistics in [
+        serde_json::json!(null),
+        serde_json::json!({"allocBytes": 0}),
+        serde_json::json!({"allocBytes": -1, "wallMs": 0}),
+        serde_json::json!({"allocBytes": 0, "wallMs": 0, "unknown": 0}),
+    ] {
+        let bytes = format!(
+            "{}\n",
+            serde_json::json!({
+                "attr": "broken", "attrPath": ["broken"], "error": "fixture error",
+                "fatal": false, "stats": statistics
+            })
+        );
+        let mut decoder = IncrementalDecoder::onix(limits());
+        assert!(matches!(
+            decoder.push(bytes.as_bytes()),
+            Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_statistics_schema"
+        ));
+    }
+    let bytes = onix_stream(0, 0);
+    let mut stock = IncrementalDecoder::new(limits());
     assert!(matches!(
-        admit_onix_candidate(&traversal_source),
-        Err(PortFailure::Domain(reason)) if reason.code == "onix_source_unpublished"
+        stock.push(&bytes),
+        Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_job_schema"
     ));
-    let mut wrong_source_identity = candidate.clone();
-    wrong_source_identity.source_identity = repeated_id('9');
-    assert!(matches!(
-        admit_onix_candidate(&wrong_source_identity),
-        Err(PortFailure::Domain(reason)) if reason.code == "onix_source_unpublished"
-    ));
-    // Candidate fact-checking never gives the stock adapter authority to launch it.
-    assert!(matches!(
-        admit_plan(&profile(), &candidate),
-        Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_plan_profile"
-    ));
+}
+
+// r[verify kiln.nix_eval_jobs_onix.fallback]
+#[test]
+fn error_classification_uses_the_selected_cohort() {
+    for (mut decoder, message, expected) in [
+        (
+            IncrementalDecoder::new(limits()),
+            "error: attribute 'wasm' missing",
+            "unsupported_onix_builtin",
+        ),
+        (
+            IncrementalDecoder::onix(limits()),
+            "kiln-wasm-discovery: intentional independent job error",
+            "nix_job_evaluation_error",
+        ),
+        (
+            IncrementalDecoder::onix(limits()),
+            "error: attribute 'wasm' missing in a user record",
+            "nix_job_evaluation_error",
+        ),
+    ] {
+        let row = format!(
+            "{}\n",
+            serde_json::json!({"attr": "broken", "attrPath": ["broken"], "error": message})
+        );
+        decoder
+            .push(row.as_bytes())
+            .unwrap_or_else(|_| unreachable!());
+        let admitted = decoder.finish().unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            admitted
+                .errors
+                .first()
+                .map(|error| error.diagnostic.code.as_str()),
+            Some(expected)
+        );
+    }
+}
+
+#[test]
+fn onix_request_drift_rejects_before_roots_or_process() {
+    type Mutation = fn(&mut DiscoveryEffectPlan);
+    let cases: &[(&str, Mutation)] = &[
+        ("onix_cohort_missing", |request| {
+            request.evaluator_cohort = None
+        }),
+        ("onix_executable_drift", |request| {
+            request
+                .evaluator_cohort
+                .as_mut()
+                .unwrap_or_else(|| unreachable!())
+                .executable_identity = repeated_id('a')
+        }),
+        ("onix_manifest_drift", |request| {
+            request
+                .evaluator_cohort
+                .as_mut()
+                .unwrap_or_else(|| unreachable!())
+                .manifest_identity = repeated_id('a')
+        }),
+        ("onix_host_abi_drift", |request| {
+            request
+                .evaluator_cohort
+                .as_mut()
+                .unwrap_or_else(|| unreachable!())
+                .host_abi = Alias::new("wrong-abi").unwrap_or_else(|_| unreachable!())
+        }),
+        ("onix_feature_drift", |request| {
+            request
+                .evaluator_cohort
+                .as_mut()
+                .unwrap_or_else(|| unreachable!())
+                .features
+                .pop();
+        }),
+        ("onix_plugin_drift", |request| {
+            request
+                .evaluator_cohort
+                .as_mut()
+                .unwrap_or_else(|| unreachable!())
+                .plugin_identity = repeated_id('a')
+        }),
+        ("onix_component_drift", |request| {
+            request
+                .evaluator_cohort
+                .as_mut()
+                .unwrap_or_else(|| unreachable!())
+                .components
+                .first_mut()
+                .unwrap_or_else(|| unreachable!())
+                .identity = repeated_id('a')
+        }),
+        ("onix_source_drift", |request| {
+            request.source_identity = repeated_id('a')
+        }),
+        ("onix_source_drift", |request| {
+            request.source =
+                ExternalRef::new("kiln-source", "nix-store-path", "/nix/store/../tmp/dirty")
+                    .unwrap_or_else(|_| unreachable!())
+        }),
+        ("onix_source_drift", |request| {
+            request.root_selector = Alias::new("jobs").unwrap_or_else(|_| unreachable!())
+        }),
+        ("nix_eval_plan_profile", |request| {
+            request.provider_profile = profile().provider.profile_id
+        }),
+    ];
+    let mut adapter = NixEvalAdapter::new(onix_profile(), FakeRuntime::onix(Vec::new()))
+        .unwrap_or_else(|_| unreachable!());
+    for (code, mutate) in cases {
+        let mut request = onix_plan();
+        mutate(&mut request);
+        assert!(
+            matches!(adapter.discover(&request), Err(PortFailure::Domain(reason)) if reason.code == *code),
+            "{code}"
+        );
+        assert_eq!(adapter.runtime().run_count, 0);
+        assert!(adapter.runtime().prepared.is_empty());
+    }
+}
+
+#[test]
+fn onix_runtime_drift_rejects_before_roots_or_process() {
+    let cases = [
+        (PathBuf::from(ONIX_EXECUTABLE_PATH), "onix_executable_drift"),
+        (PathBuf::from(ONIX_MANIFEST_PATH), "onix_manifest_drift"),
+        (PathBuf::from(ONIX_PLUGIN_PATH), "onix_plugin_drift"),
+        (
+            PathBuf::from(
+                ONIX_LINKED_COMPONENTS
+                    .first()
+                    .unwrap_or_else(|| unreachable!())
+                    .0,
+            ),
+            "onix_component_drift",
+        ),
+        (
+            Path::new(ONIX_SOURCE_PATH).join("flake.nix"),
+            "onix_source_drift",
+        ),
+    ];
+    for (path, code) in cases {
+        let mut adapter = NixEvalAdapter::new(onix_profile(), FakeRuntime::onix(Vec::new()))
+            .unwrap_or_else(|_| unreachable!());
+        adapter
+            .runtime_mut()
+            .file_overrides
+            .insert(path, repeated_id('a'));
+        assert!(
+            matches!(adapter.discover(&onix_plan()), Err(PortFailure::Domain(reason)) if reason.code == code)
+        );
+        assert_eq!(adapter.runtime().run_count, 0);
+        assert!(adapter.runtime().prepared.is_empty());
+    }
+    let mut adapter = NixEvalAdapter::new(onix_profile(), FakeRuntime::onix(Vec::new()))
+        .unwrap_or_else(|_| unreachable!());
+    adapter.runtime_mut().manifest = b"{}".to_vec();
+    assert!(
+        matches!(adapter.discover(&onix_plan()), Err(PortFailure::Domain(reason)) if reason.code == "onix_manifest_drift")
+    );
+    assert!(adapter.runtime().prepared.is_empty());
+    assert_eq!(adapter.runtime().run_count, 0);
 }
 
 // r[verify kiln.nix_eval_jobs.gc_root_handoff]
@@ -777,6 +1058,28 @@ fn bounded_runtime_hashes_files_and_rejects_non_root_entries() {
         observed,
         content_id(blake3::hash(b"fixture").to_hex().as_str())
     );
+    let link = directory.path().join("manifest-link");
+    symlink(&manifest_path, &link).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        runtime.file_identity_no_follow(&manifest_path, MAX_MANIFEST_BYTES),
+        Ok(observed)
+    );
+    assert_eq!(
+        runtime.read_file_no_follow(&manifest_path, MAX_MANIFEST_BYTES),
+        Ok(b"fixture".to_vec())
+    );
+    assert!(
+        runtime
+            .file_identity_no_follow(&link, MAX_MANIFEST_BYTES)
+            .is_err()
+    );
+    assert!(
+        runtime
+            .read_file_no_follow(&link, MAX_MANIFEST_BYTES)
+            .is_err()
+    );
+    assert!(runtime.file_identity_no_follow(&manifest_path, 1).is_err());
+    assert!(runtime.read_file_no_follow(&manifest_path, 1).is_err());
 
     let root_directory = directory.path().join("roots");
     let mut runtime = BoundedNixEvalRuntime;
@@ -803,23 +1106,56 @@ fn bounded_runtime_hashes_files_and_rejects_non_root_entries() {
     );
 }
 
-// r[verify kiln.nix_eval_jobs.dependency_boundary]
+// r[verify kiln.nix_eval_jobs_onix.nonclaims]
 #[test]
-fn core_and_standalone_manifests_do_not_import_nix_or_adapter_code() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .unwrap_or_else(|| unreachable!());
-    for relative in [
-        "crates/kiln-core/Cargo.toml",
-        "crates/kiln-provider-api/Cargo.toml",
-        "crates/kiln-standalone/Cargo.toml",
-    ] {
-        let text = fs::read_to_string(root.join(relative)).unwrap_or_else(|_| unreachable!());
-        assert!(!text.contains("nix-eval-jobs"));
-        assert!(!text.contains("kiln-adapter-nix-eval"));
-        assert!(!text.contains("nix-store"));
-        assert!(!text.contains("nix-expr"));
-        assert!(!text.contains("hydra"));
-    }
+fn onix_policy_and_nonclaims_cannot_be_promoted() {
+    let mut altered = onix_profile();
+    altered.policy.allow_impure = true;
+    assert!(
+        matches!(admit_profile(&altered), Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_profile_binding")
+    );
+    let mut altered = onix_profile();
+    altered.required_non_claims.pop();
+    assert!(
+        matches!(admit_profile(&altered), Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_profile_binding")
+    );
+    let mut altered = onix_profile();
+    altered.upstream_revision = "mutable-main".to_string();
+    assert!(
+        matches!(admit_profile(&altered), Err(PortFailure::Domain(reason)) if reason.code == "nix_eval_cohort")
+    );
+}
+
+#[test]
+fn onix_manifest_provenance_and_fatal_jobs_fail_closed() {
+    let mut adapter = NixEvalAdapter::new(onix_profile(), FakeRuntime::onix(Vec::new()))
+        .unwrap_or_else(|_| unreachable!());
+    let mut manifest: CohortManifest =
+        serde_json::from_slice(&adapter.runtime().manifest).unwrap_or_else(|_| unreachable!());
+    manifest
+        .onix
+        .as_mut()
+        .unwrap_or_else(|| unreachable!())
+        .fixture_revision = "mutable-main".to_string();
+    adapter.runtime_mut().manifest =
+        serde_json::to_vec(&manifest).unwrap_or_else(|_| unreachable!());
+    assert!(
+        matches!(adapter.discover(&onix_plan()), Err(PortFailure::Domain(reason)) if reason.code == "onix_manifest_drift")
+    );
+    assert!(adapter.runtime().prepared.is_empty());
+    assert_eq!(adapter.runtime().run_count, 0);
+
+    let fatal = String::from_utf8(valid_stream())
+        .unwrap_or_else(|_| unreachable!())
+        .replace("\"fatal\":false", "\"fatal\":true")
+        .into_bytes();
+    let mut adapter = NixEvalAdapter::new(onix_profile(), FakeRuntime::onix(vec![exited(fatal)]))
+        .unwrap_or_else(|_| unreachable!());
+    let observation = adapter
+        .discover(&onix_plan())
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.terminal, DiscoveryTerminal::Failed);
+    assert!(observation.tasks.is_empty());
+    assert!(observation.job_errors.iter().any(|error| error.fatal));
+    assert_eq!(observation.gc_roots.state, GcRootState::Retained);
 }

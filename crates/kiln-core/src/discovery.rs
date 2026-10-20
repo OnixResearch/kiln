@@ -49,8 +49,8 @@ pub struct DiscoveryEvaluatorComponent {
     pub identity: ContentId,
 }
 
-/// Exact candidate facts for a non-stock evaluator. Stock rejects these facts;
-/// a future non-stock shell must bind them to a pinned profile before launch.
+/// Exact facts for an explicitly selected non-stock evaluator. The selected
+/// adapter binds these to its complete pinned cohort before launching discovery.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DiscoveryEvaluatorCohort {
     pub kind: Alias,

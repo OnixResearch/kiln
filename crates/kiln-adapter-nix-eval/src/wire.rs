@@ -9,7 +9,7 @@ use serde_json::Value;
 use crate::profile::NixEvalLimits;
 
 const STOCK_STORE_DIRECTORY: &str = "/nix/store";
-const ONIX_WASM_TERM: &str = "wasm";
+const STOCK_UNSUPPORTED_WASM_TERM: &str = "wasm";
 const ADJACENT_PAIR_ITEMS: usize = 2;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,6 +23,7 @@ pub struct StreamAdmission {
 #[derive(Debug)]
 pub struct IncrementalDecoder {
     limits: NixEvalLimits,
+    onix_profile: bool,
     pending: Vec<u8>,
     jobs: Vec<DiscoveredJob>,
     errors: Vec<DiscoveredJobError>,
@@ -35,12 +36,21 @@ impl IncrementalDecoder {
     pub fn new(limits: NixEvalLimits) -> Self {
         Self {
             limits,
+            onix_profile: false,
             pending: Vec::new(),
             jobs: Vec::new(),
             errors: Vec::new(),
             record_count: 0,
             total_bytes: 0,
         }
+    }
+
+    /// Decode the explicit Onix cohort's schema and job diagnostics.
+    #[must_use]
+    pub fn onix(limits: NixEvalLimits) -> Self {
+        let mut decoder = Self::new(limits);
+        decoder.onix_profile = true;
+        decoder
     }
 
     // r[impl kiln.nix_eval_jobs.stream_admission]
@@ -130,20 +140,31 @@ impl IncrementalDecoder {
                 "stream record count exceeds its named bound",
             ));
         }
-        let value: Value = serde_json::from_slice(line).map_err(|_| {
+        let mut value: Value = serde_json::from_slice(line).map_err(|_| {
             domain(
                 "nix_eval_record_json",
                 "nix_eval.stream.record",
                 "stream record is not valid JSON",
             )
         })?;
-        let object = value.as_object().ok_or_else(|| {
+        let object = value.as_object_mut().ok_or_else(|| {
             domain(
                 "nix_eval_record_shape",
                 "nix_eval.stream.record",
                 "stream record is not a JSON object",
             )
         })?;
+        if self.onix_profile
+            && let Some(statistics) = object.remove("stats")
+        {
+            let _: WireStatistics = serde_json::from_value(statistics).map_err(|_| {
+                domain(
+                    "nix_eval_statistics_schema",
+                    "nix_eval.stream.stats",
+                    "producer statistics differ from the admitted schema",
+                )
+            })?;
+        }
         if object.contains_key("error") {
             if self.errors.len() >= self.limits.max_job_errors {
                 return Err(domain(
@@ -159,7 +180,8 @@ impl IncrementalDecoder {
                     "job error record differs from the admitted schema",
                 )
             })?;
-            self.errors.push(normalize_error(record, self.limits)?);
+            self.errors
+                .push(normalize_error(record, self.limits, self.onix_profile)?);
             return Ok(());
         }
         if object.contains_key("drvPath") {
@@ -186,6 +208,15 @@ impl IncrementalDecoder {
             "stream record is neither a supported job nor a job error",
         ))
     }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WireStatistics {
+    #[serde(rename = "allocBytes")]
+    _allocated_bytes: u64,
+    #[serde(rename = "wallMs")]
+    _wall_milliseconds: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -237,6 +268,7 @@ struct WireJobRecord {
 fn normalize_error(
     record: WireErrorRecord,
     limits: NixEvalLimits,
+    onix_profile: bool,
 ) -> PortResult<DiscoveredJobError> {
     if record.attr_path.is_empty()
         || record.error.is_empty()
@@ -248,7 +280,14 @@ fn normalize_error(
             "job error fields are empty or exceed their named bounds",
         ));
     }
-    let code = if record.error.to_ascii_lowercase().contains(ONIX_WASM_TERM) {
+    // Stock lacks builtins.wasm; the admitted Onix cohort does not.
+    let code = if !onix_profile
+        && record
+            .error
+            .as_bytes()
+            .windows(STOCK_UNSUPPORTED_WASM_TERM.len())
+            .any(|bytes| bytes.eq_ignore_ascii_case(STOCK_UNSUPPORTED_WASM_TERM.as_bytes()))
+    {
         "unsupported_onix_builtin"
     } else {
         "nix_job_evaluation_error"

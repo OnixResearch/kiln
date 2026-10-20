@@ -73,6 +73,8 @@ Bounded Exec captures a named maximum byte count. The schema decoder then consum
 
 Malformed JSON, a partial final line, unknown fields, oversized data, duplicate jobs, conflicting derivations, missing outputs, and dependency cycles fail closed.
 
+Only the explicit Onix decoder additionally admits the optional 2.36 `stats` object on success and error rows. It validates exactly `allocBytes` and `wallMs` as unsigned 64-bit integers, rejecting missing members, unknown members and malformed values, then excludes these producer timing/allocation advisories from normalized jobs, errors, tasks and observation identities. Stock decoding still rejects `stats`; this does not relax either cohort's other unknown-field checks.
+
 A successful process exit does not complete discovery by itself. The stream, stderr, process, and GC-root facts must also be complete and consistent.
 
 Timeout, cancellation, signal loss, output overflow, provider error, and unknown remain separate outcomes. An unknown observation can only reconcile to its recorded value.
@@ -110,13 +112,82 @@ The adapter retains roots until every proposed task has a durable downstream han
 
 A cleanup error changes the root state to `CleanupFailed`. It does not become clean completion.
 
-## Onix boundary
+## Explicit optional Onix profile
 
-The selected operational cohort is stock Nix only. A discovery plan can carry separate evaluator, manifest, host ABI, feature, plugin, and linked-library identities for an explicitly named non-stock cohort; the stock adapter denies such a plan before creating GC roots or launching a process. Absent cohort facts retain the stock observation identity and serialized request shape.
+Stock Nix remains the default cohort above. `NixEvalProfile::onix(runtime, limits)` selects the separate executable `onix-nix-eval-v1` profile on `x86_64-linux`; `NixEvalProfile::pinned` cannot select it. Stock admission rejects an Onix profile or evaluator requirement before GC-root creation or process launch. Requests without cohort facts retain the stock serialized shape and observation identity. Neither selection searches `PATH`, substitutes another plugin/evaluator, or falls back between stock and Onix.
 
-`onix-nix-eval-v1` currently exposes **candidate-only measured-fact checks, not an executable provider profile**: `admit_onix_candidate` rejects evaluator, feature, plugin, ABI-label, and linked-library drift, then **always returns `onix_source_unpublished`**, even if those facts match. There is no approved Onix manifest hash or published OnixOS jobset identity to match against `manifest_identity` and `source_identity`. A `/nix/store/` path prefix is not evidence of immutable publication. Linux `verify_onix_candidate_files` hashes the measured evaluator, plugin, and seven evaluator-linked libraries using bounded, no-final-symlink file opens without launching a jobset; it cannot authorize a source. The evaluator derives from `NixOS/nix-eval-jobs@9f1553afabd95f9f59951f5c946e86005af7196a` with two explicit patches against `onixcomputer/nix@f93f28ad9dce007baae13aa461c16abf656d1171`. Its seven library files are **not** the separately built OnixOS fork CLI closure, and matching Nix version strings do not prove ABI equivalence.
+### Frozen source and measured runtime
 
-The fork-linked evaluator produced two JSONL derivation rows (`hello`, `jq`) against a read-only dirty-path OnixOS store snapshot. Disabling `wasm-builtin` failed as expected, and substituting a nonexistent plugin path into a temporary source copy failed in pure evaluation. The onixpkgs fork-linked package has a GitHub review commit `3bdf51c00947ffd6b8bd3355ff83509a03752042`, but that unmerged review branch is not a production release pin. These trials do not establish a published immutable OnixOS Git jobset, authenticated source-bound plugin expression, or an immutable evaluator/fixture manifest. No Onix profile is admitted until those publication prerequisites exist. ABI equivalence with the separately built OnixOS CLI is neither asserted nor required. Hashing an installed plugin does not constrain an arbitrary remote flake's own `builtins.wasm` path; the path belongs in the published source-bound expression, not a speculative `nix-eval-jobs --plugin` flag.
+| Fact | Exact value |
+|---|---|
+| Fixture upstream | `https://github.com/onixcomputer/onix-modules` |
+| Fixture commit | `69a131d71a509f9c57646b71113f75f39ab637b1` |
+| Upstream fixture file | `fixtures/kiln-wasm-discovery/flake.nix` |
+| Verbatim Kiln import | `runtime/onix-eval-cohort/jobset/flake.nix` |
+| Runtime source root | `/nix/store/yxjjwvja5c8qfz10b6qh14bjd2bwrpww-kiln-onix-discovery-jobset-v1` |
+| Source identity (BLAKE3 of `flake.nix` bytes, not a directory/NAR hash) | `dbb21080c65c18ce318cf95106f8b112edb1c29219700f846d0721c77d5abbfb` |
+| Selector / system | `jobs.x86_64-linux` / `x86_64-linux` |
+| Evaluator upstream | `NixOS/nix-eval-jobs@9f1553afabd95f9f59951f5c946e86005af7196a` |
+| Evaluator / source version | `2.36.4` / `0.1.6` |
+| Fork / Nix version | `onixcomputer/nix@f93f28ad9dce007baae13aa461c16abf656d1171` / `2.36.0` |
+| Package review source | `OnixResearch/onixpkgs@3bdf51c00947ffd6b8bd3355ff83509a03752042` |
+| Nixpkgs | `34ca302a9572963c02e385c056be37c85ff51b77` |
+| Executable | `/nix/store/69k3iijnj5s8417anq7ncgc9f006gc1n-nix-eval-jobs-2.36.4/bin/nix-eval-jobs` |
+| Executable BLAKE3 | `4b4e221bfe3645da5f9d89198f211e07f63e4ea5f4fbd6064d6311bfa5090361` |
+| Required features (exact ordered set) | `flakes`, `nix-command`, `wasm-builtin` |
+| Source-defined host handshake | `nix_wasm_init_v1` |
+| Plugin source | `onixcomputer/onix-wasm@54bf09574c42a21f9f38dc7e01bc44440e6fbc07` |
+| Plugin | `/nix/store/di3jrnpmrc4lff4581vxmprmcsgswd0r-nickel-plugin-0.1.0/nickel_plugin.wasm` |
+| Plugin BLAKE3 | `6bbf0180617b4d87746416eb8d58d09dea1076312935038b4d92706e5c7626f6` |
+| Plugin directory NAR (pure source import) | `sha256-T44jy5Ax7YawXUBgd76O5gjO1ERS6LBaU0D7axpE8+o=` |
+| Effective pure-import plugin file | `/nix/store/5xm536a70fvv5k6xp7bijcy41xl7j628-source/nickel_plugin.wasm` (same plugin BLAKE3) |
+| Cohort manifest | `/nix/store/bnigspvq8r3pxwy2cvkzaa6cgarbh1mi-kiln-nix-eval-jobs-onix-cohort.json` |
+| Manifest BLAKE3 | `1e7df147057fde6b439541427a51c2d4ba70f6a42ee15d30021d120e9dda8263` |
+
+The [importer](../scripts/import-onix-discovery-fixture.sh) reads that exact Git object, verifies its BLAKE3, and refuses to replace an existing different import. The [source receipt](../runtime/onix-eval-cohort/jobset.source.json) binds the upstream commit, original file and verbatim runtime import; dirty working-tree bytes are never imported. This is a dedicated review-source identity, not main/production or Radicle publication authority.
+
+The input-free fixture explicitly admits the provisioned immutable plugin directory in pure evaluation with `builtins.fetchTree { type = "path"; path = "/nix/store/di3jrnpmrc4lff4581vxmprmcsgswd0r-nickel-plugin-0.1.0"; narHash = "sha256-T44jy5Ax7YawXUBgd76O5gjO1ERS6LBaU0D7axpE8+o="; }`, then appends `/nickel_plugin.wasm`. This content-pinned local import is neither a network fetch nor an auto-provisioning fallback. It supplies the effective plugin path to `builtins.wasm` with `function = "evalNickel"`; there is no speculative evaluator `--plugin` flag or `--impure` workaround. A bare external store path is not automatically accessible to pure flake evaluation. Real Nickel evaluation supplies the seed/report names and values. The report consumes the seed derivation; `broken` is an intentional independent evaluation error. The `/bin/sh` builders are discovery inputs, not evidence of host-shell availability or realized outputs.
+
+The immutable manifest uses schema `kiln.nix-eval-jobs-cohort.v1`. `admit_cohort_manifest` checks the selected versions/executable and exact `OnixProvenance` returned by `onix_provenance()`, rejecting unknown fields. That provenance binds upstream revisions and source NARs, both fork-2.36 patch BLAKE3 values, the executable, source-defined handshake, feature set, plugin, package-review source, license declarations, fixture commit/path/content identity, and seven measured evaluator-linked `libnix*.so.2.36.0` path/hash pairs. External references include `contract_version = 1`. The manifest does not contain its own hash: the profile binds the original manifest bytes separately, avoiding a circular identity.
+
+The seven library pins are recorded in [the manifest source](../runtime/onix-eval-cohort/manifest.nix) and exported as `ONIX_LINKED_COMPONENTS`. They describe the evaluator's measured Nix linkage, not the separately built OnixOS Nix CLI closure or every native/transitive dependency. Equal Nix version strings do not establish ABI equivalence, and the handshake label is not a versioned public host ABI guarantee.
+
+### Separate acquisition and provisioning
+
+The optional [subflake](../runtime/onix-eval-cohort/flake.nix) and its generated lock own this cohort. They are not root flake inputs or core dependencies. Default workspace builds, stock discovery, and root development/package selection do not acquire this Onix cohort; selecting the subflake is a separate source/credential/build boundary. The onixpkgs input is an exact `git+ssh` review-source pin and may require operator read access. A local cache hit does not prove anonymous acquisition. The review commit is not a production release.
+
+From the Kiln repository root in the normal `nix develop path:$PWD` shell (which supplies Nickel and BLAKE3 tools without selecting Onix sources), with an OnixOS checkout containing the frozen commit:
+
+```console
+scripts/import-onix-discovery-fixture.sh "$ONIXOS_CHECKOUT"
+nix flake archive --no-write-lock-file path:$PWD/runtime/onix-eval-cohort
+nix build --no-write-lock-file path:$PWD/runtime/onix-eval-cohort#evaluator path:$PWD/runtime/onix-eval-cohort#plugin path:$PWD/runtime/onix-eval-cohort#manifest --no-link -L
+nix eval --raw --no-write-lock-file path:$PWD/runtime/onix-eval-cohort#lib.jobset
+nix build --no-write-lock-file path:$PWD/runtime/onix-eval-cohort#checks.x86_64-linux.cohort --no-link -L
+nickel export --field profile config/nix-eval-jobs-onix-profile.ncl
+```
+
+The manifest references the source root; provision and retain the evaluator, plugin, manifest and jobset closures on the actual discovery host. The last Nix check measures artifacts and manifest facts; it does not run the Kiln discovery/handoff API. The typed Nickel export is the human-authored selection contract, not an automatic executable launcher or a serialized Rust `NixEvalProfile`. Only absolute `home_base` and `gc_root_base` are operator-variable in that contract; provision an owned home and root base with appropriate permissions.
+
+Compose `NixEvalRuntimeBinding` from the exact exported executable/manifest paths and BLAKE3 values plus the owned absolute home/root paths, then call `NixEvalProfile::onix(binding, limits)` and `NixEvalAdapter::new(profile, BoundedNixEvalRuntime)`. A discovery plan must select `ONIX_PROFILE`, carry `Some(onix_cohort()?)`, use the exact source `ExternalRef` (`kiln-source`, `nix-store-path`, source root above) and `ONIX_SOURCE_BLAKE3`, and select `ONIX_ROOT_SELECTOR` and `x86_64-linux`. Pipeline, policy, task mapping, build-provider selection and finite limits remain explicit consumer inputs.
+
+At adapter construction and before each new discovery, bounded no-final-symlink opens measure the executable, manifest, plugin, seven linked Nix libraries, and source `flake.nix`. `O_NOFOLLOW` rejects a symlink final component; this is not a promise that all parent directory components are symlink-free or that the process is confined. Manifest schema/provenance and all plan identities are checked before creating GC roots or launching the evaluator. Drift is a domain failure (`onix_executable_drift`, `onix_manifest_drift`, `onix_plugin_drift`, `onix_component_drift`, `onix_source_drift`, or the corresponding profile/feature/handshake mismatch), not permission to try stock or an ambient executable.
+
+### Live rail and outcome contract
+
+After provisioning the exact optional cohort, run the actual bounded Kiln API rail separately:
+
+```console
+cargo test --locked -p kiln-adapter-nix-eval --test onix_live exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots -- --ignored --exact --nocapture
+```
+
+This ignored-by-default rail calls the real evaluator through `BoundedNixEvalRuntime`, admits the observation, checks the Nickel seed/report jobs and dependency, retains the independent `broken` error, rejects stock admission, refuses premature root cleanup, and performs durable task handoff before releasing roots. A command listing is not a passing receipt: retain its actual output against the exact checked source and measured cohort.
+
+Onix uses the same stream, pure mapping, terminal classification and GC-root handoff as stock. `Complete` requires a successful exit, complete valid bounded stream/stderr and matching roots; a nonfatal per-job error can coexist with independent proposals. Fatal job errors yield `Failed`; nonzero exit, invalid/incomplete stream, output overflow or inconsistent roots yield `ProviderError`; timeout and cancellation stay distinct; a signal or unknown process completion yields `Unknown`, never synthetic success. Call `handoff_gc_roots` with every durably accepted task ID before `cleanup_gc_roots`; cleanup failure remains `CleanupFailed`. Discovery and cache advisories neither build tasks nor authorize substitution.
+
+Onix job errors remain `nix_job_evaluation_error` even when a job name, source path or user-record error mentions `wasm`; the admitted Onix profile already supplies that capability. Unsupported capability and cohort drift are profile/preflight decisions, not a substring-based fallback under Onix. Stock retains its existing unsupported-builtin classification.
+
+Retained qualification belongs in [the integration receipt](../.cairn/archive/1970-01-01-add-onix-nix-evaluator-cohort/evidence/verification.json), separately identifying artifact checks and the actual Kiln API rail. Earlier source/manifest checks do not qualify a changed fixture or prove live discovery.
 
 ## Evidence and non-claims
 
@@ -124,11 +195,14 @@ The pinned upstream package passes its unit suite. The Kiln Nix check also runs 
 
 This evidence does not prove these properties:
 
-- Nix evaluation correctness;
+- Nix or Nickel evaluation correctness;
 - source trust;
 - complete dependency semantics;
 - cache truth;
 - build execution or output correctness;
-- Onix Nix compatibility;
+- general Onix or stock Nix compatibility;
 - reproducibility;
-- release readiness.
+- release readiness;
+- hostile-code confinement;
+- a stable public Wasm host ABI;
+- production-release status of the package review source.
