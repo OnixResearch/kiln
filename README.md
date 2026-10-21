@@ -87,6 +87,19 @@ revision, path manifest and archive, the Rosa repository API reported the same
 workspace suite with 527 tests and no failures. The delegate set, threshold
 one, and public visibility were unchanged.
 
+The further operator-authorized
+[final-evidence publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/final-evidence-publication-2026-10-21/publication.json)
+fast-forwarded both remotes to `0019ff3cbe1abbc2cca1b109b539be719629cd15`,
+which carries the `acacf2b3` receipt, with the same unchanged governance and
+deployment boundary. Its source archive is BLAKE3
+`720a251e64e75e0e3606d55574745346801f7b14b2caa13ac438dbfbdacd6eaa`
+(62,300,160 bytes, 4,473 tracked members) and its sorted path manifest is
+`dc9695653796cfb5905a437506eab9b90fe4205309abd8f237e64e83cd6b8752`. All three
+required routes reproduced that revision, path manifest and archive, and a
+credential-isolated anonymous clone passed the workspace suite with 527 tests
+and no failures. Each publication receipt is carried by the revision that
+follows it, so the receipt for the current tip lands in the next revision.
+
 ## Quick start
 
 Acquire the read-only HTTPS projection without a Radicle node:
