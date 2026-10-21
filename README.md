@@ -72,6 +72,21 @@ revision, path manifest and archive, and a credential-isolated anonymous clone
 passed the workspace suite. The delegate set, threshold one, and public
 visibility were unchanged.
 
+The subsequent operator-authorized
+[evidence-commit publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/evidence-commit-publication-2026-10-21/publication.json)
+fast-forwarded canonical Radicle `main` and the read-only GitHub projection to
+the evidence commit `acacf2b38f04f462f588215aa7e314e3cdc4ca04`, which carries
+the `acc359e7` publication receipt, with no force push, history rewrite,
+governance change, or deployment. Its source archive is BLAKE3
+`840226ed3bcdd9671d26cb5f5e334c49be7270e6ba5fe47040d87e81d7225513`
+(61,890,560 bytes, 4,465 tracked members) and its sorted path manifest is
+`6342b8de98a20f992673272f40ca275ed0af5ab91cc339c5223811c68db4badc`. Native
+Radicle, anonymous Garden HTTPS, and anonymous GitHub HTTPS all reproduced that
+revision, path manifest and archive, the Rosa repository API reported the same
+`refs/heads/main`, and a credential-isolated anonymous clone passed the
+workspace suite with 527 tests and no failures. The delegate set, threshold
+one, and public visibility were unchanged.
+
 ## Quick start
 
 Acquire the read-only HTTPS projection without a Radicle node:

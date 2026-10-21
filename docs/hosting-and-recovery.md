@@ -403,6 +403,39 @@ is `c955334f54bdfe6e155e56c00573ca7ba77c4fb1` and for the GitHub projection is
 read-only projection and never carries Radicle governance. This publication
 grants no deployment, activation, binary release or release authority.
 
+## Source-only publication of the evidence commit `acacf2b3`
+
+The operator authorized a third source-only publication of the local evidence
+commit `acacf2b38f04f462f588215aa7e314e3cdc4ca04`, which carries the
+`acc359e7` publication receipt. Canonical Radicle `main` and the read-only
+GitHub projection were both fast-forwarded from
+`acc359e769bb3a056279bf5db8ba21e95c294a4c` to that revision. Neither push used
+force, rewrote history, or changed governance, delegates, threshold,
+visibility, announcements, or deployment state.
+
+That revision's deterministic normalized USTAR source archive is BLAKE3
+`840226ed3bcdd9671d26cb5f5e334c49be7270e6ba5fe47040d87e81d7225513`
+(61,890,560 bytes, 4,465 tracked members) and its lexically sorted path
+manifest is `6342b8de98a20f992673272f40ca275ed0af5ab91cc339c5223811c68db4badc`.
+Native Radicle, anonymous Garden HTTPS, and anonymous GitHub HTTPS all
+reproduced that revision, every tracked path, the path manifest, and the
+archive identity, and the Rosa repository API reported the same
+`refs/heads/main` with public visibility. A credential-isolated anonymous clone
+with a cleared home, disabled global and system Git configuration, no
+credential helper, no askpass, no inherited SSH agent and Git protocol v0 ran
+the workspace test suite with 527 tests passed and 0 failed. Signed refs
+advanced from `0bae3cd81083e8c24a6b1a926c96a409bd584040` to
+`3993c3be7a257f803a0815620f26664fc3893ede`; one delegate, threshold one and
+public visibility were unchanged.
+
+[`publication.json`](../.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/evidence-commit-publication-2026-10-21/publication.json)
+is the later evidence-only receipt for that revision, with the readbacks,
+governance observation, repository checks, replica observation, command record
+and source path manifest in the same directory. Rollback for both remotes is
+`acc359e769bb3a056279bf5db8ba21e95c294a4c`. The GitHub projection remains a
+read-only projection and never carries Radicle governance. This publication
+grants no deployment, activation, binary release or release authority.
+
 ## Recovery
 
 Keep an independent source archive and signed-reference capture. Keep the rollback revision outside a running Kiln service.
