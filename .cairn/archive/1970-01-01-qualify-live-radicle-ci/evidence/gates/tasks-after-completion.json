@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:.",
+    "--no-write-lock-file",
+    "-c",
+    "cairn",
+    "gate",
+    "tasks",
+    "qualify-live-radicle-ci",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "tasks-after-completion",
+  "started_at": "2026-10-21T11:54:28.806132Z",
+  "stderr": "",
+  "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"qualify-live-radicle-ci\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"468804c0be462c40a73cf0cff064af272c9186e1e27f650fe8e07d9ef6bacfaf\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"policy_selection\": {\n    \"blake3\": \"5f8292b814af35e1ecbbabd6293d4fa68d7880c2f76e61ba0182e294ca5671e6\",\n    \"installation_receipt\": false,\n    \"locator\": \"cairn-policy/generated/cairn-policy.json\",\n    \"source\": \"explicit\"\n  },\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"profile_identity_hash\": \"4f75bc45f7851896611c531797270dc2c9adf146c41a2b13da818a00da58e91a\",\n  \"receipt_hash\": \"945439493f0c341a1c89921f8e785899a51e8c71eae64da07e588b8437d0f096\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-live-radicle-ci/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 14,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-live-radicle-ci/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 11,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-live-radicle-ci/specs/live-radicle-ci/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 12,\n      \"substantive_lines\": 42,\n      \"substantive_requirement_blocks\": 6,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 8,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-live-radicle-ci/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 8,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 8,\n      \"task_done\": 8,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n"
+}

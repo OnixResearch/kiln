@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-20261021-e",
+    "--",
+    "/var/tmp/kiln-live-radicle-ci-cargo/debug/kiln-onixos-worker",
+    "project-release",
+    "/var/tmp/kiln-radicle-live-20261021-e/project.json",
+    "22d616a060fc5294d9b01a4bc2b5cebd98e52bf8b83d66560ec59a55ca60ef02",
+    "/var/tmp/kiln-radicle-live-20261021-e/failure-source.json"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\"build_output_roots_released\":true,\"source_root_released\":true}\n"
+}

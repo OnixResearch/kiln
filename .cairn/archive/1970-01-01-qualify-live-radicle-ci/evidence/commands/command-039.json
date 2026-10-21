@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-20261021-e",
+    "--",
+    "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum",
+    "--no-names",
+    "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/sleep"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471\n"
+}

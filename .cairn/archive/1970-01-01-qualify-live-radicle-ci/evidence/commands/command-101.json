@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-20261021-e",
+    "--",
+    "/var/tmp/kiln-live-radicle-ci-cargo/debug/kiln-radicle-ci",
+    "status-reconcile",
+    "/var/tmp/kiln-radicle-live-20261021-e/status-profile.json",
+    "/var/tmp/kiln-radicle-live-20261021-e/rad-observer/storage",
+    "/var/tmp/kiln-radicle-live-20261021-e/failure-status-plan.json"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\"repository\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"repository\",\"native_id\":\"rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ\"},\"revision\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"revision\",\"native_id\":\"a87d000066f716094c62c8d7582e2ba7c7772755\"},\"object_id\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"cob\",\"native_id\":\"10bcc44ff4b03e7808da7061931ed10888d737d7\"},\"head\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"head\",\"native_id\":\"10bcc44ff4b03e7808da7061931ed10888d737d7\"},\"run_id\":\"kiln-aspen-run-ea57920d4b78ba9cd87afb08e83cefb1b7308a0d67fa10a04aef724cfd6308de\",\"idempotency_key\":\"b0ab6e4c66bdcdf3f95afff4626902fa3f69d38c492431c0ef4a11897a433318\",\"outcome\":\"failure\",\"signer_identity\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"node\",\"native_id\":\"z6MkkxMnmHmh1JH92F1DMWFmbS4ytH3kAvJWRko6Z2vmNixK\"}}\n"
+}

@@ -1,0 +1,523 @@
+{
+  "capability": {
+    "current_consumers": [
+      "Kiln Radicle CI canary",
+      "kiln-radicle-ci coordinator",
+      "config/radicle-ci-live.ncl"
+    ],
+    "durable_contribution": "A fresh-state native peer/broker/status canary runner, typed Nickel admission with positive and negative fixtures, a read-only status-reconcile coordinator command, and retained same-host qualification evidence",
+    "immediate_outcome": "A genuine native peer update automatically enters the running broker and yields canonical Success or source-controlled DomainFailure with an independently fetched exact-revision status; an in-flight execution survives host kill and reconciliation without redispatch",
+    "maintenance_owner": "Kiln maintainers",
+    "operator_owner": "Canary host operator: fresh /var/tmp root, dedicated test identities, native peers, generated SecretSpec dotenv credential, isolation and teardown"
+  },
+  "cases": [
+    {
+      "broker_replies": [
+        {
+          "response": "triggered",
+          "run_id": {
+            "id": "kiln-aspen-run-ae84adddac5184709e5939707cf3d397cda3cf1da52943662ef340668fd3b56f"
+          }
+        },
+        {
+          "response": "finished",
+          "result": "success"
+        }
+      ],
+      "canonical_outcome": "Success",
+      "case": "success",
+      "consumer_output_absent_before_dispatch": true,
+      "evidence": [
+        "success-source.json",
+        "success-journal.json",
+        "success-remote-status.json"
+      ],
+      "native_duplicate_fetch": {
+        "equal_to_original": true,
+        "preserved_operation": {
+          "contract_version": 1,
+          "native_id": "45ef9b4727d8c96f1313bee5f08a7f3dfc969d8accd00df737a52fd1adced13c",
+          "native_kind": "service-operation-blake3",
+          "provider_namespace": "molten"
+        },
+        "provider_invocations_unchanged": true
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "45ef9b4727d8c96f1313bee5f08a7f3dfc969d8accd00df737a52fd1adced13c",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "release": {
+        "build_output_roots_released": true,
+        "invocations": 2,
+        "source_root_released": true
+      },
+      "remote_status": {
+        "before_sign_sync_absent": true,
+        "head": {
+          "contract_version": 1,
+          "native_id": "a5f4b42418dfab6b8799dd20d644b67ca6cf2eb3",
+          "native_kind": "head",
+          "provider_namespace": "radicle"
+        },
+        "idempotency_key": "bfcf7fdb062f64d38bb5d55b7ce8b6a2d6316f5f3593a2f406d70d9b9bc21d95",
+        "object_id": {
+          "contract_version": 1,
+          "native_id": "a5f4b42418dfab6b8799dd20d644b67ca6cf2eb3",
+          "native_kind": "cob",
+          "provider_namespace": "radicle"
+        },
+        "outcome": "success",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+          "native_kind": "repository",
+          "provider_namespace": "radicle"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "5e911e728257459e2e4d842097142c8183eec4d2",
+          "native_kind": "revision",
+          "provider_namespace": "radicle"
+        },
+        "run_id": "kiln-aspen-run-ae84adddac5184709e5939707cf3d397cda3cf1da52943662ef340668fd3b56f",
+        "signer_identity": {
+          "contract_version": 1,
+          "native_id": "z6MkkxMnmHmh1JH92F1DMWFmbS4ytH3kAvJWRko6Z2vmNixK",
+          "native_kind": "node",
+          "provider_namespace": "radicle"
+        }
+      },
+      "repository": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+      "restart": {
+        "canonical_outcome": "Pending",
+        "independent_lattice_running": true,
+        "original_operation": {
+          "contract_version": 1,
+          "native_id": "45ef9b4727d8c96f1313bee5f08a7f3dfc969d8accd00df737a52fd1adced13c",
+          "native_kind": "service-operation-blake3",
+          "provider_namespace": "molten"
+        },
+        "worker_result_present": false
+      },
+      "rooted_outputs": {
+        "/var/tmp/kiln-radicle-live-20261021-e/build-roots/412e1329894c351f3e46a1865c13fd1b1db3c2dab46ac458cdf72519ef268a5c/root": "/nix/store/wnjqwam4y62w8nvwpiq1hhz0cqqfd5zd-kiln-radicle-live-ci"
+      },
+      "source_branch": "ci-canary",
+      "source_revision": "5e911e728257459e2e4d842097142c8183eec4d2",
+      "verdict": "PASS"
+    },
+    {
+      "broker_replies": [
+        {
+          "response": "triggered",
+          "run_id": {
+            "id": "kiln-aspen-run-ea57920d4b78ba9cd87afb08e83cefb1b7308a0d67fa10a04aef724cfd6308de"
+          }
+        },
+        {
+          "response": "finished",
+          "result": "failure"
+        }
+      ],
+      "canonical_outcome": "DomainFailure",
+      "case": "failure",
+      "consumer_output_absent_before_dispatch": true,
+      "evidence": [
+        "failure-source.json",
+        "failure-journal.json",
+        "failure-remote-status.json"
+      ],
+      "native_duplicate_fetch": {
+        "equal_to_original": true,
+        "preserved_operation": {
+          "contract_version": 1,
+          "native_id": "97516dae8109150d1bf214872affd90279684e81868c6f6166a5754f0a3b52c9",
+          "native_kind": "service-operation-blake3",
+          "provider_namespace": "molten"
+        },
+        "provider_invocations_unchanged": true
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "97516dae8109150d1bf214872affd90279684e81868c6f6166a5754f0a3b52c9",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "release": {
+        "build_output_roots_released": true,
+        "invocations": 2,
+        "source_root_released": true
+      },
+      "remote_status": {
+        "before_sign_sync_absent": true,
+        "head": {
+          "contract_version": 1,
+          "native_id": "10bcc44ff4b03e7808da7061931ed10888d737d7",
+          "native_kind": "head",
+          "provider_namespace": "radicle"
+        },
+        "idempotency_key": "b0ab6e4c66bdcdf3f95afff4626902fa3f69d38c492431c0ef4a11897a433318",
+        "object_id": {
+          "contract_version": 1,
+          "native_id": "10bcc44ff4b03e7808da7061931ed10888d737d7",
+          "native_kind": "cob",
+          "provider_namespace": "radicle"
+        },
+        "outcome": "failure",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+          "native_kind": "repository",
+          "provider_namespace": "radicle"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "a87d000066f716094c62c8d7582e2ba7c7772755",
+          "native_kind": "revision",
+          "provider_namespace": "radicle"
+        },
+        "run_id": "kiln-aspen-run-ea57920d4b78ba9cd87afb08e83cefb1b7308a0d67fa10a04aef724cfd6308de",
+        "signer_identity": {
+          "contract_version": 1,
+          "native_id": "z6MkkxMnmHmh1JH92F1DMWFmbS4ytH3kAvJWRko6Z2vmNixK",
+          "native_kind": "node",
+          "provider_namespace": "radicle"
+        }
+      },
+      "repository": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+      "restart": null,
+      "rooted_outputs": {},
+      "source_branch": "ci-canary",
+      "source_revision": "a87d000066f716094c62c8d7582e2ba7c7772755",
+      "verdict": "PASS"
+    },
+    {
+      "broker_replies": [
+        {
+          "response": "triggered",
+          "run_id": {
+            "id": "kiln-aspen-run-e2d2b3e6dcb5ae743737cd84f7c87e0234f8cf355c4d8d3742d1df6ebdf257fc"
+          }
+        }
+      ],
+      "canonical_outcome": "Pending",
+      "case": "unavailable",
+      "consumer_output_absent_before_dispatch": true,
+      "evidence": [
+        "unavailable-source.json",
+        "unavailable-journal.json"
+      ],
+      "native_duplicate_fetch": {
+        "equal_to_original": true,
+        "preserved_operation": {
+          "contract_version": 1,
+          "native_id": "3bded2cff41266c431c7e1262f3c40161bfa1426cea40169f6da7494c32d17b9",
+          "native_kind": "service-operation-blake3",
+          "provider_namespace": "molten"
+        },
+        "provider_invocations_unchanged": true
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "3bded2cff41266c431c7e1262f3c40161bfa1426cea40169f6da7494c32d17b9",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "release": null,
+      "remote_status": null,
+      "repository": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+      "restart": null,
+      "rooted_outputs": {},
+      "source_branch": "ci-canary",
+      "source_revision": "b830e845152a5caf983ce75156017f92fd6bff68",
+      "verdict": "PASS"
+    }
+  ],
+  "claim_scope": "One fresh same-host native Radicle publisher/CI/observer topology on trusted reviewed canary source; not WAN or distinct-host delivery, hostile-worker confinement, production deployment, activation, release readiness or production repository authority",
+  "cohort": {
+    "executables": {
+      "b3sum": {
+        "blake3": "1eafacaba70c3a8966e97eee72bd19e72034df574877634447f9e1b2237b13d4",
+        "path": "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum"
+      },
+      "broker": {
+        "blake3": "1f363ac9e7b00b078a6a6efcdcdb50777b3223090e7272c3d7db264e509d365d",
+        "path": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cib"
+      },
+      "broker_tool": {
+        "blake3": "230a8bc8717d38f8cdffa7de5b3ceb6fd1a0c8a0d2a48bce9f96e72efd4b7348",
+        "path": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cibtool"
+      },
+      "bubblewrap": {
+        "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb",
+        "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap"
+      },
+      "coordinator": {
+        "blake3": "bfbc49a722488b58d5076636925ce068d78a6e7d44642eea91fd4d0e5e80599f",
+        "path": "/var/tmp/kiln-live-radicle-ci-cargo/debug/kiln-radicle-ci"
+      },
+      "extension": {
+        "blake3": "89fe72116fe16e3edf1ecaad84bb3f675634a23947d578fe357fc42c58a52892",
+        "path": "/var/tmp/kiln-live-radicle-ci-cargo/debug/kiln-aspen-extension"
+      },
+      "git": {
+        "blake3": "ff58f6b017671e877583b6ed504ff246ecae66cc17bf94c2329073db3d2fa2a6",
+        "path": "/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git"
+      },
+      "host": {
+        "blake3": "33b2e2d94fea23469d7fb1ee1b4723033382a7f5336c635c7b5a59451caf0f5d",
+        "path": "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host"
+      },
+      "jj": {
+        "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2",
+        "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj"
+      },
+      "lattice": {
+        "blake3": "4c3773e852f6b66cb33677e74899d37a2bed0dcf4742698c40d12d0813783aba",
+        "path": "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice"
+      },
+      "legacy_coordinator": {
+        "blake3": "20172e88f7cd037fc917231967b5fa059d6d38dc0318b8845d6c2fb97f61bf40",
+        "path": "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-pilot"
+      },
+      "nickel": {
+        "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f",
+        "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel"
+      },
+      "nix": {
+        "blake3": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+        "path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix"
+      },
+      "nix_store": {
+        "blake3": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+        "path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store"
+      },
+      "openssl": {
+        "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81",
+        "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl"
+      },
+      "python": {
+        "blake3": "1ab5f2e72414b644e238607b28a8477ec8f4cb3f03860c7d039edc061613c15b",
+        "path": "/nix/store/b5bpi6zfajzzrwwpgba2q6li3nnya4bs-python3-3.14.7/bin/python3.14"
+      },
+      "radicle": {
+        "blake3": "4ba3aca4155c9ee0a05d17e94748b355f5903ebd1b7565a51591cc4e02f40f38",
+        "path": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad"
+      },
+      "radicle_node": {
+        "blake3": "e9dda54b463e77766d18bd7810b79f8be203e6cd1d42e9c532ac646103b2ffd1",
+        "path": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node"
+      },
+      "secretspec": {
+        "blake3": "c15ea6408e2ff98fd976507a2ae5bec3cb99ef5580ce7342ba92eb465d9b28a6",
+        "path": "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec"
+      },
+      "shell": {
+        "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad",
+        "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash"
+      },
+      "sleep": {
+        "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471",
+        "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/sleep"
+      },
+      "worker": {
+        "blake3": "c8a18576e32124b05fa3703214d490de091f6f0c11386391e7b41c6b8b80fa2b",
+        "path": "/var/tmp/kiln-live-radicle-ci-cargo/debug/kiln-onixos-worker"
+      }
+    },
+    "operation_identity": "5fe43b47cd42ace4fef539f430b75d6c241e0b97f012b7d23219a7543d87ba5e",
+    "project_profile_identity": "22d616a060fc5294d9b01a4bc2b5cebd98e52bf8b83d66560ec59a55ca60ef02",
+    "settings": {
+      "build_delay_seconds": 8,
+      "callback_timeout_milliseconds": 240000,
+      "command_seconds": 360,
+      "host_maximum_requests": 256,
+      "listen_host": "127.0.0.1",
+      "maximum_document_bytes": 4194304,
+      "maximum_polls": 120,
+      "maximum_service_log_bytes": 33554432,
+      "network": "test",
+      "poll_interval_milliseconds": 1000,
+      "recovery_seconds": 360,
+      "root": "/var/tmp/kiln-radicle-live-20261021-e",
+      "source_branch": "ci-canary",
+      "status_checkpoint_branch": "kiln-status-checkpoint",
+      "tools": {
+        "broker": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cib",
+        "broker_tool": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cibtool",
+        "git": "/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git",
+        "jj": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+        "radicle": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad",
+        "radicle_node": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node",
+        "secretspec": "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec"
+      }
+    },
+    "source_selection": {
+      "limits": {
+        "max_entries": 512,
+        "max_file_bytes": 4194304,
+        "max_identity_bytes": 4096,
+        "max_path_bytes": 1024,
+        "max_reference_bytes": 512,
+        "max_total_bytes": 16777216
+      },
+      "profile_id": "radicle-source-v1",
+      "repository_id": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+      "repository_path": "/var/tmp/kiln-radicle-live-20261021-e/rad-ci/storage/z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+      "signed_reference": "refs/heads/ci-canary",
+      "signer_node_id": "z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf"
+    },
+    "topology": {
+      "ci": {
+        "home": "/var/tmp/kiln-radicle-live-20261021-e/rad-ci",
+        "id": "z6MkkxMnmHmh1JH92F1DMWFmbS4ytH3kAvJWRko6Z2vmNixK",
+        "port": 51445
+      },
+      "observer": {
+        "home": "/var/tmp/kiln-radicle-live-20261021-e/rad-observer",
+        "id": "z6MkpNkn52JKmoXxQGk97wgRu9HRL9mSxf2XkrstCpf1quR6",
+        "port": 60215
+      },
+      "publisher": {
+        "home": "/var/tmp/kiln-radicle-live-20261021-e/rad-publisher",
+        "id": "z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf",
+        "port": 50505
+      }
+    }
+  },
+  "configuration_admission": {
+    "evidence": "canary-admission.json",
+    "fixtures": [
+      {
+        "exit_code": 0,
+        "fixture": "config/fixtures/radicle-ci-live-positive.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-checkpoint-branch.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-root-dot.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-root-parent.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-root-traversal.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-root.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-secretspec.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-source-branch.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-tool.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-unknown-field.ncl"
+      },
+      {
+        "exit_code": 1,
+        "fixture": "config/fixtures/negative-radicle-ci-live-unknown-tool.ncl"
+      }
+    ]
+  },
+  "gate_receipts": "gates/",
+  "maintenance_owner": "Kiln maintainers",
+  "non_claims": [
+    "same-host native loopback TCP is not WAN or distinct-host qualification",
+    "trusted canary source and shared-user workers do not establish hostile-worker confinement",
+    "a real Nix build is not activation, deployment, release authority or arbitrary reproducibility",
+    "upstream event deduplication is distinct from canonical controller reconciliation",
+    "private dedicated test identities grant no production repository or governance authority"
+  ],
+  "observed_at_utc": "2026-10-21T05:33:57Z",
+  "provider_invocations": [
+    "5e911e728257459e2e4d842097142c8183eec4d2",
+    "a87d000066f716094c62c8d7582e2ba7c7772755"
+  ],
+  "rejected_attempts": "rejected-attempts.json",
+  "retirement": {
+    "errors": [],
+    "private_credentials_retired": true,
+    "production_state_or_status_mutated": false,
+    "retained_private_material": "none; node keys and the generated status signer .env are absent from the canary root and this bundle",
+    "service_count": 8,
+    "service_exit_codes": [
+      -15,
+      -9
+    ],
+    "teardown_releases": [
+      {
+        "build_output_roots_released": true,
+        "source_root_released": true
+      },
+      {
+        "build_output_roots_released": true,
+        "source_root_released": true
+      }
+    ]
+  },
+  "run_window_utc": {
+    "completed_at": "2026-10-21T05:33:57Z",
+    "started_at": "2026-10-21T05:30:40Z"
+  },
+  "schema": "kiln.radicle-ci.live-qualification.v1",
+  "source_binding": {
+    "coordinator_run_binary": {
+      "blake3": "bfbc49a722488b58d5076636925ce068d78a6e7d44642eea91fd4d0e5e80599f",
+      "path": "/var/tmp/kiln-live-radicle-ci-cargo/debug/kiln-radicle-ci"
+    },
+    "files_blake3": {
+      "config/radicle-ci-live.ncl": "946769a35fab72587276504fb8e024079b06965038e4b293103fea858c49d1cc",
+      "config/radicle-ci-worker.ncl": "99c2528d88d51a61fcb3b72cac082e5581d4c09a608c28afaf8b917bd7906ef4",
+      "config/radicle-ci.ncl": "7d1f09253686068665b75a554c8dc6f54d25aae43ff4e6fda763a23b32a1441b",
+      "crates/kiln-radicle-ci/src/main.rs": "32d80ab885e8bdcaa98d99619a6d007425689a8458ca95c3b79e1d0f831b50fa",
+      "scripts/onixos-ci-pilot.py": "40cf8828a362720ea74fcc6741c5426aa42b7a21d16eb147cebc59309f7159c3",
+      "scripts/radicle-ci-live.py": "dc30685acbbcabf168a001a423d2fa50c502081531876ac6f668940ffe39ef25",
+      "scripts/radicle_ci_live_signer.py": "80f677843b49c58de33b87a30b98b9ed932f505243b3c748fcb314bfc6322e53"
+    },
+    "live_fixtures_blake3": {
+      "config/fixtures/negative-radicle-ci-live-checkpoint-branch.ncl": "cc05e5b63e17a98f6dba120d703a070763d7a7c5969ccf8116b0f535aba38349",
+      "config/fixtures/negative-radicle-ci-live-root-dot.ncl": "aaa547903359f611568f36e1953fa83781068f4f24f18c81e0d0c220da376e84",
+      "config/fixtures/negative-radicle-ci-live-root-parent.ncl": "f4e0d154e4ad82acb515af1fa267c3776d2bf4e957b9dfae903475d13a3f7fba",
+      "config/fixtures/negative-radicle-ci-live-root-traversal.ncl": "a9380fd38f487774d65bbe81c69d903ee33f85a7a7cc40c2abc9bb0a2a6a7739",
+      "config/fixtures/negative-radicle-ci-live-root.ncl": "8014cd614e9973095babc18787dec1e8de1ebc6172e353e941affbbd00166068",
+      "config/fixtures/negative-radicle-ci-live-secretspec.ncl": "e2d79084442c9d04103761705012cec6d977fa6709235f13afc10efef0ab0875",
+      "config/fixtures/negative-radicle-ci-live-source-branch.ncl": "9ea37d81c880b47e69d152f71ce228b56b162538e564307841c2a47b4b368483",
+      "config/fixtures/negative-radicle-ci-live-tool.ncl": "eaa6ea485facf384d5cf6446989795b0ec4088613b98204befc1bf19358a4585",
+      "config/fixtures/negative-radicle-ci-live-unknown-field.ncl": "9ca9652e46352794833d88674bcca5f213e7340b00047820c16306656ddfef1b",
+      "config/fixtures/negative-radicle-ci-live-unknown-tool.ncl": "6afd193b91e6709345f5277123e59ecff2dbcf10dc60194f20c6969dde17cb91",
+      "config/fixtures/radicle-ci-live-inputs.ncl": "c59ae288aaf9cd83584e2f8b0a9a2f949f4698ad56629176221cff222ef54b56",
+      "config/fixtures/radicle-ci-live-positive.ncl": "d415d6e5d4b455c32bba8474b8753042ef8be21b20f30e8321d9e5c0cbc29b49"
+    },
+    "note": "The canary runner, signer helper and live admission contract are working-copy additions on the parent commit; the coordinator status-reconcile command is a working-copy modification. The runner and live contract were byte-identical at run and record time. A post-run repository formatting pass changed only the import layout of crates/kiln-radicle-ci/src/main.rs, so the recorded run-time coordinator BLAKE3, not the current scratch file, is the execution identity. Scrubbed canary roots were rejected attempts under evidence/rejected-attempts.json.",
+    "note_binary": "The recorded coordinator BLAKE3 is the run-time scratch binary identity; later repository test builds replaced the scratch path, so the recorded digest, not the current file, is the execution identity.",
+    "parent_commit": "17e8d9c80e2cd4819bb5129223ea15216600e181",
+    "working_copy_change": "mvnlmrvnyouo"
+  },
+  "verdict": "PASS",
+  "workflow": {
+    "definition_revision": "af506a2306d3cc24af016d6940a0182ab74b796cfb9e2108c47bcf1871e0351c",
+    "orchestration_diagnostics": [],
+    "workflow_diagnostics": [],
+    "workflow_revision": {
+      "content_hash": "e8b76fd80d91a669f1bcaf7f0d3a69fcfca66d7cc8cf9ea5b1b467f3dbd7be70",
+      "workflow_name": "onixos-home-application"
+    }
+  }
+}

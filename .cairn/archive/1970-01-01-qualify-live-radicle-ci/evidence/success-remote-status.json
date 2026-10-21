@@ -1,0 +1,38 @@
+{
+  "after_native_fetch": {
+    "head": {
+      "contract_version": 1,
+      "native_id": "a5f4b42418dfab6b8799dd20d644b67ca6cf2eb3",
+      "native_kind": "head",
+      "provider_namespace": "radicle"
+    },
+    "idempotency_key": "bfcf7fdb062f64d38bb5d55b7ce8b6a2d6316f5f3593a2f406d70d9b9bc21d95",
+    "object_id": {
+      "contract_version": 1,
+      "native_id": "a5f4b42418dfab6b8799dd20d644b67ca6cf2eb3",
+      "native_kind": "cob",
+      "provider_namespace": "radicle"
+    },
+    "outcome": "success",
+    "repository": {
+      "contract_version": 1,
+      "native_id": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+      "native_kind": "repository",
+      "provider_namespace": "radicle"
+    },
+    "revision": {
+      "contract_version": 1,
+      "native_id": "5e911e728257459e2e4d842097142c8183eec4d2",
+      "native_kind": "revision",
+      "provider_namespace": "radicle"
+    },
+    "run_id": "kiln-aspen-run-ae84adddac5184709e5939707cf3d397cda3cf1da52943662ef340668fd3b56f",
+    "signer_identity": {
+      "contract_version": 1,
+      "native_id": "z6MkkxMnmHmh1JH92F1DMWFmbS4ytH3kAvJWRko6Z2vmNixK",
+      "native_kind": "node",
+      "provider_namespace": "radicle"
+    }
+  },
+  "before_sign_sync": null
+}

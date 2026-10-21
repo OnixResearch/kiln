@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:.",
+    "--no-write-lock-file",
+    "-c",
+    "cairn",
+    "status",
+    "--root",
+    "."
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "status-post-archive",
+  "started_at": "2026-10-21T11:55:44.507075Z",
+  "stderr": "",
+  "stdout": "{\n  \"changes\": [],\n  \"layout\": \"cairn\",\n  \"resolution\": {\n    \"diagnostics\": [],\n    \"locator_consulted\": false,\n    \"registry_lookup\": \"local_locator_only\",\n    \"selected\": {\n      \"project_identity\": null,\n      \"root\": \".\",\n      \"source\": \"explicit_root\",\n      \"store_id\": null,\n      \"store_identity\": null\n    },\n    \"valid\": true\n  },\n  \"root\": \".\",\n  \"specs\": [\n    \"./.cairn/specs/aspen-host-bridge/spec.md\",\n    \"./.cairn/specs/aspen-runtime-backend/spec.md\",\n    \"./.cairn/specs/cairn-gate-adapter/spec.md\",\n    \"./.cairn/specs/cdevents-interchange-adapter/spec.md\",\n    \"./.cairn/specs/celld-event-store-adapter/spec.md\",\n    \"./.cairn/specs/change-gating/spec.md\",\n    \"./.cairn/specs/ci-domain/spec.md\",\n    \"./.cairn/specs/durable-operations/spec.md\",\n    \"./.cairn/specs/git-source-adapter/spec.md\",\n    \"./.cairn/specs/github-ci/spec.md\",\n    \"./.cairn/specs/interchange-projections/spec.md\",\n    \"./.cairn/specs/iroh-workflow-transport/spec.md\",\n    \"./.cairn/specs/lattice-workflow-adapter/spec.md\",\n    \"./.cairn/specs/live-ci/spec.md\",\n    \"./.cairn/specs/live-radicle-ci/spec.md\",\n    \"./.cairn/specs/mantle-build-adapter/spec.md\",\n    \"./.cairn/specs/nix-build/spec.md\",\n    \"./.cairn/specs/nix-eval-jobs-adapter/spec.md\",\n    \"./.cairn/specs/nix-eval-jobs-onix-cohort/spec.md\",\n    \"./.cairn/specs/observation-http-shell/spec.md\",\n    \"./.cairn/specs/observation-iroh-shell/spec.md\",\n    \"./.cairn/specs/observation-projection/spec.md\",\n    \"./.cairn/specs/onixos-ci-pilot/spec.md\",\n    \"./.cairn/specs/opentelemetry-projection-adapter/spec.md\",\n    \"./.cairn/specs/provider-ports/spec.md\",\n    \"./.cairn/specs/public-release-preparation/spec.md\",\n    \"./.cairn/specs/radicle-ci-compatibility/spec.md\",\n    \"./.cairn/specs/radicle-ci-composition/spec.md\",\n    \"./.cairn/specs/radicle-cob-support/spec.md\",\n    \"./.cairn/specs/radicle-mutation/spec.md\",\n    \"./.cairn/specs/radicle-source-contract/spec.md\",\n    \"./.cairn/specs/radicle-status/spec.md\",\n    \"./.cairn/specs/remote-execution-compatibility/spec.md\",\n    \"./.cairn/specs/repository-hosting/spec.md\",\n    \"./.cairn/specs/repository-lifecycle/spec.md\",\n    \"./.cairn/specs/source-collaboration/spec.md\",\n    \"./.cairn/specs/sqlite-event-store-adapter/spec.md\",\n    \"./.cairn/specs/task-operations/spec.md\",\n    \"./.cairn/specs/valence-evidence-adapter/spec.md\",\n    \"./.cairn/specs/webhook-notification-adapter/spec.md\"\n  ]\n}\n"
+}

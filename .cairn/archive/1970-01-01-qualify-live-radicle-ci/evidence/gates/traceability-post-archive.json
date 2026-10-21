@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:.",
+    "--no-write-lock-file",
+    "-c",
+    "cairn",
+    "traceability",
+    "coverage",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json",
+    "--json"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "traceability-post-archive",
+  "started_at": "2026-10-21T11:55:42.549752Z",
+  "stderr": "",
+  "stdout": "{\n  \"command\": \"traceability coverage\",\n  \"dangling\": [],\n  \"input_hash\": \"c5ecc333528db0eaaa1130d309372699c14822617d6b1a044ce46b95f77a5bc1\",\n  \"missing\": [],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"profile\": {\n    \"anchor_kind\": \"exact_marker_bytes\",\n    \"assurance_level\": \"declared\",\n    \"evidence_sources\": [\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"ncl\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"nickel_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-aspen-host\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-radicle-nix-provider\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \"docs/hosting-and-recovery.md\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\",\n          \"ncl\"\n        ],\n        \"root\": \"tools\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\"\n        ],\n        \"root\": \"src\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\",\n          \"sh\"\n        ],\n        \"root\": \"tests\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"py\"\n        ],\n        \"root\": \"scripts\",\n        \"source_kind\": \"tool_source\"\n      }\n    ],\n    \"id\": \"cairn-default\",\n    \"marker_verbs\": [\n      \"impl\",\n      \"verify\",\n      \"depends\",\n      \"related\"\n    ],\n    \"requirement_sources\": [\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \".cairn/specs\",\n        \"source_kind\": \"accepted_specs\"\n      }\n    ]\n  },\n  \"profile_id\": \"cairn-default\",\n  \"receipt_hash\": \"704600317732d65f2129c2ed8e1794acce09e312e00696f490ab6705850d7ace\",\n  \"referenced\": 795,\n  \"requirements\": 795,\n  \"root\": \".\",\n  \"source_summary\": {\n    \"evidence_files\": 329,\n    \"evidence_manifest_hash\": \"9845c4738e493cab28b7eba721762c0325d038e277e6537056c3e5fa74794371\",\n    \"requirement_files\": 40,\n    \"requirement_manifest_hash\": \"a150506b766c6c4ccaa7a5e6a0c16d961ccc3c023a3d71e9680a775e03f22384\"\n  },\n  \"valid\": true,\n  \"verdict\": \"pass\"\n}\n"
+}

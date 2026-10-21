@@ -1,0 +1,429 @@
+{
+  "cases": [
+    {
+      "canonical_outcome": "Success",
+      "case": "success",
+      "duplicate_preserved_operation": {
+        "contract_version": 1,
+        "native_id": "45ef9b4727d8c96f1313bee5f08a7f3dfc969d8accd00df737a52fd1adced13c",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "native_duplicate_fetch": {
+        "argv": [
+          "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+          "--die-with-parent",
+          "--unshare-user",
+          "--unshare-pid",
+          "--bind",
+          "/",
+          "/",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--bind",
+          "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+          "/home/brittonr",
+          "--ro-bind",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "--chdir",
+          "/var/tmp/kiln-radicle-live-20261021-e",
+          "--",
+          "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad",
+          "sync",
+          "--fetch",
+          "--seed",
+          "z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf",
+          "--timeout",
+          "20s",
+          "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "Fetching rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ from the network, found 3 potential seed(s).\n\u2713 Target met: 1 preferred seed(s).\n\ud83c\udf31 Fetched from z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf\n"
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "45ef9b4727d8c96f1313bee5f08a7f3dfc969d8accd00df737a52fd1adced13c",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "original_broker_replies": [
+        {
+          "response": "triggered",
+          "run_id": {
+            "id": "kiln-aspen-run-ae84adddac5184709e5939707cf3d397cda3cf1da52943662ef340668fd3b56f"
+          }
+        },
+        {
+          "response": "finished",
+          "result": "success"
+        }
+      ],
+      "output_absent_before_dispatch": {
+        "argv": [
+          "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+          "--die-with-parent",
+          "--unshare-user",
+          "--unshare-pid",
+          "--bind",
+          "/",
+          "/",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--bind",
+          "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+          "/home/brittonr",
+          "--ro-bind",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "--chdir",
+          "/var/tmp/kiln-radicle-live-20261021-e",
+          "--",
+          "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store",
+          "--check-validity",
+          "/nix/store/wnjqwam4y62w8nvwpiq1hhz0cqqfd5zd-kiln-radicle-live-ci"
+        ],
+        "exit_code": 1,
+        "stderr": "warning: unknown experimental feature 'wasm-builtin'\nerror: path '/nix/store/wnjqwam4y62w8nvwpiq1hhz0cqqfd5zd-kiln-radicle-live-ci' is not valid\n",
+        "stdout": ""
+      },
+      "release": [
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        },
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        }
+      ],
+      "remote_status": {
+        "head": {
+          "contract_version": 1,
+          "native_id": "a5f4b42418dfab6b8799dd20d644b67ca6cf2eb3",
+          "native_kind": "head",
+          "provider_namespace": "radicle"
+        },
+        "idempotency_key": "bfcf7fdb062f64d38bb5d55b7ce8b6a2d6316f5f3593a2f406d70d9b9bc21d95",
+        "object_id": {
+          "contract_version": 1,
+          "native_id": "a5f4b42418dfab6b8799dd20d644b67ca6cf2eb3",
+          "native_kind": "cob",
+          "provider_namespace": "radicle"
+        },
+        "outcome": "success",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+          "native_kind": "repository",
+          "provider_namespace": "radicle"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "5e911e728257459e2e4d842097142c8183eec4d2",
+          "native_kind": "revision",
+          "provider_namespace": "radicle"
+        },
+        "run_id": "kiln-aspen-run-ae84adddac5184709e5939707cf3d397cda3cf1da52943662ef340668fd3b56f",
+        "signer_identity": {
+          "contract_version": 1,
+          "native_id": "z6MkkxMnmHmh1JH92F1DMWFmbS4ytH3kAvJWRko6Z2vmNixK",
+          "native_kind": "node",
+          "provider_namespace": "radicle"
+        }
+      },
+      "restart": {
+        "canonical_outcome": "Pending",
+        "independent_lattice_running": true,
+        "original_operation": {
+          "contract_version": 1,
+          "native_id": "45ef9b4727d8c96f1313bee5f08a7f3dfc969d8accd00df737a52fd1adced13c",
+          "native_kind": "service-operation-blake3",
+          "provider_namespace": "molten"
+        },
+        "worker_result_present": false
+      },
+      "rooted_outputs": {
+        "/var/tmp/kiln-radicle-live-20261021-e/build-roots/412e1329894c351f3e46a1865c13fd1b1db3c2dab46ac458cdf72519ef268a5c/root": "/nix/store/wnjqwam4y62w8nvwpiq1hhz0cqqfd5zd-kiln-radicle-live-ci"
+      },
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+        "revision": "5e911e728257459e2e4d842097142c8183eec4d2"
+      }
+    },
+    {
+      "canonical_outcome": "DomainFailure",
+      "case": "failure",
+      "duplicate_preserved_operation": {
+        "contract_version": 1,
+        "native_id": "97516dae8109150d1bf214872affd90279684e81868c6f6166a5754f0a3b52c9",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "native_duplicate_fetch": {
+        "argv": [
+          "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+          "--die-with-parent",
+          "--unshare-user",
+          "--unshare-pid",
+          "--bind",
+          "/",
+          "/",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--bind",
+          "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+          "/home/brittonr",
+          "--ro-bind",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "--chdir",
+          "/var/tmp/kiln-radicle-live-20261021-e",
+          "--",
+          "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad",
+          "sync",
+          "--fetch",
+          "--seed",
+          "z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf",
+          "--timeout",
+          "20s",
+          "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "Fetching rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ from the network, found 3 potential seed(s).\n\u2713 Target met: 1 preferred seed(s).\n\ud83c\udf31 Fetched from z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf\n"
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "97516dae8109150d1bf214872affd90279684e81868c6f6166a5754f0a3b52c9",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "original_broker_replies": [
+        {
+          "response": "triggered",
+          "run_id": {
+            "id": "kiln-aspen-run-ea57920d4b78ba9cd87afb08e83cefb1b7308a0d67fa10a04aef724cfd6308de"
+          }
+        },
+        {
+          "response": "finished",
+          "result": "failure"
+        }
+      ],
+      "output_absent_before_dispatch": {
+        "argv": [
+          "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+          "--die-with-parent",
+          "--unshare-user",
+          "--unshare-pid",
+          "--bind",
+          "/",
+          "/",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--bind",
+          "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+          "/home/brittonr",
+          "--ro-bind",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "--chdir",
+          "/var/tmp/kiln-radicle-live-20261021-e",
+          "--",
+          "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store",
+          "--check-validity",
+          "/nix/store/fyx079rmrj24695nx019lps9ki47zki6-kiln-radicle-live-ci"
+        ],
+        "exit_code": 1,
+        "stderr": "warning: unknown experimental feature 'wasm-builtin'\nerror: path '/nix/store/fyx079rmrj24695nx019lps9ki47zki6-kiln-radicle-live-ci' is not valid\n",
+        "stdout": ""
+      },
+      "release": [
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        },
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        }
+      ],
+      "remote_status": {
+        "head": {
+          "contract_version": 1,
+          "native_id": "10bcc44ff4b03e7808da7061931ed10888d737d7",
+          "native_kind": "head",
+          "provider_namespace": "radicle"
+        },
+        "idempotency_key": "b0ab6e4c66bdcdf3f95afff4626902fa3f69d38c492431c0ef4a11897a433318",
+        "object_id": {
+          "contract_version": 1,
+          "native_id": "10bcc44ff4b03e7808da7061931ed10888d737d7",
+          "native_kind": "cob",
+          "provider_namespace": "radicle"
+        },
+        "outcome": "failure",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+          "native_kind": "repository",
+          "provider_namespace": "radicle"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "a87d000066f716094c62c8d7582e2ba7c7772755",
+          "native_kind": "revision",
+          "provider_namespace": "radicle"
+        },
+        "run_id": "kiln-aspen-run-ea57920d4b78ba9cd87afb08e83cefb1b7308a0d67fa10a04aef724cfd6308de",
+        "signer_identity": {
+          "contract_version": 1,
+          "native_id": "z6MkkxMnmHmh1JH92F1DMWFmbS4ytH3kAvJWRko6Z2vmNixK",
+          "native_kind": "node",
+          "provider_namespace": "radicle"
+        }
+      },
+      "restart": null,
+      "rooted_outputs": {},
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+        "revision": "a87d000066f716094c62c8d7582e2ba7c7772755"
+      }
+    },
+    {
+      "canonical_outcome": "Pending",
+      "case": "unavailable",
+      "duplicate_preserved_operation": {
+        "contract_version": 1,
+        "native_id": "3bded2cff41266c431c7e1262f3c40161bfa1426cea40169f6da7494c32d17b9",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "native_duplicate_fetch": {
+        "argv": [
+          "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+          "--die-with-parent",
+          "--unshare-user",
+          "--unshare-pid",
+          "--bind",
+          "/",
+          "/",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--bind",
+          "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+          "/home/brittonr",
+          "--ro-bind",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "--chdir",
+          "/var/tmp/kiln-radicle-live-20261021-e",
+          "--",
+          "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad",
+          "sync",
+          "--fetch",
+          "--seed",
+          "z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf",
+          "--timeout",
+          "20s",
+          "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "Fetching rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ from the network, found 3 potential seed(s).\n\u2713 Target met: 1 preferred seed(s).\n\ud83c\udf31 Fetched from z6MkgUFx1QThezL9gA481xG1PUFqGie3JqJAFyEodBLKqxVf\n"
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "3bded2cff41266c431c7e1262f3c40161bfa1426cea40169f6da7494c32d17b9",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "original_broker_replies": [
+        {
+          "response": "triggered",
+          "run_id": {
+            "id": "kiln-aspen-run-e2d2b3e6dcb5ae743737cd84f7c87e0234f8cf355c4d8d3742d1df6ebdf257fc"
+          }
+        }
+      ],
+      "output_absent_before_dispatch": {
+        "argv": [
+          "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+          "--die-with-parent",
+          "--unshare-user",
+          "--unshare-pid",
+          "--bind",
+          "/",
+          "/",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--bind",
+          "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+          "/home/brittonr",
+          "--ro-bind",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "/home/brittonr/git/OnixResearch/kiln",
+          "--chdir",
+          "/var/tmp/kiln-radicle-live-20261021-e",
+          "--",
+          "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store",
+          "--check-validity",
+          "/nix/store/zaxcpbmdzji50w23n065mwkicsd3mb77-kiln-radicle-live-ci"
+        ],
+        "exit_code": 1,
+        "stderr": "warning: unknown experimental feature 'wasm-builtin'\nerror: path '/nix/store/zaxcpbmdzji50w23n065mwkicsd3mb77-kiln-radicle-live-ci' is not valid\n",
+        "stdout": ""
+      },
+      "release": null,
+      "remote_status": null,
+      "restart": null,
+      "rooted_outputs": {},
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+        "revision": "b830e845152a5caf983ce75156017f92fd6bff68"
+      }
+    }
+  ],
+  "maintenance_owner": "Kiln maintainers",
+  "non_claims": [
+    "same-host native loopback TCP is not WAN or distinct-host qualification",
+    "trusted canary source and shared-user workers do not establish hostile-worker confinement",
+    "a real Nix build is not activation, deployment, release authority or arbitrary reproducibility",
+    "upstream event deduplication is distinct from canonical controller reconciliation",
+    "private dedicated test identities grant no production repository or governance authority"
+  ],
+  "project_profile_identity": "22d616a060fc5294d9b01a4bc2b5cebd98e52bf8b83d66560ec59a55ca60ef02",
+  "provider_invocations": [
+    "5e911e728257459e2e4d842097142c8183eec4d2",
+    "a87d000066f716094c62c8d7582e2ba7c7772755"
+  ],
+  "real_secretspec_audit": "/var/tmp/kiln-radicle-live-20261021-e/passwd-home/.local/state/secretspec/audit.log",
+  "repository": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+  "schema": "kiln.radicle-ci.live-verification.v1",
+  "workflow_observation": {
+    "definition_revision": "af506a2306d3cc24af016d6940a0182ab74b796cfb9e2108c47bcf1871e0351c",
+    "orchestration_diagnostics": [],
+    "workflow_diagnostics": [],
+    "workflow_revision": {
+      "content_hash": "e8b76fd80d91a669f1bcaf7f0d3a69fcfca66d7cc8cf9ea5b1b467f3dbd7be70",
+      "workflow_name": "onixos-home-application"
+    }
+  }
+}

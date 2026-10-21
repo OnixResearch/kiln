@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:.",
+    "--no-write-lock-file",
+    "-c",
+    "cargo",
+    "clippy",
+    "--locked",
+    "--workspace",
+    "--all-targets",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "clippy",
+  "started_at": "2026-10-21T11:46:53.445209Z",
+  "stderr": "    Checking kiln-radicle-ci v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-radicle-ci)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.45s\n",
+  "stdout": ""
+}

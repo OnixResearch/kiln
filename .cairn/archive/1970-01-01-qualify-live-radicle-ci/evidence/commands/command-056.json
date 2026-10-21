@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-20261021-e",
+    "--",
+    "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-pilot",
+    "native-workflow",
+    "/var/tmp/kiln-radicle-live-20261021-e/radicle.json",
+    "/var/tmp/kiln-radicle-live-20261021-e/route-selection.json"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\n  \"schema\": \"lattice.workflow-request.v2\",\n  \"identity\": \"b3:91a6703cde2967691b15b104d239d6efad8ffd479bff705c75a8c29b2b8e27f8\",\n  \"idempotency_key\": \"b3:6ab6d1fc9c3c315faa3fb37c89e24ae509d7621ef8dda4863752f66200ee9c0e\",\n  \"profile_identity\": \"b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5\",\n  \"platform\": \"linux-x86_64\",\n  \"kiln\": {\n    \"effect_identity\": \"b3:a7b2d9d9047b5d96c1f1f5e0d763fedf0678b17370ff6aee701665143c8c2263\",\n    \"attempt_identity\": \"b3:0b5b0afb1b950795bfa05e27c1c1b1d80d52e63a04e570ab9685465d660f824e\",\n    \"candidate_identity\": \"b3:53c5ceec45ce0817b9066de9612c33a446e37cfe459e9062d4d257137ae45fa7\",\n    \"pipeline_revision_identity\": \"b3:f820546d8580edcb74c62d2e8f90043504b740e7f47c0983f0e23ab25a71d962\",\n    \"workflow_policy_identity\": \"b3:3003a5e2718757caa6325070d7cb1da85f6012f177d80ec6771552b8f7d4724e\"\n  },\n  \"source\": {\n    \"provider\": \"radicle\",\n    \"repository\": \"rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ\",\n    \"revision\": \"dcf21317859544fc34a71c0f36ee7b1b572e4e6e\"\n  },\n  \"graph\": {\n    \"schema\": \"lattice.workflow-graph.v1\",\n    \"identity\": \"b3:209fec69ce515ad80aeeed0ff8b091dbce07be90588c2078e7e2c37efff7920c\",\n    \"nodes\": [\n      {\n        \"id\": \"build\",\n        \"kind\": \"build\",\n        \"effect_class\": \"build\",\n        \"adapter_kind\": \"local\",\n        \"operation_identity\": \"b3:5fe43b47cd42ace4fef539f430b75d6c241e0b97f012b7d23219a7543d87ba5e\"\n      }\n    ],\n    \"edges\": []\n  },\n  \"controls\": {\n    \"cancel\": true,\n    \"pause\": false,\n    \"resume\": false\n  },\n  \"observation\": {\n    \"maximum_log_references\": 256,\n    \"maximum_log_read_bytes\": 1048576,\n    \"maximum_total_log_bytes\": 16777216\n  }\n}\n"
+}

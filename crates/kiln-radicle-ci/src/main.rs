@@ -6,7 +6,9 @@ use kiln_adapter_radicle::defelo::{
     DefeloResponse, DefeloResult, DefeloRunId, MAX_DEFELO_REQUEST_BYTES, map_defelo_request,
     parse_defelo_request,
 };
-use kiln_adapter_radicle::status::StatusDispatch;
+use kiln_adapter_radicle::status::{
+    RadicleStatusProfile, RadicleStatusShell, StatusDispatch, StatusPlan,
+};
 use kiln_core::domain::Outcome;
 use kiln_observe_core::EventWindow;
 use kiln_onixos_pilot::{MAX_CONFIG_BYTES, load_json};
@@ -21,11 +23,13 @@ const USAGE: &str = "kiln-radicle-ci commands:
   replay PROFILE_JSON SOURCE_JSON
   bindings PROFILE_JSON SOURCE_JSON
   profile-identity PROFILE_JSON
+  status-reconcile STATUS_PROFILE_JSON STORAGE_ROOT STATUS_PLAN_JSON
   serve PROFILE_JSON SOURCE_JSON HTTP_JSON
   ucan-init HTTP_TEMPLATE_JSON PROFILE_JSON SOURCE_JSON PRIVATE_DIRECTORY
   ucan-probe PROFILE_JSON SOURCE_JSON PRIVATE_DIRECTORY
 Source context is {provider,repository,revision}; the profile fixes the branch and signer.
 All JSON input is bounded. Status signing uses only the separately configured status profile.
+status-reconcile reads explicitly fetched local storage without credentials, signing or networking.
 --native-fixtures is an explicit leading switch available only in native-fixtures builds.
 No command synchronizes repositories, activates outputs or grants release authority.";
 
@@ -169,6 +173,13 @@ fn run() -> Result<()> {
             let profile: CiProfile = load_json(Path::new(input), MAX_CONFIG_BYTES)?;
             profile.admit()?;
             emit(&identity(&profile)?)
+        }
+        ["status-reconcile", profile, storage_root, plan] => {
+            let profile: RadicleStatusProfile = load_json(Path::new(profile), MAX_CONFIG_BYTES)?;
+            let plan: StatusPlan = load_json(Path::new(plan), MAX_CONFIG_BYTES)?;
+            let status = RadicleStatusShell::new(Path::new(storage_root).to_path_buf(), profile)
+                .map_err(text)?;
+            emit(&status.reconcile(&plan).map_err(text)?)
         }
         [] | ["help"] | ["--help"] => {
             println!("{USAGE}");

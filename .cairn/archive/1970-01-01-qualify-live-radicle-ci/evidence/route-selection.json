@@ -1,0 +1,24 @@
+{
+  "actor": {
+    "contract_version": 1,
+    "native_id": "broker",
+    "native_kind": "actor",
+    "provider_namespace": "radicle"
+  },
+  "after": {
+    "contract_version": 1,
+    "native_id": "dcf21317859544fc34a71c0f36ee7b1b572e4e6e",
+    "native_kind": "revision",
+    "provider_namespace": "radicle"
+  },
+  "before": null,
+  "branch": "ci-canary",
+  "event": "push",
+  "patch": null,
+  "repository": {
+    "contract_version": 1,
+    "native_id": "rad:z3YGUHdF38sPfhBHYjMUuQ8VKDveJ",
+    "native_kind": "repository",
+    "provider_namespace": "radicle"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "attempts": [
+    {
+      "command_count": 10,
+      "completed_verification": false,
+      "kind": "bootstrap",
+      "last_command": {
+        "exit_code": 1,
+        "stderr": ""
+      },
+      "private_credentials_retired": null,
+      "retirement_errors": null,
+      "root": "/var/tmp/kiln-radicle-live-bootstrap-20261021-a"
+    },
+    {
+      "command_count": 30,
+      "completed_verification": false,
+      "kind": "bootstrap",
+      "last_command": {
+        "exit_code": 0,
+        "stderr": "Changes to push to origin:\n  bookmark: kiln-status-checkpoint [add to ba4bbe65ab70]\ngit: \u2713 Synced with 1 seed(s)        \nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\n"
+      },
+      "private_credentials_retired": true,
+      "retirement_errors": [],
+      "root": "/var/tmp/kiln-radicle-live-bootstrap-20261021-b"
+    },
+    {
+      "command_count": 10,
+      "completed_verification": false,
+      "kind": "canary",
+      "last_command": {
+        "exit_code": 255,
+        "stderr": "Internal error: Failed to determine the secure config for a repo\nCaused by:\n1: Cannot access /home/brittonr/git/OnixResearch/kiln/.jj/repo\n2: Read-only file system (os error 30) at path \"/home/brittonr/git/OnixResearch/kiln/.jj/repo/.tmpvIOm3d\"\n"
+      },
+      "private_credentials_retired": true,
+      "retirement_errors": [],
+      "root": "/var/tmp/kiln-radicle-live-20261021-a"
+    },
+    {
+      "command_count": 65,
+      "completed_verification": false,
+      "kind": "canary",
+      "last_command": {
+        "exit_code": 0,
+        "stderr": "Changes to push to rad:\n  bookmark: ci-canary [move forward from 0d9d1cccf504 to 3bd6a6a5d365]\ngit: \u2713 Canonical reference refs/heads/ci-canary updated to target commit 3bd6a6a5d365523e5b499ed26980ddff75389f84        \ngit: \u2713 Synced with 1 seed(s)        \n"
+      },
+      "private_credentials_retired": true,
+      "retirement_errors": [],
+      "root": "/var/tmp/kiln-radicle-live-20261021-b"
+    },
+    {
+      "command_count": 85,
+      "completed_verification": false,
+      "kind": "canary",
+      "last_command": {
+        "exit_code": 0,
+        "stderr": "Changes to push to rad:\n  bookmark: ci-canary [move forward from a626f1301e23 to f615fd56ee5a]\ngit: \u2713 Canonical reference refs/heads/ci-canary updated to target commit f615fd56ee5a4ec32b2302906362b5b8596672ed        \ngit: \u2713 Synced with 1 seed(s)        \n"
+      },
+      "private_credentials_retired": true,
+      "retirement_errors": [],
+      "root": "/var/tmp/kiln-radicle-live-20261021-c"
+    },
+    {
+      "command_count": 77,
+      "completed_verification": false,
+      "kind": "canary",
+      "last_command": {
+        "exit_code": 1,
+        "stderr": "Changes to push to origin:\n  bookmark: kiln-status-checkpoint [add to bf66f2311ca9]\nWarning: The following references unexpectedly moved on the remote:\n  refs/heads/kiln-status-checkpoint (reason: stale info)\nHint: Try fetching from the remote, then make the bookmark point to where you want it to be, and push again.\nError: Failed to push some bookmarks\n"
+      },
+      "private_credentials_retired": true,
+      "retirement_errors": [],
+      "root": "/var/tmp/kiln-radicle-live-20261021-d"
+    }
+  ],
+  "note": "Setup/integration attempts that stopped before an exact verification report; each remained confined to its own fresh root and none is promoted to live evidence.",
+  "schema": "kiln.radicle-ci.live-rejected-attempts.v1"
+}

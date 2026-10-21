@@ -133,6 +133,16 @@ still-running execution and genuine redelivery suppression. Follow the
 [bounded live exercise](docs/operator.md#bounded-combined-live-ci-exercise) for
 the recorded cohort, repetition, credential retirement, and claim limits.
 
+The [live Radicle CI canary](.cairn/archive/1970-01-01-qualify-live-radicle-ci/evidence/verification.json)
+starts at a genuine native peer update, lets the installed broker's event
+subscription invoke the unchanged controller/worker, and independently reads the
+dedicated exact-revision status from observer storage. It records canonical
+`Success` and source-controlled `DomainFailure`, an in-flight execution surviving
+host kill and reconciliation without redispatch, duplicate-fetch suppression, and
+bounded nonterminal uncertainty when the provider is unavailable. Follow the
+[native Radicle peer and broker canary](docs/operator.md#native-radicle-peer-and-broker-canary)
+for the recorded cohort, repeat command, retirement, and claim limits.
+
 ## Licensing
 
 Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.

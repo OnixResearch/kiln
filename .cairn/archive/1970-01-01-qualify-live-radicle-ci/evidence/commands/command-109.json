@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-20261021-e",
+    "--",
+    "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store",
+    "--check-validity",
+    "/nix/store/zaxcpbmdzji50w23n065mwkicsd3mb77-kiln-radicle-live-ci"
+  ],
+  "exit_code": 1,
+  "stderr": "warning: unknown experimental feature 'wasm-builtin'\nerror: path '/nix/store/zaxcpbmdzji50w23n065mwkicsd3mb77-kiln-radicle-live-ci' is not valid\n",
+  "stdout": ""
+}

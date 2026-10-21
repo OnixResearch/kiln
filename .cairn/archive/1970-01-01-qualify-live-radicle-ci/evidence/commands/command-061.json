@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-20261021-e/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-20261021-e",
+    "--",
+    "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+    "export",
+    "--format",
+    "json",
+    "/var/tmp/kiln-radicle-live-20261021-e/handler-checked.ncl"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\n  \"maximum_active_executions\": 8,\n  \"non_claims\": [\n    \"handler admission does not prove workflow correctness\",\n    \"route authority does not prove host confinement\",\n    \"execution observation does not prove an external effect succeeded\",\n    \"peer identity does not prove peer intent\",\n    \"handler checks do not establish release readiness\"\n  ],\n  \"routes\": [\n    {\n      \"effect_authority\": \"route_exact\",\n      \"graph_identity\": \"b3:209fec69ce515ad80aeeed0ff8b091dbce07be90588c2078e7e2c37efff7920c\",\n      \"nodes\": [\n        {\n          \"operation_identity\": \"b3:5fe43b47cd42ace4fef539f430b75d6c241e0b97f012b7d23219a7543d87ba5e\",\n          \"request_node_id\": \"build\",\n          \"workflow_node_id\": 0\n        }\n      ],\n      \"profile_identity\": \"b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5\",\n      \"source_binding\": \"shell_environment\",\n      \"workflow_name\": \"onixos-home-application\",\n      \"workflow_revision\": \"b3:e8b76fd80d91a669f1bcaf7f0d3a69fcfca66d7cc8cf9ea5b1b467f3dbd7be70\"\n    }\n  ],\n  \"schema\": \"lattice.workflow-exchange-handler-profile.v1\",\n  \"socket_path\": \"/var/tmp/kiln-radicle-live-20261021-e/lattice.sock\",\n  \"transport\": {\n    \"limits\": {\n      \"maximum_connections\": 2062,\n      \"maximum_frame_bytes\": 33554432,\n      \"maximum_log_bytes\": 16777216,\n      \"read_deadline_milliseconds\": 30000,\n      \"write_deadline_milliseconds\": 30000\n    },\n    \"non_claims\": [\n      \"transport admission does not prove workflow correctness\",\n      \"transport peer identity does not prove peer intent\",\n      \"transport acceptance does not prove an operation executed\",\n      \"transport response does not prove an external effect succeeded\",\n      \"transport checks do not establish production deployment\"\n    ],\n    \"peers\": {\n      \"allowed_user_ids\": [\n        1555\n      ]\n    },\n    \"schema\": \"lattice.workflow-transport-profile.v1\"\n  }\n}\n"
+}

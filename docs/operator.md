@@ -908,3 +908,53 @@ The [retained qualification](../.cairn/archive/1970-01-01-compose-radicle-source
 links the exact native cohort, original commands, canonical journals, source and
 build observations, rejected attempts, root release and retirement records.
 
+### Native Radicle peer and broker canary
+
+The [live qualification](../.cairn/archive/1970-01-01-qualify-live-radicle-ci/evidence/verification.json)
+starts from a genuine native peer update rather than a `cibtool trigger`. The
+runner provisions three fresh, separately identified nodes on one host
+(publisher, CI and observer), subscribes the installed broker to native events
+for exactly one canary RID/branch, and leaves the reviewed controller, project
+worker and workflow profile unchanged. It never mutates the operator's existing
+Radicle home, repository, signer or services.
+
+```console
+nix develop path:$PWD -c python3 scripts/radicle-ci-live.py \
+  --inputs .cairn/archive/1970-01-01-build-authenticated-onixos-home-closure/evidence/success/inputs.json \
+  --nickel "$NICKEL" --nixpkgs "$NIXPKGS" \
+  --worker "$WORKER" --extension "$EXTENSION" --coordinator "$COORDINATOR" \
+  --radicle "$RADICLE" --radicle-node "$RADICLE_NODE" \
+  --broker "$BROKER" --broker-tool "$CIBTOOL" \
+  --jj "$JJ" --git "$GIT" --secretspec "$SECRETSPEC" \
+  --root "/var/tmp/kiln-radicle-live-$RANDOM"
+```
+
+Use the resolved paths from the recorded cohort and a root that does not exist;
+`config/radicle-ci-live.ncl` admits only a canonical `/var/tmp/<fresh>`
+descendant, the exact branch pair and the pinned store executables. The runner
+creates the three node identities, derives the dedicated status seed from the
+fresh CI node's unencrypted Ed25519 key, writes a private SecretSpec dotenv
+manifest, and never reads an operator credential. Native peers use loopback TCP
+with no seeds, relays, default network or public addresses.
+
+Each revision must arrive as an actual native peer fetch. The broker's own
+subscription produces the original adapter bytes; the canary retains the exact
+`request.json`, attempt replies and canonical journal. For success and
+source-controlled failure, completion requires a written dedicated status
+intent, explicit signing/synchronization of only
+`refs/heads/kiln-status-checkpoint`, and an independent fetch/reduce from
+observer storage returning the same RID, revision, run, outcome, object ID and
+head. The success case additionally kills the controller host while the worker
+and Lattice continue; reconciliation must resume the original operation with no
+worker result before completion and exactly one provider invocation. The
+unavailable case stops the host before dispatch and must remain nonterminal with
+only the `triggered` reply and no status.
+
+The canary releases every successful source/build root, stops all owned
+services, and deletes node keys and the generated seed. The retained evidence
+records the exact cohort, ingress and replies, journals and status observations,
+rejected attempts and retirement. This is a same-host native loopback canary on
+trusted reviewed source; it does not establish WAN or distinct-host delivery,
+hostile-worker confinement, production deployment, activation or release
+authority.
+
