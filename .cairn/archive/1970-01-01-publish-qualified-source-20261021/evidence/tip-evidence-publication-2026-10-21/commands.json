@@ -1,0 +1,105 @@
+{
+  "scope": "Publication shell command record for the source-only publication of ac9916c3fe7ddbb051f012f84252117f295b65fd to canonical Radicle main and the read-only GitHub projection; recorded in a later local evidence revision, not inside the published source archive",
+  "commands": [
+    {
+      "name": "candidate_source_archive",
+      "argv": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "<sorted candidate paths>",
+        "--file",
+        "source.tar"
+      ],
+      "exit_code": 0,
+      "stdout": "5aeae92760b408de64690669b3d1bce60cc9a379dae293a03ce02e6c7288bf9e  source.tar\n",
+      "stderr": ""
+    },
+    {
+      "name": "canonical_radicle_push",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "git: Canonical reference refs/heads/main updated to target commit ac9916c3fe7ddbb051f012f84252117f295b65fd\ngit: Synced with 2 seed(s)\n"
+    },
+    {
+      "name": "github_projection_push",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to github:\n  bookmark: main [move forward from 0019ff3cbe1a to ac9916c3fe7d]\n"
+    },
+    {
+      "name": "radicle_native_readback",
+      "argv": [
+        "jj",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "<clone>"
+      ],
+      "exit_code": 0,
+      "stdout": "revision ac9916c3fe7ddbb051f012f84252117f295b65fd, 4481 tracked members, paths 8e2584e9..., archive 5aeae927...\n",
+      "stderr": ""
+    },
+    {
+      "name": "garden_anonymous_readback",
+      "argv": [
+        "jj",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "<clone>"
+      ],
+      "exit_code": 0,
+      "stdout": "revision ac9916c3fe7ddbb051f012f84252117f295b65fd, 4481 tracked members, paths 8e2584e9..., archive 5aeae927...\n",
+      "stderr": ""
+    },
+    {
+      "name": "github_anonymous_readback",
+      "argv": [
+        "jj",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "https://github.com/OnixResearch/kiln.git",
+        "<clone>"
+      ],
+      "exit_code": 0,
+      "stdout": "revision ac9916c3fe7ddbb051f012f84252117f295b65fd, 4481 tracked members, paths 8e2584e9..., archive 5aeae927...\n",
+      "stderr": ""
+    }
+  ]
+}

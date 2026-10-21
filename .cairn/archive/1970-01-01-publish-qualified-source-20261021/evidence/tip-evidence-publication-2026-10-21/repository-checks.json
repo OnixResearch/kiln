@@ -1,0 +1,31 @@
+{
+  "schema": "kiln.qualified-source-publication.repository-checks.v1",
+  "observed_at_utc": "2026-10-21T20:40:00Z",
+  "canonical_repository": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "default_branch": "main",
+    "main_revision": "ac9916c3fe7ddbb051f012f84252117f295b65fd",
+    "namespace_main_revision": "ac9916c3fe7ddbb051f012f84252117f295b65fd",
+    "delegate_namespace": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+  },
+  "seed_reference": {
+    "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+    "refs/heads/main": "ac9916c3fe7ddbb051f012f84252117f295b65fd",
+    "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/main": "ac9916c3fe7ddbb051f012f84252117f295b65fd"
+  },
+  "github_projection": {
+    "url": "https://github.com/OnixResearch/kiln.git",
+    "refs/heads/main": "ac9916c3fe7ddbb051f012f84252117f295b65fd",
+    "default_branch": "main",
+    "visibility": "public",
+    "scope": "Read-only projection advanced to the same revision; Radicle remains canonical"
+  },
+  "local_node": {
+    "node_id": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+    "local_main_after_fetch": "ac9916c3fe7ddbb051f012f84252117f295b65fd"
+  },
+  "non_claims": [
+    "Reference agreement proves only the observed revisions at read time",
+    "It does not prove future availability, independent replication or source correctness"
+  ]
+}
