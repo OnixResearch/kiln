@@ -112,13 +112,13 @@ fn discovery_plan() -> DiscoveryEffectPlan {
 
 // r[verify kiln.nix_build.composition] r[verify kiln.nix_build.composition.scenario.e2e]
 #[test]
-fn real_discovery_task_builds_through_the_composition() {
+fn real_discovery_task_builds_through_the_composition() -> Result<(), String> {
     let temp = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let home = temp.path().join("eval-home");
     std::fs::create_dir(&home).unwrap_or_else(|_| unreachable!());
     let profile = eval_profile(&home, &temp.path().join("eval-roots"));
     let mut discovery = NixEvalAdapter::new(profile, BoundedNixEvalRuntime)
-        .unwrap_or_else(|error| panic!("pinned Nix evaluator cohort is unavailable: {error:?}"));
+        .map_err(|error| format!("pinned Nix evaluator cohort is unavailable: {error:?}"))?;
     let observation = discovery
         .discover(&discovery_plan())
         .unwrap_or_else(|_| unreachable!());
@@ -157,4 +157,5 @@ fn real_discovery_task_builds_through_the_composition() {
         .release_output_roots(&plan.effect_id)
         .unwrap_or_else(|_| unreachable!());
     assert!(!root.exists());
+    Ok(())
 }
