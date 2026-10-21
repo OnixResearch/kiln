@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b",
+    "--",
+    "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+    "export",
+    "--format",
+    "json",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b/canary-settings.ncl"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\n  \"build_delay_seconds\": 8,\n  \"callback_timeout_milliseconds\": 240000,\n  \"command_seconds\": 360,\n  \"host_maximum_requests\": 256,\n  \"listen_host\": \"127.0.0.1\",\n  \"maximum_document_bytes\": 4194304,\n  \"maximum_polls\": 120,\n  \"maximum_service_log_bytes\": 33554432,\n  \"network\": \"test\",\n  \"poll_interval_milliseconds\": 1000,\n  \"recovery_seconds\": 360,\n  \"remote\": {\n    \"address\": \"100.100.103.95\",\n    \"host\": \"aspen1\",\n    \"port\": 52000,\n    \"readiness_seconds\": 60,\n    \"root\": \"/var/tmp/kiln-radicle-live-distinct-20261021-b\"\n  },\n  \"root\": \"/var/tmp/kiln-radicle-live-distinct-20261021-b\",\n  \"source_branch\": \"ci-canary\",\n  \"status_checkpoint_branch\": \"kiln-status-checkpoint\",\n  \"tools\": {\n    \"broker\": \"/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cib\",\n    \"broker_tool\": \"/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cibtool\",\n    \"git\": \"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\",\n    \"jj\": \"/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj\",\n    \"radicle\": \"/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad\",\n    \"radicle_node\": \"/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node\",\n    \"secretspec\": \"/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec\"\n  }\n}\n"
+}

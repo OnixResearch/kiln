@@ -1,0 +1,15 @@
+{"type":"peerConnected","nid":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y"}
+{"type":"inventoryAnnounced","nid":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","inventory":["rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z"],"timestamp":1792585720493}
+{"type":"uploadPack","PackProgress":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","transmitted":142}}
+{"type":"uploadPack","PackProgress":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","transmitted":203}}
+{"type":"uploadPack","PackProgress":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","transmitted":334}}
+{"type":"uploadPack","PackProgress":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","transmitted":347}}
+{"type":"uploadPack","Write":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","progress":{"enumerating":{"total":14}}}}
+{"type":"uploadPack","Write":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","progress":{"compressing":{"processed":1,"total":4}}}}
+{"type":"uploadPack","Write":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","progress":{"compressing":{"processed":4,"total":4}}}}
+{"type":"uploadPack","PackProgress":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","transmitted":892}}
+{"type":"uploadPack","PackProgress":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","transmitted":902}}
+{"type":"uploadPack","Done":{"rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","status":"signal: 9 (SIGKILL)"}}
+{"type":"refsAnnounced","nid":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","refs":[{"remote":"z6Mkrhtr7uqud6zgJZRdVXTNjLctkGpS64TBpWePLLf44d44","at":"9c2a7bacef561ec0f28ff58077d56dd91800ba51"}],"timestamp":1792585724581}
+{"type":"refsSynced","remote":"z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y","rid":"rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z","at":"9c2a7bacef561ec0f28ff58077d56dd91800ba51"}
+✗ Error: timed out reading from control socket

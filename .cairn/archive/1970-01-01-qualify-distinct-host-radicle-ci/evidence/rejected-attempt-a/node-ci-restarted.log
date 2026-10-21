@@ -1,0 +1,27 @@
+2026-10-21T08:28:40.357-04:00 INFO  node     Starting node..
+2026-10-21T08:28:40.357-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T08:28:40.357-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T08:28:40.357-04:00 INFO  node     Node ID is z6Mkrhtr7uqud6zgJZRdVXTNjLctkGpS64TBpWePLLf44d44
+2026-10-21T08:28:40.357-04:00 INFO  node     Opening policy database..
+2026-10-21T08:28:40.357-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T08:28:40.357-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T08:28:40.448-04:00 INFO  node     Opening node database..
+2026-10-21T08:28:40.449-04:00 INFO  node     Address book is empty. Adding bootstrap nodes..
+2026-10-21T08:28:40.449-04:00 INFO  node     0 nodes added to address book
+2026-10-21T08:28:40.450-04:00 INFO  radicle_protocol::service Migrating `rad/sigrefs` of rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z to force feature level parent.
+2026-10-21T08:28:40.459-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T08:28:40.459-04:00 INFO  node     Listening on 127.0.0.1:59815..
+2026-10-21T08:28:40.464-04:00 INFO  node     Binding control socket /var/tmp/kiln-radicle-live-distinct-20261021-a/rad-ci/node/control.sock..
+2026-10-21T08:28:40.464-04:00 INFO  node     Running node z6Mkrhtr7uqud6zgJZRdVXTNjLctkGpS64TBpWePLLf44d44 in /var/tmp/kiln-radicle-live-distinct-20261021-a/rad-ci..
+2026-10-21T08:28:40.465-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T08:28:40.633-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T08:28:40.633-04:00 INFO  service  Received command Connect(z6MkfzCvKb5N2RgKrKgcw4ECryPymXnTGn4kLoH6GcK1E3H1, 100.100.103.95:52000, ConnectOptions { persistent: true, timeout: 18446744073709551615.999999999s })
+2026-10-21T08:28:40.636-04:00 INFO  service  Connected to z6MkfzCvKb5N2RgKrKgcw4ECryPymXnTGn4kLoH6GcK1E3H1 (100.100.103.95:52000) (Outbound)
+2026-10-21T08:28:40.769-04:00 INFO  service  Received command Seed(rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z, all)
+2026-10-21T08:28:40.771-04:00 INFO  service  Received command AddInventory(rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z)
+2026-10-21T08:28:40.773-04:00 INFO  service  Received command Seeds(rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z)
+2026-10-21T08:28:40.776-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T08:28:40.776-04:00 INFO  service  Received command Fetch(rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z, z6MkfzCvKb5N2RgKrKgcw4ECryPymXnTGn4kLoH6GcK1E3H1)
+2026-10-21T08:28:40.779-04:00 WARN  service  Fetch failed for rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z from z6MkfzCvKb5N2RgKrKgcw4ECryPymXnTGn4kLoH6GcK1E3H1: an I/O error occurred during the fetch handshake (connection reset)
+2026-10-21T08:28:44.494-04:00 INFO  service  Connected to z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y (127.0.0.1:33324) (Inbound)
+2026-10-21T08:28:44.579-04:00 INFO  wire     Peer z6MkqTfhikfEG9HHmknfqSUHNUsefAHSQiU8hFQ2pvsb9D6Y fetched rad:z4BRH74rMxq2EijpoBPpLdszhBG7Z from us successfully

@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b",
+    "--",
+    "/nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-radicle-ci",
+    "bindings",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b/controller.json",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b/success-source.json"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\"key\":\"8853a248733741443e5076dfdeb53ebc77778628740cb41b5c5c92b8e9131b10\",\"run_id\":\"kiln-aspen-run-d2442bb2201ec6ba5bd6406f0e7bfce1fa76604ce88eac8dcced47940f2866e7\",\"attempt_id\":\"radicle-ci-attempt-8853a248733741443e5076dfdeb53ebc77778628740cb41b5c5c92b8e9131b10\",\"root\":\"/var/tmp/kiln-radicle-live-distinct-20261021-b/candidates/8853a248733741443e5076dfdeb53ebc77778628740cb41b5c5c92b8e9131b10\",\"build_intent\":{\"effect_id\":\"radicle-ci-build-8853a248733741443e5076dfdeb53ebc77778628740cb41b5c5c92b8e9131b10\",\"attempt_id\":\"radicle-ci-attempt-8853a248733741443e5076dfdeb53ebc77778628740cb41b5c5c92b8e9131b10\",\"idempotency_key\":\"4166c04adb1fa63c07460f027afb4e9f38d099c1b517661970512975a71ed40c\",\"candidate_id\":\"radicle-ci-candidate-8853a248733741443e5076dfdeb53ebc77778628740cb41b5c5c92b8e9131b10\",\"pipeline_revision\":\"radicle-source-ci\",\"plan_identity\":\"f755c8b267c8f2ff488ed97d0ade2c90db77a0a03e2eabf6b8946f6c2cd90115\",\"policy_identity\":\"f755c8b267c8f2ff488ed97d0ade2c90db77a0a03e2eabf6b8946f6c2cd90115\",\"platform\":\"x86_64-linux\"}}\n"
+}

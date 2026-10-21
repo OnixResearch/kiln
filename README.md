@@ -143,6 +143,15 @@ bounded nonterminal uncertainty when the provider is unavailable. Follow the
 [native Radicle peer and broker canary](docs/operator.md#native-radicle-peer-and-broker-canary)
 for the recorded cohort, repeat command, retirement, and claim limits.
 
+The [distinct-host Radicle canary](.cairn/archive/1970-01-01-qualify-distinct-host-radicle-ci/evidence/verification.json)
+moves only the publisher node and source worktree to a second owned host while
+the CI node, broker, controller, worker and observer stay local. Source delivery
+crossed a direct private-tailnet TCP connection; success, genuine failure,
+controller host-kill recovery, remote publisher restart and unavailable-provider
+uncertainty all passed. Status dissemination remained same-host; the run is not
+WAN, hostile-network or production qualification. See the
+[distinct-host procedure](docs/operator.md#distinct-host-publisher-canary).
+
 ## Licensing
 
 Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.

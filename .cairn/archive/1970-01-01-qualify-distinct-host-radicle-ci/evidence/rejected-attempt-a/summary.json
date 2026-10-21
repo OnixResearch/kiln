@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.radicle-ci.distinct-host-rejected-attempt.v1",
+  "attempt": "kiln-radicle-live-distinct-20261021-a",
+  "result": "rejected",
+  "failure": "TimeoutError: automatic real broker ingress",
+  "cause": "The remote publisher home copy excluded the node policy database. The remote node started with the default block policy, the local CI fetch reset, and no source event reached the broker.",
+  "observation": {
+    "ci_connected_to": "100.100.103.95:52000",
+    "ci_fetch": "an I/O error occurred during the fetch handshake (connection reset)",
+    "broker_ingress": "absent",
+    "remote_retirement": "node stopped and remote root removed"
+  },
+  "fix": "Run `rad seed --scope all <rid>` on the remote publisher after start and after restart, and retain the remote log and command records before removing the root.",
+  "evidence": [
+    "remote-retirement.json",
+    "native-events.log",
+    "node-ci-restarted.log",
+    "broker.json"
+  ]
+}

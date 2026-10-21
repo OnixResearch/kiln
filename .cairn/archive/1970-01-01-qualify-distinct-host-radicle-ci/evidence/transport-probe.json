@@ -1,0 +1,55 @@
+{
+  "boundary": "private tailnet between two owned hosts; LAN inbound firewalled; not WAN or hostile-network qualification",
+  "local": {
+    "host": "britton-desktop",
+    "lan": "192.168.1.252/24",
+    "tailnet": "100.110.43.11"
+  },
+  "observed_at_utc": "2026-10-21T12:18:30Z",
+  "probes": [
+    {
+      "direction": "local->remote LAN",
+      "note": "inbound LAN blocked",
+      "port": 47123,
+      "result": "timeout"
+    },
+    {
+      "direction": "remote->local LAN",
+      "note": "inbound LAN blocked",
+      "port": 47124,
+      "result": "timeout"
+    },
+    {
+      "direction": "local->remote tailnet",
+      "note": "direct TCP accepted",
+      "port": 47125,
+      "result": "payload received"
+    },
+    {
+      "direction": "remote->local tailnet",
+      "note": "direct TCP accepted",
+      "port": 47127,
+      "result": "payload received"
+    }
+  ],
+  "remote": {
+    "arch": "x86_64",
+    "host": "aspen1",
+    "kiln_package": "/nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0",
+    "lan": "192.168.1.239/24",
+    "pinned_radicle_node": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2",
+    "ssh": "aspen1",
+    "tailnet": "100.100.103.95",
+    "tools": {
+      "git": "/etc/profiles/per-user/brittonr/bin/git",
+      "jj": "/etc/profiles/per-user/brittonr/bin/jj",
+      "nc": "/run/current-system/sw/bin/nc",
+      "nix": "/run/current-system/sw/bin/nix",
+      "socat": "/run/current-system/sw/bin/socat",
+      "timeout": "/run/current-system/sw/bin/timeout"
+    },
+    "uid": 1555
+  },
+  "schema": "kiln.radicle-ci.distinct-host-transport-probe.v1",
+  "ssh_note": "SSH emitted a certificate principal warning while every read-only command succeeded; orchestration only, never the Radicle data path."
+}

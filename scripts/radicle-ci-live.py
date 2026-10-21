@@ -348,11 +348,20 @@ class Exercise(BaseExercise):
     # r[impl kiln.radicle_ci.live.recovery] r[verify kiln.radicle_ci.live.recovery]
     # r[impl kiln.radicle_ci.live.failure] r[verify kiln.radicle_ci.live.failure]
     # r[impl kiln.radicle_ci.live.evidence] r[verify kiln.radicle_ci.live.evidence]
+    def profile_path(self):
+        return REPO / "config/radicle-ci-live.ncl"
+
+    def profile_inputs(self, tools):
+        return {"root": str(self.root), "source_branch": "ci-canary",
+                "status_checkpoint_branch": "kiln-status-checkpoint", "tools": tools}
+
+    def after_case(self, case, report):
+        return None
+
     def execute(self):
         inputs = self.export("admitted-inputs", "(import " + json.dumps(str(REPO / "config/onixos-ci-pilot-inputs.ncl")) + ") (import " + json.dumps(str(Path(self.args.inputs).resolve(strict=True))) + ")")
         tools = {key: str(Path(getattr(self.args, key)).absolute()) for key in ("radicle", "radicle_node", "broker", "broker_tool", "jj", "git", "secretspec")}
-        self.settings = self.export("canary-settings", "(import " + json.dumps(str(REPO / "config/radicle-ci-live.ncl")) + ") " + ncl({"root": str(self.root),
-            "source_branch": "ci-canary", "status_checkpoint_branch": "kiln-status-checkpoint", "tools": tools}))
+        self.settings = self.export("canary-settings", "(import " + json.dumps(str(self.profile_path())) + ") " + ncl(self.profile_inputs(tools)))
         self.exe.update(tools)
         self.exe["legacy_coordinator"] = self.exe["coordinator"]
         self.exe.update({name: str(Path(getattr(self.args, name)).resolve(strict=True)) for name in ("coordinator", "worker", "extension")})
@@ -445,6 +454,7 @@ class Exercise(BaseExercise):
             reports.append({"case": case, "source": source, "operation_id": original, "canonical_outcome": expected, "original_broker_replies": replies,
                 "restart": restart, "output_absent_before_dispatch": before, "remote_status": remote, "rooted_outputs": roots, "release": release,
                 "native_duplicate_fetch": duplicate, "duplicate_preserved_operation": duplicate_journal["ingress"]["operation_id"]})
+            self.after_case(case, reports[-1])
         invocations = (self.root / "provider-invocations.log").read_text().splitlines()
         if invocations != [report["source"]["revision"] for report in reports[:2]]:
             raise ValueError("duplicate/restart/unavailable provider altered real worker invocation count")

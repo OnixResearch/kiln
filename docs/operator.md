@@ -958,3 +958,51 @@ trusted reviewed source; it does not establish WAN or distinct-host delivery,
 hostile-worker confinement, production deployment, activation or release
 authority.
 
+### Distinct-host publisher canary
+
+The [distinct-host qualification](../.cairn/archive/1970-01-01-qualify-distinct-host-radicle-ci/evidence/verification.json)
+moves only the publisher node and its source worktree to a second owned host.
+The CI node, broker, controller, worker, Aspen host and observer remain local.
+The CI node connects directly to the publisher's private tailnet address; SSH
+provisions files and owns the remote process but never forwards the Radicle
+data port.
+
+Prerequisites: two owned hosts on the same private tailnet with direct TCP in
+both directions, the pinned Radicle node, jj and git store paths on the remote
+host, and a fresh canonical `/var/tmp` path used on both hosts. A firewall that
+blocks LAN inbound is expected; the tailnet must be reachable.
+
+```console
+nix develop path:$PWD -c python3 scripts/radicle-ci-live-distinct-host.py \
+  --inputs .cairn/archive/1970-01-01-build-authenticated-onixos-home-closure/evidence/success/inputs.json \
+  --nickel "$NICKEL" --nixpkgs "$NIXPKGS" \
+  --worker "$WORKER" --extension "$EXTENSION" --coordinator "$COORDINATOR" \
+  --radicle "$RADICLE" --radicle-node "$RADICLE_NODE" \
+  --broker "$BROKER" --broker-tool "$CIBTOOL" \
+  --jj "$JJ" --git "$GIT" --secretspec "$SECRETSPEC" \
+  --root "/var/tmp/kiln-radicle-live-distinct-$(date -u +%Y%m%dT%H%M%SZ)" \
+  --remote-host aspen1 \
+  --remote-root "<same path>" \
+  --remote-address 100.100.103.95 \
+  --remote-port 52000 \
+  --remote-readiness-seconds 60
+```
+
+The runner refuses a non-fresh root, a non-tailnet address, a non-canonical
+path or an undeclared host before remote effects. It copies the publisher home
+and initial source, starts and seeds the remote node, restarts the local CI
+node so its peer table contains the direct remote address, and keeps the
+broker/controller/worker unchanged. Each case commits and pushes the exact
+source revision remotely; the local worktree supplies the expected output
+evaluation. The remote node is seeded after start and after restart.
+
+The retained evidence records the remote host, tailnet address, direct
+listener, CI outbound and publisher inbound connections, successful fetches,
+original ingress, canonical journals, independently fetched local status,
+remote restart/reconnect, root release and remote retirement. The first
+rejected attempt is retained as a policy/seed correction.
+
+This is a distinct-host private-tailnet qualification. Status dissemination
+remained same-host. It does not establish WAN, hostile-network, hostile-worker
+confinement, production deployment, activation or release authority.
+

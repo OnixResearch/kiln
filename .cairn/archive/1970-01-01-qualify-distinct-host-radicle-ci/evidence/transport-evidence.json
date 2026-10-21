@@ -1,0 +1,32 @@
+{
+  "boundary": "private tailnet between two owned hosts",
+  "ci_fetch_success": [
+    "2026-10-21T08:36:22.490-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 successfully",
+    "2026-10-21T08:36:45.374-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 successfully",
+    "2026-10-21T08:37:06.939-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 successfully",
+    "2026-10-21T08:37:19.322-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 successfully",
+    "2026-10-21T08:37:39.740-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 successfully",
+    "2026-10-21T08:37:46.467-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 successfully",
+    "2026-10-21T08:39:47.490-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 successfully"
+  ],
+  "ci_outbound": [
+    "2026-10-21T08:36:22.296-04:00 INFO  service  Connected to z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 (100.100.103.95:52000) (Outbound)",
+    "2026-10-21T08:37:14.226-04:00 INFO  service  Connected to z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 (100.100.103.95:52000) (Outbound)"
+  ],
+  "lan_probe": "inbound LAN TCP timed out in both directions before the run",
+  "remote_fetch_success": [
+    "2026-10-21T08:37:19.303-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully",
+    "2026-10-21T08:37:39.740-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully",
+    "2026-10-21T08:37:46.460-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully",
+    "2026-10-21T08:39:47.493-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully"
+  ],
+  "remote_inbound": [
+    "2026-10-21T08:37:14.228-04:00 INFO  service  Connected to z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc (100.110.43.11:50598) (Inbound)"
+  ],
+  "remote_listen": "LISTEN 0 4096 0.0.0.0:52000 0.0.0.0:*",
+  "schema": "kiln.radicle-ci.distinct-host-transport-evidence.v1",
+  "snapshot_note": "The instantaneous ss count after delivery was zero because the Radicle connection is idle between fetches; the node connect/fetch logs are the direct-transport evidence.",
+  "ssh_role": "orchestration only: file transfer and process start/stop; no forwarded Radicle port",
+  "status_boundary": "same-host independent observer; not distinct-host status dissemination",
+  "tailnet_probe": "direct TCP accepted in both directions before the run"
+}

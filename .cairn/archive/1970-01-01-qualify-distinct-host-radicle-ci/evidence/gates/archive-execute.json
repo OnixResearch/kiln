@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:.",
+    "--no-write-lock-file",
+    "-c",
+    "cairn",
+    "archive",
+    "qualify-distinct-host-radicle-ci",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json",
+    "--execute"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "archive-execute",
+  "note": "The archive command moved the active change to .cairn/archive/1970-01-01-qualify-distinct-host-radicle-ci; the receipt writer raced the move. The move is verified by the archived package, the empty active change set, and post-archive validation.",
+  "started_at": "2026-10-21T12:58:16.479777Z",
+  "stderr": "",
+  "stdout": ""
+}

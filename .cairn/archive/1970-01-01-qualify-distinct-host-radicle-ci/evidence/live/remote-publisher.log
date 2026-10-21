@@ -1,0 +1,31 @@
+2026-10-21T08:37:09.016-04:00 INFO  node     Starting node..
+2026-10-21T08:37:09.016-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T08:37:09.016-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T08:37:09.019-04:00 INFO  node     Node ID is z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6
+2026-10-21T08:37:09.020-04:00 INFO  node     Opening policy database..
+2026-10-21T08:37:09.023-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T08:37:09.023-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T08:37:09.180-04:00 INFO  node     Opening node database..
+2026-10-21T08:37:09.216-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T08:37:09.216-04:00 INFO  node     Listening on 0.0.0.0:52000..
+2026-10-21T08:37:09.216-04:00 INFO  node     Binding control socket /var/tmp/kiln-radicle-live-distinct-20261021-b/rad-publisher/node/control.sock..
+2026-10-21T08:37:09.216-04:00 INFO  node     Running node z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 in /var/tmp/kiln-radicle-live-distinct-20261021-b/rad-publisher..
+2026-10-21T08:37:09.217-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T08:37:10.039-04:00 INFO  service  Received command Seed(rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9, all)
+2026-10-21T08:37:10.044-04:00 INFO  service  Received command AddInventory(rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9)
+2026-10-21T08:37:10.054-04:00 INFO  service  Received command Seeds(rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9)
+2026-10-21T08:37:14.228-04:00 INFO  service  Connected to z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc (100.110.43.11:50598) (Inbound)
+2026-10-21T08:37:19.252-04:00 INFO  service  Received command Seeds(rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9)
+2026-10-21T08:37:19.258-04:00 INFO  service  Received command AnnounceRefs(rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9)
+2026-10-21T08:37:19.259-04:00 INFO  service  Announcing refs rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9/z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 @ 0df4702c2f6f03257a48dab3bd81fbab2cf4f4bb to peers (t=1792586239258)..
+2026-10-21T08:37:19.303-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully
+2026-10-21T08:37:39.740-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully
+2026-10-21T08:37:40.117-04:00 INFO  service  Fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc successfully
+2026-10-21T08:37:46.403-04:00 INFO  service  Received command Seeds(rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9)
+2026-10-21T08:37:46.406-04:00 INFO  service  Received command AnnounceRefs(rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9)
+2026-10-21T08:37:46.407-04:00 INFO  service  Announcing refs rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9/z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6 @ dad1257867cfab64974b1663de17094d3fc4a756 to peers (t=1792586266406)..
+2026-10-21T08:37:46.460-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully
+2026-10-21T08:39:47.493-04:00 INFO  wire     Peer z6MkgKZ2F2GFdq3ikVpkg89jSHYWaXSEdLHHfEQdf1qESPDc fetched rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9 from us successfully
+2026-10-21T08:39:48.010-04:00 INFO  node     Termination signal received; shutting down..
+2026-10-21T08:39:48.010-04:00 INFO  reactor::controller Initiating reactor shutdown…
+2026-10-21T08:39:48.010-04:00 INFO  reactor  Shutdown

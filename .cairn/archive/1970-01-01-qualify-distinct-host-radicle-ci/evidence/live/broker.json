@@ -1,0 +1,47 @@
+{
+  "adapters": {
+    "kiln": {
+      "command": "/var/tmp/kiln-radicle-live-distinct-20261021-b/adapter",
+      "env": {
+        "HOME": "/var/tmp/kiln-radicle-live-distinct-20261021-b",
+        "LANG": "C.UTF-8",
+        "PATH": "/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin:/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin",
+        "RAD_HOME": "/var/tmp/kiln-radicle-live-distinct-20261021-b/rad-ci",
+        "TMPDIR": "/var/tmp/kiln-radicle-live-distinct-20261021-b",
+        "XDG_CACHE_HOME": "/var/tmp/kiln-radicle-live-distinct-20261021-b/cache",
+        "XDG_CONFIG_HOME": "/var/tmp/kiln-radicle-live-distinct-20261021-b/config"
+      }
+    }
+  },
+  "concurrent_adapters": 1,
+  "db": "/var/tmp/kiln-radicle-live-distinct-20261021-b/broker.db",
+  "max_run_time": "360s",
+  "queue_len_interval": "60s",
+  "triggers": [
+    {
+      "adapter": "kiln",
+      "filters": [
+        {
+          "And": [
+            {
+              "Repository": "rad:z4Zax66FYJQkL9qtuxTqjbSV3tBp9"
+            },
+            {
+              "Node": "z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6"
+            },
+            {
+              "Branch": "ci-canary"
+            },
+            {
+              "Or": [
+                "BranchCreated",
+                "BranchUpdated"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "update_job_cobs": false
+}

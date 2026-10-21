@@ -1,0 +1,6 @@
+{
+  "command": "set -eu; printf '%s\\n' \"$LATTICE_SOURCE_REVISION\" >> /var/tmp/kiln-radicle-live-distinct-20261021-b/provider-invocations.log; /nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/sleep 10; exec /nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-onixos-worker project-run /var/tmp/kiln-radicle-live-distinct-20261021-b/project.json e49a6aeb9c6fb317ca3b9e0d46a18929f00abf6088bce37db771fabb67f85fe2 > /var/tmp/kiln-radicle-live-distinct-20261021-b/worker.stdout.log 2> /var/tmp/kiln-radicle-live-distinct-20261021-b/worker.stderr.log",
+  "created": "2026-10-20T00:00:00Z",
+  "name": "onixos-home-application",
+  "timeout_seconds": 180
+}

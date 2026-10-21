@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-distinct-20261021-b",
+    "--",
+    "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad",
+    "auth",
+    "--alias",
+    "kiln-canary-publisher",
+    "--stdin"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "\nInitializing your Radicle \ud83d\udc7e identity\n\n\u2713 Creating your Ed25519 keypair\u2026\n\u2713 Your Radicle DID is did:key:z6MkfwNA1sKPhsLFCu9jZgRZzLpHcmq1Sj3t2j2xvaM8Pse6. This identifies your device. Run `rad self` to show it at all times.\n\u2713 You're all set.\n\nTo create a Radicle repository, run `rad init` from a Git repository with at least one commit.\nTo clone a repository, run `rad clone <rid>`. For example, `rad clone rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5` clones the Radicle 'heartwood' repository.\nTo get a list of all commands, run `rad`.\n"
+}

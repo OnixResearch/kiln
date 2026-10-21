@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "-m",
+    "py_compile",
+    "scripts/radicle-ci-live-distinct-host.py",
+    "scripts/radicle-ci-live.py"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "python-syntax",
+  "started_at": "2026-10-21T12:42:43.331509Z",
+  "stderr": "",
+  "stdout": ""
+}

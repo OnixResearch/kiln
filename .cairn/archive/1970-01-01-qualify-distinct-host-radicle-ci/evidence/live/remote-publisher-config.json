@@ -1,0 +1,50 @@
+{
+  "cli": {
+    "hints": true
+  },
+  "node": {
+    "alias": "kiln-canary-publisher",
+    "connect": [],
+    "externalAddresses": [
+      "100.100.103.95:52000"
+    ],
+    "limits": {
+      "connection": {
+        "inbound": 128,
+        "outbound": 16
+      },
+      "fetchConcurrency": 1,
+      "fetchPackReceive": "500.0 MiB",
+      "fetchTimeout": 30,
+      "gossipMaxAge": 1209600,
+      "maxOpenFiles": 4096,
+      "rate": {
+        "inbound": {
+          "capacity": 1024,
+          "fillRate": 5.0
+        },
+        "outbound": {
+          "capacity": 2048,
+          "fillRate": 10.0
+        }
+      },
+      "routingMaxAge": 604800,
+      "routingMaxSize": 1000
+    },
+    "listen": [
+      "0.0.0.0:52000"
+    ],
+    "log": "INFO",
+    "network": "test",
+    "peers": {
+      "type": "static"
+    },
+    "relay": "never",
+    "seedingPolicy": {
+      "default": "block"
+    },
+    "workers": 8
+  },
+  "preferredSeeds": [],
+  "publicExplorer": "https://radicle.network/nodes/$host/$rid$path"
+}

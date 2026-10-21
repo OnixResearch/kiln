@@ -1,0 +1,73 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "nix",
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "-c",
+        "cairn",
+        "gate",
+        "proposal",
+        "qualify-distinct-host-radicle-ci",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "proposal",
+      "started_at": "2026-10-21T12:21:08.342955Z",
+      "stderr": "",
+      "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"qualify-distinct-host-radicle-ci\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"e066b2e0ff64022b63f573cd670bac9235d7be627fe868ea105b069844d58218\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"policy_selection\": {\n    \"blake3\": \"5f8292b814af35e1ecbbabd6293d4fa68d7880c2f76e61ba0182e294ca5671e6\",\n    \"installation_receipt\": false,\n    \"locator\": \"cairn-policy/generated/cairn-policy.json\",\n    \"source\": \"explicit\"\n  },\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"b5376206d9c556d6c0d4580b4c3b1fcaed75fc3320b0d7a53fd65c02ceb6a707\",\n  \"receipt_hash\": \"e4d20827f7a6d935d6a885c62b4641490712bd98aa6775c910abf8479183f3fb\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"proposal\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 46,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n"
+    },
+    {
+      "argv": [
+        "nix",
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "-c",
+        "cairn",
+        "gate",
+        "design",
+        "qualify-distinct-host-radicle-ci",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "design",
+      "started_at": "2026-10-21T12:21:10.848681Z",
+      "stderr": "",
+      "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"qualify-distinct-host-radicle-ci\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"1f683e30e0b28b5375d905a534edf30ba6d8c3c5db2c1250410ab9fcfc7544fc\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"policy_selection\": {\n    \"blake3\": \"5f8292b814af35e1ecbbabd6293d4fa68d7880c2f76e61ba0182e294ca5671e6\",\n    \"installation_receipt\": false,\n    \"locator\": \"cairn-policy/generated/cairn-policy.json\",\n    \"source\": \"explicit\"\n  },\n  \"probe_evidence\": null,\n  \"profile_identity_hash\": \"b5376206d9c556d6c0d4580b4c3b1fcaed75fc3320b0d7a53fd65c02ceb6a707\",\n  \"receipt_hash\": \"e00e688af531df128deb7aa9f372a08f87881392e48d6f6bd26616ea14303542\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"design\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 79,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 46,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/specs/live-radicle-ci-distinct-host/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 12,\n      \"substantive_lines\": 42,\n      \"substantive_requirement_blocks\": 6,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    }\n  ],\n  \"task_ordering\": null,\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n"
+    },
+    {
+      "argv": [
+        "nix",
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "-c",
+        "cairn",
+        "gate",
+        "tasks",
+        "qualify-distinct-host-radicle-ci",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "tasks",
+      "started_at": "2026-10-21T12:21:13.931405Z",
+      "stderr": "",
+      "stdout": "{\n  \"acceptance_ids\": [],\n  \"change\": \"qualify-distinct-host-radicle-ci\",\n  \"evidence_summary\": {\n    \"docs_only\": 0,\n    \"fixture\": 0,\n    \"formal\": 0,\n    \"mode\": \"advisory\",\n    \"model\": 0,\n    \"probe\": 0,\n    \"property\": 0\n  },\n  \"input_hash\": \"d3ce41cadc2e90e71b0289bdaaf96c5a2669b9b49cf1a13e6ac09ea3d296715d\",\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"policy_selection\": {\n    \"blake3\": \"5f8292b814af35e1ecbbabd6293d4fa68d7880c2f76e61ba0182e294ca5671e6\",\n    \"installation_receipt\": false,\n    \"locator\": \"cairn-policy/generated/cairn-policy.json\",\n    \"source\": \"explicit\"\n  },\n  \"probe_evidence\": {\n    \"declarations_present\": false,\n    \"probes\": []\n  },\n  \"profile_identity_hash\": \"b5376206d9c556d6c0d4580b4c3b1fcaed75fc3320b0d7a53fd65c02ceb6a707\",\n  \"receipt_hash\": \"711d1785cfbd034fc3a5c382b3f365c5fafa5d78dc11f8bb37d11c6b052eea00\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"stage\": \"tasks\",\n  \"substance\": [\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"design\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/design.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 79,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"proposal\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/proposal.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 46,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 0,\n      \"kind\": \"delta_spec\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/specs/live-radicle-ci-distinct-host/spec.md\",\n      \"requirement_blocks\": 6,\n      \"scenario_blocks\": 12,\n      \"substantive_lines\": 42,\n      \"substantive_requirement_blocks\": 6,\n      \"substantive_tasks\": 0,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 0\n    },\n    {\n      \"checkbox_tasks\": 10,\n      \"kind\": \"tasks\",\n      \"malformed_dependency_markers\": 0,\n      \"path\": \"./.cairn/changes/qualify-distinct-host-radicle-ci/tasks.md\",\n      \"requirement_blocks\": 0,\n      \"scenario_blocks\": 0,\n      \"substantive_lines\": 10,\n      \"substantive_requirement_blocks\": 0,\n      \"substantive_tasks\": 10,\n      \"task_done\": 0,\n      \"task_in_progress\": 0,\n      \"task_todo\": 10\n    }\n  ],\n  \"task_ordering\": {\n    \"active\": false,\n    \"edges\": [],\n    \"issues\": [],\n    \"nodes\": [],\n    \"order\": [],\n    \"ready_tasks\": [],\n    \"valid\": true\n  },\n  \"valid\": true,\n  \"verdict\": \"PASS\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n"
+    }
+  ]
+}
