@@ -334,6 +334,42 @@ observations in the same directory. Rollback for `main` is
 visibility are recorded in that receipt. Changing visibility back cannot retract
 already copied public data.
 
+## Source-only publication of the qualified source `c955334f`
+
+r[impl kiln.hosting.source_only_publication]
+
+The operator authorized one source-only publication of the self-CI-qualified
+source. Canonical Radicle `main` was fast-forwarded from
+`305f85d80b9ea05fbd91db73de8a6662a55650ee` to
+`c955334f54bdfe6e155e56c00573ca7ba77c4fb1` with no force push, no history
+rewrite, no governance, delegate, threshold, visibility or announcement change,
+and no mirror publication. The GitHub projection was observed but not mutated
+and retains its own revision.
+
+The candidate binds the deterministic normalized USTAR source archive
+(BLAKE3 `28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004`,
+60,989,440 bytes, 4,439 tracked members), the lexically sorted path manifest
+(`8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383`), the
+hosting profile export, the license map and the self-CI qualification.
+
+Fresh native Radicle and anonymous Garden HTTPS acquisitions both reproduced
+`c955334f`, all 4,439 tracked paths, that path manifest and that archive
+identity. The delegate set and threshold one were unchanged, signed refs
+advanced from `e9d43a1cbe8befa6a1fc08dbe5630a99e23599f7` to
+`27455a353402ecaa0bd9c6500a953c6d341c1575`, and the public visibility was
+preserved. A credential-isolated anonymous clone with a cleared home, disabled
+global and system Git configuration, no credential helper, no askpass, no
+inherited SSH agent and Git protocol v0 ran the workspace test suite to
+completion.
+
+[`publication.json`](../.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/publication.json)
+is the later evidence-only receipt for the published revision, with the
+readbacks, governance observation, repository checks and replica observation
+in the same directory. Rollback for `main` is
+`305f85d80b9ea05fbd91db73de8a6662a55650ee`. This publication grants no
+deployment, activation, binary release or release authority, and does not
+qualify changed executables of any later revision.
+
 ## Recovery
 
 Keep an independent source archive and signed-reference capture. Keep the rollback revision outside a running Kiln service.

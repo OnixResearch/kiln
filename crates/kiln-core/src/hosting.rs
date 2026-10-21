@@ -224,6 +224,96 @@ pub fn validate_publication_bundle(
     Ok(())
 }
 
+/// One source-only publication observation bound to a single frozen source.
+// r[impl kiln.hosting.source_only_publication]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SourceOnlyPublication {
+    pub candidate: PublicationCandidate,
+    pub previous_main_revision: ExternalRef,
+    pub fast_forward: bool,
+    pub force_push: bool,
+    pub history_rewrite: bool,
+    pub mirror_mutation: bool,
+    pub governance_mutation: bool,
+    pub readbacks: Vec<AcquisitionObservation>,
+}
+
+/// Admits a source-only publication of one frozen source revision.
+// r[impl kiln.hosting.source_only_publication]
+pub fn admit_source_only_publication(
+    profile: &HostingProfile,
+    publication: &SourceOnlyPublication,
+) -> CoreResult<()> {
+    admit_hosting_profile(profile)?;
+    if publication.force_push || publication.history_rewrite {
+        return Err(Diagnostic::new(
+            "source_only_publication_rewrite",
+            "publication.rewrite",
+            "source-only publication must not force push or rewrite history",
+        ));
+    }
+    if publication.mirror_mutation || publication.governance_mutation {
+        return Err(Diagnostic::new(
+            "source_only_publication_scope",
+            "publication.scope",
+            "source-only publication must not mutate mirrors or governance",
+        ));
+    }
+    if !publication.fast_forward {
+        return Err(Diagnostic::new(
+            "source_only_publication_not_fast_forward",
+            "publication.fast_forward",
+            "source-only publication must fast-forward the canonical branch",
+        ));
+    }
+    if publication.candidate.source_revision == publication.previous_main_revision
+        || publication.candidate.rollback_revision != publication.previous_main_revision
+    {
+        return Err(Diagnostic::new(
+            "source_only_publication_ancestry",
+            "publication.ancestry",
+            "source-only publication must advance the canonical branch and keep the previous main as rollback",
+        ));
+    }
+    if publication.candidate.license != profile.license {
+        return Err(Diagnostic::new(
+            "source_only_publication_license",
+            "publication.license",
+            "source-only publication license differs from the hosting profile",
+        ));
+    }
+    if publication.readbacks.len() < profile.required_replicas {
+        return Err(Diagnostic::new(
+            "source_only_publication_replica_shortfall",
+            "publication.readbacks",
+            "source-only publication lacks the required readback observations",
+        ));
+    }
+    for readback in &publication.readbacks {
+        if readback.revision != publication.candidate.source_revision
+            || readback.archive_identity != publication.candidate.archive_identity
+        {
+            return Err(Diagnostic::new(
+                "source_only_publication_readback_mismatch",
+                "publication.readbacks",
+                "readback does not reproduce the exact published revision and archive",
+            ));
+        }
+        if !profile
+            .acquisition_routes
+            .iter()
+            .any(|route| route.route == readback.route && !route.writable)
+        {
+            return Err(Diagnostic::new(
+                "source_only_publication_route",
+                "publication.readbacks",
+                "readback route is not a declared read-only acquisition route",
+            ));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

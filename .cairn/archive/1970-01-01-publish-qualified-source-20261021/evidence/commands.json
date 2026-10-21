@@ -1,0 +1,249 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "jj",
+        "file",
+        "list",
+        "-r",
+        "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "exit_code": 0,
+      "stdout": "d-logic/src/ucan_base64url.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_capability_merge.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_caveat.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_caveat_evaluation.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_caveat_preservation.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_chain.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_cid.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_claims_presence.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_compact.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_delegation_depth.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_did.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_header.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_invocation.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_json.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_parsed_capability_shape.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_parsed_caveat_payload.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_parsed_caveat_shape.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_parsed_did_claim.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_principal_link.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_proof_reference.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_proof_reference_collection.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_proof_reference_list_shape.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_proof_store_result.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_proof_traversal.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_replay_admission.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_revocation.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_revocation_check.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_signature.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_temporal.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_temporal_order.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_token.rs\u0000vendor/ucan/vendor/verified-logic/src/ucan_verification_stage.rs\u0000vendor/ucan/vendor/verified-logic/src/vector_clock.rs\u0000vendor/ucan/vendor/verified-logic/src/verification_frontier.rs\u0000vendor/ucan/vendor/verified-logic/src/verified_compiler_pipeline.rs\u0000vendor/ucan/vendor/verified-logic/src/verified_lsm_ingest.rs\u0000vendor/ucan/vendor/verified-logic/src/view_change.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_color_layout.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_color_transform_envelope.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_connected_components.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_convolution_window.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_detection_nms.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_image_buffer.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_image_pyramid.rs\u0000vendor/ucan/vendor/verified-logic/src/vision_roi.rs\u0000vendor/ucan/vendor/verified-logic/src/vote_tally.rs\u0000vendor/ucan/vendor/verified-logic/src/voter_set.rs\u0000vendor/ucan/vendor/verified-logic/src/wal_recovery.rs\u0000vendor/ucan/vendor/verified-logic/src/wal_segment.rs\u0000vendor/ucan/vendor/verified-logic/src/wasm_primitives.rs\u0000vendor/ucan/vendor/verified-logic/src/watermark.rs\u0000vendor/ucan/vendor/verified-logic/src/web_of_trust_attestation.rs\u0000vendor/ucan/vendor/verified-logic/src/web_of_trust_chain.rs\u0000vendor/ucan/vendor/verified-logic/src/web_of_trust_policy.rs\u0000vendor/ucan/vendor/verified-logic/src/web_of_trust_principal.rs\u0000vendor/ucan/vendor/verified-logic/src/web_of_trust_resolution.rs\u0000vendor/ucan/vendor/verified-logic/src/web_of_trust_revocation.rs\u0000vendor/ucan/vendor/verified-logic/src/web_of_trust_ucan_authorizer.rs\u0000vendor/ucan/vendor/verified-logic/src/weighted_round_robin.rs\u0000vendor/ucan/vendor/verified-logic/src/witness.rs\u0000vendor/ucan/vendor/verified-logic/src/work_stealing.rs\u0000vendor/ucan/vendor/verified-logic/src/write_buffer.rs\u0000vendor/ucan/vendor/verified-logic/src/write_policy.rs\u0000vendor/ucan/vendor/verified-logic/src/zeroize.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/channel.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/event.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/fifo.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/futex.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/handle.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/job.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/port.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/rights.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/socket.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/timer.rs\u0000vendor/ucan/vendor/verified-logic/src/zircon/wait.rs\u0000vendor/ucan/vendor/verified-logic-revision.txt\u0000vendor/ucan.source.json\u0000vendor/valence/Cargo.toml\u0000vendor/valence/LICENSES/AGPL-3.0-or-later.txt\u0000vendor/valence/LICENSES/MPL-2.0.txt\u0000vendor/valence/README.md\u0000vendor/valence/crates/valence-core/Cargo.toml\u0000vendor/valence/crates/valence-core/LICENSE\u0000vendor/valence/crates/valence-core/README.md\u0000vendor/valence/crates/valence-core/examples/emit_build_service_examples.rs\u0000vendor/valence/crates/valence-core/src/artifact_auth.rs\u0000vendor/valence/crates/valence-core/src/artifact_ref.rs\u0000vendor/valence/crates/valence-core/src/ast_grep_evidence.rs\u0000vendor/valence/crates/valence-core/src/build_service/tests.rs\u0000vendor/valence/crates/valence-core/src/build_service.rs\u0000vendor/valence/crates/valence-core/src/capability_plan.rs\u0000vendor/valence/crates/valence-core/src/cob_evidence.rs\u0000vendor/valence/crates/valence-core/src/content_bound_requirements.rs\u0000vendor/valence/crates/valence-core/src/evidence_adapters.rs\u0000vendor/valence/crates/valence-core/src/evidence_chain.rs\u0000vendor/valence/crates/valence-core/src/evidence_codebase_index/boundary.rs\u0000vendor/valence/crates/valence-core/src/evidence_codebase_index/html.rs\u0000vendor/valence/crates/valence-core/src/evidence_codebase_index/ingest.rs\u0000vendor/valence/crates/valence-core/src/evidence_codebase_index/model.rs\u0000vendor/valence/crates/valence-core/src/evidence_codebase_index/query.rs\u0000vendor/valence/crates/valence-core/src/evidence_codebase_index.rs\u0000vendor/valence/crates/valence-core/src/evidence_harness.rs\u0000vendor/valence/crates/valence-core/src/evidence_index.rs\u0000vendor/valence/crates/valence-core/src/evidence_ir.rs\u0000vendor/valence/crates/valence-core/src/evidence_model.rs\u0000vendor/valence/crates/valence-core/src/formal_proof_chain/aeneas.rs\u0000vendor/valence/crates/valence-core/src/formal_proof_chain.rs\u0000vendor/valence/crates/valence-core/src/function_address_preserves.rs\u0000vendor/valence/crates/valence-core/src/function_address_profile.rs\u0000vendor/valence/crates/valence-core/src/function_object.rs\u0000vendor/valence/crates/valence-core/src/hegel_property.rs\u0000vendor/valence/crates/valence-core/src/lib.rs\u0000vendor/valence/crates/valence-core/src/oxide_primitives.rs\u0000vendor/valence/crates/valence-core/src/preserves_evidence.rs\u0000vendor/valence/crates/valence-core/src/proof_carrying_ir.rs\u0000vendor/valence/crates/valence-core/src/provenance.rs\u0000vendor/valence/crates/valence-core/src/radicle_forge_ops.rs\u0000vendor/valence/crates/valence-core/src/shared_identity/canonical_hash_profile.rs\u0000vendor/valence/crates/valence-core/src/shared_identity/tests.rs\u0000vendor/valence/crates/valence-core/src/shared_identity/typed_digest.rs\u0000vendor/valence/crates/valence-core/src/shared_identity.rs\u0000vendor/valence/crates/valence-core/src/stack_provenance_adapter/graph.rs\u0000vendor/valence/crates/valence-core/src/stack_provenance_adapter.rs\u0000vendor/valence/crates/valence-core/src/stack_role_registry.rs\u0000vendor/valence/crates/valence-core/src/trellis_proof_evidence.rs\u0000vendor/valence/crates/valence-core/src/wasm_component_evidence.rs\u0000vendor/valence/crates/valence-core/testdata/stack-provenance/cross-repo-fixture.json\u0000vendor/valence/crates/valence-core/testdata/transcripts/fail/malformed-artifact.json\u0000vendor/valence/crates/valence-core/testdata/transcripts/pass/capability-policy-pass.json\u0000vendor/valence/crates/valence-core/tests/aeneas_translation_chain.rs\u0000vendor/valence/crates/valence-core/tests/build_service_examples.rs\u0000vendor/valence/crates/valence-core/tests/build_service_properties.rs\u0000vendor/valence/crates/valence-core/tests/hegel_property_laws.rs\u0000vendor/valence/docs/licensing.md\u0000vendor/valence/license-policy.tsv\u0000vendor/valence.source.json\u0000",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/candidate-paths.sorted.nul",
+        "--file",
+        "/var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/source.tar"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "b3sum",
+        "/var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/source.tar",
+        "/var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/source-paths.json"
+      ],
+      "exit_code": 0,
+      "stdout": "28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004  /var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/source.tar\n8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383  /var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/source-paths.json\n1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0  config/hosting-profile.ncl\na099bfe50cec65cead787f60588dfa2d751bc5c4c88e80698b53f8c364eed6c0  LICENSES.md\n5cd60bda97b05aeb6a9ae41023954bf26a9f8fcfa542e77d69f6077b8f590161  .cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/verification.json\nf0d3b1e697a7626e3944441b5893566a247b2d9e0674fa270df238ed30b54a67  .cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/verification.md\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "export",
+        "--format",
+        "json",
+        "config/hosting-profile.ncl"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"acquisition_routes\": [\n    {\n      \"kind\": \"radicle-native\",\n      \"route\": \"rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE@z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo\",\n      \"writable\": false\n    },\n    {\n      \"kind\": \"https-git\",\n      \"route\": \"https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git\",\n      \"writable\": false\n    }\n  ],\n  \"canonical_branch\": \"main\",\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"freeze\": false,\n  \"license\": \"MIT OR Apache-2.0\",\n  \"mirrors\": [\n    {\n      \"authority\": \"read_only_projection\",\n      \"route\": \"https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git\"\n    }\n  ],\n  \"non_claims\": [\n    \"publication observations do not prove indefinite availability\",\n    \"mirror observations do not grant repository authority\",\n    \"replica agreement does not prove source or CI correctness\"\n  ],\n  \"required_replica_observations\": 1,\n  \"required_replicas\": 1,\n  \"rid\": \"rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE\",\n  \"rollback_revision\": \"b16f8792849cd3e2f2802c9a5063d5567a68f389\",\n  \"seeds\": [\n    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo\"\n  ],\n  \"signed_ref_features\": [\n    \"parent\"\n  ],\n  \"state\": \"published\",\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "jj",
+        "diff",
+        "--name-only",
+        "-r",
+        "305f85d80b9ea05fbd91db73de8a6662a55650ee..c955334f54bdfe6e155e56c00573ca7ba77c4fb1"
+      ],
+      "exit_code": 0,
+      "stdout": "ess/command-062.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-063.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-064.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-065.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-066.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-067.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-068.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-069.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-070.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-071.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-072.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-073.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-074.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-075.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-076.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-077.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-078.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-079.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-080.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-081.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-082.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-083.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-084.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-085.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-086.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-087.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-088.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-089.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-090.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-091.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-092.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-093.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-094.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-095.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-096.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-097.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-098.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-099.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-100.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-101.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/command-102.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/failure-journal.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/failure-source.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/host-first.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/host-restarted.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/failure/attempt-0-stderr.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/failure/attempt-0-stdout.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/failure/attempt-0.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/failure/complete.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/failure/request.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/attempt-0-stderr.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/attempt-0-stdout.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/attempt-0.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/attempt-1-stderr.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/attempt-1-stdout.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/attempt-1.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/complete.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/interrupt\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/interrupted.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/request.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/ingress/success/resume\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/lattice.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/native-broker.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/native-events.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/node-ci-restarted.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/node-ci-tailnet.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/node-ci.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/node-observer.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/node-publisher.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/provider-invocations.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/remote-observer.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/remote-publisher.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/success-journal.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/success-source.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/unavailable-journal.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/unavailable-source.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/verification.json\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/worker.stderr.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/worker.stdout.log\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/verification.md\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/proposal.md\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/specs/aspen-host-bridge/spec.md\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/specs/live-kiln-self-ci/spec.md\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/specs/nix-eval-jobs-adapter/spec.md\n.cairn/archive/1970-01-01-qualify-kiln-self-ci/tasks.md\n.cairn/specs/aspen-host-bridge/spec.md\n.cairn/specs/live-kiln-self-ci/spec.md\n.cairn/specs/nix-eval-jobs-adapter/spec.md\nconfig/fixtures/negative-radicle-ci-live-self-ci-base.ncl\nconfig/fixtures/negative-radicle-ci-live-self-ci-limits.ncl\nconfig/fixtures/negative-radicle-ci-live-self-ci-missing.ncl\nconfig/fixtures/negative-radicle-ci-live-self-ci-selector.ncl\nconfig/fixtures/radicle-ci-live-self-ci-inputs.ncl\nconfig/fixtures/radicle-ci-live-self-ci-positive.ncl\nconfig/onixos-ci-pilot-self-ci.ncl\nconfig/onixos-ci-pilot-stock-eval.ncl\nconfig/radicle-ci-live-self-ci.ncl\ncrates/kiln-adapter-nix-eval/src/mapping.rs\ncrates/kiln-core/src/discovery.rs\ncrates/kiln-onixos-worker/src/main.rs\ndocs/aspen-runtime-backend.md\ndocs/nix-eval-jobs-adapter.md\nruntime/kiln-aspen-host/src/server.rs\nruntime/kiln-aspen-host/tests/hosted/accepted.rs\nscripts/radicle-ci-live-distinct-host.py\nscripts/radicle-ci-live-self-ci.py\nscripts/radicle-ci-live.py\n",
+      "stderr": ""
+    },
+    {
+      "name": "source_paths_sorted",
+      "argv": [
+        "bash",
+        "-lc",
+        "LC_ALL=C sort -z candidate-paths.nul > candidate-paths.sorted.nul"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "4439 lexically sorted tracked paths\n",
+      "stderr": ""
+    },
+    {
+      "name": "bookmark_set_main",
+      "argv": [
+        "jj",
+        "bookmark",
+        "set",
+        "main",
+        "-r",
+        "c955334f54bdfe6e155e56c00573ca7ba77c4fb1"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Moved 1 bookmarks to mwwvotow c955334f main* | Record the exact self-CI repeat command\n"
+    },
+    {
+      "name": "rad_push_plan",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main",
+        "--dry-run"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 305f85d80b9e to c955334f54bd]\nDry-run requested, not pushing.\n"
+    },
+    {
+      "name": "canonical_radicle_push",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 305f85d80b9e to c955334f54bd]\ngit: Canonical reference refs/heads/main updated to target commit c955334f54bdfe6e155e56c00573ca7ba77c4fb1\ngit: Synced with 2 seed(s)\n"
+    },
+    {
+      "name": "signed_refs_after",
+      "argv": [
+        "rad",
+        "inspect",
+        "--sigrefs",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 27455a353402ecaa0bd9c6500a953c6d341c1575 parent\n",
+      "stderr": ""
+    },
+    {
+      "name": "seed_main_readback",
+      "argv": [
+        "git",
+        "ls-remote",
+        "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "refs/heads/main"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1\trefs/heads/main\nc955334f54bdfe6e155e56c00573ca7ba77c4fb1\trefs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/main\n",
+      "stderr": ""
+    },
+    {
+      "name": "github_projection_readback",
+      "argv": [
+        "git",
+        "ls-remote",
+        "https://github.com/OnixResearch/kiln.git",
+        "refs/heads/main"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "305f85d80b9ea05fbd91db73de8a6662a55650ee\trefs/heads/main\n",
+      "stderr": ""
+    },
+    {
+      "name": "radicle_native_readback",
+      "argv": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--config",
+        "user.name=\"Publication readback\"",
+        "--config",
+        "user.email=\"publication@localhost\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "/var/tmp/kiln-pub-readback-native/clone"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "revision c955334f54bdfe6e155e56c00573ca7ba77c4fb1, 4439 tracked members, source paths 8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383, archive 28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004\n",
+      "stderr": ""
+    },
+    {
+      "name": "garden_anonymous_readback",
+      "argv": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--config",
+        "user.name=\"Publication readback\"",
+        "--config",
+        "user.email=\"publication@localhost\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "/var/tmp/kiln-pub-readback-garden/clone"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "revision c955334f54bdfe6e155e56c00573ca7ba77c4fb1, 4439 tracked members, source paths 8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383, archive 28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004\n",
+      "stderr": ""
+    },
+    {
+      "name": "anonymous_quick_start",
+      "argv": [
+        "nix",
+        "develop",
+        "path:/var/tmp/kiln-pub-readback-garden/clone",
+        "--no-write-lock-file",
+        "-c",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "workspace test suite completed under a cleared home, disabled Git configuration, no credential helper, no askpass, no inherited SSH agent and Git protocol v0\n",
+      "stderr": ""
+    },
+    {
+      "name": "rosa_replica_observation",
+      "argv": [
+        "python3",
+        "-c",
+        "urllib.request.urlopen('https://rosa.radicle.network/api/v1/repos/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE')"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "refs/heads/main c955334f54bdfe6e155e56c00573ca7ba77c4fb1, one delegate, threshold 1, public visibility\n",
+      "stderr": ""
+    }
+  ],
+  "scope": "Publication shell command record for the source-only publication of c955334f54bdfe6e155e56c00573ca7ba77c4fb1; recorded in the later evidence revision, not inside the published source archive"
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.qualified-source-publication.repository-checks.v1",
+  "observed_at_utc": "2026-10-21T18:41:09Z",
+  "canonical_repository": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "default_branch": "main",
+    "main_revision": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+    "namespace_main_revision": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+    "delegate_namespace": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+  },
+  "seed_reference": {
+    "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+    "refs/heads/main": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+    "refs/namespaces/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx/refs/heads/main": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1"
+  },
+  "github_projection": {
+    "url": "https://github.com/OnixResearch/kiln.git",
+    "refs/heads/main": "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+    "mutation": "none",
+    "scope": "Observed read-only; mirror publication was not authorized and was not performed"
+  },
+  "local_node": {
+    "node_id": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+    "local_main_after_fetch": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1"
+  },
+  "non_claims": [
+    "Reference agreement proves only the observed revisions at read time",
+    "It does not prove future availability, independent replication or source correctness"
+  ]
+}

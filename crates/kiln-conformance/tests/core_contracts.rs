@@ -10,7 +10,8 @@ use kiln_core::gating::{
 };
 use kiln_core::hosting::{
     AcquisitionObservation, AcquisitionRoute, HostingProfile, HostingState, PublicationBundle,
-    PublicationCandidate, validate_publication_bundle,
+    PublicationCandidate, SourceOnlyPublication, admit_source_only_publication,
+    validate_publication_bundle,
 };
 use kiln_core::task_ops::{
     ControlKind, ControlRequest, CursorDecision, LogCursor, LogStreamMeta, StatusRecord,
@@ -336,4 +337,89 @@ fn rollback_sequence_fails() {
         )
         .is_err()
     );
+}
+
+fn source_only_publication(bundle: &PublicationBundle) -> SourceOnlyPublication {
+    let previous_main = external("git", "commit", "previous-main");
+    let mut candidate = bundle.candidate.clone();
+    candidate.rollback_revision = previous_main.clone();
+    SourceOnlyPublication {
+        candidate,
+        previous_main_revision: previous_main,
+        fast_forward: true,
+        force_push: false,
+        history_rewrite: false,
+        mirror_mutation: false,
+        governance_mutation: false,
+        readbacks: bundle.acquisitions.clone(),
+    }
+}
+
+// r[verify kiln.hosting.source_only_publication]
+// r[verify kiln.hosting.source_only_publication.scenario.accepted]
+#[test]
+fn source_only_publication_fast_forward_admits() {
+    let (profile, bundle) = publication_fixture();
+    let publication = source_only_publication(&bundle);
+    assert_eq!(
+        admit_source_only_publication(&profile, &publication),
+        Ok(())
+    );
+}
+
+// r[verify kiln.hosting.source_only_publication]
+// r[verify kiln.hosting.source_only_publication.scenario.rejected]
+#[test]
+fn source_only_publication_rejects_rewrite_scope_and_readback_drift() {
+    let (profile, bundle) = publication_fixture();
+    let admitted = source_only_publication(&bundle);
+
+    let forced = SourceOnlyPublication {
+        force_push: true,
+        ..admitted.clone()
+    };
+    assert!(admit_source_only_publication(&profile, &forced).is_err());
+
+    let mut mirrored = admitted.clone();
+    mirrored.mirror_mutation = true;
+    assert!(admit_source_only_publication(&profile, &mirrored).is_err());
+
+    let mut rewritten = admitted.clone();
+    rewritten.history_rewrite = true;
+    assert!(admit_source_only_publication(&profile, &rewritten).is_err());
+
+    let mut not_fast_forward = admitted.clone();
+    not_fast_forward.fast_forward = false;
+    assert!(admit_source_only_publication(&profile, &not_fast_forward).is_err());
+
+    let mut stale_rollback = admitted.clone();
+    stale_rollback.candidate.rollback_revision = external("git", "commit", "other");
+    assert!(admit_source_only_publication(&profile, &stale_rollback).is_err());
+
+    let mut drifted = admitted.clone();
+    drifted.readbacks = vec![AcquisitionObservation {
+        route: external("https", "source-archive", "route"),
+        revision: external("git", "commit", "other"),
+        archive_identity: content('d'),
+        observed_at: OBSERVED_AT,
+    }];
+    assert!(admit_source_only_publication(&profile, &drifted).is_err());
+
+    let mut drifted_archive = admitted.clone();
+    drifted_archive.readbacks = vec![AcquisitionObservation {
+        route: external("https", "source-archive", "route"),
+        revision: external("git", "commit", "source"),
+        archive_identity: content('9'),
+        observed_at: OBSERVED_AT,
+    }];
+    assert!(admit_source_only_publication(&profile, &drifted_archive).is_err());
+
+    let mut unwritable_route = admitted;
+    unwritable_route.readbacks = vec![AcquisitionObservation {
+        route: external("https", "unknown-route", "route"),
+        revision: external("git", "commit", "source"),
+        archive_identity: content('d'),
+        observed_at: OBSERVED_AT,
+    }];
+    assert!(admit_source_only_publication(&profile, &unwritable_route).is_err());
 }

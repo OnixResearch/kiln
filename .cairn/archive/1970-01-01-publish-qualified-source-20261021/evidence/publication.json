@@ -1,0 +1,187 @@
+{
+  "schema": "kiln.qualified-source-publication.v1",
+  "recorded_at_utc": "2026-10-21T18:41:09Z",
+  "owner": "Kiln maintainers",
+  "state": "PASS-source-only-fast-forward-and-exact-native-anonymous-readbacks",
+  "operator_request": "begin",
+  "authority": {
+    "basis": "operator request \"begin\" recorded in operator-authority.ncl in this directory",
+    "scope": "Source-only fast-forward of canonical Radicle main from 305f85d80b9ea05fbd91db73de8a6662a55650ee to c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+    "canonical_radicle_push_authorized": true,
+    "github_mirror_push_authorized": false,
+    "governance_change_authorized": false,
+    "history_rewrite_authorized": false,
+    "force_push_authorized": false,
+    "production_deployment_authorized": false,
+    "binary_release_authorized": false,
+    "announcement_authorized": false
+  },
+  "candidate_revision": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+  "published_source_revision": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+  "previous_main_revision": "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+  "rollback_target": "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+  "history_rewritten": false,
+  "force_push_used": false,
+  "commits_above_previous_main": 2,
+  "source_archive": {
+    "format": "normalized GNU tar USTAR",
+    "blake3": "28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004",
+    "bytes": 60989440,
+    "tracked_members": 4439,
+    "recipe": [
+      "--create",
+      "--format=ustar",
+      "--mtime=@0",
+      "--owner=0",
+      "--group=0",
+      "--numeric-owner",
+      "--mode=u=rwX,go=rX",
+      "--no-recursion",
+      "--null"
+    ],
+    "member_order": "lexically sorted candidate jj file list; NUL separated"
+  },
+  "source_paths": {
+    "path": "source-paths.json",
+    "blake3": "8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383",
+    "entries": 4439,
+    "encoding": "UTF-8 compact JSON array, no trailing newline"
+  },
+  "hosting_profile": {
+    "source": "config/hosting-profile.ncl",
+    "source_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+    "export": "hosting-profile.json",
+    "export_blake3": "31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82",
+    "boundary": "The profile checkpoint is historical; previous_main_revision and rollback_target above record this publication transition. Profile license metadata does not replace per-artifact LICENSES.md terms."
+  },
+  "license_map": {
+    "path": "LICENSES.md",
+    "blake3": "a099bfe50cec65cead787f60588dfa2d751bc5c4c88e80698b53f8c364eed6c0",
+    "workspace_default": "MIT OR Apache-2.0",
+    "package_exceptions": [
+      {
+        "package": "kiln-adapter-pijul",
+        "license": "GPL-2.0-only"
+      }
+    ],
+    "distribution_scope": "source repository and evidence only; no combined binary distribution clearance"
+  },
+  "qualification": {
+    "self_ci": {
+      "path": ".cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/verification.json",
+      "blake3": "5cd60bda97b05aeb6a9ae41023954bf26a9f8fcfa542e77d69f6077b8f590161",
+      "cases": {
+        "success": "Success",
+        "failure": "DomainFailure",
+        "unavailable": "Pending"
+      }
+    },
+    "self_ci_narrative": {
+      "path": ".cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/verification.md",
+      "blake3": "f0d3b1e697a7626e3944441b5893566a247b2d9e0674fa270df238ed30b54a67"
+    },
+    "gates": "cargo test/clippy/fmt, Cairn validation, Cairn release-readiness, Octet 0 warnings/0 errors, and the full nix flake check all passed on the candidate source",
+    "source_boundary": "Qualification binds this exact source revision; it does not qualify changed executable bytes of any later revision"
+  },
+  "governance": {
+    "before": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "default_branch": "main",
+      "signed_refs_revision": "e9d43a1cbe8befa6a1fc08dbe5630a99e23599f7"
+    },
+    "after": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "default_branch": "main",
+      "signed_refs_revision": "27455a353402ecaa0bd9c6500a953c6d341c1575"
+    },
+    "changed": false,
+    "visibility": "public"
+  },
+  "targets": [
+    {
+      "name": "radicle",
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "ref": "refs/heads/main",
+      "revision": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+      "push_observation": "jj git push reported the canonical reference update to target commit c955334f54bdfe6e155e56c00573ca7ba77c4fb1 and a sync with 2 seeds",
+      "authority": "Canonical Radicle governance unchanged: one delegate, threshold one, public visibility"
+    },
+    {
+      "name": "github",
+      "url": "https://github.com/OnixResearch/kiln.git",
+      "ref": "refs/heads/main",
+      "revision": "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+      "mutation": "none",
+      "observation": "The read-only projection still serves the previous main; mirror publication was not authorized and was not performed"
+    }
+  ],
+  "acquisitions": [
+    {
+      "name": "radicle-native",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "anonymous": false,
+      "source_revision": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+      "tracked_members": 4439,
+      "source_paths_blake3": "8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383",
+      "source_archive_blake3": "28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004",
+      "source_archive_bytes": 60989440,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    },
+    {
+      "name": "garden",
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "anonymous": true,
+      "source_revision": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+      "tracked_members": 4439,
+      "source_paths_blake3": "8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383",
+      "source_archive_blake3": "28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004",
+      "source_archive_bytes": 60989440,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    }
+  ],
+  "anonymous_environment": {
+    "fresh_home": true,
+    "global_and_system_git_config_disabled": true,
+    "credential_helper_disabled": true,
+    "askpass_disabled": true,
+    "ssh_agent_not_inherited": true,
+    "git_protocol_version": 0,
+    "quick_start": "nix develop path:<anonymous clone> -c cargo test --locked --workspace exited 0"
+  },
+  "replica_observation": "replica-observation.json",
+  "governance_observation": "governance-after.json",
+  "repository_checks": "repository-checks.json",
+  "readbacks": "readbacks.json",
+  "commands": "commands.json",
+  "non_claims": [
+    "Source and evidence live in separate revisions; this receipt is not inside the source archive it identifies",
+    "Archive and readback equality prove only the observed RID, revision, path, route, archive and policy facts",
+    "This publication does not prove source correctness, build reproducibility, deployment, binary release or future availability",
+    "The GitHub projection is observed but not mutated and retains its own revision",
+    "No governance, delegate, threshold, visibility, announcement or deployment change was performed",
+    "Historical publication receipts retain their original meaning"
+  ],
+  "evidence_index": {
+    "publication_receipt": "publication.json",
+    "readbacks": "readbacks.json",
+    "governance_observation": "governance-after.json",
+    "repository_checks": "repository-checks.json",
+    "replica_observation": "replica-observation.json",
+    "candidate_bindings": "candidate.ncl",
+    "candidate_review": "candidate-review.json",
+    "operator_authority": "operator-authority.ncl",
+    "command_record": "commands.json",
+    "source_path_manifest": "source-paths.json",
+    "hosting_profile_export": "hosting-profile.json",
+    "candidate_bindings_hashes": "bindings.txt",
+    "narrative": "verification.md"
+  }
+}

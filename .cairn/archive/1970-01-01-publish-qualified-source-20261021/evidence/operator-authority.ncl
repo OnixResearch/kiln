@@ -1,0 +1,17 @@
+{
+  schema = "kiln.qualified-source-publication-authority.v1",
+  owner = "Kiln maintainers",
+  operator = "brittonr",
+  recorded_at_utc = "2026-10-21T18:41:09Z",
+  operator_request = "begin",
+  request_context = "Operator replied 'begin' to: 'Authorize publication of c955334f and I'll prepare and publish the candidate receipt; otherwise the next engineering task is making the self-CI a standard release gate.'",
+  scope = "Source-only fast-forward of canonical Radicle main from 305f85d80b9ea05fbd91db73de8a6662a55650ee to c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+  canonical_radicle_push_authorized = true,
+  github_mirror_push_authorized = false,
+  governance_change_authorized = false,
+  history_rewrite_authorized = false,
+  force_push_authorized = false,
+  production_deployment_authorized = false,
+  binary_release_authorized = false,
+  announcement_authorized = false,
+}

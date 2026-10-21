@@ -45,6 +45,19 @@ anonymous HTTPS acquisitions, unchanged governance and its exact archive.
 The publication receipt is a later evidence-only descendant, not a new runtime
 qualification.
 
+The operator-authorized [qualified-source publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/publication.json)
+fast-forwarded canonical Radicle `main` from `305f85d80b9ea05fbd91db73de8a6662a55650ee`
+to the self-CI-qualified source `c955334f54bdfe6e155e56c00573ca7ba77c4fb1` with
+no force push, history rewrite, governance change, or mirror mutation. Its
+deterministic source archive is BLAKE3
+`28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004`
+(60,989,440 bytes, 4,439 tracked members) and its sorted path manifest is
+`8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383`. Native
+Radicle and anonymous Garden HTTPS acquisitions both reproduced that revision,
+path manifest and archive, the delegate set and threshold one were unchanged,
+and the GitHub projection was observed but not mutated. The receipt is a later
+evidence-only descendant of the published source.
+
 ## Quick start
 
 Acquire the read-only HTTPS projection without a Radicle node:

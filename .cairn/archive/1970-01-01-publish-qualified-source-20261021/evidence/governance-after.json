@@ -1,0 +1,36 @@
+{
+  "schema": "kiln.qualified-source-publication.governance-after.v1",
+  "observed_at_utc": "2026-10-21T18:41:09Z",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "identity": {
+    "payload": {
+      "xyz.radicle.project": {
+        "defaultBranch": "main",
+        "description": "Provider-neutral CI control plane",
+        "name": "Kiln"
+      }
+    },
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1
+  },
+  "delegates_observation": [
+    "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx (brittonr)"
+  ],
+  "signed_refs": {
+    "before": "e9d43a1cbe8befa6a1fc08dbe5630a99e23599f7",
+    "after": "27455a353402ecaa0bd9c6500a953c6d341c1575"
+  },
+  "canonical_main": {
+    "before": "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+    "after": "c955334f54bdfe6e155e56c00573ca7ba77c4fb1"
+  },
+  "threshold_unchanged": true,
+  "delegate_set_unchanged": true,
+  "visibility": "public",
+  "non_claims": [
+    "Fresh read-only observation of the governed repository after the authorized source push",
+    "This observation is not a proof of future availability or of delegate honesty"
+  ]
+}

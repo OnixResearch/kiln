@@ -1,0 +1,6 @@
+28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004  /var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/source.tar
+8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383  /var/tmp/kiln-qualified-source-publication-20261021-0AbTkR/source-paths.json
+1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0  config/hosting-profile.ncl
+a099bfe50cec65cead787f60588dfa2d751bc5c4c88e80698b53f8c364eed6c0  LICENSES.md
+5cd60bda97b05aeb6a9ae41023954bf26a9f8fcfa542e77d69f6077b8f590161  .cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/verification.json
+f0d3b1e697a7626e3944441b5893566a247b2d9e0674fa270df238ed30b54a67  .cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/verification.md

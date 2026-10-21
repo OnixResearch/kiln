@@ -1,0 +1,77 @@
+let Hash = std.contract.from_predicate (fun value => std.is_string value && std.string.length value == 64) in
+let Commit = std.contract.from_predicate (fun value => std.is_string value && std.string.length value == 40) in
+{
+  schema = "kiln.qualified-source-publication-candidate.v1",
+  owner = "Kiln maintainers",
+  source = {
+    revision | Commit = "c955334f54bdfe6e155e56c00573ca7ba77c4fb1",
+    previous_main | Commit = "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+    repository = "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    archive = {
+      filename = "kiln-source.tar",
+      format = "ustar",
+      blake3 | Hash = "28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004",
+      bytes = 60989440,
+      tracked_members = 4439,
+      recipe = "GNU tar --create --format=ustar --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX --no-recursion --null --files-from <LC_ALL=C sorted c955 tracked paths>; no directory entries, symlinks or Git/Jujutsu metadata",
+    },
+    paths = {
+      path = "source-paths.json",
+      blake3 | Hash = "8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383",
+      entries = 4439,
+      encoding = "UTF-8 compact JSON array, no trailing newline",
+    },
+    source_equivalence = "The archive was built from the exact tracked c955 path list in lexical order; native and anonymous readbacks must reproduce the same revision, path manifest and archive identity",
+  },
+  selection = {
+    fast_forward = true,
+    force_push = false,
+    commits_above_previous_main = 2,
+    mirror_mutation = false,
+    governance_change = false,
+    source_evidence_separate = true,
+  },
+  licenses = {
+    map = "LICENSES.md",
+    map_blake3 | Hash = "a099bfe50cec65cead787f60588dfa2d751bc5c4c88e80698b53f8c364eed6c0",
+    workspace_default = "MIT OR Apache-2.0",
+    package_exceptions = [{ package = "kiln-adapter-pijul", license = "GPL-2.0-only" }],
+    distribution_scope = "source repository and evidence only; no combined binary distribution clearance",
+    owner_specific_grants_extended = false,
+  },
+  lifecycle = {
+    state = "self-CI-qualified source; local gates pass; candidate evidence recorded",
+    self_ci = {
+      path = ".cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/verification.json",
+      blake3 | Hash = "5cd60bda97b05aeb6a9ae41023954bf26a9f8fcfa542e77d69f6077b8f590161",
+    },
+    gate_summary = "cargo test/clippy/fmt, cairn validate, cairn release-readiness, Octet 0 warnings/0 errors, full flake check all passed; self-CI Success/DomainFailure/Pending",
+  },
+  hosting = {
+    profile_source = "config/hosting-profile.ncl",
+    profile_source_blake3 | Hash = "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+    profile_export = "hosting-profile.json",
+    profile_export_blake3 | Hash = "31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82",
+    rid = "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    canonical_branch = "main",
+    rollback_revision | Commit = "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+    mirror_scope = "GitHub projection observed but not mutated by this publication",
+  },
+  authority = {
+    operator_request = "begin",
+    source_only = true,
+    github_mirror_push_authorized = false,
+    governance_change_authorized = false,
+    history_rewrite_authorized = false,
+    force_push_authorized = false,
+    production_deployment_authorized = false,
+    binary_release_authorized = false,
+  },
+  non_claims = [
+    "Source and evidence live in separate revisions; this file is not inside the source archive it identifies",
+    "Archive and readback equality proves only observed revision, path, route and policy facts",
+    "This publication does not establish source correctness, build reproducibility, deployment, binary release or future availability",
+    "Historical publication receipts retain their original meaning",
+    "No mirror, governance or announcement effect is performed",
+  ],
+}

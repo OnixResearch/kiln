@@ -157,6 +157,9 @@
 // r[verify kiln.hosting.runtime_independence.scenario.absent]
 // r[verify kiln.hosting.signed_refs]
 // r[verify kiln.hosting.signed_refs.scenario.threshold]
+// r[verify kiln.hosting.source_only_publication]
+// r[verify kiln.hosting.source_only_publication.scenario.accepted]
+// r[verify kiln.hosting.source_only_publication.scenario.rejected]
 //
 // Interchange projections: crates/kiln-core/src/interchange.rs.
 // r[verify kiln.interchange.algorithms]
