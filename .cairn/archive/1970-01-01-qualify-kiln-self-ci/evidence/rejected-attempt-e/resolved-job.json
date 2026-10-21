@@ -1,0 +1,224 @@
+{
+  "schema": "kiln.onixos-pilot.worker-job.v1",
+  "source_uri": "path:/nix/store/k0chxzc91fsrjvfdyk9nhjdgi062bx2j-radicle-source",
+  "expected_source": {
+    "provider": "radicle",
+    "repository": "rad:zYs1a2nsuWtbeCCKojydcBPD3M3j",
+    "revision": "232a50216c7145337a45b61796b569c6f25e17fc"
+  },
+  "discovery_profile": {
+    "upstream_source": "ssh://git@github.com/NixOS/nix-eval-jobs.git",
+    "upstream_revision": "a0cd02231c58974a6b5aaa3712069b071047162e",
+    "upstream_license": "GPL-3.0",
+    "adapter_version": "2.35.0",
+    "source_version": "0.1.6",
+    "nix_source": "ssh://git@github.com/NixOS/nix.git",
+    "nix_revision": "aa2613fa02ca6199fe0ebf61a0f7f6d781d32a47",
+    "nix_version": "2.35.2",
+    "nixpkgs_revision": "346dd96ad74dc4457a9db9de4f4f57dab2e5731d",
+    "platform": "x86_64-linux",
+    "cohort_manifest_schema": "kiln.nix-eval-jobs-cohort.v1",
+    "bounded_exec_source": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+    "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+    "bounded_exec_license": "AGPL-3.0-or-later",
+    "provider": {
+      "contract_version": 1,
+      "profile_id": "nix-eval-jobs-v1",
+      "role": "Discovery",
+      "namespace": {
+        "contract_version": 1,
+        "provider_namespace": "nix-eval-jobs",
+        "native_kind": "discovery-provider",
+        "native_id": "a0cd02231c58974a6b5aaa3712069b071047162e"
+      },
+      "operations": [
+        "Discover",
+        "Observe",
+        "Cancel",
+        "Reconcile"
+      ],
+      "outcomes": [
+        "Success",
+        "DomainFailure",
+        "Cancelled",
+        "TimedOut",
+        "ProviderError",
+        "Unknown"
+      ],
+      "limits": {
+        "max_request_bytes": 1048576,
+        "max_result_bytes": 16777216,
+        "max_in_flight": 16
+      }
+    },
+    "runtime": {
+      "executable_path": "/nix/store/bcv7hkwwpmfjmvxh6i106gdwr956svsp-nix-eval-jobs-2.35.0/bin/nix-eval-jobs",
+      "executable_identity": "dc42bc0e330c598ec93c2361afbb493417fa5c3364722897bd156d3f2ba9c063",
+      "cohort_manifest_path": "/nix/store/wasviibxqrxh6h8wckaifm2s6lancgpn-kiln-nix-eval-jobs-cohort.json",
+      "cohort_manifest_identity": "102b4af9a753d00dfb6489e1593dd4b9ac8ffe9eed42518705329c6018e63c31",
+      "gc_root_base": "/var/tmp/kiln-self-ci-20261021-e/eval-roots",
+      "home_base": "/var/tmp/kiln-self-ci-20261021-e/candidates/cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d/eval-home"
+    },
+    "policy": {
+      "flake_mode": true,
+      "expression_mode": false,
+      "allow_apply": false,
+      "allow_impure": false,
+      "allow_force_recurse": false,
+      "allow_registries": false,
+      "retain_gc_roots": true,
+      "partial_admission": false,
+      "check_cache_status": true,
+      "include_metadata": true,
+      "include_input_derivations": true
+    },
+    "limits": {
+      "max_line_bytes": 1048576,
+      "max_total_stdout_bytes": 16777216,
+      "max_stderr_bytes": 1048576,
+      "max_records": 256,
+      "max_jobs": 256,
+      "max_job_errors": 256,
+      "max_metadata_bytes": 65536,
+      "max_diagnostic_bytes": 65536,
+      "max_outputs_per_job": 64,
+      "max_dependencies_per_job": 256,
+      "max_tasks": 256,
+      "max_gc_roots": 256,
+      "max_executable_bytes": 536870912,
+      "max_manifest_bytes": 65536,
+      "max_in_flight": 16,
+      "max_workers": 32,
+      "max_memory_mebibytes": 16384,
+      "stdin_max_bytes": 1,
+      "timeout_milliseconds": 60000,
+      "poll_interval_milliseconds": 10,
+      "teardown_timeout_milliseconds": 1000
+    },
+    "required_non_claims": [
+      "discovery observation does not prove Nix evaluation correctness",
+      "source identity does not prove source trust",
+      "task mapping does not prove complete dependency semantics",
+      "cache advisory does not prove cache truth or output presence",
+      "discovery observation does not prove build execution or output correctness",
+      "stock Nix cohort evidence does not prove Onix Nix compatibility",
+      "discovery observation does not prove reproducibility",
+      "discovery observation does not establish release readiness"
+    ]
+  },
+  "discovery_plan": {
+    "effect_id": "radicle-ci-discover-cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d",
+    "evaluation_id": "radicle-ci-evaluation-cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d",
+    "project_id": "radicle-source-ci",
+    "pipeline_revision_id": "radicle-source-ci",
+    "discovery_policy_id": "onix-explicit-project-v1",
+    "provider_profile": "nix-eval-jobs-v1",
+    "build_provider_profile": "nix-build-v1",
+    "idempotency_key": "1071e7d19efd809696d1c957c18d6627da5dd2eb68c80c044661030396d12d31",
+    "source_identity": "573c60b1a90a2560154160b867be8bc3fa1d3f1f50f799dd25c8a078ac62bba5",
+    "source": {
+      "contract_version": 1,
+      "provider_namespace": "kiln-source",
+      "native_kind": "nix-store-path",
+      "native_id": "/nix/store/k0chxzc91fsrjvfdyk9nhjdgi062bx2j-radicle-source"
+    },
+    "source_mode": "Flake",
+    "root_selector": "packages.x86_64-linux",
+    "system": "x86_64-linux",
+    "options": {
+      "workers": 1,
+      "max_memory_mebibytes": 1024,
+      "include_metadata": true,
+      "include_input_derivations": true,
+      "check_cache_status": true,
+      "partial_admission": false
+    },
+    "bounds": {
+      "max_records": 256,
+      "max_jobs": 256,
+      "max_job_errors": 256,
+      "max_diagnostic_bytes": 65536,
+      "max_outputs_per_job": 64,
+      "max_dependencies_per_job": 256,
+      "max_tasks": 256
+    }
+  },
+  "selected_task": "kiln",
+  "build_profile": {
+    "nixpkgs_revision": "346dd96ad74dc4457a9db9de4f4f57dab2e5731d",
+    "nix_version": "2.34.8",
+    "bounded_exec_source": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+    "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+    "bounded_exec_license": "AGPL-3.0-or-later",
+    "request_schema": "kiln.nix-build-request.v1",
+    "observation_schema": "kiln.nix-build-observation.v1",
+    "receipt_schema": "kiln.nix-build-receipt.v1",
+    "native_report_schema": "nix-store-realisations.v1",
+    "command": "realise",
+    "platform": "x86_64-linux",
+    "provider_profile_id": "nix-build-v1",
+    "capabilities": [
+      "cancel",
+      "dispatch",
+      "observe",
+      "read_logs",
+      "reconcile"
+    ],
+    "executable_path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix",
+    "executable_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+    "nix_store_executable_path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store",
+    "nix_store_executable_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+    "derivation_path": "/nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-example.drv",
+    "derivation_identity": "2222222222222222222222222222222222222222222222222222222222222222",
+    "plan_identity": "2963ec28de80a82608e9734814fc10186829d53acc31825ec857352d266acfd7",
+    "policy_identity": "2963ec28de80a82608e9734814fc10186829d53acc31825ec857352d266acfd7",
+    "store_path": "/nix/store",
+    "gc_root_base": "/var/tmp/kiln-self-ci-20261021-e/build-roots",
+    "home_base": "/var/tmp/kiln-self-ci-20261021-e/candidates/cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d/build-home",
+    "worker_identity": "922bfb27fb370b7ff5cbff3293918615bb947fa075f67969dfe041b38776d2c1",
+    "store_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+    "expected_outputs": [
+      {
+        "name": "out",
+        "path": "/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-example"
+      }
+    ],
+    "limits": {
+      "max_required_products": 16,
+      "max_products": 64,
+      "max_logs": 1,
+      "max_gc_roots": 256,
+      "max_request_bytes": 1048576,
+      "max_result_bytes": 16777216,
+      "max_stderr_bytes": 1048576,
+      "max_log_bytes": 1048576,
+      "max_executable_bytes": 268435456,
+      "max_derivation_bytes": 16777216,
+      "max_in_flight": 16,
+      "stdin_max_bytes": 1,
+      "timeout_milliseconds": 60000,
+      "poll_interval_milliseconds": 10,
+      "teardown_timeout_milliseconds": 1000
+    },
+    "required_non_claims": [
+      "build observation does not prove build correctness",
+      "build observation does not prove sandbox completeness",
+      "cache observation does not prove cache truth",
+      "product admission does not prove product semantics",
+      "build observation does not prove reproducibility",
+      "nix build execution does not prove derivation provenance or source trust",
+      "build observation does not establish release readiness"
+    ]
+  },
+  "build_intent": {
+    "effect_id": "radicle-ci-build-cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d",
+    "attempt_id": "radicle-ci-attempt-cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d",
+    "idempotency_key": "a5b6c91f81657a030d3507e7bb07d0f806c5f83dbceae808daf5af3858a7cd03",
+    "candidate_id": "radicle-ci-candidate-cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d",
+    "pipeline_revision": "radicle-source-ci",
+    "plan_identity": "2963ec28de80a82608e9734814fc10186829d53acc31825ec857352d266acfd7",
+    "policy_identity": "2963ec28de80a82608e9734814fc10186829d53acc31825ec857352d266acfd7",
+    "platform": "x86_64-linux"
+  },
+  "state_root": "/var/tmp/kiln-self-ci-20261021-e/candidates/cc73f7870d1e143550250f8fcbacecc45d8a17155781f35ce0675b7a7ce7171d"
+}

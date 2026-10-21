@@ -244,14 +244,23 @@ class Exercise(BaseExercise):
         return {"provider": "radicle", "repository": self.rid,
                 "revision": self.jj(source, "log", "--no-graph", "-r", "@-", "-T", "commit_id")["stdout"].strip()}
 
+    def discovery_root_selector(self):
+        return "jobs"
+
+    def selected_task(self):
+        return "app"
+
+    def pilot_policy_path(self):
+        return REPO / "config/onixos-ci-pilot.ncl"
+
     def prepare_runtime(self, inputs, initial):
         facts = {name: {"path": path, "blake3": self.digest(path=path)} for name, path in self.exe.items() if Path(path).is_file()}
         operation = self.digest(value={"root": str(self.root), "executables": facts, "source_policy": self.selection})
         policy_inputs = {"root": str(self.root), "source_path": "/nix/store/00000000000000000000000000000000-project-template",
             "source_identity": operation, "case": "success", "operation_identity": operation, "worker_identity": facts["worker"]["blake3"],
             "store_identity": facts["nix_store"]["blake3"], "plan_identity": operation, "policy_identity": operation, "user_id": os.getuid()}
-        policy = self.export("runtime-policy", "((import " + json.dumps(str(REPO / "config/onixos-ci-pilot.ncl")) + ") " + ncl(policy_inputs)
-                             + ') & { eval_selection.source_binding.root_selector | force = "jobs" }')
+        policy = self.export("runtime-policy", "((import " + json.dumps(str(self.pilot_policy_path())) + ") " + ncl(policy_inputs)
+                             + ') & { eval_selection.source_binding.root_selector | force = ' + json.dumps(self.discovery_root_selector()) + ' }')
         put(self.root / "eval-selection.json", policy["eval_selection"])
         evaluation = self.json_command([self.exe["worker"], "eval-profile", self.root / "eval-selection.json"])
         build = policy["build_profile"]
@@ -259,12 +268,12 @@ class Exercise(BaseExercise):
                   "pipeline_revision": "radicle-source-ci", "plan_identity": operation, "policy_identity": operation, "platform": "x86_64-linux"}
         discovery = {"effect_id": "project-template", "evaluation_id": "project-template", "project_id": "radicle-source-ci",
             "pipeline_revision_id": intent["pipeline_revision"], "discovery_policy_id": "onix-explicit-project-v1", "provider_profile": evaluation["provider"]["profile_id"],
-            "evaluator_cohort": evaluation["evaluator_cohort"], "build_provider_profile": build["provider_profile_id"], "idempotency_key": operation,
-            "source_identity": operation, "source": policy["eval_selection"]["source_binding"]["source"], "source_mode": "Flake", "root_selector": "jobs", "system": "x86_64-linux",
+            "evaluator_cohort": evaluation.get("evaluator_cohort"), "build_provider_profile": build["provider_profile_id"], "idempotency_key": operation,
+            "source_identity": operation, "source": policy["eval_selection"]["source_binding"]["source"], "source_mode": "Flake", "root_selector": self.discovery_root_selector(), "system": "x86_64-linux",
             "options": {"workers": 1, "max_memory_mebibytes": 1024, **{key: evaluation["policy"][key] for key in ("include_metadata", "include_input_derivations", "check_cache_status", "partial_admission")}},
             "bounds": {key: evaluation["limits"][key] for key in ("max_records", "max_jobs", "max_job_errors", "max_diagnostic_bytes", "max_outputs_per_job", "max_dependencies_per_job", "max_tasks")}}
         project = self.export("project-profile", "(import " + json.dumps(str(REPO / "config/radicle-ci-worker.ncl")) + ") " + ncl({"source": self.selection,
-            "state_root": str(self.root / "candidates"), "discovery_profile": evaluation, "discovery_plan": discovery, "selected_task": "app", "build_profile": build, "build_intent": intent}))
+            "state_root": str(self.root / "candidates"), "discovery_profile": evaluation, "discovery_plan": discovery, "selected_task": self.selected_task(), "build_profile": build, "build_intent": intent}))
         put(self.root / "project.json", project)
         self.project_identity = self.digest(path=self.root / "project.json")
         controller_inputs = {"worker_profile_path": str(self.root / "project.json"), "worker_profile_identity": self.project_identity,
@@ -358,23 +367,29 @@ class Exercise(BaseExercise):
     def after_case(self, case, report):
         return None
 
-    def execute(self):
+    def extra_executables(self):
+        return {}
+
+    def prepare_canary(self):
         inputs = self.export("admitted-inputs", "(import " + json.dumps(str(REPO / "config/onixos-ci-pilot-inputs.ncl")) + ") (import " + json.dumps(str(Path(self.args.inputs).resolve(strict=True))) + ")")
         tools = {key: str(Path(getattr(self.args, key)).absolute()) for key in ("radicle", "radicle_node", "broker", "broker_tool", "jj", "git", "secretspec")}
         self.settings = self.export("canary-settings", "(import " + json.dumps(str(self.profile_path())) + ") " + ncl(self.profile_inputs(tools)))
         self.exe.update(tools)
         self.exe["legacy_coordinator"] = self.exe["coordinator"]
         self.exe.update({name: str(Path(getattr(self.args, name)).resolve(strict=True)) for name in ("coordinator", "worker", "extension")})
+        self.exe.update(self.extra_executables())
         self.exe["python"] = str(Path(sys.executable).resolve(strict=True))
         for path in self.exe.values():
             Path(path).resolve(strict=True)
         self.env.update({"TMPDIR": str(self.root), "PATH": ":".join(dict.fromkeys(str(Path(self.exe[name]).parent) for name in ("git", "radicle", "shell", "sleep", "jj")))})
         (self.root / "lattice-tmp").mkdir(mode=0o700)
         (self.root / "candidates").mkdir(mode=0o700)
-        initial = self.prepare_nodes()
+        self.initial = self.prepare_nodes()
         self.env["RAD_HOME"] = self.nodes["ci"]["home"]
-        lattice = self.prepare_runtime(inputs, initial)
-        broker, events = self.prepare_broker()
+        self.lattice = self.prepare_runtime(inputs, self.initial)
+        self.broker, self.events = self.prepare_broker()
+
+    def run_cases(self):
         reports = []
         for number, case in enumerate(("success", "failure", "unavailable")):
             self.env["RAD_HOME"] = self.nodes["publisher"]["home"]
@@ -394,29 +409,29 @@ class Exercise(BaseExercise):
             self.jj(self.root / "project-source", "git", "push", "--remote", "rad", "--bookmark", self.settings["source_branch"])
             self.env["RAD_HOME"] = self.nodes["ci"]["home"]
             ingress = self.root / "ingress" / source["revision"]
-            self.until("automatic real broker ingress", lambda: (ingress / "request.json").is_file() or self.failed(broker))
+            self.until("automatic real broker ingress", lambda: (ingress / "request.json").is_file() or self.failed(self.broker))
             message = load(ingress / "request.json")
             if message["repository"]["id"] != self.rid or message["after"] != source["revision"]:
                 raise ValueError("broker delivered a foreign repository/revision")
             journal_path = Path(bindings["root"]) / "ci-journal.json"
-            self.until("canonical native source reservation", lambda: journal_path.is_file() or self.failed(broker))
+            self.until("canonical native source reservation", lambda: journal_path.is_file() or self.failed(self.broker))
             original = load(journal_path)["ingress"]["operation_id"]
             restart = None
             if case == "success":
-                self.until("real independent Nix build intent", lambda: (Path(bindings["root"]) / "build-state.json").is_file() or self.failed(broker))
+                self.until("real independent Nix build intent", lambda: (Path(bindings["root"]) / "build-state.json").is_file() or self.failed(self.broker))
                 put(ingress / "interrupt", b"explicit owned controller interruption\n")
-                self.until("controller SIGKILL evidence", lambda: (ingress / "interrupted.json").is_file() or self.failed(broker))
+                self.until("controller SIGKILL evidence", lambda: (ingress / "interrupted.json").is_file() or self.failed(self.broker))
                 self.stop(self.host, abrupt=True)
                 pending = self.ci("replay", self.root / "controller.json", context)
                 restart = {"canonical_outcome": pending["runs"][bindings["run_id"]]["outcome"], "worker_result_present": (Path(bindings["root"]) / "project-result.json").exists(),
-                           "independent_lattice_running": lattice["process"].poll() is None, "original_operation": original}
+                           "independent_lattice_running": self.lattice["process"].poll() is None, "original_operation": original}
                 if restart["canonical_outcome"] != "Pending" or restart["worker_result_present"] or not restart["independent_lattice_running"]:
                     raise ValueError("interruption missed actual independent in-flight execution")
                 (self.root / "aspen.sock").unlink(missing_ok=True)
                 self.host = self.spawn("host-restarted", self.host_argv)
                 self.until("recovered Aspen socket", lambda: (self.root / "aspen.sock").is_socket() or self.failed(self.host))
                 put(ingress / "resume", b"reconcile original unchanged broker bytes\n")
-            self.until("bounded controller completion", lambda: (ingress / "complete.json").is_file() or self.failed(broker))
+            self.until("bounded controller completion", lambda: (ingress / "complete.json").is_file() or self.failed(self.broker))
             replies = [json.loads(line) for path in sorted(ingress.glob("attempt-*-stdout.log")) for line in path.read_text().splitlines()]
             journal = self.ci("reconcile", self.root / "controller.json", context)
             state = self.ci("replay", self.root / "controller.json", context)
@@ -455,6 +470,9 @@ class Exercise(BaseExercise):
                 "restart": restart, "output_absent_before_dispatch": before, "remote_status": remote, "rooted_outputs": roots, "release": release,
                 "native_duplicate_fetch": duplicate, "duplicate_preserved_operation": duplicate_journal["ingress"]["operation_id"]})
             self.after_case(case, reports[-1])
+        return reports
+
+    def finalize_report(self, reports):
         invocations = (self.root / "provider-invocations.log").read_text().splitlines()
         if invocations != [report["source"]["revision"] for report in reports[:2]]:
             raise ValueError("duplicate/restart/unavailable provider altered real worker invocation count")
@@ -466,6 +484,10 @@ class Exercise(BaseExercise):
             "real_secretspec_audit": str(audit), "maintenance_owner": "Kiln maintainers", "non_claims": NON_CLAIMS}
         put(self.root / "verification.json", report)
         print(json.dumps({"repository": self.rid, "cases": [{"case": row["case"], "revision": row["source"]["revision"], "outcome": row["canonical_outcome"]} for row in reports]}, indent=2))
+
+    def execute(self):
+        self.prepare_canary()
+        self.finalize_report(self.run_cases())
 
     def close(self):
         # Stop owned execution before using the existing exact-result release

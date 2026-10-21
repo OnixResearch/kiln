@@ -324,24 +324,16 @@ pub fn map_task_proposals(
     let mut ordered = jobs.to_vec();
     ordered.sort_by(|left, right| left.attribute.cmp(&right.attribute));
     let mut attributes = BTreeSet::new();
-    let mut derivations = BTreeMap::new();
     for job in &ordered {
         validate_job(plan, job)?;
+        // Flake aliases may share a derivation while retaining distinct
+        // attributes; the selected task disambiguates them. Only duplicate
+        // attributes are rejected.
         if !attributes.insert(job.attribute.clone()) {
             return Err(Diagnostic::new(
                 "duplicate_discovery_attribute",
                 "discovery.jobs.attribute",
                 "two discovered jobs use the same attribute identity",
-            ));
-        }
-        if derivations
-            .insert(job.derivation.clone(), job.attribute.clone())
-            .is_some()
-        {
-            return Err(Diagnostic::new(
-                "conflicting_discovery_derivation",
-                "discovery.jobs.derivation",
-                "two discovered jobs use the same derivation identity",
             ));
         }
     }
@@ -1289,10 +1281,22 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_derivations_and_cycles_fail_closed() {
-        let first = job("first", "/nix/store/shared.drv", Vec::new());
-        let second = job("second", "/nix/store/shared.drv", Vec::new());
-        assert!(map_task_proposals(&plan(), &[first, second]).is_err());
+    fn aliased_derivations_are_admitted_and_cycles_fail_closed() {
+        let default_alias = job("default", "/nix/store/shared.drv", Vec::new());
+        let kiln_alias = job("kiln", "/nix/store/shared.drv", Vec::new());
+        let mapped = map_task_proposals(&plan(), &[default_alias, kiln_alias])
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(mapped.len(), 2);
+        let mut attributes: Vec<&str> = mapped
+            .iter()
+            .map(|task| task.native_attribute.native_id.as_str())
+            .collect();
+        attributes.sort_unstable();
+        assert_eq!(attributes, ["default", "kiln"]);
+
+        let duplicate_a = job("same", "/nix/store/a.drv", Vec::new());
+        let duplicate_b = job("same", "/nix/store/b.drv", Vec::new());
+        assert!(map_task_proposals(&plan(), &[duplicate_a, duplicate_b]).is_err());
 
         let first_derivation = ExternalRef::new("nix", "derivation", "/nix/store/first.drv")
             .unwrap_or_else(|_| unreachable!());

@@ -21,6 +21,8 @@ use crate::wire::StreamAdmission;
 const NIX_STORE_PREFIX: &str = "/nix/store/";
 const NIX_CONFIGURATION: &str = "accept-flake-config = false\nflake-registry =\nsubstituters =\n";
 const EXPERIMENTAL_FEATURES: &str = "nix-command flakes";
+const FLAKE_CONNECT_TIMEOUT_SECONDS: u32 = 5;
+const FLAKE_DOWNLOAD_ATTEMPTS: u32 = 1;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -188,6 +190,14 @@ pub fn invocation(
     }
     if plan.options.check_cache_status {
         args.push(OsString::from("--check-cache-status"));
+    }
+    if profile.evaluator_cohort.is_none() {
+        args.push(OsString::from("--option"));
+        args.push(OsString::from("connect-timeout"));
+        args.push(OsString::from(FLAKE_CONNECT_TIMEOUT_SECONDS.to_string()));
+        args.push(OsString::from("--option"));
+        args.push(OsString::from("download-attempts"));
+        args.push(OsString::from(FLAKE_DOWNLOAD_ATTEMPTS.to_string()));
     }
     args.push(OsString::from("--flake"));
     args.push(OsString::from(target));

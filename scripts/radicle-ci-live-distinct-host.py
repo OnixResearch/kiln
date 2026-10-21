@@ -106,9 +106,27 @@ class RemoteHost:
             raise RemoteError("remote file upload failed")
         self.run_script([f"chmod 600 {quote(remote)}"], check=True)
 
-    def read_file(self, remote, limit=2_000_000):
-        record = self.run_script([f"head -c {limit} {quote(remote)}"], check=False)
-        return record["stdout"]
+    def read_file(self, remote, limit=2_000_000, missing_ok=False):
+        if missing_ok and not self.exists(remote):
+            return ""
+        script = self._script([f"head -c {limit} {quote(remote)}"])
+        process = subprocess.run(
+            [*self.ssh, "bash", "-s"], input=script, text=True,
+            capture_output=True, timeout=120,
+        )
+        self._record(script, process)
+        if process.returncode != 0:
+            raise RemoteError("remote file read failed: " + process.stderr.strip()[-500:])
+        return process.stdout
+
+    def exists(self, remote):
+        script = self._script([f"test -e {quote(remote)}"])
+        process = subprocess.run(
+            [*self.ssh, "bash", "-s"], input=script, text=True,
+            capture_output=True, timeout=120,
+        )
+        self._record(script, process)
+        return process.returncode == 0
 
     def check_root(self):
         root = quote(self.root)

@@ -1,0 +1,27 @@
+2026-10-21T14:06:10.099-04:00 INFO  node     Starting node..
+2026-10-21T14:06:10.099-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T14:06:10.099-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T14:06:10.099-04:00 INFO  node     Initializing fingerprint..
+2026-10-21T14:06:10.099-04:00 INFO  node     Node ID is z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ
+2026-10-21T14:06:10.100-04:00 INFO  node     Opening policy database..
+2026-10-21T14:06:10.101-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T14:06:10.101-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T14:06:10.144-04:00 INFO  node     Opening node database..
+2026-10-21T14:06:10.150-04:00 INFO  node     Address book is empty. Adding bootstrap nodes..
+2026-10-21T14:06:10.150-04:00 INFO  node     0 nodes added to address book
+2026-10-21T14:06:10.150-04:00 INFO  service  Empty refs database, populating from storage..
+2026-10-21T14:06:10.151-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T14:06:10.151-04:00 INFO  node     Listening on 127.0.0.1:38171..
+2026-10-21T14:06:10.151-04:00 INFO  node     Binding control socket /var/tmp/kiln-self-ci-20261021-o/rad-publisher/node/control.sock..
+2026-10-21T14:06:10.151-04:00 INFO  node     Running node z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ in /var/tmp/kiln-self-ci-20261021-o/rad-publisher..
+2026-10-21T14:06:10.151-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T14:06:12.125-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T14:06:12.310-04:00 INFO  service  Received command Seed(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih, all)
+2026-10-21T14:06:12.317-04:00 INFO  service  Received command AddInventory(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:06:12.318-04:00 INFO  service  Received command Seeds(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:06:12.324-04:00 INFO  service  Connected to z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX (127.0.0.1:39690) (Inbound)
+2026-10-21T14:06:12.693-04:00 INFO  wire     Peer z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from us successfully
+2026-10-21T14:06:13.250-04:00 INFO  service  Fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX successfully
+2026-10-21T14:06:13.936-04:00 INFO  node     Termination signal received; shutting down..
+2026-10-21T14:06:13.936-04:00 INFO  reactor::controller Initiating reactor shutdown…
+2026-10-21T14:06:13.936-04:00 INFO  reactor  Shutdown

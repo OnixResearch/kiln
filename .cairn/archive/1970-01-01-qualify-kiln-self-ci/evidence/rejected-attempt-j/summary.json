@@ -1,0 +1,19 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-j",
+  "result": "rejected",
+  "failure": "Nix build outcome`timed_out`; canonical run outcome`TimedOut` instead of`Success`",
+  "cause": "The stock pilot policy forces a 60000 ms Nix build deadline. The real Kiln package build exceeded it while compiling the workspace.",
+  "fix": "Use a dedicated self-CI pilot policy with a 900000 ms build deadline plus bounded 1200 s workflow/host/callback deadlines and 7200 lifecycle polls. Evaluation remains bounded at 60000 ms.",
+  "evidence": [
+    "build-state.json",
+    "project-result.json",
+    "ci-journal.json",
+    "discovery.json",
+    "ced08231974e05feab066bdf955ba57ec78853382948cf6ad82844f09587ce3f.log",
+    "worker.stderr.log",
+    "worker.stdout.log",
+    "success-source.json",
+    "evaluator.stderr.log"
+  ]
+}

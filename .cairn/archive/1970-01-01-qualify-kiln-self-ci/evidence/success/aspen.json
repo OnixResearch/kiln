@@ -1,0 +1,124 @@
+{
+  "authority_ref": "kiln-aspen-authority-v1",
+  "bounds": {
+    "callback_timeout_millis": 1200000,
+    "max_callback_input_bytes": 1048576,
+    "max_callback_output_bytes": 1048576,
+    "max_content_bytes": 16777216,
+    "max_effects": 64,
+    "max_log_bytes": 262144,
+    "max_materialized_value_bytes": 262144,
+    "max_materialized_values": 64,
+    "max_records": 4096
+  },
+  "claim_level": "local-live-materialized-values-pilot",
+  "cohort": {
+    "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+    "bounded_exec_source": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+    "revision": "22f8ded26ca1907c29948e08b53f35df23080733",
+    "source": "ssh://git@github.com/brittonr/aspen.git"
+  },
+  "endpoint_ref": "kiln-aspen-local-endpoint-v1",
+  "fallback": "none",
+  "native_host": {
+    "alpn": "molten/system-extension/native/v2",
+    "callback_envelope_schema": "molten.system-extension.native-callback-envelope.v2",
+    "callback_outcome_schema": "molten.system-extension.native-callback-outcome.v2",
+    "execution_profile": "native-host-local-pilot-v2",
+    "extension_id": "kiln-aspen-extension-v2",
+    "extension_protocol_schema": "kiln.aspen-extension.protocol.v2",
+    "framing": "preserves-packed-materialized-values-v2",
+    "generation": 1,
+    "ingress_schema": "molten.system-extension.native-ingress.v2",
+    "instance_schema": "molten.system-extension.native-instance-state.v2",
+    "profile_schema": "molten.system-extension.native-host-profile.v2",
+    "service_id": "kiln-ci-control-plane-v2"
+  },
+  "non_claim_count": 12,
+  "non_claims": [
+    "aspen acceptance does not prove CI correctness",
+    "aspen execution does not prove provider correctness",
+    "bounded execution does not prove sandboxing or hermeticity",
+    "transport acknowledgement does not prove exact-once delivery",
+    "content identity does not prove source trust",
+    "durable acceptance does not prove global durability",
+    "local conformance does not prove production availability",
+    "runtime evidence does not prove release eligibility",
+    "equal digest text does not merge identity roles",
+    "provider observations require Kiln admission",
+    "value identity does not prove application meaning",
+    "in-memory conformance does not prove value durability"
+  ],
+  "policy_ref": "kiln-aspen-policy-v1",
+  "port_count": 7,
+  "ports": [
+    {
+      "authority_ref": "kiln-aspen-authority-v1",
+      "input_schema": "molten.fabric.durability.atomic-batch.v1",
+      "output_schema": "molten.fabric.durability.atomic-receipt.v1",
+      "port_id": "molten.fabric.durability.ordered-state",
+      "purpose": "durability",
+      "resource_ref": "kiln-aspen-resources-v1",
+      "version": "v1"
+    },
+    {
+      "authority_ref": "kiln-aspen-authority-v1",
+      "input_schema": "molten.content-store-adapter.command.v1",
+      "output_schema": "molten.content-store-adapter.event.v1",
+      "port_id": "molten.fabric.content-store",
+      "purpose": "content",
+      "resource_ref": "kiln-aspen-resources-v1",
+      "version": "v1"
+    },
+    {
+      "authority_ref": "kiln-aspen-authority-v1",
+      "input_schema": "molten.fabric.execution-request.v1",
+      "output_schema": "molten.fabric.execution-receipt.v1",
+      "port_id": "molten.fabric.execution.bounded-process",
+      "purpose": "execution",
+      "resource_ref": "kiln-aspen-resources-v1",
+      "version": "v1"
+    },
+    {
+      "authority_ref": "kiln-aspen-authority-v1",
+      "input_schema": "kiln.aspen-extension.effect.v2",
+      "output_schema": "kiln.aspen-provider-completion.v1",
+      "port_id": "molten.fabric.transport.session",
+      "purpose": "transport",
+      "resource_ref": "kiln-aspen-resources-v1",
+      "version": "v1"
+    },
+    {
+      "authority_ref": "kiln-aspen-authority-v1",
+      "input_schema": "molten.fabric.time.request.v1",
+      "output_schema": "molten.fabric.time.observation.v1",
+      "port_id": "molten.fabric.time",
+      "purpose": "time",
+      "resource_ref": "kiln-aspen-resources-v1",
+      "version": "v1"
+    },
+    {
+      "authority_ref": "kiln-aspen-authority-v1",
+      "input_schema": "molten.fabric.scheduler.request.v1",
+      "output_schema": "molten.fabric.scheduler.observation.v1",
+      "port_id": "molten.fabric.scheduler",
+      "purpose": "scheduling",
+      "resource_ref": "kiln-aspen-resources-v1",
+      "version": "v1"
+    },
+    {
+      "authority_ref": "kiln-aspen-authority-v1",
+      "input_schema": "molten.fabric.observation.event.v1",
+      "output_schema": "molten.fabric.observation.receipt.v1",
+      "port_id": "molten.fabric.observation",
+      "purpose": "evidence",
+      "resource_ref": "kiln-aspen-resources-v1",
+      "version": "v1"
+    }
+  ],
+  "profile_id": "aspen-runtime-v2",
+  "resource_ref": "kiln-aspen-resources-v1",
+  "schema": "kiln.aspen-runtime.profile.v2",
+  "transport_profile_ref": "kiln-aspen-local-transport-v1",
+  "workflow_provider_profile": "lattice-v1"
+}

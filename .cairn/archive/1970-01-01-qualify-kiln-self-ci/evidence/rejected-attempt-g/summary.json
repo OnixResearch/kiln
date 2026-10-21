@@ -1,0 +1,15 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-g",
+  "result": "rejected",
+  "failure": "TimeoutError waiting for build-state.json",
+  "cause": "The seeded Nix cache was written to `<root>/eval-home`, but the worker isolates each candidate and runs the evaluator with HOME=<candidate>/eval-home. The evaluator therefore used an empty cache and hung on the locked flake-input fetches.",
+  "fix": "Seed the cache into `<candidate>/eval-home/.cache/nix` after the bindings command and before the source push.",
+  "evidence": [
+    "evaluator.stderr.log",
+    "evaluator.stdout.log",
+    "ci-journal.json",
+    "resolved-job.json",
+    "source-import.json"
+  ]
+}

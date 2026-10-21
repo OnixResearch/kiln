@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-self-ci-20261021-o/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-self-ci-20261021-o",
+    "--",
+    "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cib",
+    "--config",
+    "/var/tmp/kiln-self-ci-20261021-o/broker.json",
+    "config"
+  ],
+  "exit_code": 0,
+  "stderr": "{\"timestamp\":\"2026-10-21T18:06:29.420387Z\",\"level\":\"INFO\",\"fields\":{\"message\":\"CI broker starts\",\"msg_id\":\"CibStart\",\"kind\":\"startup\",\"version\":\"0.31.0@88076f8\"}}\n{\"timestamp\":\"2026-10-21T18:06:29.420511Z\",\"level\":\"DEBUG\",\"fields\":{\"message\":\"loaded configuration\",\"msg_id\":\"CibConfig\",\"kind\":\"startup\",\"config\":\"Config { default_adapter: None, triggers: Some([TriggerConfig { adapter: \\\"kiln\\\", filters: [And([Repository(RepoId(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)), Node(PublicKey(z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ)), Branch(RefString(\\\"ci-canary\\\")), Or([BranchCreated, BranchUpdated])])] }]), report_dir: None, db: \\\"/var/tmp/kiln-self-ci-20261021-o/broker.db\\\", status_update_interval_seconds: None, adapters: {\\\"kiln\\\": AdapterSpec { command: \\\"/var/tmp/kiln-self-ci-20261021-o/adapter\\\", env: {\\\"XDG_CACHE_HOME\\\": \\\"/var/tmp/kiln-self-ci-20261021-o/cache\\\", \\\"LANG\\\": \\\"C.UTF-8\\\", \\\"HOME\\\": \\\"/var/tmp/kiln-self-ci-20261021-o\\\", \\\"TMPDIR\\\": \\\"/var/tmp/kiln-self-ci-20261021-o\\\", \\\"RAD_HOME\\\": \\\"/var/tmp/kiln-self-ci-20261021-o/rad-ci\\\", \\\"PATH\\\": \\\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin:/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin\\\", \\\"XDG_CONFIG_HOME\\\": \\\"/var/tmp/kiln-self-ci-20261021-o/config\\\"}, sensitive_env: {}, config: {}, config_env: None }}, filters: [], max_run_time: 360s, queue_len_interval: 60s, refresh_interval: 300, concurrent_adapters: Some(1), description: None, update_job_cobs: false }\"}}\n{\"timestamp\":\"2026-10-21T18:06:29.420555Z\",\"level\":\"INFO\",\"fields\":{\"message\":\"CI broker ends successfully\",\"msg_id\":\"CibEndSuccess\",\"kind\":\"shutdown\",\"success\":true}}\n",
+  "stdout": "{\n  \"default_adapter\": null,\n  \"triggers\": [\n    {\n      \"adapter\": \"kiln\",\n      \"filters\": [\n        {\n          \"And\": [\n            {\n              \"Repository\": \"rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih\"\n            },\n            {\n              \"Node\": \"z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ\"\n            },\n            {\n              \"Branch\": \"ci-canary\"\n            },\n            {\n              \"Or\": [\n                \"BranchCreated\",\n                \"BranchUpdated\"\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ],\n  \"report_dir\": null,\n  \"db\": \"/var/tmp/kiln-self-ci-20261021-o/broker.db\",\n  \"adapters\": {\n    \"kiln\": {\n      \"command\": \"/var/tmp/kiln-self-ci-20261021-o/adapter\",\n      \"env\": {\n        \"XDG_CACHE_HOME\": \"/var/tmp/kiln-self-ci-20261021-o/cache\",\n        \"LANG\": \"C.UTF-8\",\n        \"HOME\": \"/var/tmp/kiln-self-ci-20261021-o\",\n        \"TMPDIR\": \"/var/tmp/kiln-self-ci-20261021-o\",\n        \"RAD_HOME\": \"/var/tmp/kiln-self-ci-20261021-o/rad-ci\",\n        \"PATH\": \"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin:/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin\",\n        \"XDG_CONFIG_HOME\": \"/var/tmp/kiln-self-ci-20261021-o/config\"\n      },\n      \"sensitive_env\": {},\n      \"config\": {},\n      \"config_env\": null\n    }\n  },\n  \"filters\": [],\n  \"max_run_time\": {\n    \"secs\": 360,\n    \"nanos\": 0\n  },\n  \"queue_len_interval\": {\n    \"secs\": 60,\n    \"nanos\": 0\n  },\n  \"refresh_interval\": 300,\n  \"concurrent_adapters\": 1,\n  \"description\": null,\n  \"update_job_cobs\": false\n}\n"
+}

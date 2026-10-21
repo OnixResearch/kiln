@@ -81,16 +81,14 @@ fn serve_requests(
         let (mut stream, _address) = listener.accept().map_err(|error| {
             HostBridgeError::Io(format!("accept Aspen host connection: {error}"))
         })?;
-        stream
-            .set_read_timeout(Some(config.timeout))
-            .map_err(|error| {
-                HostBridgeError::Io(format!("set Aspen host read timeout: {error}"))
-            })?;
-        stream
-            .set_write_timeout(Some(config.timeout))
-            .map_err(|error| {
-                HostBridgeError::Io(format!("set Aspen host write timeout: {error}"))
-            })?;
+        if let Err(error) = stream.set_read_timeout(Some(config.timeout)) {
+            eprintln!("Aspen host connection setup failed: {error}");
+            continue;
+        }
+        if let Err(error) = stream.set_write_timeout(Some(config.timeout)) {
+            eprintln!("Aspen host connection setup failed: {error}");
+            continue;
+        }
         let read_limit = config
             .maximum_frame_bytes
             .checked_add(FRAME_OVERFLOW_SENTINEL_BYTES)
@@ -99,18 +97,33 @@ fn serve_requests(
             HostBridgeError::Protocol("request frame bound does not fit u64".to_string())
         })?;
         let mut request_bytes = Vec::new();
-        (&mut stream)
+        if let Err(error) = (&mut stream)
             .take(read_limit)
             .read_to_end(&mut request_bytes)
-            .map_err(|error| HostBridgeError::Io(format!("read Aspen host request: {error}")))?;
-        let request = decode_aspen_unix_request(&request_bytes, config.maximum_frame_bytes)
-            .map_err(|error| HostBridgeError::Protocol(error.to_string()))?;
+        {
+            eprintln!("Aspen host request read failed: {error}");
+            continue;
+        }
+        let request = match decode_aspen_unix_request(&request_bytes, config.maximum_frame_bytes) {
+            Ok(request) => request,
+            Err(error) => {
+                eprintln!("Aspen host request rejected: {error}");
+                continue;
+            }
+        };
         let response = handle_aspen_unix_request(profile, runtime, request);
-        let response_bytes = encode_aspen_unix_response(&response, config.maximum_frame_bytes)
-            .map_err(|error| HostBridgeError::Protocol(error.to_string()))?;
-        stream
-            .write_all(&response_bytes)
-            .map_err(|error| HostBridgeError::Io(format!("write Aspen host response: {error}")))?;
+        let response_bytes = match encode_aspen_unix_response(&response, config.maximum_frame_bytes)
+        {
+            Ok(response_bytes) => response_bytes,
+            Err(error) => {
+                eprintln!("Aspen host response rejected: {error}");
+                continue;
+            }
+        };
+        if let Err(error) = stream.write_all(&response_bytes) {
+            eprintln!("Aspen host response write failed: {error}");
+            continue;
+        }
     }
     Ok(())
 }

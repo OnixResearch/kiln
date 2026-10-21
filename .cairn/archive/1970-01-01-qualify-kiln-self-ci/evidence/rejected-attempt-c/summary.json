@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-c",
+  "result": "rejected",
+  "failure": "discovery terminal ProviderError with fatal job error `nix_eval_error_schema`",
+  "cause": "The Onix nix-eval-jobs fork evaluated the acquired Kiln source with the cleared worker environment. Its probe for the private `onix-artifact` flake input could not run ssh and emitted a fatal error record with a schema the Onix stream adapter does not admit. The locked input and the real package derivations were already in the local store.",
+  "fix": "Use the stock nix-eval-jobs profile for the standard Kiln flake, add a typed `kind` to the eval selection (default Onix) and a stock branch in the worker `eval-profile`, and build the current worker rather than the older store package. The stock evaluator emits the seven package records with only nonfatal stderr warnings.",
+  "evidence": [
+    "evaluator.stderr.log",
+    "evaluator.stdout.log",
+    "discovery.json",
+    "source-import.json",
+    "project-result.json",
+    "worker-result.json",
+    "resolved-job.json"
+  ]
+}

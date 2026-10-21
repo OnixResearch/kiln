@@ -1,0 +1,9 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-a",
+  "result": "rejected",
+  "failure": "controller `bindings` rejected the profile: invalid Radicle CI profile schema, paths or finite bounds",
+  "cause": "The self-CI profile set maximum_polls=1800 and a 900 s callback. The coordinator requires maximum_polls below max_journal_records (1024) and the configured observation duration at or below its named 600 s bound, so the first case stopped before dispatch.",
+  "fix": "Use maximum_polls=600 with a 1000 ms interval (exactly 600 s) and a 600 s callback; the base 1024-record journal bound is retained.",
+  "evidence": "No root or logs retained; the rejected profile values and admission rule are recorded here."
+}

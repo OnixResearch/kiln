@@ -1,0 +1,205 @@
+{
+  "schema": "kiln.onixos-pilot.worker-result.v1",
+  "job_identity": "a21ad5ad63205bc23413156e38f7cf01641d13c0858ba309f99b190720016536",
+  "source_uri": "path:/nix/store/9v2g3mha9hdki1p0wn6nbf2n76fzhxjd-radicle-source",
+  "discovery_plan": {
+    "effect_id": "radicle-ci-discover-867c773e5b678ed5582a07fd9bc16f939181165379e557887ef2ea4f7a51b83f",
+    "evaluation_id": "radicle-ci-evaluation-867c773e5b678ed5582a07fd9bc16f939181165379e557887ef2ea4f7a51b83f",
+    "project_id": "radicle-source-ci",
+    "pipeline_revision_id": "radicle-source-ci",
+    "discovery_policy_id": "onix-explicit-project-v1",
+    "provider_profile": "onix-nix-eval-v1",
+    "evaluator_cohort": {
+      "kind": "onix-nix",
+      "executable_identity": "4b4e221bfe3645da5f9d89198f211e07f63e4ea5f4fbd6064d6311bfa5090361",
+      "manifest_identity": "1e7df147057fde6b439541427a51c2d4ba70f6a42ee15d30021d120e9dda8263",
+      "host_abi": "nix_wasm_init_v1",
+      "features": [
+        "flakes",
+        "nix-command",
+        "wasm-builtin"
+      ],
+      "plugin_identity": "6bbf0180617b4d87746416eb8d58d09dea1076312935038b4d92706e5c7626f6",
+      "components": [
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/xs9x9imziz5fz9d089vs64xxahz5v7iy-nix-store-2.36.0/lib/libnixstore.so.2.36.0"
+          },
+          "identity": "83efc75ea9a8bddf172cdd4f2827d2b85ee986bc872e407c6f509e5cc24bff9d"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/sifz76vs2qn3ng7d8bc9ll96zb58x4zv-nix-util-2.36.0/lib/libnixutil.so.2.36.0"
+          },
+          "identity": "58d1aa3a8a8a28fc264ab3604d6d327f6b5b9756fec516a5b218120566fc3cd4"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/43v5jy3q8lql3snvdzqwj0drvsrmihxg-nix-fetchers-2.36.0/lib/libnixfetchers.so.2.36.0"
+          },
+          "identity": "8afea53fa2c1fdfe215fe86fc3c35f473a4a2f90304d2d7a7a4c7c2603629f90"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/77sdbia58r9r11xy9xn9q45sgy5gvcvl-nix-expr-2.36.0/lib/libnixexpr.so.2.36.0"
+          },
+          "identity": "15ab72e4ab76edcbcaa836d47a4fae5da119ead8dca70f8d1e6d2ef3ee12a1e6"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/wskhfcg99q278r1fps88rk22jncndmrf-nix-flake-2.36.0/lib/libnixflake.so.2.36.0"
+          },
+          "identity": "a42f60463440478c599502decf74e82e2f7310316335c01c156af65a74e50c8b"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/5g13fg62n6fqzyzgvv2i0g1f8a1f4q28-nix-main-2.36.0/lib/libnixmain.so.2.36.0"
+          },
+          "identity": "8cbb440566851976a87fd0c0798eec619c1d43829c8313b2fd1c22d34824b309"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/l3gh3m8hzzpfk5yx73nxfpq50nr354jp-nix-cmd-2.36.0/lib/libnixcmd.so.2.36.0"
+          },
+          "identity": "871233de0fe2784ad54fb4804be3a936907aee77f580c634974b47da73a0fd8f"
+        }
+      ],
+      "plugin": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "store-path",
+        "native_id": "/nix/store/di3jrnpmrc4lff4581vxmprmcsgswd0r-nickel-plugin-0.1.0/nickel_plugin.wasm"
+      }
+    },
+    "build_provider_profile": "nix-build-v1",
+    "idempotency_key": "29c889320e93114bb452e399bc35757c40da45b88b0cecea4d9a01a9ac4349a6",
+    "source_identity": "7a3771843a48b26ac6ef70c00e772592ff333c195a8df5229583a1597c4f3fd4",
+    "source": {
+      "contract_version": 1,
+      "provider_namespace": "kiln-source",
+      "native_kind": "nix-store-path",
+      "native_id": "/nix/store/9v2g3mha9hdki1p0wn6nbf2n76fzhxjd-radicle-source"
+    },
+    "source_mode": "Flake",
+    "root_selector": "packages.x86_64-linux",
+    "system": "x86_64-linux",
+    "options": {
+      "workers": 1,
+      "max_memory_mebibytes": 1024,
+      "include_metadata": true,
+      "include_input_derivations": true,
+      "check_cache_status": true,
+      "partial_admission": false
+    },
+    "bounds": {
+      "max_records": 256,
+      "max_jobs": 256,
+      "max_job_errors": 256,
+      "max_diagnostic_bytes": 65536,
+      "max_outputs_per_job": 64,
+      "max_dependencies_per_job": 256,
+      "max_tasks": 256
+    }
+  },
+  "discovery_observation": {
+    "effect_id": "radicle-ci-discover-867c773e5b678ed5582a07fd9bc16f939181165379e557887ef2ea4f7a51b83f",
+    "evaluation_id": "radicle-ci-evaluation-867c773e5b678ed5582a07fd9bc16f939181165379e557887ef2ea4f7a51b83f",
+    "project_id": "radicle-source-ci",
+    "pipeline_revision_id": "radicle-source-ci",
+    "discovery_policy_id": "onix-explicit-project-v1",
+    "provider_profile": "onix-nix-eval-v1",
+    "idempotency_key": "29c889320e93114bb452e399bc35757c40da45b88b0cecea4d9a01a9ac4349a6",
+    "source_identity": "7a3771843a48b26ac6ef70c00e772592ff333c195a8df5229583a1597c4f3fd4",
+    "observation_identity": "98e76997f6fa517c0fb8afda2c9fb23493c820aa766574d1992ee43309e3f241",
+    "terminal": "ProviderError",
+    "jobs": [],
+    "job_errors": [
+      {
+        "attribute": "stream",
+        "diagnostic": {
+          "code": "nix_eval_error_schema",
+          "field": "nix_eval.stream.error",
+          "message": "job error record differs from the admitted schema"
+        },
+        "fatal": true
+      }
+    ],
+    "tasks": [],
+    "completion": {
+      "stream_complete": true,
+      "stream_valid": false,
+      "stderr_within_bound": true,
+      "gc_roots_ready": false,
+      "fatal_job_error": true,
+      "process": {
+        "Exited": {
+          "status": 0
+        }
+      }
+    },
+    "gc_roots": {
+      "directory": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "gc-root-directory",
+        "native_id": "/var/tmp/kiln-self-ci-20261021-c/eval-roots/85e1630ec1c1af4a0722e7c8640c2afdcadb9ae1aef90c6187ce55ecb94afdb9"
+      },
+      "derivations": [
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/079qfghzrcddfanpw2ckfbzkgrvfjwff-pijul-1.0.0-beta.11.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/8kn79z9ka4jqsj76f23lzrlxl7iq0jlg-secretspec-0.19.0.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/gs385575ky3yjs3m7xdbrc7z1m3k1n4a-kiln-0.1.0.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/h4g2c4xw3f5dlqp09z1an1nyw6l8nnyg-kiln-radicle-nix-provider-0.1.0.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/xd010q9j4bi89ya4xczsa8sgylzn15pq-celld-v0.2.1.drv"
+        }
+      ],
+      "state": "Retained"
+    }
+  },
+  "build_plan": null,
+  "build_observation": null
+}

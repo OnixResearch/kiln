@@ -1,0 +1,1479 @@
+{
+  "schema": "kiln.radicle-ci.project-result.v1",
+  "profile_identity": "58520ce6790e2f27a45c0c7904fe45c7cf45c5aa765f871e48c4bc804ddb3b45",
+  "source": {
+    "provider": "radicle",
+    "repository": "rad:z46TqG9sfFf1JN5guqvJR9wf2ijwJ",
+    "revision": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb"
+  },
+  "source_intent": {
+    "schema": "kiln.radicle-ci.source-intent.v1",
+    "profile_identity": "58520ce6790e2f27a45c0c7904fe45c7cf45c5aa765f871e48c4bc804ddb3b45",
+    "source": {
+      "provider": "radicle",
+      "repository": "rad:z46TqG9sfFf1JN5guqvJR9wf2ijwJ",
+      "revision": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb"
+    },
+    "pinned_profile": {
+      "schema": "kiln.radicle-source-profile.v1",
+      "contract_revision": "0a5924dd2092243a0fe5df94d43008f0402e46f6",
+      "repository_path": "/var/tmp/kiln-self-ci-20261021-l/rad-ci/storage/z46TqG9sfFf1JN5guqvJR9wf2ijwJ",
+      "request": {
+        "schema_version": 1,
+        "profile_id": "radicle-source-v1",
+        "repository_id": "rad:z46TqG9sfFf1JN5guqvJR9wf2ijwJ",
+        "signer_node_id": "z6MksmWNHdno9Cz3F8a5Qpw3tAJPg1dyaSuKhpTL8kvLsv6o",
+        "signed_reference": "refs/heads/ci-canary",
+        "expected_sigrefs_commit": "341fa6d6c70fdc034cce0b48d4f45e8612a0d78e",
+        "expected_revision": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb",
+        "limits": {
+          "max_identity_bytes": 4096,
+          "max_reference_bytes": 512,
+          "max_entries": 8192,
+          "max_path_bytes": 1024,
+          "max_file_bytes": 4194304,
+          "max_total_bytes": 67108864
+        }
+      },
+      "cohort": {
+        "protocol_version": "0.25.1",
+        "protocol_source_sha256": "fc23b44b518df749486358fef29c4375daa47299eeec32b3659781c1bfd207e4",
+        "radicle_core_version": "0.4.1",
+        "radicle_core_source_sha256": "077e01c4da810fed233fa67ce87b94fe0dd6ffa03b6640e3b71caa9769a5ec9f",
+        "radicle_crypto_version": "0.19.0",
+        "radicle_crypto_source_sha256": "76de6172f3ccae0f489578f4a5da45bc77ff8855ace6352b002d94c0e0783bb5",
+        "radicle_oid_version": "0.2.2",
+        "radicle_oid_source_sha256": "7a0b9a4cbe2b75f8d95a4c887836b909542da704673e708d3b85186a4664400c",
+        "radicle_ref_format_version": "0.2.0",
+        "radicle_ref_format_source_sha256": "8cd8067caf7de3c75f2736c24da52081b5fa9f9f2aa6357b8ad8d67ba5411ec6",
+        "git2_version": "0.21.0",
+        "git2_source_sha256": "ddddbf932745a6be37109b6112d3ee09696106f848449069d3a57bba937ab82e",
+        "license": "MIT OR Apache-2.0",
+        "full_radicle_runtime": false,
+        "sqlite_backend": false
+      },
+      "allow_network": false,
+      "allow_credentials": false,
+      "allow_signing": false,
+      "allow_mutation": false,
+      "allow_collaboration": false,
+      "non_claims": [
+        "local source admission does not prove signer or repository trust",
+        "an expected signed-refs commit does not prove global freshness",
+        "local acquisition does not prove complete history or peer convergence",
+        "local acquisition does not prove remote seed availability",
+        "equal canonical trees do not prove equal history or authority",
+        "source capability does not grant network, credential, signing, mutation, or collaboration authority",
+        "an absolute repository path does not prevent filesystem substitution",
+        "source receipt admission does not prove build correctness",
+        "source receipt admission does not establish release readiness"
+      ]
+    },
+    "resolution": {
+      "resolution": {
+        "source_provider": "radicle-source-v1",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "repository",
+          "native_id": "rad:z46TqG9sfFf1JN5guqvJR9wf2ijwJ"
+        },
+        "symbolic_reference": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "reference",
+          "native_id": "refs/heads/ci-canary"
+        },
+        "exact_revision": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "revision",
+          "native_id": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb"
+        },
+        "canonical_tree": "22998d305e39ba2f3d9f1181a247a28b374611d4aea3fb8a930efcd0dbebecaf",
+        "native_facts": {
+          "Git": {
+            "repository": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "repository",
+              "native_id": "rad:z46TqG9sfFf1JN5guqvJR9wf2ijwJ"
+            },
+            "symbolic_reference": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "reference",
+              "native_id": "refs/heads/ci-canary"
+            },
+            "exact_commit": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "revision",
+              "native_id": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb"
+            },
+            "native_tree": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "git-tree",
+              "native_id": "0b02fe4e0c39c24a56c23081e54bd80fe25fd1a6"
+            },
+            "observed_ref_before": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "revision",
+              "native_id": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb"
+            },
+            "observed_ref_after": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "revision",
+              "native_id": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb"
+            },
+            "object_format": "Sha1",
+            "partial_repository": false,
+            "replacement_objects": false,
+            "alternate_object_database": false,
+            "signature_observed": true
+          }
+        }
+      },
+      "receipt": {
+        "schema_version": 1,
+        "request": {
+          "schema_version": 1,
+          "profile_id": "radicle-source-v1",
+          "repository_id": "rad:z46TqG9sfFf1JN5guqvJR9wf2ijwJ",
+          "signer_node_id": "z6MksmWNHdno9Cz3F8a5Qpw3tAJPg1dyaSuKhpTL8kvLsv6o",
+          "signed_reference": "refs/heads/ci-canary",
+          "expected_sigrefs_commit": "341fa6d6c70fdc034cce0b48d4f45e8612a0d78e",
+          "expected_revision": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb",
+          "limits": {
+            "max_identity_bytes": 4096,
+            "max_reference_bytes": 512,
+            "max_entries": 8192,
+            "max_path_bytes": 1024,
+            "max_file_bytes": 4194304,
+            "max_total_bytes": 67108864
+          }
+        },
+        "observation": {
+          "schema_version": 1,
+          "profile_id": "radicle-source-v1",
+          "repository_id": "rad:z46TqG9sfFf1JN5guqvJR9wf2ijwJ",
+          "signer_node_id": "z6MksmWNHdno9Cz3F8a5Qpw3tAJPg1dyaSuKhpTL8kvLsv6o",
+          "signed_reference": "refs/heads/ci-canary",
+          "namespaced_sigrefs_reference": "refs/namespaces/z6MksmWNHdno9Cz3F8a5Qpw3tAJPg1dyaSuKhpTL8kvLsv6o/refs/rad/sigrefs",
+          "sigrefs_commit_before": "341fa6d6c70fdc034cce0b48d4f45e8612a0d78e",
+          "sigrefs_commit_after": "341fa6d6c70fdc034cce0b48d4f45e8612a0d78e",
+          "sigrefs_parent": "c2aa9a7941bcf30463dc823012a70525bf6180f3",
+          "identity_root_commit": "3a925a134805277358e39f883809f546547fe582",
+          "signed_revision": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb",
+          "namespaced_revision": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb",
+          "feature_level": "parent",
+          "signature": "verified",
+          "repository_identity": "verified",
+          "namespace_target": "verified"
+        },
+        "snapshot": {
+          "schema_version": 1,
+          "revision": "20d73c616853aa2f3c03cbefa9eaf486f84eedcb",
+          "native_tree": "0b02fe4e0c39c24a56c23081e54bd80fe25fd1a6",
+          "canonical_tree_blake3": "22998d305e39ba2f3d9f1181a247a28b374611d4aea3fb8a930efcd0dbebecaf",
+          "entry_count": 4135,
+          "total_bytes": 54582289
+        }
+      }
+    }
+  },
+  "source_store_path": "/nix/store/qfc7j2c0nylws6zmnsyxdca5n1vvmrv7-radicle-source",
+  "source_import": {
+    "executable_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+    "process_status": 0,
+    "stdout": [
+      47,
+      110,
+      105,
+      120,
+      47,
+      115,
+      116,
+      111,
+      114,
+      101,
+      47,
+      113,
+      102,
+      99,
+      55,
+      106,
+      50,
+      99,
+      48,
+      110,
+      121,
+      108,
+      119,
+      115,
+      54,
+      122,
+      109,
+      110,
+      115,
+      121,
+      120,
+      100,
+      99,
+      97,
+      53,
+      110,
+      49,
+      118,
+      118,
+      109,
+      114,
+      118,
+      55,
+      45,
+      114,
+      97,
+      100,
+      105,
+      99,
+      108,
+      101,
+      45,
+      115,
+      111,
+      117,
+      114,
+      99,
+      101,
+      10
+    ],
+    "stderr": [
+      119,
+      97,
+      114,
+      110,
+      105,
+      110,
+      103,
+      58,
+      32,
+      73,
+      103,
+      110,
+      111,
+      114,
+      105,
+      110,
+      103,
+      32,
+      115,
+      101,
+      116,
+      116,
+      105,
+      110,
+      103,
+      32,
+      39,
+      97,
+      99,
+      99,
+      101,
+      112,
+      116,
+      45,
+      102,
+      108,
+      97,
+      107,
+      101,
+      45,
+      99,
+      111,
+      110,
+      102,
+      105,
+      103,
+      39,
+      32,
+      98,
+      101,
+      99,
+      97,
+      117,
+      115,
+      101,
+      32,
+      101,
+      120,
+      112,
+      101,
+      114,
+      105,
+      109,
+      101,
+      110,
+      116,
+      97,
+      108,
+      32,
+      102,
+      101,
+      97,
+      116,
+      117,
+      114,
+      101,
+      32,
+      39,
+      102,
+      108,
+      97,
+      107,
+      101,
+      115,
+      39,
+      32,
+      105,
+      115,
+      32,
+      110,
+      111,
+      116,
+      32,
+      101,
+      110,
+      97,
+      98,
+      108,
+      101,
+      100,
+      10,
+      119,
+      97,
+      114,
+      110,
+      105,
+      110,
+      103,
+      58,
+      32,
+      73,
+      103,
+      110,
+      111,
+      114,
+      105,
+      110,
+      103,
+      32,
+      115,
+      101,
+      116,
+      116,
+      105,
+      110,
+      103,
+      32,
+      39,
+      102,
+      108,
+      97,
+      107,
+      101,
+      45,
+      114,
+      101,
+      103,
+      105,
+      115,
+      116,
+      114,
+      121,
+      39,
+      32,
+      98,
+      101,
+      99,
+      97,
+      117,
+      115,
+      101,
+      32,
+      101,
+      120,
+      112,
+      101,
+      114,
+      105,
+      109,
+      101,
+      110,
+      116,
+      97,
+      108,
+      32,
+      102,
+      101,
+      97,
+      116,
+      117,
+      114,
+      101,
+      32,
+      39,
+      102,
+      108,
+      97,
+      107,
+      101,
+      115,
+      39,
+      32,
+      105,
+      115,
+      32,
+      110,
+      111,
+      116,
+      32,
+      101,
+      110,
+      97,
+      98,
+      108,
+      101,
+      100,
+      10
+    ],
+    "canonical_tree": "22998d305e39ba2f3d9f1181a247a28b374611d4aea3fb8a930efcd0dbebecaf",
+    "flake_identity": "7a3771843a48b26ac6ef70c00e772592ff333c195a8df5229583a1597c4f3fd4"
+  },
+  "worker": {
+    "schema": "kiln.onixos-pilot.worker-result.v1",
+    "job_identity": "e05059f71c2f3afcedcccc2489f4e70ece964b9d14cdeab243dde3ece5de1f85",
+    "source_uri": "path:/nix/store/qfc7j2c0nylws6zmnsyxdca5n1vvmrv7-radicle-source",
+    "discovery_plan": {
+      "effect_id": "radicle-ci-discover-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "evaluation_id": "radicle-ci-evaluation-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "project_id": "radicle-source-ci",
+      "pipeline_revision_id": "radicle-source-ci",
+      "discovery_policy_id": "onix-explicit-project-v1",
+      "provider_profile": "nix-eval-jobs-v1",
+      "build_provider_profile": "nix-build-v1",
+      "idempotency_key": "a05860bb2b49ade6f511b42b1754be4ee46aa9935a8118f4efe36f9c3248e209",
+      "source_identity": "22998d305e39ba2f3d9f1181a247a28b374611d4aea3fb8a930efcd0dbebecaf",
+      "source": {
+        "contract_version": 1,
+        "provider_namespace": "kiln-source",
+        "native_kind": "nix-store-path",
+        "native_id": "/nix/store/qfc7j2c0nylws6zmnsyxdca5n1vvmrv7-radicle-source"
+      },
+      "source_mode": "Flake",
+      "root_selector": "packages.x86_64-linux",
+      "system": "x86_64-linux",
+      "options": {
+        "workers": 1,
+        "max_memory_mebibytes": 1024,
+        "include_metadata": true,
+        "include_input_derivations": true,
+        "check_cache_status": true,
+        "partial_admission": false
+      },
+      "bounds": {
+        "max_records": 256,
+        "max_jobs": 256,
+        "max_job_errors": 256,
+        "max_diagnostic_bytes": 65536,
+        "max_outputs_per_job": 64,
+        "max_dependencies_per_job": 256,
+        "max_tasks": 256
+      }
+    },
+    "discovery_observation": {
+      "effect_id": "radicle-ci-discover-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "evaluation_id": "radicle-ci-evaluation-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "project_id": "radicle-source-ci",
+      "pipeline_revision_id": "radicle-source-ci",
+      "discovery_policy_id": "onix-explicit-project-v1",
+      "provider_profile": "nix-eval-jobs-v1",
+      "idempotency_key": "a05860bb2b49ade6f511b42b1754be4ee46aa9935a8118f4efe36f9c3248e209",
+      "source_identity": "22998d305e39ba2f3d9f1181a247a28b374611d4aea3fb8a930efcd0dbebecaf",
+      "observation_identity": "35c9bb9fa71bc3f42ee910f3a4349aa61acd45c02e4a7e7bd6c3b845eff9e876",
+      "terminal": "Complete",
+      "jobs": [
+        {
+          "attribute": "celld-cohort",
+          "attribute_path": [
+            "celld-cohort"
+          ],
+          "name": "celld-v0.2.1",
+          "system": "x86_64-linux",
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/xd010q9j4bi89ya4xczsa8sgylzn15pq-celld-v0.2.1.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/67qmbdy1hh1i18vaj98dgwd12zvmas12-celld-v0.2.1"
+              }
+            }
+          ],
+          "input_derivations": [
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/3pnis76r6y9icxvc1905wm51d27m564d-b3sum-1.8.5.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/5c7xsh22d2ivjzwlzzhzd95dfjzvmrns-celld-v0.2.1.tar.gz.drv"
+            }
+          ],
+          "metadata_identity": "df5aab0a88e9d25cf6d1568393fe61b66bd7a42cc4da8874050d62c3c70c8a72",
+          "cache": "NotBuilt"
+        },
+        {
+          "attribute": "default",
+          "attribute_path": [
+            "default"
+          ],
+          "name": "kiln-0.1.0",
+          "system": "x86_64-linux",
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/4d57rjfsxk1qsd0mjxzzvcvlh5jdincb-kiln-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/54csbqgvj979frb64lwlzs4h8hph8q3z-kiln-0.1.0"
+              }
+            }
+          ],
+          "input_derivations": [
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/16q6wdkwmm4j5w3nn60nf891wisj5jh1-cargo-vendor-dir.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/6mxvqwm1c8ccqy0vv1vwbhy5d14p34w5-openssl-3.6.3.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/c1m9y344056j482d3qxvncbhbf856dq5-cmake-4.3.4.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/gwxr8k7z6lvjwj5ckqq70gsnijw8ima2-zlib-1.3.2.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv"
+            }
+          ],
+          "metadata_identity": "528768840a2a662a7994a9904e93384daecf5f69ff573cd511610b72a28ae014",
+          "cache": "NotBuilt"
+        },
+        {
+          "attribute": "kiln",
+          "attribute_path": [
+            "kiln"
+          ],
+          "name": "kiln-0.1.0",
+          "system": "x86_64-linux",
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/4d57rjfsxk1qsd0mjxzzvcvlh5jdincb-kiln-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/54csbqgvj979frb64lwlzs4h8hph8q3z-kiln-0.1.0"
+              }
+            }
+          ],
+          "input_derivations": [
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/16q6wdkwmm4j5w3nn60nf891wisj5jh1-cargo-vendor-dir.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/6mxvqwm1c8ccqy0vv1vwbhy5d14p34w5-openssl-3.6.3.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/c1m9y344056j482d3qxvncbhbf856dq5-cmake-4.3.4.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/gwxr8k7z6lvjwj5ckqq70gsnijw8ima2-zlib-1.3.2.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv"
+            }
+          ],
+          "metadata_identity": "528768840a2a662a7994a9904e93384daecf5f69ff573cd511610b72a28ae014",
+          "cache": "NotBuilt"
+        },
+        {
+          "attribute": "kiln-aspen-host",
+          "attribute_path": [
+            "kiln-aspen-host"
+          ],
+          "name": "kiln-aspen-host-0.1.0",
+          "system": "x86_64-linux",
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/padbv1bh1x28amb6b51wapzr27g6az0f-kiln-aspen-host-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0"
+              }
+            }
+          ],
+          "input_derivations": [
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/9hy0qd9x2137211lmbqvrafmkrpkscxy-auditable-rust-default-1.98.0-nightly-2026-05-26.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/c1m9y344056j482d3qxvncbhbf856dq5-cmake-4.3.4.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/gwxr8k7z6lvjwj5ckqq70gsnijw8ima2-zlib-1.3.2.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/h6iih9cb87lqnqsb1bvv0fgks5kk8hs1-cargo-vendor-dir.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/x2xnb82925vqdlm5a4fks00pw6m5y6ic-rust-default-1.98.0-nightly-2026-05-26.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv"
+            }
+          ],
+          "metadata_identity": "e56255ed657c5292d1d7c5116ab9c9f6591acb1958f1d518d6081605a6558627",
+          "cache": "Local"
+        },
+        {
+          "attribute": "kiln-radicle-nix-provider",
+          "attribute_path": [
+            "kiln-radicle-nix-provider"
+          ],
+          "name": "kiln-radicle-nix-provider-0.1.0",
+          "system": "x86_64-linux",
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/h4g2c4xw3f5dlqp09z1an1nyw6l8nnyg-kiln-radicle-nix-provider-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/rq38fw0gylb3wcc39q70lnrnsj06gnk4-kiln-radicle-nix-provider-0.1.0"
+              }
+            }
+          ],
+          "input_derivations": [
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/7rp3yk7fw7gf892xl8j341l0klgz992f-cargo-vendor-dir.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/9hy0qd9x2137211lmbqvrafmkrpkscxy-auditable-rust-default-1.98.0-nightly-2026-05-26.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/x2xnb82925vqdlm5a4fks00pw6m5y6ic-rust-default-1.98.0-nightly-2026-05-26.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv"
+            }
+          ],
+          "metadata_identity": "1ca9bd0eef05f8f7645572ae7cf41f526e1424f2d8ee44ad3a1a44097b4a0c5e",
+          "cache": "Local"
+        },
+        {
+          "attribute": "pijul-cohort-fixture-producer",
+          "attribute_path": [
+            "pijul-cohort-fixture-producer"
+          ],
+          "name": "pijul-1.0.0-beta.11",
+          "system": "x86_64-linux",
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/079qfghzrcddfanpw2ckfbzkgrvfjwff-pijul-1.0.0-beta.11.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11"
+              }
+            }
+          ],
+          "input_derivations": [
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/6mxvqwm1c8ccqy0vv1vwbhy5d14p34w5-openssl-3.6.3.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/7x9dzhlxsq0052v967m0ggahqki9hci1-pijul-1.0.0-beta.11.tar.gz.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/gz6iid87znsallix74gd1jrmpsn3pfw3-auditable-rust-minimal-1.88.0.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/hmy9rhia8hdv5d6cndq7mpw5iaz9ycy3-pijul-1.0.0-beta.11-vendor.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/j2smdi6j3kavp66f90zkgq7qdhzhdmyq-pkg-config-wrapper-0.29.2.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/p19w6yw9k9ah1509rjkyprkkqkqin5an-libsodium-1.0.22-unstable-2026-07-08.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/x2hd2wwj36l36pcqlks2kkawg1zqgy7h-rust-minimal-1.88.0.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/zzhqvylh321z724a4qr8pi0d08c03cca-dbus-1.16.2.drv"
+            }
+          ],
+          "metadata_identity": "ab3c1bc923d5c3fc3e65b3b0dd4bc10bc5eda114b184eb2dffb4aa47dac19868",
+          "cache": "Local"
+        },
+        {
+          "attribute": "secretspec-cohort",
+          "attribute_path": [
+            "secretspec-cohort"
+          ],
+          "name": "secretspec-0.19.0",
+          "system": "x86_64-linux",
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/8kn79z9ka4jqsj76f23lzrlxl7iq0jlg-secretspec-0.19.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0"
+              }
+            }
+          ],
+          "input_derivations": [
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/059gkrg49lhayh1d44xwvy5ma58big8z-cargo-check-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/1rcyi6qll5p47mxg2a3dnay7s9fhf39n-stdenv-linux.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/3n12xs4rk4x3wrxc4nda6llwn0v6mx0i-rustc-wrapper-1.97.1.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/4wakc4jqkw3sva9f746mln5r9zs5qwxz-bash-5.3p15.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/c1vjw5aq33k62jgj7x8vscz6clj51y62-secretspec-0.19.0.tar.gz.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/h4y15zz7yilsfnspaggywj83wyz50y07-auditable-cargo-1.97.1.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/pn8wfcb8g0nm8qrlhj7m4jv7i7q903np-cargo-build-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/r7ks625wgqrcrnvs26pc1lzgajl2n805-cargo-1.97.1.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/s8gim852h9c8879kj3ncymwjjyfhihar-secretspec-0.19.0-vendor.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/vqf2854gl0askc41xvsinfg78q07ay50-cargo-install-hook.sh.drv"
+            },
+            {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "derivation",
+              "native_id": "/nix/store/zxi99mds8xml2qpnl9fnf73inmf38jjs-cargo-setup-hook.sh.drv"
+            }
+          ],
+          "metadata_identity": "7b6675927c0f8f2914f7bda1f2bc16f8d358df21f94b5253ff8a2505e4b10a29",
+          "cache": "Local"
+        }
+      ],
+      "job_errors": [],
+      "tasks": [
+        {
+          "task_id": "discovered:042a84733ccb2e0470744629e3546063f87eb9ec63e1a81ff4da9e37371632df",
+          "mapping_identity": "042a84733ccb2e0470744629e3546063f87eb9ec63e1a81ff4da9e37371632df",
+          "build_provider": "nix-build-v1",
+          "native_attribute": {
+            "contract_version": 1,
+            "provider_namespace": "nix-eval-jobs",
+            "native_kind": "attribute",
+            "native_id": "kiln"
+          },
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/4d57rjfsxk1qsd0mjxzzvcvlh5jdincb-kiln-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/54csbqgvj979frb64lwlzs4h8hph8q3z-kiln-0.1.0"
+              }
+            }
+          ],
+          "dependencies": [],
+          "cache": "NotBuilt"
+        },
+        {
+          "task_id": "discovered:2d7388c7bdc762ca1f0df72e7ff49636fe1618294458a8f1d082f49007a57852",
+          "mapping_identity": "2d7388c7bdc762ca1f0df72e7ff49636fe1618294458a8f1d082f49007a57852",
+          "build_provider": "nix-build-v1",
+          "native_attribute": {
+            "contract_version": 1,
+            "provider_namespace": "nix-eval-jobs",
+            "native_kind": "attribute",
+            "native_id": "default"
+          },
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/4d57rjfsxk1qsd0mjxzzvcvlh5jdincb-kiln-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/54csbqgvj979frb64lwlzs4h8hph8q3z-kiln-0.1.0"
+              }
+            }
+          ],
+          "dependencies": [],
+          "cache": "NotBuilt"
+        },
+        {
+          "task_id": "discovered:4a7a1d3d0b6ea75fbe01c6a090673a1e716b0de9d0f7171ca6ee58103b3cdaee",
+          "mapping_identity": "4a7a1d3d0b6ea75fbe01c6a090673a1e716b0de9d0f7171ca6ee58103b3cdaee",
+          "build_provider": "nix-build-v1",
+          "native_attribute": {
+            "contract_version": 1,
+            "provider_namespace": "nix-eval-jobs",
+            "native_kind": "attribute",
+            "native_id": "pijul-cohort-fixture-producer"
+          },
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/079qfghzrcddfanpw2ckfbzkgrvfjwff-pijul-1.0.0-beta.11.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11"
+              }
+            }
+          ],
+          "dependencies": [],
+          "cache": "Local"
+        },
+        {
+          "task_id": "discovered:ada3d00537325d44437bfccdb4bfe43027f4efcaed4df3f40b35ff5c5a68839a",
+          "mapping_identity": "ada3d00537325d44437bfccdb4bfe43027f4efcaed4df3f40b35ff5c5a68839a",
+          "build_provider": "nix-build-v1",
+          "native_attribute": {
+            "contract_version": 1,
+            "provider_namespace": "nix-eval-jobs",
+            "native_kind": "attribute",
+            "native_id": "secretspec-cohort"
+          },
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/8kn79z9ka4jqsj76f23lzrlxl7iq0jlg-secretspec-0.19.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0"
+              }
+            }
+          ],
+          "dependencies": [],
+          "cache": "Local"
+        },
+        {
+          "task_id": "discovered:c46dbbabfa07130a2cbfe2e6f1a92bf7a892269add9148b4a28449c69337ecf1",
+          "mapping_identity": "c46dbbabfa07130a2cbfe2e6f1a92bf7a892269add9148b4a28449c69337ecf1",
+          "build_provider": "nix-build-v1",
+          "native_attribute": {
+            "contract_version": 1,
+            "provider_namespace": "nix-eval-jobs",
+            "native_kind": "attribute",
+            "native_id": "celld-cohort"
+          },
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/xd010q9j4bi89ya4xczsa8sgylzn15pq-celld-v0.2.1.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/67qmbdy1hh1i18vaj98dgwd12zvmas12-celld-v0.2.1"
+              }
+            }
+          ],
+          "dependencies": [],
+          "cache": "NotBuilt"
+        },
+        {
+          "task_id": "discovered:d10e17c7d48565055fc7482db07b77fe63049ae996dff78b3522ce603238385a",
+          "mapping_identity": "d10e17c7d48565055fc7482db07b77fe63049ae996dff78b3522ce603238385a",
+          "build_provider": "nix-build-v1",
+          "native_attribute": {
+            "contract_version": 1,
+            "provider_namespace": "nix-eval-jobs",
+            "native_kind": "attribute",
+            "native_id": "kiln-aspen-host"
+          },
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/padbv1bh1x28amb6b51wapzr27g6az0f-kiln-aspen-host-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0"
+              }
+            }
+          ],
+          "dependencies": [],
+          "cache": "Local"
+        },
+        {
+          "task_id": "discovered:d290703ab0ad4e01ce5969baf4b4939c4ca75b4583b208256d05979774e95976",
+          "mapping_identity": "d290703ab0ad4e01ce5969baf4b4939c4ca75b4583b208256d05979774e95976",
+          "build_provider": "nix-build-v1",
+          "native_attribute": {
+            "contract_version": 1,
+            "provider_namespace": "nix-eval-jobs",
+            "native_kind": "attribute",
+            "native_id": "kiln-radicle-nix-provider"
+          },
+          "derivation": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/h4g2c4xw3f5dlqp09z1an1nyw6l8nnyg-kiln-radicle-nix-provider-0.1.0.drv"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "path": {
+                "contract_version": 1,
+                "provider_namespace": "nix",
+                "native_kind": "store-path",
+                "native_id": "/nix/store/rq38fw0gylb3wcc39q70lnrnsj06gnk4-kiln-radicle-nix-provider-0.1.0"
+              }
+            }
+          ],
+          "dependencies": [],
+          "cache": "Local"
+        }
+      ],
+      "completion": {
+        "stream_complete": true,
+        "stream_valid": true,
+        "stderr_within_bound": true,
+        "gc_roots_ready": true,
+        "fatal_job_error": false,
+        "process": {
+          "Exited": {
+            "status": 0
+          }
+        }
+      },
+      "gc_roots": {
+        "directory": {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "gc-root-directory",
+          "native_id": "/var/tmp/kiln-self-ci-20261021-l/eval-roots/bf4d504b503d193210ac583d9fef7f366f6455b68e7022560623a36bac51a36f"
+        },
+        "derivations": [
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/079qfghzrcddfanpw2ckfbzkgrvfjwff-pijul-1.0.0-beta.11.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/4d57rjfsxk1qsd0mjxzzvcvlh5jdincb-kiln-0.1.0.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/8kn79z9ka4jqsj76f23lzrlxl7iq0jlg-secretspec-0.19.0.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/h4g2c4xw3f5dlqp09z1an1nyw6l8nnyg-kiln-radicle-nix-provider-0.1.0.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/padbv1bh1x28amb6b51wapzr27g6az0f-kiln-aspen-host-0.1.0.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/xd010q9j4bi89ya4xczsa8sgylzn15pq-celld-v0.2.1.drv"
+          }
+        ],
+        "state": "Retained"
+      }
+    },
+    "build_plan": {
+      "effect_id": "radicle-ci-build-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "attempt_id": "radicle-ci-attempt-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "idempotency_key": "3aaf22078cbbc571caf636142c446674b36c67bd36d5c7766711b2123431b196",
+      "candidate_id": "radicle-ci-candidate-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "pipeline_revision": "radicle-source-ci",
+      "plan_identity": "fdcad62af25d4fb7e08a67771e308e2b741e2601ee180f3c60eeaa8d0eb9e080",
+      "policy_identity": "fdcad62af25d4fb7e08a67771e308e2b741e2601ee180f3c60eeaa8d0eb9e080",
+      "provider_profile": "nix-build-v1",
+      "platform": "x86_64-linux",
+      "required_products": [
+        "out"
+      ]
+    },
+    "build_observation": {
+      "effect_id": "radicle-ci-build-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "attempt_id": "radicle-ci-attempt-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "idempotency_key": "3aaf22078cbbc571caf636142c446674b36c67bd36d5c7766711b2123431b196",
+      "candidate_id": "radicle-ci-candidate-0f090c20e18f8a0896e5c2bce0ffce51eb347e5eb5e6c88989a17b64e27d2bd1",
+      "pipeline_revision": "radicle-source-ci",
+      "plan_identity": "fdcad62af25d4fb7e08a67771e308e2b741e2601ee180f3c60eeaa8d0eb9e080",
+      "policy_identity": "fdcad62af25d4fb7e08a67771e308e2b741e2601ee180f3c60eeaa8d0eb9e080",
+      "provider_profile": "nix-build-v1",
+      "platform": "x86_64-linux",
+      "outcome": "failed",
+      "products": [],
+      "builder_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+      "worker_identity": "62a5ba1cdf0c41e0370c6b6ad5dae2e9229626512584c6a1e14ecb1325e887e4",
+      "store_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+      "cache_kind": "none",
+      "cache_source_identity": null,
+      "log_identities": [
+        "2a294ed79c0407fee1e35c53ba7bbea4fef67b7051d398368b7b93c0a0189ef0"
+      ],
+      "metrics": [],
+      "receipt_identity": "5de5dfca31c0af0d0cff0524e0f9f02b5424c40b053e20ba86b1df79bb0df9fb"
+    }
+  }
+}

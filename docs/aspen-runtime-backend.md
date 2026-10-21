@@ -30,6 +30,8 @@ The initial claim level is `local-live-materialized-values-pilot`. It is not a p
 
 `runtime/kiln-aspen-host` is the deployable composition shell. It installs or recovers the real Aspen native service, runs the exact Kiln extension as a bounded process, serves the Kiln Unix protocol, and routes provider effects through the concrete Lattice exchange adapter. Its standalone lock binds Kiln provider revision `69afc2697f4330005797256135ae81b2722a125c` and Aspen revision `22f8ded26ca1907c29948e08b53f35df23080733`. This separately reviewed private runtime cohort is not replaced by the root workspace's credential-free source imports; see `reference-pins.md` for acquisition boundaries.
 
+The native host serves at most its configured request bound. A per-connection read, decode, encode, or response-write failure is logged and consumes one request slot; it does not stop the host or later requests.
+
 The host reserves exact ingress in SQLite before effects. It uses Aspen's Redb native journal and a capability-rooted durable callback value store. Restart reconciliation uses Lattice recovery and observation operations only. Missing, changed, truncated, corrupt, or partial state stops startup.
 
 Aspen owns only the selected mechanisms. Lattice still owns workflow execution. Mantle still owns builds. Cairn still owns lifecycle-gate evaluation. Valence still owns evidence identity and linkage.

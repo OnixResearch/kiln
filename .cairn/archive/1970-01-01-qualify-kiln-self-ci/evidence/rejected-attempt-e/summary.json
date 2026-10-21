@@ -1,0 +1,15 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-e",
+  "result": "rejected",
+  "failure": "TimeoutError waiting for build-state.json; the controller later observed DisconnectedAfterAcceptance",
+  "cause": "The stock evaluator emitted all seven package records but its flake-input fetchers kept working on the acquired source's locked inputs in the worker's cleared environment. The evaluator process did not exit, so no discovery or worker result was written and the Aspen callback expired.",
+  "fix": "For the stock profile only, pass bounded Nix fetch settings (`connect-timeout 5`, `download-attempts 1`). A manual run with the cleared environment then exited in about four seconds with all seven records.",
+  "evidence": [
+    "evaluator.stderr.log",
+    "evaluator.stdout.log",
+    "ci-journal.json",
+    "resolved-job.json",
+    "source-import.json"
+  ]
+}

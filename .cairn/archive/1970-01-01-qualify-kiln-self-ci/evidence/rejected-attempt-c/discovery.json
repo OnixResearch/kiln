@@ -1,0 +1,78 @@
+{
+  "effect_id": "radicle-ci-discover-867c773e5b678ed5582a07fd9bc16f939181165379e557887ef2ea4f7a51b83f",
+  "evaluation_id": "radicle-ci-evaluation-867c773e5b678ed5582a07fd9bc16f939181165379e557887ef2ea4f7a51b83f",
+  "project_id": "radicle-source-ci",
+  "pipeline_revision_id": "radicle-source-ci",
+  "discovery_policy_id": "onix-explicit-project-v1",
+  "provider_profile": "onix-nix-eval-v1",
+  "idempotency_key": "29c889320e93114bb452e399bc35757c40da45b88b0cecea4d9a01a9ac4349a6",
+  "source_identity": "7a3771843a48b26ac6ef70c00e772592ff333c195a8df5229583a1597c4f3fd4",
+  "observation_identity": "98e76997f6fa517c0fb8afda2c9fb23493c820aa766574d1992ee43309e3f241",
+  "terminal": "ProviderError",
+  "jobs": [],
+  "job_errors": [
+    {
+      "attribute": "stream",
+      "diagnostic": {
+        "code": "nix_eval_error_schema",
+        "field": "nix_eval.stream.error",
+        "message": "job error record differs from the admitted schema"
+      },
+      "fatal": true
+    }
+  ],
+  "tasks": [],
+  "completion": {
+    "stream_complete": true,
+    "stream_valid": false,
+    "stderr_within_bound": true,
+    "gc_roots_ready": false,
+    "fatal_job_error": true,
+    "process": {
+      "Exited": {
+        "status": 0
+      }
+    }
+  },
+  "gc_roots": {
+    "directory": {
+      "contract_version": 1,
+      "provider_namespace": "nix",
+      "native_kind": "gc-root-directory",
+      "native_id": "/var/tmp/kiln-self-ci-20261021-c/eval-roots/85e1630ec1c1af4a0722e7c8640c2afdcadb9ae1aef90c6187ce55ecb94afdb9"
+    },
+    "derivations": [
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/079qfghzrcddfanpw2ckfbzkgrvfjwff-pijul-1.0.0-beta.11.drv"
+      },
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/8kn79z9ka4jqsj76f23lzrlxl7iq0jlg-secretspec-0.19.0.drv"
+      },
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/gs385575ky3yjs3m7xdbrc7z1m3k1n4a-kiln-0.1.0.drv"
+      },
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/h4g2c4xw3f5dlqp09z1an1nyw6l8nnyg-kiln-radicle-nix-provider-0.1.0.drv"
+      },
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/xd010q9j4bi89ya4xczsa8sgylzn15pq-celld-v0.2.1.drv"
+      }
+    ],
+    "state": "Retained"
+  }
+}

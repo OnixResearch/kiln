@@ -1,0 +1,7 @@
+[2m2026-10-21T17:28:29.508208Z[0m [32m INFO[0m [2mlattice[0m[2m:[0m starting lattice [3mconfig[0m[2m=[0m"/var/tmp/kiln-self-ci-20261021-n/lattice.ncl" [3mdata_dir[0m[2m=[0m"/var/tmp/kiln-self-ci-20261021-n/lattice-store"
+[2m2026-10-21T17:28:39.980413Z[0m [32m INFO[0m [2mlattice::engine::executor[0m[2m:[0m starting workflow execution [3mrun[0m[2m=[0mrun:0 [3mnodes[0m[2m=[0m1
+[2m2026-10-21T17:28:39.980474Z[0m [32m INFO[0m [2mlattice::engine::executor[0m[2m:[0m executing node [3mnode[0m[2m=[0mexact-source-build-test
+[2m2026-10-21T17:31:39.137005Z[0m [32m INFO[0m [2mlattice::engine::executor[0m[2m:[0m workflow frontier execution complete [3mrun[0m[2m=[0mrun:0 [3msteps[0m[2m=[0m1
+[2m2026-10-21T17:31:51.743391Z[0m [32m INFO[0m [2mlattice::engine::executor[0m[2m:[0m starting workflow execution [3mrun[0m[2m=[0mrun:0 [3mnodes[0m[2m=[0m1
+[2m2026-10-21T17:31:51.743452Z[0m [32m INFO[0m [2mlattice::engine::executor[0m[2m:[0m executing node [3mnode[0m[2m=[0mexact-source-build-test
+[2m2026-10-21T17:34:07.625990Z[0m [32m INFO[0m [2mlattice::engine::executor[0m[2m:[0m workflow frontier execution complete [3mrun[0m[2m=[0mrun:0 [3msteps[0m[2m=[0m1

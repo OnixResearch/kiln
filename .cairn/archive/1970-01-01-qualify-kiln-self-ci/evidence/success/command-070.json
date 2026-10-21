@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-self-ci-20261021-o/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-self-ci-20261021-o",
+    "--",
+    "/nix/store/36vbiak48882whr5dwfrls2q6f696n6f-kiln-0.1.0/bin/kiln-radicle-ci",
+    "replay",
+    "/var/tmp/kiln-self-ci-20261021-o/controller.json",
+    "/var/tmp/kiln-self-ci-20261021-o/success-source.json"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\"revision\":1,\"runs\":{\"kiln-aspen-run-d2a11f3799f74380a540600d4266e13f27c11af357828fd7cad77c6b5598f10d\":{\"active_attempt\":\"radicle-ci-attempt-7cb5ea6a8688bb795017f3b89de882de9c32a90620d95b7e53c4c290df81be19\",\"outcome\":\"Pending\"}},\"attempts\":{\"radicle-ci-attempt-7cb5ea6a8688bb795017f3b89de882de9c32a90620d95b7e53c4c290df81be19\":{\"run_id\":\"kiln-aspen-run-d2a11f3799f74380a540600d4266e13f27c11af357828fd7cad77c6b5598f10d\",\"provider_profile\":\"nix-build-v1\",\"outcome\":\"Pending\",\"external_reference\":null,\"products\":[],\"metrics\":[]}},\"holds\":[],\"seen_commands\":[\"radicle-ci-start-9fd236a0c2ff729d98fb8fc873a5b71d52989897806426fa12136b544614f994\"]}\n"
+}

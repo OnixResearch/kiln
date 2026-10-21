@@ -1,0 +1,37 @@
+2026-10-21T14:09:07.736-04:00 INFO  node     Starting node..
+2026-10-21T14:09:07.736-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T14:09:07.736-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T14:09:07.736-04:00 INFO  node     Node ID is z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ
+2026-10-21T14:09:07.736-04:00 INFO  node     Opening policy database..
+2026-10-21T14:09:07.737-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T14:09:07.737-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T14:09:07.783-04:00 INFO  node     Opening node database..
+2026-10-21T14:09:07.791-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T14:09:07.791-04:00 INFO  node     Listening on 0.0.0.0:52000..
+2026-10-21T14:09:07.791-04:00 INFO  node     Binding control socket /var/tmp/kiln-self-ci-20261021-o/rad-publisher/node/control.sock..
+2026-10-21T14:09:07.792-04:00 INFO  node     Running node z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ in /var/tmp/kiln-self-ci-20261021-o/rad-publisher..
+2026-10-21T14:09:07.792-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T14:09:07.866-04:00 INFO  service  Received command Seed(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih, all)
+2026-10-21T14:09:07.866-04:00 INFO  service  Received command AddInventory(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:09:07.867-04:00 INFO  service  Received command Seeds(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:09:07.868-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T14:09:07.868-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T14:09:07.868-04:00 INFO  service  Received command Connect(z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX, 100.110.43.11:45047, ConnectOptions { persistent: false, timeout: 9s })
+2026-10-21T14:09:07.873-04:00 INFO  service  Connected to z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX (100.110.43.11:45047) (Outbound)
+2026-10-21T14:09:07.873-04:00 INFO  service  Received command Fetch(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih, z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX)
+2026-10-21T14:09:07.931-04:00 INFO  service  Fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX successfully
+2026-10-21T14:09:08.141-04:00 INFO  wire     Peer z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from us successfully
+2026-10-21T14:09:10.478-04:00 INFO  service  Received command Seeds(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:09:10.479-04:00 INFO  service  Received command AnnounceRefs(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:09:10.479-04:00 INFO  service  Announcing refs rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih/z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ @ 9bcfed2e835338b7596bab477ae46c8e21adbf7b to peers (t=1792606150479)..
+2026-10-21T14:09:10.513-04:00 INFO  wire     Peer z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from us successfully
+2026-10-21T14:10:43.206-04:00 INFO  wire     Peer z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from us successfully
+2026-10-21T14:10:43.977-04:00 INFO  service  Fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX successfully
+2026-10-21T14:10:46.034-04:00 INFO  service  Received command Seeds(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:10:46.035-04:00 INFO  service  Received command AnnounceRefs(rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih)
+2026-10-21T14:10:46.035-04:00 INFO  service  Announcing refs rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih/z6MkvQ6qnsQQfh32ryCmwFGpFdqCb2xRtFW3VCzG1MVEGvaZ @ 2a25148e242b04121701a785309c0aabfe1435f5 to peers (t=1792606246035)..
+2026-10-21T14:10:46.046-04:00 INFO  wire     Peer z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from us successfully
+2026-10-21T14:11:16.623-04:00 INFO  wire     Peer z6MkoCVSKqfZFD6cGL94ZSodZXdyR4KUM1xnN3bRvY5HPwwX fetched rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih from us successfully
+2026-10-21T14:11:17.229-04:00 INFO  node     Termination signal received; shutting down..
+2026-10-21T14:11:17.229-04:00 INFO  reactor::controller Initiating reactor shutdown…
+2026-10-21T14:11:17.229-04:00 INFO  reactor  Shutdown

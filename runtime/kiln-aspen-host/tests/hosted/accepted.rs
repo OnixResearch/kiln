@@ -9,6 +9,7 @@ const EXPECTED_OBSERVATION_WAITS: usize = 2;
 // r[verify kiln.aspen_host.completion.accepted]
 // r[verify kiln.aspen_host.nonclaims.accepted]
 // r[verify kiln.aspen_host.transport.accepted]
+// r[verify kiln.aspen_host.transport.disconnect]
 // r[verify kiln.aspen_host.production_durability.accepted]
 #[test]
 #[allow(
@@ -71,7 +72,7 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
             .bounds
             .max_callback_input_bytes
             .max(profile.profile.bounds.max_callback_output_bytes),
-        maximum_requests: HOST_MAXIMUM_REQUESTS,
+        maximum_requests: HOST_MAXIMUM_REQUESTS + 1,
         timeout: std::time::Duration::from_millis(HOST_TIMEOUT_MILLISECONDS),
     };
     let host_server = std::thread::spawn(move || serve(&host_profile, &mut runtime, &host_config));
@@ -84,6 +85,9 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
         ));
     }
     assert!(host_socket.exists());
+    let abandoned = std::os::unix::net::UnixStream::connect(&host_socket)
+        .unwrap_or_else(|_| unreachable!("abandoned client connect"));
+    drop(abandoned);
     let mut client = UnixAspenServiceTransport::new(
         host_socket,
         profile.profile.bounds.max_callback_input_bytes,

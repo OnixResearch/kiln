@@ -71,7 +71,7 @@ The fixed argument policy can enable these upstream fields:
 
 Bounded Exec captures a named maximum byte count. The schema decoder then consumes fixed-size chunks and admits complete newline-delimited records.
 
-Malformed JSON, a partial final line, unknown fields, oversized data, duplicate jobs, conflicting derivations, missing outputs, and dependency cycles fail closed.
+Malformed JSON, a partial final line, unknown fields, oversized data, duplicate attributes, missing outputs, and dependency cycles fail closed. Distinct attributes that share one derivation (flake package aliases) are admitted as separate task proposals; the selected task disambiguates them.
 
 Only the explicit Onix decoder additionally admits the optional 2.36 `stats` object on success and error rows. It validates exactly `allocBytes` and `wallMs` as unsigned 64-bit integers, rejecting missing members, unknown members and malformed values, then excludes these producer timing/allocation advisories from normalized jobs, errors, tasks and observation identities. Stock decoding still rejects `stats`; this does not relax either cohort's other unknown-field checks.
 

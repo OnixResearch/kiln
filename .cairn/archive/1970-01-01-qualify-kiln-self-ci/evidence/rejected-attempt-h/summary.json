@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-h",
+  "result": "rejected",
+  "failure": "worker Domain(conflicting_discovery_derivation): two discovered jobs use the same derivation identity",
+  "cause": "The Kiln flake exposes `packages.default` and `packages.kiln` as aliases of the same derivation. The discovery task mapper rejected any shared derivation, so the selected `kiln` task could not be reached.",
+  "fix": "Admit distinct flake attributes that share a derivation (aliases) in the pure task mapper; continue rejecting duplicate attributes and dependency cycles. A unit test covers alias admission and duplicate-attribute/cycle rejection.",
+  "evidence": [
+    "worker.stderr.log",
+    "evaluator.stderr.log",
+    "evaluator.stdout.log",
+    "ci-journal.json",
+    "resolved-job.json",
+    "source-import.json",
+    "lattice.log"
+  ]
+}

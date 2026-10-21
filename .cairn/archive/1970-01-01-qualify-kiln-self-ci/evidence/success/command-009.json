@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-self-ci-20261021-o/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-self-ci-20261021-o",
+    "--",
+    "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+    "git",
+    "init",
+    "--colocate",
+    "/var/tmp/kiln-self-ci-20261021-o/project-source"
+  ],
+  "exit_code": 0,
+  "stderr": "Done importing changes from the underlying Git repo.\nSetting the revset alias `trunk()` to `main@origin`.\nHint: The following remote bookmarks aren't associated with the existing local bookmarks:\n  main@origin\nHint: Run the following command to keep local bookmarks updated on future pulls:\n  jj bookmark track main@origin\nInitialized repo in \"project-source\"\n",
+  "stdout": ""
+}

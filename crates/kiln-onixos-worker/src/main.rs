@@ -12,7 +12,7 @@ use kiln_adapter_nix::BoundedNixBuildRuntime;
 use kiln_adapter_nix_eval::{NixEvalAdapter, NixEvalProfile, admit_plan};
 use kiln_core::build::{BuildEvaluationOutcome, BuildLogReadRequest};
 use kiln_core::discovery::{DiscoveryTerminal, admit_discovery_observation};
-use kiln_core::types::ContentId;
+use kiln_core::types::{ContentId, ProviderProfileId};
 use kiln_nix_build::{NixBuildState, build_task, plan_for_task};
 use kiln_onixos_pilot::WorkerResult;
 use kiln_provider_api::{BuildPort, DiscoveryPort};
@@ -27,9 +27,19 @@ const BUILD_FILE: &str = "build-state.json";
 
 use kiln_radicle_ci::project::{ResolvedWorkerJob as WorkerJob, SourceContext};
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum EvaluatorKind {
+    #[default]
+    Onix,
+    Stock,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EvalSelection {
+    #[serde(default)]
+    kind: EvaluatorKind,
     runtime: kiln_adapter_nix_eval::NixEvalRuntimeBinding,
     limits: kiln_adapter_nix_eval::NixEvalLimits,
     source_binding: kiln_adapter_nix_eval::OnixSourceBinding,
@@ -69,9 +79,17 @@ fn execute(arguments: &[String]) -> Result<bool, String> {
         if command == "eval-profile" {
             let selected: EvalSelection =
                 serde_json::from_slice(&read_bounded(Path::new(path))?).map_err(text)?;
-            let profile =
-                NixEvalProfile::onix(selected.runtime, selected.limits, selected.source_binding)
-                    .map_err(text)?;
+            let profile = match selected.kind {
+                EvaluatorKind::Onix => {
+                    NixEvalProfile::onix(selected.runtime, selected.limits, selected.source_binding)
+                }
+                EvaluatorKind::Stock => NixEvalProfile::pinned(
+                    ProviderProfileId::new("nix-eval-jobs-v1").map_err(text)?,
+                    selected.runtime,
+                    selected.limits,
+                ),
+            }
+            .map_err(text)?;
             println!("{}", serde_json::to_string(&profile).map_err(text)?);
             return Ok(true);
         }

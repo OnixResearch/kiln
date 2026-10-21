@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-self-ci-20261021-o/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-self-ci-20261021-o",
+    "--",
+    "/nix/store/36vbiak48882whr5dwfrls2q6f696n6f-kiln-0.1.0/bin/kiln-onixos-worker",
+    "eval-profile",
+    "/var/tmp/kiln-self-ci-20261021-o/eval-selection.json"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\"upstream_source\":\"ssh://git@github.com/NixOS/nix-eval-jobs.git\",\"upstream_revision\":\"a0cd02231c58974a6b5aaa3712069b071047162e\",\"upstream_license\":\"GPL-3.0\",\"adapter_version\":\"2.35.0\",\"source_version\":\"0.1.6\",\"nix_source\":\"ssh://git@github.com/NixOS/nix.git\",\"nix_revision\":\"aa2613fa02ca6199fe0ebf61a0f7f6d781d32a47\",\"nix_version\":\"2.35.2\",\"nixpkgs_revision\":\"346dd96ad74dc4457a9db9de4f4f57dab2e5731d\",\"platform\":\"x86_64-linux\",\"cohort_manifest_schema\":\"kiln.nix-eval-jobs-cohort.v1\",\"bounded_exec_source\":\"https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git\",\"bounded_exec_revision\":\"29dac88ecded94457572db3fdfaaaab95fa91525\",\"bounded_exec_license\":\"AGPL-3.0-or-later\",\"provider\":{\"contract_version\":1,\"profile_id\":\"nix-eval-jobs-v1\",\"role\":\"Discovery\",\"namespace\":{\"contract_version\":1,\"provider_namespace\":\"nix-eval-jobs\",\"native_kind\":\"discovery-provider\",\"native_id\":\"a0cd02231c58974a6b5aaa3712069b071047162e\"},\"operations\":[\"Discover\",\"Observe\",\"Cancel\",\"Reconcile\"],\"outcomes\":[\"Success\",\"DomainFailure\",\"Cancelled\",\"TimedOut\",\"ProviderError\",\"Unknown\"],\"limits\":{\"max_request_bytes\":1048576,\"max_result_bytes\":16777216,\"max_in_flight\":16}},\"runtime\":{\"executable_path\":\"/nix/store/bcv7hkwwpmfjmvxh6i106gdwr956svsp-nix-eval-jobs-2.35.0/bin/nix-eval-jobs\",\"executable_identity\":\"dc42bc0e330c598ec93c2361afbb493417fa5c3364722897bd156d3f2ba9c063\",\"cohort_manifest_path\":\"/nix/store/wasviibxqrxh6h8wckaifm2s6lancgpn-kiln-nix-eval-jobs-cohort.json\",\"cohort_manifest_identity\":\"102b4af9a753d00dfb6489e1593dd4b9ac8ffe9eed42518705329c6018e63c31\",\"gc_root_base\":\"/var/tmp/kiln-self-ci-20261021-o/eval-roots\",\"home_base\":\"/var/tmp/kiln-self-ci-20261021-o/eval-home\"},\"policy\":{\"flake_mode\":true,\"expression_mode\":false,\"allow_apply\":false,\"allow_impure\":false,\"allow_force_recurse\":false,\"allow_registries\":false,\"retain_gc_roots\":true,\"partial_admission\":false,\"check_cache_status\":true,\"include_metadata\":true,\"include_input_derivations\":true},\"limits\":{\"max_line_bytes\":1048576,\"max_total_stdout_bytes\":16777216,\"max_stderr_bytes\":1048576,\"max_records\":256,\"max_jobs\":256,\"max_job_errors\":256,\"max_metadata_bytes\":65536,\"max_diagnostic_bytes\":65536,\"max_outputs_per_job\":64,\"max_dependencies_per_job\":256,\"max_tasks\":256,\"max_gc_roots\":256,\"max_executable_bytes\":536870912,\"max_manifest_bytes\":65536,\"max_in_flight\":16,\"max_workers\":32,\"max_memory_mebibytes\":16384,\"stdin_max_bytes\":1,\"timeout_milliseconds\":60000,\"poll_interval_milliseconds\":10,\"teardown_timeout_milliseconds\":1000},\"required_non_claims\":[\"discovery observation does not prove Nix evaluation correctness\",\"source identity does not prove source trust\",\"task mapping does not prove complete dependency semantics\",\"cache advisory does not prove cache truth or output presence\",\"discovery observation does not prove build execution or output correctness\",\"stock Nix cohort evidence does not prove Onix Nix compatibility\",\"discovery observation does not prove reproducibility\",\"discovery observation does not establish release readiness\"]}\n"
+}

@@ -1,0 +1,22 @@
+warning: unknown experimental feature 'wasm-builtin'
+error: cannot run ssh: No such file or directory
+fatal: unable to fork
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/onix-artifact.git'; using expired cached ref 'refs/heads/main'
+error: cannot run ssh: No such file or directory
+fatal: unable to fork
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/basalt.git'; using expired cached ref 'refs/heads/main'
+error: cannot run ssh: No such file or directory
+fatal: unable to fork
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/cairn.git'; using expired cached ref 'refs/heads/main'
+error: cannot run ssh: No such file or directory
+fatal: unable to fork
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/kamacite.git'; using expired cached ref 'refs/heads/main'
+error: cannot run ssh: No such file or directory
+fatal: unable to fork
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/lattice.git'; using expired cached ref 'refs/heads/main'
+error: cannot run ssh: No such file or directory
+fatal: unable to fork
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/ucan.git'; using expired cached ref 'refs/heads/main'
+error: cannot run ssh: No such file or directory
+fatal: unable to fork
+warning: could not get HEAD ref for repository 'ssh://git@github.com/OnixResearch/valence.git'; using expired cached ref 'refs/heads/main'

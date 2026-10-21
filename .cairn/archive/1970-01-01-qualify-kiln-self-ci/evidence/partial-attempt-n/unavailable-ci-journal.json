@@ -1,0 +1,294 @@
+{
+  "schema": "kiln.radicle-ci.journal.v1",
+  "profile_identity": "cff48611c265c6c11015e04b66e591e4fb2d8565940609380de4045c8867431a",
+  "source": {
+    "provider": "radicle",
+    "repository": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz",
+    "revision": "0512528a992ee9be963b24369a6fb0a53109cd19"
+  },
+  "source_intent": {
+    "schema": "kiln.radicle-ci.source-intent.v1",
+    "profile_identity": "43d07fafb931bf74ba242cb848d2a4a07bb15f951b6d728c441ab507a455ccd8",
+    "source": {
+      "provider": "radicle",
+      "repository": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz",
+      "revision": "0512528a992ee9be963b24369a6fb0a53109cd19"
+    },
+    "pinned_profile": {
+      "schema": "kiln.radicle-source-profile.v1",
+      "contract_revision": "0a5924dd2092243a0fe5df94d43008f0402e46f6",
+      "repository_path": "/var/tmp/kiln-self-ci-20261021-n/rad-ci/storage/z2mPkbFFBbBEuNmsq6SSXhDPt2tEz",
+      "request": {
+        "schema_version": 1,
+        "profile_id": "radicle-source-v1",
+        "repository_id": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz",
+        "signer_node_id": "z6MkoQ1P4GsGHXVJy759G71kttXQ2ssJfrVVKn9CSwznmqnx",
+        "signed_reference": "refs/heads/ci-canary",
+        "expected_sigrefs_commit": "1c5213d8ad59d7251d8058880079c90e432370c1",
+        "expected_revision": "0512528a992ee9be963b24369a6fb0a53109cd19",
+        "limits": {
+          "max_identity_bytes": 4096,
+          "max_reference_bytes": 512,
+          "max_entries": 8192,
+          "max_path_bytes": 1024,
+          "max_file_bytes": 4194304,
+          "max_total_bytes": 67108864
+        }
+      },
+      "cohort": {
+        "protocol_version": "0.25.1",
+        "protocol_source_sha256": "fc23b44b518df749486358fef29c4375daa47299eeec32b3659781c1bfd207e4",
+        "radicle_core_version": "0.4.1",
+        "radicle_core_source_sha256": "077e01c4da810fed233fa67ce87b94fe0dd6ffa03b6640e3b71caa9769a5ec9f",
+        "radicle_crypto_version": "0.19.0",
+        "radicle_crypto_source_sha256": "76de6172f3ccae0f489578f4a5da45bc77ff8855ace6352b002d94c0e0783bb5",
+        "radicle_oid_version": "0.2.2",
+        "radicle_oid_source_sha256": "7a0b9a4cbe2b75f8d95a4c887836b909542da704673e708d3b85186a4664400c",
+        "radicle_ref_format_version": "0.2.0",
+        "radicle_ref_format_source_sha256": "8cd8067caf7de3c75f2736c24da52081b5fa9f9f2aa6357b8ad8d67ba5411ec6",
+        "git2_version": "0.21.0",
+        "git2_source_sha256": "ddddbf932745a6be37109b6112d3ee09696106f848449069d3a57bba937ab82e",
+        "license": "MIT OR Apache-2.0",
+        "full_radicle_runtime": false,
+        "sqlite_backend": false
+      },
+      "allow_network": false,
+      "allow_credentials": false,
+      "allow_signing": false,
+      "allow_mutation": false,
+      "allow_collaboration": false,
+      "non_claims": [
+        "local source admission does not prove signer or repository trust",
+        "an expected signed-refs commit does not prove global freshness",
+        "local acquisition does not prove complete history or peer convergence",
+        "local acquisition does not prove remote seed availability",
+        "equal canonical trees do not prove equal history or authority",
+        "source capability does not grant network, credential, signing, mutation, or collaboration authority",
+        "an absolute repository path does not prevent filesystem substitution",
+        "source receipt admission does not prove build correctness",
+        "source receipt admission does not establish release readiness"
+      ]
+    },
+    "resolution": {
+      "resolution": {
+        "source_provider": "radicle-source-v1",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "repository",
+          "native_id": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz"
+        },
+        "symbolic_reference": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "reference",
+          "native_id": "refs/heads/ci-canary"
+        },
+        "exact_revision": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "revision",
+          "native_id": "0512528a992ee9be963b24369a6fb0a53109cd19"
+        },
+        "canonical_tree": "d925b73bfdfc5e5f708981f7ffe95c98eab87b18f2e70e47f3998f4108121f15",
+        "native_facts": {
+          "Git": {
+            "repository": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "repository",
+              "native_id": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz"
+            },
+            "symbolic_reference": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "reference",
+              "native_id": "refs/heads/ci-canary"
+            },
+            "exact_commit": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "revision",
+              "native_id": "0512528a992ee9be963b24369a6fb0a53109cd19"
+            },
+            "native_tree": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "git-tree",
+              "native_id": "dc7aef9b5eae1824e3182bc9f41289ab9264c307"
+            },
+            "observed_ref_before": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "revision",
+              "native_id": "0512528a992ee9be963b24369a6fb0a53109cd19"
+            },
+            "observed_ref_after": {
+              "contract_version": 1,
+              "provider_namespace": "radicle",
+              "native_kind": "revision",
+              "native_id": "0512528a992ee9be963b24369a6fb0a53109cd19"
+            },
+            "object_format": "Sha1",
+            "partial_repository": false,
+            "replacement_objects": false,
+            "alternate_object_database": false,
+            "signature_observed": true
+          }
+        }
+      },
+      "receipt": {
+        "schema_version": 1,
+        "request": {
+          "schema_version": 1,
+          "profile_id": "radicle-source-v1",
+          "repository_id": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz",
+          "signer_node_id": "z6MkoQ1P4GsGHXVJy759G71kttXQ2ssJfrVVKn9CSwznmqnx",
+          "signed_reference": "refs/heads/ci-canary",
+          "expected_sigrefs_commit": "1c5213d8ad59d7251d8058880079c90e432370c1",
+          "expected_revision": "0512528a992ee9be963b24369a6fb0a53109cd19",
+          "limits": {
+            "max_identity_bytes": 4096,
+            "max_reference_bytes": 512,
+            "max_entries": 8192,
+            "max_path_bytes": 1024,
+            "max_file_bytes": 4194304,
+            "max_total_bytes": 67108864
+          }
+        },
+        "observation": {
+          "schema_version": 1,
+          "profile_id": "radicle-source-v1",
+          "repository_id": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz",
+          "signer_node_id": "z6MkoQ1P4GsGHXVJy759G71kttXQ2ssJfrVVKn9CSwznmqnx",
+          "signed_reference": "refs/heads/ci-canary",
+          "namespaced_sigrefs_reference": "refs/namespaces/z6MkoQ1P4GsGHXVJy759G71kttXQ2ssJfrVVKn9CSwznmqnx/refs/rad/sigrefs",
+          "sigrefs_commit_before": "1c5213d8ad59d7251d8058880079c90e432370c1",
+          "sigrefs_commit_after": "1c5213d8ad59d7251d8058880079c90e432370c1",
+          "sigrefs_parent": "28dfb29a3a4ad8f621c3687c451d2a334f73c54d",
+          "identity_root_commit": "d85bc7a6a1356b11978b357abcb1dc22dad96f2d",
+          "signed_revision": "0512528a992ee9be963b24369a6fb0a53109cd19",
+          "namespaced_revision": "0512528a992ee9be963b24369a6fb0a53109cd19",
+          "feature_level": "parent",
+          "signature": "verified",
+          "repository_identity": "verified",
+          "namespace_target": "verified"
+        },
+        "snapshot": {
+          "schema_version": 1,
+          "revision": "0512528a992ee9be963b24369a6fb0a53109cd19",
+          "native_tree": "dc7aef9b5eae1824e3182bc9f41289ab9264c307",
+          "canonical_tree_blake3": "d925b73bfdfc5e5f708981f7ffe95c98eab87b18f2e70e47f3998f4108121f15",
+          "entry_count": 4135,
+          "total_bytes": 54592727
+        }
+      }
+    }
+  },
+  "trigger": {
+    "repository": {
+      "contract_version": 1,
+      "provider_namespace": "radicle",
+      "native_kind": "repository",
+      "native_id": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz"
+    },
+    "actor": {
+      "contract_version": 1,
+      "provider_namespace": "radicle",
+      "native_kind": "actor",
+      "native_id": "broker"
+    },
+    "before": null,
+    "after": {
+      "contract_version": 1,
+      "provider_namespace": "radicle",
+      "native_kind": "revision",
+      "native_id": "0512528a992ee9be963b24369a6fb0a53109cd19"
+    },
+    "branch": "ci-canary",
+    "patch": null,
+    "event": "push"
+  },
+  "ingress": {
+    "schema": "kiln.aspen-runtime.service-ingress.v2",
+    "source": "radicle",
+    "service_id": "kiln-ci-control-plane-v2",
+    "generation": 1,
+    "profile_identity": "3adb23574239eb648ec5b4d97cbbbf1d9817e1a7915638e5faa3e3e1fd32ea56",
+    "alpn": "molten/system-extension/native/v2",
+    "framing": "preserves-packed-materialized-values-v2",
+    "operation_id": {
+      "contract_version": 1,
+      "provider_namespace": "molten",
+      "native_kind": "service-operation-blake3",
+      "native_id": "8c41f8694fbdb4dcb14b791dabf991f2e01aac7e5a545de7a3ac68dfdd1b0a5a"
+    },
+    "idempotency_key": {
+      "contract_version": 1,
+      "provider_namespace": "kiln",
+      "native_kind": "trigger-idempotency-blake3",
+      "native_id": "c84be7739b968568ab0c522ccd965bba0adae089a75ff273c3b1373fa230d004"
+    },
+    "authority_ref": "kiln-aspen-authority-v1",
+    "resource_ref": "kiln-aspen-resources-v1",
+    "trigger_identity": "c84be7739b968568ab0c522ccd965bba0adae089a75ff273c3b1373fa230d004",
+    "trigger": {
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "repository",
+        "native_id": "rad:z2mPkbFFBbBEuNmsq6SSXhDPt2tEz"
+      },
+      "actor": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "actor",
+        "native_id": "broker"
+      },
+      "before": null,
+      "after": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "revision",
+        "native_id": "0512528a992ee9be963b24369a6fb0a53109cd19"
+      },
+      "branch": "ci-canary",
+      "patch": null,
+      "event": "push"
+    }
+  },
+  "records": [
+    {
+      "schema_version": 1,
+      "stream": {
+        "contract_version": 1,
+        "provider_namespace": "molten",
+        "native_kind": "service-operation-blake3",
+        "native_id": "8c41f8694fbdb4dcb14b791dabf991f2e01aac7e5a545de7a3ac68dfdd1b0a5a"
+      },
+      "expected_revision": 0,
+      "event_identity": {
+        "contract_version": 1,
+        "provider_namespace": "kiln",
+        "native_kind": "ci-event-blake3",
+        "native_id": "838629b057ab68e62d111420d47caadf36540d789c45b10b1b5b7ac4eac79de7"
+      },
+      "event": {
+        "RunStarted": {
+          "command_id": "radicle-ci-start-7f9d4d43f843ad4078d22282d7664dac8c1b94ac37f06e51c71090e92a665e45",
+          "run_id": "kiln-aspen-run-c9865869b383b8155ad29f47aa4d3b1c886a6907d434010ae33d138cae015f43",
+          "attempt_id": "radicle-ci-attempt-074e66bc77e3a2b6df849fa0619329624fa6560778d7fdd9f14a3c58b151f2bf",
+          "provider_profile": "nix-build-v1"
+        }
+      }
+    }
+  ],
+  "native_observations": [
+    "Unavailable",
+    "Unavailable"
+  ],
+  "worker_result": null,
+  "status_intent": null,
+  "status_observation": null,
+  "identity": "c4acaf79c016c8ff69dd880c653eabaef10f79c59779f691848a83f826c1b4ca"
+}

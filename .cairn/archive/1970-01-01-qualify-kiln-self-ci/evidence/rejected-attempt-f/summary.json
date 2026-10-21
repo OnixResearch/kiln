@@ -1,0 +1,15 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-f",
+  "result": "rejected",
+  "failure": "TimeoutError waiting for build-state.json; broker adapter timed out after 360 s",
+  "cause": "The stock evaluator with bounded fetch options still inherited enough PATH for Git flake-input fetches and did not exit after emitting the seven package records. The worker wrote no discovery or worker result.",
+  "fix": "Seed the evaluator `HOME/.cache/nix` from the operator's local Nix fetcher cache so locked inputs resolve from the store and the cached Git refs. The cache-seeded manual run exited in 11.7 s with all seven records.",
+  "evidence": [
+    "evaluator.stderr.log",
+    "evaluator.stdout.log",
+    "ci-journal.json",
+    "resolved-job.json",
+    "source-import.json"
+  ]
+}

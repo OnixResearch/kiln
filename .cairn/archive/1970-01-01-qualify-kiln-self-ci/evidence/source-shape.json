@@ -1,0 +1,17 @@
+{
+  "base_commit": "305f85d80b9ea05fbd91db73de8a6662a55650ee",
+  "fork": "dedicated RID created from the committed Kiln clone; canonical repository untouched",
+  "largest_tracked_file": "1649319\t.cairn/archive/1970-01-01-prepare-public-release/evidence/github-source-publication-2026-10-17.json",
+  "proposed_limits": {
+    "max_entries": 8192,
+    "max_file_bytes": 4194304,
+    "max_identity_bytes": 4096,
+    "max_path_bytes": 1024,
+    "max_reference_bytes": 512,
+    "max_total_bytes": 67108864
+  },
+  "schema": "kiln.self-ci.source-shape.v1",
+  "tracked_entries": 4133,
+  "tracked_excluding_cairn": 2100,
+  "working_tree_bytes_excluding_vcs": 57989288
+}

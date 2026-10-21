@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-self-ci-20261021-o/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-self-ci-20261021-o",
+    "--",
+    "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+    "export",
+    "--format",
+    "json",
+    "/var/tmp/kiln-self-ci-20261021-o/canary-settings.ncl"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\n  \"build_delay_seconds\": 8,\n  \"callback_timeout_milliseconds\": 1200000,\n  \"command_seconds\": 1800,\n  \"host_maximum_requests\": 256,\n  \"listen_host\": \"127.0.0.1\",\n  \"local_address\": \"100.110.43.11\",\n  \"maximum_document_bytes\": 4194304,\n  \"maximum_polls\": 600,\n  \"maximum_service_log_bytes\": 33554432,\n  \"network\": \"test\",\n  \"poll_interval_milliseconds\": 1000,\n  \"recovery_seconds\": 1800,\n  \"remote\": {\n    \"address\": \"100.100.103.95\",\n    \"host\": \"aspen1\",\n    \"port\": 52000,\n    \"readiness_seconds\": 60,\n    \"root\": \"/var/tmp/kiln-self-ci-20261021-o\"\n  },\n  \"root\": \"/var/tmp/kiln-self-ci-20261021-o\",\n  \"self_ci\": {\n    \"base_commit\": \"305f85d80b9ea05fbd91db73de8a6662a55650ee\",\n    \"failure_marker\": \"self_ci_genuine_failure\",\n    \"product_path\": \"bin/kiln\",\n    \"root_selector\": \"packages.x86_64-linux\",\n    \"selected_task\": \"kiln\",\n    \"source_limits\": {\n      \"max_entries\": 8192,\n      \"max_file_bytes\": 4194304,\n      \"max_identity_bytes\": 4096,\n      \"max_path_bytes\": 1024,\n      \"max_reference_bytes\": 512,\n      \"max_total_bytes\": 67108864\n    },\n    \"unavailable_settle_seconds\": 30\n  },\n  \"source_branch\": \"ci-canary\",\n  \"status_checkpoint_branch\": \"kiln-status-checkpoint\",\n  \"tools\": {\n    \"broker\": \"/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cib\",\n    \"broker_tool\": \"/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cibtool\",\n    \"git\": \"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\",\n    \"jj\": \"/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj\",\n    \"radicle\": \"/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad\",\n    \"radicle_node\": \"/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node\",\n    \"secretspec\": \"/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec\"\n  }\n}\n"
+}

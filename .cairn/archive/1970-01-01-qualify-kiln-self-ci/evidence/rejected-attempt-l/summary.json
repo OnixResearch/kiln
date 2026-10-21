@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-l",
+  "result": "rejected",
+  "success_case": "passed: real Kiln build, host kill/restart, canonical completion and terminal status",
+  "failure_case": "project completed but controller completion stalled after the restarted Aspen host exited",
+  "causes": [
+    "The restarted Aspen host exited on `write Aspen host response: Broken pipe` when a client disconnected, so the next broker request never completed.",
+    "The harness `read_file` returned only the diagnostic record tail (last 4000 chars), corrupting the 14394-byte `kiln-provider-api/lib.rs` before commit; the Nix diagnostic was an accidental parse error rather than the injected failure."
+  ],
+  "fixes": [
+    "The Aspen host now logs per-connection read/decode/encode/write failures and continues to the next bounded request; the accepted host test abandons a connection before completing three real exchanges.",
+    "`read_file` returns the full bounded stdout of `head -c LIMIT`; the injected failure is a syntax error containing the configured marker."
+  ],
+  "evidence": [
+    "host-restarted.log",
+    "failure-build.log",
+    "project-result.json",
+    "build-state.json",
+    "ci-journal.json",
+    "worker-result.json",
+    "discovery.json",
+    "success-project-result.json",
+    "failure-source.json",
+    "success-source.json",
+    "success-complete.json",
+    "success-attempt-1-stdout.log",
+    "failure-request.json",
+    "lattice.log",
+    "worker.stderr.log",
+    "worker.stdout.log"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-d",
+  "result": "rejected",
+  "failure": "KeyError: evaluator_cohort during runtime composition",
+  "cause": "The stock evaluator profile carries no evaluator cohort, and the pilot runtime composition indexed that optional field directly.",
+  "fix": "Read the optional evaluator cohort with `get` so the stock profile yields null and the project plan omits no required field.",
+  "evidence": "No root retained; the optional-cohort correction is recorded here."
+}

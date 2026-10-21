@@ -1,0 +1,9 @@
+{
+  "schema": "kiln.self-ci-rejected-attempt.v1",
+  "attempt": "kiln-self-ci-20261021-b",
+  "result": "rejected",
+  "failure": "controller `bindings` rejected the source context: unknown field `case`, expected `provider`, `repository`, `revision`",
+  "cause": "The self-CI commit helper added the case label to the exact source context document. The controller correctly admits only the strict three-field source context.",
+  "fix": "Return only {provider, repository, revision}; the case label remains on the case report.",
+  "evidence": "No root retained; the strict context error and correction are recorded here."
+}
