@@ -3025,6 +3025,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-dashboard"
+version = "0.1.0"
+dependencies = [
+ "kiln-codec",
+ "kiln-core",
+ "kiln-observe-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kiln-nix-build"
 version = "0.1.0"
 dependencies = [

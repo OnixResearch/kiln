@@ -107,6 +107,18 @@ pub const FORBIDDEN_ADAPTER_PORT_DECLARATIONS: &[&str] = &[
     "pub trait RemoteTransport",
 ];
 
+/// Runtime edges that a pure rendering core must not reach.
+// r[impl kiln.observe.dashboard.shell.scenario.read_only]
+pub const FORBIDDEN_SHELL_CORE_RUNTIME: &[&str] = &[
+    "std::fs",
+    "std::net",
+    "std::process",
+    "std::time",
+    "std::env",
+    "tokio::",
+    "reqwest::",
+];
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoundaryFinding {
     pub token: &'static str,
@@ -161,6 +173,35 @@ fn audit_application_contracts_at(
             Ok(())
         })?;
     }
+    Ok(findings)
+}
+
+/// Audit a pure core crate against the shell runtime boundary.
+///
+/// The crate manifest may not reach a provider, transport, or runtime crate,
+/// and every library source other than the named shell entry point may not
+/// touch the filesystem, the network, a process, a clock, or the environment.
+pub fn audit_shell_core_boundary(
+    root: &Path,
+    crate_path: &str,
+    shell_entry: &str,
+) -> std::io::Result<Vec<BoundaryFinding>> {
+    let mut findings = Vec::new();
+    let crate_root = root.join(crate_path);
+    let manifest = crate_root.join("Cargo.toml");
+    if manifest.is_file() {
+        let text = fs::read_to_string(&manifest)?;
+        findings.extend(audit_text(&manifest, &text));
+    }
+    visit(&crate_root.join("src"), &mut |path| {
+        if path.extension().and_then(|value| value.to_str()) == Some("rs")
+            && path.file_name().and_then(|value| value.to_str()) != Some(shell_entry)
+        {
+            let text = fs::read_to_string(path)?;
+            findings.extend(audit_patterns(path, &text, FORBIDDEN_SHELL_CORE_RUNTIME));
+        }
+        Ok(())
+    })?;
     Ok(findings)
 }
 
@@ -221,6 +262,7 @@ pub fn audit_reference_boundary(root: &Path) -> std::io::Result<Vec<BoundaryFind
         "crates/kiln-adapter-sqlite",
         "crates/kiln-adapter-celld",
         "crates/kiln-cli",
+        "crates/kiln-dashboard",
     ] {
         let selected = root.join(relative);
         visit(&selected, &mut |path| {
@@ -497,6 +539,20 @@ mod tests {
         assert!(findings.as_ref().is_ok_and(Vec::is_empty));
         let application_findings = audit_application_boundaries(&root);
         assert!(application_findings.as_ref().is_ok_and(Vec::is_empty));
+    }
+
+    // r[verify kiln.observe.dashboard.shell.scenario.read_only]
+    #[test]
+    fn dashboard_core_has_no_shell_runtime() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let findings = audit_shell_core_boundary(&root, "crates/kiln-dashboard", "main.rs");
+        assert!(findings.as_ref().is_ok_and(Vec::is_empty));
+        let rejected = audit_patterns(
+            Path::new("fixture.rs"),
+            "use std::fs::File;",
+            FORBIDDEN_SHELL_CORE_RUNTIME,
+        );
+        assert!(!rejected.is_empty());
     }
 
     // r[verify kiln.providers.port_ownership]

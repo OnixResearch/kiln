@@ -4,6 +4,7 @@ members = [
   "crates/kiln-provider-api",
   "crates/kiln-codec",
   "crates/kiln-observe-core",
+  "crates/kiln-dashboard",
   "crates/kiln-adapter-http-observe",
   "crates/kiln-adapter-iroh-observe",
   "crates/kiln-standalone",

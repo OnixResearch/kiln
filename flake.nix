@@ -302,6 +302,11 @@
           program = "${packageFor system}/bin/kiln-radicle-ci";
           meta.description = "Run source-bound Radicle CI and original-operation recovery";
         };
+        kiln-dashboard = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-dashboard";
+          meta.description = "Render the local operator dashboard over a canonical Kiln journal";
+        };
         default = self.apps.${system}.kiln;
       });
 
@@ -794,6 +799,9 @@
               config/observation-profile.ncl \
               config/fixtures/observation-positive.ncl \
               config/fixtures/negative-observation-*.ncl \
+              config/dashboard-profile.ncl \
+              config/fixtures/dashboard-positive.ncl \
+              config/fixtures/negative-dashboard-*.ncl \
               config/http-observation-profile.ncl \
               config/fixtures/http-observation-positive.ncl \
               config/fixtures/negative-http-observation-*.ncl \
@@ -821,6 +829,9 @@
             nickel export config/observation-profile.ncl >/dev/null
             nickel export --format json config/observation-profile.ncl > observation-profile.json
             cmp observation-profile.json fixtures/observation/profile-v1.json
+            nickel export config/dashboard-profile.ncl >/dev/null
+            nickel export --format json config/dashboard-profile.ncl > dashboard-profile.json
+            cmp dashboard-profile.json fixtures/dashboard/profile-v1.json
             nickel export config/http-observation-profile.ncl >/dev/null
             nickel export --format json config/http-observation-profile.ncl > http-observation-profile.json
             cmp http-observation-profile.json fixtures/http-observation/profile-v1.json
@@ -861,6 +872,7 @@
             nickel export config/fixtures/mantle-build-positive.ncl >/dev/null
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
             nickel export config/fixtures/observation-positive.ncl >/dev/null
+            nickel export config/fixtures/dashboard-positive.ncl >/dev/null
             nickel export config/fixtures/http-observation-positive.ncl >/dev/null
             nickel export config/fixtures/iroh-observation-positive.ncl >/dev/null
             nickel export config/fixtures/nix-build-positive.ncl >/dev/null

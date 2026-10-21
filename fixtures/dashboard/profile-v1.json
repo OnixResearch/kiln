@@ -1,0 +1,60 @@
+{
+  "profile": {
+    "event_limit": 32,
+    "max_run_pages": 8,
+    "non_claims": [
+      "dashboard rendering does not prove CI success",
+      "dashboard rendering does not prove provider correctness",
+      "dashboard rendering does not prove source trust",
+      "dashboard rendering does not prove journal completeness",
+      "dashboard rendering does not establish release readiness",
+      "dashboard rendering does not prove the observed revision is the newest existing revision"
+    ],
+    "observation": {
+      "bounds": {
+        "max_attempts_per_run": 1,
+        "max_encoded_bytes": 65536,
+        "max_event_records": 4,
+        "max_log_bytes": 4,
+        "max_log_segments": 2,
+        "max_log_window_bytes": 64,
+        "max_metrics_per_attempt": 1,
+        "max_page_items": 2,
+        "max_products_per_attempt": 1,
+        "max_text_bytes": 256
+      },
+      "non_claims": [
+        "bounded observation projection does not prove transport delivery",
+        "bounded observation projection does not prove live freshness",
+        "bounded observation projection does not prove control execution",
+        "bounded observation projection does not prove provider correctness",
+        "bounded observation projection does not prove CI success",
+        "bounded observation projection does not establish release readiness"
+      ],
+      "profile_id": "observation-v1",
+      "redaction": {
+        "visible_fields": [
+          "provider_profile",
+          "external_reference",
+          "products",
+          "metrics",
+          "command_id",
+          "log_bytes"
+        ]
+      },
+      "schema_version": 1,
+      "views": [
+        "state_summary",
+        "run_list",
+        "run_detail",
+        "attempt_detail",
+        "event_tail",
+        "log_range"
+      ]
+    },
+    "profile_id": "dashboard-v1",
+    "run_page_limit": 16,
+    "schema_version": 1,
+    "watch_interval_ms": 1000
+  }
+}

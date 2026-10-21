@@ -41,6 +41,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-celld` | Optional pinned Celld Worker event store with authenticated bounded HTTPS, one-object SQLite journal/outbox, and conditional lease/schema plans. |
 | `kiln-conformance` | Shared positive and negative provider gates. |
 | `kiln-cli` | Local operator shell. |
+| `kiln-dashboard` | Local read-only operator shell over one canonical Kiln journal: event-identity recomputation, canonical replay, and a deterministic bounded report over the accepted observation projection. |
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 

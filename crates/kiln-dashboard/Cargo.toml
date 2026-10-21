@@ -1,0 +1,17 @@
+[package]
+name = "kiln-dashboard"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+kiln-codec.workspace = true
+kiln-core.workspace = true
+kiln-observe-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
