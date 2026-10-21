@@ -1,0 +1,1 @@
+{ data_dir = "/var/tmp/kfc-e-success/lattice-store", shell = "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash", default_timeout_secs = 180, max_parallelism = 1 }

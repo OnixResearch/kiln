@@ -1,0 +1,174 @@
+{
+  "schema": "kiln.radicle-ci.composition-verification.v1",
+  "immediate_outcome": "An admitted exact Radicle push drives verified source acquisition, real rooted Nix construction, canonical CI replay and revision-bound status reconciliation through one fixed reviewed workflow.",
+  "durable_capability": "New exact project revisions do not require per-event operator signatures or rewriting the saved workflow operation; duplicates, restarts and bounded uncertainty retain the reserved original operation.",
+  "maintenance_owner": "Kiln maintainers",
+  "current_consumer": "One reviewed Radicle-hosted Nix project using the maintained Aspen/Lattice runtime and existing project worker.",
+  "adoption_path": "docs/operator.md#radicle-source-to-build-composition",
+  "native_evidence": "native/verification.json",
+  "cohort": "native/cohort.json",
+  "artifact_identities": "artifact-identities.json",
+  "repeatability": {
+    "invocation": "runner-invocation.json",
+    "actual_commands": "native/commands.json",
+    "project_profile_identity": "e2d3145b60448c5db40838c4c7a8538bbdd22d4bc52397b120abf725d9fa8d74"
+  },
+  "cases": [
+    {
+      "case": "success",
+      "revision": "09f514cf0f30543a97998e124dfc0667ab9a50c5",
+      "canonical_outcome": "Success",
+      "status_outcome": "success",
+      "status_revision": "09f514cf0f30543a97998e124dfc0667ab9a50c5"
+    },
+    {
+      "case": "failure",
+      "revision": "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55",
+      "canonical_outcome": "DomainFailure",
+      "status_outcome": "failure",
+      "status_revision": "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55"
+    }
+  ],
+  "bounded_uncertainty": {
+    "broker_replies": [
+      {
+        "argv": [
+          "/var/tmp/krc-native-recovery-20261021-c/coordinator-fixture",
+          "--profile",
+          "/var/tmp/krc-native-recovery-20261021-c/uncertain-controller.json"
+        ],
+        "exit_code": 1,
+        "stderr": "kiln.radicle_ci.failure: canonical run remains nonterminal; reconcile the original operation\n",
+        "stdout": "{\"response\":\"triggered\",\"run_id\":{\"id\":\"kiln-aspen-run-47090851223276c9a5c816d66f9a57e14a6bfd75f4a68d174712c9c79e214d6f\"}}\n"
+      },
+      {
+        "argv": [
+          "/var/tmp/krc-native-recovery-20261021-c/coordinator-fixture",
+          "--profile",
+          "/var/tmp/krc-native-recovery-20261021-c/uncertain-controller.json"
+        ],
+        "exit_code": 1,
+        "stderr": "kiln.radicle_ci.failure: canonical run remains nonterminal; reconcile the original operation\n",
+        "stdout": "{\"response\":\"triggered\",\"run_id\":{\"id\":\"kiln-aspen-run-47090851223276c9a5c816d66f9a57e14a6bfd75f4a68d174712c9c79e214d6f\"}}\n"
+      }
+    ],
+    "canonical_outcome": "Pending",
+    "operation_id": {
+      "contract_version": 1,
+      "native_id": "371b29658f6371303b8d9f030a271caacb926b78480c9c7482c6d17d51e56bd4",
+      "native_kind": "service-operation-blake3",
+      "provider_namespace": "molten"
+    },
+    "source": {
+      "provider": "radicle",
+      "repository": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+      "revision": "912fe954560337f44e11b0327ae910a0e1d5bfe4"
+    },
+    "status_intent": null
+  },
+  "provider_invocations": [
+    "09f514cf0f30543a97998e124dfc0667ab9a50c5",
+    "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55"
+  ],
+  "retirement": {
+    "evidence": "native/retirement.json",
+    "private_credentials_retired": true,
+    "all_owned_services_stopped": true,
+    "errors": []
+  },
+  "gates": {
+    "workspace": {
+      "passed": 593,
+      "failed": 0,
+      "ignored": 3,
+      "scope": "--workspace --all-features",
+      "log": "gates/workspace-all-features.log"
+    },
+    "strict_clippy": {
+      "passed": true,
+      "scope": "--workspace --all-targets --all-features -- -D warnings",
+      "record": "gates/host-strict-clippy.json"
+    },
+    "nix": {
+      "passed": true,
+      "platform": "x86_64-linux",
+      "check_count": 34,
+      "checks": [
+        "octet",
+        "package",
+        "tests",
+        "boundaries",
+        "runtime-independence",
+        "format",
+        "clippy",
+        "github-protocol-fixtures",
+        "nickel",
+        "kiln-radicle-nix-provider-package",
+        "kiln-radicle-nix-provider-octet-deny-all",
+        "pijul-native-fixtures",
+        "pijul-cohort",
+        "nix-eval-fixture-process",
+        "nix-build-adapter-fixtures",
+        "nix-build-adapter-cohort",
+        "aspen-runtime-octet-deny-all",
+        "kiln-aspen-host-octet-deny-all",
+        "radicle-broker-wire-octet-deny-all",
+        "no-std",
+        "kiln-aspen-host-package",
+        "radicle-source-contract-fixtures",
+        "onixos-pilot-preparation",
+        "aspen-runtime-profile",
+        "cairn-gate-cohort",
+        "mantle-build-cohort",
+        "nix-eval-jobs-cohort",
+        "radicle-source-native-fixtures",
+        "radicle-status-native-fixtures",
+        "radicle-mutation-native-fixtures",
+        "radicle-status-cohort",
+        "radicle-status-boundaries",
+        "celld-boundaries",
+        "release-evidence"
+      ],
+      "log": "gates/nix-flake-check.log"
+    },
+    "accepted_traceability": {
+      "valid": true,
+      "requirements": 789,
+      "referenced": 789,
+      "record": "gates/traceability-after-sync.json"
+    },
+    "local_readiness": {
+      "valid": true,
+      "onix_release_ready": false,
+      "record": "gates/readiness-after-sync.json"
+    },
+    "production_fixture_guard": "gates/production-fixture-guard.json"
+  },
+  "ignored_optional_tests": [
+    "test actual_worker_controls ... ignored, requires the pinned loopback Celld HTTPS cohort runner",
+    "test actual_worker_persists_event_outbox_and_reconciles_a_lost_append_response ... ignored, requires the loopback Celld cohort runner tests/celld-live-cohort.sh",
+    "test exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots ... ignored, requires the exact optional Onix evaluator, plugin, manifest and immutable fixture"
+  ],
+  "non_claims": [
+    "isolated signed-source fixture, not production source trust",
+    "real cibtool producer command, not a live remote Radicle delivery",
+    "no remote status synchronization, activation, deployment or release authority",
+    "bounded execution is not sandboxing or hermeticity",
+    "aarch64-linux checks were not exercised",
+    "source import and root registration are separate native operations, not an atomic GC guarantee",
+    "local Cairn readiness does not establish Onix release readiness or grant remote publication authority",
+    "Nix checks preceded accepted-spec synchronization and evidence-only closeout; runtime source was unchanged afterward"
+  ],
+  "lifecycle": {
+    "archive_directory": ".cairn/archive/1970-01-01-compose-radicle-source-to-build-ci",
+    "accepted_spec": ".cairn/specs/radicle-ci-composition/spec.md",
+    "archive_receipt_hash": "9d77d764793aa178adf76e1fff066d13df958328914214baff188bf191fce222",
+    "validation": "gates/validate-after-closeout.json",
+    "traceability": "gates/traceability-after-closeout.json",
+    "readiness": "gates/readiness-after-closeout.json",
+    "valid": true,
+    "remaining_active_changes": 0,
+    "onix_release_ready": false
+  },
+  "implementation_files": "implementation-files.json"
+}

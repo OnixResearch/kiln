@@ -1,3 +1,8 @@
+use std::fs::{self, DirBuilder, OpenOptions};
+use std::io::Write as _;
+use std::os::unix::fs::{DirBuilderExt as _, OpenOptionsExt as _, PermissionsExt as _};
+use std::path::{Component, Path, PathBuf};
+
 use blake3::Hash;
 use cob_git2 as git2;
 use git2::{ObjectType, Oid, Repository, Tree};
@@ -22,6 +27,15 @@ pub(super) struct AcquiredSnapshot {
     pub entry_count: u64,
     pub total_bytes: u64,
     pub canonical_tree_blake3: Hash,
+    pub entries: Vec<GitSnapshotEntry>,
+    pub directories: Vec<String>,
+}
+
+#[derive(Debug, Default)]
+struct SnapshotContents {
+    entries: Vec<GitSnapshotEntry>,
+    total_bytes: u64,
+    directories: Vec<String>,
 }
 
 fn collect_tree(
@@ -29,11 +43,11 @@ fn collect_tree(
     repository: &Repository,
     tree: &Tree<'_>,
     prefix: &str,
-    entries: &mut Vec<GitSnapshotEntry>,
-    total_bytes: &mut u64,
+    contents: &mut SnapshotContents,
+    materializable: bool,
 ) -> PortResult<()> {
     for entry in tree {
-        let entry_count = u64::try_from(entries.len()).map_err(|_| {
+        let entry_count = u64::try_from(contents.entries.len()).map_err(|_| {
             domain(
                 "radicle_source_entry_bound",
                 "radicle_source.snapshot",
@@ -73,10 +87,60 @@ fn collect_tree(
                 "Snapshot path exceeds the request bound",
             ));
         }
+        if materializable
+            && (name.is_empty()
+                || name == "."
+                || name == ".."
+                || name.eq_ignore_ascii_case(".git")
+                || name.contains(['/', '\\', '\0'])
+                || name.bytes().any(|byte| byte.is_ascii_control()))
+        {
+            return Err(domain(
+                "radicle_source_checkout_path",
+                "radicle_source.snapshot",
+                "Source contains a path unsafe for checkout materialization",
+            ));
+        }
+        if materializable {
+            let members = contents
+                .entries
+                .len()
+                .checked_add(contents.directories.len())
+                .ok_or_else(platform_bound_failure)?;
+            if u64::try_from(members).map_err(|_| platform_bound_failure())?
+                >= profile.request.limits.max_entries
+            {
+                return Err(domain(
+                    "radicle_source_entry_bound",
+                    "radicle_source.snapshot",
+                    "Checkout members exceed the request bound",
+                ));
+            }
+            if !matches!(
+                entry.filemode_raw(),
+                0o040_000 | MODE_REGULAR | MODE_EXECUTABLE
+            ) {
+                return Err(domain(
+                    "radicle_source_checkout_kind",
+                    "radicle_source.snapshot",
+                    "Checkout admits only directories, regular files and executable files",
+                ));
+            }
+        }
         match entry.kind() {
             Some(ObjectType::Tree) => {
                 let subtree = repository.find_tree(entry.id()).map_err(git_failure)?;
-                collect_tree(profile, repository, &subtree, &path, entries, total_bytes)?;
+                if materializable {
+                    contents.directories.push(path.clone());
+                }
+                collect_tree(
+                    profile,
+                    repository,
+                    &subtree,
+                    &path,
+                    contents,
+                    materializable,
+                )?;
             }
             Some(ObjectType::Blob) => {
                 let blob = repository.find_blob(entry.id()).map_err(git_failure)?;
@@ -94,14 +158,14 @@ fn collect_tree(
                         "Snapshot file exceeds the request bound",
                     ));
                 }
-                *total_bytes = total_bytes.checked_add(size).ok_or_else(|| {
+                contents.total_bytes = contents.total_bytes.checked_add(size).ok_or_else(|| {
                     domain(
                         "radicle_source_total_bound",
                         "radicle_source.snapshot",
                         "Snapshot total byte count overflowed",
                     )
                 })?;
-                if *total_bytes > profile.request.limits.max_total_bytes {
+                if contents.total_bytes > profile.request.limits.max_total_bytes {
                     return Err(domain(
                         "radicle_source_total_bound",
                         "radicle_source.snapshot",
@@ -114,7 +178,7 @@ fn collect_tree(
                     MODE_SYMLINK => GitEntryKind::Symlink,
                     _ => GitEntryKind::Unsupported,
                 };
-                entries.push(GitSnapshotEntry {
+                contents.entries.push(GitSnapshotEntry {
                     path,
                     kind,
                     native_object: ExternalRef::new(
@@ -148,19 +212,24 @@ pub(super) fn acquire_snapshot(
     profile: &RadicleSourceProfile,
     repository: &Repository,
     revision: Oid,
+    materializable: bool,
 ) -> PortResult<AcquiredSnapshot> {
     let commit = repository.find_commit(revision).map_err(git_failure)?;
     let tree = commit.tree().map_err(git_failure)?;
-    let mut entries = Vec::new();
-    let mut total_bytes = 0;
+    let mut contents = SnapshotContents::default();
     collect_tree(
         profile,
         repository,
         &tree,
         "",
-        &mut entries,
-        &mut total_bytes,
+        &mut contents,
+        materializable,
     )?;
+    let SnapshotContents {
+        entries,
+        total_bytes,
+        directories,
+    } = contents;
     let limits = GitSnapshotLimits {
         max_entries: usize::try_from(profile.request.limits.max_entries)
             .map_err(|_| platform_bound_failure())?,
@@ -180,5 +249,97 @@ pub(super) fn acquire_snapshot(
         entry_count,
         total_bytes,
         canonical_tree_blake3,
+        entries: if materializable { entries } else { Vec::new() },
+        directories,
     })
+}
+
+pub(super) struct Checkout {
+    path: PathBuf,
+    retained: bool,
+}
+
+impl Checkout {
+    pub fn retain(mut self) {
+        self.retained = true;
+    }
+}
+
+impl Drop for Checkout {
+    fn drop(&mut self) {
+        if !self.retained {
+            let _removed = fs::remove_dir_all(&self.path);
+        }
+    }
+}
+
+// r[impl kiln.radicle_ci.source]
+pub(super) fn materialize_snapshot(
+    snapshot: &AcquiredSnapshot,
+    destination: &Path,
+) -> PortResult<Checkout> {
+    if !destination.is_absolute()
+        || destination
+            .components()
+            .any(|part| matches!(part, Component::ParentDir | Component::CurDir))
+        || destination.file_name().is_none()
+    {
+        return Err(domain(
+            "radicle_source_checkout_destination",
+            "radicle_source.checkout",
+            "Checkout destination must be a new absolute path without traversal",
+        ));
+    }
+    // The caller owns the private parent/state root. These checks reject existing
+    // substitution, not concurrent mutation by another process with that authority.
+    // Never traverse an existing symlink, including a symlink in an ancestor.
+    for ancestor in destination.ancestors().skip(1) {
+        let metadata = fs::symlink_metadata(ancestor).map_err(super::error::io_failure)?;
+        if !metadata.file_type().is_dir() {
+            return Err(domain(
+                "radicle_source_checkout_destination",
+                "radicle_source.checkout",
+                "Checkout ancestors must be existing real directories",
+            ));
+        }
+    }
+    // Atomic creation rejects existing directories, files and symlinks alike.
+    DirBuilder::new()
+        .mode(0o700)
+        .create(destination)
+        .map_err(super::error::io_failure)?;
+    let checkout = Checkout {
+        path: destination.to_path_buf(),
+        retained: false,
+    };
+    for directory in &snapshot.directories {
+        DirBuilder::new()
+            .mode(0o700)
+            .create(destination.join(directory))
+            .map_err(super::error::io_failure)?;
+    }
+    for entry in &snapshot.entries {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(destination.join(&entry.path))
+            .map_err(super::error::io_failure)?;
+        file.write_all(&entry.bytes)
+            .map_err(super::error::io_failure)?;
+        let mode = match entry.kind {
+            GitEntryKind::Regular => 0o644,
+            GitEntryKind::Executable => 0o755,
+            _ => {
+                return Err(domain(
+                    "radicle_source_checkout_kind",
+                    "radicle_source.checkout",
+                    "Only admitted regular and executable source can be materialized",
+                ));
+            }
+        };
+        file.set_permissions(fs::Permissions::from_mode(mode))
+            .map_err(super::error::io_failure)?;
+    }
+    Ok(checkout)
 }

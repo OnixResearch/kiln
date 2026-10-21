@@ -1,0 +1,6 @@
+{
+  "command": "set -eu; printf '%s\\n' \"$LATTICE_SOURCE_REVISION\" >> /var/tmp/krc-native-recovery-20261021-c/provider-invocations.log; /nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/sleep 10; exec /var/tmp/kiln-radicle-ci-cargo/debug/kiln-onixos-worker project-run /var/tmp/krc-native-recovery-20261021-c/project.json e2d3145b60448c5db40838c4c7a8538bbdd22d4bc52397b120abf725d9fa8d74 > /var/tmp/krc-native-recovery-20261021-c/worker.stdout.log 2> /var/tmp/krc-native-recovery-20261021-c/worker.stderr.log",
+  "created": "2026-10-20T00:00:00Z",
+  "name": "onixos-home-application",
+  "timeout_seconds": 180
+}

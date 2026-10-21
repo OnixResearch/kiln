@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "/nix/store/8nkg77hajh60p3n5v7v1z895hsqjd20y-source/scripts/onixos-ci-pilot.py",
+    "--inputs",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+    "--nickel",
+    "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+    "--root",
+    "/var/tmp/kfc-e-repeat",
+    "--case",
+    "success"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "fresh_state_success_repeat",
+  "started_at": "2026-10-21T01:57:00.826774+00:00",
+  "stderr": "",
+  "stdout": "{\n  \"case\": \"success\",\n  \"canonical_outcome\": \"Success\",\n  \"operation_id\": {\n    \"contract_version\": 1,\n    \"provider_namespace\": \"molten\",\n    \"native_kind\": \"service-operation-blake3\",\n    \"native_id\": \"98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d\"\n  },\n  \"journal_identity\": \"fa6c3c6a6167c04eb4a686e89581d7387c82130494e1d2ec81ece1ee6cc231ec\"\n}\n"
+}

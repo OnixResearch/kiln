@@ -1,0 +1,316 @@
+{
+  "native_attempts": [
+    {
+      "scratch_root": "/var/tmp/krc-native-recovery-20261021-a/",
+      "failure": {
+        "diagnostic": "service exited before readiness: host-restarted (/var/tmp/krc-native-recovery-20261021-a/host-restarted.log)",
+        "kind": "RuntimeError"
+      },
+      "retirement": {
+        "errors": [],
+        "private_credentials_retired": true,
+        "production_state_or_status_mutated": false,
+        "services": [
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--bind",
+              "/var/tmp/krc-native-recovery-20261021-a/lattice-tmp",
+              "/tmp",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice",
+              "--config",
+              "/var/tmp/krc-native-recovery-20261021-a/lattice.ncl",
+              "workflow-exchange",
+              "serve",
+              "--profile",
+              "/var/tmp/krc-native-recovery-20261021-a/handler-checked.ncl"
+            ],
+            "exit_code": -15,
+            "name": "lattice"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/krc-native-recovery-20261021-a/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/krc-native-recovery-20261021-a/radicle.json",
+              "--socket",
+              "/var/tmp/krc-native-recovery-20261021-a/aspen.sock",
+              "--extension",
+              "/var/tmp/kiln-radicle-ci-cargo/debug/kiln-aspen-extension",
+              "--state-root",
+              "/var/tmp/krc-native-recovery-20261021-a/host-state",
+              "--max-requests",
+              "256",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": -9,
+            "name": "host-first"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+              "/var/tmp/krc-native-recovery-20261021-a/success-broker-first.sh"
+            ],
+            "exit_code": -9,
+            "name": "success-broker-first"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/krc-native-recovery-20261021-a/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/krc-native-recovery-20261021-a/radicle.json",
+              "--socket",
+              "/var/tmp/krc-native-recovery-20261021-a/aspen.sock",
+              "--extension",
+              "/var/tmp/kiln-radicle-ci-cargo/debug/kiln-aspen-extension",
+              "--state-root",
+              "/var/tmp/krc-native-recovery-20261021-a/host-state",
+              "--max-requests",
+              "256",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": 1,
+            "name": "host-restarted"
+          }
+        ]
+      },
+      "resolution": "Finish Cargo builds before measuring/running mutable callback executable paths; the measured callback changed from 89fe72116fe16e3edf1ecaad84bb3f675634a23947d578fe357fc42c58a52892 to a540e376f8755db68eb0c29a872b1624afdf21b14a218ca9657c092adbf9193c, and the host correctly rejected a changed cohort."
+    },
+    {
+      "scratch_root": "/var/tmp/krc-native-recovery-20261021-b/",
+      "failure": {
+        "diagnostic": "broker failed: {\"response\":\"triggered\",\"run_id\":{\"id\":\"kiln-aspen-run-5fef31ad161901198676873815f785e4c79a5b9b4e402f0946ec78efaa8cd668\"}}\nkiln.radicle_ci.failure: Infrastructure(InfrastructureFailure { code: \"radicle_commit_config_failed\", message: \"temporary ci-job commit configuration failed: Disk quota exceeded (os error 122) at path \\\"/tmp/.tmpKvbV3t\\\"\" })\n",
+        "kind": "ValueError"
+      },
+      "retirement": {
+        "errors": [],
+        "private_credentials_retired": true,
+        "production_state_or_status_mutated": false,
+        "services": [
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--bind",
+              "/var/tmp/krc-native-recovery-20261021-b/lattice-tmp",
+              "/tmp",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice",
+              "--config",
+              "/var/tmp/krc-native-recovery-20261021-b/lattice.ncl",
+              "workflow-exchange",
+              "serve",
+              "--profile",
+              "/var/tmp/krc-native-recovery-20261021-b/handler-checked.ncl"
+            ],
+            "exit_code": -15,
+            "name": "lattice"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/krc-native-recovery-20261021-b/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/krc-native-recovery-20261021-b/radicle.json",
+              "--socket",
+              "/var/tmp/krc-native-recovery-20261021-b/aspen.sock",
+              "--extension",
+              "/var/tmp/kiln-radicle-ci-cargo/debug/kiln-aspen-extension",
+              "--state-root",
+              "/var/tmp/krc-native-recovery-20261021-b/host-state",
+              "--max-requests",
+              "256",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": -9,
+            "name": "host-first"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+              "/var/tmp/krc-native-recovery-20261021-b/success-broker-first.sh"
+            ],
+            "exit_code": -9,
+            "name": "success-broker-first"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host",
+              "--aspen-profile",
+              "/var/tmp/krc-native-recovery-20261021-b/aspen.json",
+              "--radicle-profile",
+              "/var/tmp/krc-native-recovery-20261021-b/radicle.json",
+              "--socket",
+              "/var/tmp/krc-native-recovery-20261021-b/aspen.sock",
+              "--extension",
+              "/var/tmp/kiln-radicle-ci-cargo/debug/kiln-aspen-extension",
+              "--state-root",
+              "/var/tmp/krc-native-recovery-20261021-b/host-state",
+              "--max-requests",
+              "256",
+              "--timeout-ms",
+              "300000",
+              "--poll-interval-ms",
+              "250"
+            ],
+            "exit_code": -15,
+            "name": "host-restarted"
+          },
+          {
+            "argv": [
+              "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+              "--die-with-parent",
+              "--unshare-user",
+              "--unshare-pid",
+              "--bind",
+              "/",
+              "/",
+              "--proc",
+              "/proc",
+              "--dev",
+              "/dev",
+              "--",
+              "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+              "/var/tmp/krc-native-recovery-20261021-b/success-broker-recovered.sh"
+            ],
+            "exit_code": 1,
+            "name": "success-broker-recovered"
+          }
+        ]
+      },
+      "resolution": "Run the unchanged composition under a private /tmp bind; status temporary commit configuration had failed with host /tmp quota exhaustion."
+    }
+  ],
+  "regression_observations": [
+    {
+      "test": "coordinator::tests::rejected_worker_evidence_cannot_poison_a_reserved_journal",
+      "before_excerpt": "assertion failed: service.load_completed_worker(&mut journal, &bindings).is_err()",
+      "before_result": "FAILED",
+      "after_log": "gates/workspace-all-features.log"
+    },
+    {
+      "test": "coordinator::tests::repeated_progress_preserves_dispatch_and_can_admit_late_completion",
+      "before_excerpt": "panicked at crates/kiln-radicle-ci/src/coordinator_tests.rs:52:74: internal error: entered unreachable code",
+      "before_result": "FAILED",
+      "after_log": "gates/workspace-all-features.log"
+    },
+    {
+      "test": "tests::uncertain_canonical_or_status_truth_cannot_finish_a_broker_run",
+      "before_excerpt": "assertion failed: broker_result(outcome, written).is_err()",
+      "before_result": "FAILED",
+      "after_log": "gates/workspace-all-features.log"
+    }
+  ],
+  "workspace_prerequisites": [
+    "Host /tmp quota exhausted; cleared-environment GitHub helpers require a usable private /tmp.",
+    "Resolve the declared Pijul package rather than transcribing a store hash; the admitted executable is /nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul.",
+    "Provision fixtures/nix-eval-jobs/cohort/a0cd02231c58974a6b5aaa3712069b071047162e/jobset at its exact /nix/store/b8bcc0qabaywjhypl93dafm4mi1dkc9w-jobset path.",
+    "Set a short TMPDIR inside nix develop: its generated nix-shell temporary directory otherwise consumes the GC-root provider-reference path allowance. No product bounds were relaxed."
+  ]
+}

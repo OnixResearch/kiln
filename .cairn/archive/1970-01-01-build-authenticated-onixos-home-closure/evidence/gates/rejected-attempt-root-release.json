@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-worker",
+        "release",
+        "/var/tmp/kfc-c-success/job.json",
+        "bfb7ed39b51c5266cddaeb403abfcbece79c7755c6881af0204697a26df239e5"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "release_rejected_attempt_success",
+      "started_at": "2026-10-21T01:58:54.793713+00:00",
+      "stderr": "",
+      "stdout": "{\"roots_released\":true}\n"
+    },
+    {
+      "argv": [
+        "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-worker",
+        "release",
+        "/var/tmp/kfc-c-build-failure/job.json",
+        "de4b4fff08bbca41c92a12840b7ee7457155dc8f027d67f75e9f98978c772caf"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "release_rejected_attempt_build-failure",
+      "started_at": "2026-10-21T01:58:54.818660+00:00",
+      "stderr": "",
+      "stdout": "{\"roots_released\":true}\n"
+    }
+  ]
+}

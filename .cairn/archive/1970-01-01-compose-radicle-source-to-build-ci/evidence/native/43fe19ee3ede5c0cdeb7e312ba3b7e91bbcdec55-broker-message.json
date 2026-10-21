@@ -1,0 +1,25 @@
+{
+  "after": "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55",
+  "before": "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55",
+  "branch": "main",
+  "commits": [
+    "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55"
+  ],
+  "event_type": "push",
+  "pusher": {
+    "alias": "kiln-isolated-ci-fixture",
+    "id": "did:key:z6MkeYyQtJjiWRgvYrnH2mPRKdVjadaMjk8NyiMa4Sgnex4L"
+  },
+  "repository": {
+    "default_branch": "main",
+    "delegates": [
+      "did:key:z6MkeYyQtJjiWRgvYrnH2mPRKdVjadaMjk8NyiMa4Sgnex4L"
+    ],
+    "description": "Isolated Kiln native CI proof",
+    "id": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+    "name": "kiln-source-ci-isolated-fixture",
+    "private": true
+  },
+  "request": "trigger",
+  "version": 1
+}

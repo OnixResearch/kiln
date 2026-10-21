@@ -3076,13 +3076,17 @@ name = "kiln-onixos-worker"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "bounded-exec",
  "fs2",
  "kiln-adapter-nix",
  "kiln-adapter-nix-eval",
+ "kiln-adapter-radicle",
  "kiln-core",
  "kiln-nix-build",
  "kiln-onixos-pilot",
  "kiln-provider-api",
+ "kiln-radicle-ci",
+ "kiln-radicle-source-contract",
  "libc",
  "serde",
  "serde_json",
@@ -3094,6 +3098,31 @@ version = "0.1.0"
 dependencies = [
  "kiln-core",
  "serde",
+]
+
+[[package]]
+name = "kiln-radicle-ci"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "bounded-exec",
+ "fs2",
+ "kiln-adapter-aspen",
+ "kiln-adapter-http-observe",
+ "kiln-adapter-nix",
+ "kiln-adapter-nix-eval",
+ "kiln-adapter-radicle",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-nix-build",
+ "kiln-observe-core",
+ "kiln-onixos-pilot",
+ "kiln-provider-api",
+ "kiln-radicle-source-contract",
+ "libc",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

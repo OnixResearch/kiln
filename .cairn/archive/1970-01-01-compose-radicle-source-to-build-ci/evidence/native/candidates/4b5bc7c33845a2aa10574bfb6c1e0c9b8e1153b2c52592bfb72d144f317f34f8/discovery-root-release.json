@@ -1,0 +1,117 @@
+{
+  "effect_id": "radicle-ci-discover-4b5bc7c33845a2aa10574bfb6c1e0c9b8e1153b2c52592bfb72d144f317f34f8",
+  "evaluation_id": "radicle-ci-evaluation-4b5bc7c33845a2aa10574bfb6c1e0c9b8e1153b2c52592bfb72d144f317f34f8",
+  "project_id": "radicle-source-ci",
+  "pipeline_revision_id": "radicle-source-ci",
+  "discovery_policy_id": "onix-explicit-project-v1",
+  "provider_profile": "onix-nix-eval-v1",
+  "idempotency_key": "3ec039ffc247497491df4f5b1fb91d4999b9eda9c91fe314128b9d2abf66d3e7",
+  "source_identity": "c91ba274afc23d3f3445c05a0f43793d9919f9fccbc4db8956a66922bd889af2",
+  "observation_identity": "6b6658bd00c032265d3e50697e25f6e19cd54dc7d193d41a35ba304df7815316",
+  "terminal": "Complete",
+  "jobs": [
+    {
+      "attribute": "app",
+      "attribute_path": [
+        "app"
+      ],
+      "name": "kiln-radicle-source-ci",
+      "system": "x86_64-linux",
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/zjvk92lhxz41d7vnfn8010jfk78klwmp-kiln-radicle-source-ci.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/7k5nq2ljw7aan40m54a52mlxhp8pfjbx-kiln-radicle-source-ci"
+          }
+        }
+      ],
+      "input_derivations": [
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/b0ran975s1k1ixhg0r9rhzpi6x3kxw40-bash-interactive-5.3p15.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/wpdcwb9xd1gy3lhr514q4xzpy7s188v8-coreutils-9.11.drv"
+        }
+      ],
+      "metadata_identity": null,
+      "cache": "NotBuilt"
+    }
+  ],
+  "job_errors": [],
+  "tasks": [
+    {
+      "task_id": "discovered:4f65480961dc0c0fb4b03d9e74f16e3edda15495aafb1a911c18cd2682214c9f",
+      "mapping_identity": "4f65480961dc0c0fb4b03d9e74f16e3edda15495aafb1a911c18cd2682214c9f",
+      "build_provider": "nix-build-v1",
+      "native_attribute": {
+        "contract_version": 1,
+        "provider_namespace": "nix-eval-jobs",
+        "native_kind": "attribute",
+        "native_id": "app"
+      },
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/zjvk92lhxz41d7vnfn8010jfk78klwmp-kiln-radicle-source-ci.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/7k5nq2ljw7aan40m54a52mlxhp8pfjbx-kiln-radicle-source-ci"
+          }
+        }
+      ],
+      "dependencies": [],
+      "cache": "NotBuilt"
+    }
+  ],
+  "completion": {
+    "stream_complete": true,
+    "stream_valid": true,
+    "stderr_within_bound": true,
+    "gc_roots_ready": true,
+    "fatal_job_error": false,
+    "process": {
+      "Exited": {
+        "status": 0
+      }
+    }
+  },
+  "gc_roots": {
+    "directory": {
+      "contract_version": 1,
+      "provider_namespace": "nix",
+      "native_kind": "gc-root-directory",
+      "native_id": "/var/tmp/krc-native-recovery-20261021-c/eval-roots/6f813dc243c0349236eb6cb0c453e555d2bf88674d3a5e31cca8660706a0254c"
+    },
+    "derivations": [
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/zjvk92lhxz41d7vnfn8010jfk78klwmp-kiln-radicle-source-ci.drv"
+      }
+    ],
+    "state": "Released"
+  }
+}

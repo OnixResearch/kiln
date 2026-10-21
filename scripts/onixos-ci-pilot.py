@@ -18,6 +18,8 @@ import subprocess
 import time
 from urllib.parse import quote
 
+from onixos_ci_closure import admit_preparation_closure, consumer_output_status, preparation_plan
+
 REPO = Path(__file__).resolve().parent.parent
 COMMAND_SECONDS = 360
 RECOVERY_SECONDS = 360
@@ -32,7 +34,7 @@ REQUIRED_NON_CLAIMS = [
     "local restart evidence is not distributed exactly-once execution",
     "a built application is not activation or deployment evidence",
     "exact-cohort evidence is not general runtime or release qualification",
-    "prepared activation and home-file dependencies are not authenticated CI build evidence",
+    "prepared external tools are not authenticated consumer construction evidence",
 ]
 
 
@@ -199,6 +201,50 @@ class Exercise:
     def pilot(self, *arguments):
         return self.json_command([self.exe["coordinator"], *arguments])
 
+    def consumer_observations(self, plan):
+        observations = {}
+        for name, path in sorted(plan["consumer_outputs"].items()):
+            native = self.run([self.exe["nix"], "path-info", "--json", "--offline", path], allowed=(0, 1))
+            observations[name] = {"path": path, "native": native,
+                **consumer_output_status(path, json.loads(native["stdout"]),
+                    Path(path).exists() or Path(path).is_symlink())}
+        return observations
+
+    # r[impl kiln.onixos_pilot.closure.construction]
+    def inspect_consumer(self, plan, result):
+        if self.args.case == "success":
+            outputs = plan["consumer_outputs"]
+            closure = self.json_command([self.exe["nix"], "path-info", "--json", "--recursive", outputs["home-activation"]])
+            if not set(outputs.values()).issubset(closure):
+                raise ValueError("successful launcher does not retain the exact generated consumer closure")
+            with (Path(outputs["home-files"]) / ".gitconfig").open("rb") as source:
+                content = source.read(DOCUMENT_BYTES + 1)
+            identity = load(self.root / "cohort.json")["consumer_build_identity"]
+            expected = f"[user]\n  name = Alice Example (Kiln CI {identity})\n".encode()
+            if content != expected:
+                raise ValueError("generated Git configuration differs from the bound consumer input")
+            return {"consumer_artifacts": {name: closure[path] for name, path in outputs.items()},
+                    "launcher_closure": closure, "gitconfig": {"text": content.decode(),
+                        "blake3": self.digest(path=Path(outputs["home-files"]) / ".gitconfig")}}
+        after = self.consumer_observations(plan)
+        admit_preparation_closure(plan, [item["path"] for item in after.values() if item["registered"]])
+        diagnostics = {}
+        if self.args.case == "build-failure":
+            actual = bytearray()
+            for identity in result["build_observation"]["log_identities"]:
+                path = self.root / "worker" / (identity + ".log")
+                with path.open("rb") as source:
+                    raw = source.read(DOCUMENT_BYTES + 1)
+                if len(raw) > DOCUMENT_BYTES:
+                    raise ValueError("consumer build diagnostic exceeds its bound")
+                actual.extend(raw)
+                diagnostics[path.name] = self.digest(path=path)
+            if (Path(plan["consumer_derivations"]["home-files"]).name.encode() not in actual
+                    or b".gitconfig" not in actual
+                    or not any(message in actual for message in (b"File exists", b"Not a directory"))):
+                raise ValueError("negative build lacks the real home-file target-conflict diagnostic")
+        return {"consumer_outputs_after_failure": after, "build_diagnostic_identities": diagnostics}
+
     def prepare(self):
         inputs = self.export("admitted-inputs", "(import " + json.dumps(str(REPO / "config/onixos-ci-pilot-inputs.ncl"))
                              + ") (import " + json.dumps(str(Path(self.args.inputs).resolve(strict=True))) + ")")
@@ -224,12 +270,15 @@ class Exercise:
         jobset = self.root / "jobset"
         jobset.mkdir(mode=0o700)
         put(jobset / "jobset.nix", (REPO / "runtime/onixos-ci-pilot/jobset.nix").read_bytes())
+        projection_identity = self.digest(path=jobset / "jobset.nix")
+        build_identity = self.digest(value={"schema": "kiln.onixos-pilot.consumer-build.v1",
+            "root": str(self.root), "inputs": inputs, "projection_blake3": projection_identity})
         trees = {name: inputs[name] for name in ("consumer", "wasmSource", "plugin")}
         flake = '{ inputs.nixpkgs.url = ' + json.dumps(inputs["nixpkgs_url"]) + ';\n'
         flake += 'outputs = { nixpkgs, ... }: import ./jobset.nix { inherit nixpkgs; consumerInputs = '
         # Nickel and Nix have different record syntax; all these values are strings.
         flake += "{ " + " ".join(name + " = { " + " ".join(key + " = " + json.dumps(value) + ";" for key, value in tree.items())
-                                                   + " };" for name, tree in trees.items()) + " }; }; }\n"
+                                                   + " };" for name, tree in trees.items()) + " }; buildIdentity = " + json.dumps(build_identity) + "; }; }\n"
         put(jobset / "flake.nix", flake.encode())
         self.run([self.exe["nix"], "flake", "lock", "--offline", str(jobset)])
         source = self.run([self.exe["nix"], "store", "add-path", jobset, "--name", "kiln-onixos-application-jobset"])["stdout"].strip()
@@ -251,7 +300,8 @@ class Exercise:
                   "explicit_producer_substitution": {"wasmSource": inputs["wasmSource"], "plugin": inputs["plugin"],
                       "reason": inputs["producer_substitution_reason"]},
                   "jobset_source": source, "flake_blake3": source_identity,
-                  "projection_blake3": self.digest(path=jobset / "jobset.nix"),
+                  "projection_blake3": projection_identity, "consumer_build_identity": build_identity,
+                  "preparation_core_blake3": self.digest(path=REPO / "scripts/onixos_ci_closure.py"),
                   "policy_blake3": self.digest(path=REPO / "config/onixos-ci-pilot.ncl"),
                   "runner_blake3": self.digest(path=Path(__file__)), "case": self.args.case}
         put(self.root / "cohort.json", cohort)
@@ -265,22 +315,27 @@ class Exercise:
         put(self.root / "eval-selection.json", policy["eval_selection"])
         evaluation = self.json_command([self.exe["worker"], "eval-profile", self.root / "eval-selection.json"])
         put(self.root / "eval-profile.json", evaluation)
-        # Provision local build inputs explicitly, separately from authenticated CI.
+        # r[impl kiln.onixos_pilot.closure.preparation]
+        # Observe the real consumer boundary, then prepare only external tools.
         prepared = self.run([evaluation["runtime"]["executable_path"], "--option", "experimental-features", "nix-command flakes wasm-builtin",
                              "--option", "allow-import-from-derivation", "false", "--option", "substituters", "",
-                             "--workers", "1", "--max-memory-size", "1024", "--show-input-drvs", "--flake", source + "#cases.success"])
+                             "--workers", "1", "--max-memory-size", "1024", "--show-input-drvs", "--flake", source + "#preparation." + self.args.case])
         native_jobs = [json.loads(line) for line in prepared["stdout"].splitlines() if line.strip()]
-        if len(native_jobs) != 1 or native_jobs[0].get("attr") != "home-activation" or "error" in native_jobs[0]:
-            raise ValueError("provisioning did not discover the real home application")
-        dependencies = sorted(native_jobs[0]["inputDrvs"])
+        plan = preparation_plan(native_jobs)
+        dependencies = plan["dependency_derivations"]
+        requisites = self.run([self.exe["nix_store"], "--query", "--requisites", *dependencies])["stdout"].splitlines()
+        external_derivation_closure = admit_preparation_closure(plan, requisites)
         realised = self.run([self.exe["nix_store"], "--realise", "--option", "builders", "", *dependencies])
         realised_outputs = realised["stdout"].splitlines()
         closure = self.json_command([self.exe["nix"], "path-info", "--json", "--recursive", *realised_outputs])
-        application_before = self.run([self.exe["nix"], "path-info", "--json", *native_jobs[0]["outputs"].values()], allowed=(0, 1))
-        put(self.root / "provisioning.json", {"native_jobs": native_jobs, "dependency_derivations": dependencies,
+        admit_preparation_closure(plan, closure)
+        before = self.consumer_observations(plan)
+        admit_preparation_closure(plan, [item["path"] for item in before.values() if item["present"]])
+        put(self.root / "provisioning.json", {"native_jobs": native_jobs, "preparation_plan": plan,
+            "external_derivation_closure": external_derivation_closure,
             "realised_outputs": realised_outputs, "realised_closure": closure,
-            "application_before_authentication": application_before,
-            "scope": "Preparation includes generated activation/home-file dependencies; authenticated CI realises only the selected application launcher"})
+            "consumer_outputs_before_authentication": before,
+            "scope": "Only external tools are prepared; authenticated CI must construct the real launcher, activation script and generated home files"})
         build = policy["build_profile"]
         intent = {"effect_id": "pilot-build-" + operation, "attempt_id": "pilot-attempt-" + operation,
                   "idempotency_key": operation, "candidate_id": "pilot-candidate-" + operation,
@@ -329,12 +384,13 @@ class Exercise:
         put(self.root / "native-request.json", native)
         return inputs, policy, profile, job_identity, native
 
-    def workflow(self, inputs, policy, job_identity, native):
+    def workflow(self, inputs, policy, job_identity, native, worker_arguments=None):
         name = "onixos-home-application"
         invocation = self.root / "provider-invocations.log"
         command = "set -eu; printf '%s\\n' \"$LATTICE_SOURCE_REVISION\" >> " + shlex.quote(str(invocation)) + "; "
         command += shlex.join([self.exe["sleep"], str(WORKER_START_DELAY_SECONDS)]) + "; exec "
-        command += shlex.join([self.exe["worker"], "run", str(self.root / "job.json"), job_identity])
+        arguments = worker_arguments if worker_arguments is not None else ["run", str(self.root / "job.json"), job_identity]
+        command += shlex.join([self.exe["worker"], *map(str, arguments)])
         command += " > " + shlex.quote(str(self.root / "worker.stdout.log"))
         command += " 2> " + shlex.quote(str(self.root / "worker.stderr.log"))
         workflow = {"name": name, "command": command, "timeout_seconds": policy["workflow_timeout_seconds"], "created": "2026-10-20T00:00:00Z"}
@@ -380,6 +436,7 @@ class Exercise:
 
     # r[verify kiln.onixos_pilot.runtime] r[verify kiln.onixos_pilot.journal]
     # r[verify kiln.onixos_pilot.failure] r[verify kiln.onixos_pilot.evidence]
+    # r[impl kiln.onixos_pilot.closure.evidence] r[verify kiln.onixos_pilot.closure.evidence]
     def execute(self):
         inputs, policy, profile, job_identity, native = self.prepare()
         profile_path = self.root / "profile.json"
@@ -408,6 +465,10 @@ class Exercise:
                 "--max-requests", options["maximum_requests"], "--timeout-ms", options["timeout_milliseconds"], "--poll-interval-ms", options["poll_interval_milliseconds"]]
         host = self.spawn("host-first", argv)
         self.until("Aspen socket", lambda: (self.root / "aspen.sock").is_socket() or self.failed(host))
+        before_dispatch = self.consumer_observations(load(self.root / "provisioning.json")["preparation_plan"])
+        put(self.root / "before-dispatch.json", before_dispatch)
+        admit_preparation_closure(load(self.root / "provisioning.json")["preparation_plan"],
+            [item["path"] for item in before_dispatch.values() if item["present"]])
         submit = self.spawn("submit", [coordinator, "start", profile_path, self.root / "signed.json", journal])
         self.until("real provider invocation", lambda: (self.root / "provider-invocations.log").exists() or self.failed(submit))
         self.stop(host, abrupt=True)
@@ -488,6 +549,7 @@ class Exercise:
             expected = sorted(item["path"]["native_id"] for item in task["outputs"])
             if sorted(roots.values()) != expected:
                 raise ValueError("durable successful products are not exactly rooted")
+        construction = self.inspect_consumer(load(self.root / "provisioning.json")["preparation_plan"], result)
         proof = self.observe(profile_path, journal)
         release = []
         if load(result_path)["build_plan"] is not None:
@@ -501,6 +563,7 @@ class Exercise:
                   "restarted_during_provider_execution": not restart_observation["worker_result_present"] and restart_observation["lattice_process_running"],
                   "restart_observation": restart_observation, "pending_replay": pending,
                   "provisioning": load(self.root / "provisioning.json"),
+                  "consumer_outputs_before_dispatch": before_dispatch, "consumer_construction": construction,
                   "provider_invocations": invocations, "rooted_products_before_release": roots,
                   "explicit_idempotent_release": release, "ucan_observation": proof,
                   "maintenance_owner": "Kiln maintainers", "non_claims": REQUIRED_NON_CLAIMS}

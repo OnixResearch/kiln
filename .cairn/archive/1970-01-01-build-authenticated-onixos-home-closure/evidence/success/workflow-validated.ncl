@@ -1,0 +1,1 @@
+let base = import "/nix/store/pvh84jrqmrcniq1pr1zq89c11i83riy6-source/examples/orchestrations/llm-review-loop.ncl" in base & { objective | force = "Read-only workflow identity observation", workflow | force = { workflow_name = "onixos-home-application", content_hash = "e4ec1738664dff68a17683fd86e238a1ea2b986d85a5a2d15575345fe17cc274" }, triggers | force = [] }

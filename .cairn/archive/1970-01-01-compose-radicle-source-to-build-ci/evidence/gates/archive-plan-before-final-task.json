@@ -1,0 +1,20 @@
+{
+  "name": "archive-plan-before-final-task",
+  "argv": [
+    "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+    "archive",
+    "compose-radicle-source-to-build-ci",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "tool_result": {
+    "text": "{\n  \"acceptance_ids\": [],\n  \"actions\": [],\n  \"blocked\": true,\n  \"change\": \"compose-radicle-source-to-build-ci\",\n  \"cross_repo_dependencies\": {\n    \"blocked_count\": 0,\n    \"dependency_count\": 0,\n    \"input_hash\": \"c8a25f79aa76a9a1906fe3da7df3f74be7758d782bce4965df335a0c261a774a\",\n    \"non_claims\": [\n      \"dependency satisfaction proves presented receipt linkage only\",\n      \"dependency satisfaction does not prove upstream correctness or remote trust\",\n      \"dependency satisfaction does not prove downstream integration correctness or release eligibility\"\n    ],\n    \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n    \"receipt_hash\": \"fdc104967521b34f085e434151a4360af522b2a343389a4c8717844759386c0e\",\n    \"rows\": [],\n    \"satisfied_count\": 0,\n    \"schema\": \"cairn.cross-repo-dependency-receipt.v1\",\n    \"valid\": true,\n    \"verdict\": \"PASS\"\n  },\n  \"cross_repo_evidence_issues\": [],\n  \"dry_run\": true,\n  \"input_hash\": \"7c5140183187024ea4d1d4fd2daaf9e65a4d03024a398dcff301bce574bf053e\",\n  \"layout\": \"cairn\",\n  \"mutated\": false,\n  \"mutation_manifest\": null,\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"plan_hash\": \"afae073cc9059e7edae6d2948a7c09c94d64019242a12ad5a011773cf72e4cb0\",\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"profile_identity_hash\": \"9fdff178937a0b9641e065489abe9066be7193a9c038b21043b4afd10a6f2530\",\n  \"reasons\": [\n    \"compose-radicle-source-to-build-ci: tasks not archive-ready (todo: 1, in_progress: 0, unmarked: 0)\"\n  ],\n  \"receipt_hash\": \"ae2cd466ac0fd6e78239b609826b65cb1ab5fb27572e28dccb264910f77d58c1\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n\n\nWall time: 0.27 seconds",
+    "details": {
+      "timeoutSeconds": 180,
+      "wallTimeMs": 271.1323580145836
+    }
+  }
+}

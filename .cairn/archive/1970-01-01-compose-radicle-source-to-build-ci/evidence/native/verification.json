@@ -1,0 +1,218 @@
+{
+  "cases": [
+    {
+      "canonical_outcome": "Success",
+      "case": "success",
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "e4a1a190c8e9f5a75d4878427f7f911796ba7e40140d3623ea061b99df40014e",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "output_absent_before_dispatch": {
+        "argv": [
+          "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store",
+          "--check-validity",
+          "/nix/store/7k5nq2ljw7aan40m54a52mlxhp8pfjbx-kiln-radicle-source-ci"
+        ],
+        "exit_code": 1,
+        "stderr": "warning: unknown experimental feature 'wasm-builtin'\nerror: path '/nix/store/7k5nq2ljw7aan40m54a52mlxhp8pfjbx-kiln-radicle-source-ci' is not valid\n",
+        "stdout": ""
+      },
+      "release": [
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        },
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        }
+      ],
+      "rooted_outputs": {
+        "/var/tmp/krc-native-recovery-20261021-c/build-roots/e7bb879ec2537bec7032d12b1e571f05109ed586d1f25b03bb6257eb6efed94a/root": "/nix/store/7k5nq2ljw7aan40m54a52mlxhp8pfjbx-kiln-radicle-source-ci"
+      },
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+        "revision": "09f514cf0f30543a97998e124dfc0667ab9a50c5"
+      },
+      "status": {
+        "head": {
+          "contract_version": 1,
+          "native_id": "a2d6e5c5ef0ead92fa93b192252d60dcd5b30009",
+          "native_kind": "head",
+          "provider_namespace": "radicle"
+        },
+        "idempotency_key": "4b5bc7c33845a2aa10574bfb6c1e0c9b8e1153b2c52592bfb72d144f317f34f8",
+        "object_id": {
+          "contract_version": 1,
+          "native_id": "a2d6e5c5ef0ead92fa93b192252d60dcd5b30009",
+          "native_kind": "cob",
+          "provider_namespace": "radicle"
+        },
+        "outcome": "success",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+          "native_kind": "repository",
+          "provider_namespace": "radicle"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "09f514cf0f30543a97998e124dfc0667ab9a50c5",
+          "native_kind": "revision",
+          "provider_namespace": "radicle"
+        },
+        "run_id": "kiln-aspen-run-79c51e3e372f78193d748b443dd081944799bd926fdb33d297873e096fc91013",
+        "signer_identity": {
+          "contract_version": 1,
+          "native_id": "z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX",
+          "native_kind": "node",
+          "provider_namespace": "radicle"
+        }
+      },
+      "ucan_observation": {
+        "attempt_view_identity": "0be9a29ec81adbde247f4e946fc0416bf754c9ab1e8488a3a30f24766c14ea1d",
+        "canonical_run_outcome": "Success",
+        "replay_status": 401,
+        "revision": 2,
+        "run_view_identity": "7fad77439ff6565de9a3a8f1a7639cd84ec3312c08a27465d484fc0af810ba7c",
+        "schema": "kiln.onixos-pilot.ucan-probe.v1",
+        "wrong_holder_status": 401,
+        "wrong_target_status": 401
+      }
+    },
+    {
+      "canonical_outcome": "DomainFailure",
+      "case": "failure",
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "3cc4cf365ee7be0728cc4a1ce4149e635888e8693cc011132d0708a8f378332d",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "output_absent_before_dispatch": {
+        "argv": [
+          "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store",
+          "--check-validity",
+          "/nix/store/jijb1fllk5353zjrnip7rn0r4m9nw0z7-kiln-radicle-source-ci"
+        ],
+        "exit_code": 1,
+        "stderr": "warning: unknown experimental feature 'wasm-builtin'\nerror: path '/nix/store/jijb1fllk5353zjrnip7rn0r4m9nw0z7-kiln-radicle-source-ci' is not valid\n",
+        "stdout": ""
+      },
+      "release": [
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        },
+        {
+          "build_output_roots_released": true,
+          "source_root_released": true
+        }
+      ],
+      "rooted_outputs": {},
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+        "revision": "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55"
+      },
+      "status": {
+        "head": {
+          "contract_version": 1,
+          "native_id": "41807418f7a969bbfc0aec14925f5ae7ae889609",
+          "native_kind": "head",
+          "provider_namespace": "radicle"
+        },
+        "idempotency_key": "9d03485cbd5a943adfc6bfea53e094a8da79ecd16630b52c316847aa1953b69a",
+        "object_id": {
+          "contract_version": 1,
+          "native_id": "41807418f7a969bbfc0aec14925f5ae7ae889609",
+          "native_kind": "cob",
+          "provider_namespace": "radicle"
+        },
+        "outcome": "failure",
+        "repository": {
+          "contract_version": 1,
+          "native_id": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+          "native_kind": "repository",
+          "provider_namespace": "radicle"
+        },
+        "revision": {
+          "contract_version": 1,
+          "native_id": "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55",
+          "native_kind": "revision",
+          "provider_namespace": "radicle"
+        },
+        "run_id": "kiln-aspen-run-e93036f4a42f7be51e77b8709f5de4a4a12392f0f6f7029ea2826ec49613157c",
+        "signer_identity": {
+          "contract_version": 1,
+          "native_id": "z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX",
+          "native_kind": "node",
+          "provider_namespace": "radicle"
+        }
+      },
+      "ucan_observation": null
+    }
+  ],
+  "maintenance_owner": "Kiln maintainers",
+  "non_claims": [
+    "isolated signed-source fixture, not production source trust",
+    "real cibtool producer command, not a live remote Radicle delivery",
+    "no remote status synchronization, activation, deployment or release authority",
+    "bounded execution is not sandboxing or hermeticity"
+  ],
+  "project_profile_identity": "e2d3145b60448c5db40838c4c7a8538bbdd22d4bc52397b120abf725d9fa8d74",
+  "provider_invocations": [
+    "09f514cf0f30543a97998e124dfc0667ab9a50c5",
+    "43fe19ee3ede5c0cdeb7e312ba3b7e91bbcdec55"
+  ],
+  "schema": "kiln.radicle-ci.native-verification.v1",
+  "uncertainty": {
+    "broker_replies": [
+      {
+        "argv": [
+          "/var/tmp/krc-native-recovery-20261021-c/coordinator-fixture",
+          "--profile",
+          "/var/tmp/krc-native-recovery-20261021-c/uncertain-controller.json"
+        ],
+        "exit_code": 1,
+        "stderr": "kiln.radicle_ci.failure: canonical run remains nonterminal; reconcile the original operation\n",
+        "stdout": "{\"response\":\"triggered\",\"run_id\":{\"id\":\"kiln-aspen-run-47090851223276c9a5c816d66f9a57e14a6bfd75f4a68d174712c9c79e214d6f\"}}\n"
+      },
+      {
+        "argv": [
+          "/var/tmp/krc-native-recovery-20261021-c/coordinator-fixture",
+          "--profile",
+          "/var/tmp/krc-native-recovery-20261021-c/uncertain-controller.json"
+        ],
+        "exit_code": 1,
+        "stderr": "kiln.radicle_ci.failure: canonical run remains nonterminal; reconcile the original operation\n",
+        "stdout": "{\"response\":\"triggered\",\"run_id\":{\"id\":\"kiln-aspen-run-47090851223276c9a5c816d66f9a57e14a6bfd75f4a68d174712c9c79e214d6f\"}}\n"
+      }
+    ],
+    "canonical_outcome": "Pending",
+    "operation_id": {
+      "contract_version": 1,
+      "native_id": "371b29658f6371303b8d9f030a271caacb926b78480c9c7482c6d17d51e56bd4",
+      "native_kind": "service-operation-blake3",
+      "provider_namespace": "molten"
+    },
+    "source": {
+      "provider": "radicle",
+      "repository": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+      "revision": "912fe954560337f44e11b0327ae910a0e1d5bfe4"
+    },
+    "status_intent": null
+  },
+  "workflow_observation": {
+    "definition_revision": "dba8d7ba92da6d5aee9e50144e928229217f00041cf5d45b8484d459c1f71ad1",
+    "orchestration_diagnostics": [],
+    "workflow_diagnostics": [],
+    "workflow_revision": {
+      "content_hash": "9a8a109d5c87bde577d7c942c316a80ae7957941ba19a750b50e939201e07f89",
+      "workflow_name": "onixos-home-application"
+    }
+  }
+}

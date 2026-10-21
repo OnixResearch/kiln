@@ -2,12 +2,12 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::str::FromStr;
 
-use kiln_core::types::{CoreResult, Diagnostic};
+use kiln_core::types::{CoreResult, Diagnostic, ExternalRef};
 use onix_radicle_cob_git_store::GitCobStore;
 use radicle_cob::{Entry, TypeName};
 use radicle_oid::Oid;
 
-use super::plan::{StatusOutcome, StatusPlan};
+use super::plan::{StatusOutcome, StatusPlan, admit_revision};
 
 /// Reducer error carrying a Kiln diagnostic through `radicle-cob::Evaluate`.
 #[derive(Debug)]
@@ -41,9 +41,8 @@ fn cob_error(code: &'static str) -> CobError {
 
 /// `xyz.radicle.ci-job` typed COB state.
 ///
-/// The state is a bounded map of idempotency keys to the latest projected
-/// outcome for that key. Repeats of one key overwrite the same entry, which
-/// makes writes idempotent and the projection rebuildable from history.
+/// Each idempotency key permanently binds one run, exact revision and outcome.
+/// Repeated actions must retain every fact; conflicting history fails closed.
 #[derive(Clone, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CiJobStatus {
@@ -54,6 +53,7 @@ pub struct CiJobStatus {
 #[serde(deny_unknown_fields)]
 pub struct ProjectedOutcome {
     pub run_id: String,
+    pub revision: ExternalRef,
     pub outcome: StatusOutcome,
 }
 
@@ -61,10 +61,11 @@ pub struct ProjectedOutcome {
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum CiJobAction {
-    /// Project or replace the outcome bound to one idempotency key.
-    Project {
+    /// Project one exact-revision outcome; legacy revision-less actions are invalid.
+    ProjectRevision {
         key: String,
         run_id: String,
+        revision: ExternalRef,
         outcome: StatusOutcome,
     },
 }
@@ -123,16 +124,30 @@ impl CiJobStatus {
         let action: CiJobAction = serde_json::from_slice(&bytes)
             .map_err(|_| cob_error("radicle_status_action_invalid"))?;
         match action {
-            CiJobAction::Project {
+            CiJobAction::ProjectRevision {
                 key,
                 run_id,
+                revision,
                 outcome,
             } => {
                 admit_action_key(&key).map_err(|diagnostic| CobError { diagnostic })?;
                 if run_id.is_empty() {
                     return Err(cob_error("radicle_status_run_identity_invalid"));
                 }
-                self.runs.insert(key, ProjectedOutcome { run_id, outcome });
+                admit_revision(&revision).map_err(|diagnostic| CobError { diagnostic })?;
+                let projected = ProjectedOutcome {
+                    run_id,
+                    revision,
+                    outcome,
+                };
+                if self
+                    .runs
+                    .get(&key)
+                    .is_some_and(|existing| existing != &projected)
+                {
+                    return Err(cob_error("status_idempotency_conflict"));
+                }
+                self.runs.insert(key, projected);
                 Ok(())
             }
         }

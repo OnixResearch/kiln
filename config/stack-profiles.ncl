@@ -20,12 +20,12 @@ let Profile = {
       authority_boundary = "Radicle supplies local signed-reference facts; Kiln owns exact request admission, bounded acquisition, and canonical tree identity",
     },
     {
-      id = "radicle-status-v1",
+      id = "radicle-status-v2",
       role = "status",
       source_revision = "crates.io:sha256:8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e",
       capabilities = ["publish", "observe", "reconcile"],
       unsupported_capabilities = ["canonical_ci_state", "collaboration", "merge", "network_peer", "remote_visibility"],
-      authority_boundary = "Radicle owns local COB storage and signatures; Kiln owns CI state, target admission, and single-writer policy",
+      authority_boundary = "Radicle owns local COB storage and signatures; Kiln owns CI state, exact revision binding, target admission, and pinned single-writer policy",
     },
     {
       id = "radicle-patch-review-v1",

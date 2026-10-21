@@ -1,0 +1,95 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "nixfmt",
+        "runtime/onixos-ci-pilot/jobset.nix"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "nixfmt_inventory_fix",
+      "started_at": "2026-10-21T01:42:10.405137+00:00",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-b-success",
+        "--case",
+        "success"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_success",
+      "started_at": "2026-10-21T01:42:14.089646+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 649, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 640, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 438, in execute\n    inputs, policy, profile, job_identity, native = self.prepare()\n                                                    ~~~~~~~~~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 332, in prepare\n    admit_preparation_closure(plan, [item[\"path\"] for item in before.values() if item[\"present\"]])\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos_ci_closure.py\", line 33, in admit_preparation_closure\n    raise ValueError(\"preparation reaches consumer construction: \" + \", \".join(sorted(overlap)))\nValueError: preparation reaches consumer construction: /nix/store/a9qzzk1vjkj2p26xabyia9aywjh7rsbg-onix-home-activation-workstation-alice, /nix/store/fjmrfd4kiiya3brvvdlpb7i4cvfsm0ks-onix-home-files-workstation-alice, /nix/store/q61i36n8hna37yam6r757nvwqcnp0q5n-onix-home-workstation-alice\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-b-build-failure",
+        "--case",
+        "build-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_build-failure",
+      "started_at": "2026-10-21T01:42:14.090462+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 649, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 640, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 438, in execute\n    inputs, policy, profile, job_identity, native = self.prepare()\n                                                    ~~~~~~~~~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 332, in prepare\n    admit_preparation_closure(plan, [item[\"path\"] for item in before.values() if item[\"present\"]])\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos_ci_closure.py\", line 33, in admit_preparation_closure\n    raise ValueError(\"preparation reaches consumer construction: \" + \", \".join(sorted(overlap)))\nValueError: preparation reaches consumer construction: /nix/store/20d5k7i6768hxys98gcjqayjnaas1i4p-onix-home-activation-workstation-alice, /nix/store/6jj7ir56dv6zwl1qdnwdsjnp7ynra26d-onix-home-files-workstation-alice, /nix/store/r2p1x6ilk67ajlilrylg75m8lxms9pw1-onix-home-workstation-alice\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-b-evaluation-failure",
+        "--case",
+        "evaluation-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_evaluation-failure",
+      "started_at": "2026-10-21T01:42:14.091280+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 649, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 640, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 438, in execute\n    inputs, policy, profile, job_identity, native = self.prepare()\n                                                    ~~~~~~~~~~~~^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos-ci-pilot.py\", line 332, in prepare\n    admit_preparation_closure(plan, [item[\"path\"] for item in before.values() if item[\"present\"]])\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source/scripts/onixos_ci_closure.py\", line 33, in admit_preparation_closure\n    raise ValueError(\"preparation reaches consumer construction: \" + \", \".join(sorted(overlap)))\nValueError: preparation reaches consumer construction: /nix/store/09bbr1nw7sv5qaj8vdfj5yj9y7r2d5qh-onix-home-workstation-alice, /nix/store/3g20inydbmsgch8dsmqxp0n60dmcmfax-onix-home-files-workstation-alice, /nix/store/hg6jq78d4h0dcakb5qmpxfzj4arnxvba-onix-home-activation-workstation-alice\n",
+      "stdout": ""
+    }
+  ],
+  "source": {
+    "argv": [
+      "nix",
+      "flake",
+      "archive",
+      "--json",
+      "--no-write-lock-file",
+      "path:/home/brittonr/git/OnixResearch/kiln"
+    ],
+    "cwd": "/home/brittonr/git/OnixResearch/kiln",
+    "exit_code": 0,
+    "name": "materialize_runtime_source_b",
+    "started_at": "2026-10-21T01:42:10.410639+00:00",
+    "stderr": "",
+    "stdout": "{\"inputs\":{\"nix-eval-jobs\":{\"inputs\":{\"flake-parts\":{\"inputs\":{},\"path\":\"/nix/store/pqjppkj5kcs4001j5svlsz1595hcja0y-source\"},\"nix\":{\"inputs\":{},\"path\":\"/nix/store/mxqs2kx71n63lrrc1cgh037q9f862r3y-source\"},\"nixpkgs\":{\"inputs\":{},\"path\":\"/nix/store/qs19c087rpasj7p8h8l8z8y80gxz9pwi-source\"},\"treefmt-nix\":{\"inputs\":{},\"path\":\"/nix/store/j2wzjpy3yyr56yv1klygrm7mya0kb2f0-source\"}},\"path\":\"/nix/store/xx7385j23r97ra2x4j9mdh6lcs4pnwcq-source\"},\"nixpkgs\":{\"inputs\":{},\"path\":\"/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source\"},\"rust-overlay\":{\"inputs\":{},\"path\":\"/nix/store/gjx3mziwj0g4azg30z4irhkl8jsw8y26-source\"}},\"path\":\"/nix/store/an2vs7nbbazgc5brv6l8lsn5pqyv2yl5-source\"}\n"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "command": "set -eu; printf '%s\\n' \"$LATTICE_SOURCE_REVISION\" >> /var/tmp/kfc-e-evaluation-failure/provider-invocations.log; /nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/sleep 10; exec /nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-worker run /var/tmp/kfc-e-evaluation-failure/job.json 7165a08331c620c3178e8750e83de03abc1be19c7339a2dd8aa216cb0b1ed54e > /var/tmp/kfc-e-evaluation-failure/worker.stdout.log 2> /var/tmp/kfc-e-evaluation-failure/worker.stderr.log",
+  "created": "2026-10-20T00:00:00Z",
+  "name": "onixos-home-application",
+  "timeout_seconds": 180
+}

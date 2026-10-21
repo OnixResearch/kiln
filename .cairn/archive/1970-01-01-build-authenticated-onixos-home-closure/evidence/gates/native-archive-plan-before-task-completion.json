@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+    "archive",
+    "build-authenticated-onixos-home-closure",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "native_archive_plan",
+  "started_at": "2026-10-21T02:14:26.572432+00:00",
+  "stderr": "",
+  "stdout": "{\n  \"acceptance_ids\": [],\n  \"actions\": [],\n  \"blocked\": true,\n  \"change\": \"build-authenticated-onixos-home-closure\",\n  \"cross_repo_dependencies\": {\n    \"blocked_count\": 0,\n    \"dependency_count\": 0,\n    \"input_hash\": \"c8a25f79aa76a9a1906fe3da7df3f74be7758d782bce4965df335a0c261a774a\",\n    \"non_claims\": [\n      \"dependency satisfaction proves presented receipt linkage only\",\n      \"dependency satisfaction does not prove upstream correctness or remote trust\",\n      \"dependency satisfaction does not prove downstream integration correctness or release eligibility\"\n    ],\n    \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n    \"receipt_hash\": \"fdc104967521b34f085e434151a4360af522b2a343389a4c8717844759386c0e\",\n    \"rows\": [],\n    \"satisfied_count\": 0,\n    \"schema\": \"cairn.cross-repo-dependency-receipt.v1\",\n    \"valid\": true,\n    \"verdict\": \"PASS\"\n  },\n  \"cross_repo_evidence_issues\": [],\n  \"dry_run\": true,\n  \"input_hash\": \"558a4ea232065ee15eae8922e836d1d82bfb4e9eb78761e7675ed207eabcaef2\",\n  \"layout\": \"cairn\",\n  \"mutated\": false,\n  \"mutation_manifest\": null,\n  \"non_claims\": [\n    \"workflow state proves only the selected policy graph and observed structural artifact facts\",\n    \"workflow instructions do not prove artifact truth, review quality, or implementation correctness\",\n    \"workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates\",\n    \"workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts\"\n  ],\n  \"plan_hash\": \"ca1b9f361c0d9ae182172213ff8ba4ca85825ba8a52e85dcd7400a3b2a5a9753\",\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"profile_identity_hash\": \"b8d575807cb861e3e467f69726eddca567a0601be406fe816347f8d6f9b0ca4a\",\n  \"reasons\": [\n    \"build-authenticated-onixos-home-closure: tasks not archive-ready (todo: 1, in_progress: 0, unmarked: 0)\"\n  ],\n  \"receipt_hash\": \"47487b88b805d781fe561b056653dc6ac432408a61b914dbfab59aa85db4c54a\",\n  \"review_receipt_hashes\": [],\n  \"spec_effect\": \"delta\",\n  \"workflow_profile\": \"spec-driven\",\n  \"workflow_profile_compatibility_fallback\": false,\n  \"workflow_profile_source\": \"change_create\",\n  \"workflow_profile_version\": 1\n}\n"
+}

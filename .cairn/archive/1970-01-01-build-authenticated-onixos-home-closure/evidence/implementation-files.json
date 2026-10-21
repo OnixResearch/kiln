@@ -1,0 +1,164 @@
+{
+  "current_files_equal_exercised_source": true,
+  "files": [
+    {
+      "blake3": "2c74a30d44a8789bbccba1154547d2db85b99306c668211c6d2a57ba56872fd0",
+      "path": "Cargo.lock"
+    },
+    {
+      "blake3": "4c4a2f94a7f5f8f89a18dc8c0f911bd595c24fdf4cb6e79eed99ef66794b823f",
+      "path": "Cargo.toml"
+    },
+    {
+      "blake3": "5f8292b814af35e1ecbbabd6293d4fa68d7880c2f76e61ba0182e294ca5671e6",
+      "path": "cairn-policy/generated/cairn-policy.json"
+    },
+    {
+      "blake3": "47dd4dd3172e97862334fb2eab60f3c6c259d404f206b1e04b4a9205639f45ee",
+      "path": "config/fixtures/ucan-observation-positive.ncl"
+    },
+    {
+      "blake3": "e066f4884f4076c6952ea2c2d00432436e3b04b587da8c7a78b40341f035b148",
+      "path": "config/live-ci-workflow.ncl"
+    },
+    {
+      "blake3": "510b53c4324534585491a4b753473433957702644f472e3bc6e8e900b8288143",
+      "path": "config/onixos-ci-pilot-inputs.ncl"
+    },
+    {
+      "blake3": "e673b91f8ca4a08dbd9c088fee09245f6fc3cd8805cc56729cdc8197970c5eaf",
+      "path": "config/onixos-ci-pilot.ncl"
+    },
+    {
+      "blake3": "dc68e90d2e78009b16985c3eae89d066eedd68ca1d46caf7017a439822f17ecb",
+      "path": "crates/kiln-adapter-nix-eval/Cargo.toml"
+    },
+    {
+      "blake3": "794982bcd9d0d0dff47e0f7c85b06f8ac0705ee56e9d264e8b106d6534b53f74",
+      "path": "crates/kiln-adapter-nix-eval/src/adapter.rs"
+    },
+    {
+      "blake3": "74b660ad04efcb515499926126e65035824c549637d06bb73716800aff7a9134",
+      "path": "crates/kiln-adapter-nix-eval/src/bin/nix_eval_fixture.rs"
+    },
+    {
+      "blake3": "35b02874842596aa219aaa3d2152484b2e8bfb705bf0cc4c9c2bdc18061a6257",
+      "path": "crates/kiln-adapter-nix-eval/src/lib.rs"
+    },
+    {
+      "blake3": "4fb55b5795307629319bf8783db16fef418feaa142227c34e89b68b702fe2ad5",
+      "path": "crates/kiln-adapter-nix-eval/src/mapping.rs"
+    },
+    {
+      "blake3": "ea95695246d06d4d507f60a1db24070d12cb2cd230cdc93575e11999c1f00078",
+      "path": "crates/kiln-adapter-nix-eval/src/onix.rs"
+    },
+    {
+      "blake3": "eee0162d079f35baa2e9a9ab93ab0d87c573d0206967cf5f506e3ab582b736b0",
+      "path": "crates/kiln-adapter-nix-eval/src/onix_pins.rs"
+    },
+    {
+      "blake3": "bc7a884263230c0c65ce7dbf8057091df9cdafad96d5a7625fb17adf5e583da1",
+      "path": "crates/kiln-adapter-nix-eval/src/profile.rs"
+    },
+    {
+      "blake3": "34c1dd28ac8dab42d39c2fdc097fdc672fd51b63b7d76b4ecc73a0e53093419b",
+      "path": "crates/kiln-adapter-nix-eval/src/runtime.rs"
+    },
+    {
+      "blake3": "b7ee25931fcbaa1a8754719b8ce7ca1d3b6845eff62f693cb7d8ed92dacd5054",
+      "path": "crates/kiln-adapter-nix-eval/src/tests.rs"
+    },
+    {
+      "blake3": "ddc74dcbf09e16f0ec1b4687e353a4daa0768b1ef93c715bbbd2ce42e4a0fa02",
+      "path": "crates/kiln-adapter-nix-eval/src/wire.rs"
+    },
+    {
+      "blake3": "e74c0da654f59a04b0f2e692b4e46ecbbe4fd0cb9449ea32272eb3685cb3b07c",
+      "path": "crates/kiln-adapter-nix-eval/tests/fixture_process.rs"
+    },
+    {
+      "blake3": "149bc1c4130591f8d12a1a7538f7ef1eb0e995ce8918adcb676de36e9508af97",
+      "path": "crates/kiln-adapter-nix-eval/tests/onix_live.rs"
+    },
+    {
+      "blake3": "fb717ea1b935157d921715ca907327b42b194f8d4695e32982bb57f2cb11ce44",
+      "path": "crates/kiln-onixos-pilot/Cargo.toml"
+    },
+    {
+      "blake3": "c2c35aa2034e09bacb76e27a91b05d2ddfeca6dec2cd2b7ced8ef13521897211",
+      "path": "crates/kiln-onixos-pilot/src/auth.rs"
+    },
+    {
+      "blake3": "17642ea9cd1f2a6e76cbb5c9d1f24542c6a946be5312ad61a960c882eff45871",
+      "path": "crates/kiln-onixos-pilot/src/coordinator.rs"
+    },
+    {
+      "blake3": "4674c55450a552a757976de06ae22ad963aa238c60b2a50c89945518bb16661c",
+      "path": "crates/kiln-onixos-pilot/src/coordinator/tests.rs"
+    },
+    {
+      "blake3": "d7495f8e6ec3a06bc20839cf00443740ac81682ba8997948059711db53e73aea",
+      "path": "crates/kiln-onixos-pilot/src/lib.rs"
+    },
+    {
+      "blake3": "21be032381be4b727d993f85e8b486912c3ce6bf7f968ee9e99e5e7f2fe0f332",
+      "path": "crates/kiln-onixos-pilot/src/main.rs"
+    },
+    {
+      "blake3": "273cbefe4321d8cdba05cf7251db6e70d5a6fabf52cd4a047b66e7e7346aa7b6",
+      "path": "crates/kiln-onixos-pilot/src/observation.rs"
+    },
+    {
+      "blake3": "aaeef05b9dabfb8ad43b8c2bf8b616093f772010023da38715e037ba6f9c4ad7",
+      "path": "crates/kiln-onixos-pilot/src/probe.rs"
+    },
+    {
+      "blake3": "25bd62f2db83d32411c4368da1a72f2be4aba8d3c6be5fe7e86f982a0d9abc02",
+      "path": "crates/kiln-onixos-pilot/src/storage.rs"
+    },
+    {
+      "blake3": "178d57f1f0d61279be5f7d13e5085b4a33d2dc16dcdf4b4257b621e747ef039d",
+      "path": "crates/kiln-onixos-worker/Cargo.toml"
+    },
+    {
+      "blake3": "b1660ad683a5080219f5f1facf727475884a492371a339130e5ae2b4c13e3aca",
+      "path": "crates/kiln-onixos-worker/src/main.rs"
+    },
+    {
+      "blake3": "8acdca3cf6c7e0f0a1c58b5987cea231b2375f827793d588d733ed34de2c85f5",
+      "path": "crates/kiln-onixos-worker/src/runtime.rs"
+    },
+    {
+      "blake3": "e33a13a1d814c1d7cc6796b644d22c814c23c485464dc6ed67018448483b141b",
+      "path": "flake.lock"
+    },
+    {
+      "blake3": "96ee22f3eb8227ac219f306debc1830a609d73ba901457d1043294869ce40e9c",
+      "path": "flake.nix"
+    },
+    {
+      "blake3": "56e242544621076529d5a041465cf65279cfb2f138f54c2d0755ba8a59faded4",
+      "path": "runtime/onixos-ci-pilot/jobset.nix"
+    },
+    {
+      "blake3": "33fa2adb5accff04df02668d70f4e702e3329c34a1f4c42a91c94f2e768d6e2a",
+      "path": "rust-toolchain.toml"
+    },
+    {
+      "blake3": "a702abbdc348f5911af35807b8198cb7caef4b3dced9641565095b29935f038d",
+      "path": "scripts/onixos-ci-pilot.py"
+    },
+    {
+      "blake3": "5a7b5780ee1512e70b83928be9c3151540797cdc9e2f6b0c55fa1f15ffd5708c",
+      "path": "scripts/onixos_ci_closure.py"
+    },
+    {
+      "blake3": "ae6ff95fa9d2ca4341fe0a39b73fda0fc1e32eb014ba600b36b1a9ca936968d9",
+      "path": "scripts/test_onixos_ci_closure.py"
+    }
+  ],
+  "frozen_source": "/nix/store/8nkg77hajh60p3n5v7v1z895hsqjd20y-source",
+  "schema": "kiln.onixos-pilot.implementation-files.v1",
+  "scope": "Affected implementation and declared bootstrap inputs; later lifecycle receipts and documentation do not qualify another runtime cohort"
+}

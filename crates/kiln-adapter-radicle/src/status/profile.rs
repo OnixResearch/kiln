@@ -1,11 +1,12 @@
 use std::collections::BTreeSet;
 use std::path::PathBuf;
+use std::str::FromStr as _;
 
 use kiln_core::types::{Alias, Diagnostic, ExternalRef, ProviderProfileId};
 use kiln_provider_api::PortResult;
 use serde::{Deserialize, Serialize};
 
-pub const PINNED_PROFILE_ID: &str = "radicle-status-v1";
+pub const PINNED_PROFILE_ID: &str = "radicle-status-v2";
 pub const PINNED_PLATFORM: &str = "x86_64-linux";
 pub const PINNED_RADICLE_COHORT: &str =
     "radicle-cob-0.21.1-crypto-0.19.0-oid-0.2.2-ref-format-0.2.0-git2-0.21.0";
@@ -100,10 +101,12 @@ pub struct RadicleStatusProfile {
     pub secretspec_nixpkgs_revision: String,
     pub secretspec_license: String,
     pub radicle_license: String,
-    /// Admitted repository identities (`<RID>` without the `rad:` prefix).
+    /// Admitted repository identities, including the `rad:` wire prefix.
     pub allowed_rids: BTreeSet<String>,
     /// The single admitted COB type for status writes.
     pub allowed_object_type: String,
+    /// Public single-writer authority, available without resolving credentials.
+    pub signer_identity: ExternalRef,
     pub signer: SecretSpecDeclaration,
     pub executable: PinnedSecretSpecExecutable,
     pub max_payload_bytes: usize,
@@ -119,6 +122,7 @@ impl RadicleStatusProfile {
     #[allow(clippy::too_many_arguments)]
     pub fn pinned(
         allowed_rids: BTreeSet<String>,
+        signer_identity: ExternalRef,
         signer: SecretSpecDeclaration,
         executable: PinnedSecretSpecExecutable,
     ) -> Self {
@@ -146,6 +150,7 @@ impl RadicleStatusProfile {
             allowed_object_type: CI_JOB_TYPE_NAME.to_string(),
             max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
             max_objects_scanned: DEFAULT_MAX_OBJECTS_SCANNED,
+            signer_identity,
             signer,
             executable,
             allow_network_peers: false,
@@ -244,6 +249,9 @@ fn admit_profile_with_executable_policy(
         || profile.secretspec_nixpkgs_revision != PINNED_SECRETSPEC_NIXPKGS_REVISION
         || profile.secretspec_license != PINNED_SECRETSPEC_LICENSE
         || profile.radicle_license != PINNED_RADICLE_LICENSE
+        || profile.signer_identity.provider_namespace.as_str() != "radicle"
+        || profile.signer_identity.native_kind.as_str() != "node"
+        || radicle_crypto::PublicKey::from_str(profile.signer_identity.native_id.as_str()).is_err()
         || profile.allowed_object_type != CI_JOB_TYPE_NAME
         || profile.allowed_rids.is_empty()
         || profile.allowed_rids.len() > ABSOLUTE_MAX_RIDS

@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::str::FromStr;
 
 use cob_git2 as git2;
@@ -17,11 +18,12 @@ use kiln_radicle_source_contract::{
 };
 use radicle_core::RepoId;
 use radicle_crypto::PublicKey;
+use serde::{Deserialize, Serialize};
 
 use super::error::{domain, git_failure};
 use super::profile::{RadicleSourceProfile, admit_source_profile};
-use super::protocol::{parse_oid, reference_target, verify_signed_refs};
-use super::snapshot::acquire_snapshot;
+use super::protocol::{parse_oid, verify_signed_refs};
+use super::snapshot::{acquire_snapshot, materialize_snapshot};
 
 const REPOSITORY_FORMAT_VERSION: i64 = 0;
 
@@ -34,7 +36,8 @@ pub struct RadicleSourceShell {
     expected_revision: Oid,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RadicleSourceResult {
     pub resolution: SourceResolution,
     pub receipt: SourceReceipt,
@@ -129,13 +132,28 @@ impl RadicleSourceShell {
         )
     }
 
-    fn execute(&self) -> PortResult<(RadicleSourceResult, Vec<u8>)> {
+    fn execute(
+        &self,
+        materializable: bool,
+        destination: Option<&Path>,
+    ) -> PortResult<(RadicleSourceResult, Vec<u8>)> {
         let admitted = admit_source_profile(&self.profile)?;
         let repository = self.open()?;
         self.inspect_repository(&repository)?;
         let verified = self.verify(&repository)?;
-        let snapshot = acquire_snapshot(&self.profile, &repository, verified.signed_revision)?;
-        let observed_after = reference_target(&repository, &verified.namespaced_reference)?;
+        let snapshot = acquire_snapshot(
+            &self.profile,
+            &repository,
+            verified.signed_revision,
+            materializable,
+        )?;
+        let checkout = destination
+            .map(|path| materialize_snapshot(&snapshot, path))
+            .transpose()?;
+        // Revalidate signed branch, namespace, RID and exact sigrefs after acquisition
+        // and any writes. Immutable blobs already acquired need not be read again.
+        let after = self.verify(&repository)?;
+        let observed_after = after.sigrefs_commit;
         if observed_after != verified.sigrefs_commit {
             return Err(domain(
                 "radicle_source_reference_moved",
@@ -219,6 +237,9 @@ impl RadicleSourceShell {
             }),
         };
         validate_resolution(&resolution)?;
+        if let Some(checkout) = checkout {
+            checkout.retain();
+        }
         Ok((
             RadicleSourceResult {
                 resolution,
@@ -230,7 +251,20 @@ impl RadicleSourceShell {
 
     // r[impl kiln.radicle.shell_source]
     pub fn resolve_and_acquire(&self) -> PortResult<RadicleSourceResult> {
-        self.execute().map(|(result, _manifest)| result)
+        self.execute(false, None).map(|(result, _manifest)| result)
+    }
+
+    /// Verify all checkout restrictions before dispatch, without writing a checkout.
+    // r[impl kiln.radicle_ci.source]
+    pub fn resolve_for_materialization(&self) -> PortResult<RadicleSourceResult> {
+        self.execute(true, None).map(|(result, _manifest)| result)
+    }
+
+    /// Materialize only this exact pinned source into a new private checkout.
+    // r[impl kiln.radicle_ci.source]
+    pub fn materialize(&self, destination: &Path) -> PortResult<RadicleSourceResult> {
+        self.execute(true, Some(destination))
+            .map(|(result, _manifest)| result)
     }
 }
 
@@ -303,6 +337,7 @@ impl SourceRepositoryPort for RadicleSourceShell {
                 "Radicle source acquisition request differs from the exact revision",
             ));
         }
-        self.execute().map(|(_result, manifest)| manifest)
+        self.execute(false, None)
+            .map(|(_result, manifest)| manifest)
     }
 }

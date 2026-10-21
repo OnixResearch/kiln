@@ -54,6 +54,16 @@ pub fn init(
     directory: &Path,
 ) -> Result<()> {
     let (record, state) = crate::coordinator::load_replayed(profile, journal)?;
+    init_for_run(template, &state, &record.request.request.run_id, directory)
+}
+
+/// Initializes isolated observation credentials for an existing canonical run.
+pub fn init_for_run(
+    template: &Path,
+    state: &kiln_core::domain::State,
+    run_id: &kiln_core::RunId,
+    directory: &Path,
+) -> Result<()> {
     let mut http: HttpObservationProfile = load_json(template, MAX_CONFIG_BYTES)?;
     let issuer_seed = random_seed()?;
     let holder_seed = random_seed()?;
@@ -73,14 +83,14 @@ pub fn init(
     http.auth.principal = issuer_did.clone();
     http.auth.issuer = issuer_did;
     http.auth.holder_keys = vec![holder_did];
-    http.auth.resource = format!("kiln:observe:{}", record.request.request.run_id.as_str());
+    http.auth.resource = format!("kiln:observe:{}", run_id.as_str());
     http.auth.ability = INVOCATION_ABILITY.into();
     http.auth.operation_profile = UCAN_OBSERVATION_OPERATION_PROFILE.into();
     http.auth.proof_tokens.clear();
     http.auth.revoked_proof_references.clear();
     // Limits remain explicit template policy, never silently widened to fit a credential.
     crate::observation::admit_loopback(&http)?;
-    if !state.runs.contains_key(&record.request.request.run_id) {
+    if !state.runs.contains_key(run_id) {
         return Err("replayed run missing".into());
     }
     crate::storage::private_directory(directory)?;
@@ -314,6 +324,22 @@ fn denied(status: u16) -> Result<u16> {
 // r[impl kiln.onixos_pilot.observation]
 // r[impl kiln.onixos_pilot.failure]
 pub fn run(profile: &PilotProfile, journal_path: &Path, directory: &Path) -> Result<ProbeReport> {
+    let (journal, state) = crate::coordinator::load_replayed(profile, journal_path)?;
+    run_for_attempt(
+        &state,
+        &journal.request.request.run_id,
+        &journal.request.request.attempt_id,
+        directory,
+    )
+}
+
+/// Exercises authenticated views and denial cases against one replayed attempt.
+pub fn run_for_attempt(
+    state: &kiln_core::domain::State,
+    run_id: &kiln_core::RunId,
+    attempt_id: &kiln_core::AttemptId,
+    directory: &Path,
+) -> Result<ProbeReport> {
     let http: HttpObservationProfile = load_json(&directory.join("http.json"), MAX_CONFIG_BYTES)?;
     crate::observation::admit_loopback(&http)?;
     let credentials: Credentials =
@@ -321,15 +347,12 @@ pub fn run(profile: &PilotProfile, journal_path: &Path, directory: &Path) -> Res
     let issuer = Ed25519InMemorySigner::from_seed_bytes(seed(&credentials.issuer_seed)?);
     let holder = Ed25519InMemorySigner::from_seed_bytes(seed(&credentials.holder_seed)?);
     let wrong = Ed25519InMemorySigner::from_seed_bytes(random_seed()?);
-    let (journal, state) = crate::coordinator::load_replayed(profile, journal_path)?;
-    let run_id = journal.request.request.run_id.clone();
-    let attempt_id = journal.request.request.attempt_id.clone();
     let run_target = format!("/v1/views/runs/{}", run_id.as_str());
     let attempt_target = format!("/v1/views/attempts/{}", attempt_id.as_str());
     let view = |request| {
         project_observation(
             &http.core,
-            &state,
+            state,
             &ObservationRequest {
                 state_revision: state.revision,
                 view: request,
@@ -341,7 +364,9 @@ pub fn run(profile: &PilotProfile, journal_path: &Path, directory: &Path) -> Res
     let run_view = view(ViewRequest::RunDetail {
         run_id: run_id.clone(),
     })?;
-    let attempt_view = view(ViewRequest::AttemptDetail { attempt_id })?;
+    let attempt_view = view(ViewRequest::AttemptDetail {
+        attempt_id: attempt_id.clone(),
+    })?;
     let token = token(&issuer, &holder, &http, now_unix()?)?;
     let authorization = header(&http, &holder, &token, &run_target, state.revision)?;
     exchange(&http, &run_target, &authorization, Some(&run_view))?;
@@ -360,7 +385,7 @@ pub fn run(profile: &PilotProfile, journal_path: &Path, directory: &Path) -> Res
     let wrong_holder_status = denied(exchange(&http, &run_target, &wrong_authorization, None)?)?;
     let canonical_run_outcome = state
         .runs
-        .get(&run_id)
+        .get(run_id)
         .ok_or("replayed run missing")?
         .outcome;
     Ok(ProbeReport {

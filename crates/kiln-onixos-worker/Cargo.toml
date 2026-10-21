@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 blake3.workspace = true
+bounded-exec.workspace = true
 fs2.workspace = true
 kiln-adapter-nix.workspace = true
 kiln-adapter-nix-eval.workspace = true
@@ -15,6 +16,9 @@ kiln-core.workspace = true
 kiln-nix-build.workspace = true
 kiln-onixos-pilot.workspace = true
 kiln-provider-api.workspace = true
+kiln-adapter-radicle.workspace = true
+kiln-radicle-ci.workspace = true
+kiln-radicle-source-contract.workspace = true
 libc = "0.2.189"
 serde.workspace = true
 serde_json.workspace = true

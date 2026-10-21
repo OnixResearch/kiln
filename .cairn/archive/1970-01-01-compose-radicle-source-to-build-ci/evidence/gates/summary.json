@@ -1,0 +1,33 @@
+{
+  "workspace": {
+    "passed": 593,
+    "failed": 0,
+    "ignored": 3
+  },
+  "nix_check_count": 34,
+  "strict_host_clippy": "pass",
+  "native_success_failure_uncertainty": "pass",
+  "native_credentials_and_services_retired": true,
+  "lifecycle": {
+    "archive_directory": ".cairn/archive/1970-01-01-compose-radicle-source-to-build-ci",
+    "accepted_spec": ".cairn/specs/radicle-ci-composition/spec.md",
+    "archive_receipt_hash": "9d77d764793aa178adf76e1fff066d13df958328914214baff188bf191fce222",
+    "validation": "gates/validate-after-closeout.json",
+    "traceability": "gates/traceability-after-closeout.json",
+    "readiness": "gates/readiness-after-closeout.json",
+    "valid": true,
+    "remaining_active_changes": 0,
+    "onix_release_ready": false
+  },
+  "verification": "../verification.json",
+  "non_claims": [
+    "isolated signed-source fixture, not production source trust",
+    "real cibtool producer command, not a live remote Radicle delivery",
+    "no remote status synchronization, activation, deployment or release authority",
+    "bounded execution is not sandboxing or hermeticity",
+    "aarch64-linux checks were not exercised",
+    "source import and root registration are separate native operations, not an atomic GC guarantee",
+    "local Cairn readiness does not establish Onix release readiness or grant remote publication authority",
+    "Nix checks preceded accepted-spec synchronization and evidence-only closeout; runtime source was unchanged afterward"
+  ]
+}

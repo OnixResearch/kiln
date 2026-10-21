@@ -1,0 +1,103 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts",
+        "-p",
+        "test_onixos_ci_closure.py",
+        "-v"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "preparation_and_native_absence_regressions",
+      "started_at": "2026-10-21T01:44:09.214380+00:00",
+      "stderr": "test_missing_or_substituted_native_identity_is_rejected (test_onixos_ci_closure.ConsumerOutputObservation.test_missing_or_substituted_native_identity_is_rejected) ... ok\ntest_native_null_is_absent_but_metadata_or_a_physical_path_is_present (test_onixos_ci_closure.ConsumerOutputObservation.test_native_null_is_absent_but_metadata_or_a_physical_path_is_present) ... ok\ntest_aliased_or_multi_output_artifacts_are_rejected (test_onixos_ci_closure.PreparationAdmission.test_aliased_or_multi_output_artifacts_are_rejected) ... ok\ntest_disconnected_generated_output_is_not_a_launcher_closure (test_onixos_ci_closure.PreparationAdmission.test_disconnected_generated_output_is_not_a_launcher_closure) ... ok\ntest_indirect_consumer_derivation_or_output_cannot_be_prepared (test_onixos_ci_closure.PreparationAdmission.test_indirect_consumer_derivation_or_output_cannot_be_prepared) ... ok\ntest_missing_duplicate_or_errored_artifacts_fail_closed (test_onixos_ci_closure.PreparationAdmission.test_missing_duplicate_or_errored_artifacts_fail_closed) ... ok\ntest_shared_external_inputs_are_prepared_without_consumer_builds (test_onixos_ci_closure.PreparationAdmission.test_shared_external_inputs_are_prepared_without_consumer_builds) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.000s\n\nOK\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-c-success",
+        "--case",
+        "success"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_success",
+      "started_at": "2026-10-21T01:44:11.926936+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 650, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 641, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 550, in execute\n    construction = self.inspect_consumer(load(self.root / \"provisioning.json\")[\"preparation_plan\"], result)\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 225, in inspect_consumer\n    raise ValueError(\"generated Git configuration differs from the bound consumer input\")\nValueError: generated Git configuration differs from the bound consumer input\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-c-build-failure",
+        "--case",
+        "build-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_build-failure",
+      "started_at": "2026-10-21T01:44:11.927318+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 650, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 641, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 550, in execute\n    construction = self.inspect_consumer(load(self.root / \"provisioning.json\")[\"preparation_plan\"], result)\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py\", line 230, in inspect_consumer\n    admit_preparation_closure(plan, [item[\"path\"] for item in after.values() if item[\"present\"]])\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos_ci_closure.py\", line 33, in admit_preparation_closure\n    raise ValueError(\"preparation reaches consumer construction: \" + \", \".join(sorted(overlap)))\nValueError: preparation reaches consumer construction: /nix/store/snlw08s8s2qlnamhg64xi5vd2d48d92l-onix-home-files-workstation-alice\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-c-evaluation-failure",
+        "--case",
+        "evaluation-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "actual_evaluation-failure",
+      "started_at": "2026-10-21T01:44:11.927494+00:00",
+      "stderr": "",
+      "stdout": "{\n  \"case\": \"evaluation-failure\",\n  \"canonical_outcome\": \"ProviderError\",\n  \"operation_id\": {\n    \"contract_version\": 1,\n    \"provider_namespace\": \"molten\",\n    \"native_kind\": \"service-operation-blake3\",\n    \"native_id\": \"98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d\"\n  },\n  \"journal_identity\": \"61ff2f3e051be9e4c5747858cb56e92341346edfe284cd7b9ee3bc05046af5f6\"\n}\n"
+    }
+  ],
+  "source": {
+    "argv": [
+      "nix",
+      "flake",
+      "archive",
+      "--json",
+      "--no-write-lock-file",
+      "path:/home/brittonr/git/OnixResearch/kiln"
+    ],
+    "cwd": "/home/brittonr/git/OnixResearch/kiln",
+    "exit_code": 0,
+    "name": "materialize_runtime_source_c",
+    "started_at": "2026-10-21T01:44:09.265776+00:00",
+    "stderr": "",
+    "stdout": "{\"inputs\":{\"nix-eval-jobs\":{\"inputs\":{\"flake-parts\":{\"inputs\":{},\"path\":\"/nix/store/pqjppkj5kcs4001j5svlsz1595hcja0y-source\"},\"nix\":{\"inputs\":{},\"path\":\"/nix/store/mxqs2kx71n63lrrc1cgh037q9f862r3y-source\"},\"nixpkgs\":{\"inputs\":{},\"path\":\"/nix/store/qs19c087rpasj7p8h8l8z8y80gxz9pwi-source\"},\"treefmt-nix\":{\"inputs\":{},\"path\":\"/nix/store/j2wzjpy3yyr56yv1klygrm7mya0kb2f0-source\"}},\"path\":\"/nix/store/xx7385j23r97ra2x4j9mdh6lcs4pnwcq-source\"},\"nixpkgs\":{\"inputs\":{},\"path\":\"/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source\"},\"rust-overlay\":{\"inputs\":{},\"path\":\"/nix/store/gjx3mziwj0g4azg30z4irhkl8jsw8y26-source\"}},\"path\":\"/nix/store/dykfyrr2ricl89pawcm2x0gxir9vafqw-source\"}\n"
+  }
+}

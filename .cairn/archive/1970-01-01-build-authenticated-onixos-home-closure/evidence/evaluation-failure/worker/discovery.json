@@ -1,0 +1,37 @@
+{
+  "effect_id": "pilot-discovery-b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+  "evaluation_id": "pilot-evaluation-b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+  "project_id": "onixos-home-application",
+  "pipeline_revision_id": "pilot-pipeline-b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+  "discovery_policy_id": "onixos-explicit-cohort-v1",
+  "provider_profile": "onix-nix-eval-v1",
+  "idempotency_key": "b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+  "source_identity": "62192bc6ad9089817391aba19424cc3edefc141a7a854622254deee2e564a957",
+  "observation_identity": "606762d1838cc267dfa211f1ef2315a6ea29f11691f1619c4f53407a080bbdcf",
+  "terminal": "ProviderError",
+  "jobs": [],
+  "job_errors": [],
+  "tasks": [],
+  "completion": {
+    "stream_complete": true,
+    "stream_valid": true,
+    "stderr_within_bound": true,
+    "gc_roots_ready": true,
+    "fatal_job_error": false,
+    "process": {
+      "Exited": {
+        "status": 1
+      }
+    }
+  },
+  "gc_roots": {
+    "directory": {
+      "contract_version": 1,
+      "provider_namespace": "nix",
+      "native_kind": "gc-root-directory",
+      "native_id": "/var/tmp/kfc-e-evaluation-failure/eval-roots/50a3cc9f49f2ea050433e0bb299dce5da743b090da622361bb9924b2be99811c"
+    },
+    "derivations": [],
+    "state": "Retained"
+  }
+}

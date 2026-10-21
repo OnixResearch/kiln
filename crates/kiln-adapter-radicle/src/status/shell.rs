@@ -54,6 +54,7 @@ impl std::fmt::Debug for RadicleStatusShell {
 #[serde(deny_unknown_fields)]
 pub struct StatusWriteObservation {
     pub repository: ExternalRef,
+    pub revision: ExternalRef,
     pub object_id: ExternalRef,
     pub head: ExternalRef,
     pub run_id: String,
@@ -68,6 +69,7 @@ pub struct StatusWriteObservation {
 #[serde(deny_unknown_fields)]
 pub struct StatusUnknownObservation {
     pub repository: ExternalRef,
+    pub revision: ExternalRef,
     pub object_id: Option<ExternalRef>,
     pub run_id: String,
     pub idempotency_key: String,
@@ -146,12 +148,11 @@ impl RadicleStatusShell {
     // r[impl kiln.radicle.status_allowlist.scenario.admitted]
     // r[impl kiln.radicle.status_allowlist.scenario.foreign]
     // r[impl kiln.radicle.shell_status.scenario.unknown]
+    // r[impl kiln.radicle_ci.status]
     pub fn publish(&self, plan: &StatusPlan, reason: &str) -> PortResult<StatusDispatch> {
         self.admit_plan(plan)?;
         let contents = self.status_contents(plan)?;
-        let signer = self.resolver.resolve(reason)?;
-        let signer_identity = signer_identity(&signer)?;
-        let namespace = public_key_of(&signer)?;
+        let signer_identity = self.profile.signer_identity.clone();
         let opened = self.open_repository(&plan.repository)?;
         let repo = opened.repository();
         let repository = GitCobStore::new(repo);
@@ -163,8 +164,13 @@ impl RadicleStatusShell {
             projected: Some(projected),
         } = &target
         {
-            admit_idempotent_replay(plan, &projected.run_id, projected.outcome)
-                .map_err(PortFailure::Domain)?;
+            admit_idempotent_replay(
+                plan,
+                &projected.run_id,
+                &projected.revision,
+                projected.outcome,
+            )
+            .map_err(PortFailure::Domain)?;
             return Ok(StatusDispatch::Written(write_observation(
                 plan,
                 *object_id,
@@ -174,6 +180,15 @@ impl RadicleStatusShell {
         }
 
         admit_planned_head(plan, &target)?;
+        let signer = self.resolver.resolve(reason)?;
+        if signer_identity != resolved_signer_identity(&signer)? {
+            return Err(PortFailure::Domain(Diagnostic::new(
+                "radicle_status_signer_mismatch",
+                "radicle_status.signer_identity",
+                "Resolved SecretSpec signer differs from the admitted public signer identity",
+            )));
+        }
+        let namespace = public_key_of(&signer)?;
         let type_name = CiJobStatus::type_name_static().clone();
         let message = format!("kiln status {}", plan.idempotency_key.native_id.as_str());
         match target {
@@ -245,15 +260,11 @@ impl RadicleStatusShell {
         }
     }
 
-    /// Re-read one accepted write. This operation never redispatches.
-    pub fn reconcile(
-        &self,
-        plan: &StatusPlan,
-        reason: &str,
-    ) -> PortResult<Option<StatusWriteObservation>> {
+    /// Re-read one accepted write without resolving credentials or redispatching.
+    // r[impl kiln.radicle_ci.status]
+    pub fn reconcile(&self, plan: &StatusPlan) -> PortResult<Option<StatusWriteObservation>> {
         self.admit_plan(plan)?;
-        let signer = self.resolver.resolve(reason)?;
-        let signer_identity = signer_identity(&signer)?;
+        let signer_identity = self.profile.signer_identity.clone();
         let opened = self.open_repository(&plan.repository)?;
         let repo = opened.repository();
         let repository = GitCobStore::new(repo);
@@ -270,8 +281,13 @@ impl RadicleStatusShell {
                 current_head,
                 projected: Some(projected),
             } => {
-                admit_idempotent_replay(plan, &projected.run_id, projected.outcome)
-                    .map_err(PortFailure::Domain)?;
+                admit_idempotent_replay(
+                    plan,
+                    &projected.run_id,
+                    &projected.revision,
+                    projected.outcome,
+                )
+                .map_err(PortFailure::Domain)?;
                 Ok(Some(write_observation(
                     plan,
                     object_id,
@@ -313,7 +329,7 @@ impl RadicleStatusShell {
             }
             admit_single_writer_heads(&observed, signer_identity).map_err(PortFailure::Domain)?;
             let current_head = observed_head_id(&observed)?;
-            let projected = read_projected(repository, plan, object_id)?;
+            let projected = read_projected(repository, plan, object_id, current_head)?;
             return Ok(TargetState::Existing {
                 object_id,
                 current_head,
@@ -329,7 +345,8 @@ impl RadicleStatusShell {
         for object_id in object_ids {
             let observed = read_heads(repository, object_id)?;
             admit_single_writer_heads(&observed, signer_identity).map_err(PortFailure::Domain)?;
-            let projected = read_projected(repository, plan, object_id)?;
+            let current_head = observed_head_id(&observed)?;
+            let projected = read_projected(repository, plan, object_id, current_head)?;
             if let Some(projected) = projected {
                 if matched.is_some() {
                     return Err(PortFailure::Domain(Diagnostic::new(
@@ -340,7 +357,7 @@ impl RadicleStatusShell {
                 }
                 matched = Some(TargetState::Existing {
                     object_id,
-                    current_head: observed_head_id(&observed)?,
+                    current_head,
                     projected: Some(projected),
                 });
             }
@@ -349,9 +366,10 @@ impl RadicleStatusShell {
     }
 
     fn status_contents(&self, plan: &StatusPlan) -> PortResult<Contents> {
-        let action = CiJobAction::Project {
+        let action = CiJobAction::ProjectRevision {
             key: plan.idempotency_key.native_id.as_str().to_string(),
             run_id: plan.run_id.as_str().to_string(),
+            revision: plan.revision.clone(),
             outcome: plan.outcome,
         };
         let payload = serde_json::to_vec(&action).map_err(|_| {
@@ -372,7 +390,7 @@ impl RadicleStatusShell {
     }
 
     fn open_repository(&self, repository: &ExternalRef) -> PortResult<OpenedRepository> {
-        let rid = repository.native_id.as_str();
+        let rid = repository.native_id.as_str().trim_start_matches("rad:");
         let path = self.storage_root.join(rid);
         let repository = git2::Repository::open(&path).map_err(|error| {
             PortFailure::Infrastructure(InfrastructureFailure {
@@ -407,11 +425,33 @@ fn read_projected(
     repository: &GitCobStore<'_>,
     plan: &StatusPlan,
     object_id: ObjectId,
+    current_head: Oid,
 ) -> PortResult<Option<ProjectedOutcome>> {
     let type_name = CiJobStatus::type_name_static();
     let object = collaboration::get::<CiJobStatus, GitCobStore>(repository, type_name, &object_id)
         .map_err(retrieve_failure)?;
-    Ok(object.and_then(|entry| entry.object().projected(plan).cloned()))
+    let object = object.ok_or_else(|| {
+        PortFailure::Domain(Diagnostic::new(
+            "radicle_status_history_invalid",
+            "radicle_status.action",
+            "The current ci-job object could not be reduced under the revision-bearing schema",
+        ))
+    })?;
+    // The native reducer prunes invalid non-root actions instead of returning an
+    // error. Never mistake an older surviving projection for the current head.
+    if !object
+        .history()
+        .tips()
+        .iter()
+        .eq(std::iter::once(&current_head))
+    {
+        return Err(PortFailure::Domain(Diagnostic::new(
+            "radicle_status_history_invalid",
+            "radicle_status.action",
+            "The current ci-job head contains incompatible or conflicting history",
+        )));
+    }
+    Ok(object.object().projected(plan).cloned())
 }
 
 fn read_heads(repository: &GitCobStore<'_>, object_id: ObjectId) -> PortResult<ObservedHeads> {
@@ -477,6 +517,7 @@ fn write_observation(
 ) -> PortResult<StatusWriteObservation> {
     Ok(StatusWriteObservation {
         repository: plan.repository.clone(),
+        revision: plan.revision.clone(),
         object_id: object_external_ref(object_id)?,
         head: head_external_ref(head)?,
         run_id: plan.run_id.as_str().to_string(),
@@ -493,6 +534,7 @@ fn unknown_observation(
     let object_id = object_id.map(object_external_ref).transpose()?;
     Ok(StatusUnknownObservation {
         repository: plan.repository.clone(),
+        revision: plan.revision.clone(),
         object_id,
         run_id: plan.run_id.as_str().to_string(),
         idempotency_key: plan.idempotency_key.native_id.as_str().to_string(),
@@ -509,7 +551,7 @@ fn head_external_ref(head: Oid) -> PortResult<ExternalRef> {
     ExternalRef::new("radicle", "head", &native_id).map_err(PortFailure::Domain)
 }
 
-fn signer_identity(signer: &ResolvedSigner) -> PortResult<ExternalRef> {
+fn resolved_signer_identity(signer: &ResolvedSigner) -> PortResult<ExternalRef> {
     ExternalRef::new("radicle", "node", signer.public_key()).map_err(PortFailure::Domain)
 }
 

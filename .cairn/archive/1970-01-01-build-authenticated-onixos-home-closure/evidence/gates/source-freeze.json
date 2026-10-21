@@ -1,0 +1,33 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "nixfmt",
+        "flake.nix",
+        "runtime/onixos-ci-pilot/jobset.nix"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "nixfmt_changed_files",
+      "started_at": "2026-10-21T01:40:03.299374+00:00",
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "nix",
+        "flake",
+        "metadata",
+        "--json",
+        "--no-write-lock-file",
+        "path:/home/brittonr/git/OnixResearch/kiln"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "freeze_runtime_source",
+      "started_at": "2026-10-21T01:40:03.310068+00:00",
+      "stderr": "",
+      "stdout": "{\"description\":\"Kiln provider-neutral CI control plane\",\"fingerprint\":\"6264ee58e140cc6080c20163cc720a1d45c65e598a20e973e1ff07733ec266fb\",\"lastModified\":1792546803,\"locked\":{\"__final\":true,\"lastModified\":1792546803,\"narHash\":\"sha256-NfwYADyopusiokRUa+Qd5H/4ZjJeMGOZvzwQpI7nUf8=\",\"path\":\"/home/brittonr/git/OnixResearch/kiln\",\"type\":\"path\"},\"locks\":{\"nodes\":{\"flake-parts\":{\"inputs\":{\"nixpkgs-lib\":[\"nix-eval-jobs\",\"nixpkgs\"]},\"locked\":{\"lastModified\":1765835352,\"narHash\":\"sha256-XswHlK/Qtjasvhd1nOa1e8MgZ8GS//jBoTqWtrS1Giw=\",\"owner\":\"hercules-ci\",\"repo\":\"flake-parts\",\"rev\":\"a34fae9c08a15ad73f295041fec82323541400a9\",\"type\":\"github\"},\"original\":{\"owner\":\"hercules-ci\",\"repo\":\"flake-parts\",\"type\":\"github\"}},\"nix\":{\"flake\":false,\"locked\":{\"lastModified\":1783987836,\"narHash\":\"sha256-UkRzz0meYeuSQt5rQodwfiSe1If+5JojDP7Kxk0beXM=\",\"owner\":\"NixOS\",\"repo\":\"nix\",\"rev\":\"aa2613fa02ca6199fe0ebf61a0f7f6d781d32a47\",\"type\":\"github\"},\"original\":{\"owner\":\"NixOS\",\"ref\":\"2.35-maintenance\",\"repo\":\"nix\",\"type\":\"github\"}},\"nix-eval-jobs\":{\"inputs\":{\"flake-parts\":\"flake-parts\",\"nix\":\"nix\",\"nixpkgs\":\"nixpkgs\",\"treefmt-nix\":\"treefmt-nix\"},\"locked\":{\"lastModified\":1784200986,\"narHash\":\"sha256-/C5wyGYe4uMKKH26vy3knpwP/hvjOHO/58cySL8ADC4=\",\"owner\":\"NixOS\",\"repo\":\"nix-eval-jobs\",\"rev\":\"a0cd02231c58974a6b5aaa3712069b071047162e\",\"type\":\"github\"},\"original\":{\"owner\":\"NixOS\",\"repo\":\"nix-eval-jobs\",\"rev\":\"a0cd02231c58974a6b5aaa3712069b071047162e\",\"type\":\"github\"}},\"nixpkgs\":{\"locked\":{\"lastModified\":1767026758,\"narHash\":\"sha256-OuZZ71OA/6fZePPqgVinI4QVu9j1QCt+Q9i5ZgmSGqI=\",\"rev\":\"346dd96ad74dc4457a9db9de4f4f57dab2e5731d\",\"type\":\"tarball\",\"url\":\"https://releases.nixos.org/nixpkgs/nixpkgs-26.05pre918255.346dd96ad74d/nixexprs.tar.xz\"},\"original\":{\"type\":\"tarball\",\"url\":\"https://nixos.org/channels/nixpkgs-unstable/nixexprs.tar.xz\"}},\"nixpkgs_2\":{\"locked\":{\"lastModified\":1785967620,\"narHash\":\"sha256-IItrdb7Puk05RqOBWZYFC5X6Wl1sJmCfh5MWVHw5iMM=\",\"owner\":\"NixOS\",\"repo\":\"nixpkgs\",\"rev\":\"b7c2ada94fe99c15b0dbcf4d11fd7850b957a436\",\"type\":\"github\"},\"original\":{\"owner\":\"NixOS\",\"ref\":\"nixos-unstable\",\"repo\":\"nixpkgs\",\"type\":\"github\"}},\"root\":{\"inputs\":{\"nix-eval-jobs\":\"nix-eval-jobs\",\"nixpkgs\":\"nixpkgs_2\",\"rust-overlay\":\"rust-overlay\"}},\"rust-overlay\":{\"inputs\":{\"nixpkgs\":[\"nixpkgs\"]},\"locked\":{\"lastModified\":1786160316,\"narHash\":\"sha256-oLoc3ZLg1LX/S5Jb3v6MrF415AzDyC4vgeWy9UcYTQk=\",\"owner\":\"oxalica\",\"repo\":\"rust-overlay\",\"rev\":\"4e1c940c96560ceab7c547f89642231371a66646\",\"type\":\"github\"},\"original\":{\"owner\":\"oxalica\",\"repo\":\"rust-overlay\",\"type\":\"github\"}},\"treefmt-nix\":{\"inputs\":{\"nixpkgs\":[\"nix-eval-jobs\",\"nixpkgs\"]},\"locked\":{\"lastModified\":1766000401,\"narHash\":\"sha256-+cqN4PJz9y0JQXfAK5J1drd0U05D5fcAGhzhfVrDlsI=\",\"owner\":\"numtide\",\"repo\":\"treefmt-nix\",\"rev\":\"42d96e75aa56a3f70cab7e7dc4a32868db28e8fd\",\"type\":\"github\"},\"original\":{\"owner\":\"numtide\",\"repo\":\"treefmt-nix\",\"type\":\"github\"}}},\"root\":\"root\",\"version\":7},\"original\":{\"path\":\"/home/brittonr/git/OnixResearch/kiln\",\"type\":\"path\"},\"originalUrl\":\"path:/home/brittonr/git/OnixResearch/kiln\",\"path\":\"/nix/store/mm25cia4jn9i5m04s94ld6f0234snqch-source\",\"resolved\":{\"path\":\"/home/brittonr/git/OnixResearch/kiln\",\"type\":\"path\"},\"resolvedUrl\":\"path:/home/brittonr/git/OnixResearch/kiln\",\"url\":\"path:/home/brittonr/git/OnixResearch/kiln?lastModified=1792546803&narHash=sha256-NfwYADyopusiokRUa%2BQd5H/4ZjJeMGOZvzwQpI7nUf8%3D\"}\n"
+    }
+  ]
+}

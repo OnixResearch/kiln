@@ -1,0 +1,746 @@
+{
+  "files": [
+    {
+      "blake3": "2f0550ce7e0ce74b9071180708df76c89d562723ebf2e28a4358a2fa74fe5a7a",
+      "path": "success/admitted-inputs.ncl"
+    },
+    {
+      "blake3": "b65772a3897fa84c2fefb06959e72c88c6270fbc54d9e69b08713a98a4f464bf",
+      "path": "success/aspen.json"
+    },
+    {
+      "blake3": "5ffa90acd48bf48f2310f15d7550072c63b957d196ca4a30cebd88ab8f89ea6b",
+      "path": "success/before-dispatch.json"
+    },
+    {
+      "blake3": "d887eb04fa3c931f779067a5557a2a9ae6d334072ed9c187a6bd4e7040eb3ee1",
+      "path": "success/cohort.json"
+    },
+    {
+      "blake3": "dbbef3951d7fe5893d08a1e55caaa087136ae72c4cc3900a0d1bcc5e885b4570",
+      "path": "success/eval-profile.json"
+    },
+    {
+      "blake3": "515effd59cf7b6beb1a766c99eaf0a8308ba5be8907a4c9856731fe1b19fbc81",
+      "path": "success/eval-selection.json"
+    },
+    {
+      "blake3": "287295d326a174fc4e37687385b926f24dcadedcb81f3a73a12a62d2c63c4c02",
+      "path": "success/handler-checked.ncl"
+    },
+    {
+      "blake3": "cd16d4e7deece8b699f1967814aeafeda87e962c5f053dab9337dfbd1db1b225",
+      "path": "success/handler.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "success/host-first.log"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "success/host-restarted.log"
+    },
+    {
+      "blake3": "d3163dd81cae465ad5ef264ce14d81c7dddd19e17e3a442649abe0e6d2c1269d",
+      "path": "success/http-template.json"
+    },
+    {
+      "blake3": "11932539734c275a1e8a6e86f90590cc988324294945ce990b05274bdeeaafbd",
+      "path": "success/http-template.ncl"
+    },
+    {
+      "blake3": "f3214c5acae05e3f329577befd0d5145c8df928bacd2ee28c6cdddbe71e2edff",
+      "path": "success/inputs.json"
+    },
+    {
+      "blake3": "cf9b4f261da82586127f1af3b3b877eddd30cf8128f1341fcc7887f86f5633a5",
+      "path": "success/job.json"
+    },
+    {
+      "blake3": "cb0f9f3b10ff2d091ab28060e43311bf4b9432b897725d9cf8a56190ce84cbd8",
+      "path": "success/jobset/flake.lock"
+    },
+    {
+      "blake3": "a3a1c009d1117b74ba2cb3a0bf19fe863f87403944a431c6f4c2e0094fbdea5f",
+      "path": "success/jobset/flake.nix"
+    },
+    {
+      "blake3": "56e242544621076529d5a041465cf65279cfb2f138f54c2d0755ba8a59faded4",
+      "path": "success/jobset/jobset.nix"
+    },
+    {
+      "blake3": "ae3a4196c41221397268da61aaf672b2c80c5688730a63977b4b32b382ba9f9a",
+      "path": "success/journal.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "success/lattice.log"
+    },
+    {
+      "blake3": "a1c9a895b58da261b38ac0fffa6d06efcc2289bf6488d018507a3767be0997af",
+      "path": "success/lattice.ncl"
+    },
+    {
+      "blake3": "24234af97f4be779d4e2a19cbc4756170d21722de8bc88213eda4624391b8dc5",
+      "path": "success/native-request.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "success/observation.log"
+    },
+    {
+      "blake3": "25eeaa12866671b4d5c35fea04ff978463b885c96316eec6da563b617d424c86",
+      "path": "success/operator.public.json"
+    },
+    {
+      "blake3": "317b86252effb0af355c4e1f5d0cd75321f76d479b0729e1ef48ed67f4c6d017",
+      "path": "success/pilot-policy.ncl"
+    },
+    {
+      "blake3": "e2e324af8e4cfac46cb2ed0cf94b2a80789d425e6a4d6cd62713a418f02697aa",
+      "path": "success/profile.json"
+    },
+    {
+      "blake3": "50fa160beef2977ca099780f959c9dd8f1afa39581f9bda15b9c506a21d9b994",
+      "path": "success/provider-invocations.log"
+    },
+    {
+      "blake3": "fd8a0ed0ea827eeecfaded5b031eb5391633153e90e854b4ee3d3fa54a4f5b3d",
+      "path": "success/provisioning.json"
+    },
+    {
+      "blake3": "c737e1b18b86094d64aac8e4c705c2331f201d393e5b5d22deafcef344f35234",
+      "path": "success/radicle.json"
+    },
+    {
+      "blake3": "2edaddedb6071c4239a6f45677f13b74ecf83fb818a3d78984f5d90aa75d3ced",
+      "path": "success/request.json"
+    },
+    {
+      "blake3": "ef8264672ec59c41980458eb73b8252ec5f0b765e1f1015f9148ba85d9070e44",
+      "path": "success/retirement.json"
+    },
+    {
+      "blake3": "23c68ecae84c9f1dd883857ed2ff8a8265f864ddbea459a685d90a4041ecd6e9",
+      "path": "success/signed.json"
+    },
+    {
+      "blake3": "cecf2136fb23a0cd305b5861e5d14c0445bb426cd676a5892d9e435863b8b8e4",
+      "path": "success/stale-request.json"
+    },
+    {
+      "blake3": "82c214c3e4927f57045d3451efe68aaa8944f89409e561a4f4b7fc1aac9382aa",
+      "path": "success/stale-signed.json"
+    },
+    {
+      "blake3": "76941ee5e707da7c649ee6a9d7b89861c23f7f6a3875d7ac6361e01135f408c8",
+      "path": "success/submit.log"
+    },
+    {
+      "blake3": "b86d06d7547e4e7fca091ac6151d7238077860b6626259ee5bc37a07b53c74f9",
+      "path": "success/tampered.json"
+    },
+    {
+      "blake3": "3614b6a7ab63e1f9a725cb9db623bfe41916bf6d70115367174d5a999f7cebff",
+      "path": "success/tls.pem"
+    },
+    {
+      "blake3": "1273a45314aaf10c02798dc01e9e646bf4636aea2e818e19401c582bb3c59a03",
+      "path": "success/trigger.json"
+    },
+    {
+      "blake3": "31fc2dfba42669fcbf40a43e1a946e13c2307f490ffacd9ce2609993a0e54791",
+      "path": "success/ucan/http.json"
+    },
+    {
+      "blake3": "cffd3a9a4d4b5e376b243386a4b4c2b9606b30b337e541592cbe59e39e20dde3",
+      "path": "success/ucan-observation.json"
+    },
+    {
+      "blake3": "419d5eff27df79f2618c96741909e6b33ede6cd4da09d48f386fbf439bdbff30",
+      "path": "success/verification.json"
+    },
+    {
+      "blake3": "684c1b255ca9a0de7eb61582cdb3bc5496298bd83094739f3c52daa997bc5d3b",
+      "path": "success/worker/25a1934c9d5f14c83a76133639d6006248eda95e4253d94b9eae5f1b5cc3fc74.log"
+    },
+    {
+      "blake3": "450101245a4956de8c8d995fc5d6d6276f25cfa9c7d7a6b2185c1b6c6915609a",
+      "path": "success/worker/build-state.json"
+    },
+    {
+      "blake3": "634c5e991d857f23d2c7bd2ff2013e9253957123f9a6181d38b91e25b1c480bb",
+      "path": "success/worker/discovery-root-release.json"
+    },
+    {
+      "blake3": "78cb368e473d55ccf3ce292d64e3c5316dbff3a202150764b4d5d03a89b6ae28",
+      "path": "success/worker/discovery.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "success/worker/evaluator.stderr.log"
+    },
+    {
+      "blake3": "3bd285d0d3d9e14b6a9a8d04b46cbd8c41b7f9e1284d1c0879400abc9003f6df",
+      "path": "success/worker/evaluator.stdout.log"
+    },
+    {
+      "blake3": "9a40ba7fefa811480e3d7ea79eec44a49cdcca2b346fd82cfdb069ba2d09a8e6",
+      "path": "success/worker/worker-intent.json"
+    },
+    {
+      "blake3": "0ca47aee7ec7a49b05bcfd5ea94bd4532fbb96d020a0f6032b23fa8dbf666c1b",
+      "path": "success/worker/worker-result.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "success/worker.stderr.log"
+    },
+    {
+      "blake3": "72cdf26ab8ab485d0be5c3ef41e47d38d619aaa6e0abbc51f2a4ed6db6f2c13b",
+      "path": "success/worker.stdout.log"
+    },
+    {
+      "blake3": "e066f4884f4076c6952ea2c2d00432436e3b04b587da8c7a78b40341f035b148",
+      "path": "success/workflow-builder.ncl"
+    },
+    {
+      "blake3": "de557d95c5130470f09778e0a295b26c27e5888de60761c441359b5bcced09f4",
+      "path": "success/workflow-export.ncl"
+    },
+    {
+      "blake3": "ef434c2409f82e1f615968bd581814ec7455014a9e17755bfaa4d32b8556418b",
+      "path": "success/workflow-inputs.json"
+    },
+    {
+      "blake3": "80611b7b5b2ca72ac4e49139348628f648fdce57e1f033ced46191ec08c69a63",
+      "path": "success/workflow-observe.ncl"
+    },
+    {
+      "blake3": "1d53c5f303a1bbe49bc7e66262c41b00c255c192860aa16a27b2a7ecee9513e0",
+      "path": "success/workflow-observed.json"
+    },
+    {
+      "blake3": "40fd70c6b8cf181bea9335d7bdc62a8613ee27ef3b4feb220a3c23e7fa412bc9",
+      "path": "success/workflow-validated.ncl"
+    },
+    {
+      "blake3": "4aa4d534ee10d51be4e0e87cd5b763a1ee314cbee02eec1192ea9f72888e97e1",
+      "path": "success/workflow.ncl"
+    },
+    {
+      "blake3": "f7b6d2ce096a0deaf4732b35b708e8a8de53ac79ba40007ce7792141e8d584e4",
+      "path": "success/commands.json"
+    },
+    {
+      "blake3": "2f0550ce7e0ce74b9071180708df76c89d562723ebf2e28a4358a2fa74fe5a7a",
+      "path": "build-failure/admitted-inputs.ncl"
+    },
+    {
+      "blake3": "b65772a3897fa84c2fefb06959e72c88c6270fbc54d9e69b08713a98a4f464bf",
+      "path": "build-failure/aspen.json"
+    },
+    {
+      "blake3": "c5550814e1bdff49970797ec423b3cbc41c91b9913ca8c97e9f5f1ee648efbd8",
+      "path": "build-failure/before-dispatch.json"
+    },
+    {
+      "blake3": "b052aab6f977ade5bc76de830bd38d3ac5384b781d350542339704d96d774849",
+      "path": "build-failure/cohort.json"
+    },
+    {
+      "blake3": "bc1e9c7ac8e5c97838fb15931a13436e52c55c57b36cbc440212613ec9e5bf2d",
+      "path": "build-failure/eval-profile.json"
+    },
+    {
+      "blake3": "f4d28a3b7880727dce1be435197b9d54b4a4eec9a22af5750e8a8bfa5a85b6a9",
+      "path": "build-failure/eval-selection.json"
+    },
+    {
+      "blake3": "763a75515219597c791fa2b96e2bc4b07b6170305778add22a32d9f52364ddac",
+      "path": "build-failure/handler-checked.ncl"
+    },
+    {
+      "blake3": "a34542c367a2a85c66b9bf351147209cf900c9435ef1537fdad2ebaef90feee6",
+      "path": "build-failure/handler.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "build-failure/host-first.log"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "build-failure/host-restarted.log"
+    },
+    {
+      "blake3": "e02b463c209420794b3a8e5b09a9dc06aa0bba5c510a6deecf5dc517b871dfef",
+      "path": "build-failure/http-template.json"
+    },
+    {
+      "blake3": "11932539734c275a1e8a6e86f90590cc988324294945ce990b05274bdeeaafbd",
+      "path": "build-failure/http-template.ncl"
+    },
+    {
+      "blake3": "f3214c5acae05e3f329577befd0d5145c8df928bacd2ee28c6cdddbe71e2edff",
+      "path": "build-failure/inputs.json"
+    },
+    {
+      "blake3": "6b68a0f9ea51bdb0e187b571378337920d592a9aedd1a223a80d2a3a98d1ca1f",
+      "path": "build-failure/job.json"
+    },
+    {
+      "blake3": "cb0f9f3b10ff2d091ab28060e43311bf4b9432b897725d9cf8a56190ce84cbd8",
+      "path": "build-failure/jobset/flake.lock"
+    },
+    {
+      "blake3": "f01478dd101e81bd51d7ca1817d9c8b40b3b14c34f274d7b2fc2bb5dd3f29325",
+      "path": "build-failure/jobset/flake.nix"
+    },
+    {
+      "blake3": "56e242544621076529d5a041465cf65279cfb2f138f54c2d0755ba8a59faded4",
+      "path": "build-failure/jobset/jobset.nix"
+    },
+    {
+      "blake3": "1310c6853c9e09676059ce38b6197d57e22f38b75b78be66d5490db12824ca9b",
+      "path": "build-failure/journal.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "build-failure/lattice.log"
+    },
+    {
+      "blake3": "d8e37e4c830ba189ba87cd33ba4f840ddf2a9180f70044e475f39c4870e6886d",
+      "path": "build-failure/lattice.ncl"
+    },
+    {
+      "blake3": "8445c642a1d323a33fc973edb4588a661e9f98ceccd5b56cd3125cba8a670cae",
+      "path": "build-failure/native-request.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "build-failure/observation.log"
+    },
+    {
+      "blake3": "67b2d09a382f8e765dce5976cc2325cfca54fa679e0e7d9a2c0546f642988e2f",
+      "path": "build-failure/operator.public.json"
+    },
+    {
+      "blake3": "decb33c63bf77878e7605b49358e43ed4ffc623fefdb67b912e08bf6001cffe9",
+      "path": "build-failure/pilot-policy.ncl"
+    },
+    {
+      "blake3": "1ed55114b53a77a0207cbe227c5476592301db091d5cd73e6e0efa8bc24e0415",
+      "path": "build-failure/profile.json"
+    },
+    {
+      "blake3": "50fa160beef2977ca099780f959c9dd8f1afa39581f9bda15b9c506a21d9b994",
+      "path": "build-failure/provider-invocations.log"
+    },
+    {
+      "blake3": "1e3cd15e58cc25a2244dff519733f59efa32d7c2c6adaeae979a778da6c9c53a",
+      "path": "build-failure/provisioning.json"
+    },
+    {
+      "blake3": "972674dadc4b383b84b2666db40c948ac960ec2fba85073d31ccf409f9db4189",
+      "path": "build-failure/radicle.json"
+    },
+    {
+      "blake3": "3d862dceb2e34994f520426391f04b23a6ae7f8d989819ef0e1d9e3f223d64c5",
+      "path": "build-failure/request.json"
+    },
+    {
+      "blake3": "413cf65e36b4c5a5870d4121b34fcee5f6313d3464f4aafc4837882857cc8313",
+      "path": "build-failure/retirement.json"
+    },
+    {
+      "blake3": "053f32ceff3fe4c43fe4067e41afc23f944ec7213bf6abbecce00a78114e0689",
+      "path": "build-failure/signed.json"
+    },
+    {
+      "blake3": "6b14862ce86ce409243aeba6ecef491b6492c0693c7f9771e0cb00714653b5d4",
+      "path": "build-failure/stale-request.json"
+    },
+    {
+      "blake3": "7162c76e141b9349459b921026b285afc10b2107192c4f95046c1d25ce9c4532",
+      "path": "build-failure/stale-signed.json"
+    },
+    {
+      "blake3": "435024953365687feae79c2d0274b4b3510b287e4309eb1ba046660532277a78",
+      "path": "build-failure/submit.log"
+    },
+    {
+      "blake3": "42ad519b42771156bd323d46390af59f2ef13ba92f0d15e21d9aafa83459a4e9",
+      "path": "build-failure/tampered.json"
+    },
+    {
+      "blake3": "2f2ba63d9c4900db389f6c78b05eca7f1095dcf35eb96ea69226e03395af27fd",
+      "path": "build-failure/tls.pem"
+    },
+    {
+      "blake3": "1273a45314aaf10c02798dc01e9e646bf4636aea2e818e19401c582bb3c59a03",
+      "path": "build-failure/trigger.json"
+    },
+    {
+      "blake3": "2c8431cbed034600770e82f12992654a75242ffc523b5c9e825be1ab07b1c80f",
+      "path": "build-failure/ucan/http.json"
+    },
+    {
+      "blake3": "7dc22d1e7757305805fcd298b8e9b02458da5acd8f9a6ee6d08f6f9b20e03e48",
+      "path": "build-failure/ucan-observation.json"
+    },
+    {
+      "blake3": "25b4df471579bc8b544ed7e35839485c1abad5ef37f08036484210f68ad8280e",
+      "path": "build-failure/verification.json"
+    },
+    {
+      "blake3": "466914341f15162439ec32a0b0b7d75af9f7c0f54ae5a16f060cac76cd97659b",
+      "path": "build-failure/worker/build-state.json"
+    },
+    {
+      "blake3": "f027e5d5b6ee0fb143ccc2664e97d6f48a298499c65ca468b8784c6dd6073810",
+      "path": "build-failure/worker/discovery-root-release.json"
+    },
+    {
+      "blake3": "2e934c859e624cf7fdb9a19a089ce44650f35978aaa08c054447d85b5f042e02",
+      "path": "build-failure/worker/discovery.json"
+    },
+    {
+      "blake3": "4eebb480a44a83dda61027ccef4a4275439647e451addcdd1442f01fcafc303f",
+      "path": "build-failure/worker/ec10d7d77e9233e2aa37c3f87d7eab5dfdfbe9c01966b9565c093d4bc0e9ae1a.log"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "build-failure/worker/evaluator.stderr.log"
+    },
+    {
+      "blake3": "f31db96959e983a278b9754ae1834c2a37cb93acd1d3156ec96b0fa6e3f2dbd6",
+      "path": "build-failure/worker/evaluator.stdout.log"
+    },
+    {
+      "blake3": "04bb4e74ecdd233abbb78452939c060c1a50fac3287b43fd2943cefc42f6d80f",
+      "path": "build-failure/worker/worker-intent.json"
+    },
+    {
+      "blake3": "3d4c754a08bac6384d3ff2e18f90fd134fb5a711aca05856ab5fcaa5f60d6366",
+      "path": "build-failure/worker/worker-result.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "build-failure/worker.stderr.log"
+    },
+    {
+      "blake3": "e5874472863028587a1a30261f8eba898818830bc793dfc871df9e770a478e47",
+      "path": "build-failure/worker.stdout.log"
+    },
+    {
+      "blake3": "e066f4884f4076c6952ea2c2d00432436e3b04b587da8c7a78b40341f035b148",
+      "path": "build-failure/workflow-builder.ncl"
+    },
+    {
+      "blake3": "68cedf0393f90c253baa902cee0be9838ee46999e402ebd99d8295efe861bfc9",
+      "path": "build-failure/workflow-export.ncl"
+    },
+    {
+      "blake3": "3c016e902316a0b17f4717cba2d113cdeac9abbc520c3d46ea8ff64ffe8e746f",
+      "path": "build-failure/workflow-inputs.json"
+    },
+    {
+      "blake3": "8f5bcdfc21c2ec46dd85cbb640666da4284da1b04709067d75f059461b40b50f",
+      "path": "build-failure/workflow-observe.ncl"
+    },
+    {
+      "blake3": "d2bd812585b2fe437399338bf7fa9e13ed5c600435bc74c4fb35232d056dd800",
+      "path": "build-failure/workflow-observed.json"
+    },
+    {
+      "blake3": "62fac22435e771c15660b93cc521b4f47a36b04c35681b8d726c361ee46de410",
+      "path": "build-failure/workflow-validated.ncl"
+    },
+    {
+      "blake3": "4aa4d534ee10d51be4e0e87cd5b763a1ee314cbee02eec1192ea9f72888e97e1",
+      "path": "build-failure/workflow.ncl"
+    },
+    {
+      "blake3": "4abc6a83aa57f99cc8e840de1aabb5a045c1106b69b7c2360bdc7e09d059699c",
+      "path": "build-failure/commands.json"
+    },
+    {
+      "blake3": "2f0550ce7e0ce74b9071180708df76c89d562723ebf2e28a4358a2fa74fe5a7a",
+      "path": "evaluation-failure/admitted-inputs.ncl"
+    },
+    {
+      "blake3": "b65772a3897fa84c2fefb06959e72c88c6270fbc54d9e69b08713a98a4f464bf",
+      "path": "evaluation-failure/aspen.json"
+    },
+    {
+      "blake3": "441e54c44ab28399012023df6ae114f38fa540cd67db899956bba62512a76a18",
+      "path": "evaluation-failure/before-dispatch.json"
+    },
+    {
+      "blake3": "b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+      "path": "evaluation-failure/cohort.json"
+    },
+    {
+      "blake3": "c4163ab55b1b0de46e66b2b0d4483b5be963872f40683eb21c60227641597d78",
+      "path": "evaluation-failure/eval-profile.json"
+    },
+    {
+      "blake3": "107dd29fd17d8dd55fea474a28e3035f0d989a1ed3dd37f8cb2d2ec7009d005e",
+      "path": "evaluation-failure/eval-selection.json"
+    },
+    {
+      "blake3": "59e59303565b9584754c1cc40073887964c5a17ce2ffa4309c72290228f96922",
+      "path": "evaluation-failure/handler-checked.ncl"
+    },
+    {
+      "blake3": "7f1b1ba8052ccdd9118a3965e8c575276c963c45c518f242f4ce1797c234f11f",
+      "path": "evaluation-failure/handler.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "evaluation-failure/host-first.log"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "evaluation-failure/host-restarted.log"
+    },
+    {
+      "blake3": "804abac4cb6fc70d4a2659e1678bfa27065bf6e46176f14ec325bb247014e65d",
+      "path": "evaluation-failure/http-template.json"
+    },
+    {
+      "blake3": "11932539734c275a1e8a6e86f90590cc988324294945ce990b05274bdeeaafbd",
+      "path": "evaluation-failure/http-template.ncl"
+    },
+    {
+      "blake3": "f3214c5acae05e3f329577befd0d5145c8df928bacd2ee28c6cdddbe71e2edff",
+      "path": "evaluation-failure/inputs.json"
+    },
+    {
+      "blake3": "7165a08331c620c3178e8750e83de03abc1be19c7339a2dd8aa216cb0b1ed54e",
+      "path": "evaluation-failure/job.json"
+    },
+    {
+      "blake3": "cb0f9f3b10ff2d091ab28060e43311bf4b9432b897725d9cf8a56190ce84cbd8",
+      "path": "evaluation-failure/jobset/flake.lock"
+    },
+    {
+      "blake3": "62192bc6ad9089817391aba19424cc3edefc141a7a854622254deee2e564a957",
+      "path": "evaluation-failure/jobset/flake.nix"
+    },
+    {
+      "blake3": "56e242544621076529d5a041465cf65279cfb2f138f54c2d0755ba8a59faded4",
+      "path": "evaluation-failure/jobset/jobset.nix"
+    },
+    {
+      "blake3": "eb970dd612aa46e23ca5f8e0e63c56eb4278f92a15859e6109937b747154872f",
+      "path": "evaluation-failure/journal.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "evaluation-failure/lattice.log"
+    },
+    {
+      "blake3": "e344f2c400176772e984160068524fe1c8f6f80e6be8f3eea781a906254af4f2",
+      "path": "evaluation-failure/lattice.ncl"
+    },
+    {
+      "blake3": "61c9c9a6b9dad0b6715ec0ac5dccf3790fa3a9b16079f3338e9a553d1938f1de",
+      "path": "evaluation-failure/native-request.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "evaluation-failure/observation.log"
+    },
+    {
+      "blake3": "3265460c151f9f6690fda3ebfbaefed081490518e87860878a5adb67cdfe6e4d",
+      "path": "evaluation-failure/operator.public.json"
+    },
+    {
+      "blake3": "2c277539141210d0f752c687dec2e0536a66ae45e355d0569ed75318e065c73f",
+      "path": "evaluation-failure/pilot-policy.ncl"
+    },
+    {
+      "blake3": "30361f0f8041ad1aece334c87faa21432bfa7d5a01771f62660a1eeb2888d2fe",
+      "path": "evaluation-failure/profile.json"
+    },
+    {
+      "blake3": "50fa160beef2977ca099780f959c9dd8f1afa39581f9bda15b9c506a21d9b994",
+      "path": "evaluation-failure/provider-invocations.log"
+    },
+    {
+      "blake3": "8d8108916e4c43c744dcbf6bb1840f5336c8e4d582f4c2a736aa727be21c58b2",
+      "path": "evaluation-failure/provisioning.json"
+    },
+    {
+      "blake3": "b5d2184892623d12a6b8143ad103ecc8b0fe4a895566ab36a36ff774c3e29ee9",
+      "path": "evaluation-failure/radicle.json"
+    },
+    {
+      "blake3": "1eceed3a9828d6e06518a5fbb0d7a1168702d5b8ce45d954317b32a49b77eda4",
+      "path": "evaluation-failure/request.json"
+    },
+    {
+      "blake3": "d7127c19c473cd79075fc819dccea579c376c4a1626724956e4b2aca07fe9f83",
+      "path": "evaluation-failure/retirement.json"
+    },
+    {
+      "blake3": "1af7fe308a49f6c7e16b0792ddf9015aeeee66ba2eed99d560e815f62a78496e",
+      "path": "evaluation-failure/signed.json"
+    },
+    {
+      "blake3": "4c172a0f50691675edb158f775799a703148f57b936f389c27f8ba0ff5d94505",
+      "path": "evaluation-failure/stale-request.json"
+    },
+    {
+      "blake3": "42b3a1a623a62a47238710dfa11e9807880bc203f57cd458ed359dd65d930a4d",
+      "path": "evaluation-failure/stale-signed.json"
+    },
+    {
+      "blake3": "a7b5916a5511577ae7bd93e0b68f60b17807777b1d34354136dbd7b7673be394",
+      "path": "evaluation-failure/submit.log"
+    },
+    {
+      "blake3": "65e029ed1b605b15d23a1c4386ba2bbfbdb1a9fec48dccb0fe9bd7958b29125a",
+      "path": "evaluation-failure/tampered.json"
+    },
+    {
+      "blake3": "e60d07e7a57a81d1ef76efa7ec78fedc0403703c8b3cea5fda1b6ca3493b87eb",
+      "path": "evaluation-failure/tls.pem"
+    },
+    {
+      "blake3": "1273a45314aaf10c02798dc01e9e646bf4636aea2e818e19401c582bb3c59a03",
+      "path": "evaluation-failure/trigger.json"
+    },
+    {
+      "blake3": "ff647ae8f52fcae313b30c561dae158a314850164ddc7c56f68b1f81c638eed8",
+      "path": "evaluation-failure/ucan/http.json"
+    },
+    {
+      "blake3": "7b61ae4ab8951bb49a7d4453c0a96d061f3de4b97453a707326d21d0fcd0b4c0",
+      "path": "evaluation-failure/ucan-observation.json"
+    },
+    {
+      "blake3": "bee7f8663e3aa921a15dbb2779c25fec23434ec2a5762299106795949df45972",
+      "path": "evaluation-failure/verification.json"
+    },
+    {
+      "blake3": "eaca7c5a5519db4ad154e4d38a9c3d09d79d3efc43288d8b05697657942e1715",
+      "path": "evaluation-failure/worker/discovery.json"
+    },
+    {
+      "blake3": "348f05c7fbd1aa82feed418392da5af9f511d2f5a5e7fee04116653b689a3400",
+      "path": "evaluation-failure/worker/evaluator.stderr.log"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "evaluation-failure/worker/evaluator.stdout.log"
+    },
+    {
+      "blake3": "d908245d80fde0114a312cbfafa18aaf3496f3aeed0f3ddb2d0ab852997a97fe",
+      "path": "evaluation-failure/worker/worker-intent.json"
+    },
+    {
+      "blake3": "5e5e6dcfb6c27e9066363b9ea38c2334c58a605452833a222a071479e5fa18d1",
+      "path": "evaluation-failure/worker/worker-result.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "path": "evaluation-failure/worker.stderr.log"
+    },
+    {
+      "blake3": "fe4315018c2d41195a116b52a9077429a6f7c4bae95178751ae77a3ffafb03e7",
+      "path": "evaluation-failure/worker.stdout.log"
+    },
+    {
+      "blake3": "e066f4884f4076c6952ea2c2d00432436e3b04b587da8c7a78b40341f035b148",
+      "path": "evaluation-failure/workflow-builder.ncl"
+    },
+    {
+      "blake3": "1446f6bb0d7e5c066a5097a6b4c034654715125c2a93f2a1d7a2718b93174370",
+      "path": "evaluation-failure/workflow-export.ncl"
+    },
+    {
+      "blake3": "568622777d72dd9989294f6e4e4dfa4042d0d813ac25983b8f134e27d14f9f96",
+      "path": "evaluation-failure/workflow-inputs.json"
+    },
+    {
+      "blake3": "43cb590bfc19d0c9b8c4b6fb58c5f985f3687319ce20a002eae1a52542392254",
+      "path": "evaluation-failure/workflow-observe.ncl"
+    },
+    {
+      "blake3": "afdb12f3a40bdbb7d87dade8f1ce4067d8ffcbf4bbe31206891260ba6a3f8efc",
+      "path": "evaluation-failure/workflow-observed.json"
+    },
+    {
+      "blake3": "61cac875231c490c52425c582ada5b7cabe2376b8020b511fa6a26dd102b8fc2",
+      "path": "evaluation-failure/workflow-validated.ncl"
+    },
+    {
+      "blake3": "4aa4d534ee10d51be4e0e87cd5b763a1ee314cbee02eec1192ea9f72888e97e1",
+      "path": "evaluation-failure/workflow.ncl"
+    },
+    {
+      "blake3": "5707a6024af247f45538c6a55326b717104ab95406d4d604b124a009b25816dd",
+      "path": "evaluation-failure/commands.json"
+    },
+    {
+      "blake3": "c4e478459cdf1fc53fbced80f21e7b6b427e36ad8f071794970b33a0d99a81b8",
+      "path": "inputs.ncl"
+    },
+    {
+      "blake3": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+      "path": "repeatability/cohort.json"
+    },
+    {
+      "blake3": "09fd83233588d3938fa1544b2dd82642ad0fe12283a224162ba05d041250076f",
+      "path": "repeatability/verification.json"
+    },
+    {
+      "blake3": "14031a7e51f7affee43cad91407f370426a15906ce7221494290582099d979ba",
+      "path": "repeatability/retirement.json"
+    },
+    {
+      "blake3": "0bfc8fa87bcf0c0c8d6c8978041c1b421e6d19f9244ff2f97c248e9fc807db6c",
+      "path": "repeatability/provisioning.json"
+    },
+    {
+      "blake3": "b7999eddae5177694957fab581352798331234426b0fdc2b46049ce0a4512aa6",
+      "path": "repeatability/before-dispatch.json"
+    },
+    {
+      "blake3": "98b1ea870f1f622ad238bc8ddfb015b3afebe10da54cc336f474102b15e72074",
+      "path": "repeatability/journal.json"
+    },
+    {
+      "blake3": "c8c3fcae20dd7f81bf98346bd2bca141bb9ae38b9e9991c431031670d626540e",
+      "path": "repeatability/profile.json"
+    },
+    {
+      "blake3": "3a62273ae63035476676a97d26a0b369728cca3c97e00ebd1d2aadc0c147bb5d",
+      "path": "repeatability/job.json"
+    },
+    {
+      "blake3": "391e68d7b2c0d422735569578f1255133c2761986d36291d3b894c309cad4a0c",
+      "path": "repeatability/ucan-observation.json"
+    },
+    {
+      "blake3": "2efd3f3a5d87f354d27b0504018e80a5128cbc3898a3b643477a29ca5e20b520",
+      "path": "repeatability/ucan/http.json"
+    },
+    {
+      "blake3": "9e4fd3fffdd08a88b6a803a760ac55c771d498a3d2f38bde3310e8f1dbeac429",
+      "path": "repeatability/worker/worker-result.json"
+    },
+    {
+      "blake3": "2b755d8a671c05fffd7fee2bc0e59167c384427547a6c3bc396a657cedd58eb2",
+      "path": "repeatability/worker/f7afdf9f58dac8e97faf34bf6e62427c71307325a04a2e5c8fdfdeecfc066a72.log"
+    },
+    {
+      "blake3": "535f729cb1e22c2c3b6090bd16df8eed02090a72de39ba183a7793cc8a09c12d",
+      "path": "repeatability/commands.json"
+    }
+  ],
+  "schema": "kiln.onixos-pilot.artifact-identities.v1",
+  "scope": "Public runtime artifacts, exact admitted inputs and independent fresh-state repeat; native gate records retain separate command/source bindings"
+}

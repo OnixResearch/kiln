@@ -1,0 +1,104 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts",
+        "-p",
+        "test_onixos_ci_closure.py",
+        "-v"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "preparation_and_partial_output_regressions",
+      "started_at": "2026-10-21T01:47:45.957072+00:00",
+      "stderr": "test_failed_unregistered_partial_directory_is_not_a_realised_output (test_onixos_ci_closure.ConsumerOutputObservation.test_failed_unregistered_partial_directory_is_not_a_realised_output) ... ok\ntest_missing_or_substituted_native_identity_is_rejected (test_onixos_ci_closure.ConsumerOutputObservation.test_missing_or_substituted_native_identity_is_rejected) ... ok\ntest_native_null_is_absent_even_when_the_command_succeeds (test_onixos_ci_closure.ConsumerOutputObservation.test_native_null_is_absent_even_when_the_command_succeeds) ... ok\ntest_registered_output_blocks_fresh_construction (test_onixos_ci_closure.ConsumerOutputObservation.test_registered_output_blocks_fresh_construction) ... ok\ntest_aliased_or_multi_output_artifacts_are_rejected (test_onixos_ci_closure.PreparationAdmission.test_aliased_or_multi_output_artifacts_are_rejected) ... ok\ntest_disconnected_generated_output_is_not_a_launcher_closure (test_onixos_ci_closure.PreparationAdmission.test_disconnected_generated_output_is_not_a_launcher_closure) ... ok\ntest_indirect_consumer_derivation_or_output_cannot_be_prepared (test_onixos_ci_closure.PreparationAdmission.test_indirect_consumer_derivation_or_output_cannot_be_prepared) ... ok\ntest_missing_duplicate_or_errored_artifacts_fail_closed (test_onixos_ci_closure.PreparationAdmission.test_missing_duplicate_or_errored_artifacts_fail_closed) ... ok\ntest_shared_external_inputs_are_prepared_without_consumer_builds (test_onixos_ci_closure.PreparationAdmission.test_shared_external_inputs_are_prepared_without_consumer_builds) ... ok\n\n----------------------------------------------------------------------\nRan 9 tests in 0.001s\n\nOK\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/zamvnhhvxa0bdy1z1finzjvv989f393x-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-d-success",
+        "--case",
+        "success"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "actual_success",
+      "started_at": "2026-10-21T01:47:48.539140+00:00",
+      "stderr": "",
+      "stdout": "{\n  \"case\": \"success\",\n  \"canonical_outcome\": \"Success\",\n  \"operation_id\": {\n    \"contract_version\": 1,\n    \"provider_namespace\": \"molten\",\n    \"native_kind\": \"service-operation-blake3\",\n    \"native_id\": \"98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d\"\n  },\n  \"journal_identity\": \"c642d6cf4eede5ced7ec970d2394d7de166282cca0ad1490e3162afea86c5f1b\"\n}\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/zamvnhhvxa0bdy1z1finzjvv989f393x-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-d-build-failure",
+        "--case",
+        "build-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "actual_build-failure",
+      "started_at": "2026-10-21T01:47:48.539539+00:00",
+      "stderr": "",
+      "stdout": "{\n  \"case\": \"build-failure\",\n  \"canonical_outcome\": \"DomainFailure\",\n  \"operation_id\": {\n    \"contract_version\": 1,\n    \"provider_namespace\": \"molten\",\n    \"native_kind\": \"service-operation-blake3\",\n    \"native_id\": \"98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d\"\n  },\n  \"journal_identity\": \"5aeb0a4f3bd96bf49e8d5aeefe8885a2a4c0408f9a0e827eaf7d78b3d96f0d79\"\n}\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/zamvnhhvxa0bdy1z1finzjvv989f393x-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-d-evaluation-failure",
+        "--case",
+        "evaluation-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "actual_evaluation-failure",
+      "started_at": "2026-10-21T01:47:48.539830+00:00",
+      "stderr": "",
+      "stdout": "{\n  \"case\": \"evaluation-failure\",\n  \"canonical_outcome\": \"ProviderError\",\n  \"operation_id\": {\n    \"contract_version\": 1,\n    \"provider_namespace\": \"molten\",\n    \"native_kind\": \"service-operation-blake3\",\n    \"native_id\": \"98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d\"\n  },\n  \"journal_identity\": \"d955b5dada97bdc6d7d76dd6c6692d8618ae3948f5bd5647a9672383d9b5bb30\"\n}\n"
+    },
+    {
+      "argv": [
+        "nix",
+        "build",
+        "path:/nix/store/zamvnhhvxa0bdy1z1finzjvv989f393x-source#checks.x86_64-linux.onixos-pilot-preparation",
+        "--no-link",
+        "-L"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "name": "sandbox_preparation_regressions",
+      "started_at": "2026-10-21T01:47:48.539991+00:00",
+      "stderr": "this derivation will be built:\n  /nix/store/9asl9rv471vvbmvka918b9fkpyanqq1l-kiln-onixos-pilot-preparation.drv\nbuilding '/nix/store/9asl9rv471vvbmvka918b9fkpyanqq1l-kiln-onixos-pilot-preparation.drv' on 'ssh-ng://root@aspen1.local'...\ncopying 1 paths...\ncopying path '/nix/store/zamvnhhvxa0bdy1z1finzjvv989f393x-source' to 'ssh-ng://root@aspen1.local'...\nbuilding '/nix/store/9asl9rv471vvbmvka918b9fkpyanqq1l-kiln-onixos-pilot-preparation.drv'...\nkiln-onixos-pilot-preparation> test_failed_unregistered_partial_directory_is_not_a_realised_output (test_onixos_ci_closure.ConsumerOutputObservation.test_failed_unregistered_partial_directory_is_not_a_realised_output) ... ok\nkiln-onixos-pilot-preparation> test_missing_or_substituted_native_identity_is_rejected (test_onixos_ci_closure.ConsumerOutputObservation.test_missing_or_substituted_native_identity_is_rejected) ... ok\nkiln-onixos-pilot-preparation> test_native_null_is_absent_even_when_the_command_succeeds (test_onixos_ci_closure.ConsumerOutputObservation.test_native_null_is_absent_even_when_the_command_succeeds) ... ok\nkiln-onixos-pilot-preparation> test_registered_output_blocks_fresh_construction (test_onixos_ci_closure.ConsumerOutputObservation.test_registered_output_blocks_fresh_construction) ... ok\nkiln-onixos-pilot-preparation> test_aliased_or_multi_output_artifacts_are_rejected (test_onixos_ci_closure.PreparationAdmission.test_aliased_or_multi_output_artifacts_are_rejected) ... ok\nkiln-onixos-pilot-preparation> test_disconnected_generated_output_is_not_a_launcher_closure (test_onixos_ci_closure.PreparationAdmission.test_disconnected_generated_output_is_not_a_launcher_closure) ... ok\nkiln-onixos-pilot-preparation> test_indirect_consumer_derivation_or_output_cannot_be_prepared (test_onixos_ci_closure.PreparationAdmission.test_indirect_consumer_derivation_or_output_cannot_be_prepared) ... ok\nkiln-onixos-pilot-preparation> test_missing_duplicate_or_errored_artifacts_fail_closed (test_onixos_ci_closure.PreparationAdmission.test_missing_duplicate_or_errored_artifacts_fail_closed) ... ok\nkiln-onixos-pilot-preparation> test_shared_external_inputs_are_prepared_without_consumer_builds (test_onixos_ci_closure.PreparationAdmission.test_shared_external_inputs_are_prepared_without_consumer_builds) ... ok\nkiln-onixos-pilot-preparation> \nkiln-onixos-pilot-preparation> ----------------------------------------------------------------------\nkiln-onixos-pilot-preparation> Ran 9 tests in 0.000s\nkiln-onixos-pilot-preparation> \nkiln-onixos-pilot-preparation> OK\ncopying 1 paths...\ncopying path '/nix/store/z9cdnd3250963z1b1hc5af3v6b65vsbl-kiln-onixos-pilot-preparation' from 'ssh-ng://root@aspen1.local'...\n",
+      "stdout": ""
+    }
+  ],
+  "frozen_source": "/nix/store/zamvnhhvxa0bdy1z1finzjvv989f393x-source",
+  "scope": "Earlier complete pass before the trace-marker-only source change; final qualification is independently bound to the final source"
+}

@@ -9,12 +9,16 @@ publish = false
 [features]
 default = []
 status-native-fixtures = []
-source-native-fixtures = []
+source-native-fixtures = ["radicle-crypto/std"]
 
 [[bin]]
 name = "secretspec_fixture"
 path = "src/bin/secretspec_fixture.rs"
 required-features = ["status-native-fixtures"]
+
+[[example]]
+name = "ci_source_fixture"
+required-features = ["source-native-fixtures"]
 
 [dependencies]
 kiln-core.workspace = true

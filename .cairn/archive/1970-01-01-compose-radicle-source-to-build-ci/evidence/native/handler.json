@@ -1,0 +1,51 @@
+{
+  "maximum_active_executions": 8,
+  "non_claims": [
+    "handler admission does not prove workflow correctness",
+    "route authority does not prove host confinement",
+    "execution observation does not prove an external effect succeeded",
+    "peer identity does not prove peer intent",
+    "handler checks do not establish release readiness"
+  ],
+  "routes": [
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:3676060d4a31fb9693f422ccc005de907833a638049a3e1ba1fb01cb4d143f36",
+      "nodes": [
+        {
+          "operation_identity": "b3:a6d3bd76ecdaf4c90991bc9e098dee7d3cb21537014779e6bd5479661ba973ff",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        }
+      ],
+      "profile_identity": "b3:67f30a749eaa91b56a5a0e42873c9b13968ff92ae87f577c6f36041f4a722cb5",
+      "source_binding": "shell_environment",
+      "workflow_name": "onixos-home-application",
+      "workflow_revision": "b3:9a8a109d5c87bde577d7c942c316a80ae7957941ba19a750b50e939201e07f89"
+    }
+  ],
+  "schema": "lattice.workflow-exchange-handler-profile.v1",
+  "socket_path": "/var/tmp/krc-native-recovery-20261021-c/lattice.sock",
+  "transport": {
+    "limits": {
+      "maximum_connections": 2062,
+      "maximum_frame_bytes": 33554432,
+      "maximum_log_bytes": 16777216,
+      "read_deadline_milliseconds": 30000,
+      "write_deadline_milliseconds": 30000
+    },
+    "non_claims": [
+      "transport admission does not prove workflow correctness",
+      "transport peer identity does not prove peer intent",
+      "transport acceptance does not prove an operation executed",
+      "transport response does not prove an external effect succeeded",
+      "transport checks do not establish production deployment"
+    ],
+    "peers": {
+      "allowed_user_ids": [
+        1555
+      ]
+    },
+    "schema": "lattice.workflow-transport-profile.v1"
+  }
+}

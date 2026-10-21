@@ -1,0 +1,9 @@
+{
+  "definition_revision": "2e0dbcaa2e3e417aeb4ef22bc833666753db3af4570adb687ea7352293d0b359",
+  "orchestration_diagnostics": [],
+  "workflow_diagnostics": [],
+  "workflow_revision": {
+    "content_hash": "e4ec1738664dff68a17683fd86e238a1ea2b986d85a5a2d15575345fe17cc274",
+    "workflow_name": "onixos-home-application"
+  }
+}

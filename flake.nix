@@ -25,16 +25,19 @@
       eachSystem = function: nixpkgs.lib.genAttrs systems (system: function system);
       # Keep private tool/runtime acquisition outside normal root builds. The
       # content-addressed subflake retains the canonical lock and nixpkgs follow.
-      runtimeBuildCohort = builtins.getFlake (builtins.unsafeDiscardStringContext
-        "path:${./runtime/build-cohort}?narHash=sha256-PcsYctZPpAGWzSNCAqmog3Dvqk7hePUu0TYwvbgpcu8=");
+      runtimeBuildCohort = builtins.getFlake (
+        builtins.unsafeDiscardStringContext "path:${./runtime/build-cohort}?narHash=sha256-PcsYctZPpAGWzSNCAqmog3Dvqk7hePUu0TYwvbgpcu8="
+      );
       octetInput =
         assert runtimeBuildCohort.inputs.nixpkgs.rev == nixpkgs.rev;
         runtimeBuildCohort.inputs.octet;
       kamacite-build-support = runtimeBuildCohort.inputs.kamacite-build-support;
       cairnGateSource = ./vendor/cairn;
-      cairnGateRevision = (builtins.fromJSON (builtins.readFile ./vendor/cairn.source.json)).source_commit;
+      cairnGateRevision =
+        (builtins.fromJSON (builtins.readFile ./vendor/cairn.source.json)).source_commit;
       mantleBuildSource = ./vendor/mantle;
-      mantleBuildRevision = (builtins.fromJSON (builtins.readFile ./vendor/mantle.source.json)).source_commit;
+      mantleBuildRevision =
+        (builtins.fromJSON (builtins.readFile ./vendor/mantle.source.json)).source_commit;
       nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
       prepareKamaciteBuildSupport = ''
         mkdir -p "$NIX_BUILD_TOP/adapters/spacewasm-mvp/generated"
@@ -179,7 +182,10 @@
             pkgs.cmake
             pkgs.pkg-config
           ];
-          buildInputs = [ pkgs.zlib pkgs.openssl ];
+          buildInputs = [
+            pkgs.zlib
+            pkgs.openssl
+          ];
           cargoBuildFlags = [
             "--workspace"
             "--all-targets"
@@ -290,6 +296,11 @@
           type = "app";
           program = "${packageFor system}/bin/kiln-github-job";
           meta.description = "Run a pinned exact-source GitHub CI job";
+        };
+        kiln-radicle-ci = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-radicle-ci";
+          meta.description = "Run source-bound Radicle CI and original-operation recovery";
         };
         default = self.apps.${system}.kiln;
       });
@@ -433,7 +444,10 @@
               pkgs.cmake
               pkgs.pkg-config
             ];
-            buildInputs = [ pkgs.zlib pkgs.openssl ];
+            buildInputs = [
+              pkgs.zlib
+              pkgs.openssl
+            ];
             buildPhase = ''
               runHook preBuild
               cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -456,7 +470,10 @@
               pkgs.git
               pkgs.b3sum
             ];
-            buildInputs = [ pkgs.zlib pkgs.openssl ];
+            buildInputs = [
+              pkgs.zlib
+              pkgs.openssl
+            ];
             buildPhase = ''
               runHook preBuild
               nickel export --format json fixtures/github/service-profile.ncl > github-service.json
@@ -607,16 +624,19 @@
                 test "$(${pkgs.nix}/bin/nix --version 2>/dev/null)" = 'nix (Nix) 2.34.8'
                 touch "$out"
               '';
-          octet = pkgs.runCommand "kiln-octet" {
-            nativeBuildInputs = [
-              self.checks.${system}.aspen-runtime-octet-deny-all
-              self.checks.${system}.kiln-aspen-host-octet-deny-all
-              self.checks.${system}.kiln-radicle-nix-provider-octet-deny-all
-              self.checks.${system}.radicle-broker-wire-octet-deny-all
-            ];
-          } ''
-            touch "$out"
-          '';
+          octet =
+            pkgs.runCommand "kiln-octet"
+              {
+                nativeBuildInputs = [
+                  self.checks.${system}.aspen-runtime-octet-deny-all
+                  self.checks.${system}.kiln-aspen-host-octet-deny-all
+                  self.checks.${system}.kiln-radicle-nix-provider-octet-deny-all
+                  self.checks.${system}.radicle-broker-wire-octet-deny-all
+                ];
+              }
+              ''
+                touch "$out"
+              '';
           no-std = rustPlatform.buildRustPackage {
             pname = "kiln-no-std";
             version = "0.1.0";
@@ -738,6 +758,13 @@
               touch "$out"
             '';
           };
+          onixos-pilot-preparation =
+            pkgs.runCommand "kiln-onixos-pilot-preparation" { nativeBuildInputs = [ pkgs.python3 ]; }
+              ''
+                export PYTHONDONTWRITEBYTECODE=1
+                python -m unittest discover -s ${self}/scripts -p test_onixos_ci_closure.py -v
+                touch "$out"
+              '';
           aspen-runtime-profile =
             pkgs.runCommand "kiln-aspen-runtime-profile" { nativeBuildInputs = [ pkgs.nickel ]; }
               ''
@@ -787,6 +814,10 @@
             nickel export --field profile config/nix-eval-jobs-onix-profile.ncl >/dev/null
             nickel typecheck config/onixos-ci-pilot-inputs.ncl
             nickel typecheck config/onixos-ci-pilot.ncl
+            nickel typecheck config/radicle-ci.ncl
+            nickel typecheck config/radicle-ci-worker.ncl
+            nickel export config/fixtures/radicle-ci-positive.ncl >/dev/null
+            nickel format --check config/radicle-ci.ncl config/radicle-ci-worker.ncl config/fixtures/*radicle-ci*.ncl
             nickel export config/observation-profile.ncl >/dev/null
             nickel export --format json config/observation-profile.ncl > observation-profile.json
             cmp observation-profile.json fixtures/observation/profile-v1.json

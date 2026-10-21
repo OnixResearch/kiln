@@ -1,0 +1,129 @@
+{
+  "effect_id": "pilot-discovery-b052aab6f977ade5bc76de830bd38d3ac5384b781d350542339704d96d774849",
+  "evaluation_id": "pilot-evaluation-b052aab6f977ade5bc76de830bd38d3ac5384b781d350542339704d96d774849",
+  "project_id": "onixos-home-application",
+  "pipeline_revision_id": "pilot-pipeline-b052aab6f977ade5bc76de830bd38d3ac5384b781d350542339704d96d774849",
+  "discovery_policy_id": "onixos-explicit-cohort-v1",
+  "provider_profile": "onix-nix-eval-v1",
+  "idempotency_key": "b052aab6f977ade5bc76de830bd38d3ac5384b781d350542339704d96d774849",
+  "source_identity": "f01478dd101e81bd51d7ca1817d9c8b40b3b14c34f274d7b2fc2bb5dd3f29325",
+  "observation_identity": "56fd1246cab5821adb32d03cf63ce1fc75f81a0d9bbacebef0bee0d7e80ec942",
+  "terminal": "Complete",
+  "jobs": [
+    {
+      "attribute": "home-activation",
+      "attribute_path": [
+        "home-activation"
+      ],
+      "name": "onix-home-workstation-alice",
+      "system": "x86_64-linux",
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/3m20yq029iih37b31jayfxm247n2k47q-onix-home-workstation-alice.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/4jzvsmvvb6bvypi2xg020q1pigz6iccx-onix-home-workstation-alice"
+          }
+        }
+      ],
+      "input_derivations": [
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/f48l628yjhwq0crgd25vjc3pbrwgfnqk-onix-home-activation-workstation-alice.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/ggkdrv677lc6g8d7wf4hrkf4z9flwavz-bash-5.3p9.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/l6bi2ln3vlv6mkkw95bvh09pgy4d3xra-coreutils-9.10.drv"
+        },
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/n6dq8ck4644r9gc7cs1l9a27vvhjb0qa-stdenv-linux.drv"
+        }
+      ],
+      "metadata_identity": "558bee977dda554a88e6ef719e9a2c11a0ad93b2f079f8c78f534962a7b0a067",
+      "cache": "NotBuilt"
+    }
+  ],
+  "job_errors": [],
+  "tasks": [
+    {
+      "task_id": "discovered:ac8b4390d015d69a44efa28531f3499d9e6460c5e5499034c3d641d55cb236c5",
+      "mapping_identity": "ac8b4390d015d69a44efa28531f3499d9e6460c5e5499034c3d641d55cb236c5",
+      "build_provider": "nix-build-v1",
+      "native_attribute": {
+        "contract_version": 1,
+        "provider_namespace": "nix-eval-jobs",
+        "native_kind": "attribute",
+        "native_id": "home-activation"
+      },
+      "derivation": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/3m20yq029iih37b31jayfxm247n2k47q-onix-home-workstation-alice.drv"
+      },
+      "outputs": [
+        {
+          "name": "out",
+          "path": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "store-path",
+            "native_id": "/nix/store/4jzvsmvvb6bvypi2xg020q1pigz6iccx-onix-home-workstation-alice"
+          }
+        }
+      ],
+      "dependencies": [],
+      "cache": "NotBuilt"
+    }
+  ],
+  "completion": {
+    "stream_complete": true,
+    "stream_valid": true,
+    "stderr_within_bound": true,
+    "gc_roots_ready": true,
+    "fatal_job_error": false,
+    "process": {
+      "Exited": {
+        "status": 0
+      }
+    }
+  },
+  "gc_roots": {
+    "directory": {
+      "contract_version": 1,
+      "provider_namespace": "nix",
+      "native_kind": "gc-root-directory",
+      "native_id": "/var/tmp/kfc-e-build-failure/eval-roots/c0ef471f66bccfe14a7fc6231df10ac838523681d6af33ec586d062a43ccbdcd"
+    },
+    "derivations": [
+      {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "derivation",
+        "native_id": "/nix/store/3m20yq029iih37b31jayfxm247n2k47q-onix-home-workstation-alice.drv"
+      }
+    ],
+    "state": "Retained"
+  }
+}

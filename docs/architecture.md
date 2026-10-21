@@ -27,7 +27,8 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-nix-build` | Discovery-task to exact Nix profile/plan mapping, durable build state, operator CLI, and output GC-root lifecycle. |
 | `kiln-adapter-nix-eval` | Explicit exact stock/Onix evaluator cohorts, bounded job discovery, task mapping, and GC-root handoff; no Nix library linkage into Kiln. |
 | `kiln-onixos-pilot` | Isolated signed operator initiation, durable canonical journal and replay-backed UCAN observation; composes existing Aspen/Lattice ports without production status writes. |
-| `kiln-onixos-worker` | Exact source-bound Onix discovery and rooted Nix build worker with durable observations and explicit output-root release. |
+| `kiln-onixos-worker` | Exact source-bound discovery and rooted Nix build worker; fixed-profile Radicle project acquisition/import and explicit source/output-root release. |
+| `kiln-radicle-ci` | Broker push admission, reserved exact signed source, canonical journal/replay, existing Aspen/Lattice execution and separately authorized revision-bound status outbox. |
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Exact local signed-source acquisition, trigger compatibility, bounded ci-job status publication, and declared single-writer patch reviews. |
 | `kiln-adapter-github` | Signed push/PR admission, profile-bound SQLite replay/lifecycle shell, exact HTTPS source job, SecretSpec resolution, and bounded commit-status publication through reviewed Lattice dispatch. |
@@ -75,6 +76,18 @@ roots until durable handoff and explicit release. An operator-signed request is
 not a forge webhook; neither the pilot nor its observation server grants
 production control, status-publication or deployment authority. See the
 [repeatable operator procedure](operator.md#isolated-maintained-cohort-onixos-pilot).
+
+The Radicle source-event composition is distinct from the signed operator pilot.
+It pins the configured repository/signer/branch once, persists canonical start
+and source intent before native submission, and maps the same reviewed project
+worker operation across exact revisions. Worker results bind the materialized
+source, immutable store import, discovery task and actual build observation.
+Only matching worker and native terminal evidence can complete canonical CI.
+Duplicate and restart paths reconcile the original operation; status uses its
+own exact-revision intent and authority. Bounded polling retains the original
+submit reply, latest progress and distinct terminal decisions rather than
+eventually exhausting recovery. See the
+[adoption and proof procedure](operator.md#radicle-source-to-build-composition).
 
 The Iroh bridge preserves the existing Lattice exchange contract, peer-pins the
 worker, enrolls controllers, and checks the exact native capability profile

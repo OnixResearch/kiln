@@ -1,0 +1,256 @@
+{
+  "actual_home_file_failure": {
+    "boundary": "No consumer output was registered as a product; a failed builder may leave an unregistered partial directory, retained separately from registration.",
+    "diagnostics": [
+      "build-failure/worker/ec10d7d77e9233e2aa37c3f87d7eab5dfdfbe9c01966b9565c093d4bc0e9ae1a.log"
+    ],
+    "native_conflicting_target_lines": [
+      "mkdir: cannot create directory '/nix/store/pl9x9jrjhsl3j26q6qmcwci52cnj4hpd-onix-home-files-workstation-alice/.gitconfig': File exists",
+      "       > mkdir: cannot create directory '/nix/store/pl9x9jrjhsl3j26q6qmcwci52cnj4hpd-onix-home-files-workstation-alice/.gitconfig': File exists"
+    ]
+  },
+  "actual_runner_invocations": "runner-invocations-final.json",
+  "adoption_path": "docs/operator.md#isolated-maintained-cohort-onixos-pilot",
+  "artifact_identity_inventory": "artifact-identities.json",
+  "artifact_identity_scope": "185 retained public case and repeatability artifacts; the summary and subsequently added native lifecycle receipts are not self-hashed",
+  "build_boundary": "Preparation realised only admitted external dependencies. Authenticated CI constructed launcher, generated activation and home files; activation was never executed.",
+  "cases": {
+    "build-failure": {
+      "all_three_consumers_absent_before_dispatch": true,
+      "canonical_outcome": "DomainFailure",
+      "cohort": "build-failure/cohort.json",
+      "cohort_identity": "b052aab6f977ade5bc76de830bd38d3ac5384b781d350542339704d96d774849",
+      "commands": "build-failure/commands.json",
+      "consumer_build_identity": "0cd3b753d7cd405c0e576083302bad703134df60c42f47a9106cebe6c24fcc65",
+      "consumer_outputs": {
+        "activation": "/nix/store/qr1w6mxmjl9wb9c4hvnx4q4jfws073xl-onix-home-activation-workstation-alice",
+        "home-activation": "/nix/store/4jzvsmvvb6bvypi2xg020q1pigz6iccx-onix-home-workstation-alice",
+        "home-files": "/nix/store/pl9x9jrjhsl3j26q6qmcwci52cnj4hpd-onix-home-files-workstation-alice"
+      },
+      "explicit_release_observations": [
+        {
+          "roots_released": true
+        },
+        {
+          "roots_released": true
+        }
+      ],
+      "job_identity": "6b68a0f9ea51bdb0e187b571378337920d592a9aedd1a223a80d2a3a98d1ca1f",
+      "journal_identity": "e58005f0765fbce21f979fbde7172cb4ac2ba049f8dbb407ac46da4ea8b7721f",
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "physical_partial_output_observations": {
+        "activation": false,
+        "home-activation": false,
+        "home-files": true
+      },
+      "private_credentials_retired": true,
+      "provider_invocations": 1,
+      "registered_consumer_products_after_failure": 0,
+      "restarted_during_provider_execution": true,
+      "retirement": "build-failure/retirement.json",
+      "rooted_products_before_release": 0,
+      "ucan_observation": {
+        "attempt_view_identity": "b8b73c424c5714eb666a51e3ffc46bb7edcfd66cef8e5c94b60e20163a26eb0f",
+        "canonical_run_outcome": "DomainFailure",
+        "replay_status": 401,
+        "revision": 2,
+        "run_view_identity": "a3b824d98ca9241cb0dd1909ced8157b5128de40fd92717e4ce88b30fb1ed230",
+        "schema": "kiln.onixos-pilot.ucan-probe.v1",
+        "wrong_holder_status": 401,
+        "wrong_target_status": 401
+      },
+      "verification": "build-failure/verification.json"
+    },
+    "evaluation-failure": {
+      "all_three_consumers_absent_before_dispatch": true,
+      "canonical_outcome": "ProviderError",
+      "cohort": "evaluation-failure/cohort.json",
+      "cohort_identity": "b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+      "commands": "evaluation-failure/commands.json",
+      "consumer_build_identity": "7379f7d427e7e6dc78270b73e266c771e8d012814841aceb66847a23abeedf6f",
+      "consumer_outputs": {
+        "activation": "/nix/store/6hjlxg3lflljds07d7wk8s5hjvv4hmv4-onix-home-activation-workstation-alice",
+        "home-activation": "/nix/store/8a01bigs5x3506sr26zrn075xldlyrsm-onix-home-workstation-alice",
+        "home-files": "/nix/store/2xbzbl1a7fl1pmla155xmkfz671c8n8f-onix-home-files-workstation-alice"
+      },
+      "explicit_release_observations": [],
+      "job_identity": "7165a08331c620c3178e8750e83de03abc1be19c7339a2dd8aa216cb0b1ed54e",
+      "journal_identity": "5535e947246e717c8df9513c8402e7845a13ffa04e4d48dac1af5b0f25fe03f1",
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "physical_partial_output_observations": {
+        "activation": false,
+        "home-activation": false,
+        "home-files": false
+      },
+      "private_credentials_retired": true,
+      "provider_invocations": 1,
+      "registered_consumer_products_after_failure": 0,
+      "restarted_during_provider_execution": true,
+      "retirement": "evaluation-failure/retirement.json",
+      "rooted_products_before_release": 0,
+      "ucan_observation": {
+        "attempt_view_identity": "e3b9a1e572d6c1e5a78a0ea0a97cfa704e3a60d9f6349a11e2e5a48a70266cfc",
+        "canonical_run_outcome": "ProviderError",
+        "replay_status": 401,
+        "revision": 2,
+        "run_view_identity": "f08fbd64663b1cdb37d67a005ba30d811fb259704d2241466d4f581f1e538a72",
+        "schema": "kiln.onixos-pilot.ucan-probe.v1",
+        "wrong_holder_status": 401,
+        "wrong_target_status": 401
+      },
+      "verification": "evaluation-failure/verification.json"
+    },
+    "success": {
+      "all_three_consumers_absent_before_dispatch": true,
+      "all_three_consumers_present_in_launcher_closure": true,
+      "canonical_outcome": "Success",
+      "cohort": "success/cohort.json",
+      "cohort_identity": "d887eb04fa3c931f779067a5557a2a9ae6d334072ed9c187a6bd4e7040eb3ee1",
+      "commands": "success/commands.json",
+      "consumer_build_identity": "569817df28a12165ca932535e9658bf1bc58e140c5d648a1ab373d2f04583726",
+      "consumer_outputs": {
+        "activation": "/nix/store/hr5sl1c18a64s5b06m2yzjdn9rqr6bay-onix-home-activation-workstation-alice",
+        "home-activation": "/nix/store/kp3vavn14b5p5qlad01kn3ismcalp20f-onix-home-workstation-alice",
+        "home-files": "/nix/store/hakzh9i01ycks23zm89dc09lmgwl2crq-onix-home-files-workstation-alice"
+      },
+      "explicit_release_observations": [
+        {
+          "roots_released": true
+        },
+        {
+          "roots_released": true
+        }
+      ],
+      "generated_gitconfig_blake3": "94c6c784a375df7b808587baf46d6bcc67af5768232a734885368255af79992c",
+      "job_identity": "cf9b4f261da82586127f1af3b3b877eddd30cf8128f1341fcc7887f86f5633a5",
+      "journal_identity": "f19cf96bffe249acfe0d2b7471b4a806b7c3dabe4979590ae4c16f25b603f0ca",
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "private_credentials_retired": true,
+      "provider_invocations": 1,
+      "restarted_during_provider_execution": true,
+      "retirement": "success/retirement.json",
+      "rooted_products_before_release": 1,
+      "ucan_observation": {
+        "attempt_view_identity": "d204a88c4e98b072ad95d833b11847f5d0f4e443dc31e9b7c7402dd5a03c41c2",
+        "canonical_run_outcome": "Success",
+        "replay_status": 401,
+        "revision": 2,
+        "run_view_identity": "11a249a7d29bf0405ee87090fcfc77d51832d4ce7aae4e074b6354d63376e5d0",
+        "schema": "kiln.onixos-pilot.ucan-probe.v1",
+        "wrong_holder_status": 401,
+        "wrong_target_status": 401
+      },
+      "verification": "success/verification.json"
+    }
+  },
+  "consumer": "OnixOS examples/home-activation inventory and home-tools service from the exact NAR-pinned consumer cohort",
+  "durable_capability": "Repeatable external-only preparation admission, transitive consumer exclusion, fresh consumer construction and exact before/after native observation under existing journal, restart, root and UCAN contracts",
+  "exercised_gates": "gates/summary.json",
+  "fresh_state_repeatability": {
+    "invocation": "repeatability-invocation.json",
+    "new_consumer_output_identities": true,
+    "observation": {
+      "all_three_consumers_absent_before_dispatch": true,
+      "all_three_consumers_present_in_launcher_closure": true,
+      "canonical_outcome": "Success",
+      "cohort": "repeatability/cohort.json",
+      "cohort_identity": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+      "commands": "repeatability/commands.json",
+      "consumer_build_identity": "ba6b08fcf43511ce4ca3b4931c37964ae82feb7832b332b3f3837a81634b6da7",
+      "consumer_outputs": {
+        "activation": "/nix/store/n63i89brgrkf8lv56mym4alvw246ckn8-onix-home-activation-workstation-alice",
+        "home-activation": "/nix/store/ai1ypml6hn2fi5f05q1h7aa1l1g98c0n-onix-home-workstation-alice",
+        "home-files": "/nix/store/5nz215vwan6glkkgssrnij023bhagrib-onix-home-files-workstation-alice"
+      },
+      "explicit_release_observations": [
+        {
+          "roots_released": true
+        },
+        {
+          "roots_released": true
+        }
+      ],
+      "generated_gitconfig_blake3": "649a98f215ed7b0b036c9d8d497de9f16e47115983c4c6b43eb83b81d3499dda",
+      "job_identity": "3a62273ae63035476676a97d26a0b369728cca3c97e00ebd1d2aadc0c147bb5d",
+      "journal_identity": "fa6c3c6a6167c04eb4a686e89581d7387c82130494e1d2ec81ece1ee6cc231ec",
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "private_credentials_retired": true,
+      "provider_invocations": 1,
+      "restarted_during_provider_execution": true,
+      "retirement": "repeatability/retirement.json",
+      "rooted_products_before_release": 1,
+      "ucan_observation": {
+        "attempt_view_identity": "f157b24da18219680b95ca0c5e4fbf462fa1b3698d2e30ab654c058a86f54d58",
+        "canonical_run_outcome": "Success",
+        "replay_status": 401,
+        "revision": 2,
+        "run_view_identity": "f4a72be53737caed8527493811a99b68e45c697afbc2bc639ad724c01bfd9de8",
+        "schema": "kiln.onixos-pilot.ucan-probe.v1",
+        "wrong_holder_status": 401,
+        "wrong_target_status": 401
+      },
+      "verification": "repeatability/verification.json"
+    },
+    "same_immutable_source": "/nix/store/8nkg77hajh60p3n5v7v1z895hsqjd20y-source"
+  },
+  "frozen_source": "/nix/store/8nkg77hajh60p3n5v7v1z895hsqjd20y-source",
+  "frozen_source_nar_hash": "sha256-AqVIawTsaDTHYa8CWkoiidsQDx38hJuPEnGMxE3ob5o=",
+  "immediate_outcome": "All three consumer outputs were absent before authenticated dispatch and constructed by the original maintained-runtime CI operation; actual home-file build and evaluation failures retained their distinct non-success outcomes",
+  "implementation_manifest": "implementation-files.json",
+  "lifecycle": {
+    "accepted_spec": ".cairn/specs/onixos-ci-pilot/spec.md",
+    "active_changes_after_closeout": 0,
+    "archive": ".cairn/archive/1970-01-01-build-authenticated-onixos-home-closure",
+    "archive_execution": "gates/native-archive-execute.json",
+    "archive_receipt_boundary": "Native mutation manifests bind transition-time bytes; final conformance and qualification observations are added afterward",
+    "change": "build-authenticated-onixos-home-closure",
+    "current_conformance": "gates/native-after-closeout.json",
+    "onix_release_ready": false,
+    "repository_readiness_conformance": "pass",
+    "state": "native_closeout_complete",
+    "sync": "gates/native-sync.json",
+    "traceability": {
+      "dangling": [],
+      "missing": [],
+      "valid": true
+    }
+  },
+  "maintenance_owner": "Kiln maintainers",
+  "matching_implementation_files": 39,
+  "non_claims": [
+    "No activation execution, home mutation, autonomous forge delivery, production state/status mutation, deployment or publication",
+    "Exact-cohort local recovery is not distributed exactly-once execution, source trust, workload confinement, global availability, general reproducibility or release approval",
+    "Historical launcher-only qualification remains unchanged and does not establish this stronger construction claim",
+    "Post-qualification documentation and lifecycle receipts do not qualify changed executable bytes",
+    "The complete exercised x86_64-linux flake check does not establish builds or runtime behavior on other systems"
+  ],
+  "rejected_attempts": "rejected-attempts.json",
+  "runtime_inputs": "inputs.ncl",
+  "schema": "kiln.onixos-pilot.qualification.v1",
+  "scope": "Actual isolated authenticated construction of the selected real OnixOS launcher, activation script and generated home files",
+  "workspace_tests": {
+    "failed": 0,
+    "ignored": 3,
+    "passed": 511
+  }
+}

@@ -1,10 +1,16 @@
 use std::collections::BTreeSet;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use kiln_core::source::{SourceCapability, SourceProviderProfile, admit_source_capability};
 use kiln_core::types::{Alias, Diagnostic, ExternalRef, ProviderProfileId};
 use kiln_provider_api::{PortFailure, PortResult};
-use kiln_radicle_source_contract::{SourceRequest, admit_request};
+use kiln_radicle_source_contract::{
+    CONTRACT_SCHEMA_VERSION, SnapshotLimits, SourceRequest, admit_request,
+};
+use radicle_core::RepoId;
+use radicle_crypto::PublicKey;
+use radicle_git_ref_format::RefString;
 use serde::{Deserialize, Serialize};
 
 pub const RADICLE_SOURCE_PROFILE_SCHEMA: &str = "kiln.radicle-source-profile.v1";
@@ -119,6 +125,79 @@ impl RadicleSourceProfile {
                 .map(ToString::to_string)
                 .collect(),
         }
+    }
+}
+
+/// Read-only authority for one repository, signer namespace and branch.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RadicleSourceSelection {
+    pub repository_path: PathBuf,
+    pub repository_id: String,
+    pub signer_node_id: String,
+    pub signed_reference: String,
+    pub profile_id: String,
+    pub limits: SnapshotLimits,
+}
+
+// r[impl kiln.radicle_ci.source]
+impl RadicleSourceSelection {
+    fn profile(&self, sigrefs: String, revision: String) -> RadicleSourceProfile {
+        RadicleSourceProfile::pinned(
+            self.repository_path.clone(),
+            SourceRequest {
+                schema_version: CONTRACT_SCHEMA_VERSION,
+                profile_id: self.profile_id.clone(),
+                repository_id: self.repository_id.clone(),
+                signer_node_id: self.signer_node_id.clone(),
+                signed_reference: self.signed_reference.clone(),
+                expected_sigrefs_commit: sigrefs,
+                expected_revision: revision,
+                limits: self.limits.clone(),
+            },
+        )
+    }
+
+    /// Admit fixed policy without reading the repository or following refs.
+    pub fn admit(&self) -> PortResult<()> {
+        let placeholder = cob_git2::Oid::ZERO_SHA1.to_string();
+        admit_source_profile(&self.profile(placeholder.clone(), placeholder))?;
+        if RepoId::from_str(&self.repository_id).is_err()
+            || PublicKey::from_str(&self.signer_node_id).is_err()
+            || RefString::try_from(self.signed_reference.clone()).is_err()
+        {
+            return Err(domain(
+                "radicle_source_selection",
+                "radicle_source.selection",
+                "Source selection contains an invalid repository, signer or branch identity",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Capture the current declared sigrefs exactly once; never retry a moved ref.
+    pub fn pin(&self, revision: &ExternalRef) -> PortResult<RadicleSourceProfile> {
+        self.admit()?;
+        revision.validate()?;
+        if revision.provider_namespace.as_str() != "radicle"
+            || revision.native_kind.as_str() != "revision"
+        {
+            return Err(domain(
+                "radicle_source_revision_substitution",
+                "radicle_source.revision",
+                "Source pinning requires an exact Radicle revision",
+            ));
+        }
+        super::protocol::parse_oid(revision.native_id.as_str(), "radicle_source.revision")?;
+        let repository =
+            cob_git2::Repository::open(&self.repository_path).map_err(super::error::git_failure)?;
+        let sigrefs = super::protocol::reference_target(
+            &repository,
+            &format!("refs/namespaces/{}/refs/rad/sigrefs", self.signer_node_id),
+        )?;
+        let profile = self.profile(sigrefs.to_string(), revision.native_id.as_str().to_owned());
+        admit_source_profile(&profile)?;
+        Ok(profile)
     }
 }
 

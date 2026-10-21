@@ -227,7 +227,7 @@ pub fn build_git_snapshot_manifest(
             "Git snapshot entry count exceeds its named bound",
         ));
     }
-    let mut ordered = entries.to_vec();
+    let mut ordered = entries.iter().collect::<Vec<_>>();
     ordered.sort_by(|left, right| left.path.cmp(&right.path));
     let mut previous_path: Option<&str> = None;
     let mut total_bytes = 0usize;

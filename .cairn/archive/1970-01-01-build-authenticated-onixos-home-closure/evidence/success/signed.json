@@ -1,0 +1,41 @@
+{
+  "request": {
+    "schema": "kiln.onixos-pilot.operator-request.v1",
+    "issued_at_unix": 1792547655,
+    "expires_at_unix": 1792548255,
+    "cohort_identity": "d887eb04fa3c931f779067a5557a2a9ae6d334072ed9c187a6bd4e7040eb3ee1",
+    "source_uri": "path:/nix/store/95vi7z0ls9c9s4rkj0x1f0ns666kj8qr-kiln-onixos-application-jobset#cases.success",
+    "source_identity": "a3a1c009d1117b74ba2cb3a0bf19fe863f87403944a431c6f4c2e0094fbdea5f",
+    "job_identity": "cf9b4f261da82586127f1af3b3b877eddd30cf8128f1341fcc7887f86f5633a5",
+    "pilot_profile_identity": "3f5fded7687619b12d79418f4bb3035427247457b4dea49c5a6d120cbf464568",
+    "runtime_profile_identity": "45d4e429c158cf56e31810ebb30328884d2e5fe7ddf5adab21d5336a060a1035",
+    "run_id": "kiln-aspen-run-09d063bef8424652f5f39e2f57ce874c7e0208fb703a124497dd2ecd2c11c324",
+    "attempt_id": "pilot-attempt-d887eb04fa3c931f779067a5557a2a9ae6d334072ed9c187a6bd4e7040eb3ee1",
+    "trigger": {
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "repository",
+        "native_id": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      },
+      "actor": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "did",
+        "native_id": "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      },
+      "before": null,
+      "after": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "revision",
+        "native_id": "6c6e4f220fe0234ce607085fa622b580fd1cd016"
+      },
+      "branch": null,
+      "patch": null,
+      "event": "push"
+    }
+  },
+  "public_key": "AtSejlo7ii1Bn-ie2ZEW5RUnm6TNbI_chsw0ukMKa0I",
+  "signature": "Qr9Xk5Js_QcmmrQAyKj8Z0v671qikxZeLMlRdC8_YHhSN6-7MtrLr5xsms6e8qudCKDuU6BjFRFnJXh9XYZvCQ"
+}

@@ -89,13 +89,13 @@ fn sync_parent(path: &Path) -> Result<()> {
 }
 
 #[derive(Debug)]
-pub(crate) struct JournalLock {
+pub struct JournalLock {
     _file: File,
     path: PathBuf,
     temporary: PathBuf,
 }
 impl JournalLock {
-    pub(crate) fn acquire(path: &Path) -> Result<Self> {
+    pub fn acquire(path: &Path) -> Result<Self> {
         let parent = path
             .parent()
             .filter(|parent| !parent.as_os_str().is_empty())
@@ -134,7 +134,7 @@ impl JournalLock {
             temporary,
         })
     }
-    pub(crate) fn store<T: Serialize>(&self, value: &T, bound: usize) -> Result<()> {
+    pub fn store<T: Serialize>(&self, value: &T, bound: usize) -> Result<()> {
         let bytes = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
         if bytes.len() > bound {
             return Err("journal exceeds byte bound".into());

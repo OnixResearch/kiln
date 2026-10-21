@@ -1,0 +1,24 @@
+{
+  "actor": {
+    "contract_version": 1,
+    "native_id": "broker",
+    "native_kind": "actor",
+    "provider_namespace": "radicle"
+  },
+  "after": {
+    "contract_version": 1,
+    "native_id": "912fe954560337f44e11b0327ae910a0e1d5bfe4",
+    "native_kind": "revision",
+    "provider_namespace": "radicle"
+  },
+  "before": null,
+  "branch": "main",
+  "event": "push",
+  "patch": null,
+  "repository": {
+    "contract_version": 1,
+    "native_id": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+    "native_kind": "repository",
+    "provider_namespace": "radicle"
+  }
+}

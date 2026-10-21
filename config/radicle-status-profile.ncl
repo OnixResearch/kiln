@@ -1,26 +1,39 @@
 # r[impl kiln.radicle.status_signer]
 # r[impl kiln.radicle.status_allowlist]
+# r[impl kiln.radicle_ci.status]
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
-let AbsolutePath = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^/[^\\x00]+$" value
-) in
-let Blake3 = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
-) in
-let RidList = std.contract.from_predicate (fun value =>
-  std.is_array value
-  && std.array.length value > 0
-  && std.array.all (fun rid => std.is_string rid && std.string.is_match "^rad:z[1-9A-HJ-NP-Za-km-z]+$" rid) value
-) in
-let SecretName = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^[A-Za-z0-9_-]+$" value
-) in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
+let AbsolutePath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^/[^\\x00]+$" value
+  )
+in
+let Blake3 =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
+  )
+in
+let RidList =
+  std.contract.from_predicate (fun value =>
+    std.is_array value
+    && std.array.length value > 0
+    && std.array.all (fun rid => std.is_string rid && std.string.is_match "^rad:z[1-9A-HJ-NP-Za-km-z]+$" rid) value
+  )
+in
+let SecretName =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^[A-Za-z0-9_-]+$" value
+  )
+in
 let NonClaims = [
   "status writes do not complete Kiln attempts or mutate canonical state",
   "status writes do not prove peer convergence or remote visibility",
@@ -29,7 +42,8 @@ let NonClaims = [
   "the signer identity does not prove operator intent beyond one admitted plan",
   "equal ci-job objects do not prove equal run outcomes elsewhere",
   "passing conformance does not prove node availability",
-] in
+]
+in
 let Cohort = {
   platform | Exact "x86_64-linux",
   radicle_cob_version | Exact "0.21.1",
@@ -45,7 +59,8 @@ let Cohort = {
   radicle_license | Exact "MIT OR Apache-2.0",
   full_radicle_runtime | Exact false,
   sqlite_backend | Exact false,
-} in
+}
+in
 let Signer = {
   project_root | AbsolutePath,
   project | NonEmpty,
@@ -58,28 +73,37 @@ let Signer = {
   nixpkgs_revision | Exact "b7c2ada94fe99c15b0dbcf4d11fd7850b957a436",
   executable_path | Exact "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec",
   executable_blake3 | Exact "c15ea6408e2ff98fd976507a2ae5bec3cb99ef5580ce7342ba92eb465d9b28a6",
-} in
+}
+in
 let Profile = {
-  id | Exact "radicle-status-v1",
+  id | Exact "radicle-status-v2",
   cohort | Cohort,
   allowed_rids | RidList,
   allowed_object_type | Exact "xyz.radicle.ci-job",
   single_writer | Exact true,
+  signer_identity
+    | {
+      provider_namespace | Exact "radicle",
+      native_kind | Exact "node",
+      native_id | NonEmpty,
+    },
   signer | Signer,
-  limits | {
-    max_payload_bytes | Positive,
-    max_objects_scanned | Positive,
-  },
+  limits
+    | {
+      max_payload_bytes | Positive,
+      max_objects_scanned | Positive,
+    },
   allow_network_peers | Exact false,
   allow_merge_authority | Exact false,
   allow_canonical_state_mutation | Exact false,
   non_claims | Exact NonClaims,
-} in
+}
+in
 let MaxPayloadBytes = 65536 in
 let MaxObjectsScanned = 256 in
 {
   profile | Profile = {
-    id = "radicle-status-v1",
+    id = "radicle-status-v2",
     cohort = {
       platform = "x86_64-linux",
       radicle_cob_version = "0.21.1",
@@ -100,6 +124,12 @@ let MaxObjectsScanned = 256 in
     allowed_rids = ["rad:zFixtureRepository"],
     allowed_object_type = "xyz.radicle.ci-job",
     single_writer = true,
+    # Public review identity only. Replace with the exact SecretSpec signer's node key.
+    signer_identity = {
+      provider_namespace = "radicle",
+      native_kind = "node",
+      native_id = "z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX",
+    },
     signer = {
       project_root = "/var/lib/kiln/secrets",
       project = "kiln",

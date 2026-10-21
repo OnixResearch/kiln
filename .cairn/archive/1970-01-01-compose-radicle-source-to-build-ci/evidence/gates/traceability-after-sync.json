@@ -1,0 +1,21 @@
+{
+  "name": "traceability-after-sync",
+  "argv": [
+    "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+    "traceability",
+    "coverage",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json",
+    "--json"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "tool_result": {
+    "text": "{\n  \"command\": \"traceability coverage\",\n  \"dangling\": [],\n  \"input_hash\": \"4c6449e1c31290332e471db98e58e388514bb0460ef61a06fa83c782209b0b86\",\n  \"missing\": [],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"profile\": {\n    \"anchor_kind\": \"exact_marker_bytes\",\n    \"assurance_level\": \"declared\",\n    \"evidence_sources\": [\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"ncl\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"nickel_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-aspen-host\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-radicle-nix-provider\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \"docs/hosting-and-recovery.md\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\",\n          \"ncl\"\n        ],\n        \"root\": \"tools\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\"\n        ],\n        \"root\": \"src\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\",\n          \"sh\"\n        ],\n        \"root\": \"tests\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"py\"\n        ],\n        \"root\": \"scripts\",\n        \"source_kind\": \"tool_source\"\n      }\n    ],\n    \"id\": \"cairn-default\",\n    \"marker_verbs\": [\n      \"impl\",\n      \"verify\",\n      \"depends\",\n      \"related\"\n    ],\n    \"requirement_sources\": [\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \".cairn/specs\",\n        \"source_kind\": \"accepted_specs\"\n      }\n    ]\n  },\n  \"profile_id\": \"cairn-default\",\n  \"receipt_hash\": \"15513ff81588d4d26fac5406fbc04e6cda1d318c50ed4798bf0a7c5119f03655\",\n  \"referenced\": 789,\n  \"requirements\": 789,\n  \"root\": \".\",\n  \"source_summary\": {\n    \"evidence_files\": 327,\n    \"evidence_manifest_hash\": \"3e217f0824169c738a5b579d7a64a8f16d889a6a93100b7fe882a2fefc35979b\",\n    \"requirement_files\": 39,\n    \"requirement_manifest_hash\": \"0c786bba25d56ddd50b118872d657f58073767594396d404dafb61afe7b87d58\"\n  },\n  \"valid\": true,\n  \"verdict\": \"pass\"\n}\n\n\nWall time: 0.38 seconds",
+    "details": {
+      "timeoutSeconds": 180,
+      "wallTimeMs": 376.3423430323601
+    }
+  }
+}

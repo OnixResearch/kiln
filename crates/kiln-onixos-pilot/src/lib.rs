@@ -16,7 +16,7 @@ use std::path::PathBuf;
 
 pub use auth::{authenticate, keygen, now_unix, prepare_request, sign};
 pub use coordinator::{PilotJournal, reconcile, replay, start};
-pub use storage::{load_json, publish_new};
+pub use storage::{JournalLock, load_json, publish_new};
 pub type Result<T, E = String> = std::result::Result<T, E>;
 pub const PROFILE_SCHEMA: &str = "kiln.onixos-pilot.profile.v1";
 pub const REQUEST_SCHEMA: &str = "kiln.onixos-pilot.operator-request.v1";

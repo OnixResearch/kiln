@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/nix/store/84ih89pbn1bjlda6hfiq1y4qwssc12x8-kiln-0.1.0/bin/kiln-radicle-ci",
+    "--native-fixtures",
+    "replay",
+    "/var/tmp/krc-native-recovery-20261021-c/controller.json",
+    "/var/tmp/krc-native-recovery-20261021-c/success-source.json"
+  ],
+  "expected_exit_code": 1,
+  "tool_result": {
+    "text": "kiln.radicle_ci.failure: native fixture authority is not compiled into this binary\n\n\nWall time: 0.22 seconds\n\nCommand exited with code 1",
+    "details": {
+      "timeoutSeconds": 30,
+      "wallTimeMs": 223.61766803264618,
+      "exitCode": 1
+    },
+    "hasError": true
+  }
+}

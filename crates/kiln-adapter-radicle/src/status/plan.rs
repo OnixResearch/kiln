@@ -15,6 +15,8 @@ pub const CI_JOB_TYPE_NAME: &str = "xyz.radicle.ci-job";
 pub struct StatusPlan {
     /// The admitted repository identity (`rad:<RID>`).
     pub repository: ExternalRef,
+    /// Exact source commit described by this terminal projection.
+    pub revision: ExternalRef,
     /// The exact ci-job object identity for an update.
     ///
     /// `None` requests first-write creation or idempotency-key discovery.
@@ -60,9 +62,13 @@ pub fn classify_status_outcome(outcome: Outcome) -> CoreResult<StatusOutcome> {
 pub fn admit_idempotent_replay(
     plan: &StatusPlan,
     projected_run_id: &str,
+    projected_revision: &ExternalRef,
     projected_outcome: StatusOutcome,
 ) -> CoreResult<()> {
-    if projected_run_id != plan.run_id.as_str() || projected_outcome != plan.outcome {
+    if projected_run_id != plan.run_id.as_str()
+        || projected_revision != &plan.revision
+        || projected_outcome != plan.outcome
+    {
         return Err(Diagnostic::new(
             "status_idempotency_conflict",
             "status_plan.idempotency_key",
@@ -88,6 +94,27 @@ pub struct HeadAuthor {
     pub author: Option<ExternalRef>,
 }
 
+// r[impl kiln.radicle_ci.status]
+pub(crate) fn admit_revision(revision: &ExternalRef) -> CoreResult<()> {
+    revision.validate()?;
+    if revision.provider_namespace.as_str() != "radicle"
+        || revision.native_kind.as_str() != "revision"
+        || revision.native_id.as_str().len() != 40
+        || !revision
+            .native_id
+            .as_str()
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(Diagnostic::new(
+            "status_revision_identity",
+            "status_plan.revision",
+            "Radicle status requires an exact lowercase Git commit identity",
+        ));
+    }
+    Ok(())
+}
+
 // r[impl kiln.radicle.status_allowlist]
 pub fn admit_status_plan(plan: &StatusPlan, allowed_rids: &BTreeSet<String>) -> CoreResult<()> {
     if plan.repository.provider_namespace.as_str() != "radicle"
@@ -107,6 +134,7 @@ pub fn admit_status_plan(plan: &StatusPlan, allowed_rids: &BTreeSet<String>) -> 
             "Radicle status plan targets a repository outside its allowlist",
         ));
     }
+    admit_revision(&plan.revision)?;
     if let Some(object_id) = &plan.object_id {
         if object_id.provider_namespace.as_str() != "radicle"
             || object_id.native_kind.as_str() != "cob"

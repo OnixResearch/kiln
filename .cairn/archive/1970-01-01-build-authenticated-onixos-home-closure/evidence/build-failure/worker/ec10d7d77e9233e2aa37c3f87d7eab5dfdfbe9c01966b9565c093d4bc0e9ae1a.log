@@ -1,0 +1,22 @@
+these 3 derivations will be built:
+  /nix/store/vbkay7d624ph9qkrc3lhygl5hyb48xsn-onix-home-files-workstation-alice.drv
+  /nix/store/f48l628yjhwq0crgd25vjc3pbrwgfnqk-onix-home-activation-workstation-alice.drv
+  /nix/store/3m20yq029iih37b31jayfxm247n2k47q-onix-home-workstation-alice.drv
+building '/nix/store/vbkay7d624ph9qkrc3lhygl5hyb48xsn-onix-home-files-workstation-alice.drv'...
+mkdir: cannot create directory '/nix/store/pl9x9jrjhsl3j26q6qmcwci52cnj4hpd-onix-home-files-workstation-alice/.gitconfig': File exists
+error: Cannot build '/nix/store/vbkay7d624ph9qkrc3lhygl5hyb48xsn-onix-home-files-workstation-alice.drv'.
+       Reason: builder failed with exit code 1.
+       Output paths:
+         /nix/store/pl9x9jrjhsl3j26q6qmcwci52cnj4hpd-onix-home-files-workstation-alice
+       Last 1 log lines:
+       > mkdir: cannot create directory '/nix/store/pl9x9jrjhsl3j26q6qmcwci52cnj4hpd-onix-home-files-workstation-alice/.gitconfig': File exists
+       For full logs, run:
+         nix log /nix/store/vbkay7d624ph9qkrc3lhygl5hyb48xsn-onix-home-files-workstation-alice.drv
+error: Cannot build '/nix/store/f48l628yjhwq0crgd25vjc3pbrwgfnqk-onix-home-activation-workstation-alice.drv'.
+       Reason: 1 dependency failed.
+       Output paths:
+         /nix/store/qr1w6mxmjl9wb9c4hvnx4q4jfws073xl-onix-home-activation-workstation-alice
+error: Cannot build '/nix/store/3m20yq029iih37b31jayfxm247n2k47q-onix-home-workstation-alice.drv'.
+       Reason: 1 dependency failed.
+       Output paths:
+         /nix/store/4jzvsmvvb6bvypi2xg020q1pigz6iccx-onix-home-workstation-alice

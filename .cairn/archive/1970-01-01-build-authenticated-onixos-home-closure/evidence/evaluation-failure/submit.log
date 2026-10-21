@@ -1,0 +1,123 @@
+{
+  "schema": "kiln.onixos-pilot.journal.v1",
+  "request": {
+    "request": {
+      "schema": "kiln.onixos-pilot.operator-request.v1",
+      "issued_at_unix": 1792547655,
+      "expires_at_unix": 1792548255,
+      "cohort_identity": "b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+      "source_uri": "path:/nix/store/8ly7y1j16jmi42f2sb5yhc2xnh7c53dv-kiln-onixos-application-jobset#cases.evaluation-failure",
+      "source_identity": "62192bc6ad9089817391aba19424cc3edefc141a7a854622254deee2e564a957",
+      "job_identity": "7165a08331c620c3178e8750e83de03abc1be19c7339a2dd8aa216cb0b1ed54e",
+      "pilot_profile_identity": "9e4ce91181da0c880460fb25867d1915a9eab0c81a04ed3138e9d39947aab263",
+      "runtime_profile_identity": "45d4e429c158cf56e31810ebb30328884d2e5fe7ddf5adab21d5336a060a1035",
+      "run_id": "kiln-aspen-run-09d063bef8424652f5f39e2f57ce874c7e0208fb703a124497dd2ecd2c11c324",
+      "attempt_id": "pilot-attempt-b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+      "trigger": {
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "repository",
+          "native_id": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+        },
+        "actor": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "did",
+          "native_id": "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+        },
+        "before": null,
+        "after": {
+          "contract_version": 1,
+          "provider_namespace": "radicle",
+          "native_kind": "revision",
+          "native_id": "6c6e4f220fe0234ce607085fa622b580fd1cd016"
+        },
+        "branch": null,
+        "patch": null,
+        "event": "push"
+      }
+    },
+    "public_key": "AhmAy5iZVv2Hs4PpbBSyXRI8GkRrfygAlwD33XzWw6c",
+    "signature": "BRPY2C821e37W69wkJAi4DrzBLU9dzudanS_HyR6ubT8Kjyp7HffJZPegLjS85UuBhR3abKuACpc_mtg_hk_Cw"
+  },
+  "ingress": {
+    "schema": "kiln.aspen-runtime.service-ingress.v2",
+    "source": "operator",
+    "service_id": "kiln-ci-control-plane-v2",
+    "generation": 1,
+    "profile_identity": "45d4e429c158cf56e31810ebb30328884d2e5fe7ddf5adab21d5336a060a1035",
+    "alpn": "molten/system-extension/native/v2",
+    "framing": "preserves-packed-materialized-values-v2",
+    "operation_id": {
+      "contract_version": 1,
+      "provider_namespace": "molten",
+      "native_kind": "service-operation-blake3",
+      "native_id": "98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d"
+    },
+    "idempotency_key": {
+      "contract_version": 1,
+      "provider_namespace": "kiln",
+      "native_kind": "trigger-idempotency-blake3",
+      "native_id": "4fb9e63b6526a6b0a06af8f0ffbff908b952c280819f03ad37f486eb25ad4243"
+    },
+    "authority_ref": "kiln-aspen-authority-v1",
+    "resource_ref": "kiln-aspen-resources-v1",
+    "trigger_identity": "4fb9e63b6526a6b0a06af8f0ffbff908b952c280819f03ad37f486eb25ad4243",
+    "trigger": {
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "repository",
+        "native_id": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      },
+      "actor": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "did",
+        "native_id": "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      },
+      "before": null,
+      "after": {
+        "contract_version": 1,
+        "provider_namespace": "radicle",
+        "native_kind": "revision",
+        "native_id": "6c6e4f220fe0234ce607085fa622b580fd1cd016"
+      },
+      "branch": null,
+      "patch": null,
+      "event": "push"
+    }
+  },
+  "records": [
+    {
+      "schema_version": 1,
+      "stream": {
+        "contract_version": 1,
+        "provider_namespace": "molten",
+        "native_kind": "service-operation-blake3",
+        "native_id": "98c4e8e52618a6289016f322bd9b13be835d5df1106b6f2fbc36c5bb44cb289d"
+      },
+      "expected_revision": 0,
+      "event_identity": {
+        "contract_version": 1,
+        "provider_namespace": "kiln",
+        "native_kind": "pilot-event-blake3",
+        "native_id": "6054bd5fa50c04a69dcd6e1a8e1a97f9ce3cf71e73f968854f9c33943218480e"
+      },
+      "event": {
+        "RunStarted": {
+          "command_id": "pilot-start-495ee6403010d73bf7f1064e92b41518d8bfd36cf44cca75b88c2379fcba7693",
+          "run_id": "kiln-aspen-run-09d063bef8424652f5f39e2f57ce874c7e0208fb703a124497dd2ecd2c11c324",
+          "attempt_id": "pilot-attempt-b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+          "provider_profile": "nix-build-v1"
+        }
+      }
+    }
+  ],
+  "native_observations": [
+    "Malformed"
+  ],
+  "worker_result": null,
+  "identity": "17af2b1ac5e3eb2ecef8c231103255d1553cd56b1540b72d2ffb3469dea87ee2"
+}

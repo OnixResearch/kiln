@@ -1,18 +1,19 @@
+mod project;
 mod runtime;
 
 use std::collections::BTreeSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use fs2::FileExt;
-use kiln_adapter_nix::{BoundedNixBuildRuntime, NixBuildProfileConfig};
+use kiln_adapter_nix::BoundedNixBuildRuntime;
 use kiln_adapter_nix_eval::{NixEvalAdapter, NixEvalProfile, admit_plan};
 use kiln_core::build::{BuildEvaluationOutcome, BuildLogReadRequest};
-use kiln_core::discovery::{DiscoveryEffectPlan, DiscoveryTerminal, admit_discovery_observation};
-use kiln_core::types::{Alias, ContentId};
-use kiln_nix_build::{NixBuildIntent, NixBuildState, build_task, plan_for_task};
+use kiln_core::discovery::{DiscoveryTerminal, admit_discovery_observation};
+use kiln_core::types::ContentId;
+use kiln_nix_build::{NixBuildState, build_task, plan_for_task};
 use kiln_onixos_pilot::WorkerResult;
 use kiln_provider_api::{BuildPort, DiscoveryPort};
 use serde::{Deserialize, Serialize};
@@ -24,27 +25,7 @@ const RESULT_FILE: &str = "worker-result.json";
 const INTENT_FILE: &str = "worker-intent.json";
 const BUILD_FILE: &str = "build-state.json";
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SourceContext {
-    provider: String,
-    repository: String,
-    revision: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct WorkerJob {
-    schema: String,
-    source_uri: String,
-    expected_source: SourceContext,
-    discovery_profile: NixEvalProfile,
-    discovery_plan: DiscoveryEffectPlan,
-    selected_task: Alias,
-    build_profile: NixBuildProfileConfig,
-    build_intent: NixBuildIntent,
-    state_root: PathBuf,
-}
+use kiln_radicle_ci::project::{ResolvedWorkerJob as WorkerJob, SourceContext};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -78,6 +59,12 @@ fn main() {
 
 // r[impl kiln.onixos_pilot.runtime] r[impl kiln.onixos_pilot.failure]
 fn execute(arguments: &[String]) -> Result<bool, String> {
+    if arguments
+        .first()
+        .is_some_and(|command| command == "project-run" || command == "project-release")
+    {
+        return project::execute(arguments);
+    }
     if let [command, path] = arguments {
         if command == "eval-profile" {
             let selected: EvalSelection =

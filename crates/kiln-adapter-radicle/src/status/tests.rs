@@ -48,6 +48,13 @@ fn executable() -> PinnedSecretSpecExecutable {
 fn profile() -> RadicleStatusProfile {
     RadicleStatusProfile::pinned(
         BTreeSet::from([ALLOWED_RID.to_string()]),
+        external(
+            "radicle",
+            "node",
+            ResolvedSigner::from_resolved_secret(FIXTURE_SECRET)
+                .unwrap_or_else(|_| unreachable!())
+                .public_key(),
+        ),
         declaration(),
         executable(),
     )
@@ -56,6 +63,7 @@ fn profile() -> RadicleStatusProfile {
 fn plan(repository: &str) -> StatusPlan {
     StatusPlan {
         repository: external("radicle", "repository", repository),
+        revision: external("radicle", "revision", &"a".repeat(40)),
         object_id: None,
         expected_head: None,
         run_id: RunId::new("run-fixture").unwrap_or_else(|_| unreachable!()),
@@ -152,16 +160,35 @@ fn terminal_outcomes_are_classified_and_unknown_is_rejected() {
 }
 
 #[test]
-fn replayed_key_requires_equal_run_and_outcome() {
+fn replayed_key_requires_equal_run_revision_and_outcome() {
     let candidate = plan(ALLOWED_RID);
-    admit_idempotent_replay(&candidate, candidate.run_id.as_str(), candidate.outcome)
-        .unwrap_or_else(|_| unreachable!());
-    let error = core_error(admit_idempotent_replay(
+    admit_idempotent_replay(
         &candidate,
-        "different-run",
+        candidate.run_id.as_str(),
+        &candidate.revision,
         candidate.outcome,
-    ));
-    assert_eq!(error.code, "status_idempotency_conflict");
+    )
+    .unwrap_or_else(|_| unreachable!());
+    for (run, revision, outcome) in [
+        (
+            "different-run",
+            candidate.revision.clone(),
+            candidate.outcome,
+        ),
+        (
+            candidate.run_id.as_str(),
+            external("radicle", "revision", &"b".repeat(40)),
+            candidate.outcome,
+        ),
+        (
+            candidate.run_id.as_str(),
+            candidate.revision.clone(),
+            StatusOutcome::Failure,
+        ),
+    ] {
+        let error = core_error(admit_idempotent_replay(&candidate, run, &revision, outcome));
+        assert_eq!(error.code, "status_idempotency_conflict");
+    }
 }
 
 #[test]
@@ -281,6 +308,7 @@ fn executable_identity_drift_fails_closed() {
 fn status_dispatch_round_trips_and_rejects_unknown_fields() {
     let observation = StatusWriteObservation {
         repository: external("radicle", "repository", ALLOWED_RID),
+        revision: external("radicle", "revision", &"a".repeat(40)),
         object_id: external("radicle", "cob", "object-fixture"),
         head: external("radicle", "head", "head-fixture"),
         run_id: "run-fixture".to_string(),
@@ -306,4 +334,41 @@ fn oversized_payload_fails_before_signer_or_storage_access() {
     candidate.max_payload_bytes = 1;
     let error = port_error(shell.publish(&candidate, "publish oversized fixture"));
     assert_eq!(domain_code(error), "status_payload_bound");
+}
+
+// r[verify kiln.radicle_ci.status]
+#[test]
+fn revision_is_mandatory_and_must_name_an_exact_radicle_commit() {
+    let admitted = admit_profile(&profile()).unwrap_or_else(|_| unreachable!());
+    for revision in [
+        external("git", "revision", &"a".repeat(40)),
+        external("radicle", "branch", &"a".repeat(40)),
+        external("radicle", "revision", "main"),
+        external("radicle", "revision", &"A".repeat(40)),
+    ] {
+        let mut candidate = plan(ALLOWED_RID);
+        candidate.revision = revision;
+        assert_eq!(
+            core_error(admit_status_plan(&candidate, &admitted)).code,
+            "status_revision_identity"
+        );
+    }
+    let mut legacy = serde_json::to_value(plan(ALLOWED_RID)).unwrap_or_else(|_| unreachable!());
+    legacy
+        .as_object_mut()
+        .unwrap_or_else(|| unreachable!())
+        .remove("revision");
+    assert!(serde_json::from_value::<StatusPlan>(legacy).is_err());
+}
+
+// r[verify kiln.radicle_ci.status]
+#[test]
+fn legacy_status_profile_is_rejected() {
+    let mut legacy = profile();
+    legacy.id = kiln_core::types::ProviderProfileId::new("radicle-status-v1")
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        domain_code(port_error(admit_profile(&legacy))),
+        "radicle_status_profile"
+    );
 }

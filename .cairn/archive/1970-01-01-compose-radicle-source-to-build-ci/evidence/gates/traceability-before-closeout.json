@@ -1,0 +1,23 @@
+{
+  "name": "traceability-before-closeout",
+  "argv": [
+    "/nix/store/j3ni3lj66ylskpcg78ip531s9lz4z4av-cairn-0.1.0/bin/cairn",
+    "traceability",
+    "coverage",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json",
+    "--json"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "tool_result": {
+    "text": "{\n  \"command\": \"traceability coverage\",\n  \"dangling\": [\n    \"kiln.radicle_ci.evidence\",\n    \"kiln.radicle_ci.journal\",\n    \"kiln.radicle_ci.recovery\",\n    \"kiln.radicle_ci.runtime\",\n    \"kiln.radicle_ci.source\",\n    \"kiln.radicle_ci.status\"\n  ],\n  \"input_hash\": \"dec69a5f2b62dbde390b9136d4fde7d2626e86334f8f6949bb544255fed0bee6\",\n  \"missing\": [],\n  \"policy\": \"kiln-default\",\n  \"policy_hash\": \"625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649\",\n  \"profile\": {\n    \"anchor_kind\": \"exact_marker_bytes\",\n    \"assurance_level\": \"declared\",\n    \"evidence_sources\": [\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"ncl\"\n        ],\n        \"root\": \"crates\",\n        \"source_kind\": \"nickel_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-aspen-host\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\"\n        ],\n        \"root\": \"runtime/kiln-radicle-nix-provider\",\n        \"source_kind\": \"rust_source\"\n      },\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \"docs/hosting-and-recovery.md\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"rs\",\n          \"ncl\"\n        ],\n        \"root\": \"tools\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\"\n        ],\n        \"root\": \"src\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"mjs\",\n          \"sh\"\n        ],\n        \"root\": \"tests\",\n        \"source_kind\": \"tool_source\"\n      },\n      {\n        \"extensions\": [\n          \"py\"\n        ],\n        \"root\": \"scripts\",\n        \"source_kind\": \"tool_source\"\n      }\n    ],\n    \"id\": \"cairn-default\",\n    \"marker_verbs\": [\n      \"impl\",\n      \"verify\",\n      \"depends\",\n      \"related\"\n    ],\n    \"requirement_sources\": [\n      {\n        \"extensions\": [\n          \"md\"\n        ],\n        \"root\": \".cairn/specs\",\n        \"source_kind\": \"accepted_specs\"\n      }\n    ]\n  },\n  \"profile_id\": \"cairn-default\",\n  \"receipt_hash\": \"191b1ad02e8335f3450533f542c991634b1986bb8969c1d1190a1e549e65c65e\",\n  \"referenced\": 783,\n  \"requirements\": 783,\n  \"root\": \".\",\n  \"source_summary\": {\n    \"evidence_files\": 327,\n    \"evidence_manifest_hash\": \"3e217f0824169c738a5b579d7a64a8f16d889a6a93100b7fe882a2fefc35979b\",\n    \"requirement_files\": 38,\n    \"requirement_manifest_hash\": \"593a92d6de70172c7a8bab3066230ff9aef5fa782b551377dcc959acd5625ba9\"\n  },\n  \"valid\": false,\n  \"verdict\": \"fail\"\n}\nerror: traceability coverage failed\n\n\nWall time: 0.43 seconds\n\nCommand exited with code 1",
+    "details": {
+      "timeoutSeconds": 180,
+      "wallTimeMs": 432.5372419953346,
+      "exitCode": 1
+    },
+    "hasError": true
+  }
+}

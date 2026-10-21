@@ -23,6 +23,7 @@ members = [
   "crates/kiln-adapter-nix-eval",
   "crates/kiln-onixos-pilot",
   "crates/kiln-onixos-worker",
+  "crates/kiln-radicle-ci",
   "crates/kiln-adapter-remote",
   "crates/kiln-adapter-cdevents",
   "crates/kiln-adapter-opentelemetry",
@@ -105,6 +106,7 @@ kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
 kiln-adapter-nix = { path = "crates/kiln-adapter-nix" }
 kiln-nix-build = { path = "crates/kiln-nix-build" }
 kiln-onixos-pilot = { path = "crates/kiln-onixos-pilot" }
+kiln-radicle-ci = { path = "crates/kiln-radicle-ci" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
 kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
 kiln-aspen-extension = { path = "crates/kiln-aspen-extension" }

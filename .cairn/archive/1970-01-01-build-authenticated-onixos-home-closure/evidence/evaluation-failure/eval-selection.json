@@ -1,0 +1,44 @@
+{
+  "limits": {
+    "max_dependencies_per_job": 256,
+    "max_diagnostic_bytes": 65536,
+    "max_executable_bytes": 536870912,
+    "max_gc_roots": 256,
+    "max_in_flight": 16,
+    "max_job_errors": 256,
+    "max_jobs": 256,
+    "max_line_bytes": 1048576,
+    "max_manifest_bytes": 65536,
+    "max_memory_mebibytes": 16384,
+    "max_metadata_bytes": 65536,
+    "max_outputs_per_job": 64,
+    "max_records": 256,
+    "max_stderr_bytes": 1048576,
+    "max_tasks": 256,
+    "max_total_stdout_bytes": 16777216,
+    "max_workers": 32,
+    "poll_interval_milliseconds": 10,
+    "stdin_max_bytes": 1,
+    "teardown_timeout_milliseconds": 1000,
+    "timeout_milliseconds": 60000
+  },
+  "runtime": {
+    "cohort_manifest_identity": "1e7df147057fde6b439541427a51c2d4ba70f6a42ee15d30021d120e9dda8263",
+    "cohort_manifest_path": "/nix/store/bnigspvq8r3pxwy2cvkzaa6cgarbh1mi-kiln-nix-eval-jobs-onix-cohort.json",
+    "executable_identity": "4b4e221bfe3645da5f9d89198f211e07f63e4ea5f4fbd6064d6311bfa5090361",
+    "executable_path": "/nix/store/69k3iijnj5s8417anq7ncgc9f006gc1n-nix-eval-jobs-2.36.4/bin/nix-eval-jobs",
+    "gc_root_base": "/var/tmp/kfc-e-evaluation-failure/eval-roots",
+    "home_base": "/var/tmp/kfc-e-evaluation-failure/eval-home"
+  },
+  "source_binding": {
+    "root_selector": "cases.evaluation-failure",
+    "source": {
+      "contract_version": 1,
+      "native_id": "/nix/store/8ly7y1j16jmi42f2sb5yhc2xnh7c53dv-kiln-onixos-application-jobset",
+      "native_kind": "nix-store-path",
+      "provider_namespace": "kiln-source"
+    },
+    "source_identity": "62192bc6ad9089817391aba19424cc3edefc141a7a854622254deee2e564a957",
+    "system": "x86_64-linux"
+  }
+}

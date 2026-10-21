@@ -1,0 +1,18 @@
+error:
+       … while calling the 'throw' builtin
+         at «path:/nix/store/8ly7y1j16jmi42f2sb5yhc2xnh7c53dv-kiln-onixos-application-jobset?lastModified=1&narHash=sha256-G9iqeBeI3aLvCbO8nL3Ov1IIX%2BuOL9KmK4rt0jBItlk%3D»/jobset.nix:69:26:
+           68|   cases = nixpkgs.lib.mapAttrs (_: selected: { inherit (selected) home-activation; }) consumers // {
+           69|     evaluation-failure = throw "kiln-onixos-pilot: explicit evaluation failure control";
+             |                          ^
+           70|   };
+
+       error: kiln-onixos-pilot: explicit evaluation failure control
+error: worker error: error:
+              … while calling the 'throw' builtin
+                at «path:/nix/store/8ly7y1j16jmi42f2sb5yhc2xnh7c53dv-kiln-onixos-application-jobset?lastModified=1&narHash=sha256-G9iqeBeI3aLvCbO8nL3Ov1IIX%2BuOL9KmK4rt0jBItlk%3D»/jobset.nix:69:26:
+                  68|   cases = nixpkgs.lib.mapAttrs (_: selected: { inherit (selected) home-activation; }) consumers // {
+                  69|     evaluation-failure = throw "kiln-onixos-pilot: explicit evaluation failure control";
+                    |                          ^
+                  70|   };
+
+              error: kiln-onixos-pilot: explicit evaluation failure control

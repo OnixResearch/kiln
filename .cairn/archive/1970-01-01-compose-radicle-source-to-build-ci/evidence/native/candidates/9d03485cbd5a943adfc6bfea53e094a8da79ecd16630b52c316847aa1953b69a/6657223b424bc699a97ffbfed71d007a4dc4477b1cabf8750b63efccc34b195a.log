@@ -1,0 +1,12 @@
+this derivation will be built:
+  /nix/store/3mc2pgba7f71ilr7n4a9nyj3xkrbdg7g-kiln-radicle-source-ci.drv
+building '/nix/store/3mc2pgba7f71ilr7n4a9nyj3xkrbdg7g-kiln-radicle-source-ci.drv'...
+source-requested-genuine-build-failure
+error: Cannot build '/nix/store/3mc2pgba7f71ilr7n4a9nyj3xkrbdg7g-kiln-radicle-source-ci.drv'.
+       Reason: builder failed with exit code 19.
+       Output paths:
+         /nix/store/jijb1fllk5353zjrnip7rn0r4m9nw0z7-kiln-radicle-source-ci
+       Last 1 log lines:
+       > source-requested-genuine-build-failure
+       For full logs, run:
+         nix log /nix/store/3mc2pgba7f71ilr7n4a9nyj3xkrbdg7g-kiln-radicle-source-ci.drv

@@ -1,0 +1,70 @@
+{
+  "frozen_source": "/nix/store/8nkg77hajh60p3n5v7v1z895hsqjd20y-source",
+  "full_x86_64_linux_flake_check": {
+    "checks": [
+      "octet",
+      "package",
+      "tests",
+      "boundaries",
+      "runtime-independence",
+      "format",
+      "clippy",
+      "github-protocol-fixtures",
+      "nickel",
+      "kiln-radicle-nix-provider-package",
+      "kiln-radicle-nix-provider-octet-deny-all",
+      "pijul-native-fixtures",
+      "pijul-cohort",
+      "nix-eval-fixture-process",
+      "nix-build-adapter-fixtures",
+      "nix-build-adapter-cohort",
+      "aspen-runtime-octet-deny-all",
+      "kiln-aspen-host-octet-deny-all",
+      "radicle-broker-wire-octet-deny-all",
+      "no-std",
+      "kiln-aspen-host-package",
+      "radicle-source-contract-fixtures",
+      "onixos-pilot-preparation",
+      "aspen-runtime-profile",
+      "cairn-gate-cohort",
+      "mantle-build-cohort",
+      "nix-eval-jobs-cohort",
+      "radicle-source-native-fixtures",
+      "radicle-status-native-fixtures",
+      "radicle-mutation-native-fixtures",
+      "radicle-status-cohort",
+      "radicle-status-boundaries",
+      "celld-boundaries",
+      "release-evidence"
+    ],
+    "exit_code": 0,
+    "record": "repository.json"
+  },
+  "native_post_closeout_gates": "native-after-closeout.json",
+  "native_stage_gates": "stages-after-proof.json",
+  "native_traceability": {
+    "dangling": [],
+    "missing": []
+  },
+  "onix_release_ready": false,
+  "original_failures_retained": [
+    "focused.json",
+    "repository-initial.json",
+    "../rejected-attempts.json"
+  ],
+  "preparation_and_native_output_observation_regressions": {
+    "passed": 9,
+    "source": "Full flake check ran checks.x86_64-linux.onixos-pilot-preparation"
+  },
+  "repository_readiness_conformance": "pass",
+  "strict_clippy": {
+    "log": "cargo-private-target.log",
+    "record": "repository.json",
+    "status": "pass"
+  },
+  "workspace_tests": {
+    "failed": 0,
+    "ignored": 3,
+    "passed": 511
+  }
+}

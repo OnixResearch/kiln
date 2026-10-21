@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "nix",
+    "flake",
+    "archive",
+    "--json",
+    "--no-write-lock-file",
+    "path:/home/brittonr/git/OnixResearch/kiln"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "materialize_final_runtime_and_gate_source",
+  "started_at": "2026-10-21T01:53:51.426272+00:00",
+  "stderr": "",
+  "stdout": "{\"inputs\":{\"nix-eval-jobs\":{\"inputs\":{\"flake-parts\":{\"inputs\":{},\"path\":\"/nix/store/pqjppkj5kcs4001j5svlsz1595hcja0y-source\"},\"nix\":{\"inputs\":{},\"path\":\"/nix/store/mxqs2kx71n63lrrc1cgh037q9f862r3y-source\"},\"nixpkgs\":{\"inputs\":{},\"path\":\"/nix/store/qs19c087rpasj7p8h8l8z8y80gxz9pwi-source\"},\"treefmt-nix\":{\"inputs\":{},\"path\":\"/nix/store/j2wzjpy3yyr56yv1klygrm7mya0kb2f0-source\"}},\"path\":\"/nix/store/xx7385j23r97ra2x4j9mdh6lcs4pnwcq-source\"},\"nixpkgs\":{\"inputs\":{},\"path\":\"/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source\"},\"rust-overlay\":{\"inputs\":{},\"path\":\"/nix/store/gjx3mziwj0g4azg30z4irhkl8jsw8y26-source\"}},\"path\":\"/nix/store/8nkg77hajh60p3n5v7v1z895hsqjd20y-source\"}\n"
+}

@@ -1,0 +1,5 @@
+{
+  "schema": "kiln.onixos-pilot.worker-job.v1",
+  "job_identity": "cf9b4f261da82586127f1af3b3b877eddd30cf8128f1341fcc7887f86f5633a5",
+  "source_uri": "path:/nix/store/95vi7z0ls9c9s4rkj0x1f0ns666kj8qr-kiln-onixos-application-jobset#cases.success"
+}

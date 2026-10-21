@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:$PWD",
+    "-c",
+    "cargo",
+    "clippy",
+    "--locked",
+    "--offline",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "environment": {
+    "TMPDIR": "/var/tmp/kiln-radicle-ci-tmp",
+    "CARGO_TARGET_DIR": "/var/tmp/kiln-radicle-ci-cargo"
+  },
+  "exit_code": 0,
+  "capture": "Observed completed host command; terminal excerpt retained without rerunning the passing check. Full independent Nix Clippy output is in nix-flake-check.log.",
+  "output_excerpt": "    Checking kiln-radicle-ci v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-radicle-ci)\n    Checking kiln-onixos-worker v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-onixos-worker)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.56s\n"
+}

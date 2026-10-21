@@ -4,6 +4,11 @@ Kiln can publish a local `xyz.radicle.ci-job` collaborative object. The object i
 
 Kiln remains the source of CI state. A Radicle object cannot complete a run, authorize a merge, or change a release decision.
 
+The current contract is `radicle-status-v2`. Plans, signed COB projections,
+successful observations and unknown observations all carry the exact source
+revision as `ExternalRef(radicle, revision, <40 lowercase Git commit hex>)`.
+There is no revision inference from a run ID, key, branch or current checkout.
+
 ## Pinned cohort
 
 The adapter supports `x86_64-linux`. It pins these crates:
@@ -58,6 +63,12 @@ Kiln verifies this identity before each resolution. Kiln then starts SecretSpec 
 
 The declaration contains a project root, project name, profile, secret name, and optional provider restriction. It never contains the secret value.
 
+The v2 profile separately pins the public `signer_identity` as
+`ExternalRef(radicle, node, <public node key>)`. This is not a credential.
+Every actual write resolves the declared SecretSpec seed and rejects a derived
+public identity that differs from this pin. Configure both authorities explicitly;
+changing the SecretSpec provider or secret must not silently change the writer.
+
 Configure the declared secret as a 64-character hexadecimal Ed25519 seed. Do not put this value in Nickel, command arguments, logs, or receipts.
 
 The resolver runs this command shape:
@@ -72,7 +83,7 @@ Diagnostics never include standard output or standard error. `ResolvedSigner` de
 
 ## Target admission
 
-`config/radicle-status-profile.ncl` owns the typed review profile. A deployment must replace the fixture RID with each exact admitted repository RID.
+`config/radicle-status-profile.ncl` owns the typed review profile. A deployment must replace the fixture RID and public review identity with its exact repository RID and SecretSpec signer's node key.
 
 The profile admits only `xyz.radicle.ci-job`. It denies network-peer access, merge authority, and canonical-state mutation.
 
@@ -82,7 +93,7 @@ Kiln checks the RID and payload before it resolves the signer. Foreign RIDs and 
 
 A first-write plan omits the object ID. Radicle derives the object ID from the signed root change.
 
-Kiln returns the native object ID and current head in the successful observation. The journal must retain both values for later exact updates.
+Kiln returns the exact revision, native object ID and current head in the successful observation. The journal must retain the entire admitted plan and observation for later exact updates or recovery.
 
 Before first-write creation, Kiln scans a bounded set of local ci-job objects for the idempotency key. One matching object becomes an idempotent replay.
 
@@ -92,11 +103,20 @@ An exact update names the returned object ID and expected head. Kiln rejects a m
 
 The Git reference update uses an atomic expected-target comparison. A same-signer race becomes unknown and requires reconciliation.
 
-A repeated key must bind the same run ID and outcome. Different facts under the same key produce `status_idempotency_conflict`.
+A repeated key must bind the same run ID, exact revision and outcome. Different facts under the same key produce `status_idempotency_conflict`, both during publication and read reconciliation.
+
+The signed action is `{"type":"project_revision","key":...,"run_id":...,"revision":<ExternalRef>,"outcome":...}`.
+The reducer retains the revision alongside the run and terminal outcome. A
+revision-less legacy `project` action, a `project_revision` action missing its
+revision, or conflicting facts in later history fail closed. The shell verifies
+that the native reducer's accepted history still reaches the observed head;
+native pruning of an invalid later action cannot expose an older projection as
+the current status. The `radicle-status-v1` profile is not admitted, and neither
+old profiles nor actions receive a compatibility fallback or invented revision.
 
 ## Single-writer policy
 
-Kiln accepts no current head or one head from the resolved signer. It rejects a foreign head, an unknown author, or multiple heads.
+Kiln accepts no current head or one head from the profile's pinned public signer. It rejects a foreign head, an unknown author, or multiple heads. A resolved signing credential must match the same pin before a new write.
 
 The shell supplies deterministic commit name and email values through an ephemeral Git configuration. It does not use ambient Git identity.
 
@@ -108,7 +128,14 @@ A COB write can store a change before its final reference result is clear. Kiln 
 
 Unknown does not mean failed. The application must persist it and call `reconcile` without redispatch.
 
-Reconciliation reads storage and searches by the same bounded idempotency key. It never signs or writes a new change.
+`RadicleStatusShell::reconcile(&StatusPlan)` reads local storage and searches by
+the same bounded idempotency key, admitting the exact run, revision and outcome.
+It never resolves SecretSpec, signs, writes, or synchronizes with peers. An
+already published exact result remains recoverable when credentials are missing.
+`Ok(None)` means no exact publication was observed; an interrupted or unknown
+publication remains unknown, not failed or permission to publish again. Persist
+the exact intent before calling `publish`, and never rebuild that intent from
+mutable source state during recovery.
 
 ## Bounds and diagnostics
 
@@ -129,9 +156,21 @@ Stable diagnostics include these cases:
 - `radicle_object_scan_bound`
 - `radicle_status_executable_drift`
 - `radicle_status_signer_unresolved`
+- `status_revision_identity`
+- `radicle_status_signer_mismatch`
+- `radicle_status_history_invalid`
 
 ## Evidence boundary
 
-Twelve native status tests call the public `RadicleStatusShell::publish` and `.reconcile` against temporary bare Git repositories with fixture-only signers. They cover creation, exact updates, repeats, authenticated two-namespace heads, malformed and mismatched-author refs, bounds, stale preflight, ambiguous publication, redaction, and reconciliation. Four shared-store fixtures additionally exercise signature rejection, symbolic refs, duplicate-namespace distinct-ID counting, zero/overflow bounds, and exact CAS against a moved ref. Offline Kiln workspace check, test, strict clippy, and formatting checks pass. The import script was exercised with an exact first import, an identical reimport, and refusals for edited bytes, changed executable mode, and a mismatched source record.
+Native status fixtures call the public `RadicleStatusShell::publish` and
+`.reconcile` against temporary bare Git repositories with fixture-only signers.
+They cover creation, exact updates, repeats, authenticated two-namespace heads,
+malformed and mismatched-author refs, bounds, stale preflight, ambiguous
+publication, redaction and reconciliation. Revision-bound regressions additionally
+cover reused keys with another revision, credential-free exact recovery,
+mismatched signing authority, and incompatible root/later COB actions. These
+regressions must run in the integration verification; adding them is not a
+verification receipt. The separate shared-store fixtures cover signature
+rejection, symbolic refs, distinct-ID counting, bounds and moved-ref CAS.
 
 These checks prove bounded local writes under one profile. They do not prove a stable filesystem snapshot, universal concurrency safety, peer convergence, remote visibility, actor trust, node availability, CI correctness, or release readiness.

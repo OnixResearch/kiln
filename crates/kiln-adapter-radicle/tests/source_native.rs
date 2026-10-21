@@ -2,12 +2,17 @@
 
 use std::collections::BTreeMap;
 use std::error::Error;
+use std::fs;
 use std::io;
+use std::os::unix::fs::{PermissionsExt as _, symlink};
 use std::path::PathBuf;
 
 use cob_git2 as git2;
 use git2::{Oid, Repository};
-use kiln_adapter_radicle::source::{RadicleSourceProfile, RadicleSourceShell};
+use kiln_adapter_radicle::source::{
+    RadicleSourceProfile, RadicleSourceResult, RadicleSourceSelection, RadicleSourceShell,
+};
+use kiln_core::types::ExternalRef;
 use kiln_provider_api::{PortFailure, SourceRepositoryPort};
 use kiln_radicle_source_contract::{
     CONTRACT_SCHEMA_VERSION, FeatureLevel, SnapshotLimits, SourceRequest,
@@ -198,6 +203,63 @@ fn fixture() -> Result<Fixture, Box<dyn Error>> {
     })
 }
 
+fn selection(profile: &RadicleSourceProfile) -> RadicleSourceSelection {
+    RadicleSourceSelection {
+        repository_path: profile.repository_path.clone(),
+        repository_id: profile.request.repository_id.clone(),
+        signer_node_id: profile.request.signer_node_id.clone(),
+        signed_reference: profile.request.signed_reference.clone(),
+        profile_id: profile.request.profile_id.clone(),
+        limits: profile.request.limits.clone(),
+    }
+}
+
+fn revision(oid: Oid) -> Result<ExternalRef, Box<dyn Error>> {
+    ExternalRef::new("radicle", "revision", &oid.to_string())
+        .map_err(|_| io::Error::other("invalid fixture revision").into())
+}
+
+fn publish_tree(fixture: &Fixture, tree: Oid) -> Result<RadicleSourceProfile, Box<dyn Error>> {
+    let repository = Repository::open(&fixture.repository_path)?;
+    let source = commit_tree(&repository, tree, &[], "checkout source")?;
+    let sigrefs = sigrefs_commit(
+        &repository,
+        &fixture.signer,
+        fixture.identity_root,
+        source,
+        Some(fixture.sigrefs_commit),
+        true,
+    )?;
+    let node = fixture.signer.verifying_key().public_key().to_string();
+    repository.reference(
+        &format!("refs/namespaces/{node}/refs/rad/sigrefs"),
+        sigrefs,
+        true,
+        "checkout sigrefs",
+    )?;
+    repository.reference(
+        &format!("refs/namespaces/{node}/{SOURCE_REFERENCE}"),
+        source,
+        true,
+        "checkout source",
+    )?;
+    let mut profile = fixture.profile.clone();
+    profile.request.expected_revision = source.to_string();
+    profile.request.expected_sigrefs_commit = sigrefs.to_string();
+    Ok(profile)
+}
+
+fn raw_member_tree(
+    repository: &Repository,
+    name: &str,
+    mode: &str,
+    object: Oid,
+) -> Result<Oid, Box<dyn Error>> {
+    let mut bytes = format!("{mode} {name}\0").into_bytes();
+    bytes.extend_from_slice(object.as_bytes());
+    Ok(repository.odb()?.write(git2::ObjectType::Tree, &bytes)?)
+}
+
 // r[verify kiln.radicle.shell_source.scenario.stable]
 // r[verify kiln.radicle.shell_conformance]
 #[test]
@@ -299,5 +361,224 @@ fn invalid_signature_identity_and_bounds_fail_closed() -> Result<(), Box<dyn Err
     bounded.request.limits.max_file_bytes = 1;
     let shell = port(RadicleSourceShell::new(bounded))?;
     assert!(shell.resolve_and_acquire().is_err());
+    Ok(())
+}
+
+// r[verify kiln.radicle_ci.source]
+#[test]
+fn pinned_source_materializes_exact_files_modes_and_identity() -> Result<(), Box<dyn Error>> {
+    let fixture = fixture()?;
+    let repository = Repository::open(&fixture.repository_path)?;
+    let script = b"#!/bin/sh\nprintf 'exact source\\n'\n";
+    let blob = repository.blob(script)?;
+    let mut bin = repository.treebuilder(None)?;
+    bin.insert("run", blob, 0o100_755)?;
+    let bin = bin.write()?;
+    let mut tree = repository.treebuilder(None)?;
+    tree.insert("bin", bin, MODE_TREE)?;
+    tree.insert("source.txt", repository.blob(SOURCE_CONTENT)?, MODE_REGULAR)?;
+    let profile = publish_tree(&fixture, tree.write()?)?;
+    let policy = selection(&profile);
+    let exact = revision(Oid::from_str(&profile.request.expected_revision)?)?;
+    let pinned = port(policy.pin(&exact))?;
+    assert_eq!(pinned, profile);
+    let shell = port(RadicleSourceShell::new(pinned))?;
+    let preflight = port(shell.resolve_for_materialization())?;
+    let checkout = fixture._directory.path().join("checkout");
+    assert!(!checkout.exists());
+    let acquired = port(shell.materialize(&checkout))?;
+    assert_eq!(acquired, preflight);
+    assert_eq!(fs::read(checkout.join("source.txt"))?, SOURCE_CONTENT);
+    assert_eq!(fs::read(checkout.join("bin/run"))?, script);
+    assert_eq!(fs::metadata(&checkout)?.permissions().mode() & 0o777, 0o700);
+    assert_eq!(
+        fs::metadata(checkout.join("source.txt"))?
+            .permissions()
+            .mode()
+            & 0o777,
+        0o644
+    );
+    assert_eq!(
+        fs::metadata(checkout.join("bin/run"))?.permissions().mode() & 0o777,
+        0o755
+    );
+    assert!(!checkout.join(".git").exists());
+    let retained: RadicleSourceResult = serde_json::from_slice(&serde_json::to_vec(&acquired)?)?;
+    assert_eq!(retained, preflight);
+    Ok(())
+}
+
+// r[verify kiln.radicle_ci.source]
+#[test]
+fn preflight_rejects_wrong_repository_and_event_revision() -> Result<(), Box<dyn Error>> {
+    let fixture = fixture()?;
+    let exact = revision(fixture.source_revision)?;
+    let mut wrong_repository = selection(&fixture.profile);
+    wrong_repository.repository_id = RepoId::from(Oid::from_bytes(&[1; SHA1_BYTES])?).to_string();
+    let pinned = port(wrong_repository.pin(&exact))?;
+    let shell = port(RadicleSourceShell::new(pinned))?;
+    assert!(shell.resolve_for_materialization().is_err());
+    let mut wrong_branch = selection(&fixture.profile);
+    wrong_branch.signed_reference = "refs/heads/other".to_string();
+    let pinned = port(wrong_branch.pin(&exact))?;
+    let shell = port(RadicleSourceShell::new(pinned))?;
+    assert!(shell.resolve_for_materialization().is_err());
+    let wrong_revision = revision(fixture.identity_root)?;
+    let pinned = port(selection(&fixture.profile).pin(&wrong_revision))?;
+    let shell = port(RadicleSourceShell::new(pinned))?;
+    assert!(shell.resolve_for_materialization().is_err());
+    let wrong_kind = ExternalRef::new("git", "commit", &fixture.source_revision.to_string())
+        .map_err(|_| io::Error::other("invalid fixture reference"))?;
+    assert!(selection(&fixture.profile).pin(&wrong_kind).is_err());
+    Ok(())
+}
+
+// r[verify kiln.radicle_ci.source]
+#[test]
+fn persisted_pin_never_follows_moved_branch_or_sigrefs() -> Result<(), Box<dyn Error>> {
+    let fixture = fixture()?;
+    let policy = selection(&fixture.profile);
+    let pinned = port(policy.pin(&revision(fixture.source_revision)?))?;
+    let shell = port(RadicleSourceShell::new(pinned.clone()))?;
+    let _admitted = port(shell.resolve_for_materialization())?;
+    let repository = Repository::open(&fixture.repository_path)?;
+    let newer_source = source_commit(&repository, b"not the event source\n")?;
+    let node = &fixture.profile.request.signer_node_id;
+    repository.reference(
+        &format!("refs/namespaces/{node}/{SOURCE_REFERENCE}"),
+        newer_source,
+        true,
+        "move only branch",
+    )?;
+    let checkout = fixture._directory.path().join("checkout");
+    assert!(shell.materialize(&checkout).is_err());
+    assert!(!checkout.exists());
+    repository.reference(
+        &format!("refs/namespaces/{node}/{SOURCE_REFERENCE}"),
+        fixture.source_revision,
+        true,
+        "restore branch",
+    )?;
+    let newer_sigrefs = sigrefs_commit(
+        &repository,
+        &fixture.signer,
+        fixture.identity_root,
+        fixture.source_revision,
+        Some(fixture.sigrefs_commit),
+        true,
+    )?;
+    repository.reference(
+        &format!("refs/namespaces/{node}/refs/rad/sigrefs"),
+        newer_sigrefs,
+        true,
+        "move only sigrefs",
+    )?;
+    assert!(shell.materialize(&checkout).is_err());
+    assert!(!checkout.exists());
+    // A fresh selection can capture this identity, but the persisted pin cannot.
+    let fresh = port(policy.pin(&revision(fixture.source_revision)?))?;
+    assert_eq!(
+        fresh.request.expected_sigrefs_commit,
+        newer_sigrefs.to_string()
+    );
+    assert_eq!(
+        pinned.request.expected_sigrefs_commit,
+        fixture.sigrefs_commit.to_string()
+    );
+    Ok(())
+}
+
+// r[verify kiln.radicle_ci.source]
+#[test]
+fn checkout_rejects_unsafe_names_symlinks_and_gitlinks_before_writing() -> Result<(), Box<dyn Error>>
+{
+    for (name, mode, is_commit) in [
+        (".git", "100644", false),
+        ("..", "100644", false),
+        ("back\\slash", "100644", false),
+        ("link", "120000", false),
+        ("submodule", "160000", true),
+    ] {
+        let fixture = fixture()?;
+        let repository = Repository::open(&fixture.repository_path)?;
+        let object = if is_commit {
+            fixture.source_revision
+        } else {
+            repository.blob(b"../outside")?
+        };
+        let tree = raw_member_tree(&repository, name, mode, object)?;
+        let profile = publish_tree(&fixture, tree)?;
+        let shell = port(RadicleSourceShell::new(profile))?;
+        if mode == "120000" {
+            // Legacy manifest acquisition still admits symlinks; checkout does not.
+            let legacy = port(shell.resolve_and_acquire())?;
+            assert_eq!(
+                legacy.receipt.snapshot.total_bytes,
+                u64::try_from(b"../outside".len())?
+            );
+        }
+        assert!(
+            shell.resolve_for_materialization().is_err(),
+            "accepted {name} {mode}"
+        );
+        let checkout = fixture._directory.path().join("checkout");
+        assert!(
+            shell.materialize(&checkout).is_err(),
+            "materialized {name} {mode}"
+        );
+        assert!(!checkout.exists());
+    }
+    Ok(())
+}
+
+// r[verify kiln.radicle_ci.source]
+#[test]
+fn materialization_bounds_cover_members_paths_files_and_total_bytes() -> Result<(), Box<dyn Error>>
+{
+    let fixture = fixture()?;
+    let repository = Repository::open(&fixture.repository_path)?;
+    let blob = repository.blob(SOURCE_CONTENT)?;
+    let mut tree = repository.treebuilder(None)?;
+    tree.insert("first.txt", blob, MODE_REGULAR)?;
+    tree.insert("second.txt", blob, MODE_REGULAR)?;
+    let profile = publish_tree(&fixture, tree.write()?)?;
+    let mut members = profile.clone();
+    members.request.limits.max_entries = 1;
+    let mut paths = profile.clone();
+    paths.request.limits.max_path_bytes = 1;
+    let mut files = profile.clone();
+    files.request.limits.max_file_bytes = 1;
+    let mut total = profile;
+    total.request.limits.max_file_bytes = u64::try_from(SOURCE_CONTENT.len())?;
+    total.request.limits.max_total_bytes = u64::try_from(SOURCE_CONTENT.len())?;
+    for bounded in [members, paths, files, total] {
+        let shell = port(RadicleSourceShell::new(bounded))?;
+        assert!(shell.resolve_for_materialization().is_err());
+        let checkout = fixture._directory.path().join("checkout");
+        assert!(shell.materialize(&checkout).is_err());
+        assert!(!checkout.exists());
+    }
+    Ok(())
+}
+
+// r[verify kiln.radicle_ci.source]
+#[test]
+fn checkout_never_reuses_existing_paths_or_symlink_ancestors() -> Result<(), Box<dyn Error>> {
+    let fixture = fixture()?;
+    let shell = port(RadicleSourceShell::new(fixture.profile))?;
+    let checkout = fixture._directory.path().join("checkout");
+    fs::create_dir(&checkout)?;
+    let sentinel = checkout.join("keep");
+    fs::write(&sentinel, b"owned by caller")?;
+    assert!(shell.materialize(&checkout).is_err());
+    assert_eq!(fs::read(sentinel)?, b"owned by caller");
+    let outside = fixture._directory.path().join("outside");
+    fs::create_dir(&outside)?;
+    let link = fixture._directory.path().join("link");
+    symlink(&outside, &link)?;
+    assert!(shell.materialize(&link).is_err());
+    assert!(shell.materialize(&link.join("nested")).is_err());
+    assert!(!outside.join("nested").exists());
+    assert!(!outside.join("source.txt").exists());
     Ok(())
 }

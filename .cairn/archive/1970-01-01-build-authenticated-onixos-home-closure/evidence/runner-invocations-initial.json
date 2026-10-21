@@ -1,0 +1,67 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/mm25cia4jn9i5m04s94ld6f0234snqch-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-a-success",
+        "--case",
+        "success"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 2,
+      "name": "actual_success",
+      "started_at": "2026-10-21T01:40:03.901725+00:00",
+      "stderr": "python3: can't open file '/nix/store/mm25cia4jn9i5m04s94ld6f0234snqch-source/scripts/onixos-ci-pilot.py': [Errno 2] No such file or directory\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/mm25cia4jn9i5m04s94ld6f0234snqch-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-a-build-failure",
+        "--case",
+        "build-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 2,
+      "name": "actual_build-failure",
+      "started_at": "2026-10-21T01:40:03.902178+00:00",
+      "stderr": "python3: can't open file '/nix/store/mm25cia4jn9i5m04s94ld6f0234snqch-source/scripts/onixos-ci-pilot.py': [Errno 2] No such file or directory\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/mm25cia4jn9i5m04s94ld6f0234snqch-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-a-evaluation-failure",
+        "--case",
+        "evaluation-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 2,
+      "name": "actual_evaluation-failure",
+      "started_at": "2026-10-21T01:40:03.902600+00:00",
+      "stderr": "python3: can't open file '/nix/store/mm25cia4jn9i5m04s94ld6f0234snqch-source/scripts/onixos-ci-pilot.py': [Errno 2] No such file or directory\n",
+      "stdout": ""
+    }
+  ]
+}

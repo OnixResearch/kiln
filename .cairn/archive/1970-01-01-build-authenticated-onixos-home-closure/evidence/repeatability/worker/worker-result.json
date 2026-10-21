@@ -1,0 +1,297 @@
+{
+  "schema": "kiln.onixos-pilot.worker-result.v1",
+  "job_identity": "3a62273ae63035476676a97d26a0b369728cca3c97e00ebd1d2aadc0c147bb5d",
+  "source_uri": "path:/nix/store/mv63dx7k7gcqbgq76r0ng1qf47aw8gmy-kiln-onixos-application-jobset#cases.success",
+  "discovery_plan": {
+    "effect_id": "pilot-discovery-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "evaluation_id": "pilot-evaluation-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "project_id": "onixos-home-application",
+    "pipeline_revision_id": "pilot-pipeline-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "discovery_policy_id": "onixos-explicit-cohort-v1",
+    "provider_profile": "onix-nix-eval-v1",
+    "evaluator_cohort": {
+      "kind": "onix-nix",
+      "executable_identity": "4b4e221bfe3645da5f9d89198f211e07f63e4ea5f4fbd6064d6311bfa5090361",
+      "manifest_identity": "1e7df147057fde6b439541427a51c2d4ba70f6a42ee15d30021d120e9dda8263",
+      "host_abi": "nix_wasm_init_v1",
+      "features": [
+        "flakes",
+        "nix-command",
+        "wasm-builtin"
+      ],
+      "plugin_identity": "6bbf0180617b4d87746416eb8d58d09dea1076312935038b4d92706e5c7626f6",
+      "components": [
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/xs9x9imziz5fz9d089vs64xxahz5v7iy-nix-store-2.36.0/lib/libnixstore.so.2.36.0"
+          },
+          "identity": "83efc75ea9a8bddf172cdd4f2827d2b85ee986bc872e407c6f509e5cc24bff9d"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/sifz76vs2qn3ng7d8bc9ll96zb58x4zv-nix-util-2.36.0/lib/libnixutil.so.2.36.0"
+          },
+          "identity": "58d1aa3a8a8a28fc264ab3604d6d327f6b5b9756fec516a5b218120566fc3cd4"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/43v5jy3q8lql3snvdzqwj0drvsrmihxg-nix-fetchers-2.36.0/lib/libnixfetchers.so.2.36.0"
+          },
+          "identity": "8afea53fa2c1fdfe215fe86fc3c35f473a4a2f90304d2d7a7a4c7c2603629f90"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/77sdbia58r9r11xy9xn9q45sgy5gvcvl-nix-expr-2.36.0/lib/libnixexpr.so.2.36.0"
+          },
+          "identity": "15ab72e4ab76edcbcaa836d47a4fae5da119ead8dca70f8d1e6d2ef3ee12a1e6"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/wskhfcg99q278r1fps88rk22jncndmrf-nix-flake-2.36.0/lib/libnixflake.so.2.36.0"
+          },
+          "identity": "a42f60463440478c599502decf74e82e2f7310316335c01c156af65a74e50c8b"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/5g13fg62n6fqzyzgvv2i0g1f8a1f4q28-nix-main-2.36.0/lib/libnixmain.so.2.36.0"
+          },
+          "identity": "8cbb440566851976a87fd0c0798eec619c1d43829c8313b2fd1c22d34824b309"
+        },
+        {
+          "library": {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "shared-library",
+            "native_id": "/nix/store/l3gh3m8hzzpfk5yx73nxfpq50nr354jp-nix-cmd-2.36.0/lib/libnixcmd.so.2.36.0"
+          },
+          "identity": "871233de0fe2784ad54fb4804be3a936907aee77f580c634974b47da73a0fd8f"
+        }
+      ],
+      "plugin": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "store-path",
+        "native_id": "/nix/store/di3jrnpmrc4lff4581vxmprmcsgswd0r-nickel-plugin-0.1.0/nickel_plugin.wasm"
+      }
+    },
+    "build_provider_profile": "nix-build-v1",
+    "idempotency_key": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "source_identity": "570978d59da96a5393104355c87b7625bd638a0ecd6d973418090771343d3af9",
+    "source": {
+      "contract_version": 1,
+      "provider_namespace": "kiln-source",
+      "native_kind": "nix-store-path",
+      "native_id": "/nix/store/mv63dx7k7gcqbgq76r0ng1qf47aw8gmy-kiln-onixos-application-jobset"
+    },
+    "source_mode": "Flake",
+    "root_selector": "cases.success",
+    "system": "x86_64-linux",
+    "options": {
+      "workers": 1,
+      "max_memory_mebibytes": 1024,
+      "include_metadata": true,
+      "include_input_derivations": true,
+      "check_cache_status": true,
+      "partial_admission": false
+    },
+    "bounds": {
+      "max_records": 256,
+      "max_jobs": 256,
+      "max_job_errors": 256,
+      "max_diagnostic_bytes": 65536,
+      "max_outputs_per_job": 64,
+      "max_dependencies_per_job": 256,
+      "max_tasks": 256
+    }
+  },
+  "discovery_observation": {
+    "effect_id": "pilot-discovery-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "evaluation_id": "pilot-evaluation-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "project_id": "onixos-home-application",
+    "pipeline_revision_id": "pilot-pipeline-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "discovery_policy_id": "onixos-explicit-cohort-v1",
+    "provider_profile": "onix-nix-eval-v1",
+    "idempotency_key": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "source_identity": "570978d59da96a5393104355c87b7625bd638a0ecd6d973418090771343d3af9",
+    "observation_identity": "b80862e4c9ab1101ca50d7c3f77e2fbc78548b58dd63650c805ff43170111e8b",
+    "terminal": "Complete",
+    "jobs": [
+      {
+        "attribute": "home-activation",
+        "attribute_path": [
+          "home-activation"
+        ],
+        "name": "onix-home-workstation-alice",
+        "system": "x86_64-linux",
+        "derivation": {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/83qqvgj980d02x55kq2qbh9k2afaxjcv-onix-home-workstation-alice.drv"
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "path": {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "store-path",
+              "native_id": "/nix/store/ai1ypml6hn2fi5f05q1h7aa1l1g98c0n-onix-home-workstation-alice"
+            }
+          }
+        ],
+        "input_derivations": [
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/0vcmz1rqki6h9xdqq31a9pg3m42bqkyh-onix-home-activation-workstation-alice.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/ggkdrv677lc6g8d7wf4hrkf4z9flwavz-bash-5.3p9.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/l6bi2ln3vlv6mkkw95bvh09pgy4d3xra-coreutils-9.10.drv"
+          },
+          {
+            "contract_version": 1,
+            "provider_namespace": "nix",
+            "native_kind": "derivation",
+            "native_id": "/nix/store/n6dq8ck4644r9gc7cs1l9a27vvhjb0qa-stdenv-linux.drv"
+          }
+        ],
+        "metadata_identity": "558bee977dda554a88e6ef719e9a2c11a0ad93b2f079f8c78f534962a7b0a067",
+        "cache": "NotBuilt"
+      }
+    ],
+    "job_errors": [],
+    "tasks": [
+      {
+        "task_id": "discovered:8baae2a3d6398988829ec9c9bb3b9e4443ee9470610732451138d20cc84af79f",
+        "mapping_identity": "8baae2a3d6398988829ec9c9bb3b9e4443ee9470610732451138d20cc84af79f",
+        "build_provider": "nix-build-v1",
+        "native_attribute": {
+          "contract_version": 1,
+          "provider_namespace": "nix-eval-jobs",
+          "native_kind": "attribute",
+          "native_id": "home-activation"
+        },
+        "derivation": {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/83qqvgj980d02x55kq2qbh9k2afaxjcv-onix-home-workstation-alice.drv"
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "path": {
+              "contract_version": 1,
+              "provider_namespace": "nix",
+              "native_kind": "store-path",
+              "native_id": "/nix/store/ai1ypml6hn2fi5f05q1h7aa1l1g98c0n-onix-home-workstation-alice"
+            }
+          }
+        ],
+        "dependencies": [],
+        "cache": "NotBuilt"
+      }
+    ],
+    "completion": {
+      "stream_complete": true,
+      "stream_valid": true,
+      "stderr_within_bound": true,
+      "gc_roots_ready": true,
+      "fatal_job_error": false,
+      "process": {
+        "Exited": {
+          "status": 0
+        }
+      }
+    },
+    "gc_roots": {
+      "directory": {
+        "contract_version": 1,
+        "provider_namespace": "nix",
+        "native_kind": "gc-root-directory",
+        "native_id": "/var/tmp/kfc-e-repeat/eval-roots/3e7bae77bf9058064848ea4e88121163ec565f9f525a15cb8e9df44c65f49ff3"
+      },
+      "derivations": [
+        {
+          "contract_version": 1,
+          "provider_namespace": "nix",
+          "native_kind": "derivation",
+          "native_id": "/nix/store/83qqvgj980d02x55kq2qbh9k2afaxjcv-onix-home-workstation-alice.drv"
+        }
+      ],
+      "state": "Retained"
+    }
+  },
+  "build_plan": {
+    "effect_id": "pilot-build-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "attempt_id": "pilot-attempt-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "idempotency_key": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "candidate_id": "pilot-candidate-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "pipeline_revision": "pilot-pipeline-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "plan_identity": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "policy_identity": "e673b91f8ca4a08dbd9c088fee09245f6fc3cd8805cc56729cdc8197970c5eaf",
+    "provider_profile": "nix-build-v1",
+    "platform": "x86_64-linux",
+    "required_products": [
+      "out"
+    ]
+  },
+  "build_observation": {
+    "effect_id": "pilot-build-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "attempt_id": "pilot-attempt-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "idempotency_key": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "candidate_id": "pilot-candidate-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "pipeline_revision": "pilot-pipeline-484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "plan_identity": "484069d1a50f1f8b4d66d2303e9d303503a022f180f06946881277d0a5b13605",
+    "policy_identity": "e673b91f8ca4a08dbd9c088fee09245f6fc3cd8805cc56729cdc8197970c5eaf",
+    "provider_profile": "nix-build-v1",
+    "platform": "x86_64-linux",
+    "outcome": "success",
+    "products": [
+      {
+        "name": "out",
+        "artifact_identity": "3ca5792c12d95de7adfc319850f5db765f2f4410d6284d75e488b1e070f34764",
+        "store_identity": "6bab112d41e89805b53abbe9bdabce4b0ae9980b1406d076ecdaa5bb976b39f7"
+      }
+    ],
+    "builder_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+    "worker_identity": "f6101c353451ebf0459e0c7c0a8117f22e3b9fa68fa17413fdb46cfab8ec4df5",
+    "store_identity": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+    "cache_kind": "none",
+    "cache_source_identity": null,
+    "log_identities": [
+      "f7afdf9f58dac8e97faf34bf6e62427c71307325a04a2e5c8fdfdeecfc066a72"
+    ],
+    "metrics": [],
+    "receipt_identity": "9f2041a595fbbed01c3ee41d88de5f945786d7f85f60c1118c3a6b68c02bd38e"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "activation": {
+    "filesystem_present": false,
+    "native": {
+      "argv": [
+        "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix",
+        "path-info",
+        "--json",
+        "--offline",
+        "/nix/store/hr5sl1c18a64s5b06m2yzjdn9rqr6bay-onix-home-activation-workstation-alice"
+      ],
+      "exit_code": 0,
+      "stderr": "warning: unknown experimental feature 'wasm-builtin'\ndon't know how to build these paths:\n  /nix/store/hr5sl1c18a64s5b06m2yzjdn9rqr6bay-onix-home-activation-workstation-alice\nwarning: '--json' without '--json-format' is deprecated; please specify '--json-format 1' or '--json-format 2'. This will become an error in a future release.\n",
+      "stdout": "{\"/nix/store/hr5sl1c18a64s5b06m2yzjdn9rqr6bay-onix-home-activation-workstation-alice\":null}\n"
+    },
+    "path": "/nix/store/hr5sl1c18a64s5b06m2yzjdn9rqr6bay-onix-home-activation-workstation-alice",
+    "present": false,
+    "registered": false
+  },
+  "home-activation": {
+    "filesystem_present": false,
+    "native": {
+      "argv": [
+        "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix",
+        "path-info",
+        "--json",
+        "--offline",
+        "/nix/store/kp3vavn14b5p5qlad01kn3ismcalp20f-onix-home-workstation-alice"
+      ],
+      "exit_code": 0,
+      "stderr": "warning: unknown experimental feature 'wasm-builtin'\ndon't know how to build these paths:\n  /nix/store/kp3vavn14b5p5qlad01kn3ismcalp20f-onix-home-workstation-alice\nwarning: '--json' without '--json-format' is deprecated; please specify '--json-format 1' or '--json-format 2'. This will become an error in a future release.\n",
+      "stdout": "{\"/nix/store/kp3vavn14b5p5qlad01kn3ismcalp20f-onix-home-workstation-alice\":null}\n"
+    },
+    "path": "/nix/store/kp3vavn14b5p5qlad01kn3ismcalp20f-onix-home-workstation-alice",
+    "present": false,
+    "registered": false
+  },
+  "home-files": {
+    "filesystem_present": false,
+    "native": {
+      "argv": [
+        "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix",
+        "path-info",
+        "--json",
+        "--offline",
+        "/nix/store/hakzh9i01ycks23zm89dc09lmgwl2crq-onix-home-files-workstation-alice"
+      ],
+      "exit_code": 0,
+      "stderr": "warning: unknown experimental feature 'wasm-builtin'\ndon't know how to build these paths:\n  /nix/store/hakzh9i01ycks23zm89dc09lmgwl2crq-onix-home-files-workstation-alice\nwarning: '--json' without '--json-format' is deprecated; please specify '--json-format 1' or '--json-format 2'. This will become an error in a future release.\n",
+      "stdout": "{\"/nix/store/hakzh9i01ycks23zm89dc09lmgwl2crq-onix-home-files-workstation-alice\":null}\n"
+    },
+    "path": "/nix/store/hakzh9i01ycks23zm89dc09lmgwl2crq-onix-home-files-workstation-alice",
+    "present": false,
+    "registered": false
+  }
+}

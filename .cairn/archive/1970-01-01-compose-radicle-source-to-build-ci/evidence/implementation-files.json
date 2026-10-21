@@ -1,0 +1,208 @@
+{
+  "algorithm": "BLAKE3",
+  "parent_commit": "d636a1600bc09c94b0f19d2025d45217712f7597",
+  "scope": "Current changed non-lifecycle product inputs, including prior local work; not a clean-archive, publication or ownership claim. Runtime sources were unchanged after the exercised builds/tests/native proof. Documentation receipt links were finalized afterward.",
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "blake3": "378f711c8bf372b20071b9ac42bf25eb05a4168222d4e6ddf53629f9290c75cd"
+    },
+    {
+      "path": "Cargo.toml",
+      "blake3": "3b0389faba6b9ac6b0bdf67ae13158252759a4bd70460ed823777ed7ebee494a"
+    },
+    {
+      "path": "LICENSES.md",
+      "blake3": "a099bfe50cec65cead787f60588dfa2d751bc5c4c88e80698b53f8c364eed6c0"
+    },
+    {
+      "path": "README.md",
+      "blake3": "d4cc0c564104b9cd3082f89135196691b03ac95c77151e22c552fd934030106d"
+    },
+    {
+      "path": "config/fixtures/negative-radicle-ci-zero-polls.ncl",
+      "blake3": "8b686a34156c1a6c726d25ee96cc7e0cc81aa3e634cf1778af617aeaa74c9a79"
+    },
+    {
+      "path": "config/fixtures/radicle-ci-positive.ncl",
+      "blake3": "79441daaf1406152f8ee2aee699b94f7adbb5d765a01728a7657e796719bbbd0"
+    },
+    {
+      "path": "config/radicle-ci-worker.ncl",
+      "blake3": "99c2528d88d51a61fcb3b72cac082e5581d4c09a608c28afaf8b917bd7906ef4"
+    },
+    {
+      "path": "config/radicle-ci.ncl",
+      "blake3": "7d1f09253686068665b75a554c8dc6f54d25aae43ff4e6fda763a23b32a1441b"
+    },
+    {
+      "path": "config/radicle-status-profile.ncl",
+      "blake3": "ed47bb131584f124a53dd82c346dbcfa96667a2d66f2d668e61cff5dc684b93f"
+    },
+    {
+      "path": "config/stack-profiles.ncl",
+      "blake3": "f2d9e6b6edf7353d60bcac017f27ef49082d4c664b10f295ca7d56c93c2f1c31"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/Cargo.toml",
+      "blake3": "0513613cf6ff69037e8ef4ae2b0a57ba48b2628653696218a24641db073e5fff"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/examples/ci_source_fixture.rs",
+      "blake3": "b0a10a4a6ad7cd0d5044c800df208f3021ced2a6c7ec228a45a6d7ab6c647fd0"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/source/error.rs",
+      "blake3": "97b868d55658808dc9d56fe963de9ee4be64dac1af30bb54cb4e179249607c18"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/source/profile.rs",
+      "blake3": "2c264ca1b7980067fbe0e8f5ca7e993a0ca7b4b199a546614c11bc64e5f7ad14"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/source/shell.rs",
+      "blake3": "dae077f8a58ef9fde92b462af9147b63f440480f4a1e574d4416266cdb585f87"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/source/snapshot.rs",
+      "blake3": "63126aacb99902cba84e8d1788b09f5659d1f2746d926ffcbee15585918de6ce"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/status/cob.rs",
+      "blake3": "6e7fa07e5a59fbee4eefee6f4512830c915fc49bfa47bd50785f3314c9a2cd8a"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/status/plan.rs",
+      "blake3": "e033f371a8ad2762c3ab3fb81ef3865b970f25f7e35074b40ad1d32f2993a1a2"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/status/profile.rs",
+      "blake3": "de63529735993341a3d3eb57baa3e07515ad8e7b4debb4f58e275f68915109ae"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/status/shell.rs",
+      "blake3": "63bc2db0050f6b47fff0144fba7ea3d74e1090c59409e75f9d27a97c947b9d77"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/src/status/tests.rs",
+      "blake3": "7f97d40e25c6d637e160016f91e15fdef501c0e797805f20590bab15e447c337"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/tests/source_native.rs",
+      "blake3": "e5d1641227775b2c47393336a90c703ea7e99fb22310e1185c11f80a45f6dad8"
+    },
+    {
+      "path": "crates/kiln-adapter-radicle/tests/status_native.rs",
+      "blake3": "f3609bbf41368042bce4b9732e63c5d417938e701ef7d978d08a1939f03407e9"
+    },
+    {
+      "path": "crates/kiln-core/src/source.rs",
+      "blake3": "0950bd059aee0281e3f9462f778a6227c691dfd31a7c868e9359aeca1970e8f6"
+    },
+    {
+      "path": "crates/kiln-onixos-pilot/src/lib.rs",
+      "blake3": "17123b0cfbb4a43c6b8abf5aa095759f66f8cf21c96afb325f36e612c5e80a0d"
+    },
+    {
+      "path": "crates/kiln-onixos-pilot/src/observation.rs",
+      "blake3": "fa242cac800a232cb440ae48fd1719567367f8a180852dc6763b17090bac224b"
+    },
+    {
+      "path": "crates/kiln-onixos-pilot/src/probe.rs",
+      "blake3": "7383cecc5be19008eba3a77808cdb376aead92e248674cbb8d78a7e929bb93aa"
+    },
+    {
+      "path": "crates/kiln-onixos-pilot/src/storage.rs",
+      "blake3": "fd298600ddcf4e0c000bc82c093f5711e9bc6eacf63b876f80c689f124c3fc52"
+    },
+    {
+      "path": "crates/kiln-onixos-worker/Cargo.toml",
+      "blake3": "3c777072124b8fa33e4d37393af22c5c08e2f8e240697aa9c0322cc897226050"
+    },
+    {
+      "path": "crates/kiln-onixos-worker/src/main.rs",
+      "blake3": "58b13200315de626650519a4a098483f82dbaf9c14ce4b412a22392d9b2c1afa"
+    },
+    {
+      "path": "crates/kiln-onixos-worker/src/project.rs",
+      "blake3": "72b26f849a4a012232b195931e4cbe8ea1ed76d82e341998c021e9c7973ac57c"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/Cargo.toml",
+      "blake3": "0a29014213dcaae05bff24181e1b9956be17061fef4c4b524892a8ed8355c455"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/coordinator.rs",
+      "blake3": "63bfd8c9f8473f01f8bcf6a1a553152845a3c68cf22956e4ddbed33de2994a13"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/coordinator_tests.rs",
+      "blake3": "df8970cc85e53952322a0744c8c5e47f045c31006025b4e9c258e5eca11be2ee"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/journal.rs",
+      "blake3": "65c4286d99bf63850facf4e61d26f6c0fe420173295c3397c12692053a2fad3b"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/journal_tests.rs",
+      "blake3": "a5889ddde8857e3ba44cc37ab7869072654dc5317c495980be52c81eb5a0f2a7"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/lib.rs",
+      "blake3": "bafd2f6c6269656311932bdf98891fa059b65727708982f743781d889bbb7f3a"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/main.rs",
+      "blake3": "f65823610e8e169cfa37729f14895a1573d8c7c0a6c607ac11ef2e8e24a8e832"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/project.rs",
+      "blake3": "2cbb71ee5fd5e79839df858b5dcc0dd646a75ed3ac5dd0fe7c38d743c4a0d768"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/status.rs",
+      "blake3": "80fb5e0c953b7a8a089500085fb262c5899731eb76c184b43cfb12d8c1d00c2e"
+    },
+    {
+      "path": "crates/kiln-radicle-ci/src/storage.rs",
+      "blake3": "09654f4a8167ebc1f4f1692fc7ce47793cf16458f865ac2f387f5a34ada28d76"
+    },
+    {
+      "path": "docs/architecture.md",
+      "blake3": "aadac579f34c93b616aeac9ee58da24b2ef8d478da85d8bf469ae16f210b0493"
+    },
+    {
+      "path": "docs/operator.md",
+      "blake3": "7146fdd9ff5797b944b0b8584728f660bd5c1da0fd9f7781158d1b081dc4b4a3"
+    },
+    {
+      "path": "docs/radicle-status.md",
+      "blake3": "ede694a7384dc780827af0cbf1dfaeb2888f17b644984d3d2158ce1af0184ff3"
+    },
+    {
+      "path": "flake.nix",
+      "blake3": "7a3771843a48b26ac6ef70c00e772592ff333c195a8df5229583a1597c4f3fd4"
+    },
+    {
+      "path": "scripts/__pycache__/onixos_ci_closure.cpython-314.pyc",
+      "blake3": "dd0b98f23681b3aea225b0fece30718637e1e56ebcc9c7bf09953840652a2bd4"
+    },
+    {
+      "path": "scripts/onixos-ci-pilot.py",
+      "blake3": "40cf8828a362720ea74fcc6741c5426aa42b7a21d16eb147cebc59309f7159c3"
+    },
+    {
+      "path": "scripts/onixos_ci_closure.py",
+      "blake3": "5a7b5780ee1512e70b83928be9c3151540797cdc9e2f6b0c55fa1f15ffd5708c"
+    },
+    {
+      "path": "scripts/radicle-ci-native.py",
+      "blake3": "f0a70afdbf163af1999adb043ebf324e1e4c361f907dbb68a91d0940383e50ce"
+    },
+    {
+      "path": "scripts/test_onixos_ci_closure.py",
+      "blake3": "ae6ff95fa9d2ca4341fe0a39b73fda0fc1e32eb014ba600b36b1a9ca936968d9"
+    }
+  ],
+  "absent_changed_paths": []
+}

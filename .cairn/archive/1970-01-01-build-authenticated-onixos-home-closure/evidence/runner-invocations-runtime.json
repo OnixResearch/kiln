@@ -1,0 +1,67 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-a-success",
+        "--case",
+        "success"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_success",
+      "started_at": "2026-10-21T01:40:46.169806+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 649, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 640, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 438, in execute\n    inputs, policy, profile, job_identity, native = self.prepare()\n                                                    ~~~~~~~~~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 323, in prepare\n    plan = preparation_plan(native_jobs)\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos_ci_closure.py\", line 11, in preparation_plan\n    raise ValueError(\"preparation requires exactly the three real consumer artifacts\")\nValueError: preparation requires exactly the three real consumer artifacts\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-a-build-failure",
+        "--case",
+        "build-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_build-failure",
+      "started_at": "2026-10-21T01:40:46.170284+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 649, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 640, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 438, in execute\n    inputs, policy, profile, job_identity, native = self.prepare()\n                                                    ~~~~~~~~~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 323, in prepare\n    plan = preparation_plan(native_jobs)\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos_ci_closure.py\", line 11, in preparation_plan\n    raise ValueError(\"preparation requires exactly the three real consumer artifacts\")\nValueError: preparation requires exactly the three real consumer artifacts\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py",
+        "--inputs",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/inputs.ncl",
+        "--nickel",
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "--root",
+        "/var/tmp/kfc-a-evaluation-failure",
+        "--case",
+        "evaluation-failure"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 1,
+      "name": "actual_evaluation-failure",
+      "started_at": "2026-10-21T01:40:46.170600+00:00",
+      "stderr": "Traceback (most recent call last):\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 649, in <module>\n    main()\n    ~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 640, in main\n    exercise.execute()\n    ~~~~~~~~~~~~~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 438, in execute\n    inputs, policy, profile, job_identity, native = self.prepare()\n                                                    ~~~~~~~~~~~~^^\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos-ci-pilot.py\", line 323, in prepare\n    plan = preparation_plan(native_jobs)\n  File \"/nix/store/p16cmy18w7s8wm7wzwanrj6kxmqfhm18-source/scripts/onixos_ci_closure.py\", line 11, in preparation_plan\n    raise ValueError(\"preparation requires exactly the three real consumer artifacts\")\nValueError: preparation requires exactly the three real consumer artifacts\n",
+      "stdout": ""
+    }
+  ]
+}

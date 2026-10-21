@@ -9,6 +9,13 @@ pub(super) fn git_failure(_error: git2::Error) -> PortFailure {
     })
 }
 
+pub(super) fn io_failure(_error: std::io::Error) -> PortFailure {
+    PortFailure::Infrastructure(InfrastructureFailure {
+        code: "radicle_source_io".to_string(),
+        message: "Radicle source checkout filesystem operation failed".to_string(),
+    })
+}
+
 pub(super) fn domain(code: &str, field: &str, message: &str) -> PortFailure {
     PortFailure::Domain(Diagnostic::new(code, field, message))
 }

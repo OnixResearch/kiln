@@ -1,0 +1,41 @@
+{
+  "public_key": "AhmAy5iZVv2Hs4PpbBSyXRI8GkRrfygAlwD33XzWw6c",
+  "request": {
+    "attempt_id": "pilot-attempt-b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+    "cohort_identity": "b422a7105246f737744279fd29eef7cb88576994f949ed70301179e4b6414bdf",
+    "expires_at_unix": 1792548255,
+    "issued_at_unix": 1792547655,
+    "job_identity": "7165a08331c620c3178e8750e83de03abc1be19c7339a2dd8aa216cb0b1ed54e",
+    "pilot_profile_identity": "9e4ce91181da0c880460fb25867d1915a9eab0c81a04ed3138e9d39947aab263",
+    "run_id": "kiln-aspen-run-09d063bef8424652f5f39e2f57ce874c7e0208fb703a124497dd2ecd2c11c324",
+    "runtime_profile_identity": "45d4e429c158cf56e31810ebb30328884d2e5fe7ddf5adab21d5336a060a1035",
+    "schema": "kiln.onixos-pilot.operator-request.v1",
+    "source_identity": "62192bc6ad9089817391aba19424cc3edefc141a7a854622254deee2e564a957",
+    "source_uri": "path:/nix/store/8ly7y1j16jmi42f2sb5yhc2xnh7c53dv-kiln-onixos-application-jobset#cases.evaluation-failure-substitution",
+    "trigger": {
+      "actor": {
+        "contract_version": 1,
+        "native_id": "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "native_kind": "did",
+        "provider_namespace": "radicle"
+      },
+      "after": {
+        "contract_version": 1,
+        "native_id": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+        "native_kind": "revision",
+        "provider_namespace": "radicle"
+      },
+      "before": null,
+      "branch": null,
+      "event": "push",
+      "patch": null,
+      "repository": {
+        "contract_version": 1,
+        "native_id": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "native_kind": "repository",
+        "provider_namespace": "radicle"
+      }
+    }
+  },
+  "signature": "BRPY2C821e37W69wkJAi4DrzBLU9dzudanS_HyR6ubT8Kjyp7HffJZPegLjS85UuBhR3abKuACpc_mtg_hk_Cw"
+}

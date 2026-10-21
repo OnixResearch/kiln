@@ -36,8 +36,15 @@ fn executable_identity(path: &Path) -> String {
 }
 
 fn profile(project_root: &Path, executable: &Path, provider: &str) -> RadicleStatusProfile {
+    let seed = if provider == SECONDARY_PROVIDER {
+        "02".repeat(32)
+    } else {
+        "01".repeat(32)
+    };
+    let signer = ResolvedSigner::from_resolved_secret(&seed).unwrap_or_else(|_| unreachable!());
     RadicleStatusProfile::pinned(
         BTreeSet::from([FIXTURE_RID.to_string()]),
+        external("radicle", "node", signer.public_key()),
         SecretSpecDeclaration {
             project_root: project_root.to_path_buf(),
             project: "kiln-native-fixture".to_string(),
@@ -56,6 +63,7 @@ fn profile(project_root: &Path, executable: &Path, provider: &str) -> RadicleSta
 fn plan() -> StatusPlan {
     StatusPlan {
         repository: external("radicle", "repository", FIXTURE_RID),
+        revision: external("radicle", "revision", &"a".repeat(40)),
         object_id: None,
         expected_head: None,
         run_id: RunId::new("run-native-fixture").unwrap_or_else(|_| unreachable!()),
@@ -105,7 +113,7 @@ fn domain_code(error: PortFailure) -> String {
 fn shell(temporary: &tempfile::TempDir, provider: &str) -> (RadicleStatusShell, PathBuf) {
     let storage_root = temporary.path().join("storage");
     std::fs::create_dir_all(&storage_root).unwrap_or_else(|_| unreachable!());
-    let repository_path = storage_root.join(FIXTURE_RID);
+    let repository_path = storage_root.join(FIXTURE_RID.trim_start_matches("rad:"));
     if !repository_path.exists() {
         cob_git2::Repository::init_bare(&repository_path).unwrap_or_else(|_| unreachable!());
     }
@@ -139,6 +147,7 @@ fn existing_status_reference(repository: &cob_git2::Repository) -> (String, cob_
 // r[verify kiln.radicle.status_conformance]
 // r[verify kiln.radicle.status_conformance.scenario.repeat]
 // r[verify kiln.radicle.shell_status.scenario.success]
+// r[verify kiln.radicle_ci.status]
 #[test]
 fn native_first_write_repeat_and_reconcile_are_equal() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
@@ -148,6 +157,7 @@ fn native_first_write_repeat_and_reconcile_are_equal() {
     let first = port_ok(shell.publish(&plan, "publish native fixture"));
     let first = written(first);
     assert_eq!(first.repository, plan.repository);
+    assert_eq!(first.revision, plan.revision);
     assert_eq!(first.run_id, plan.run_id.as_str());
     assert_eq!(first.outcome, StatusOutcome::Success);
 
@@ -158,7 +168,7 @@ fn native_first_write_repeat_and_reconcile_are_equal() {
     assert_eq!(second, first);
 
     let reconciled = shell
-        .reconcile(&plan, "reconcile native fixture")
+        .reconcile(&plan)
         .unwrap_or_else(|_| unreachable!())
         .unwrap_or_else(|| unreachable!());
     assert_eq!(reconciled, first);
@@ -304,8 +314,13 @@ fn authenticated_two_namespace_heads_reject_single_writer_not_object_bound() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let (shell, executable) = shell(&temporary, PRIMARY_PROVIDER);
     let first = written(port_ok(shell.publish(&plan(), "create branch source")));
-    let repository = cob_git2::Repository::open(temporary.path().join("storage").join(FIXTURE_RID))
-        .unwrap_or_else(|_| unreachable!());
+    let repository = cob_git2::Repository::open(
+        temporary
+            .path()
+            .join("storage")
+            .join(FIXTURE_RID.trim_start_matches("rad:")),
+    )
+    .unwrap_or_else(|_| unreachable!());
     let (_, target) = existing_status_reference(&repository);
     let mut config = repository
         .config()
@@ -366,8 +381,13 @@ fn malformed_status_ref_is_rejected_before_replay() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
     let _ = port_ok(shell.publish(&plan(), "create source ref"));
-    let repository = cob_git2::Repository::open(temporary.path().join("storage").join(FIXTURE_RID))
-        .unwrap_or_else(|_| unreachable!());
+    let repository = cob_git2::Repository::open(
+        temporary
+            .path()
+            .join("storage")
+            .join(FIXTURE_RID.trim_start_matches("rad:")),
+    )
+    .unwrap_or_else(|_| unreachable!());
     let (existing_ref, target) = existing_status_reference(&repository);
     let (prefix, _) = existing_ref
         .rsplit_once('/')
@@ -393,8 +413,13 @@ fn signed_author_namespace_mismatch_is_unreadable() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
     let _ = port_ok(shell.publish(&plan(), "create signed source ref"));
-    let repository = cob_git2::Repository::open(temporary.path().join("storage").join(FIXTURE_RID))
-        .unwrap_or_else(|_| unreachable!());
+    let repository = cob_git2::Repository::open(
+        temporary
+            .path()
+            .join("storage")
+            .join(FIXTURE_RID.trim_start_matches("rad:")),
+    )
+    .unwrap_or_else(|_| unreachable!());
     let (existing_ref, target) = existing_status_reference(&repository);
     let object_id = existing_ref
         .rsplit_once('/')
@@ -434,7 +459,7 @@ fn ambiguous_ref_publication_returns_unknown_without_redispatch() {
     let refs = temporary
         .path()
         .join("storage")
-        .join(FIXTURE_RID)
+        .join(FIXTURE_RID.trim_start_matches("rad:"))
         .join("refs");
     std::fs::set_permissions(&refs, std::fs::Permissions::from_mode(READ_EXECUTE_MODE))
         .unwrap_or_else(|_| unreachable!());
@@ -445,12 +470,174 @@ fn ambiguous_ref_publication_returns_unknown_without_redispatch() {
         .unwrap_or_else(|_| unreachable!());
 
     let unknown = unknown(dispatch);
+    assert_eq!(unknown.revision, plan().revision);
     assert_eq!(unknown.object_id, None);
     assert_eq!(unknown.idempotency_key, "status-native-fixture");
     assert!(
         shell
-            .reconcile(&plan(), "reconcile uncertain fixture")
+            .reconcile(&plan())
             .unwrap_or_else(|_| unreachable!())
             .is_none()
     );
+}
+
+// r[verify kiln.radicle_ci.status]
+#[test]
+fn reused_key_cannot_publish_or_reconcile_another_revision() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let original = plan();
+    let first = written(port_ok(
+        shell.publish(&original, "create revision-bound status"),
+    ));
+    let mut conflict = original.clone();
+    conflict.revision = external("radicle", "revision", &"b".repeat(40));
+    for object_id in [None, Some(first.object_id.clone())] {
+        conflict.object_id = object_id;
+        assert_eq!(
+            domain_code(port_error(
+                shell.publish(&conflict, "reject wrong revision")
+            )),
+            "status_idempotency_conflict"
+        );
+        assert_eq!(
+            domain_code(port_error(shell.reconcile(&conflict))),
+            "status_idempotency_conflict"
+        );
+    }
+    assert_eq!(port_ok(shell.reconcile(&original)), Some(first));
+}
+
+// r[verify kiln.radicle_ci.status]
+#[test]
+fn reconciliation_recovers_exact_status_without_signing_credentials() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (publisher, executable) = shell(&temporary, PRIMARY_PROVIDER);
+    let original = plan();
+    let first = written(port_ok(
+        publisher.publish(&original, "publish before interruption"),
+    ));
+    let reader = RadicleStatusShell::new_fixture(
+        temporary.path().join("storage"),
+        profile(temporary.path(), &executable, MISSING_PROVIDER),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(port_ok(reader.reconcile(&original)), Some(first));
+    let mut absent = original;
+    absent.idempotency_key = external("kiln", "idempotency-key", "never-published");
+    assert_eq!(port_ok(reader.reconcile(&absent)), None);
+}
+
+// r[verify kiln.radicle_ci.status]
+#[test]
+fn resolved_signer_must_match_declared_public_authority() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (_, executable) = shell(&temporary, PRIMARY_PROVIDER);
+    let mut mismatched = profile(temporary.path(), &executable, SECONDARY_PROVIDER);
+    mismatched.signer_identity =
+        profile(temporary.path(), &executable, PRIMARY_PROVIDER).signer_identity;
+    let shell = RadicleStatusShell::new_fixture(temporary.path().join("storage"), mismatched)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        domain_code(port_error(
+            shell.publish(&plan(), "reject mismatched signer")
+        )),
+        "radicle_status_signer_mismatch"
+    );
+    assert_eq!(port_ok(shell.reconcile(&plan())), None);
+}
+
+// r[verify kiln.radicle_ci.status]
+#[test]
+fn incompatible_cob_actions_fail_closed_for_publication_and_recovery() {
+    let legacy = br#"{"type":"project","key":"status-native-fixture","run_id":"run-native-fixture","outcome":"success"}"#;
+    let revisionless = br#"{"type":"project_revision","key":"status-native-fixture","run_id":"run-native-fixture","outcome":"success"}"#;
+    let conflicting = serde_json::to_vec(
+        &kiln_adapter_radicle::status::cob::CiJobAction::ProjectRevision {
+            key: "status-native-fixture".to_string(),
+            run_id: "run-native-fixture".to_string(),
+            revision: external("radicle", "revision", &"b".repeat(40)),
+            outcome: StatusOutcome::Success,
+        },
+    )
+    .unwrap_or_else(|_| unreachable!());
+    for (action, as_update) in [
+        (legacy.as_slice(), false),
+        (revisionless.as_slice(), false),
+        (legacy.as_slice(), true),
+        (revisionless.as_slice(), true),
+        (conflicting.as_slice(), true),
+    ] {
+        let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+        let first =
+            as_update.then(|| written(port_ok(shell.publish(&plan(), "create valid root"))));
+        let repository = cob_git2::Repository::open(
+            temporary
+                .path()
+                .join("storage")
+                .join(FIXTURE_RID.trim_start_matches("rad:")),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        let mut config = repository
+            .config()
+            .unwrap_or_else(|_| unreachable!())
+            .open_level(cob_git2::ConfigLevel::Local)
+            .unwrap_or_else(|_| unreachable!());
+        config
+            .set_str("user.name", "Legacy COB fixture")
+            .unwrap_or_else(|_| unreachable!());
+        config
+            .set_str("user.email", "legacy@example.invalid")
+            .unwrap_or_else(|_| unreachable!());
+        let signer = ResolvedSigner::from_resolved_secret(&"01".repeat(32))
+            .unwrap_or_else(|_| unreachable!());
+        let tips = first
+            .as_ref()
+            .map(|observation| {
+                vec![
+                    radicle_oid::Oid::from_str(observation.head.native_id.as_str())
+                        .unwrap_or_else(|_| unreachable!()),
+                ]
+            })
+            .unwrap_or_default();
+        let entry = GitCobStore::new(&repository)
+            .store(
+                None,
+                Vec::new(),
+                signer.signing_key(),
+                radicle_cob::change::Template {
+                    tips,
+                    type_name: TypeName::from_str(CI_JOB_TYPE_NAME)
+                        .unwrap_or_else(|_| unreachable!()),
+                    message: "incompatible ci-job history".to_string(),
+                    embeds: Vec::new(),
+                    contents: NonEmpty::new(action.to_vec()),
+                },
+            )
+            .unwrap_or_else(|_| unreachable!());
+        let object_id = first.map_or_else(
+            || entry.id.to_string(),
+            |observation| observation.object_id.native_id.as_str().to_owned(),
+        );
+        repository
+            .reference(
+                &format!(
+                    "refs/namespaces/{}/refs/cobs/{CI_JOB_TYPE_NAME}/{object_id}",
+                    signer.public_key()
+                ),
+                entry.id.into(),
+                true,
+                "incompatible status fixture",
+            )
+            .unwrap_or_else(|_| unreachable!());
+        let before = existing_status_reference(&repository);
+        assert!(shell.reconcile(&plan()).is_err());
+        assert!(
+            shell
+                .publish(&plan(), "reject incompatible status history")
+                .is_err()
+        );
+        assert_eq!(existing_status_reference(&repository), before);
+    }
 }

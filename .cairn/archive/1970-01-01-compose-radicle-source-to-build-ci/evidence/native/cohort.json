@@ -1,0 +1,254 @@
+{
+  "consumer_tools": {
+    "lock": {
+      "nodes": {
+        "nixpkgs": {
+          "flake": false,
+          "locked": {
+            "lastModified": 0,
+            "narHash": "sha256-IItrdb7Puk05RqOBWZYFC5X6Wl1sJmCfh5MWVHw5iMM=",
+            "path": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source",
+            "type": "path"
+          },
+          "original": {
+            "path": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source",
+            "type": "path"
+          }
+        },
+        "root": {
+          "inputs": {
+            "nixpkgs": "nixpkgs"
+          }
+        }
+      },
+      "root": "root",
+      "version": 7
+    },
+    "nixpkgs_source": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source"
+  },
+  "executables": {
+    "b3sum": {
+      "blake3": "1eafacaba70c3a8966e97eee72bd19e72034df574877634447f9e1b2237b13d4",
+      "path": "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum"
+    },
+    "broker_tool": {
+      "blake3": "230a8bc8717d38f8cdffa7de5b3ceb6fd1a0c8a0d2a48bce9f96e72efd4b7348",
+      "path": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cibtool"
+    },
+    "bubblewrap": {
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb",
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap"
+    },
+    "coordinator": {
+      "blake3": "49d0e4dc8189b9d52798fe28682bbc985a850a06d73cbf5b50682b398174e671",
+      "path": "/var/tmp/krc-native-recovery-20261021-c/coordinator-fixture"
+    },
+    "extension": {
+      "blake3": "a540e376f8755db68eb0c29a872b1624afdf21b14a218ca9657c092adbf9193c",
+      "path": "/var/tmp/kiln-radicle-ci-cargo/debug/kiln-aspen-extension"
+    },
+    "fixture": {
+      "blake3": "d7879c655cf71c697df4c5fe2578f67e03556512267f915a41a8bf96b43bab0e",
+      "path": "/var/tmp/kiln-radicle-ci-cargo/debug/examples/ci_source_fixture"
+    },
+    "host": {
+      "blake3": "33b2e2d94fea23469d7fb1ee1b4723033382a7f5336c635c7b5a59451caf0f5d",
+      "path": "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host"
+    },
+    "lattice": {
+      "blake3": "4c3773e852f6b66cb33677e74899d37a2bed0dcf4742698c40d12d0813783aba",
+      "path": "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice"
+    },
+    "legacy_coordinator": {
+      "blake3": "20172e88f7cd037fc917231967b5fa059d6d38dc0318b8845d6c2fb97f61bf40",
+      "path": "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-pilot"
+    },
+    "nickel": {
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f",
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel"
+    },
+    "nix": {
+      "blake3": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+      "path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix"
+    },
+    "nix_store": {
+      "blake3": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+      "path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store"
+    },
+    "openssl": {
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81",
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl"
+    },
+    "radicle": {
+      "blake3": "4ba3aca4155c9ee0a05d17e94748b355f5903ebd1b7565a51591cc4e02f40f38",
+      "path": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad"
+    },
+    "raw_coordinator": {
+      "blake3": "9cabd0f3554cda2db5b85377b0d365322363ace20f249ab0c7c96c650147156a",
+      "path": "/var/tmp/kiln-radicle-ci-cargo/debug/kiln-radicle-ci"
+    },
+    "real_worker": {
+      "blake3": "f72a84dae9c3f872c8b360a7d50a20a2eadfc7912e27d2b1f95258910fd09bde",
+      "path": "/var/tmp/kiln-radicle-ci-cargo/debug/kiln-onixos-worker"
+    },
+    "secretspec_fixture": {
+      "blake3": "86c3ad28cb2283c0026255deb401851c47b33c02903001f1b6a3d90da7df254e",
+      "path": "/var/tmp/kiln-radicle-ci-cargo/debug/secretspec_fixture"
+    },
+    "shell": {
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad",
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash"
+    },
+    "sleep": {
+      "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471",
+      "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/sleep"
+    },
+    "worker": {
+      "blake3": "f6101c353451ebf0459e0c7c0a8117f22e3b9fa68fa17413fdb46cfab8ec4df5",
+      "path": "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-worker"
+    }
+  },
+  "fixture_authority": "new isolated native source profile and fixed fixture status key only; no production mutation",
+  "operation_identity": "a6d3bd76ecdaf4c90991bc9e098dee7d3cb21537014779e6bd5479661ba973ff",
+  "project_profile_identity": "e2d3145b60448c5db40838c4c7a8538bbdd22d4bc52397b120abf725d9fa8d74",
+  "runtime_profile": {
+    "authority_ref": "kiln-aspen-authority-v1",
+    "bounds": {
+      "callback_timeout_millis": 240000,
+      "max_callback_input_bytes": 1048576,
+      "max_callback_output_bytes": 1048576,
+      "max_content_bytes": 16777216,
+      "max_effects": 64,
+      "max_log_bytes": 262144,
+      "max_materialized_value_bytes": 262144,
+      "max_materialized_values": 64,
+      "max_records": 4096
+    },
+    "claim_level": "local-live-materialized-values-pilot",
+    "cohort": {
+      "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+      "bounded_exec_source": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+      "revision": "22f8ded26ca1907c29948e08b53f35df23080733",
+      "source": "ssh://git@github.com/brittonr/aspen.git"
+    },
+    "endpoint_ref": "kiln-aspen-local-endpoint-v1",
+    "fallback": "none",
+    "native_host": {
+      "alpn": "molten/system-extension/native/v2",
+      "callback_envelope_schema": "molten.system-extension.native-callback-envelope.v2",
+      "callback_outcome_schema": "molten.system-extension.native-callback-outcome.v2",
+      "execution_profile": "native-host-local-pilot-v2",
+      "extension_id": "kiln-aspen-extension-v2",
+      "extension_protocol_schema": "kiln.aspen-extension.protocol.v2",
+      "framing": "preserves-packed-materialized-values-v2",
+      "generation": 1,
+      "ingress_schema": "molten.system-extension.native-ingress.v2",
+      "instance_schema": "molten.system-extension.native-instance-state.v2",
+      "profile_schema": "molten.system-extension.native-host-profile.v2",
+      "service_id": "kiln-ci-control-plane-v2"
+    },
+    "non_claim_count": 12,
+    "non_claims": [
+      "aspen acceptance does not prove CI correctness",
+      "aspen execution does not prove provider correctness",
+      "bounded execution does not prove sandboxing or hermeticity",
+      "transport acknowledgement does not prove exact-once delivery",
+      "content identity does not prove source trust",
+      "durable acceptance does not prove global durability",
+      "local conformance does not prove production availability",
+      "runtime evidence does not prove release eligibility",
+      "equal digest text does not merge identity roles",
+      "provider observations require Kiln admission",
+      "value identity does not prove application meaning",
+      "in-memory conformance does not prove value durability"
+    ],
+    "policy_ref": "kiln-aspen-policy-v1",
+    "port_count": 7,
+    "ports": [
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.durability.atomic-batch.v1",
+        "output_schema": "molten.fabric.durability.atomic-receipt.v1",
+        "port_id": "molten.fabric.durability.ordered-state",
+        "purpose": "durability",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.content-store-adapter.command.v1",
+        "output_schema": "molten.content-store-adapter.event.v1",
+        "port_id": "molten.fabric.content-store",
+        "purpose": "content",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.execution-request.v1",
+        "output_schema": "molten.fabric.execution-receipt.v1",
+        "port_id": "molten.fabric.execution.bounded-process",
+        "purpose": "execution",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "kiln.aspen-extension.effect.v2",
+        "output_schema": "kiln.aspen-provider-completion.v1",
+        "port_id": "molten.fabric.transport.session",
+        "purpose": "transport",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.time.request.v1",
+        "output_schema": "molten.fabric.time.observation.v1",
+        "port_id": "molten.fabric.time",
+        "purpose": "time",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.scheduler.request.v1",
+        "output_schema": "molten.fabric.scheduler.observation.v1",
+        "port_id": "molten.fabric.scheduler",
+        "purpose": "scheduling",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.observation.event.v1",
+        "output_schema": "molten.fabric.observation.receipt.v1",
+        "port_id": "molten.fabric.observation",
+        "purpose": "evidence",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      }
+    ],
+    "profile_id": "aspen-runtime-v2",
+    "resource_ref": "kiln-aspen-resources-v1",
+    "schema": "kiln.aspen-runtime.profile.v2",
+    "transport_profile_ref": "kiln-aspen-local-transport-v1",
+    "workflow_provider_profile": "lattice-v1"
+  },
+  "schema": "kiln.radicle-ci.native-cohort.v1",
+  "source_selection": {
+    "limits": {
+      "max_entries": 512,
+      "max_file_bytes": 4194304,
+      "max_identity_bytes": 4096,
+      "max_path_bytes": 1024,
+      "max_reference_bytes": 512,
+      "max_total_bytes": 16777216
+    },
+    "profile_id": "radicle-source-v1",
+    "repository_id": "rad:z3kDBc4yM2cTx38CHij6MoVPK9dUz",
+    "repository_path": "/var/tmp/krc-native-recovery-20261021-c/rad-home/storage/z3kDBc4yM2cTx38CHij6MoVPK9dUz/",
+    "signed_reference": "refs/heads/main",
+    "signer_node_id": "z6MkeYyQtJjiWRgvYrnH2mPRKdVjadaMjk8NyiMa4Sgnex4L"
+  }
+}

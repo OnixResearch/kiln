@@ -19,11 +19,16 @@ pub fn serve(
     journal_path: &Path,
     http: HttpObservationProfile,
 ) -> Result<()> {
-    admit_loopback(&http)?;
     let (journal, state) = crate::coordinator::load_replayed(profile, journal_path)?;
     let snapshot = ObservationSnapshot::new(state).with_events(EventWindow {
         records: journal.records,
     });
+    serve_snapshot(snapshot, http)
+}
+
+/// Serves one immutable canonical snapshot through the existing read-only port.
+pub fn serve_snapshot(snapshot: ObservationSnapshot, http: HttpObservationProfile) -> Result<()> {
+    admit_loopback(&http)?;
     // This process owns an immutable replay snapshot, never a control endpoint.
     let source = Arc::new(MemoryObservationSource::new(snapshot));
     let live = Arc::new(LiveEventBuffer::new(

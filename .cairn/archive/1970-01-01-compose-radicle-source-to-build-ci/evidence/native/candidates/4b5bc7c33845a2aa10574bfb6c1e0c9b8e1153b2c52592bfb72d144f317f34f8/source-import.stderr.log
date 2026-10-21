@@ -1,0 +1,2 @@
+warning: Ignoring setting 'accept-flake-config' because experimental feature 'flakes' is not enabled
+warning: Ignoring setting 'flake-registry' because experimental feature 'flakes' is not enabled
