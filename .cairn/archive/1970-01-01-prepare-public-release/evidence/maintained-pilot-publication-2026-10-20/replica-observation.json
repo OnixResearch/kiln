@@ -1,0 +1,17 @@
+{
+  "node_url": "https://rosa.radicle.network/api/v1/node",
+  "node_id": "z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo",
+  "repository_url": "https://rosa.radicle.network/api/v1/repos/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "default_branch": "main",
+  "head": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+  "refs": {
+    "refs/heads/main": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9"
+  },
+  "delegates": [
+    "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+  ],
+  "threshold": 1,
+  "visibility": "public",
+  "scope": "Fresh read-only node identity and repository API observations; not indefinite availability or independent physical replication proof"
+}

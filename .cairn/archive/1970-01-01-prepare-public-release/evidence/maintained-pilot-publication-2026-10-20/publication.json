@@ -1,0 +1,122 @@
+{
+  "schema": "kiln.maintained-pilot.source-publication.v1",
+  "recorded_at_utc": "2026-10-21T01:19:49.612608+00:00",
+  "owner": "Kiln maintainers",
+  "state": "PASS-source-push-and-exact-native-anonymous-readbacks",
+  "operator_request": "commit and push. what next",
+  "scope": "Fast-forward main on canonical Radicle and the configured GitHub projection; source-only, not deployment or binary release",
+  "candidate_revision": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+  "published_source_revision": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+  "previous_main_revision": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+  "rollback_target": "6c6e4f220fe0234ce607085fa622b580fd1cd016",
+  "history_rewritten": false,
+  "force_push_used": false,
+  "source_archive": {
+    "format": "normalized GNU tar USTAR",
+    "blake3": "8518edd6b95c000985f8a6da55cecc89e0f08c31e73f789f0705822f0f6136de",
+    "bytes": 46417920,
+    "tracked_members": 3124,
+    "recipe": [
+      "--create",
+      "--format=ustar",
+      "--mtime=@0",
+      "--owner=0",
+      "--group=0",
+      "--numeric-owner",
+      "--mode=u=rwX,go=rX",
+      "--no-recursion",
+      "--null"
+    ],
+    "member_order": "lexically sorted candidate jj file list; NUL separated"
+  },
+  "hosting_profile": {
+    "source": "config/hosting-profile.ncl",
+    "source_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+    "export": "hosting-profile.json",
+    "export_blake3": "31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82",
+    "declared_checkpoint_rollback": "b16f8792849cd3e2f2802c9a5063d5567a68f389",
+    "boundary": "The profile checkpoint is historical; previous_main_revision/rollback_target above record this publication transition. Profile license metadata does not replace per-artifact LICENSES.md terms."
+  },
+  "license_map": {
+    "path": "LICENSES.md",
+    "blake3": "5af985b44ac0ddbbfb0808c4dae53894d5bebcbd0d61fae21a7c1f76e3cbb093"
+  },
+  "qualification": {
+    "path": ".cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/verification.json",
+    "blake3": "0c246ff35c83abb8bc3e671646f698f57563b0069699639ef967c1eb5eb6bf6b",
+    "implementation_manifest": ".cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/implementation-files.json",
+    "implementation_manifest_blake3": "4da11a92a70ffabe41eee2835163f57a96aa2dcad8d1aea9e677b6a759ef90a2",
+    "source_boundary": "Prior qualification binds its frozen source/executable cohort and 37 implementation/bootstrap file identities; no fresh clone build or changed-executable qualification is claimed"
+  },
+  "governance": {
+    "before": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "default_branch": "main",
+      "signed_refs_revision": "e3a82b095d55038993affc190618b4eb8ffab716"
+    },
+    "after": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "default_branch": "main",
+      "signed_refs_observation": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 4c82ef8016c4b2cf72355f58d68c302f4aed9651 parent"
+    },
+    "governance_changed": false,
+    "signed_ref_feature": "parent"
+  },
+  "targets": [
+    {
+      "name": "radicle",
+      "remote": "rad",
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "ref": "refs/heads/main",
+      "source_revision": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+      "push_outcome": "pass"
+    },
+    {
+      "name": "github",
+      "remote": "github",
+      "url": "git@github.com:OnixResearch/kiln.git",
+      "ref": "refs/heads/main",
+      "source_revision": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+      "push_outcome": "pass",
+      "authority": "declared projection only"
+    }
+  ],
+  "readbacks": "readbacks.json",
+  "replica_observation": "replica-observation.json",
+  "required_replica_observations": 1,
+  "observed_configured_replica_observations": 1,
+  "commands": "commands.json",
+  "retained_lookup_failures": [
+    {
+      "argv": [
+        "jj",
+        "file",
+        "archive",
+        "--help"
+      ],
+      "exit_code": 2,
+      "diagnostic": "error: unrecognized subcommand 'archive'",
+      "disposition": "Used supported jj file list and an explicit normalized GNU tar recipe instead"
+    },
+    {
+      "url": "https://rosa.radicle.network/api/v1/repos/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/refs",
+      "status": 404,
+      "disposition": "Repository root API supplies the observed refs and canonical head; no ref query success claimed for this unsupported endpoint"
+    }
+  ],
+  "evidence_record_boundary": "This is a later evidence-only descendant of the published source candidate; it does not claim to predict its own eventual commit identity or requalify another executable cohort",
+  "non_claims": [
+    "No production deployment, activation, binary release or release approval",
+    "No governance, visibility or default-branch change",
+    "No physical independence or indefinite availability claim for replica routes",
+    "No new product-test pass inferred from publication or archive equality",
+    "Historical qualification and failure observations remain unchanged"
+  ],
+  "post_publication_repository_checks": "repository-checks.json"
+}

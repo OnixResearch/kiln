@@ -1,0 +1,519 @@
+{
+  "schema": "kiln.source-publication.commands.v1",
+  "scope": "Actual commands, exit codes, stdout and stderr; repeated bulk tracked-path outputs are normalized once in source-paths.json",
+  "pre_push_fetches": [
+    {
+      "argv": [
+        "jj",
+        "git",
+        "fetch",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "observation": "Nothing changed."
+    },
+    {
+      "argv": [
+        "jj",
+        "git",
+        "fetch",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "observation": "Nothing changed."
+    }
+  ],
+  "commands": [
+    {
+      "name": "candidate_revision",
+      "argv": [
+        "jj",
+        "log",
+        "--no-graph",
+        "-r",
+        "@-",
+        "-T",
+        "commit_id"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+      "stderr": ""
+    },
+    {
+      "name": "candidate_tracked_paths",
+      "argv": [
+        "jj",
+        "file",
+        "list",
+        "-r",
+        "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_utf8_bytes": 241164,
+      "normalized_stdout_path_manifest": "source-paths.json"
+    },
+    {
+      "name": "candidate_source_archive",
+      "argv": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/candidate-paths.nul",
+        "--file",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/source.tar"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "hosting_profile_export",
+      "argv": [
+        "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+        "export",
+        "--format",
+        "json",
+        "config/hosting-profile.ncl"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "{\n  \"acquisition_routes\": [\n    {\n      \"kind\": \"radicle-native\",\n      \"route\": \"rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE@z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo\",\n      \"writable\": false\n    },\n    {\n      \"kind\": \"https-git\",\n      \"route\": \"https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git\",\n      \"writable\": false\n    }\n  ],\n  \"canonical_branch\": \"main\",\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"freeze\": false,\n  \"license\": \"MIT OR Apache-2.0\",\n  \"mirrors\": [\n    {\n      \"authority\": \"read_only_projection\",\n      \"route\": \"https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git\"\n    }\n  ],\n  \"non_claims\": [\n    \"publication observations do not prove indefinite availability\",\n    \"mirror observations do not grant repository authority\",\n    \"replica agreement does not prove source or CI correctness\"\n  ],\n  \"required_replica_observations\": 1,\n  \"required_replicas\": 1,\n  \"rid\": \"rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE\",\n  \"rollback_revision\": \"b16f8792849cd3e2f2802c9a5063d5567a68f389\",\n  \"seeds\": [\n    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo\"\n  ],\n  \"signed_ref_features\": [\n    \"parent\"\n  ],\n  \"state\": \"published\",\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "candidate_bindings",
+      "argv": [
+        "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/source.tar",
+        "config/hosting-profile.ncl",
+        ".cairn/archive/1970-01-01-prepare-public-release/evidence/maintained-pilot-publication-2026-10-20/hosting-profile.json",
+        "LICENSES.md",
+        ".cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/verification.json",
+        ".cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/implementation-files.json"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "8518edd6b95c000985f8a6da55cecc89e0f08c31e73f789f0705822f0f6136de  /var/tmp/kiln-pilot-publication-20261020-dy669ing/source.tar\n1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0  config/hosting-profile.ncl\n31c16d1a45192767661610661c3534a17e0f927e887c9edbb24f4d98191e4d82  .cairn/archive/1970-01-01-prepare-public-release/evidence/maintained-pilot-publication-2026-10-20/hosting-profile.json\n5af985b44ac0ddbbfb0808c4dae53894d5bebcbd0d61fae21a7c1f76e3cbb093  LICENSES.md\n0c246ff35c83abb8bc3e671646f698f57563b0069699639ef967c1eb5eb6bf6b  .cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/verification.json\n4da11a92a70ffabe41eee2835163f57a96aa2dcad8d1aea9e677b6a759ef90a2  .cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/implementation-files.json\n",
+      "stderr": ""
+    },
+    {
+      "name": "select_main",
+      "argv": [
+        "jj",
+        "bookmark",
+        "set",
+        "main",
+        "-r",
+        "f09aa7187dff390272b9a8bcca3a9be90f71e6b9"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Moved 1 bookmarks to xwtsuvuv f09aa718 main* | Qualify maintained Aspen host with an isolated OnixOS CI pilot\n"
+    },
+    {
+      "name": "github_push_plan",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main",
+        "--dry-run"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to github:\n  bookmark: main [move forward from 6c6e4f220fe0 to f09aa7187dff]\nDry-run requested, not pushing.\n"
+    },
+    {
+      "name": "rad_push_plan",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main",
+        "--dry-run"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 6c6e4f220fe0 to f09aa7187dff]\nDry-run requested, not pushing.\n"
+    },
+    {
+      "name": "canonical_radicle_push",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 6c6e4f220fe0 to f09aa7187dff]\ngit: \u2713 Canonical reference refs/heads/main updated to target commit f09aa7187dff390272b9a8bcca3a9be90f71e6b9        \ngit: \u2713 Synced with 2 seed(s)        \ngit: \ngit:   https://app.radicle.xyz/nodes/iris.radicle.xyz/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/f09aa7187dff390272b9a8bcca3a9be90f71e6b9        \ngit: \n"
+    },
+    {
+      "name": "github_projection_push",
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Changes to push to github:\n  bookmark: main [move forward from 6c6e4f220fe0 to f09aa7187dff]\n"
+    },
+    {
+      "name": "radicle_fresh_clone",
+      "argv": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--config",
+        "user.name=\"Publication readback\"",
+        "--config",
+        "user.email=\"publication@localhost\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle\"\nbookmark: main@origin [new] untracked\nWorking copy  (@) now at: sywlrzmt 0a5ee3dd (empty) (no description set)\nParent commit (@-)      : xwtsuvuv f09aa718 main@origin | Qualify maintained Aspen host with an isolated OnixOS CI pilot\nAdded 3124 files, modified 0 files, removed 0 files\n"
+    },
+    {
+      "name": "github_fresh_clone",
+      "argv": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--config",
+        "user.name=\"Publication readback\"",
+        "--config",
+        "user.email=\"publication@localhost\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "https://github.com/OnixResearch/kiln.git",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/github"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/var/tmp/kiln-pilot-publication-20261020-dy669ing/github\"\ngit: warning: no common commits        \nbookmark: main@origin [new] tracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: zuroupuu 2e162712 (empty) (no description set)\nParent commit (@-)      : xwtsuvuv f09aa718 main | Qualify maintained Aspen host with an isolated OnixOS CI pilot\nAdded 3124 files, modified 0 files, removed 0 files\n"
+    },
+    {
+      "name": "garden_fresh_clone",
+      "argv": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "--config",
+        "user.name=\"Publication readback\"",
+        "--config",
+        "user.email=\"publication@localhost\"",
+        "git",
+        "clone",
+        "--no-colocate",
+        "--branch",
+        "main",
+        "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden\"\ngit: warning: no common commits        \nbookmark: main@origin [new] tracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: mqyqquoz c5836793 (empty) (no description set)\nParent commit (@-)      : xwtsuvuv f09aa718 main | Qualify maintained Aspen host with an isolated OnixOS CI pilot\nAdded 3124 files, modified 0 files, removed 0 files\n"
+    },
+    {
+      "name": "radicle_revision",
+      "argv": [
+        "jj",
+        "--ignore-working-copy",
+        "log",
+        "--no-graph",
+        "-r",
+        "main@origin",
+        "-T",
+        "commit_id"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle",
+      "exit_code": 0,
+      "stdout": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+      "stderr": ""
+    },
+    {
+      "name": "garden_revision",
+      "argv": [
+        "jj",
+        "--ignore-working-copy",
+        "log",
+        "--no-graph",
+        "-r",
+        "main@origin",
+        "-T",
+        "commit_id"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden",
+      "exit_code": 0,
+      "stdout": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+      "stderr": ""
+    },
+    {
+      "name": "github_revision",
+      "argv": [
+        "jj",
+        "--ignore-working-copy",
+        "log",
+        "--no-graph",
+        "-r",
+        "main@origin",
+        "-T",
+        "commit_id"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/github",
+      "exit_code": 0,
+      "stdout": "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+      "stderr": ""
+    },
+    {
+      "name": "github_tracked_paths",
+      "argv": [
+        "jj",
+        "--ignore-working-copy",
+        "file",
+        "list",
+        "-r",
+        "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/github",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_utf8_bytes": 241164,
+      "normalized_stdout_path_manifest": "source-paths.json"
+    },
+    {
+      "name": "garden_tracked_paths",
+      "argv": [
+        "jj",
+        "--ignore-working-copy",
+        "file",
+        "list",
+        "-r",
+        "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_utf8_bytes": 241164,
+      "normalized_stdout_path_manifest": "source-paths.json"
+    },
+    {
+      "name": "radicle_tracked_paths",
+      "argv": [
+        "jj",
+        "--ignore-working-copy",
+        "file",
+        "list",
+        "-r",
+        "f09aa7187dff390272b9a8bcca3a9be90f71e6b9",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_utf8_bytes": 241164,
+      "normalized_stdout_path_manifest": "source-paths.json"
+    },
+    {
+      "name": "github_normalized_archive",
+      "argv": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/candidate-paths.nul",
+        "--file",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/github.tar"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/github",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "garden_normalized_archive",
+      "argv": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/candidate-paths.nul",
+        "--file",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden.tar"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "radicle_normalized_archive",
+      "argv": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/candidate-paths.nul",
+        "--file",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle.tar"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "github_archive_identity",
+      "argv": [
+        "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum",
+        "--no-names",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/github.tar"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/github",
+      "exit_code": 0,
+      "stdout": "8518edd6b95c000985f8a6da55cecc89e0f08c31e73f789f0705822f0f6136de\n",
+      "stderr": ""
+    },
+    {
+      "name": "radicle_archive_identity",
+      "argv": [
+        "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum",
+        "--no-names",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle.tar"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/radicle",
+      "exit_code": 0,
+      "stdout": "8518edd6b95c000985f8a6da55cecc89e0f08c31e73f789f0705822f0f6136de\n",
+      "stderr": ""
+    },
+    {
+      "name": "garden_archive_identity",
+      "argv": [
+        "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum",
+        "--no-names",
+        "/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden.tar"
+      ],
+      "cwd": "/var/tmp/kiln-pilot-publication-20261020-dy669ing/garden",
+      "exit_code": 0,
+      "stdout": "8518edd6b95c000985f8a6da55cecc89e0f08c31e73f789f0705822f0f6136de\n",
+      "stderr": ""
+    },
+    {
+      "name": "governance_after",
+      "argv": [
+        "rad",
+        "inspect",
+        "--identity",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "{\n  \"payload\": {\n    \"xyz.radicle.project\": {\n      \"defaultBranch\": \"main\",\n      \"description\": \"Provider-neutral CI control plane\",\n      \"name\": \"Kiln\"\n    }\n  },\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "signed_refs_after",
+      "argv": [
+        "rad",
+        "inspect",
+        "--sigrefs",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 4c82ef8016c4b2cf72355f58d68c302f4aed9651 parent\n",
+      "stderr": ""
+    },
+    {
+      "name": "replication_status",
+      "argv": [
+        "rad",
+        "sync",
+        "status",
+        "z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "exit_code": 0,
+      "stdout": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\n\u2502 Node ID           Alias                           ?   SigRefs   Timestamp     \u2502\n\u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n\u2502 (you)             brittonr                        \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkmXd\u202679iS2Wf   seed.pipapo.org                 \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkmvN\u20263GFjkf2   seed.cielago.xyz                \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkgNT\u2026wVgKv67   radicle.thaler.fyi              \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkjDY\u2026HXsXzm5   radicle.at                      \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6Mkwfr\u20264j2TdQ2   radicle.jarg.io                 \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkrLM\u2026ocNYPm7   iris.radicle.network            \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkrH7\u2026ab5PHkZ   seed2                           \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkmMc\u2026NuvGyqB   seed1                           \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkiwJ\u20266bgkbQ7   seed.heptapod.dev               \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6MkuyP\u2026TvoWKJR   index.radicle.garden            \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6Mkmqo\u20264ebScxo   rosa.radicle.network            \u2713   4c82ef8   2 minutes ago \u2502\n\u2502 z6Mkhfi\u2026YmaARYV   community.computer              \u2717   f4615a0   9 hours ago   \u2502\n\u2502 z6MkeWR\u2026yaNakyL   seed.dazuzu.com                 \u2717   f4615a0   9 hours ago   \u2502\n\u2502 z6Mkq9e\u2026vqYL4Dw   radicle.spacetime.technology    \u2717   f4615a0   9 hours ago   \u2502\n\u2502 z6Mkg4S\u2026ezGFsgi   pahgein                         \u2717   55a9e34   10 hours ago  \u2502\n\u2502 z6MktPg\u2026hngbJWC   radicle-seed.b4mad.industries   \u2717   55a9e34   10 hours ago  \u2502\n\u2502 z6Mkwdj\u2026g3toC41   rad.hlmn.net                    \u2717   55a9e34   10 hours ago  \u2502\n\u2502 z6Mko5W\u2026Zoomvng   garden.bastidehub.xyz           \u2717   55a9e34   10 hours ago  \u2502\n\u2502 z6Mkfhj\u2026WmqjsQw   blackprism                      \u2717   55a9e34   10 hours ago  \u2502\n\u2502 z6MkjWY\u2026q6fE1KV   seed.clem.gleeze.com            \u2717   ecf453e   18 hours ago  \u2502\n\u2502 z6Mksqu\u20267327TEt   radicle.linuxw.info             \u2717   ecf453e   19 hours ago  \u2502\n\u2502 z6Mkh6T\u2026ubNX2P3   thistle.levitte.org             \u2717   645c3a1   1 day ago     \u2502\n\u2502 z6MkiYe\u20266ctshzg   vmi1581511.contaboserver.net    \u2717   594f2df   1 day ago     \u2502\n\u2502 z6Mkncc\u2026Y9uy83m   aigars.digital                  \u2717   8419d75   2 days ago    \u2502\n\u2502 z6Mkm7V\u20268rzzrW7   radicle.byrd.ws                 \u2717   1039f05   2 days ago    \u2502\n\u2502 z6Mkutb\u2026hyzxvRL   Dosadi                          \u2717   f730db5   3 days ago    \u2502\n\u2502 z6MkfQq\u2026K9qqKoi   radicle.lan                     \u2717   33f8157   2 weeks ago   \u2502\n\u2502 z6MkpkP\u2026cmuD8td   freedom-radicle-index           \u2717   4cec44f   2 weeks ago   \u2502\n\u2502 z6MkvVh\u2026j3kQ51f   nos-seed                        \u2717   33f8157   3 weeks ago   \u2502\n\u2502 z6MkmdX\u20261HqzPqH   lougheed                        \u2717   33f8157   4 weeks ago   \u2502\n\u2502 z6MkveT\u2026wD3Gcx4   seed.moist.place                \u2717   33f8157   1 month ago   \u2502\n\u2502 z6MkhTU\u2026uPPCwFB   openhands-vps                   \u2717   33f8157   1 month ago   \u2502\n\u2502 z6Mkif1\u2026YSt9EL5   seed.kat5.dev                   \u2717   33f8157   1 month ago   \u2502\n\u2502 z6Mkt4u\u2026kZo4obe   radicle.lab.arborisis.com       \u2717   33f8157   1 month ago   \u2502\n\u2502 z6Mkhzc\u2026Hryj1M7   ghostme.link                    \u2717   33f8157   1 month ago   \u2502\n\u2502 z6MkjnQ\u2026aJHpghi   nuclide-amd                     \u2717   33f8157   1 month ago   \u2502\n\u2502 z6Mksmm\u2026CmfDcLm   seed.iauthored.it               \u2717   33f8157   1 month ago   \u2502\n\u2502 z6Mkoqm\u2026znbu7e4   sftsrv                          \u2717   33f8157   1 month ago   \u2502\n\u2502 z6MkhxZ\u2026tAzh88z   rad.porygon.dex                 \u2717   33f8157   1 month ago   \u2502\n\u2502 z6Mkgcs\u20264dzx57K   radicle.pastilhas.dev           \u2717   33f8157   1 month ago   \u2502\n\u2502 z6Mkhtf\u2026U2vFB9c   rad.fmhy.bid                    \u2717   4cec44f   1 month ago   \u2502\n\u2502 z6MkhHX\u2026xfptYL9   seed.petal.cafe                 \u2717   62656d4   1 month ago   \u2502\n\u2502 z6MknNv\u2026UC7bv39   seed.michelao.ovh               \u2717   7743565   1 month ago   \u2502\n\u2502 z6MktUB\u2026tWpHSU9   cat                             \u2717   705a571   1 month ago   \u2502\n\u2502 z6Mkuva\u2026QFbrzJR   rad.spacetime.technology        \u2717   58ce23f   2 months ago  \u2502\n\u2502 z6MkkjX\u2026gdCQpt8   wqyeo-seed                      \u2717   58ce23f   2 months ago  \u2502\n\u2502 z6MksHa\u2026ewzJQHY   rad.decentralizedscience.org    \u2717   3ad7656   2 months ago  \u2502\n\u2502 z6Mkhkf\u2026tPgyezE   kepler                          \u2717   3ad7656   2 months ago  \u2502\n\u2502 z6MkpRr\u2026KnvMiAs   node.radicle.june.cat           \u2717   3ad7656   2 months ago  \u2502\n\u2502 z6Mkw9z\u2026nssr3ap   HeliodexServer                  \u2717   3ad7656   2 months ago  \u2502\n\u2502 z6Mkpwm\u2026Wg6pDdC   casungo                         \u2717   3ad7656   2 months ago  \u2502\n\u2502 z6Mkq8c\u2026aG3bUrq   station                         \u2717   3ad7656   2 months ago  \u2502\n\u2502 z6MknJe\u2026Wg82yfB   radicle12.distrilab.eu          \u2717   026896b   2 months ago  \u2502\n\u2502 z6MkrBK\u2026gYSNWCv   rad-sloe.plumj.am               \u2717   a0bdb12   2 months ago  \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\u2717 Hint: \n   ? \u2026 Status:\n       \u2713 \u2026 in sync          \u2717 \u2026 out of sync\n       ! \u2026 not announced    \u2022 \u2026 unknown\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -38,6 +38,12 @@ The subsequent operator-authorized main cutover to
 The pilot's frozen-cohort qualification is independent of later source
 publication; publishing these sources does not qualify changed executables.
 
+The operator-authorized [pilot source publication](.cairn/archive/1970-01-01-prepare-public-release/evidence/maintained-pilot-publication-2026-10-20/publication.json)
+records source `f09aa7187dff390272b9a8bcca3a9be90f71e6b9`, matching native and
+anonymous HTTPS acquisitions, unchanged governance and its exact archive.
+The publication receipt is a later evidence-only descendant, not a new runtime
+qualification.
+
 ## Quick start
 
 Acquire the read-only HTTPS projection without a Radicle node:
