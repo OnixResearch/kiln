@@ -1,0 +1,20 @@
+{
+  "recorded_at_utc": "2026-10-21T04:41:54.738819+00:00",
+  "read_method": "functions.read",
+  "node_url": "https://rosa.radicle.network/api/v1/node",
+  "node_id": "z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo",
+  "repository_url": "https://rosa.radicle.network/api/v1/repos/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "default_branch": "main",
+  "head": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+  "refs": {
+    "refs/heads/main": "2e9ef7150acf562e5a46066d1f8e056d74defd90"
+  },
+  "delegates": [
+    "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+  ],
+  "threshold": 1,
+  "visibility": "public",
+  "node_identity_matches_configured_seed": true,
+  "scope": "Read-only node and repository API responses matched this source revision; no physical-independence or indefinite-availability claim"
+}

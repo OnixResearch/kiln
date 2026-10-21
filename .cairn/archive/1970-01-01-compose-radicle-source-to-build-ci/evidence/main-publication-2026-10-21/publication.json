@@ -1,0 +1,155 @@
+{
+  "schema": "kiln.radicle-ci.source-publication.v1",
+  "recorded_at_utc": "2026-10-21T04:41:54.738938+00:00",
+  "owner": "Kiln maintainers",
+  "state": "PASS-source-push-and-exact-native-anonymous-readbacks",
+  "operator_request": "commit and push to main",
+  "scope": "Fast-forward canonical Radicle main and its declared GitHub projection; source only",
+  "candidate_revision": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+  "published_source_revision": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+  "previous_main_revision": "d636a1600bc09c94b0f19d2025d45217712f7597",
+  "rollback_target": "d636a1600bc09c94b0f19d2025d45217712f7597",
+  "history_rewritten": false,
+  "force_push_used": false,
+  "source_archive": {
+    "format": "normalized GNU tar USTAR",
+    "blake3": "180c1f5d5b09de91b9d303aabdf447e6e18905fceecf92de67cf4524cf566658",
+    "bytes": 53084160,
+    "tracked_members": 3501,
+    "recipe": [
+      "--create",
+      "--format=ustar",
+      "--mtime=@0",
+      "--owner=0",
+      "--group=0",
+      "--numeric-owner",
+      "--mode=u=rwX,go=rX",
+      "--no-recursion",
+      "--null",
+      "--files-from=-"
+    ],
+    "member_order": "lexically sorted jj file list at candidate_revision, UTF-8 and NUL separated",
+    "source_paths": "source-paths.json",
+    "retention": "Archive reconstructed and hashed in a private temporary directory, then retired; reproduce from the immutable revision and declared recipe"
+  },
+  "hosting_profile": {
+    "source": "config/hosting-profile.ncl",
+    "source_blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+    "export": "hosting-profile.json",
+    "required_replica_observations": 1,
+    "declared_checkpoint_rollback": "b16f8792849cd3e2f2802c9a5063d5567a68f389",
+    "boundary": "Profile rollback is historical; rollback_target binds this transition. LICENSES.md remains authoritative per artifact."
+  },
+  "license_map": {
+    "path": "LICENSES.md",
+    "blake3": "a099bfe50cec65cead787f60588dfa2d751bc5c4c88e80698b53f8c364eed6c0"
+  },
+  "retained_qualification": [
+    {
+      "path": ".cairn/archive/1970-01-01-build-authenticated-onixos-home-closure/evidence/verification.json",
+      "blake3": "8e31bbd89eb9a84b4c337b5faee9e3d9955ac928c9959bbcb672ab2c4ee53045"
+    },
+    {
+      "path": ".cairn/archive/1970-01-01-compose-radicle-source-to-build-ci/evidence/verification.json",
+      "blake3": "e9e7ca6bbe330f78b4d3098ad903e509881cf3c8ad436a7623ee9fd232294715"
+    },
+    {
+      "path": ".cairn/archive/1970-01-01-compose-radicle-source-to-build-ci/evidence/implementation-files.json",
+      "blake3": "880d123be5bb7e80ecd3d5e36c12148528f0c056710b8f1b1083e876a820a4ae"
+    },
+    {
+      "path": ".cairn/archive/1970-01-01-compose-radicle-source-to-build-ci/evidence/gates/summary.json",
+      "blake3": "4ce9ef9138d03bc6fb417bff6b9386f8b8ecd3e63c4ffad5a0bc1d33a505645e"
+    }
+  ],
+  "qualification_boundary": "Publication reuses the retained frozen-cohort gate and native observations; no new product-test run, changed-executable qualification, or deployment approval is inferred",
+  "governance": {
+    "before": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "after": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "governance_changed": false,
+    "signed_refs_before": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 9da46f6c7a5fa9075ff76c2ec5468e9c887379be parent",
+    "signed_refs_after": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 2fb0365c97edcf68ed16712dbac9b5d721b97b05 parent"
+  },
+  "targets": [
+    {
+      "remote": "rad",
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "ref": "refs/heads/main",
+      "source_revision": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+      "push_outcome": "pass"
+    },
+    {
+      "remote": "github",
+      "url": "git@github.com:OnixResearch/kiln.git",
+      "ref": "refs/heads/main",
+      "source_revision": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+      "push_outcome": "pass",
+      "authority": "declared projection only"
+    }
+  ],
+  "readbacks": "readbacks.json",
+  "replica_observation": "replica-observation.json",
+  "observed_configured_replica_observations": 1,
+  "commands": "commands.json",
+  "retained_preparatory_failures": [
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--payload"
+      ],
+      "exit_code": 1,
+      "diagnostic": "Current directory is not a Radicle repository",
+      "resolution": "Used explicit existing RID; no repository initialization or configuration change"
+    },
+    {
+      "argv": [
+        "rad",
+        "inspect",
+        "--sigrefs"
+      ],
+      "exit_code": 1,
+      "diagnostic": "Current directory is not a Radicle repository",
+      "resolution": "Used explicit existing RID"
+    },
+    {
+      "operation": "Build jj file-list template argument in the Python command runner",
+      "diagnostic": "ValueError: embedded null byte",
+      "spawned_process": false,
+      "resolution": "Used a raw string carrying the backslash-zero template escape"
+    }
+  ],
+  "evidence_record_boundary": "This receipt is an evidence-only descendant of the published source candidate. It does not predict its own commit identity; a later main tip containing only this receipt does not requalify executable behavior.",
+  "non_claims": [
+    "No activation, production rollout, binary release, or release approval",
+    "No governance, default-branch, visibility, or credential-policy change",
+    "No product-test pass inferred from publication or source equality",
+    "Native acquisition used the existing local Radicle store; remote replica and anonymous HTTPS observations are separate",
+    "No physical independence, seed trust, or indefinite availability claim",
+    "Historical qualifications, ignored optional cohorts, failures and non-claims remain unchanged"
+  ]
+}

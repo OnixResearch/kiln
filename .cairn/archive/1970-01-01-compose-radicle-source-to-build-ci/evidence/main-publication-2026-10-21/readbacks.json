@@ -1,0 +1,26 @@
+[
+  {
+    "route": "native",
+    "revision": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+    "tracked_members": 3501,
+    "archive_bytes": 53084160,
+    "archive_blake3": "180c1f5d5b09de91b9d303aabdf447e6e18905fceecf92de67cf4524cf566658",
+    "source_matches": true
+  },
+  {
+    "route": "github",
+    "revision": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+    "tracked_members": 3501,
+    "archive_bytes": 53084160,
+    "archive_blake3": "180c1f5d5b09de91b9d303aabdf447e6e18905fceecf92de67cf4524cf566658",
+    "source_matches": true
+  },
+  {
+    "route": "garden",
+    "revision": "2e9ef7150acf562e5a46066d1f8e056d74defd90",
+    "tracked_members": 3501,
+    "archive_bytes": 53084160,
+    "archive_blake3": "180c1f5d5b09de91b9d303aabdf447e6e18905fceecf92de67cf4524cf566658",
+    "source_matches": true
+  }
+]
