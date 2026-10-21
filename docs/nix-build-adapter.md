@@ -174,6 +174,11 @@ the fixture-only tests and verify the repo-pinned Nix executable inside the Nix
 sandbox. A real build is deliberately outside that sandbox because the sandbox
 cannot write a nested Nix store; `tests/nix-build-live.sh` is the host rail.
 
+`cargo test --all-features` also selects the live `nix-live` suite and the Pijul
+`native-fixtures` targets. Outside `tests/nix-build-live.sh` and the Pijul Nix
+check they lack the realized cohort/job source or `KILN_PIJUL_EXE` and fail by
+design; use the documented workspace gate or run the matching host rail.
+
 ### Cohort refresh
 
 When the root nixpkgs lock changes, run

@@ -137,6 +137,16 @@ publication remains unknown, not failed or permission to publish again. Persist
 the exact intent before calling `publish`, and never rebuild that intent from
 mutable source state during recovery.
 
+The coordinator exposes the same read-only path to operators:
+
+```console
+kiln-radicle-ci status-reconcile STATUS_PROFILE_JSON STORAGE_ROOT STATUS_PLAN_JSON
+```
+
+`STATUS_PLAN_JSON` is the persisted exact intent. The command reads only the
+explicitly fetched local storage root; it has no credential, signing or network
+surface and returns the same bounded reduction, including `Ok(None)`.
+
 ## Bounds and diagnostics
 
 The default payload limit is 65,536 bytes. The default object-scan limit is 256 objects.

@@ -117,8 +117,8 @@ fn real_discovery_task_builds_through_the_composition() {
     let home = temp.path().join("eval-home");
     std::fs::create_dir(&home).unwrap_or_else(|_| unreachable!());
     let profile = eval_profile(&home, &temp.path().join("eval-roots"));
-    let mut discovery =
-        NixEvalAdapter::new(profile, BoundedNixEvalRuntime).unwrap_or_else(|_| unreachable!());
+    let mut discovery = NixEvalAdapter::new(profile, BoundedNixEvalRuntime)
+        .unwrap_or_else(|error| panic!("pinned Nix evaluator cohort is unavailable: {error:?}"));
     let observation = discovery
         .discover(&discovery_plan())
         .unwrap_or_else(|_| unreachable!());
