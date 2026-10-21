@@ -1,0 +1,729 @@
+{
+  "consumer_tools": {
+    "lock": {
+      "nodes": {
+        "nixpkgs": {
+          "flake": false,
+          "locked": {
+            "lastModified": 0,
+            "narHash": "sha256-IItrdb7Puk05RqOBWZYFC5X6Wl1sJmCfh5MWVHw5iMM=",
+            "path": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source",
+            "type": "path"
+          },
+          "original": {
+            "path": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source",
+            "type": "path"
+          }
+        },
+        "root": {
+          "inputs": {
+            "nixpkgs": "nixpkgs"
+          }
+        }
+      },
+      "root": "root",
+      "version": 7
+    },
+    "nixpkgs_source": "/nix/store/1dffznc7fgw6xnzssy1h4waxz63i11qa-source"
+  },
+  "distinct_host": {
+    "ci_id": "z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js",
+    "observer_id": "z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk",
+    "publisher_id": "z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF",
+    "remote_address": "100.100.103.95",
+    "remote_commands": [
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncase /var/tmp/kiln-radicle-live-dist-status-20261021-b in /var/tmp/[!/]*) ;; *) echo bad-root >&2; exit 64;; esac\ntest \"$(dirname /var/tmp/kiln-radicle-live-dist-status-20261021-b)\" = /var/tmp\ntest ! -e /var/tmp/kiln-radicle-live-dist-status-20261021-b\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ntest ! -e /var/tmp/kiln-radicle-live-dist-status-20261021-b\nmkdir -m 700 /var/tmp/kiln-radicle-live-dist-status-20261021-b\ntest \"$(stat -c \"%u %a\" /var/tmp/kiln-radicle-live-dist-status-20261021-b)\" = \"$(id -u) 700\"\nmkdir -m 700 /var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nfor p in $(seq 52000 52100); do\n  if ! ss -H -ltn | grep -qF \":$p \"; then echo \"$p\"; exit 0; fi\ndone\nexit 1\n",
+        "stderr": "",
+        "stdout": "52000\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-distinct-tmp/nix-shell.iYvFVh/tmp5u_hj19l -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar (112640 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nrm -rf /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher\nmkdir -p /var/tmp/kiln-radicle-live-dist-status-20261021-b\ntar -C /var/tmp/kiln-radicle-live-dist-status-20261021-b -xf /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\nrm -f /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin nohup /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node --force > /var/tmp/kiln-radicle-live-dist-status-20261021-b/remote-publisher.log 2>&1 < /dev/null &\necho $!\n",
+        "stderr": "",
+        "stdout": "39605\n"
+      },
+      {
+        "exit_code": 1,
+        "script": "set -eu\ntest -S /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher/node/control.sock\nkill -0 39605\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ntest -S /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher/node/control.sock\nkill -0 39605\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad seed --scope all rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n",
+        "stderr": "",
+        "stdout": "\u2713 Inventory updated with rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n\u2713 Seeding policy updated for rad:zytcgVoHgABnUrHm8j5vKaGo2cBS with scope 'all'\n\u2717 Error: no candidate seeds were found to fetch from\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-distinct-tmp/nix-shell.iYvFVh/tmp3jblxl4r -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar (153600 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nrm -rf /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nmkdir -p /var/tmp/kiln-radicle-live-dist-status-20261021-b\ntar -C /var/tmp/kiln-radicle-live-dist-status-20261021-b -xf /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\nrm -f /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nss -H -ltn | grep -F ':52000 ' || true\n",
+        "stderr": "",
+        "stdout": "LISTEN 0      4096                       0.0.0.0:52000 0.0.0.0:*\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nfor p in $(seq 34979 35079); do\n  if ! ss -H -ltn | grep -qF \":$p \"; then echo \"$p\"; exit 0; fi\ndone\nexit 1\n",
+        "stderr": "",
+        "stdout": "34979\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-distinct-tmp/nix-shell.iYvFVh/tmpp537up3n -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar (102400 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nrm -rf /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer\nmkdir -p /var/tmp/kiln-radicle-live-dist-status-20261021-b\ntar -C /var/tmp/kiln-radicle-live-dist-status-20261021-b -xf /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\nrm -f /var/tmp/kiln-radicle-live-dist-status-20261021-b/transfer.tar\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin nohup /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node --force > /var/tmp/kiln-radicle-live-dist-status-20261021-b/remote-observer.log 2>&1 < /dev/null &\necho $!\n",
+        "stderr": "",
+        "stdout": "40381\n"
+      },
+      {
+        "exit_code": 1,
+        "script": "set -eu\ntest -S /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/node/control.sock\nkill -0 40381\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ntest -S /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/node/control.sock\nkill -0 40381\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad node connect z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js@100.110.43.11:60763\n",
+        "stderr": "",
+        "stdout": "\u2713 Connecting to z6MkgqV\u2026buPf1js@100.110.43.11:60763\u2026\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad seed --scope all --from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js --timeout 20s rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n",
+        "stderr": "",
+        "stdout": "\u2713 Inventory updated with rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n\u2713 Seeding policy updated for rad:zytcgVoHgABnUrHm8j5vKaGo2cBS with scope 'all'\nFetching rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from the network, found 2 potential seed(s).\n\u2713 Target met: 1 preferred seed(s).\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt (49 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source commit -m 'Dedicated trusted canary: success-kiln-radicle-live-dist-status-20261021-b'\n",
+        "stderr": "Working copy  (@) now at: tsvztmlu f86832a0 (empty) (no description set)\nParent commit (@-)      : kyxuympo 33343c7d Dedicated trusted canary: success-kiln-radicle-live-dist-status-20261021-b\n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source bookmark set ci-canary -r @-\n",
+        "stderr": "Moved 1 bookmarks to kyxuympo 33343c7d ci-canary* | Dedicated trusted canary: success-kiln-radicle-live-dist-status-20261021-b\n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source log --no-graph -r @- -T commit_id\n",
+        "stderr": "",
+        "stdout": "33343c7dc3c782b8685368f5236ef09200b8929a"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source git push --remote rad --bookmark ci-canary\n",
+        "stderr": "Changes to push to rad:\n  bookmark: ci-canary [move forward from acf0ab0459c5 to 33343c7dc3c7]\ngit: \u2713 Canonical reference refs/heads/ci-canary updated to target commit 33343c7dc3c782b8685368f5236ef09200b8929a        \ngit: \u2713 Synced with 0 seed(s)        \n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json (2656 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-radicle-live-dist-status-20261021-b/success-status-plan.json -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/success-status-plan.json (757 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/success-status-plan.json\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-radicle-ci status-reconcile /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/storage /var/tmp/kiln-radicle-live-dist-status-20261021-b/success-status-plan.json\n",
+        "stderr": "",
+        "stdout": "null\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad sync --fetch --seed z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js --timeout 20s rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n",
+        "stderr": "",
+        "stdout": "Fetching rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from the network, found 2 potential seed(s).\n\u2713 Target met: 1 preferred seed(s).\n\ud83c\udf31 Fetched from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-radicle-ci status-reconcile /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/storage /var/tmp/kiln-radicle-live-dist-status-20261021-b/success-status-plan.json\n",
+        "stderr": "",
+        "stdout": "{\"repository\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"repository\",\"native_id\":\"rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\"},\"revision\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"revision\",\"native_id\":\"33343c7dc3c782b8685368f5236ef09200b8929a\"},\"object_id\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"cob\",\"native_id\":\"70dec4bbb32e5c3968a009fed2b458071dcdc518\"},\"head\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"head\",\"native_id\":\"70dec4bbb32e5c3968a009fed2b458071dcdc518\"},\"run_id\":\"kiln-aspen-run-4216a2856e579d41331d49f28943d396b39dbe5c74a4196b715ef8fd1d3bd72d\",\"idempotency_key\":\"c4f73cc40bdc6955b2e09cf98afd083d983ab41a5ce6cf7e6b0d3e431366ee8f\",\"outcome\":\"success\",\"signer_identity\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"node\",\"native_id\":\"z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js\"}}\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nif kill -0 39605 2>/dev/null; then kill -TERM 39605; fi\nfor i in $(seq 1 100); do\n  if ! kill -0 39605 2>/dev/null; then exit 0; fi\n  sleep 0.1\ndone\nkill -KILL 39605 2>/dev/null || true\nfor i in $(seq 1 50); do\n  if ! kill -0 39605 2>/dev/null; then exit 0; fi\n  sleep 0.1\ndone\nexit 1\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 1,
+        "script": "set -eu\ntest -S /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher/node/control.sock\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin nohup /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node --force > /var/tmp/kiln-radicle-live-dist-status-20261021-b/remote-publisher.log 2>&1 < /dev/null &\necho $!\n",
+        "stderr": "",
+        "stdout": "43579\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ntest -S /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher/node/control.sock\nkill -0 43579\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad seed --scope all rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n",
+        "stderr": "",
+        "stdout": "\u2713 Inventory updated with rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n\u2713 Seeding policy exists for rad:zytcgVoHgABnUrHm8j5vKaGo2cBS with scope 'all'\nFetching rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from the network, found 1 potential seed(s).\n\u2713 Target met: 1 seed(s)\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt (5 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source commit -m 'Dedicated trusted canary: fail'\n",
+        "stderr": "Working copy  (@) now at: owtortlv 920b54cc (empty) (no description set)\nParent commit (@-)      : tsvztmlu ebd099d8 Dedicated trusted canary: fail\n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source bookmark set ci-canary -r @-\n",
+        "stderr": "Moved 1 bookmarks to tsvztmlu ebd099d8 ci-canary* | Dedicated trusted canary: fail\n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source log --no-graph -r @- -T commit_id\n",
+        "stderr": "",
+        "stdout": "ebd099d8499eb28f64f7613d486d35bd1f8c8059"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source git push --remote rad --bookmark ci-canary\n",
+        "stderr": "Changes to push to rad:\n  bookmark: ci-canary [move forward from 33343c7dc3c7 to ebd099d8499e]\ngit: \u2713 Canonical reference refs/heads/ci-canary updated to target commit ebd099d8499eb28f64f7613d486d35bd1f8c8059        \ngit: \u2713 Synced with 1 seed(s)        \n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json (2656 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-radicle-live-dist-status-20261021-b/failure-status-plan.json -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/failure-status-plan.json (757 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/failure-status-plan.json\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-radicle-ci status-reconcile /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/storage /var/tmp/kiln-radicle-live-dist-status-20261021-b/failure-status-plan.json\n",
+        "stderr": "",
+        "stdout": "null\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad sync --fetch --seed z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js --timeout 20s rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\n",
+        "stderr": "",
+        "stdout": "Fetching rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from the network, found 2 potential seed(s).\n\u2713 Target met: 1 preferred seed(s).\n\ud83c\udf31 Fetched from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-radicle-ci status-reconcile /var/tmp/kiln-radicle-live-dist-status-20261021-b/status-profile.json /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/storage /var/tmp/kiln-radicle-live-dist-status-20261021-b/failure-status-plan.json\n",
+        "stderr": "",
+        "stdout": "{\"repository\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"repository\",\"native_id\":\"rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\"},\"revision\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"revision\",\"native_id\":\"ebd099d8499eb28f64f7613d486d35bd1f8c8059\"},\"object_id\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"cob\",\"native_id\":\"f521ead2f4f0adb0df5fdd1ad8bb38c2b3518350\"},\"head\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"head\",\"native_id\":\"f521ead2f4f0adb0df5fdd1ad8bb38c2b3518350\"},\"run_id\":\"kiln-aspen-run-e7b1fe6eb6d23a7b239d34343bfad6ed84f63a6829cb72ff5b5a3f26acc29a71\",\"idempotency_key\":\"e03bafd8d62addec607ac44ee3fe495e2d0743376c6503022285b53516718181\",\"outcome\":\"failure\",\"signer_identity\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"node\",\"native_id\":\"z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js\"}}\n"
+      },
+      {
+        "exit_code": 0,
+        "script": "upload /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt -> /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt (53 bytes)",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\nchmod 600 /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source/value.txt\n",
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source commit -m 'Dedicated trusted canary: unavailable-kiln-radicle-live-dist-status-20261021-b'\n",
+        "stderr": "Working copy  (@) now at: nwwrwrup c3d3a7e8 (empty) (no description set)\nParent commit (@-)      : owtortlv a3f8f536 Dedicated trusted canary: unavailable-kiln-radicle-live-dist-status-20261021-b\n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source bookmark set ci-canary -r @-\n",
+        "stderr": "Moved 1 bookmarks to owtortlv a3f8f536 ci-canary* | Dedicated trusted canary: unavailable-kiln-radicle-live-dist-status-20261021-b\n",
+        "stdout": ""
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source log --no-graph -r @- -T commit_id\n",
+        "stderr": "",
+        "stdout": "a3f8f5367e568531276d9680abbafe0fe4684780"
+      },
+      {
+        "exit_code": 0,
+        "script": "set -eu\ncd /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source\nenv -i HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher RAD_HOME=/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher TMPDIR=/var/tmp/kiln-radicle-live-dist-status-20261021-b/tmp PATH=/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/run/current-system/sw/bin /nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj --config 'user.name=\"Kiln Canary\"' --config 'user.email=\"canary@kiln.invalid\"' --config 'signing.behavior=\"drop\"' --config git.subprocess=true --config 'git.executable=\"/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git\"' -R /var/tmp/kiln-radicle-live-dist-status-20261021-b/project-source git push --remote rad --bookmark ci-canary\n",
+        "stderr": "Changes to push to rad:\n  bookmark: ci-canary [move forward from ebd099d8499e to a3f8f5367e56]\ngit: \u2713 Canonical reference refs/heads/ci-canary updated to target commit a3f8f5367e568531276d9680abbafe0fe4684780        \ngit: \u2713 Synced with 1 seed(s)        \n",
+        "stdout": ""
+      }
+    ],
+    "remote_host": "aspen1",
+    "remote_port": 52000,
+    "schema": "kiln.radicle-ci.distinct-host.v1",
+    "shared_path_on_distinct_filesystems": "/var/tmp/kiln-radicle-live-dist-status-20261021-b",
+    "status_boundary": "same-host independent observer; not distinct-host status dissemination",
+    "transport": "direct Radicle TCP over the private tailnet; SSH orchestration only",
+    "transport_evidence": {
+      "local_ci_address": "127.0.0.1:60763",
+      "local_peer_after_delivery": 0,
+      "remote_address": "100.100.103.95",
+      "remote_listen": "LISTEN 0      4096                       0.0.0.0:52000 0.0.0.0:*",
+      "remote_port": 52000,
+      "source_placement": "publisher node and source worktree remote; CI/broker/controller/worker/observer local"
+    }
+  },
+  "distinct_status": {
+    "authority": "status object creation, signing and checkpoint synchronization local",
+    "local_ci_address": "100.110.43.11:60763",
+    "observer_home": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer",
+    "observer_host": "aspen1",
+    "observer_id": "z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk",
+    "observer_storage": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/storage",
+    "readback": "pinned status-reconcile on remote observer storage",
+    "schema": "kiln.radicle-ci.distinct-status.v1",
+    "transport": "remote observer outbound direct tailnet TCP to the local CI node",
+    "transport_evidence": {
+      "ci_external": "100.110.43.11:60763",
+      "ci_listen": "0.0.0.0:60763",
+      "observer_home": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer",
+      "observer_listen": "127.0.0.1:34979",
+      "status_authority": "local CI node"
+    }
+  },
+  "executables": {
+    "b3sum": {
+      "blake3": "1eafacaba70c3a8966e97eee72bd19e72034df574877634447f9e1b2237b13d4",
+      "path": "/nix/store/rg6xkvmlsn9gk1h0l5b0ywkbhp6rgrvj-b3sum-1.8.7/bin/b3sum"
+    },
+    "broker": {
+      "blake3": "1f363ac9e7b00b078a6a6efcdcdb50777b3223090e7272c3d7db264e509d365d",
+      "path": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cib"
+    },
+    "broker_tool": {
+      "blake3": "230a8bc8717d38f8cdffa7de5b3ceb6fd1a0c8a0d2a48bce9f96e72efd4b7348",
+      "path": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cibtool"
+    },
+    "bubblewrap": {
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb",
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap"
+    },
+    "coordinator": {
+      "blake3": "a9edf4130c6040e07bcc51d22178a4029c6e3131f52a9b3024c012476ccdfdfb",
+      "path": "/nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-radicle-ci"
+    },
+    "extension": {
+      "blake3": "48301e25a4687e4887fde33f38c49ac694e7c4c733f3dd497a79240bdc5805db",
+      "path": "/nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-aspen-extension"
+    },
+    "git": {
+      "blake3": "ff58f6b017671e877583b6ed504ff246ecae66cc17bf94c2329073db3d2fa2a6",
+      "path": "/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git"
+    },
+    "host": {
+      "blake3": "33b2e2d94fea23469d7fb1ee1b4723033382a7f5336c635c7b5a59451caf0f5d",
+      "path": "/nix/store/nwd0m4dmlb24kh2hr8m5p9s9vms6l47h-kiln-aspen-host-0.1.0/bin/kiln-aspen-host"
+    },
+    "jj": {
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2",
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj"
+    },
+    "lattice": {
+      "blake3": "4c3773e852f6b66cb33677e74899d37a2bed0dcf4742698c40d12d0813783aba",
+      "path": "/nix/store/mwqnyq525wpxn0jw6w7c06fq41l98z9m-lattice-0.1.0/bin/lattice"
+    },
+    "legacy_coordinator": {
+      "blake3": "20172e88f7cd037fc917231967b5fa059d6d38dc0318b8845d6c2fb97f61bf40",
+      "path": "/nix/store/gda8gk57044cjj1b862bj4dvw7gs7cs0-kiln-0.1.0/bin/kiln-onixos-pilot"
+    },
+    "nickel": {
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f",
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel"
+    },
+    "nix": {
+      "blake3": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+      "path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix"
+    },
+    "nix_store": {
+      "blake3": "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852",
+      "path": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store"
+    },
+    "openssl": {
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81",
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl"
+    },
+    "python": {
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39",
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14"
+    },
+    "radicle": {
+      "blake3": "4ba3aca4155c9ee0a05d17e94748b355f5903ebd1b7565a51591cc4e02f40f38",
+      "path": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad"
+    },
+    "radicle_node": {
+      "blake3": "e9dda54b463e77766d18bd7810b79f8be203e6cd1d42e9c532ac646103b2ffd1",
+      "path": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node"
+    },
+    "secretspec": {
+      "blake3": "c15ea6408e2ff98fd976507a2ae5bec3cb99ef5580ce7342ba92eb465d9b28a6",
+      "path": "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec"
+    },
+    "shell": {
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad",
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash"
+    },
+    "sleep": {
+      "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471",
+      "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/sleep"
+    },
+    "worker": {
+      "blake3": "6bd64e910c524dd65146895bb993f3f105e307d86f121868a24e658a2932f5b7",
+      "path": "/nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-onixos-worker"
+    }
+  },
+  "non_claims": [
+    "same-host native loopback TCP is not WAN or distinct-host qualification",
+    "trusted canary source and shared-user workers do not establish hostile-worker confinement",
+    "a real Nix build is not activation, deployment, release authority or arbitrary reproducibility",
+    "upstream event deduplication is distinct from canonical controller reconciliation",
+    "private dedicated test identities grant no production repository or governance authority"
+  ],
+  "operation_identity": "23e6827e429da059d4c27a8e4fff3059c8ae5b5b6e648dac3d37ea2f9fb26e91",
+  "passwd_home_isolation": {
+    "checkout_read_only": true,
+    "host_path": "/home/brittonr",
+    "owned_backing": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/passwd-home"
+  },
+  "project_profile_identity": "7522f247c08574d9abea5f63854c44d3cf575d14d1d4a32f0ab7881c8135e4f8",
+  "runtime_profile": {
+    "authority_ref": "kiln-aspen-authority-v1",
+    "bounds": {
+      "callback_timeout_millis": 240000,
+      "max_callback_input_bytes": 1048576,
+      "max_callback_output_bytes": 1048576,
+      "max_content_bytes": 16777216,
+      "max_effects": 64,
+      "max_log_bytes": 262144,
+      "max_materialized_value_bytes": 262144,
+      "max_materialized_values": 64,
+      "max_records": 4096
+    },
+    "claim_level": "local-live-materialized-values-pilot",
+    "cohort": {
+      "bounded_exec_revision": "29dac88ecded94457572db3fdfaaaab95fa91525",
+      "bounded_exec_source": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+      "revision": "22f8ded26ca1907c29948e08b53f35df23080733",
+      "source": "ssh://git@github.com/brittonr/aspen.git"
+    },
+    "endpoint_ref": "kiln-aspen-local-endpoint-v1",
+    "fallback": "none",
+    "native_host": {
+      "alpn": "molten/system-extension/native/v2",
+      "callback_envelope_schema": "molten.system-extension.native-callback-envelope.v2",
+      "callback_outcome_schema": "molten.system-extension.native-callback-outcome.v2",
+      "execution_profile": "native-host-local-pilot-v2",
+      "extension_id": "kiln-aspen-extension-v2",
+      "extension_protocol_schema": "kiln.aspen-extension.protocol.v2",
+      "framing": "preserves-packed-materialized-values-v2",
+      "generation": 1,
+      "ingress_schema": "molten.system-extension.native-ingress.v2",
+      "instance_schema": "molten.system-extension.native-instance-state.v2",
+      "profile_schema": "molten.system-extension.native-host-profile.v2",
+      "service_id": "kiln-ci-control-plane-v2"
+    },
+    "non_claim_count": 12,
+    "non_claims": [
+      "aspen acceptance does not prove CI correctness",
+      "aspen execution does not prove provider correctness",
+      "bounded execution does not prove sandboxing or hermeticity",
+      "transport acknowledgement does not prove exact-once delivery",
+      "content identity does not prove source trust",
+      "durable acceptance does not prove global durability",
+      "local conformance does not prove production availability",
+      "runtime evidence does not prove release eligibility",
+      "equal digest text does not merge identity roles",
+      "provider observations require Kiln admission",
+      "value identity does not prove application meaning",
+      "in-memory conformance does not prove value durability"
+    ],
+    "policy_ref": "kiln-aspen-policy-v1",
+    "port_count": 7,
+    "ports": [
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.durability.atomic-batch.v1",
+        "output_schema": "molten.fabric.durability.atomic-receipt.v1",
+        "port_id": "molten.fabric.durability.ordered-state",
+        "purpose": "durability",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.content-store-adapter.command.v1",
+        "output_schema": "molten.content-store-adapter.event.v1",
+        "port_id": "molten.fabric.content-store",
+        "purpose": "content",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.execution-request.v1",
+        "output_schema": "molten.fabric.execution-receipt.v1",
+        "port_id": "molten.fabric.execution.bounded-process",
+        "purpose": "execution",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "kiln.aspen-extension.effect.v2",
+        "output_schema": "kiln.aspen-provider-completion.v1",
+        "port_id": "molten.fabric.transport.session",
+        "purpose": "transport",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.time.request.v1",
+        "output_schema": "molten.fabric.time.observation.v1",
+        "port_id": "molten.fabric.time",
+        "purpose": "time",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.scheduler.request.v1",
+        "output_schema": "molten.fabric.scheduler.observation.v1",
+        "port_id": "molten.fabric.scheduler",
+        "purpose": "scheduling",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      },
+      {
+        "authority_ref": "kiln-aspen-authority-v1",
+        "input_schema": "molten.fabric.observation.event.v1",
+        "output_schema": "molten.fabric.observation.receipt.v1",
+        "port_id": "molten.fabric.observation",
+        "purpose": "evidence",
+        "resource_ref": "kiln-aspen-resources-v1",
+        "version": "v1"
+      }
+    ],
+    "profile_id": "aspen-runtime-v2",
+    "resource_ref": "kiln-aspen-resources-v1",
+    "schema": "kiln.aspen-runtime.profile.v2",
+    "transport_profile_ref": "kiln-aspen-local-transport-v1",
+    "workflow_provider_profile": "lattice-v1"
+  },
+  "schema": "kiln.radicle-ci.live-cohort.v1",
+  "settings": {
+    "build_delay_seconds": 8,
+    "callback_timeout_milliseconds": 240000,
+    "command_seconds": 360,
+    "host_maximum_requests": 256,
+    "listen_host": "127.0.0.1",
+    "local_address": "100.110.43.11",
+    "maximum_document_bytes": 4194304,
+    "maximum_polls": 120,
+    "maximum_service_log_bytes": 33554432,
+    "network": "test",
+    "poll_interval_milliseconds": 1000,
+    "recovery_seconds": 360,
+    "remote": {
+      "address": "100.100.103.95",
+      "host": "aspen1",
+      "port": 52000,
+      "readiness_seconds": 60,
+      "root": "/var/tmp/kiln-radicle-live-dist-status-20261021-b"
+    },
+    "root": "/var/tmp/kiln-radicle-live-dist-status-20261021-b",
+    "source_branch": "ci-canary",
+    "status_checkpoint_branch": "kiln-status-checkpoint",
+    "tools": {
+      "broker": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cib",
+      "broker_tool": "/nix/store/vs43s62r8vsvfxfx2c5xm01338x9y4n6-radicle-ci-broker-0.31.0/bin/cibtool",
+      "git": "/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin/git",
+      "jj": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "radicle": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/rad",
+      "radicle_node": "/nix/store/pjwcxc0r6xaqjps6yy80nf4jv7af3mza-radicle-node-1.10.2/bin/radicle-node",
+      "secretspec": "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec"
+    }
+  },
+  "source_selection": {
+    "limits": {
+      "max_entries": 512,
+      "max_file_bytes": 4194304,
+      "max_identity_bytes": 4096,
+      "max_path_bytes": 1024,
+      "max_reference_bytes": 512,
+      "max_total_bytes": 16777216
+    },
+    "profile_id": "radicle-source-v1",
+    "repository_id": "rad:zytcgVoHgABnUrHm8j5vKaGo2cBS",
+    "repository_path": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-ci/storage/zytcgVoHgABnUrHm8j5vKaGo2cBS",
+    "signed_reference": "refs/heads/ci-canary",
+    "signer_node_id": "z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF"
+  },
+  "topology": {
+    "ci": {
+      "home": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-ci",
+      "id": "z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js",
+      "port": 60763
+    },
+    "observer": {
+      "home": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer",
+      "host": "aspen1",
+      "id": "z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk",
+      "placement": "remote",
+      "port": 34979,
+      "storage": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/storage"
+    },
+    "publisher": {
+      "address": "100.100.103.95",
+      "home": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-publisher",
+      "host": "aspen1",
+      "id": "z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF",
+      "placement": "remote",
+      "port": 52000
+    }
+  }
+}

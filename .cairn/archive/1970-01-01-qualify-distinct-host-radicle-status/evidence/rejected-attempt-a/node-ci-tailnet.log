@@ -1,0 +1,16 @@
+2026-10-21T09:14:15.565-04:00 INFO  node     Starting node..
+2026-10-21T09:14:15.565-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T09:14:15.565-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T09:14:15.567-04:00 INFO  node     Node ID is z6MkvGGc8KqytXKYdDfAhHc1JHLiAojEcDahLjuVB1uQKKxz
+2026-10-21T09:14:15.567-04:00 INFO  node     Opening policy database..
+2026-10-21T09:14:15.568-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T09:14:15.568-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T09:14:15.977-04:00 INFO  node     Opening node database..
+2026-10-21T09:14:15.993-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T09:14:15.996-04:00 INFO  node     Listening on 0.0.0.0:57347..
+2026-10-21T09:14:15.999-04:00 INFO  node     Binding control socket /var/tmp/kiln-radicle-live-dist-status-20261021-a/rad-ci/node/control.sock..
+2026-10-21T09:14:16.000-04:00 INFO  node     Running node z6MkvGGc8KqytXKYdDfAhHc1JHLiAojEcDahLjuVB1uQKKxz in /var/tmp/kiln-radicle-live-dist-status-20261021-a/rad-ci..
+2026-10-21T09:14:16.003-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:14:16.092-04:00 INFO  node     Termination signal received; shutting down..
+2026-10-21T09:14:16.092-04:00 INFO  reactor::controller Initiating reactor shutdown…
+2026-10-21T09:14:16.092-04:00 INFO  reactor  Shutdown

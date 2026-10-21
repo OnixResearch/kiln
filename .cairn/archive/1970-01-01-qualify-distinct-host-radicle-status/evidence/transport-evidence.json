@@ -1,0 +1,45 @@
+{
+  "boundary": "private tailnet between two owned hosts",
+  "ci_external": "100.110.43.11:60763",
+  "ci_inbound": [
+    "2026-10-21T09:15:48.516-04:00 INFO  service  Connected to z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk (100.100.103.95:55204) (Inbound)"
+  ],
+  "ci_listen": "0.0.0.0:60763",
+  "lan_probe": "inbound LAN TCP timed out in both directions before the run",
+  "observer_fetch_success": [
+    "2026-10-21T09:15:48.729-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully",
+    "2026-10-21T09:16:15.399-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully",
+    "2026-10-21T09:16:43.823-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully",
+    "2026-10-21T09:16:44.013-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully",
+    "2026-10-21T09:17:04.203-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully",
+    "2026-10-21T09:17:32.246-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully",
+    "2026-10-21T09:17:32.429-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully",
+    "2026-10-21T09:17:38.298-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully"
+  ],
+  "observer_outbound": [
+    "2026-10-21T09:15:48.515-04:00 INFO  service  Connected to z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js (100.110.43.11:60763) (Outbound)"
+  ],
+  "remote_readback_commands": [
+    {
+      "exit_code": 0,
+      "stdout": "null\n"
+    },
+    {
+      "exit_code": 0,
+      "stdout": "{\"repository\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"repository\",\"native_id\":\"rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\"},\"revision\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"revision\",\"native_id\":\"33343c7dc3c782b8685368f5236ef09200b8929a\"},\"object_id\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"cob\",\"native_id\":\"70dec4bbb32e5c3968a009fed2b458071dcdc518\"},\"head\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"head\",\"native_id\":\"70dec4bbb32e5c3968a009fed2b458071dcdc518\"},\"run_id\":\"kiln-aspen-run-4216a2856e579d41331d49f28943d396b39dbe5c74a4196b715ef8fd1d3bd72d\",\"idempotency_key\":\"c4f73cc40bdc6955b2e09cf98afd083d983ab41a5ce6cf7e6b0d3e431366ee8f\",\"outcome\":\"success\",\"signer_identity\":{\"contract_version\":1"
+    },
+    {
+      "exit_code": 0,
+      "stdout": "null\n"
+    },
+    {
+      "exit_code": 0,
+      "stdout": "{\"repository\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"repository\",\"native_id\":\"rad:zytcgVoHgABnUrHm8j5vKaGo2cBS\"},\"revision\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"revision\",\"native_id\":\"ebd099d8499eb28f64f7613d486d35bd1f8c8059\"},\"object_id\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"cob\",\"native_id\":\"f521ead2f4f0adb0df5fdd1ad8bb38c2b3518350\"},\"head\":{\"contract_version\":1,\"provider_namespace\":\"radicle\",\"native_kind\":\"head\",\"native_id\":\"f521ead2f4f0adb0df5fdd1ad8bb38c2b3518350\"},\"run_id\":\"kiln-aspen-run-e7b1fe6eb6d23a7b239d34343bfad6ed84f63a6829cb72ff5b5a3f26acc29a71\",\"idempotency_key\":\"e03bafd8d62addec607ac44ee3fe495e2d0743376c6503022285b53516718181\",\"outcome\":\"failure\",\"signer_identity\":{\"contract_version\":1"
+    }
+  ],
+  "schema": "kiln.radicle-ci.distinct-status-transport-evidence.v1",
+  "ssh_role": "orchestration only: file transfer, process control and read-only reconcile invocation; no forwarded Radicle port",
+  "status_authority": "status object creation, signing and checkpoint synchronization local",
+  "status_boundary": "observer node and storage remote; dissemination and readback distinct-host; creation/signing local",
+  "tailnet_probe": "direct TCP accepted in both directions before the run"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "kiln.radicle-ci.distinct-status-rejected-attempt.v1",
+  "attempt": "kiln-radicle-live-dist-status-20261021-a",
+  "result": "rejected",
+  "failure": "RuntimeError from `rad node connect` after the tailnet CI restart: failed to open the node control socket (connection refused)",
+  "cause": "The control socket file became visible before the restarted node accepted commands. The failure path then stopped the new node. The second CI restart in the status runner had no explicit acceptance probe after the socket appeared.",
+  "observation": {
+    "ci_listen": "0.0.0.0:57347",
+    "control_socket": "present but not accepting at the connect attempt",
+    "remote_root": "retired",
+    "broker_ingress": "not reached"
+  },
+  "fix": "Wait for the previous control socket to disappear, remove a stale socket, start the tailnet CI node, and require a successful `rad node status` control-socket command before connecting peers or seeding.",
+  "evidence": [
+    "node-ci-tailnet.log",
+    "node-ci-restarted.log",
+    "last-command.json"
+  ]
+}

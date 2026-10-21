@@ -38,7 +38,14 @@ let Readiness =
   )
 in
 fun inputs =>
-  let base = Base (std.record.remove "remote" inputs) in
+  let base_inputs = {
+    root = inputs.root,
+    source_branch = inputs.source_branch,
+    status_checkpoint_branch = inputs.status_checkpoint_branch,
+    tools = inputs.tools,
+  }
+  in
+  let base = Base base_inputs in
   let selected
     | {
       remote

@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "--die-with-parent",
+    "--unshare-user",
+    "--unshare-pid",
+    "--bind",
+    "/",
+    "/",
+    "--proc",
+    "/proc",
+    "--dev",
+    "/dev",
+    "--bind",
+    "/var/tmp/kiln-radicle-live-dist-status-20261021-b/passwd-home",
+    "/home/brittonr",
+    "--ro-bind",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "/home/brittonr/git/OnixResearch/kiln",
+    "--chdir",
+    "/var/tmp/kiln-radicle-live-dist-status-20261021-b",
+    "--",
+    "/nix/store/z66g0kfhxfglwbjd8m74f7wjssjd6ll4-kiln-0.1.0/bin/kiln-radicle-ci",
+    "replay",
+    "/var/tmp/kiln-radicle-live-dist-status-20261021-b/controller.json",
+    "/var/tmp/kiln-radicle-live-dist-status-20261021-b/success-source.json"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "stdout": "{\"revision\":2,\"runs\":{\"kiln-aspen-run-4216a2856e579d41331d49f28943d396b39dbe5c74a4196b715ef8fd1d3bd72d\":{\"active_attempt\":\"radicle-ci-attempt-c4f73cc40bdc6955b2e09cf98afd083d983ab41a5ce6cf7e6b0d3e431366ee8f\",\"outcome\":\"Success\"}},\"attempts\":{\"radicle-ci-attempt-c4f73cc40bdc6955b2e09cf98afd083d983ab41a5ce6cf7e6b0d3e431366ee8f\":{\"run_id\":\"kiln-aspen-run-4216a2856e579d41331d49f28943d396b39dbe5c74a4196b715ef8fd1d3bd72d\",\"provider_profile\":\"nix-build-v1\",\"outcome\":\"Success\",\"external_reference\":{\"contract_version\":1,\"provider_namespace\":\"molten\",\"native_kind\":\"service-receipt-blake3\",\"native_id\":\"a90b0bee32cffab1f995c70e275692a6f9001b215e8081322205e037db1dc9ab\"},\"products\":[{\"identity\":\"4a6be0d64968fad28fe69d8ddbd22c7d32f7198a02a11c40f583fc6e1a28df1b\",\"producing_attempt\":\"radicle-ci-attempt-c4f73cc40bdc6955b2e09cf98afd083d983ab41a5ce6cf7e6b0d3e431366ee8f\",\"provider_reference\":null}],\"metrics\":[]}},\"holds\":[],\"seen_commands\":[\"radicle-ci-complete-97ec34ec42901265e1afb42eb9a5447a66a35b191b06184c44231178d04f30c0\",\"radicle-ci-start-5cedd55436467efe54213c22bd829b094c229afca23d53f962e9a1cd75dcde1b\"]}\n"
+}

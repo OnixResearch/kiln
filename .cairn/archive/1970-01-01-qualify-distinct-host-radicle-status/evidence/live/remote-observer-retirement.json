@@ -1,0 +1,8 @@
+{
+  "errors": [],
+  "host": "aspen1",
+  "observer_home": "/var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer",
+  "observer_stopped": true,
+  "root": "/var/tmp/kiln-radicle-live-dist-status-20261021-b",
+  "schema": "kiln.radicle-ci.distinct-status-retirement.v1"
+}

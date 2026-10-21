@@ -152,6 +152,14 @@ uncertainty all passed. Status dissemination remained same-host; the run is not
 WAN, hostile-network or production qualification. See the
 [distinct-host procedure](docs/operator.md#distinct-host-publisher-canary).
 
+The [distinct-host status canary](.cairn/archive/1970-01-01-qualify-distinct-host-radicle-status/evidence/verification.json)
+moves the observer node and status storage to the second host while status
+creation and signing stay local. The remote observer fetched and reduced the
+exact success/failure statuses with the pinned read path, and the unavailable
+case retained no status. This is private-tailnet dissemination and readback,
+not WAN, hostile-node isolation or production qualification. See the
+[status observer procedure](docs/operator.md#distinct-host-status-observer).
+
 ## Licensing
 
 Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.

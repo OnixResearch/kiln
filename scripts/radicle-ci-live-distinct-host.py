@@ -157,27 +157,30 @@ class RemoteHost:
         finally:
             archive.unlink(missing_ok=True)
 
-    def spawn_node(self):
+    def spawn_at(self, home, log):
         script = [
-            f"cd {quote(self.home)}",
-            f"env -i HOME={quote(self.home)} RAD_HOME={quote(self.home)} TMPDIR={quote(self.tmp)} "
+            f"cd {quote(home)}",
+            f"env -i HOME={quote(home)} RAD_HOME={quote(home)} TMPDIR={quote(self.tmp)} "
             f"PATH={quote(self.path_env)} nohup {quote(self.node_path)} --force "
-            f"> {quote(self.log)} 2>&1 < /dev/null &",
+            f"> {quote(log)} 2>&1 < /dev/null &",
             "echo $!",
         ]
         record = self.run_script(script, timeout=30)
-        self.pid = int(record["stdout"].strip().splitlines()[-1])
+        return int(record["stdout"].strip().splitlines()[-1])
+
+    def spawn_node(self):
+        self.pid = self.spawn_at(self.home, self.log)
         return self.pid
 
     def node_alive(self, pid):
         record = self.run_script([f"kill -0 {int(pid)} 2>/dev/null"], check=False)
         return record["exit_code"] == 0
 
-    def wait_node(self, pid):
+    def wait_at(self, home, pid):
         deadline = time.monotonic() + self.readiness
         while time.monotonic() < deadline:
             ready = self.run_script([
-                f"test -S {quote(self.home / 'node/control.sock')}",
+                f"test -S {quote(Path(home) / 'node/control.sock')}",
                 f"kill -0 {int(pid)}",
             ], check=False)
             if ready["exit_code"] == 0:
@@ -185,6 +188,9 @@ class RemoteHost:
             time.sleep(0.5)
         log = self.read_file(self.log, limit=20000)
         raise RemoteError(f"remote publisher did not become ready: {log[-2000:]}")
+
+    def wait_node(self, pid):
+        self.wait_at(self.home, pid)
 
     def stop_node(self, pid):
         if pid is None:
@@ -222,11 +228,27 @@ class RemoteHost:
             f"PATH={quote(self.path_env)} {quote(self.jj_path)} " + " ".join(quote(arg) for arg in args),
         ])
 
-    def rad(self, *arguments):
+    def rad_at(self, home, *arguments):
         return self.run_script([
-            f"env -i HOME={quote(self.home)} RAD_HOME={quote(self.home)} TMPDIR={quote(self.tmp)} "
+            f"env -i HOME={quote(home)} RAD_HOME={quote(home)} TMPDIR={quote(self.tmp)} "
             f"PATH={quote(self.path_env)} {quote(self.rad_path)} " + " ".join(quote(arg) for arg in arguments),
         ])
+
+    def rad(self, *arguments):
+        return self.rad_at(self.home, *arguments)
+
+    def reconcile(self, profile, storage, plan):
+        record = self.run_script([
+            f"env -i HOME={quote(self.root)} PATH={quote(self.path_env)} "
+            f"{quote(self.exercise.exe['coordinator'])} status-reconcile "
+            f"{quote(profile)} {quote(storage)} {quote(plan)}",
+        ], check=False)
+        if record["exit_code"] != 0:
+            raise RemoteError(
+                f"remote status reconcile failed ({record['exit_code']}): {record['stderr'].strip()[-1000:]}"
+            )
+        text = record["stdout"].strip()
+        return json.loads(text) if text else None
 
     def listen_evidence(self, port):
         return self.run_script([f"ss -H -ltn | grep -F {quote(':' + str(port) + ' ')} || true"], check=False)["stdout"].strip()

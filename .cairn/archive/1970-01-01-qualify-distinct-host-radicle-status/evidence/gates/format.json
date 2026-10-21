@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:.",
+    "--no-write-lock-file",
+    "-c",
+    "cargo",
+    "fmt",
+    "--",
+    "--check"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "format",
+  "started_at": "2026-10-21T13:21:04.499410Z",
+  "stderr": "",
+  "stdout": ""
+}

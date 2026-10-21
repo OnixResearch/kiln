@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "nix",
+    "develop",
+    "path:.",
+    "--no-write-lock-file",
+    "-c",
+    "nickel",
+    "format",
+    "--check",
+    "config/radicle-ci-live-distinct-status.ncl",
+    "config/radicle-ci-live-distinct-host.ncl",
+    "config/fixtures/radicle-ci-live-distinct-status-inputs.ncl",
+    "config/fixtures/radicle-ci-live-distinct-status-positive.ncl",
+    "config/fixtures/negative-radicle-ci-live-distinct-status-local-address.ncl",
+    "config/fixtures/negative-radicle-ci-live-distinct-status-missing.ncl"
+  ],
+  "cwd": "/home/brittonr/git/OnixResearch/kiln",
+  "exit_code": 0,
+  "name": "nickel-format",
+  "started_at": "2026-10-21T13:20:59.694438Z",
+  "stderr": "",
+  "stdout": ""
+}

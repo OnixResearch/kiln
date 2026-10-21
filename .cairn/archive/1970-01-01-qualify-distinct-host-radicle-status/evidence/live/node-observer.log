@@ -1,0 +1,35 @@
+2026-10-21T09:15:33.749-04:00 INFO  node     Starting node..
+2026-10-21T09:15:33.749-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T09:15:33.749-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T09:15:33.749-04:00 INFO  node     Initializing fingerprint..
+2026-10-21T09:15:33.749-04:00 INFO  node     Node ID is z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk
+2026-10-21T09:15:33.749-04:00 INFO  node     Opening policy database..
+2026-10-21T09:15:33.750-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T09:15:33.750-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T09:15:33.802-04:00 INFO  node     Opening node database..
+2026-10-21T09:15:33.808-04:00 INFO  node     Address book is empty. Adding bootstrap nodes..
+2026-10-21T09:15:33.808-04:00 INFO  node     0 nodes added to address book
+2026-10-21T09:15:33.808-04:00 INFO  service  Empty refs database, populating from storage..
+2026-10-21T09:15:33.808-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T09:15:33.808-04:00 INFO  node     Listening on 127.0.0.1:34979..
+2026-10-21T09:15:33.809-04:00 INFO  node     Binding control socket /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer/node/control.sock..
+2026-10-21T09:15:33.809-04:00 INFO  node     Running node z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk in /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-observer..
+2026-10-21T09:15:33.809-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:34.909-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:34.909-04:00 INFO  service  Received command Connect(z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js, 127.0.0.1:60763, ConnectOptions { persistent: true, timeout: 18446744073709551615.999999999s })
+2026-10-21T09:15:34.909-04:00 INFO  service  Connected to z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js (127.0.0.1:60763) (Outbound)
+2026-10-21T09:15:35.035-04:00 INFO  service  Received command Seed(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, all)
+2026-10-21T09:15:35.044-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:15:35.044-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:35.044-04:00 INFO  service  Received command Fetch(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js)
+2026-10-21T09:15:35.057-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js successfully
+2026-10-21T09:15:36.347-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:36.473-04:00 INFO  service  Received command Seed(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, all)
+2026-10-21T09:15:36.473-04:00 INFO  service  Disconnected from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js (connection reset)
+2026-10-21T09:15:36.473-04:00 INFO  service  Received command AddInventory(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:15:36.474-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:15:36.475-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:40.475-04:00 INFO  service  Disconnected from z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js (connection reset)
+2026-10-21T09:15:47.533-04:00 INFO  node     Termination signal received; shutting down..
+2026-10-21T09:15:47.533-04:00 INFO  reactor::controller Initiating reactor shutdown…
+2026-10-21T09:15:47.533-04:00 INFO  reactor  Shutdown

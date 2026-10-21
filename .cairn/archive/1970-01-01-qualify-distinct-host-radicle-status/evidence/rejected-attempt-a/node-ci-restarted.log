@@ -1,0 +1,26 @@
+2026-10-21T09:14:14.715-04:00 INFO  node     Starting node..
+2026-10-21T09:14:14.715-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T09:14:14.715-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T09:14:14.715-04:00 INFO  node     Node ID is z6MkvGGc8KqytXKYdDfAhHc1JHLiAojEcDahLjuVB1uQKKxz
+2026-10-21T09:14:14.715-04:00 INFO  node     Opening policy database..
+2026-10-21T09:14:14.716-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T09:14:14.716-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T09:14:14.793-04:00 INFO  node     Opening node database..
+2026-10-21T09:14:14.794-04:00 INFO  node     Address book is empty. Adding bootstrap nodes..
+2026-10-21T09:14:14.794-04:00 INFO  node     0 nodes added to address book
+2026-10-21T09:14:14.795-04:00 INFO  radicle_protocol::service Migrating `rad/sigrefs` of rad:z2qcXPEVRXBsnYqxvwpSP4KBZbQ6a to force feature level parent.
+2026-10-21T09:14:14.798-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T09:14:14.798-04:00 INFO  node     Listening on 127.0.0.1:57347..
+2026-10-21T09:14:14.799-04:00 INFO  node     Binding control socket /var/tmp/kiln-radicle-live-dist-status-20261021-a/rad-ci/node/control.sock..
+2026-10-21T09:14:14.799-04:00 INFO  node     Running node z6MkvGGc8KqytXKYdDfAhHc1JHLiAojEcDahLjuVB1uQKKxz in /var/tmp/kiln-radicle-live-dist-status-20261021-a/rad-ci..
+2026-10-21T09:14:14.800-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:14:14.989-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:14:14.989-04:00 INFO  service  Received command Connect(z6MkiTwcdmUgD7qV2hELW8X2pQhmz4v2Du44qS1itkHM9qwL, 100.100.103.95:52000, ConnectOptions { persistent: true, timeout: 18446744073709551615.999999999s })
+2026-10-21T09:14:14.991-04:00 INFO  service  Connected to z6MkiTwcdmUgD7qV2hELW8X2pQhmz4v2Du44qS1itkHM9qwL (100.100.103.95:52000) (Outbound)
+2026-10-21T09:14:15.070-04:00 INFO  service  Received command Seed(rad:z2qcXPEVRXBsnYqxvwpSP4KBZbQ6a, all)
+2026-10-21T09:14:15.071-04:00 INFO  service  Received command AddInventory(rad:z2qcXPEVRXBsnYqxvwpSP4KBZbQ6a)
+2026-10-21T09:14:15.074-04:00 INFO  service  Received command Seeds(rad:z2qcXPEVRXBsnYqxvwpSP4KBZbQ6a)
+2026-10-21T09:14:15.075-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:14:15.075-04:00 INFO  service  Received command Fetch(rad:z2qcXPEVRXBsnYqxvwpSP4KBZbQ6a, z6MkiTwcdmUgD7qV2hELW8X2pQhmz4v2Du44qS1itkHM9qwL)
+2026-10-21T09:14:15.084-04:00 INFO  wire     Peer z6MkiTwcdmUgD7qV2hELW8X2pQhmz4v2Du44qS1itkHM9qwL fetched rad:z2qcXPEVRXBsnYqxvwpSP4KBZbQ6a from us successfully
+2026-10-21T09:14:15.089-04:00 INFO  service  Fetched rad:z2qcXPEVRXBsnYqxvwpSP4KBZbQ6a from z6MkiTwcdmUgD7qV2hELW8X2pQhmz4v2Du44qS1itkHM9qwL successfully

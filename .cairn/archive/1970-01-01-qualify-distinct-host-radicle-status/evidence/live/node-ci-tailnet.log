@@ -1,0 +1,78 @@
+2026-10-21T09:15:47.118-04:00 INFO  node     Starting node..
+2026-10-21T09:15:47.118-04:00 INFO  node     Version 1.10.2 (7f5de25223c43ee90365fbbca85fc1bdfb41797f)
+2026-10-21T09:15:47.118-04:00 INFO  node     Unlocking node keystore..
+2026-10-21T09:15:47.118-04:00 INFO  node     Node ID is z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js
+2026-10-21T09:15:47.118-04:00 INFO  node     Opening policy database..
+2026-10-21T09:15:47.118-04:00 INFO  node     Default seeding policy set to 'block (all)'
+2026-10-21T09:15:47.118-04:00 INFO  node     Initializing service (Test)..
+2026-10-21T09:15:47.170-04:00 INFO  node     Opening node database..
+2026-10-21T09:15:47.171-04:00 INFO  reactor  Entering reactor event loop
+2026-10-21T09:15:47.171-04:00 INFO  node     Listening on 0.0.0.0:60763..
+2026-10-21T09:15:47.172-04:00 INFO  node     Binding control socket /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-ci/node/control.sock..
+2026-10-21T09:15:47.172-04:00 INFO  node     Running node z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js in /var/tmp/kiln-radicle-live-dist-status-20261021-b/rad-ci..
+2026-10-21T09:15:47.172-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:47.219-04:00 INFO  service  Received command ListenAddrs
+2026-10-21T09:15:47.219-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:47.220-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:47.227-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:47.227-04:00 INFO  service  Received command Connect(z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF, 100.100.103.95:52000, ConnectOptions { persistent: true, timeout: 18446744073709551615.999999999s })
+2026-10-21T09:15:47.230-04:00 INFO  service  Connected to z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (100.100.103.95:52000) (Outbound)
+2026-10-21T09:15:47.230-04:00 INFO  service  Disconnected from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (connection reset)
+2026-10-21T09:15:47.384-04:00 INFO  service  Received command Seed(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, all)
+2026-10-21T09:15:47.391-04:00 INFO  service  Received command AddInventory(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:15:47.403-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:15:47.411-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:47.414-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:15:47.417-04:00 INFO  service  Received command Connect(z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF, 100.100.103.95:52000, ConnectOptions { persistent: false, timeout: 20s })
+2026-10-21T09:15:47.421-04:00 INFO  service  Received command Fetch(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF)
+2026-10-21T09:15:48.516-04:00 INFO  service  Connected to z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk (100.100.103.95:55204) (Inbound)
+2026-10-21T09:15:48.728-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:15:51.236-04:00 INFO  service  Connected to z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (100.100.103.95:52000) (Outbound)
+2026-10-21T09:15:51.237-04:00 INFO  service  Disconnected from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (connection reset)
+2026-10-21T09:15:59.254-04:00 INFO  service  Connected to z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (100.100.103.95:52000) (Outbound)
+2026-10-21T09:15:59.264-04:00 INFO  service  Disconnected from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (connection reset)
+2026-10-21T09:16:15.271-04:00 INFO  service  Connected to z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (100.100.103.95:52000) (Outbound)
+2026-10-21T09:16:15.363-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF successfully
+2026-10-21T09:16:15.398-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:16:43.135-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:16:43.135-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:16:43.136-04:00 INFO  service  Received command Fetch(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF)
+2026-10-21T09:16:43.144-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF successfully
+2026-10-21T09:16:43.804-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:16:43.806-04:00 INFO  service  Received command AnnounceRefs(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:16:43.806-04:00 INFO  service  Announcing refs rad:zytcgVoHgABnUrHm8j5vKaGo2cBS/z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js @ f22e952a8f7619e02d85683e07d7856df5f7ff71 to peers (t=1792588603806)..
+2026-10-21T09:16:43.822-04:00 INFO  wire     Peer z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:16:43.822-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:16:44.013-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:16:44.643-04:00 INFO  wire     Closing conflicting session with z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF..
+2026-10-21T09:16:44.643-04:00 INFO  service  Disconnected from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (conflict)
+2026-10-21T09:16:44.643-04:00 INFO  service  Connected to z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF (100.100.103.95:36102) (Inbound)
+2026-10-21T09:16:44.713-04:00 INFO  wire     Peer z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:16:44.777-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:16:44.909-04:00 INFO  service  Received command Seed(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, all)
+2026-10-21T09:16:44.910-04:00 INFO  service  Received command AddInventory(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:16:44.915-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:16:44.916-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:16:44.917-04:00 INFO  service  Received command Fetch(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF)
+2026-10-21T09:16:44.929-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF successfully
+2026-10-21T09:17:04.094-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF successfully
+2026-10-21T09:17:04.202-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:17:31.698-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:17:31.698-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:17:31.699-04:00 INFO  service  Received command Fetch(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF)
+2026-10-21T09:17:31.706-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF successfully
+2026-10-21T09:17:32.232-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:17:32.233-04:00 INFO  service  Received command AnnounceRefs(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:17:32.234-04:00 INFO  service  Announcing refs rad:zytcgVoHgABnUrHm8j5vKaGo2cBS/z6MkgqVzJrFdryg9731vYNzfRtc9zhLv235GzyBANbuPf1js @ 8554db979892cf12393778a1b4bef0efbe801988 to peers (t=1792588652233)..
+2026-10-21T09:17:32.245-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:17:32.245-04:00 INFO  wire     Peer z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:17:32.428-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:17:38.284-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF successfully
+2026-10-21T09:17:38.297-04:00 INFO  wire     Peer z6MkoZt6HpmXfBnyJd1hQWGEpMExiNfuR6tNB15W65AzAKRk fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from us successfully
+2026-10-21T09:19:38.406-04:00 INFO  service  Received command Seeds(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS)
+2026-10-21T09:19:38.407-04:00 INFO  service  Received command QueryState(..)
+2026-10-21T09:19:38.407-04:00 INFO  service  Received command Fetch(rad:zytcgVoHgABnUrHm8j5vKaGo2cBS, z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF)
+2026-10-21T09:19:38.419-04:00 INFO  service  Fetched rad:zytcgVoHgABnUrHm8j5vKaGo2cBS from z6MkpA15SwepG5VoEhV8GK3tFjWt42soQcRpfM55u349CZvF successfully
+2026-10-21T09:19:39.443-04:00 INFO  node     Termination signal received; shutting down..
+2026-10-21T09:19:39.443-04:00 INFO  reactor::controller Initiating reactor shutdown…
+2026-10-21T09:19:39.443-04:00 INFO  reactor  Shutdown

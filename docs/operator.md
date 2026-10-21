@@ -1006,3 +1006,42 @@ This is a distinct-host private-tailnet qualification. Status dissemination
 remained same-host. It does not establish WAN, hostile-network, hostile-worker
 confinement, production deployment, activation or release authority.
 
+### Distinct-host status observer
+
+The [status qualification](../.cairn/archive/1970-01-01-qualify-distinct-host-radicle-status/evidence/verification.json)
+moves the observer node and its status storage to the second host while status
+object creation, signing and checkpoint synchronization remain local. The local
+CI node listens on the private tailnet; the remote observer connects directly,
+fetches the status checkpoint ref and reduces it in its own storage with the
+pinned read-only `kiln-radicle-ci status-reconcile` command.
+
+Prerequisites: the distinct-host publisher prerequisites, reverse tailnet TCP
+to the local CI node, the pinned coordinator and SecretSpec paths on the remote
+host, and a fresh shared remote root.
+
+```console
+nix develop path:$PWD -c python3 scripts/radicle-ci-live-distinct-status.py \
+  --inputs .cairn/archive/1970-01-01-build-authenticated-onixos-home-closure/evidence/success/inputs.json \
+  --nickel "$NICKEL" --nixpkgs "$NIXPKGS" \
+  --worker "$WORKER" --extension "$EXTENSION" --coordinator "$COORDINATOR" \
+  --radicle "$RADICLE" --radicle-node "$RADICLE_NODE" \
+  --broker "$BROKER" --broker-tool "$CIBTOOL" \
+  --jj "$JJ" --git "$GIT" --secretspec "$SECRETSPEC" \
+  --root "/var/tmp/kiln-radicle-live-dist-status-$(date -u +%Y%m%dT%H%M%SZ)" \
+  --remote-host aspen1 \
+  --remote-root "<same path>" \
+  --remote-address 100.100.103.95 \
+  --local-address 100.110.43.11 \
+  --remote-port 52000 \
+  --remote-readiness-seconds 60
+```
+
+The runner waits for the previous CI control socket to disappear and for
+`rad node status` to succeed before connecting peers. It requires the pre-sign
+remote read to be absent and the post-sign remote reduction to equal the local
+object/head exactly. The unavailable-provider case retains no status.
+
+This is distinct-host dissemination and readback over a private tailnet with
+local status authority. It is not WAN, hostile-node isolation, production
+deployment or release authority.
+
