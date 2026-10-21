@@ -58,6 +58,20 @@ path manifest and archive, the delegate set and threshold one were unchanged,
 and the GitHub projection was observed but not mutated. The receipt is a later
 evidence-only descendant of the published source.
 
+The subsequent operator-authorized
+[evidence-revision publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/evidence-revision-publication-2026-10-21/publication.json)
+fast-forwarded canonical Radicle `main` to the evidence revision
+`acc359e769bb3a056279bf5db8ba21e95c294a4c` and advanced the read-only GitHub
+projection to the same revision, with no force push, history rewrite, governance
+change, or deployment. Its source archive is BLAKE3
+`1f72af29b005a7162c45b4fbd60ba94c19698451663e1285c91f6b2496e69a9a`
+(61,480,960 bytes, 4,457 tracked members) and its sorted path manifest is
+`e97163d1367f5c76e6541683f06266f9866f28b2261ecb9ee204e19f4a4e7a83`. Native
+Radicle, anonymous Garden HTTPS, and anonymous GitHub HTTPS all reproduced that
+revision, path manifest and archive, and a credential-isolated anonymous clone
+passed the workspace suite. The delegate set, threshold one, and public
+visibility were unchanged.
+
 ## Quick start
 
 Acquire the read-only HTTPS projection without a Radicle node:
