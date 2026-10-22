@@ -1,0 +1,123 @@
+{
+  "schema": "kiln.onixos-pilot.journal.v1",
+  "request": {
+    "request": {
+      "schema": "kiln.onixos-pilot.operator-request.v1",
+      "issued_at_unix": 1792633470,
+      "expires_at_unix": 1792633530,
+      "cohort_identity": "b85a8553948d0c1cd1fe22555601afd2f978bf8f056f4b2787d240ad55fc7c5f",
+      "source_uri": "rad:test@revision",
+      "source_identity": "8791265f611cd0cfec40c034c481a941c4326d667359c47efe7f73577d55a5c4",
+      "job_identity": "f90f59ea421fa72fb4cf47b06944035b5f5811585388a98084ab755ee913c27f",
+      "pilot_profile_identity": "3d21717acba5b92f59d19b18af9c8ebbd7807ca1f381d71773fcae1319df478c",
+      "runtime_profile_identity": "2008b2d661855cf7a384706b6641d8baf697bb66dc78a1a3fa97322a9e6be723",
+      "run_id": "kiln-aspen-run-a325c5a6c6b2588b4219686ecbb96dec86287678ca17ac8d2af164ae53ec39bc",
+      "attempt_id": "attempt",
+      "trigger": {
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "test",
+          "native_kind": "repository",
+          "native_id": "rad:test"
+        },
+        "actor": {
+          "contract_version": 1,
+          "provider_namespace": "test",
+          "native_kind": "actor",
+          "native_id": "operator"
+        },
+        "before": null,
+        "after": {
+          "contract_version": 1,
+          "provider_namespace": "test",
+          "native_kind": "revision",
+          "native_id": "revision"
+        },
+        "branch": null,
+        "patch": null,
+        "event": "push"
+      }
+    },
+    "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+    "signature": "7zfcVtHv4LlVT73uwUb5CI1zngXo2ZqrKKTGoKWiFZbIF8vGPqjhN6thBLkph7f7oOdnMktCSqYdX3nXvCieAQ"
+  },
+  "ingress": {
+    "schema": "kiln.aspen-runtime.service-ingress.v2",
+    "source": "operator",
+    "service_id": "kiln-ci-control-plane-v2",
+    "generation": 1,
+    "profile_identity": "2008b2d661855cf7a384706b6641d8baf697bb66dc78a1a3fa97322a9e6be723",
+    "alpn": "molten/system-extension/native/v2",
+    "framing": "preserves-packed-materialized-values-v2",
+    "operation_id": {
+      "contract_version": 1,
+      "provider_namespace": "molten",
+      "native_kind": "service-operation-blake3",
+      "native_id": "a249355fac4d56251a6882124bab8968a3346aff729e0d70b904e2c1b2295e62"
+    },
+    "idempotency_key": {
+      "contract_version": 1,
+      "provider_namespace": "kiln",
+      "native_kind": "trigger-idempotency-blake3",
+      "native_id": "6bdf8622bfceef0017b1f5cb11881e6b598fda5abe537bea619e05b1d53bf292"
+    },
+    "authority_ref": "kiln-aspen-authority-v1",
+    "resource_ref": "kiln-aspen-resources-v1",
+    "trigger_identity": "6bdf8622bfceef0017b1f5cb11881e6b598fda5abe537bea619e05b1d53bf292",
+    "trigger": {
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "test",
+        "native_kind": "repository",
+        "native_id": "rad:test"
+      },
+      "actor": {
+        "contract_version": 1,
+        "provider_namespace": "test",
+        "native_kind": "actor",
+        "native_id": "operator"
+      },
+      "before": null,
+      "after": {
+        "contract_version": 1,
+        "provider_namespace": "test",
+        "native_kind": "revision",
+        "native_id": "revision"
+      },
+      "branch": null,
+      "patch": null,
+      "event": "push"
+    }
+  },
+  "records": [
+    {
+      "schema_version": 1,
+      "stream": {
+        "contract_version": 1,
+        "provider_namespace": "molten",
+        "native_kind": "service-operation-blake3",
+        "native_id": "a249355fac4d56251a6882124bab8968a3346aff729e0d70b904e2c1b2295e62"
+      },
+      "expected_revision": 0,
+      "event_identity": {
+        "contract_version": 1,
+        "provider_namespace": "kiln",
+        "native_kind": "pilot-event-blake3",
+        "native_id": "eb1b3d19424080f37256936d65d00094fd24d40120a3c522876ac09245c9066a"
+      },
+      "event": {
+        "RunStarted": {
+          "command_id": "pilot-start-42d6552553472410795d6704ba8645f667942bef848b9992002b0b5b0f85c55b",
+          "run_id": "kiln-aspen-run-a325c5a6c6b2588b4219686ecbb96dec86287678ca17ac8d2af164ae53ec39bc",
+          "attempt_id": "attempt",
+          "provider_profile": "build"
+        }
+      }
+    }
+  ],
+  "native_observations": [
+    "Unavailable"
+  ],
+  "worker_result": null,
+  "identity": "3808424a715f00ecb9beff9e11f0c47c16b8a13c4639c03076b007af4df1ab43"
+}

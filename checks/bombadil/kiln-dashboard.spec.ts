@@ -12,6 +12,8 @@
 // whole report, so the finished screen carries every rendered line.
 //
 // r[impl kiln.observe.dashboard.property_rail]
+// r[impl kiln.observe.dashboard.pilot_journal]
+// r[impl kiln.observe.dashboard.pilot_journal.scenario.match]
 // r[impl kiln.observe.dashboard.property_rail.scenario.match]
 // r[impl kiln.observe.dashboard.property_rail.scenario.bounded]
 // r[verify kiln.observe.dashboard.property_rail]
@@ -59,7 +61,10 @@ const exitCode = extract((state) =>
 );
 
 const renderedRunRows = extract(
-  (state) => reportRows(state).filter((row) => /^ {2}run-\S+\s/.test(row)).length,
+  (state) =>
+    reportRows(state).filter((row) =>
+      /^ {2}\S+\s+[A-Za-z]+\s+attempts\s+\d+$/.test(row.trimEnd()),
+    ).length,
 );
 
 const summaryRunCount = extract((state) => {

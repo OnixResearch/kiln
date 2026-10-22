@@ -15,7 +15,9 @@ use kiln_core::types::{
 use kiln_provider_api::{
     EventAppendRequest, EventStorePort, EventStoreSnapshot, InfrastructureFailure, PortFailure,
 };
-use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
+use rusqlite::{
+    Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior, params,
+};
 
 pub const RUSQLITE_VERSION: &str = "0.40.2";
 pub const LIBSQLITE3_SYS_VERSION: &str = "0.38.2";
@@ -69,6 +71,37 @@ pub struct SqliteProfile {
     pub max_retention_deletes: usize,
     pub backup_required: bool,
     pub destructive_repair: bool,
+}
+
+/// The canonical event store profile.
+///
+/// The values mirror `config/sqlite-profile.ncl`: the same cohort versions,
+/// schema version, policy, and bounds. A reader that must observe an existing
+/// store without writing to it uses this profile rather than inventing one.
+// r[impl kiln.sqlite.profile]
+#[must_use]
+pub fn canonical_profile() -> SqliteProfile {
+    SqliteProfile {
+        rusqlite_version: RUSQLITE_VERSION.to_string(),
+        libsqlite3_sys_version: LIBSQLITE3_SYS_VERSION.to_string(),
+        sqlite_runtime_version: SQLITE_RUNTIME_VERSION.to_string(),
+        license: SQLITE_LICENSE.to_string(),
+        schema_version: STORE_SCHEMA_VERSION,
+        transaction_kind: SqliteTransactionKind::Immediate,
+        journal_mode: SqliteJournalMode::Wal,
+        synchronous: SqliteSynchronous::Full,
+        busy_timeout_millis: 250,
+        max_events_per_append: 64,
+        max_replay_records: 65_536,
+        max_outbox_records: 65_536,
+        max_event_bytes: 1_048_576,
+        max_snapshot_bytes: 16_777_216,
+        max_backup_bytes: 1_073_741_824,
+        max_migration_steps: 16,
+        max_retention_deletes: 4096,
+        backup_required: true,
+        destructive_repair: false,
+    }
 }
 
 pub fn admit_profile(profile: &SqliteProfile) -> CoreResult<()> {
@@ -485,6 +518,58 @@ impl SqliteEventStore {
             profile,
             path: path.to_path_buf(),
         })
+    }
+
+    /// Open an existing event store without writing to it.
+    ///
+    /// The read-only path admits the profile, admits the stored schema version
+    /// instead of initializing one, and never changes the database file.
+    pub fn open_read_only(path: &Path, profile: SqliteProfile) -> Result<Self, PortFailure> {
+        admit_profile(&profile).map_err(PortFailure::Domain)?;
+        if rusqlite::version() != profile.sqlite_runtime_version {
+            return Err(PortFailure::Domain(Diagnostic::new(
+                "sqlite_runtime_drift",
+                "sqlite.runtime_version",
+                "loaded SQLite runtime differs from the admitted profile",
+            )));
+        }
+        let connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(infrastructure)?;
+        connection
+            .busy_timeout(Duration::from_millis(profile.busy_timeout_millis))
+            .map_err(infrastructure)?;
+        match read_schema_version(&connection)? {
+            Some(version) if version == profile.schema_version => {}
+            Some(_) => {
+                return Err(PortFailure::Domain(Diagnostic::new(
+                    "sqlite_schema_unknown",
+                    "sqlite.schema_version",
+                    "database schema version is unsupported and requires explicit migration",
+                )));
+            }
+            None => {
+                return Err(PortFailure::Domain(Diagnostic::new(
+                    "sqlite_store_missing",
+                    "sqlite.schema_version",
+                    "read-only open requires an existing event store with an admitted schema",
+                )));
+            }
+        }
+        quick_check(&connection)?;
+        Ok(Self {
+            connection,
+            profile,
+            path: path.to_path_buf(),
+        })
+    }
+
+    /// Read the retained journal records of one stream.
+    pub fn load_stream_records(
+        &self,
+        stream: &ExternalRef,
+        max_records: usize,
+    ) -> Result<Vec<JournalRecord>, PortFailure> {
+        Ok(self.load(stream, max_records)?.records)
     }
 
     pub fn append_with_mode(

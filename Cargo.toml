@@ -90,6 +90,7 @@ kiln-core = { path = "crates/kiln-core" }
 kiln-provider-api = { path = "crates/kiln-provider-api" }
 kiln-codec = { path = "crates/kiln-codec" }
 kiln-observe-core = { path = "crates/kiln-observe-core" }
+kiln-dashboard = { path = "crates/kiln-dashboard" }
 kiln-adapter-http-observe = { path = "crates/kiln-adapter-http-observe" }
 kiln-adapter-iroh-observe = { path = "crates/kiln-adapter-iroh-observe" }
 ucan = { path = "vendor/ucan" }
@@ -110,6 +111,7 @@ kiln-onixos-pilot = { path = "crates/kiln-onixos-pilot" }
 kiln-radicle-ci = { path = "crates/kiln-radicle-ci" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
 kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
+kiln-adapter-sqlite = { path = "crates/kiln-adapter-sqlite" }
 kiln-aspen-extension = { path = "crates/kiln-aspen-extension" }
 valence-core = { path = "vendor/valence/crates/valence-core" }
 

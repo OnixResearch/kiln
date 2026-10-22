@@ -1,3 +1,4 @@
+mod dashboard;
 mod qualification;
 
 use std::path::Path;
@@ -12,6 +13,7 @@ use kiln_standalone::{CommitMode, MemoryJournal};
 const COMMAND_DEMO: &str = "demo";
 const COMMAND_EVIDENCE: &str = "evidence";
 const COMMAND_HOST_QUALIFY: &str = "host-qualify";
+const COMMAND_DASHBOARD: &str = "dashboard";
 const QUALIFICATION_USAGE: &str = "usage: kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT";
 const EXIT_FAILURE: i32 = 1;
 const EXIT_USAGE: i32 = 2;
@@ -20,7 +22,7 @@ fn main() {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         fail(
-            "usage: kiln demo | kiln evidence INPUT OUTPUT | kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT",
+            "usage: kiln demo | kiln evidence INPUT OUTPUT | kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT | kiln dashboard --journal PATH --profile PATH",
             EXIT_USAGE,
         );
     };
@@ -53,6 +55,10 @@ fn main() {
                 Path::new(&receipt),
                 Path::new(&artifacts),
             )
+        }
+        COMMAND_DASHBOARD => {
+            let code = dashboard::dashboard(arguments);
+            std::process::exit(code);
         }
         _ => Err(format!("unsupported command: {command}")),
     };

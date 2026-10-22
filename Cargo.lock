@@ -2987,6 +2987,7 @@ version = "0.1.0"
 dependencies = [
  "kiln-codec",
  "kiln-core",
+ "kiln-dashboard",
  "kiln-standalone",
  "serde_json",
 ]
@@ -3028,9 +3029,11 @@ dependencies = [
 name = "kiln-dashboard"
 version = "0.1.0"
 dependencies = [
+ "kiln-adapter-sqlite",
  "kiln-codec",
  "kiln-core",
  "kiln-observe-core",
+ "kiln-provider-api",
  "serde",
  "serde_json",
 ]

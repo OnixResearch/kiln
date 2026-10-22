@@ -937,6 +937,14 @@
                 -- ${packageFor system}/bin/kiln-dashboard \
                 --journal checks/bombadil/journal.json \
                 --profile fixtures/dashboard/profile-v1.json
+              cp checks/bombadil/journal-pilot.json checks/bombadil/journal.json
+              bombadil terminal test \
+                --specification checks/bombadil/kiln-dashboard.spec.ts \
+                --rows 200 --columns 160 --time-limit 60s \
+                --output-path "$PWD/traces/admitted-pilot-journal" --output-path-overwrite \
+                -- ${packageFor system}/bin/kiln-dashboard \
+                --journal checks/bombadil/journal.json \
+                --profile fixtures/dashboard/profile-v1.json
               cp checks/bombadil/journal-tampered.json checks/bombadil/journal.json
               bombadil terminal test \
                 --specification checks/bombadil/kiln-dashboard-rejected.spec.ts \
@@ -946,6 +954,25 @@
                 --journal checks/bombadil/journal.json \
                 --profile fixtures/dashboard/profile-v1.json
               rm checks/bombadil/journal.json
+              bombadil terminal test \
+                --specification checks/bombadil/kiln-cli-demo.spec.ts \
+                --rows 200 --columns 160 --time-limit 60s \
+                --output-path "$PWD/traces/kiln-cli-demo" --output-path-overwrite \
+                -- ${packageFor system}/bin/kiln demo
+              bombadil terminal test \
+                --specification checks/bombadil/kiln-cli-evidence.spec.ts \
+                --rows 200 --columns 160 --time-limit 60s \
+                --output-path "$PWD/traces/kiln-cli-evidence" --output-path-overwrite \
+                -- ${packageFor system}/bin/kiln evidence \
+                checks/bombadil/evidence-input.json \
+                "$PWD/kiln-cli-evidence.json"
+              bombadil terminal test \
+                --specification checks/bombadil/kiln-cli-evidence-rejected.spec.ts \
+                --rows 200 --columns 160 --time-limit 60s \
+                --output-path "$PWD/traces/kiln-cli-evidence-rejected" --output-path-overwrite \
+                -- ${packageFor system}/bin/kiln evidence \
+                checks/bombadil/evidence-malformed.json \
+                "$PWD/kiln-cli-evidence-rejected.json"
               cp -r traces "$out"
             '';
           cairn-gate-cohort = pkgs.runCommand "kiln-cairn-gate-cohort" { } ''

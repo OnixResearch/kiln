@@ -75,22 +75,49 @@ report states the page facts it observed, including `capped`, `more`, and
 `earlier`, so an operator can tell that the report is a bounded view rather
 than the whole history.
 
+## Inputs
+
+The dashboard observes two kinds of input.
+
+| Input | Command | Admission |
+|---|---|---|
+| canonical Kiln journal document | `--journal <path>` | every record's event identity is recomputed under the convention its identity kind declares, and the whole record set replays canonically |
+| canonical SQLite event store | `--store <path> --stream <ns:kind:id>` | the store is opened read only, the retained stream is loaded, its event identities are verified, and the history replays canonically |
+
+The journal document path reads the envelope that the writing shell owns and
+ignores unknown envelope fields. The store path opens the database without
+writing to it: it admits the stored schema version instead of initializing one,
+never creates a missing store, and never changes the file. Both paths use the
+store's and the document's own identity conventions, so the same dashboard
+reads a pilot journal, a Radicle CI journal, and a SQLite event store.
+
+The Celld worker event store is not a dashboard input. That store is a remote
+authenticated HTTP service, and reading it would give the dashboard a network
+path, which its read-only local boundary forbids.
+
 ## Shell
 
 ```console
 $ kiln-dashboard --journal path/to/journal.json --profile path/to/profile.json
 $ kiln-dashboard --journal path/to/journal.json --profile path/to/profile.json --run run-1 --watch
+$ kiln-dashboard --store path/to/events.db --stream kiln:event-stream:main --profile path/to/profile.json
+$ kiln dashboard --journal path/to/journal.json --profile path/to/profile.json
 ```
 
-The shell reads only the two files the operator names, writes the report to
-standard output, and exits non-zero with a bounded diagnostic when a file is
-missing, malformed, or fails admission. `--watch` re-reads the journal on the
-profile's declared interval and redraws; the interval is bounded and the shell
-keeps no history between frames. The report is ANSI styled when standard
-output is a terminal and plain text otherwise.
+The same surface is reachable from the operator CLI as `kiln dashboard`. The
+shell reads only the files the operator names, writes the report to standard
+output, and exits non-zero with a bounded diagnostic when a file is missing,
+malformed, or fails admission. `--watch` re-reads the input on the profile's
+declared interval and redraws; the interval is bounded and the shell keeps no
+history between frames. The report is ANSI styled when standard output is a
+terminal and plain text otherwise.
 
 `cargo run -p kiln-dashboard --example sample_journal -- /tmp/journal.json 4`
-writes a sample canonical journal for rehearsal.
+writes a sample canonical journal for rehearsal, and
+`cargo run -p kiln-dashboard --example sample_store -- /tmp/events.db` writes a
+sample SQLite event store. `cargo run -p kiln-onixos-pilot --example
+write_sample_journal -- /tmp/pilot/journal.json` writes a journal with the
+pilot's own writer, which is how the checked-in pilot fixture was produced.
 
 ## Property-based terminal rail
 
@@ -116,9 +143,10 @@ profile, so a property does not restate a constant:
 $ nix build path:$PWD#checks.x86_64-linux.bombadil -L
 ```
 
-The check keeps the captured terminal traces as build outputs. The three
-fixtures are a small admitted journal, an admitted journal larger than the
-admitted run bound, and a tampered journal.
+The check keeps the captured terminal traces as build outputs. The fixtures
+are a small admitted journal, an admitted journal larger than the admitted run
+bound, a journal written by the OnixOS pilot's own writer, a tampered journal,
+and the `kiln` CLI's demo and evidence surfaces.
 
 Each property states its expectation only once the captured state carries the
 program's exit status. A terminated terminal trace satisfies Bombadil's

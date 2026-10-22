@@ -117,6 +117,7 @@ pub const FORBIDDEN_SHELL_CORE_RUNTIME: &[&str] = &[
     "std::env",
     "tokio::",
     "reqwest::",
+    "rusqlite::",
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -179,12 +180,12 @@ fn audit_application_contracts_at(
 /// Audit a pure core crate against the shell runtime boundary.
 ///
 /// The crate manifest may not reach a provider, transport, or runtime crate,
-/// and every library source other than the named shell entry point may not
+/// and every library source other than the named shell entry points may not
 /// touch the filesystem, the network, a process, a clock, or the environment.
 pub fn audit_shell_core_boundary(
     root: &Path,
     crate_path: &str,
-    shell_entry: &str,
+    shell_entries: &[&str],
 ) -> std::io::Result<Vec<BoundaryFinding>> {
     let mut findings = Vec::new();
     let crate_root = root.join(crate_path);
@@ -194,9 +195,11 @@ pub fn audit_shell_core_boundary(
         findings.extend(audit_text(&manifest, &text));
     }
     visit(&crate_root.join("src"), &mut |path| {
-        if path.extension().and_then(|value| value.to_str()) == Some("rs")
-            && path.file_name().and_then(|value| value.to_str()) != Some(shell_entry)
-        {
+        let is_shell_entry = path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .is_some_and(|name| shell_entries.contains(&name));
+        if path.extension().and_then(|value| value.to_str()) == Some("rs") && !is_shell_entry {
             let text = fs::read_to_string(path)?;
             findings.extend(audit_patterns(path, &text, FORBIDDEN_SHELL_CORE_RUNTIME));
         }
@@ -545,7 +548,11 @@ mod tests {
     #[test]
     fn dashboard_core_has_no_shell_runtime() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let findings = audit_shell_core_boundary(&root, "crates/kiln-dashboard", "main.rs");
+        let findings = audit_shell_core_boundary(
+            &root,
+            "crates/kiln-dashboard",
+            &["main.rs", "shell.rs", "store.rs"],
+        );
         assert!(findings.as_ref().is_ok_and(Vec::is_empty));
         let rejected = audit_patterns(
             Path::new("fixture.rs"),

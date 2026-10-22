@@ -62,13 +62,14 @@ and [HTTP observation](http-observation.md). The iroh leg is
 `kiln-adapter-iroh-observe`; see [iroh observation](iroh-observation.md).
 
 `kiln-dashboard` is the local operator surface over the same projection. It
-admits a canonical Kiln journal document, verifies every record's event
-identity by recomputation, replays the record stream canonically, and renders
-the bounded run, attempt, and event views as a deterministic terminal report.
-It reads only the journal and profile files the operator names and performs no
-effect. A property-based terminal rail drives the packaged binary under a
-pseudo terminal and checks the rendered report against properties derived from
-the staged journal and the checked-in profile. See
+admits a canonical Kiln journal document or a canonical SQLite event store,
+verifies every record's event identity by recomputation, replays the record
+stream canonically, and renders the bounded run, attempt, and event views as a
+deterministic terminal report. The same surface is reachable as
+`kiln dashboard`. It reads only the files the operator names and performs no
+effect. A property-based terminal rail drives the packaged binaries under a
+pseudo terminal and checks the rendered report and the operator CLI against
+properties derived from the staged inputs and the checked-in profiles. See
 [operator dashboard](observation-dashboard.md).
 
 ## Logs and follow

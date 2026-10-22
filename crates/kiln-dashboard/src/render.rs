@@ -166,11 +166,9 @@ fn render_runs(out: &mut String, painter: &Painter, report: &DashboardReport) {
         for run in &list.runs {
             out.push_str("  ");
             out.push_str(run.run_id.as_str());
-            for _ in run.run_id.as_str().len()..24 {
-                out.push(' ');
-            }
+            out.push_str("  ");
             out.push_str(&painter.outcome(run.outcome));
-            out.push_str("   attempts ");
+            out.push_str("  attempts ");
             out.push_str(&run.attempt_count.to_string());
             out.push('\n');
         }
@@ -217,11 +215,9 @@ fn render_run_detail_body(
     for attempt in &detail.attempts {
         out.push_str("    ");
         out.push_str(attempt.attempt_id.as_str());
-        for _ in attempt.attempt_id.as_str().len()..24 {
-            out.push(' ');
-        }
+        out.push_str("  ");
         out.push_str(&painter.outcome(attempt.outcome));
-        out.push_str("   provider ");
+        out.push_str("  provider ");
         out.push_str(&provider_text(
             attempt
                 .provider_profile
@@ -229,9 +225,9 @@ fn render_run_detail_body(
                 .map(|value| value.as_str()),
             report,
         ));
-        out.push_str("   products ");
+        out.push_str("  products ");
         out.push_str(&attempt.product_count.to_string());
-        out.push_str("   metrics ");
+        out.push_str("  metrics ");
         out.push_str(&attempt.metric_count.to_string());
         out.push('\n');
     }

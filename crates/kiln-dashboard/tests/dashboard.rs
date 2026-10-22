@@ -603,3 +603,121 @@ fn shell_watch_mode_redraws_the_report() {
     let text = String::from_utf8(output.stdout).unwrap_or_else(|_| unreachable!());
     assert!(text.matches("kiln dashboard").count() >= 2);
 }
+
+// r[verify kiln.observe.dashboard.store]
+// r[verify kiln.observe.dashboard.store.scenario.match]
+#[test]
+fn sqlite_event_store_is_admitted_and_projected() {
+    use kiln_adapter_sqlite::{
+        AppendCommitMode, SqliteEventStore, build_journal_record, canonical_profile,
+    };
+    use kiln_provider_api::EventAppendRequest;
+
+    let directory = std::env::temp_dir().join("kiln-dashboard-store");
+    std::fs::create_dir_all(&directory).unwrap_or_else(|_| unreachable!());
+    let path = directory.join("events.db");
+    let _ = std::fs::remove_file(&path);
+    let profile = canonical_profile();
+    let stream =
+        ExternalRef::new("kiln", "event-stream", "main").unwrap_or_else(|_| unreachable!());
+
+    let mut state = State::default();
+    let mut records = Vec::new();
+    for index in 0..2 {
+        let run_id = identity(&format!("run-{index}"));
+        let attempt_id = attempt_identity(&format!("attempt-{index}"));
+        let envelope = CommandEnvelope {
+            contract_version: CONTRACT_VERSION_V1,
+            command_id: command_identity(&format!("command-{index}")),
+            expected_revision: state.revision,
+            command: Command::StartRun {
+                run_id,
+                attempt_id,
+                provider_profile: provider_identity("build-v1"),
+                effect_id: effect_identity(&format!("effect-{index}")),
+            },
+        };
+        let decision: Decision =
+            decide(&state, &envelope, Limits::default()).unwrap_or_else(|_| unreachable!());
+        for event in decision.events {
+            let expected_revision = state.revision;
+            state = evolve(&state, &event).unwrap_or_else(|_| unreachable!());
+            let record = build_journal_record(stream.clone(), expected_revision, event)
+                .unwrap_or_else(|_| unreachable!());
+            records.push(record);
+        }
+    }
+
+    let mut store =
+        SqliteEventStore::open(&path, profile.clone()).unwrap_or_else(|_| unreachable!());
+    store
+        .append_with_mode(
+            &EventAppendRequest {
+                stream: stream.clone(),
+                expected_revision: 0,
+                records: records.clone(),
+                outbox: Vec::new(),
+            },
+            AppendCommitMode::Commit,
+        )
+        .unwrap_or_else(|_| unreachable!());
+    drop(store);
+
+    let journal = kiln_dashboard::store::admit_store(&path, &profile, &stream)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(journal.records.len(), 2);
+    assert_eq!(journal.state.revision, 2);
+    let report = build_report(
+        &dashboard_profile(),
+        &journal,
+        &DashboardSelection::default(),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let ViewBody::StateSummary(summary) = &report.views.summary.body else {
+        unreachable!()
+    };
+    assert_eq!(summary.run_count, 2);
+    assert_eq!(summary.attempt_count, 2);
+}
+
+// r[verify kiln.observe.dashboard.store.scenario.read_only]
+#[test]
+fn sqlite_event_store_is_read_only_for_the_dashboard() {
+    use kiln_adapter_sqlite::{SqliteEventStore, canonical_profile};
+
+    let directory = std::env::temp_dir().join("kiln-dashboard-store-read-only");
+    std::fs::create_dir_all(&directory).unwrap_or_else(|_| unreachable!());
+    let path = directory.join("events.db");
+    let _ = std::fs::remove_file(&path);
+    let profile = canonical_profile();
+    let stream =
+        ExternalRef::new("kiln", "event-stream", "main").unwrap_or_else(|_| unreachable!());
+    {
+        let store =
+            SqliteEventStore::open(&path, profile.clone()).unwrap_or_else(|_| unreachable!());
+        drop(store);
+    }
+    let before = std::fs::metadata(&path).unwrap_or_else(|_| unreachable!());
+    let journal = kiln_dashboard::store::admit_store(&path, &profile, &stream)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(journal.records.len(), 0);
+    let after = std::fs::metadata(&path).unwrap_or_else(|_| unreachable!());
+    assert_eq!(before.len(), after.len());
+    assert_eq!(
+        before.modified().unwrap_or_else(|_| unreachable!()),
+        after.modified().unwrap_or_else(|_| unreachable!())
+    );
+
+    // A missing store must be refused, never created by a read.
+    let absent = directory.join("absent.db");
+    let _ = std::fs::remove_file(&absent);
+    let error = match kiln_dashboard::store::admit_store(&absent, &profile, &stream) {
+        Ok(_) => unreachable!(),
+        Err(error) => error,
+    };
+    assert!(
+        error.contains("event store open"),
+        "unexpected error: {error}"
+    );
+    assert!(!absent.exists(), "the dashboard must not create a store");
+}

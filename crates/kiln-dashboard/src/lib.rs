@@ -9,6 +9,8 @@ pub mod journal;
 pub mod profile;
 pub mod render;
 pub mod report;
+pub mod shell;
+pub mod store;
 
 pub use journal::{
     AdmittedJournal, EventIdentityConvention, JournalDocument, JournalFacts, MAX_JOURNAL_BYTES,
@@ -19,3 +21,5 @@ pub use profile::{
 };
 pub use render::{RenderStyle, render_report};
 pub use report::{DashboardReport, DashboardSelection, DashboardViews, RunPages, build_report};
+pub use shell::{Input, Options, Parsed, parse_options, run_from_env};
+pub use store::{STORE_JOURNAL_SCHEMA, admit_store, parse_reference};

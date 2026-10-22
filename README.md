@@ -20,7 +20,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - bounded, deterministic, read-only observation projection over admitted state with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities;
 - a bounded HTTPS observation shell with canonical JSON views, a bounded SSE event leg, Ed25519 or UCAN holder-invocation authentication, TLS, and no control surface;
 - a bounded iroh observation shell for allowlisted peers with BLAKE3-verified payloads and maintained HTTP/iroh view equivalence;
-- a local operator dashboard over a canonical Kiln journal with recomputed event identities, canonical replay, bounded paged views, a property-based terminal rail, and no effect;
+- a local operator dashboard over a canonical Kiln journal or SQLite event store with recomputed event identities, canonical replay, bounded paged views, a property-based terminal rail over the dashboard and operator CLI, and no effect;
 - an exact Aspen/Molten runtime profile, atomic event-store mapping, bounded content and callback contracts, and fail-closed ingress;
 - a standalone `kiln-aspen-host` composition shell that runs the real Aspen native service and concrete Lattice effect adapter;
 - exact-cohort host qualification receipt admission, retained-artifact identity checks, and stronger-claim rejection;
