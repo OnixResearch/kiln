@@ -138,8 +138,17 @@ report: the observed state revision, the profile identities, the declared
 journal identity, the recorded view identities, the redacted fields, and the
 declared non-claims. The same admitted state renders the same bytes.
 
-The HTML report is a snapshot of one admitted revision. It does not refresh;
-watch mode still redraws the terminal report.
+The HTML report updates live when the shell watches: the shell rewrites the
+file on the profile's watch interval, replaces it atomically so a reader never
+sees a half-written document, and the document carries a reload instruction at
+that interval. The instruction is a document instruction, not a script, so the
+document still carries no script and no external resource. Without `--watch`
+the report is a snapshot of one admitted revision.
+
+```console
+$ kiln-dashboard --journal path/to/journal.json --profile path/to/profile.json \
+    --format html --output dashboard.html --watch
+```
 
 ## Property-based terminal rail
 

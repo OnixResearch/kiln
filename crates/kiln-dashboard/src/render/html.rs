@@ -23,11 +23,31 @@ use crate::report::DashboardReport;
 // r[impl kiln.observe.dashboard.html.nonclaims]
 #[must_use]
 pub fn render_html(report: &DashboardReport) -> String {
+    render_html_with_refresh(report, None)
+}
+
+/// Render one dashboard report as a self-contained HTML document that reloads
+/// itself after the given interval.
+///
+/// The refresh is a document-level instruction, not a script, so the document
+/// still carries no script and no external resource.
+// r[impl kiln.observe.dashboard.html.live_update]
+// r[impl kiln.observe.dashboard.html.live_update.scenario.match]
+// r[impl kiln.observe.dashboard.html.live_update.scenario.snapshot]
+// r[impl kiln.observe.dashboard.html.live_update.nonclaims]
+// r[impl kiln.observe.dashboard.html.live_update.nonclaims.scenario.scope]
+#[must_use]
+pub fn render_html_with_refresh(report: &DashboardReport, refresh_seconds: Option<u64>) -> String {
     let mut out = String::new();
     out.push_str("<!DOCTYPE html>\n");
     out.push_str("<html lang=\"en\">\n<head>\n");
     out.push_str("<meta charset=\"utf-8\">\n");
     out.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
+    if let Some(seconds) = refresh_seconds {
+        out.push_str(&format!(
+            "<meta http-equiv=\"refresh\" content=\"{seconds}\">\n"
+        ));
+    }
     out.push_str(&format!(
         "<title>Kiln dashboard {}</title>\n",
         escape(&report.profile_id)

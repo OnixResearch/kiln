@@ -12,7 +12,7 @@ use kiln_core::types::{AttemptId, RunId};
 
 use crate::journal::{AdmittedJournal, JournalDocument, MAX_JOURNAL_BYTES, admit_document};
 use crate::profile::{MAX_PROFILE_BYTES, ProfileDocument};
-use crate::render::html::render_html;
+use crate::render::html::render_html_with_refresh;
 use crate::render::{RenderStyle, render_report};
 use crate::report::{DashboardSelection, build_report};
 use crate::store::{admit_store, parse_reference};
@@ -236,14 +236,27 @@ pub fn render_frame(
         .map_err(|error| format!("dashboard projection: {}: {}", error.code, error.message))?;
     let rendered = match options.format {
         ReportFormat::Text => render_report(&report, style),
-        ReportFormat::Html => render_html(&report),
+        ReportFormat::Html => {
+            // A watched HTML report reloads itself so a browser tab follows
+            // the journal; an unwatched one stays a snapshot.
+            let refresh = options
+                .watch
+                .then(|| profile.profile.watch_interval_ms.div_ceil(1000).max(1));
+            render_html_with_refresh(&report, refresh)
+        }
     };
     match &options.output {
-        Some(path) => std::fs::write(path, rendered)
-            .map_err(|error| format!("report write failed: {error}"))?,
+        Some(path) => write_atomic(path, &rendered)?,
         None => print!("{rendered}"),
     }
     Ok(())
+}
+
+/// Write a report so a reader never sees a half-written document.
+fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
+    let temporary = path.with_extension("html.tmp");
+    std::fs::write(&temporary, content).map_err(|error| format!("report write failed: {error}"))?;
+    std::fs::rename(&temporary, path).map_err(|error| format!("report replace failed: {error}"))
 }
 
 /// Admit the observed input into canonical Kiln state.

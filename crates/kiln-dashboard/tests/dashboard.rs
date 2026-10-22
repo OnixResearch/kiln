@@ -803,3 +803,22 @@ fn html_report_escapes_dynamic_content() {
     let html = kiln_dashboard::render::html::render_html(&report);
     assert!(!html.contains("<script>alert(1)</script>"));
 }
+
+// r[verify kiln.observe.dashboard.html.live_update]
+#[test]
+fn a_watched_html_report_asks_the_reader_to_reload() {
+    let journal = admitted(1);
+    let profile = dashboard_profile();
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let snapshot = kiln_dashboard::render::html::render_html(&report);
+    assert!(!snapshot.contains("http-equiv"));
+
+    let seconds = profile.watch_interval_ms.div_ceil(1000).max(1);
+    let live = kiln_dashboard::render::html::render_html_with_refresh(&report, Some(seconds));
+    assert!(live.contains(&format!(
+        "<meta http-equiv=\"refresh\" content=\"{seconds}\">"
+    )));
+    // The reload instruction is a document instruction, not a script.
+    assert!(!live.contains("<script"));
+}
