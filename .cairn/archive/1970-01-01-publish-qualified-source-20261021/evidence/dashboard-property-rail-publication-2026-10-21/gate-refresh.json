@@ -1,0 +1,36 @@
+{
+  "schema": "kiln.qualified-source-publication.gate-refresh.v1",
+  "observed_at_utc": "2026-10-22T01:02:09Z",
+  "reason": "The published revision added two traceability evidence roots to the local Cairn policy, so the checked-in agent-completion fixture no longer bound the current generated policy.",
+  "changed_files": [
+    "fixtures/agent-completion/contract.json",
+    "fixtures/agent-completion/results.json"
+  ],
+  "changed_fields": [
+    "policy_hash"
+  ],
+  "previous_policy_hash": "625a2230165be3edbdd47050e5e070540892852f01ae0fbdbe7d31ca279bc649",
+  "current_policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+  "unchanged_fields": [
+    "required_checks",
+    "command_hash",
+    "selection_hash",
+    "registry_hash",
+    "final_subject_hash",
+    "subject_hash",
+    "evidence_hash",
+    "execution_receipt_hash",
+    "artifacts"
+  ],
+  "verification": {
+    "cairn agent-receipt complete": "valid: true, verdict: PASS",
+    "cairn agent-receipt smoke-mcp --root .": "valid: true, verdict: pass",
+    "cairn release-readiness --root .": "valid: true, verdict: pass"
+  },
+  "operator_guidance": "docs/operator.md requires the agent-completion fixture's command and selection hashes to be regenerated whenever the commands or the policy change.",
+  "non_claims": [
+    "The fixture records a completed gate run; refreshing a policy binding does not re-execute the recorded checks",
+    "The recorded checks were re-run on this revision during the publication session and passed",
+    "This refresh does not change the published revision, the published archive identity, or any governance fact"
+  ]
+}
