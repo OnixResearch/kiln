@@ -69,8 +69,9 @@ deterministic terminal report. The same surface is reachable as
 `kiln dashboard`. It reads only the files the operator names and performs no
 effect. A property-based terminal rail drives the packaged binaries under a
 pseudo terminal and checks the rendered report and the operator CLI against
-properties derived from the staged inputs and the checked-in profiles. See
-[operator dashboard](observation-dashboard.md).
+properties derived from the staged inputs and the checked-in profiles. The same
+rail's browser driver checks the self-contained HTML report the dashboard can
+write. See [operator dashboard](observation-dashboard.md).
 
 ## Logs and follow
 

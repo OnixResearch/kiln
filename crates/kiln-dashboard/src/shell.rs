@@ -12,6 +12,7 @@ use kiln_core::types::{AttemptId, RunId};
 
 use crate::journal::{AdmittedJournal, JournalDocument, MAX_JOURNAL_BYTES, admit_document};
 use crate::profile::{MAX_PROFILE_BYTES, ProfileDocument};
+use crate::render::html::render_html;
 use crate::render::{RenderStyle, render_report};
 use crate::report::{DashboardSelection, build_report};
 use crate::store::{admit_store, parse_reference};
@@ -19,9 +20,10 @@ use crate::store::{admit_store, parse_reference};
 /// The usage text of the dashboard shell.
 pub const USAGE: &str = "\
 usage: kiln-dashboard --journal <path> --profile <path> [--run <id>] [--attempt <id>]
-                      [--watch] [--plain]
+                      [--watch] [--plain] [--format text|html] [--output <path>]
        kiln-dashboard --store <path> --stream <ns:kind:id> --profile <path>
                       [--run <id>] [--attempt <id>] [--watch] [--plain]
+                      [--format text|html] [--output <path>]
 
   --journal <path>        canonical Kiln journal document to observe
   --store <path>          canonical SQLite event store to observe, read only
@@ -31,7 +33,31 @@ usage: kiln-dashboard --journal <path> --profile <path> [--run <id>] [--attempt 
   --attempt <id>          attempt to detail; defaults to the selected run's active attempt
   --watch                 re-read the input on the profile's watch interval
   --plain                 render without ANSI styling
+  --format <text|html>    report format; text is the default
+  --output <path>         write the report to a file instead of standard output
 ";
+
+/// The report format the dashboard shell renders.
+// r[impl kiln.observe.dashboard.html.format]
+// r[impl kiln.observe.dashboard.html.format.scenario.selection]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReportFormat {
+    /// The deterministic terminal report.
+    Text,
+    /// A self-contained HTML document.
+    Html,
+}
+
+impl ReportFormat {
+    /// Parse the report format named on the command line.
+    fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "text" => Ok(Self::Text),
+            "html" => Ok(Self::Html),
+            other => Err(format!("unsupported report format: {other}")),
+        }
+    }
+}
 
 /// The observed input of the dashboard shell.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -41,7 +67,7 @@ pub enum Input {
     /// A canonical SQLite event store, opened read only.
     Store {
         path: PathBuf,
-        stream: kiln_core::types::ExternalRef,
+        stream: Box<kiln_core::types::ExternalRef>,
     },
 }
 
@@ -53,6 +79,8 @@ pub struct Options {
     pub selection: DashboardSelection,
     pub watch: bool,
     pub plain: bool,
+    pub format: ReportFormat,
+    pub output: Option<PathBuf>,
 }
 
 /// The outcome of parsing dashboard shell arguments.
@@ -73,6 +101,8 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
     let mut selection = DashboardSelection::default();
     let mut watch = false;
     let mut plain = false;
+    let mut format = ReportFormat::Text;
+    let mut output: Option<PathBuf> = None;
     let mut arguments = arguments.peekable();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
@@ -104,6 +134,13 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
             }
             "--watch" => watch = true,
             "--plain" => plain = true,
+            "--format" => {
+                let value = next_value(&mut arguments, "--format")?;
+                format = ReportFormat::parse(&value)?;
+            }
+            "--output" => {
+                output = Some(PathBuf::from(next_value(&mut arguments, "--output")?));
+            }
             "--help" | "-h" => return Ok(Parsed::Help),
             other => return Err(format!("unknown argument: {other}")),
         }
@@ -118,7 +155,7 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
             let stream = stream.ok_or_else(|| "--stream is required".to_string())?;
             Input::Store {
                 path,
-                stream: parse_reference(&stream)?,
+                stream: Box::new(parse_reference(&stream)?),
             }
         }
         (None, None) => return Err("--journal or --store is required".to_string()),
@@ -129,6 +166,8 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
         selection,
         watch,
         plain,
+        format,
+        output,
     }))
 }
 
@@ -195,7 +234,15 @@ pub fn render_frame(
     let journal = admit_input(options)?;
     let report = build_report(&profile.profile, &journal, &options.selection)
         .map_err(|error| format!("dashboard projection: {}: {}", error.code, error.message))?;
-    print!("{}", render_report(&report, style));
+    let rendered = match options.format {
+        ReportFormat::Text => render_report(&report, style),
+        ReportFormat::Html => render_html(&report),
+    };
+    match &options.output {
+        Some(path) => std::fs::write(path, rendered)
+            .map_err(|error| format!("report write failed: {error}"))?,
+        None => print!("{rendered}"),
+    }
     Ok(())
 }
 

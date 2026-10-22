@@ -721,3 +721,85 @@ fn sqlite_event_store_is_read_only_for_the_dashboard() {
     );
     assert!(!absent.exists(), "the dashboard must not create a store");
 }
+
+// r[verify kiln.observe.dashboard.html]
+#[test]
+fn html_report_states_the_same_facts_as_the_text_report() {
+    let journal = admitted(2);
+    let profile = dashboard_profile();
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let html = kiln_dashboard::render::html::render_html(&report);
+    let text = render_report(&report, RenderStyle::Plain);
+    assert!(html.starts_with("<!DOCTYPE html>"));
+    assert!(html.contains("state revision"));
+    assert!(html.contains("<dt>state revision</dt><dd>2</dd>"));
+    assert!(html.contains("kiln.observe.view.v1 identity"));
+    assert!(html.contains("non-claims"));
+    for non_claim in &profile.non_claims {
+        assert!(html.contains(non_claim), "missing non-claim: {non_claim}");
+        assert!(text.contains(non_claim), "missing non-claim: {non_claim}");
+    }
+    for view in [&report.views.summary, &report.views.events] {
+        assert!(html.contains(view.identity.as_str()));
+    }
+    for view in &report.views.runs.views {
+        assert!(html.contains(view.identity.as_str()));
+    }
+}
+
+// r[verify kiln.observe.dashboard.html.scenario.self_contained]
+#[test]
+fn html_report_is_self_contained_and_deterministic() {
+    let journal = admitted(2);
+    let profile = dashboard_profile();
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let html = kiln_dashboard::render::html::render_html(&report);
+    assert_eq!(html, kiln_dashboard::render::html::render_html(&report));
+    assert!(!html.contains("<script"));
+    assert!(!html.contains("http://"));
+    assert!(!html.contains("https://"));
+    assert!(html.contains("<style>"));
+}
+
+// r[verify kiln.observe.dashboard.html.scenario.escaping]
+#[test]
+fn html_report_escapes_dynamic_content() {
+    let document = JournalDocument::parse(&journal_document(1)).unwrap_or_else(|_| unreachable!());
+    let mut value: serde_json::Value =
+        serde_json::from_slice(&journal_document(1)).unwrap_or_else(|_| unreachable!());
+    let records = value
+        .get_mut("records")
+        .and_then(|value| value.as_array_mut())
+        .unwrap_or_else(|| unreachable!());
+    let record = records.first_mut().unwrap_or_else(|| unreachable!());
+    let event = record
+        .get_mut("event")
+        .and_then(|value| value.as_object_mut())
+        .unwrap_or_else(|| unreachable!());
+    let variant = event
+        .values_mut()
+        .next()
+        .and_then(|value| value.as_object_mut())
+        .unwrap_or_else(|| unreachable!());
+    variant.insert(
+        "command_id".to_string(),
+        serde_json::json!("<script>alert(1)</script>"),
+    );
+    let bytes = serde_json::to_vec(&value).unwrap_or_else(|_| unreachable!());
+    let tampered = JournalDocument::parse(&bytes).unwrap_or_else(|_| unreachable!());
+    let error = match admit_document(&tampered) {
+        Ok(_) => unreachable!(),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, "event_identity_mismatch");
+    let _ = document;
+
+    let journal = admitted(1);
+    let profile = dashboard_profile();
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let html = kiln_dashboard::render::html::render_html(&report);
+    assert!(!html.contains("<script>alert(1)</script>"));
+}

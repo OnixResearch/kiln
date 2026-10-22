@@ -119,6 +119,28 @@ sample SQLite event store. `cargo run -p kiln-onixos-pilot --example
 write_sample_journal -- /tmp/pilot/journal.json` writes a journal with the
 pilot's own writer, which is how the checked-in pilot fixture was produced.
 
+## HTML report
+
+The dashboard can also write the same admitted report as a self-contained HTML
+document.
+
+```console
+$ kiln-dashboard --journal path/to/journal.json --profile path/to/profile.json \
+    --format html --output dashboard.html
+$ kiln dashboard --journal path/to/journal.json --profile path/to/profile.json \
+    --format html --output dashboard.html
+```
+
+The document carries its style inline, contains no script, and references no
+external resource, so it opens without a network and states what it states
+without an interpreter. It renders the same admitted views as the terminal
+report: the observed state revision, the profile identities, the declared
+journal identity, the recorded view identities, the redacted fields, and the
+declared non-claims. The same admitted state renders the same bytes.
+
+The HTML report is a snapshot of one admitted revision. It does not refresh;
+watch mode still redraws the terminal report.
+
 ## Property-based terminal rail
 
 The dashboard's rendered surface is checked by a property-based rail. The rail
@@ -147,6 +169,26 @@ The check keeps the captured terminal traces as build outputs. The fixtures
 are a small admitted journal, an admitted journal larger than the admitted run
 bound, a journal written by the OnixOS pilot's own writer, a tampered journal,
 and the `kiln` CLI's demo and evidence surfaces.
+
+The rendered HTML report is checked by the same tool's browser driver, which
+drives the document in a browser and states that the document shows the
+observed facts, carries no script, and loads no external resource. That rail
+found two defects the Rust tests did not: a missing section heading and a
+style rule that rewrote the case of an identifier the document states.
+
+The browser rail runs where a browser is reachable. It is not a Nix check
+because the build sandbox gives the browser no loopback it can reach, and the
+builder refuses a derivation that asks to run without the sandbox. The
+report's contract is gated by the crate's tests instead: they bind the HTML
+report to the terminal report and assert determinism, self-containment, and
+escaping. Run the browser rail locally with:
+
+```console
+$ kiln-dashboard --journal checks/bombadil/journal-pilot.json \
+    --profile fixtures/dashboard/profile-v1.json --format html --output dashboard.html
+$ bombadil browser test --headless --time-limit 30s \
+    "file://$PWD/dashboard.html" checks/bombadil/kiln-dashboard-html.spec.ts
+```
 
 Each property states its expectation only once the captured state carries the
 program's exit status. A terminated terminal trace satisfies Bombadil's

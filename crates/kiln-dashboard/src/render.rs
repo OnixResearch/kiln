@@ -1,3 +1,5 @@
+pub mod html;
+
 use kiln_core::domain::Outcome;
 use kiln_observe_core::{AttemptDetailView, EventProjection, RunDetailView, ViewBody, ViewField};
 
