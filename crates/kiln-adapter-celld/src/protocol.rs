@@ -135,10 +135,10 @@ fn authenticate_field(mac: &mut hmac::Hmac<sha2::Sha256>, field: &[u8]) {
     mac.update(field);
 }
 
-pub fn sign_envelope(
+fn celld_mac(
     secret: &[u8],
     envelope: &AuthEnvelope,
-) -> Result<[u8; crate::HMAC_DIGEST_BYTES], Diagnostic> {
+) -> Result<hmac::Hmac<sha2::Sha256>, Diagnostic> {
     use hmac::Mac;
     let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(secret).map_err(|_| {
         Diagnostic::new(
@@ -182,6 +182,15 @@ pub fn sign_envelope(
     );
     authenticate_field(&mut mac, envelope.payload_identity.as_str().as_bytes());
     authenticate_field(&mut mac, &envelope.body);
+    Ok(mac)
+}
+
+pub fn sign_envelope(
+    secret: &[u8],
+    envelope: &AuthEnvelope,
+) -> Result<[u8; crate::HMAC_DIGEST_BYTES], Diagnostic> {
+    use hmac::Mac;
+    let mac = celld_mac(secret, envelope)?;
     let digest = mac.finalize().into_bytes();
     let mut output = [0u8; crate::HMAC_DIGEST_BYTES];
     output.copy_from_slice(&digest);
@@ -193,14 +202,15 @@ pub fn verify_envelope(
     envelope: &AuthEnvelope,
     signature: &[u8; crate::HMAC_DIGEST_BYTES],
 ) -> CoreResult<()> {
-    let expected = sign_envelope(secret, envelope)?;
-    if *signature != expected {
-        return Err(Diagnostic::new(
+    use hmac::Mac;
+    let mac = celld_mac(secret, envelope)?;
+    mac.verify_slice(signature).map_err(|_| {
+        Diagnostic::new(
             "celld_signature",
             "celld.transport.signature",
             "celld envelope signature does not match the admitted key, timestamp, nonce, and body",
-        ));
-    }
+        )
+    })?;
     Ok(())
 }
 
