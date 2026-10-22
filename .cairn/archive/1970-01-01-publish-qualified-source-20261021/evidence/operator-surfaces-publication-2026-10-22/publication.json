@@ -1,0 +1,163 @@
+{
+  "schema": "kiln.qualified-source-publication.v1",
+  "recorded_at_utc": "2026-10-22T00:00:00Z",
+  "owner": "Kiln maintainers",
+  "state": "PASS-source-only-fast-forward-and-exact-native-anonymous-readbacks",
+  "operator_request": "commit and push",
+  "authority": {
+    "basis": "operator request \"commit and push\" and \"do all of these\" for the operator surfaces",
+    "scope": "Source-only fast-forward of canonical Radicle main and the read-only GitHub projection from 141ec4d211c021a87da441070a5a6b3cc2378d76 to 298e1e27a2f938bb266fb043382f994c09d72946",
+    "canonical_radicle_push_authorized": true,
+    "github_mirror_push_authorized": true,
+    "governance_change_authorized": false,
+    "history_rewrite_authorized": false,
+    "force_push_authorized": false,
+    "production_deployment_authorized": false,
+    "binary_release_authorized": false,
+    "announcement_authorized": false
+  },
+  "candidate_revision": "298e1e27a2f938bb266fb043382f994c09d72946",
+  "published_source_revision": "298e1e27a2f938bb266fb043382f994c09d72946",
+  "previous_main_revision": {
+    "canonical_radicle": "141ec4d211c021a87da441070a5a6b3cc2378d76",
+    "github_projection": "141ec4d211c021a87da441070a5a6b3cc2378d76"
+  },
+  "rollback_target": {
+    "canonical_radicle": "141ec4d211c021a87da441070a5a6b3cc2378d76",
+    "github_projection": "141ec4d211c021a87da441070a5a6b3cc2378d76"
+  },
+  "history_rewritten": false,
+  "force_push_used": false,
+  "commits_above_previous_main": 2,
+  "source_archive": {
+    "format": "normalized GNU tar USTAR",
+    "blake3": "c5abd96b6e77427daf16d11a619c05499cc6bced3ab414e0ee94915819e8d4e1",
+    "bytes": 63825920,
+    "tracked_members": 4549,
+    "recipe": [
+      "--create",
+      "--format=ustar",
+      "--mtime=@0",
+      "--owner=0",
+      "--group=0",
+      "--numeric-owner",
+      "--mode=u=rwX,go=rX",
+      "--no-recursion",
+      "--null"
+    ],
+    "member_order": "lexically sorted candidate jj file list; NUL separated"
+  },
+  "source_paths": {
+    "path": "source-paths.json",
+    "blake3": "6be187bca19349e9839f7ab59ea4f32bb1ea8dc00e72b01ed6cf48b42abc049a",
+    "entries": 4549,
+    "encoding": "UTF-8 compact JSON array, no trailing newline"
+  },
+  "content": {
+    "operator_surfaces": "kiln dashboard: a canonical SQLite event store input opened read only, the kiln dashboard operator command, and the operator CLI property rail",
+    "shell_written_fixture": "checks/bombadil/journal-pilot.json, a journal written by the OnixOS pilot own writer",
+    "gates": "cargo test/clippy/fmt, nix flake check (format, clippy, tests, nickel, octet, bombadil), Cairn validation, traceability coverage, release readiness, policy export freshness"
+  },
+  "governance": {
+    "before": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "default_branch": "main",
+      "signed_refs_revision": "ab9ab4a83e71af4ba23efa98dc5dd16432ea5ebe"
+    },
+    "after": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "default_branch": "main",
+      "signed_refs_revision": "3dee70cc53439441780d648f04b1d3e0f0ab9972"
+    },
+    "changed": false,
+    "visibility": "public"
+  },
+  "targets": [
+    {
+      "name": "radicle",
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "ref": "refs/heads/main",
+      "revision": "298e1e27a2f938bb266fb043382f994c09d72946",
+      "push_observation": "Changes to push to rad:\n  bookmark: main [move forward from 141ec4d211c0 to 298e1e27a2f9]\ngit: \u2713 Canonical reference refs/heads/main updated to target commit 298e1e27a2f938bb266fb043382f994c09d72946        \ngit: \u2713 Synced with 2 seed(s)        \ngit: \ngit:   https://app.radicle.xyz/nodes/iris.radicle.xyz/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/298e1e27a2f938bb266fb043382f994c09d72946        \ngit:",
+      "authority": "Canonical Radicle governance unchanged: one delegate, threshold one, public visibility"
+    },
+    {
+      "name": "github",
+      "url": "https://github.com/OnixResearch/kiln.git",
+      "ref": "refs/heads/main",
+      "revision": "298e1e27a2f938bb266fb043382f994c09d72946",
+      "push_observation": "Changes to push to github:\n  bookmark: main [move forward from 141ec4d211c0 to 298e1e27a2f9]",
+      "authority": "Read-only projection; default branch main and public visibility unchanged"
+    }
+  ],
+  "acquisitions": [
+    {
+      "name": "radicle",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "anonymous": false,
+      "source_revision": "298e1e27a2f938bb266fb043382f994c09d72946",
+      "tracked_members": 4549,
+      "source_paths_blake3": "6be187bca19349e9839f7ab59ea4f32bb1ea8dc00e72b01ed6cf48b42abc049a",
+      "source_archive_blake3": "c5abd96b6e77427daf16d11a619c05499cc6bced3ab414e0ee94915819e8d4e1",
+      "source_archive_bytes": 63825920,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    },
+    {
+      "name": "garden",
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "anonymous": true,
+      "source_revision": "298e1e27a2f938bb266fb043382f994c09d72946",
+      "tracked_members": 4549,
+      "source_paths_blake3": "6be187bca19349e9839f7ab59ea4f32bb1ea8dc00e72b01ed6cf48b42abc049a",
+      "source_archive_blake3": "c5abd96b6e77427daf16d11a619c05499cc6bced3ab414e0ee94915819e8d4e1",
+      "source_archive_bytes": 63825920,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    },
+    {
+      "name": "github",
+      "url": "https://github.com/OnixResearch/kiln.git",
+      "anonymous": true,
+      "source_revision": "298e1e27a2f938bb266fb043382f994c09d72946",
+      "tracked_members": 4549,
+      "source_paths_blake3": "6be187bca19349e9839f7ab59ea4f32bb1ea8dc00e72b01ed6cf48b42abc049a",
+      "source_archive_blake3": "c5abd96b6e77427daf16d11a619c05499cc6bced3ab414e0ee94915819e8d4e1",
+      "source_archive_bytes": 63825920,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    }
+  ],
+  "anonymous_environment": {
+    "fresh_home": true,
+    "global_and_system_git_config_disabled": true,
+    "credential_helper_disabled": true,
+    "askpass_disabled": true,
+    "ssh_agent_not_inherited": true,
+    "git_protocol_version": 0
+  },
+  "evidence_index": {
+    "publication_receipt": "publication.json",
+    "readbacks": "readbacks.json",
+    "governance_observation": "governance-after.json",
+    "repository_checks": "repository-checks.json",
+    "replica_observation": "replica-observation.json",
+    "command_record": "commands.json",
+    "source_path_manifest": "source-paths.json",
+    "narrative": "verification.md"
+  },
+  "non_claims": [
+    "Source and evidence live in separate revisions; this receipt is not inside the source archive it identifies",
+    "Archive and readback equality prove only the observed RID, revision, path, route, archive and policy facts",
+    "This publication does not prove source correctness, build reproducibility, deployment, binary release or future availability",
+    "The GitHub projection remains a read-only projection and does not carry Radicle governance",
+    "No governance, delegate, threshold, visibility, announcement or deployment change was performed",
+    "Earlier publication receipts retain their original meaning"
+  ]
+}
