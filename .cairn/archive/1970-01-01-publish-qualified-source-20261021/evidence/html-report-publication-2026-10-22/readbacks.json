@@ -1,0 +1,66 @@
+{
+  "schema": "kiln.qualified-source-publication.readbacks.v1",
+  "source_revision": "5adc05a5b82f570f6d03f2ec39755d6c61df2a85",
+  "source_archive": {
+    "format": "normalized GNU tar USTAR",
+    "blake3": "149082ab0f4ebfbca57adf121db7fd7d057b1d6e4f165018ed9541aa49ee3af0",
+    "bytes": 64296960,
+    "tracked_members": 4565,
+    "recipe": [
+      "--create",
+      "--format=ustar",
+      "--mtime=@0",
+      "--owner=0",
+      "--group=0",
+      "--numeric-owner",
+      "--mode=u=rwX,go=rX",
+      "--no-recursion",
+      "--null"
+    ],
+    "member_order": "lexically sorted candidate jj file list; NUL separated"
+  },
+  "source_paths": {
+    "path": "source-paths.json",
+    "blake3": "3f951869523b5ac7b3faf391aa5b89c2bee28df90835f41a88dc193cb75f5bb7",
+    "entries": 4565,
+    "encoding": "UTF-8 compact JSON array, no trailing newline"
+  },
+  "acquisitions": [
+    {
+      "name": "radicle",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "anonymous": false,
+      "source_revision": "5adc05a5b82f570f6d03f2ec39755d6c61df2a85",
+      "tracked_members": 4565,
+      "source_paths_blake3": "3f951869523b5ac7b3faf391aa5b89c2bee28df90835f41a88dc193cb75f5bb7",
+      "source_archive_blake3": "149082ab0f4ebfbca57adf121db7fd7d057b1d6e4f165018ed9541aa49ee3af0",
+      "source_archive_bytes": 64296960,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    },
+    {
+      "name": "garden",
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "anonymous": true,
+      "source_revision": "5adc05a5b82f570f6d03f2ec39755d6c61df2a85",
+      "tracked_members": 4565,
+      "source_paths_blake3": "3f951869523b5ac7b3faf391aa5b89c2bee28df90835f41a88dc193cb75f5bb7",
+      "source_archive_blake3": "149082ab0f4ebfbca57adf121db7fd7d057b1d6e4f165018ed9541aa49ee3af0",
+      "source_archive_bytes": 64296960,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    },
+    {
+      "name": "github",
+      "url": "https://github.com/OnixResearch/kiln.git",
+      "anonymous": true,
+      "source_revision": "5adc05a5b82f570f6d03f2ec39755d6c61df2a85",
+      "tracked_members": 4565,
+      "source_paths_blake3": "3f951869523b5ac7b3faf391aa5b89c2bee28df90835f41a88dc193cb75f5bb7",
+      "source_archive_blake3": "149082ab0f4ebfbca57adf121db7fd7d057b1d6e4f165018ed9541aa49ee3af0",
+      "source_archive_bytes": 64296960,
+      "source_paths_match": true,
+      "source_archive_matches": true
+    }
+  ]
+}
