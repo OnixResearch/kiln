@@ -1,0 +1,18 @@
+{
+  "schema": "kiln.qualified-source-publication.replica-observation.v1",
+  "node_url": "https://rosa.radicle.network/api/v1/node",
+  "node_id": "z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo",
+  "repository_url": "https://rosa.radicle.network/api/v1/repos/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "refs": {
+    "refs/heads/main": "dc27a21c8f2110c5796875556a359996c045556f"
+  },
+  "delegates": [
+    "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+  ],
+  "threshold": 1,
+  "visibility": {
+    "type": "public"
+  },
+  "scope": "The repository API answered 504 Gateway Time-out while this receipt was written, so the fresh repository-API observation is replaced by the Garden seed and GitHub reference reads and the local node view; not indefinite availability or independent physical replication proof"
+}

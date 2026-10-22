@@ -1,0 +1,35 @@
+{
+  "schema": "kiln.qualified-source-publication.governance-after.v1",
+  "observed_at_utc": "2026-10-22T11:05:00Z",
+  "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+  "identity": {
+    "payload": {
+      "xyz.radicle.project": {
+        "defaultBranch": "main",
+        "description": "Provider-neutral CI control plane",
+        "name": "Kiln"
+      }
+    },
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1,
+    "observation_source": "The local Radicle node read-only view: the repository identity payload, the delegate identity, and the repository head. The Rosa HTTP repository API answered 504 Gateway Time-out while this receipt was written, so the fresh repository-API observation is not part of this receipt."
+  },
+  "signed_refs": {
+    "before": "559a33130b9d88ba0496394e61f53f6aa47119ad",
+    "after": "e8fe76e11ab08335a1419f68d49e4d709b8522dc"
+  },
+  "canonical_main": {
+    "before": "5adc05a5b82f570f6d03f2ec39755d6c61df2a85",
+    "after": "dc27a21c8f2110c5796875556a359996c045556f"
+  },
+  "threshold_unchanged": true,
+  "delegate_set_unchanged": true,
+  "visibility": "public",
+  "non_claims": [
+    "Fresh read-only observation of the governed repository after the authorized source push",
+    "The repository API observation was unavailable at receipt time; the governance facts come from the local node view",
+    "This observation is not a proof of future availability or of delegate honesty"
+  ]
+}
