@@ -1,0 +1,102 @@
+{
+  "identity": "0000000000000000000000000000000000000000000000000000000000000000",
+  "records": [
+    {
+      "event": {
+        "RunStarted": {
+          "attempt_id": "attempt-0",
+          "command_id": "command-0-tampered",
+          "provider_profile": "build-v1",
+          "run_id": "run-0"
+        }
+      },
+      "event_identity": {
+        "contract_version": 1,
+        "native_id": "ec4b09bf1243938fd070bb105d261da47f1422cb37e39213d9f7873d5286281a",
+        "native_kind": "pilot-event-blake3",
+        "provider_namespace": "kiln"
+      },
+      "expected_revision": 0,
+      "schema_version": 1,
+      "stream": {
+        "contract_version": 1,
+        "native_id": "operation-1",
+        "native_kind": "sample-ingress",
+        "provider_namespace": "kiln"
+      }
+    },
+    {
+      "event": {
+        "RunStarted": {
+          "attempt_id": "attempt-1",
+          "command_id": "command-1",
+          "provider_profile": "build-v1",
+          "run_id": "run-1"
+        }
+      },
+      "event_identity": {
+        "contract_version": 1,
+        "native_id": "8fda710e5a3cc8abbd96a83a744684ef783f8e1850db846d5c01d1ae1eafa685",
+        "native_kind": "pilot-event-blake3",
+        "provider_namespace": "kiln"
+      },
+      "expected_revision": 1,
+      "schema_version": 1,
+      "stream": {
+        "contract_version": 1,
+        "native_id": "operation-1",
+        "native_kind": "sample-ingress",
+        "provider_namespace": "kiln"
+      }
+    },
+    {
+      "event": {
+        "RunStarted": {
+          "attempt_id": "attempt-2",
+          "command_id": "command-2",
+          "provider_profile": "build-v1",
+          "run_id": "run-2"
+        }
+      },
+      "event_identity": {
+        "contract_version": 1,
+        "native_id": "7236b2a0d4409a24e2ba95a308d3a6e07032e0874f404a784edf4abf41ec22b6",
+        "native_kind": "pilot-event-blake3",
+        "provider_namespace": "kiln"
+      },
+      "expected_revision": 2,
+      "schema_version": 1,
+      "stream": {
+        "contract_version": 1,
+        "native_id": "operation-1",
+        "native_kind": "sample-ingress",
+        "provider_namespace": "kiln"
+      }
+    },
+    {
+      "event": {
+        "RunStarted": {
+          "attempt_id": "attempt-3",
+          "command_id": "command-3",
+          "provider_profile": "build-v1",
+          "run_id": "run-3"
+        }
+      },
+      "event_identity": {
+        "contract_version": 1,
+        "native_id": "cc8b4b7112653e0b754a6a7676769340b7e10e52797ab9a7fa61c2971551b405",
+        "native_kind": "pilot-event-blake3",
+        "provider_namespace": "kiln"
+      },
+      "expected_revision": 3,
+      "schema_version": 1,
+      "stream": {
+        "contract_version": 1,
+        "native_id": "operation-1",
+        "native_kind": "sample-ingress",
+        "provider_namespace": "kiln"
+      }
+    }
+  ],
+  "schema": "kiln.sample.journal.v1"
+}

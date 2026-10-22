@@ -5740,6 +5740,20 @@
             ],
             "root": "scripts",
             "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "ts"
+            ],
+            "root": "checks/bombadil",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "nix"
+            ],
+            "root": "flake.nix",
+            "source_kind": "tool_source"
           }
         ],
         "id": "cairn-default",

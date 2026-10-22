@@ -8,6 +8,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-eval-jobs.url = "github:NixOS/nix-eval-jobs/a0cd02231c58974a6b5aaa3712069b071047162e";
+    bombadil = {
+      url = "github:antithesishq/bombadil/832faf4d953e2c56d1d901aca1bb2c3c3170221d";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -16,6 +20,7 @@
       nixpkgs,
       rust-overlay,
       nix-eval-jobs,
+      bombadil,
     }:
     let
       systems = [
@@ -158,6 +163,9 @@
             executable = "${package}/bin/nix-eval-jobs";
           }
         );
+      # Property-based testing rail for terminal surfaces. The binary is a
+      # separately executed tool; it never links into Kiln.
+      bombadilPackageFor = system: bombadil.packages.${system}.default;
       packageFor =
         system:
         let
@@ -904,6 +912,42 @@
             done
             touch "$out"
           '';
+          # Property-based terminal rail for the operator dashboard. The
+          # tool is separately executed and never linked into a Kiln package.
+          # r[impl kiln.observe.dashboard.property_rail.cohort]
+          # r[impl kiln.observe.dashboard.property_rail.cohort.scenario.pin]
+          bombadil = pkgs.runCommand "kiln-bombadil" { nativeBuildInputs = [ (bombadilPackageFor system) ]; }
+            ''
+              ${copySource}
+              export HOME="$PWD/home"
+              mkdir -p "$HOME" traces
+              cp checks/bombadil/journal-4-runs.json checks/bombadil/journal.json
+              bombadil terminal test \
+                --specification checks/bombadil/kiln-dashboard.spec.ts \
+                --rows 200 --columns 160 --time-limit 60s \
+                --output-path "$PWD/traces/admitted-4-runs" --output-path-overwrite \
+                -- ${packageFor system}/bin/kiln-dashboard \
+                --journal checks/bombadil/journal.json \
+                --profile fixtures/dashboard/profile-v1.json
+              cp checks/bombadil/journal-20-runs.json checks/bombadil/journal.json
+              bombadil terminal test \
+                --specification checks/bombadil/kiln-dashboard.spec.ts \
+                --rows 200 --columns 160 --time-limit 60s \
+                --output-path "$PWD/traces/bounded-20-runs" --output-path-overwrite \
+                -- ${packageFor system}/bin/kiln-dashboard \
+                --journal checks/bombadil/journal.json \
+                --profile fixtures/dashboard/profile-v1.json
+              cp checks/bombadil/journal-tampered.json checks/bombadil/journal.json
+              bombadil terminal test \
+                --specification checks/bombadil/kiln-dashboard-rejected.spec.ts \
+                --rows 200 --columns 160 --time-limit 60s \
+                --output-path "$PWD/traces/rejected-tampered" --output-path-overwrite \
+                -- ${packageFor system}/bin/kiln-dashboard \
+                --journal checks/bombadil/journal.json \
+                --profile fixtures/dashboard/profile-v1.json
+              rm checks/bombadil/journal.json
+              cp -r traces "$out"
+            '';
           cairn-gate-cohort = pkgs.runCommand "kiln-cairn-gate-cohort" { } ''
             test '${cairnGateRevision}' = '15f00875562025e7ea7e0d1f4af24d1a2e2ac06f'
             cmp ${cairnGateSource}/fixtures/cairn-gate-contract/producer/fixtures-v1.json \

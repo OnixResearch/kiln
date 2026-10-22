@@ -92,6 +92,44 @@ output is a terminal and plain text otherwise.
 `cargo run -p kiln-dashboard --example sample_journal -- /tmp/journal.json 4`
 writes a sample canonical journal for rehearsal.
 
+## Property-based terminal rail
+
+The dashboard's rendered surface is checked by a property-based rail. The rail
+runs the packaged `kiln-dashboard` binary under a pseudo terminal with
+[Bombadil](https://github.com/antithesishq/bombadil), a property-based testing
+tool for web and terminal interfaces, pinned at revision
+`832faf4d953e2c56d1d901aca1bb2c3c3170221d`. The tool is separately executed;
+no Bombadil code is linked into a Kiln package.
+
+The specifications live in `checks/bombadil/`. Each one derives its
+expectations from the staged journal fixture and the checked-in dashboard
+profile, so a property does not restate a constant:
+
+- the finished report states the revision it observed, the profile it
+  projected through, and every declared non-claim;
+- the report renders at most the run bound the profile admits, and its
+  rendered rows agree with its own summary unless it reports truncation;
+- a journal whose event bytes do not match their recorded identity is refused
+  with a named admission failure and no report.
+
+```console
+$ nix build path:$PWD#checks.x86_64-linux.bombadil -L
+```
+
+The check keeps the captured terminal traces as build outputs. The three
+fixtures are a small admitted journal, an admitted journal larger than the
+admitted run bound, and a tampered journal.
+
+Each property states its expectation only once the captured state carries the
+program's exit status. A terminated terminal trace satisfies Bombadil's
+`eventually` operator vacuously, which would make the properties
+unfalsifiable, so the rail uses `always` with the exit-status condition
+instead. Every property was exercised against a deliberately wrong
+expectation and reported a violation.
+
+The rail covers three fixtures. It does not claim to have explored every
+journal, profile, or terminal input.
+
 ## Non-claims
 
 Passing dashboard checks do not prove CI success, provider correctness, source

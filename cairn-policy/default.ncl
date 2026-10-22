@@ -14,6 +14,8 @@ let KilnTraceabilityProfile = {
     { root = "src", source_kind = "tool_source", extensions = ["mjs"] },
     { root = "tests", source_kind = "tool_source", extensions = ["mjs", "sh"] },
     { root = "scripts", source_kind = "tool_source", extensions = ["py"] },
+    { root = "checks/bombadil", source_kind = "tool_source", extensions = ["ts"] },
+    { root = "flake.nix", source_kind = "tool_source", extensions = ["nix"] },
   ],
   marker_verbs = ["impl", "verify", "depends", "related"],
   assurance_level = "declared",

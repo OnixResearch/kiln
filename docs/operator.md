@@ -66,7 +66,10 @@ admits a canonical Kiln journal document, verifies every record's event
 identity by recomputation, replays the record stream canonically, and renders
 the bounded run, attempt, and event views as a deterministic terminal report.
 It reads only the journal and profile files the operator names and performs no
-effect. See [operator dashboard](observation-dashboard.md).
+effect. A property-based terminal rail drives the packaged binary under a
+pseudo terminal and checks the rendered report against properties derived from
+the staged journal and the checked-in profile. See
+[operator dashboard](observation-dashboard.md).
 
 ## Logs and follow
 
