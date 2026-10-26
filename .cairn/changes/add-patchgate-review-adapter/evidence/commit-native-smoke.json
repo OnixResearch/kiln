@@ -1,0 +1,119 @@
+{
+  "adapter": "/home/brittonr/.cargo-target/debug/kiln-patchgate-review",
+  "adapter_blake3": "1ccdd71632b2a19b2a4d32ad372d8c3817cf64b5ab037bb9ef7574fa46ec8fb2",
+  "cases": {
+    "accepted": {
+      "native_report": "{\n  \"schema_version\": 1,\n  \"dry_run\": true,\n  \"authorizes_acceptance\": false,\n  \"main\": {\n    \"channel\": \"main\",\n    \"state\": \"3LFIVIWPCX2PJRUAH4EC3GL5XWEG44ZDXZ6GCMZ26DPGB43VIOSAC\"\n  },\n  \"inbox\": {\n    \"channel\": \"inbox\",\n    \"state\": \"EK3NWMEIUG4S5VJMQAP5TGSUPOEKUE7YZFZ3XCR26D3CSDFBJ5JQC\"\n  },\n  \"configuration\": {\n    \"source\": \"main\",\n    \"path\": \"patchgate.json\",\n    \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n    \"values\": {\n      \"policy_path\": \"POLICY.md\",\n      \"protected\": [\n        \"src/**\"\n      ],\n      \"documentation_paths\": [\n        \"docs/**\"\n      ],\n      \"max_change_chars\": 8000,\n      \"timeout_seconds\": 300.0,\n      \"check_timeout_seconds\": 900.0,\n      \"max_review_requests\": 16,\n      \"review_timeout_seconds\": 60.0\n    }\n  },\n  \"items\": [\n    {\n      \"hash\": \"BV4GEE5HKNLB7ODWNUWIIQ3JDWJOL5HVOFHPIZODWXDAXZ3W26JQC\",\n      \"message\": \"Document behavior\",\n      \"paths\": [\n        \"docs/readme.md\"\n      ],\n      \"state\": \"accepted\",\n      \"reason\": \"\",\n      \"needs\": [],\n      \"decided\": true,\n      \"merge\": null,\n      \"note\": \"\"\n    }\n  ],\n  \"records\": [\n    {\n      \"hash\": \"BV4GEE5HKNLB7ODWNUWIIQ3JDWJOL5HVOFHPIZODWXDAXZ3W26JQC\",\n      \"decision\": \"accept\",\n      \"message\": \"Document behavior\",\n      \"by\": \"gate\",\n      \"summary\": \"\",\n      \"reason\": \"The change touches only documentation paths (docs/readme.md). Deterministic secret checks and the trusted Nix checks apply, and the model does not review it.\",\n      \"at\": \"2026-10-26T17:26:50+00:00\",\n      \"provenance\": {\n        \"requests\": [],\n        \"verifiers\": {\n          \"schema_version\": 1,\n          \"patchgate\": \"0.1.0\",\n          \"pijul\": \"pijul 1.0.0-beta.24\",\n          \"nix\": null\n        }\n      },\n      \"configuration\": {\n        \"source\": \"main\",\n        \"path\": \"patchgate.json\",\n        \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n        \"values\": {\n          \"policy_path\": \"POLICY.md\",\n          \"protected\": [\n            \"src/**\"\n          ],\n          \"documentation_paths\": [\n            \"docs/**\"\n          ],\n          \"max_change_chars\": 8000,\n          \"timeout_seconds\": 300.0,\n          \"check_timeout_seconds\": 900.0,\n          \"max_review_requests\": 16,\n          \"review_timeout_seconds\": 60.0\n        }\n      }\n    }\n  ],\n  \"selection\": {\n    \"requested_changes\": [\n      \"BV4GEE5HKNLB7ODWNUWIIQ3JDWJOL5HVOFHPIZODWXDAXZ3W26JQC\"\n    ],\n    \"requested_authors\": [],\n    \"include_dependencies\": false,\n    \"selected\": [\n      \"BV4GEE5HKNLB7ODWNUWIIQ3JDWJOL5HVOFHPIZODWXDAXZ3W26JQC\"\n    ],\n    \"added_dependencies\": []\n  },\n  \"review_usage\": {\n    \"requests\": 0,\n    \"max_requests\": 16,\n    \"elapsed_seconds\": 0.561443637,\n    \"timeout_seconds\": 60.0,\n    \"stop\": null\n  }\n}\n",
+      "observation": {
+        "authorizes_acceptance": false,
+        "candidate_id": "candidate-accepted",
+        "candidate_root": "ac8b734b9a5f96b2beb571a31c4fb5f941ada6e5a3e4d6062cc14cf04b48a0a0",
+        "contract_version": 1,
+        "effect_id": "review-accepted",
+        "idempotency_key": "371d4e049b2e0f3b95544a4db62f6d5d4a173989bd78948feab16add2cf2b89a",
+        "isolated": true,
+        "native_binding_identity": "f4992913f74c046bd8fa77ebef6f1116ec512d1952024cdb37f61e397fc3b99c",
+        "pipeline_revision": "native-fixture-pipeline",
+        "policy_identity": "d03d100d5f26d0bedbf9374c5df154de1f9381b01584b8e4931c5ffbb97f69d3",
+        "provider_profile": "patchgate-native-fixture",
+        "report_identity": "4ef18bf231d502b24ed24c34f3f739c20a9b968dfccfa46ac6e8856f25bab656",
+        "reviews": [
+          {
+            "change": {
+              "contract_version": 1,
+              "native_id": "BV4GEE5HKNLB7ODWNUWIIQ3JDWJOL5HVOFHPIZODWXDAXZ3W26JQC",
+              "native_kind": "change",
+              "provider_namespace": "pijul"
+            },
+            "decision": "accepted"
+          }
+        ]
+      },
+      "request_identity": "eec7af6a23c5b3c0b92a929c39a1471bdd20c71eafa9a9bc78a10e0c40be8cb3",
+      "schema": "kiln.patchgate.review.v1"
+    },
+    "escalated": {
+      "native_report": "{\n  \"schema_version\": 1,\n  \"dry_run\": true,\n  \"authorizes_acceptance\": false,\n  \"main\": {\n    \"channel\": \"main\",\n    \"state\": \"3LFIVIWPCX2PJRUAH4EC3GL5XWEG44ZDXZ6GCMZ26DPGB43VIOSAC\"\n  },\n  \"inbox\": {\n    \"channel\": \"inbox\",\n    \"state\": \"EK3NWMEIUG4S5VJMQAP5TGSUPOEKUE7YZFZ3XCR26D3CSDFBJ5JQC\"\n  },\n  \"configuration\": {\n    \"source\": \"main\",\n    \"path\": \"patchgate.json\",\n    \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n    \"values\": {\n      \"policy_path\": \"POLICY.md\",\n      \"protected\": [\n        \"src/**\"\n      ],\n      \"documentation_paths\": [\n        \"docs/**\"\n      ],\n      \"max_change_chars\": 8000,\n      \"timeout_seconds\": 300.0,\n      \"check_timeout_seconds\": 900.0,\n      \"max_review_requests\": 16,\n      \"review_timeout_seconds\": 60.0\n    }\n  },\n  \"items\": [\n    {\n      \"hash\": \"VLHFKEIPDNNQP7KGE3LPKZRD4DC2VHTY4VMX46GPBDHP3YQDBNKAC\",\n      \"message\": \"Change protected source\",\n      \"paths\": [\n        \"src/lib.rs\"\n      ],\n      \"state\": \"escalated\",\n      \"reason\": \"The change touches protected paths (src/lib.rs). A human must accept or reject it.\",\n      \"needs\": [],\n      \"decided\": true,\n      \"merge\": null,\n      \"note\": \"\"\n    }\n  ],\n  \"records\": [\n    {\n      \"hash\": \"VLHFKEIPDNNQP7KGE3LPKZRD4DC2VHTY4VMX46GPBDHP3YQDBNKAC\",\n      \"decision\": \"escalate\",\n      \"message\": \"Change protected source\",\n      \"by\": \"gate\",\n      \"summary\": \"\",\n      \"reason\": \"The change touches protected paths (src/lib.rs). A human must accept or reject it.\",\n      \"at\": \"2026-10-26T17:26:52+00:00\",\n      \"provenance\": {\n        \"requests\": [],\n        \"verifiers\": {\n          \"schema_version\": 1,\n          \"patchgate\": \"0.1.0\",\n          \"pijul\": \"pijul 1.0.0-beta.24\",\n          \"nix\": null\n        }\n      },\n      \"configuration\": {\n        \"source\": \"main\",\n        \"path\": \"patchgate.json\",\n        \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n        \"values\": {\n          \"policy_path\": \"POLICY.md\",\n          \"protected\": [\n            \"src/**\"\n          ],\n          \"documentation_paths\": [\n            \"docs/**\"\n          ],\n          \"max_change_chars\": 8000,\n          \"timeout_seconds\": 300.0,\n          \"check_timeout_seconds\": 900.0,\n          \"max_review_requests\": 16,\n          \"review_timeout_seconds\": 60.0\n        }\n      }\n    }\n  ],\n  \"selection\": {\n    \"requested_changes\": [\n      \"VLHFKEIPDNNQP7KGE3LPKZRD4DC2VHTY4VMX46GPBDHP3YQDBNKAC\"\n    ],\n    \"requested_authors\": [],\n    \"include_dependencies\": false,\n    \"selected\": [\n      \"VLHFKEIPDNNQP7KGE3LPKZRD4DC2VHTY4VMX46GPBDHP3YQDBNKAC\"\n    ],\n    \"added_dependencies\": []\n  },\n  \"review_usage\": {\n    \"requests\": 0,\n    \"max_requests\": 16,\n    \"elapsed_seconds\": 0.069631944,\n    \"timeout_seconds\": 60.0,\n    \"stop\": null\n  }\n}\n",
+      "observation": {
+        "authorizes_acceptance": false,
+        "candidate_id": "candidate-escalated",
+        "candidate_root": "a181fab4bebdd9e55b8881be4830a141f7c95b95acc6413658500fee895e51dc",
+        "contract_version": 1,
+        "effect_id": "review-escalated",
+        "idempotency_key": "146efa04c156f91c8fa46284a0257b3257f3c4adbe5de2302b8f07e10a0f72d7",
+        "isolated": true,
+        "native_binding_identity": "f4992913f74c046bd8fa77ebef6f1116ec512d1952024cdb37f61e397fc3b99c",
+        "pipeline_revision": "native-fixture-pipeline",
+        "policy_identity": "d03d100d5f26d0bedbf9374c5df154de1f9381b01584b8e4931c5ffbb97f69d3",
+        "provider_profile": "patchgate-native-fixture",
+        "report_identity": "ab535ecef6ec13a7d3355b0f4ff8d9281c052b4e0a852a87a7577344e6b07152",
+        "reviews": [
+          {
+            "change": {
+              "contract_version": 1,
+              "native_id": "VLHFKEIPDNNQP7KGE3LPKZRD4DC2VHTY4VMX46GPBDHP3YQDBNKAC",
+              "native_kind": "change",
+              "provider_namespace": "pijul"
+            },
+            "decision": "escalated"
+          }
+        ]
+      },
+      "request_identity": "2b5b91e564d2eb691290d595f27fbde9910ab35dab57b3b3bb060bd4f6a8c56f",
+      "schema": "kiln.patchgate.review.v1"
+    },
+    "rejected": {
+      "native_report": "{\n  \"schema_version\": 1,\n  \"dry_run\": true,\n  \"authorizes_acceptance\": false,\n  \"main\": {\n    \"channel\": \"main\",\n    \"state\": \"3LFIVIWPCX2PJRUAH4EC3GL5XWEG44ZDXZ6GCMZ26DPGB43VIOSAC\"\n  },\n  \"inbox\": {\n    \"channel\": \"inbox\",\n    \"state\": \"EK3NWMEIUG4S5VJMQAP5TGSUPOEKUE7YZFZ3XCR26D3CSDFBJ5JQC\"\n  },\n  \"configuration\": {\n    \"source\": \"main\",\n    \"path\": \"patchgate.json\",\n    \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n    \"values\": {\n      \"policy_path\": \"POLICY.md\",\n      \"protected\": [\n        \"src/**\"\n      ],\n      \"documentation_paths\": [\n        \"docs/**\"\n      ],\n      \"max_change_chars\": 8000,\n      \"timeout_seconds\": 300.0,\n      \"check_timeout_seconds\": 900.0,\n      \"max_review_requests\": 16,\n      \"review_timeout_seconds\": 60.0\n    }\n  },\n  \"items\": [\n    {\n      \"hash\": \"C3LBJPIPYBTV7FPBYDB2YT67E7BOV4Q5GZBNWLNFXODP2ZPKJ5GQC\",\n      \"message\": \"[message omitted: credential data]\",\n      \"paths\": [],\n      \"state\": \"rejected\",\n      \"reason\": \"Deterministic secret checks rejected the change (private-key). Remove the credential data before another review.\",\n      \"needs\": [],\n      \"decided\": true,\n      \"merge\": null,\n      \"note\": \"\"\n    }\n  ],\n  \"records\": [\n    {\n      \"hash\": \"C3LBJPIPYBTV7FPBYDB2YT67E7BOV4Q5GZBNWLNFXODP2ZPKJ5GQC\",\n      \"decision\": \"reject\",\n      \"message\": \"[message omitted: credential data]\",\n      \"by\": \"gate\",\n      \"summary\": \"\",\n      \"reason\": \"Deterministic secret checks rejected the change (private-key). Remove the credential data before another review.\",\n      \"at\": \"2026-10-26T17:26:51+00:00\",\n      \"provenance\": {\n        \"requests\": [],\n        \"verifiers\": {\n          \"schema_version\": 1,\n          \"patchgate\": \"0.1.0\",\n          \"pijul\": \"pijul 1.0.0-beta.24\",\n          \"nix\": null\n        }\n      },\n      \"findings\": [\n        {\n          \"rule_id\": \"private-key\",\n          \"path\": \"notes/sample.txt\",\n          \"line\": 1\n        }\n      ],\n      \"configuration\": {\n        \"source\": \"main\",\n        \"path\": \"patchgate.json\",\n        \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n        \"values\": {\n          \"policy_path\": \"POLICY.md\",\n          \"protected\": [\n            \"src/**\"\n          ],\n          \"documentation_paths\": [\n            \"docs/**\"\n          ],\n          \"max_change_chars\": 8000,\n          \"timeout_seconds\": 300.0,\n          \"check_timeout_seconds\": 900.0,\n          \"max_review_requests\": 16,\n          \"review_timeout_seconds\": 60.0\n        }\n      }\n    }\n  ],\n  \"selection\": {\n    \"requested_changes\": [\n      \"C3LBJPIPYBTV7FPBYDB2YT67E7BOV4Q5GZBNWLNFXODP2ZPKJ5GQC\"\n    ],\n    \"requested_authors\": [],\n    \"include_dependencies\": false,\n    \"selected\": [\n      \"C3LBJPIPYBTV7FPBYDB2YT67E7BOV4Q5GZBNWLNFXODP2ZPKJ5GQC\"\n    ],\n    \"added_dependencies\": []\n  },\n  \"review_usage\": {\n    \"requests\": 0,\n    \"max_requests\": 16,\n    \"elapsed_seconds\": 0.30707301,\n    \"timeout_seconds\": 60.0,\n    \"stop\": null\n  }\n}\n",
+      "observation": {
+        "authorizes_acceptance": false,
+        "candidate_id": "candidate-rejected",
+        "candidate_root": "2a2e4cca7c1d5d6a9ba994f0dc913ac94b023f84144773dbc333f3b79f8f21de",
+        "contract_version": 1,
+        "effect_id": "review-rejected",
+        "idempotency_key": "8fbe5a317f64358115e6821824aa2ab2938cc2c135529cfc7b68635fa4dabb37",
+        "isolated": true,
+        "native_binding_identity": "f4992913f74c046bd8fa77ebef6f1116ec512d1952024cdb37f61e397fc3b99c",
+        "pipeline_revision": "native-fixture-pipeline",
+        "policy_identity": "d03d100d5f26d0bedbf9374c5df154de1f9381b01584b8e4931c5ffbb97f69d3",
+        "provider_profile": "patchgate-native-fixture",
+        "report_identity": "bcdd13de8f4608a51fa52b39acc9d973604356df465af1869690f69e3d82ad87",
+        "reviews": [
+          {
+            "change": {
+              "contract_version": 1,
+              "native_id": "C3LBJPIPYBTV7FPBYDB2YT67E7BOV4Q5GZBNWLNFXODP2ZPKJ5GQC",
+              "native_kind": "change",
+              "provider_namespace": "pijul"
+            },
+            "decision": "rejected"
+          }
+        ]
+      },
+      "request_identity": "638b3ad3aaf56fd58b24990cef3c1540cea1d7ed2853f7208a34a27b96637f74",
+      "schema": "kiln.patchgate.review.v1"
+    }
+  },
+  "initial_states": {
+    "inbox": "EK3NWMEIUG4S5VJMQAP5TGSUPOEKUE7YZFZ3XCR26D3CSDFBJ5JQC",
+    "main": "3LFIVIWPCX2PJRUAH4EC3GL5XWEG44ZDXZ6GCMZ26DPGB43VIOSAC",
+    "snapshot-accepted": "ZB2DFZR2FAFY6I5YKL5K7NRAKWCBMWDMRIGUTZZ7VTHOTIZJJBOAC",
+    "snapshot-escalated": "KM74IDRLBFOWSAHCSVCM57LEP2YLLG5DWX6FJXWANA7XKQ767QAQC",
+    "snapshot-rejected": "LULVYCDBFWODN6WB525PFPCAVKFCGQP5A2DOAR6RN4RFNP656MBAC"
+  },
+  "model_requests": 0,
+  "non_claims": [
+    "no model accuracy, remote delivery, deployment or release qualification",
+    "no source mutation or acceptance authority",
+    "no compatibility claim for Kiln's beta.11 Pijul library adapter",
+    "fixture source identities hash measured native archives, not a new tree identity profile"
+  ],
+  "patchgate": "/nix/store/cyn6h6pddjgml7jnyamn381majj229n2-patchgate-0.1.0/bin/patchgate",
+  "patchgate_blake3": "f5c1316608719e091b9d7518ca39dd1a8afcd32cc644fd4d92e64d958221a3fe",
+  "pijul": "/nix/store/i4m5x0wjb2xihxwajjhg8sy0n001cn8l-pijul-1.0.0-beta.24/bin/pijul",
+  "pijul_version": "pijul 1.0.0-beta.24",
+  "reconciled_exact_evidence": true,
+  "schema": "kiln.patchgate.native-smoke.v1",
+  "source_revision": "97c1216fe13000d9dcbb97f70ddd5423180eea2c",
+  "source_work_and_audit_unchanged": true,
+  "stale_request_tampered_report_duplicate_source_refused": true
+}

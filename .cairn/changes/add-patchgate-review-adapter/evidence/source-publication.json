@@ -1,0 +1,140 @@
+{
+  "acquisitions": [
+    {
+      "archive_blake3": "eed59cb30a9aeec00f10bd598604a95ae66f67e92368933ec206b6862f33e821",
+      "archive_bytes": 65331200,
+      "credential_isolated": false,
+      "manifest_blake3": "5164aec98fdb3a8f232262f4e4ef5aa0d4432b5ddec03b26c7f4b7a834a46db5",
+      "revision": "6a7e98490d84fa39b207e0e81b664757d51773ce",
+      "tracked_members": 4610,
+      "transport": "native-radicle",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    },
+    {
+      "archive_blake3": "eed59cb30a9aeec00f10bd598604a95ae66f67e92368933ec206b6862f33e821",
+      "archive_bytes": 65331200,
+      "credential_isolated": true,
+      "manifest_blake3": "5164aec98fdb3a8f232262f4e4ef5aa0d4432b5ddec03b26c7f4b7a834a46db5",
+      "revision": "6a7e98490d84fa39b207e0e81b664757d51773ce",
+      "tracked_members": 4610,
+      "transport": "anonymous-garden-https",
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git"
+    }
+  ],
+  "authorization": {
+    "request": "commit and push",
+    "scope": "Fast-forward source publication to existing canonical Radicle main and its declared GitHub projection; no lifecycle acceptance, sync, archive, deployment or release"
+  },
+  "committed_source_checks": {
+    "adapter_tests": {
+      "command": "cargo test --locked --offline -p kiln-adapter-patchgate",
+      "failed": 0,
+      "passed": 12
+    },
+    "cli_build": {
+      "command": "cargo build --locked --offline -p kiln-adapter-patchgate --bin kiln-patchgate-review",
+      "passed": true
+    },
+    "environment": "Repository-local nix develop path:. --no-write-lock-file in isolated Jujutsu checkout of the exact source revision",
+    "native_smoke": {
+      "blake3": "4d28609a90b57c777ac9636f2f8cd0613ff58fee46eb00ab3d96601b549326bb",
+      "command": "python3 scripts/patchgate-review-native.py with explicitly installed pinned Patchgate/Pijul executables",
+      "passed": true,
+      "path": "commit-native-smoke.json"
+    },
+    "prior_full_check_scope": "The 40 Nix checks and workspace checks in verification.json measured the earlier mixed working-copy snapshot, including unrelated audit-hardening edits. Those edits were excluded from this publication. Only the listed adapter tests, CLI build and native smoke were rerun against this exact committed source; no stronger qualification is transferred."
+  },
+  "date": "2026-10-26",
+  "governance": {
+    "identity_after": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "threshold": 1
+    },
+    "identity_before": {
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "threshold": 1
+    },
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "signed_refs_after": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx f089eff7050c5fca3700f485a49cdb09b3c9ae5e parent",
+    "signed_refs_before": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx a91af589255491ac0a7a3e826b0179d2f30af313 parent",
+    "signed_refs_feature": "parent",
+    "unchanged": true
+  },
+  "hosting_profile": {
+    "blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+    "bytes": 31,
+    "executable": false,
+    "kind": "file",
+    "path": "config/hosting-profile.ncl"
+  },
+  "license_map": {
+    "blake3": "3624b38ff10f1d09761f54df6df6255dc67c11612386025692205e7d06d2a4a7",
+    "bytes": 21553,
+    "executable": false,
+    "kind": "file",
+    "path": "LICENSES.md"
+  },
+  "lifecycle_evidence": {
+    "blake3": "8bce6df052e0a0ed1838694a04840a37a9c0ad4fcf497c6b4008e7deeaec2887",
+    "bytes": 5658,
+    "executable": false,
+    "kind": "file",
+    "path": ".cairn/changes/add-patchgate-review-adapter/evidence/verification.json"
+  },
+  "maintenance_owner": "Kiln maintainers",
+  "non_claims": [
+    "This record and its adjacent publication manifest/native smoke are an evidence-only descendant of the source revision, not members of the source archive they identify",
+    "Unrelated audit-hardening source and dependency updates remained uncommitted and were not published",
+    "The active Patchgate Cairn change was not accepted, synced or archived; traceability and release-readiness holds were not waived",
+    "No governance, delegate, threshold, visibility, published-history rewrite, deployment, activation or binary release was requested or performed",
+    "Native/Garden readbacks are bounded observations of exact bytes and refs, not indefinite replica availability, model safety or production eligibility"
+  ],
+  "refs": [
+    {
+      "ref": "refs/heads/main",
+      "remote": "rad",
+      "result": "fast-forward push accepted; transport reported synchronization with 3 seeds",
+      "revision": "6a7e98490d84fa39b207e0e81b664757d51773ce"
+    },
+    {
+      "ref": "refs/heads/main",
+      "remote": "github",
+      "result": "fast-forward push accepted; GitHub ref API read back the same revision",
+      "revision": "6a7e98490d84fa39b207e0e81b664757d51773ce"
+    }
+  ],
+  "rollback_revision": "622b134d113da3395ee3ca6e6d930301dbf6105d",
+  "schema": "kiln.patchgate.source-publication.v1",
+  "source_archive": {
+    "blake3": "eed59cb30a9aeec00f10bd598604a95ae66f67e92368933ec206b6862f33e821",
+    "bytes": 65331200,
+    "format": "ustar",
+    "members": 4610,
+    "recipe": "GNU tar --format=ustar --no-recursion --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX; UTF-8 bytewise lexically sorted tracked regular-file paths, NUL-delimited --verbatim-files-from; no directory entries or Git/Jujutsu metadata"
+  },
+  "source_manifest": {
+    "blake3": "5164aec98fdb3a8f232262f4e4ef5aa0d4432b5ddec03b26c7f4b7a834a46db5",
+    "bytes": 998251,
+    "path": "source-publication-manifest.json",
+    "serialization": "UTF-8 JSON array with sort_keys=True, separators=(comma, colon), followed by one newline"
+  },
+  "source_revision": "6a7e98490d84fa39b207e0e81b664757d51773ce"
+}
