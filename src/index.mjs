@@ -190,17 +190,18 @@ async function authenticate(request, env) {
   if (typeof secret !== "string" || !secret) {
     throw new WorkerError("celld_key_unavailable", 503);
   }
-  const key = await crypto.subtle.importKey(
-    "raw", text.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
-  );
   const actual = request.headers.get("x-kiln-signature") ?? "";
-  const expected = new Uint8Array(await crypto.subtle.sign("HMAC", key, signedBytes(envelope, body)));
   if (!/^[0-9a-f]{64}$/.test(actual)) throw new WorkerError("celld_signature", 401);
-  let difference = 0;
-  for (let index = 0; index < expected.length; index++) {
-    difference |= expected[index] ^ Number.parseInt(actual.slice(index * 2, index * 2 + 2), 16);
+  const signature = new Uint8Array(32);
+  for (let index = 0; index < signature.length; index++) {
+    signature[index] = Number.parseInt(actual.slice(index * 2, index * 2 + 2), 16);
   }
-  if (difference !== 0) throw new WorkerError("celld_signature", 401);
+  const key = await crypto.subtle.importKey(
+    "raw", text.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"],
+  );
+  if (!await crypto.subtle.verify("HMAC", key, signature, signedBytes(envelope, body))) {
+    throw new WorkerError("celld_signature", 401);
+  }
   let operation;
   try {
     operation = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body));

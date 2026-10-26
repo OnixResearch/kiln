@@ -44,6 +44,14 @@ Every argument is required. Paths must be explicit. Bounds must be positive. The
 
 The state root must exist before start. The host creates bounded `operation-ledger`, `native-journal`, and `callback-values` directories on the first start. It publishes `host-state.json` only after the stores open. Later starts require the exact marker and every durable component. Missing, changed, truncated, corrupt, or symlinked state fails closed.
 
+The socket parent must already be a non-symlink directory owned by the host's
+effective user, with no group or other permissions (normally mode `0700`).
+Startup rejects an unowned, shared, missing, or symlinked final parent before
+binding. The bound socket uses mode `0600`; run clients as the same user as the
+host. Provision the ancestor hierarchy so other users cannot replace it. These
+checks do not make arbitrary shared paths race-free or provide sandboxing.
+Implicit group access from the former `0660` socket mode is no longer supported.
+
 ## Lifecycle
 
 The host performs this sequence:

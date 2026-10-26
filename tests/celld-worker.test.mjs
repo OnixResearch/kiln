@@ -199,9 +199,11 @@ async function dispatch(env, signed, options = {}) {
 // r[verify kiln.celld.transport.scenario.valid]
 // r[verify kiln.celld.ambiguity.scenario.repeat]
 test("signed Worker append persists event, outbox, revision and exact idempotency", async (t) => {
+  t.mock.method(Date, "now", () => 1_700_000_000_123);
   const local = fixture(t);
   const append = request(0, true);
-  assert.deepEqual(await dispatch(local.env, envelope(append, "nonce-1")), {
+  const first = envelope(append, "nonce-1");
+  assert.deepEqual(await dispatch(local.env, first), {
     status: 200, body: { status: "accepted", revision: 1 },
   });
   assert.deepEqual(local.journal.read(streamKey, 1), {
@@ -215,6 +217,9 @@ test("signed Worker append persists event, outbox, revision and exact idempotenc
   local.reopen();
   assert.deepEqual(local.journal.read(streamKey, 1), {
     records: append.records, outbox: append.outbox,
+  });
+  assert.deepEqual(await dispatch(local.env, first), {
+    status: 409, body: { code: "celld_nonce_replay" },
   });
   assert.deepEqual(await dispatch(local.env, envelope(append, "nonce-2")), {
     status: 200, body: { status: "repeated", revision: 1 },
@@ -293,10 +298,21 @@ test("a nonce/operation boundary collision cannot reuse another signed envelope"
 test("signature, nonce, stale revision and private route fail at correct boundaries", async (t) => {
   const local = fixture(t);
   const first = envelope(request(0), "nonce-1");
-  const badSignature = await dispatch(local.env, first, { signature: "0".repeat(64) });
-  assert.equal(badSignature.status, 401);
-  assert.equal(badSignature.body.code, "celld_signature");
-  assert.deepEqual(local.journal.read(streamKey, 1), { records: [], outbox: [] });
+  const validSignature = signature(first);
+  const changeNibble = (value) => value === "0" ? "1" : "0";
+  for (const invalid of [
+    "", "0".repeat(63), "0".repeat(65), "g".repeat(64),
+    changeNibble(validSignature[0]) + validSignature.slice(1),
+    validSignature.slice(0, -1) + changeNibble(validSignature.at(-1)),
+  ]) {
+    const env = { ...local.env, KILN_JOURNAL: {
+      idFromName() { throw new Error("bad MAC must not resolve object"); },
+    } };
+    assert.deepEqual(await dispatch(env, first, { signature: invalid }), {
+      status: 401, body: { code: "celld_signature" },
+    });
+    assert.deepEqual(local.journal.read(streamKey, 1), { records: [], outbox: [] });
+  }
   assert.deepEqual(await dispatch(local.env, first), {
     status: 200, body: { status: "accepted", revision: 1 },
   });
@@ -314,6 +330,49 @@ test("signature, nonce, stale revision and private route fail at correct boundar
   assert.equal(privateRoute.status, 403);
   assert.equal(privateRoute.body.code, "celld_route");
   assert.equal(local.journal.read(streamKey, 2).records.length, 1);
+});
+
+test("signed append and read admit inclusive clock boundaries before object resolution", async (t) => {
+  const now = 1_700_000_000_123;
+  t.mock.method(Date, "now", () => now);
+  const local = fixture(t);
+  const binding = local.env.KILN_JOURNAL;
+  let resolutions = 0;
+  local.env.KILN_JOURNAL = {
+    idFromName(name) {
+      resolutions++;
+      return binding.idFromName(name);
+    },
+    get(name) { return binding.get(name); },
+  };
+  const records = [];
+  for (const route of [path, "/v1/read"]) {
+    for (const offset of [-301, -300, 300, 301]) {
+      const append = route === path ? request(records.length) : null;
+      const signed = envelope(append ?? { stream, max_records: 2 },
+        `clock-${route}-${offset}`, operationFor(`clock-${route}-${offset}`), route);
+      signed.timestamp = Math.floor(now / 1000) + offset;
+      const before = resolutions;
+      const response = await dispatch(local.env, signed);
+      if (Math.abs(offset) > 300) {
+        assert.deepEqual(response, { status: 400, body: { code: "celld_envelope" } });
+        assert.equal(resolutions, before);
+      } else {
+        if (append) {
+          records.push(...append.records);
+          assert.deepEqual(response, {
+            status: 200, body: { status: "accepted", revision: records.length },
+          });
+        } else {
+          const expected = { status: 200, body: { status: "read", records, outbox: [] } };
+          assert.deepEqual(response, expected);
+          // Reads are reusable inside the clock window, not consume-once mutations.
+          assert.deepEqual(await dispatch(local.env, signed), expected);
+        }
+      }
+      assert.deepEqual(local.journal.read(streamKey, 2), { records, outbox: [] });
+    }
+  }
 });
 
 test("declared batch and request bounds reject before SQLite mutation", async (t) => {

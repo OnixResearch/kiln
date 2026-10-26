@@ -1,0 +1,235 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "tls": "TLS1.3 succeeded; TLS1.2 rejected",
+    "success": {
+      "run": {
+        "id": "web-run-5e5cf0e0e946b0045d030aa32b50b689bca4f4428e92c131b66ed512332f3112",
+        "project_id": "success",
+        "source_revision": "b0cd834e272b413a64e7c46551d850922eaf1333",
+        "canonical_tree": "37ca4199678a12f1f5d60499c5bca954f276f0601d9ff8a2896d7283fa89662f",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "a62080faf8bde62cfe42e826b2b35698dd9d0b44267144cef1d5e1e1197e1703"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-5e5cf0e0e946b0045d030aa32b50b689bca4f4428e92c131b66ed512332f3112",
+        "outcome": "Success",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:63803fbdf814f2ecac0f76f3576c07f2476396574d3da56caf7fbf3764b45c9e"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Completed"
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 16
+        }
+      },
+      "logs": {
+        "cursor": 0,
+        "gap": false,
+        "next_cursor": 92,
+        "node_id": "build",
+        "retained": true,
+        "source": "worker-capture",
+        "stream": "stdout",
+        "text": "actual command started\nactual artifact bytes: exact-source-artifact-v1\nsecond reviewed step\n",
+        "truncated": false,
+        "reads": 4
+      },
+      "artifact": {
+        "attempt_id": "web-attempt-5e5cf0e0e946b0045d030aa32b50b689bca4f4428e92c131b66ed512332f3112",
+        "blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+        "bytes": 25,
+        "download_path": "/api/runs/web-run-5e5cf0e0e946b0045d030aa32b50b689bca4f4428e92c131b66ed512332f3112/artifacts/140e24b83fa90856afa1751f5fe6c61d49f43adcc74f289a1dbdbc3932f4fb34",
+        "id": "140e24b83fa90856afa1751f5fe6c61d49f43adcc74f289a1dbdbc3932f4fb34",
+        "name": "artifact.txt",
+        "node_id": "build"
+      }
+    },
+    "failure_log": {
+      "cursor": 0,
+      "gap": false,
+      "next_cursor": 27,
+      "node_id": "build",
+      "retained": true,
+      "source": "worker-capture",
+      "stream": "stderr",
+      "text": "actual intentional failure\n",
+      "truncated": false,
+      "reads": 2
+    },
+    "failure": {
+      "id": "web-run-0a610746e0b51761cd1968cc29f9fe59a008f8d2347df1cdfced7e11929e498c",
+      "project_id": "fail",
+      "source_revision": "b0cd834e272b413a64e7c46551d850922eaf1333",
+      "canonical_tree": "37ca4199678a12f1f5d60499c5bca954f276f0601d9ff8a2896d7283fa89662f",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "a62080faf8bde62cfe42e826b2b35698dd9d0b44267144cef1d5e1e1197e1703"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-0a610746e0b51761cd1968cc29f9fe59a008f8d2347df1cdfced7e11929e498c",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:8272d0c96ddb30c8ff0b58427453987e92642b47b438583000bf0b0fe10e0fd1"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Failed"
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 16
+      }
+    },
+    "authentication": "invalid token and worker control-plane role rejected",
+    "replay": "same request returns same run; changed request conflicts",
+    "restart": {
+      "execution_preserved": true,
+      "invocations_before": 3,
+      "invocations_after": 3
+    },
+    "cancellation": {
+      "id": "web-run-b02e32e6a82ab5251393388826e160bff5d65ae0b476427c014b59a4386b109f",
+      "project_id": "slow",
+      "source_revision": "b0cd834e272b413a64e7c46551d850922eaf1333",
+      "canonical_tree": "37ca4199678a12f1f5d60499c5bca954f276f0601d9ff8a2896d7283fa89662f",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "a62080faf8bde62cfe42e826b2b35698dd9d0b44267144cef1d5e1e1197e1703"
+      },
+      "revision": 3,
+      "attempt_id": "web-attempt-b02e32e6a82ab5251393388826e160bff5d65ae0b476427c014b59a4386b109f",
+      "outcome": "Cancelled",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:656fd2442c5d92e63b3e64eca8936a9bf5b16401f471dfdbbc78e783b4357b3f"
+      },
+      "sequence": 3,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Cancelled"
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 16
+      }
+    },
+    "stale_control": "rejected",
+    "unsupported_control": "rejected"
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "origin": "https://127.0.0.1:52031",
+  "source_revision": "b0cd834e272b413a64e7c46551d850922eaf1333",
+  "service_profile_blake3": "6470f57001be9008fad3ea04f87484ec5b8f3b262e7b9087ff311f46c813a8d4",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "service": {
+      "path": "/nix/store/6kr50bd924c3x56jhqycdfxn7ipzbyvg-kiln-web-service-0.1.0/bin/kiln-web-service",
+      "blake3": "e0668c2d0eec0836f72baeeb8c2aefaf072116fcf3bbbe64a9e5eafc15c7ee62"
+    },
+    "lattice": {
+      "path": "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "passed": true,
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

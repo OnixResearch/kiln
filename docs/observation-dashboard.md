@@ -6,6 +6,11 @@ HTML page. A repository catalog groups independently admitted histories without
 merging canonical state. The dashboard remains read only: no new view vocabulary,
 projection semantics, control intake, canonical state or provider effect.
 
+For authenticated enrollment, source-bound execution, logs, artifacts and controls,
+use the separate [single-tenant live web service](operator.md#single-tenant-live-web-service).
+Its authority and runtime prerequisites do not change this offline report's
+read-only contract.
+
 ## Why a local surface
 
 The remote observation shells are correct for their purpose, and neither

@@ -1,0 +1,78 @@
+{
+  "schema": "onixos.native-preservation.consumer-assembly.v1",
+  "consumer": "Kiln self-CI web-service deployment",
+  "command": [
+    "nix",
+    "eval",
+    "--builders",
+    "",
+    "--impure",
+    "--json",
+    "--file",
+    "assembly.nix"
+  ],
+  "exit_code": 0,
+  "output": {
+    "account": 41001,
+    "system_derivation": "/nix/store/c4zyp69nrn484q682l0sgidsv1fb8wf3-nixos-system-qualification-26.11.20260805.b7c2ada.drv",
+    "unit": "[Unit]\nAfter=network-online.target\nDescription=Kiln single-tenant HTTPS web service\nStartLimitBurst=3\nStartLimitIntervalSec=60\nWants=network-online.target\n\n[Service]\nEnvironment=\"LOCALE_ARCHIVE=/nix/store/54jg0kk0cn5h7j19r0l8x36fmbfywwjj-glibc-locales-2.42-67/lib/locale/locale-archive\"\nEnvironment=\"PATH=/nix/store/66gpkj0asani6jl01sl7ga09mvf71z3c-kiln-web-service-0.1.0/bin:/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin:/nix/store/fcqbwp5hx5wh3lzf0457wmf0divknz7y-findutils-4.11.0/bin:/nix/store/aak8d9mrdv9sgn0lcg7xss7wxdg9sqh3-gnugrep-3.12/bin:/nix/store/7mfsmbhsd3arnypipwm251rcd0b45riy-gnused-4.10/bin:/nix/store/r6sz8p6sd6c73fp9z8nzl04dri7lyx8n-systemd-261.1/bin:/nix/store/66gpkj0asani6jl01sl7ga09mvf71z3c-kiln-web-service-0.1.0/sbin:/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/sbin:/nix/store/fcqbwp5hx5wh3lzf0457wmf0divknz7y-findutils-4.11.0/sbin:/nix/store/aak8d9mrdv9sgn0lcg7xss7wxdg9sqh3-gnugrep-3.12/sbin:/nix/store/7mfsmbhsd3arnypipwm251rcd0b45riy-gnused-4.10/sbin:/nix/store/r6sz8p6sd6c73fp9z8nzl04dri7lyx8n-systemd-261.1/sbin\"\nEnvironment=\"TZDIR=/nix/store/2nndxyf3phkb5aggxm3c16sapa0f49kz-tzdata-2026c/share/zoneinfo\"\nAmbientCapabilities=\nCPUQuota=200%\nCapabilityBoundingSet=\nExecStart=/nix/store/kx2d6vgvcy75bfy4m12ldnpdjm9zdx6q-unit-script-kiln-web-service-start/bin/kiln-web-service-start \nExecStartPre=/nix/store/qx1kd7iav91s917yzvmdh5w39grqw1bg-unit-script-kiln-web-service-pre-start/bin/kiln-web-service-pre-start\nGroup=kiln-web-service\nKillMode=control-group\nKillSignal=SIGTERM\nLimitNOFILE=1024\nLoadCredential=operator-token:/var/lib/kiln-web-service-credentials/operator-token\nLoadCredential=tls-certificate:/var/lib/kiln-web-service-credentials/tls-certificate.pem\nLoadCredential=tls-key:/var/lib/kiln-web-service-credentials/tls-private-key.pem\nLoadCredential=worker-token:/var/lib/kiln-web-service-credentials/worker-token\nLockPersonality=true\nMemoryDenyWriteExecute=true\nMemoryMax=1G\nNoNewPrivileges=true\nNotifyAccess=main\nPrivateDevices=true\nPrivateTmp=true\nProcSubset=pid\nProtectClock=true\nProtectControlGroups=true\nProtectHome=true\nProtectHostname=true\nProtectKernelLogs=true\nProtectKernelModules=true\nProtectKernelTunables=true\nProtectProc=invisible\nProtectSystem=strict\nReadWritePaths=/var/lib/kiln-web-service\nRestart=on-failure\nRestartSec=5\nRestrictAddressFamilies=AF_UNIX\nRestrictAddressFamilies=AF_INET\nRestrictAddressFamilies=AF_INET6\nRestrictNamespaces=true\nRestrictRealtime=true\nRestrictSUIDSGID=true\nSendSIGKILL=true\nStateDirectory=kiln-web-service\nStateDirectoryMode=0700\nSystemCallArchitectures=native\nSystemCallFilter=@system-service\nTasksMax=128\nTimeoutStartSec=60\nTimeoutStopSec=30\nType=notify\nUMask=0077\nUser=kiln-web-service\nWorkingDirectory=/var/lib/kiln-web-service\n\n[Install]\nWantedBy=multi-user.target\n"
+  },
+  "inputs": {
+    "assembly.nix": "let\n  owner = builtins.getFlake \"path:/home/brittonr/git/OnixResearch/onixos\";\n  kiln = builtins.getFlake \"path:/home/brittonr/git/OnixResearch/kiln\";\n  outputs = owner.lib.x86_64-linux.mkFlake {\n    inputs.nixpkgs = kiln.inputs.nixpkgs;\n    inputs.preservation = builtins.getFlake \"github:nix-community/preservation/00be7f7dd1a11ae0605386f2272288de7cf33abe\";\n    inventoryFile = ./inventory.ncl;\n    modules = {};\n    moduleInputs.kiln = kiln.onixModules;\n    overlays = [ (final: prev: { kiln-web-service = kiln.packages.${final.stdenv.hostPlatform.system}.web-service; }) ];\n    extraNixosModules.qualification = [ {\n      boot.loader.grub.devices = [\"nodev\"];\n      fileSystems.\"/\" = { device = \"none\"; fsType = \"tmpfs\"; };\n      fileSystems.\"/persist\" = { device = \"/dev/disk/by-label/qualification-persist\"; fsType = \"ext4\"; neededForBoot = true; };\n      system.stateVersion = \"26.05\";\n    } ];\n  };\n  system = outputs.nixosConfigurations.qualification;\nin {\n  unit = system.config.systemd.units.\"kiln-web-service.service\".text;\n  account = system.config.users.users.kiln-web-service.uid;\n  system_derivation = system.config.system.build.toplevel.drvPath;\n}\n",
+    "inventory.ncl": "let onix = import \"/home/brittonr/git/OnixResearch/onixos/lib/onix.ncl\" in\n{\n  machines | {_ : onix.Machine} | onix.NameMatchesKey = {\n    qualification = {\n      name = \"qualification\",\n      system = \"x86_64-linux\",\n      class = 'nixos,\n      tags = [\"isolated-evaluation\"],\n      deploy.targetHost = \"root@qualification.invalid\",\n      preservation = { enable = true, persistentStoragePath = \"/persist\" },\n    },\n  },\n  instances | {_ : onix.Instance} = {\n    web = {\n      service = \"kiln-web-service\",\n      module = { input = \"kiln\", name = \"kiln-web-service\" },\n      roles.server = {\n        machines = [\"qualification\"],\n        settings = (import \"/home/brittonr/git/OnixResearch/kiln/deployment/fixtures/inputs.ncl\") & { uid = 41001, gid = 41001 },\n      },\n    },\n  },\n}\n"
+  },
+  "preservation_input": {
+    "fingerprint": "cc1125bbb56e81077381c954bb4c06d63d4173d9c68ea3ddf7cd018a58390faa",
+    "lastModified": 1792953443,
+    "locked": {
+      "__final": true,
+      "lastModified": 1792953443,
+      "narHash": "sha256-s/A2rSO2Ndf8Y5yiouesnI/3Zkn9pmVGF2NxFxOUvx8=",
+      "owner": "nix-community",
+      "repo": "preservation",
+      "rev": "00be7f7dd1a11ae0605386f2272288de7cf33abe",
+      "type": "github"
+    },
+    "locks": {
+      "nodes": {
+        "root": {}
+      },
+      "root": "root",
+      "version": 7
+    },
+    "original": {
+      "owner": "nix-community",
+      "repo": "preservation",
+      "type": "github"
+    },
+    "originalUrl": "github:nix-community/preservation",
+    "path": "/nix/store/g19fsb1jjiwmhbkx76mr1i39n7vil08g-source",
+    "resolved": {
+      "owner": "nix-community",
+      "repo": "preservation",
+      "type": "github"
+    },
+    "resolvedUrl": "github:nix-community/preservation",
+    "revision": "00be7f7dd1a11ae0605386f2272288de7cf33abe",
+    "url": "github:nix-community/preservation/00be7f7dd1a11ae0605386f2272288de7cf33abe?narHash=sha256-s/A2rSO2Ndf8Y5yiouesnI/3Zkn9pmVGF2NxFxOUvx8%3D"
+  },
+  "shim_suite": {
+    "argv": [
+      "nix",
+      "eval",
+      "--file",
+      "tests/integration/shim-unit.nix",
+      "all",
+      "--impure"
+    ],
+    "stdout": "true\n",
+    "stderr": "building '/nix/store/047qkr44dzcjddklacg9j5vzsm1dmz3k-onix-pull.drv'...\n",
+    "exit_code": 0
+  },
+  "non_claims": [
+    "Disposable evaluation-only inventory; qualification.invalid is not an activation target.",
+    "System derivation evaluation is not realization, boot or production activation.",
+    "Native application cancellation remains independently blocked in Lattice.",
+    "No physical durability, lifecycle acceptance, archive or publication."
+  ]
+}

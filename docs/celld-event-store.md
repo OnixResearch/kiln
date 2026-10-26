@@ -85,6 +85,9 @@ authenticated Rust read, then reconciles an injected lost response.
 The Worker checks HTTPS, its declared append/read/reconcile/lease/migrate
 paths, HMAC-SHA256 with length-prefixed fields, timestamp, nonce, and request
 bounds before resolving the object; private Celld control routes are rejected.
+It decodes only a fixed-size, lowercase hexadecimal MAC and delegates HMAC
+verification to WebCrypto `crypto.subtle.verify`; Rust uses `verify_slice`.
+The signed framing and protocol are unchanged.
 Missing or disabled `KILN_OUTPUT_GATE` and `KILN_STORAGE_PROBE` Worker
 declarations, or a missing deployed-version declaration, reject a signed
 request before object resolution. The operator must supply these Worker
@@ -98,6 +101,16 @@ profile requires the complete trusted origin at composition. On lost append
 response, the adapter reports `Unknown`; a subsequent call performs a signed
 exact-operation lookup before any redispatch. Caddy's test-only root is passed
 to the client without adding it to host trust.
+
+Every authenticated request must carry a timestamp within the inclusive
+300-second window on either side of the Worker's current clock. Stale and
+too-far-future requests reject before object resolution, even with a valid
+MAC. Append and control mutations additionally persist key/nonce pairs in
+the same SQLite transaction as their outcome, so accepted mutation nonces
+remain rejected after database reopen or Worker restart. An exact-operation
+append retry with a fresh nonce still returns the stored revision without
+duplicating events. Read-only requests are timestamp-limited, not consume-once;
+their signed envelope may be reused while it remains inside that window.
 
 The sibling stack-owned `bounded-http` API would supply stronger general
 outbound mechanics and accepts caller-supplied DER roots, but the present
@@ -138,14 +151,18 @@ non-empty schema migrations and multi-node mixed-fleet routing are not claimed.
 
 The executable local Worker fixture is `node --test
 tests/celld-worker.test.mjs` (Node with `node:sqlite` and `b3sum`). It verifies
-signed append/repeat, event/outbox/schema/operation persistence, injected SQL
-rollback, signature/nonce/private-route rejection, request bounds, identity
-damage, conditional lease conflict and evidence retention, and valid/invalid
-schema migration including injected ledger failure. Rust
+signed append/repeat, event/outbox/schema/operation persistence, append nonce
+rejection after SQLite reopen, injected SQL rollback, malformed/bad MAC and
+private-route rejection, deterministic stale/future timestamp boundaries for
+append and reusable reads, request bounds, identity damage, conditional lease
+conflict and evidence retention, and valid/invalid schema migration including
+injected ledger failure. Rust
 `nix develop --offline --command cargo test -p kiln-adapter-celld --lib`
 verifies pure admission, replay, profile, partition, lease, migration and
-fail-closed client outcomes. The in-memory Rust Worker fixture is only a
-model.
+fail-closed client outcomes. The in-memory Rust Worker fixture models append
+admission, MAC validation and exact-operation idempotency, not the deployed
+shell's clock or durable nonce guard. It has no process-lifetime nonce cache;
+the executable Worker/SQLite fixture owns replay-protection coverage.
 
 The executable dependency gate is `nix build --offline
 path:$PWD#checks.x86_64-linux.celld-boundaries --no-link`. Inside its isolated

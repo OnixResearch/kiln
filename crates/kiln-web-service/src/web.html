@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>Kiln · Live operations</title>
+  <link rel="stylesheet" href="/catalog.css">
+  <link rel="stylesheet" href="/web.css">
+  <script src="/web.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to operations</a>
+  <header class="live-header">
+    <a class="live-brand" href="/" aria-label="Kiln live operations"><span class="live-mark" aria-hidden="true">k</span><span>Kiln<small>Live operations</small></span></a>
+    <div class="session-tools"><span id="auth-status" class="live-badge">Signed out</span><button id="logout" type="button" hidden>Sign out</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section id="login-panel" class="login-panel panel" aria-labelledby="login-title">
+      <p class="eyebrow">Single-tenant operator access</p>
+      <h1 id="login-title">Your work, live.</h1>
+      <p>Enroll reviewed repositories, run their configured pipelines, and inspect admitted execution evidence.</p>
+      <form id="login-form" autocomplete="off">
+        <label for="operator-token">Operator token</label>
+        <input id="operator-token" name="operator-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required pattern="[0-9A-Fa-f]{64}" minlength="64" maxlength="64" aria-describedby="token-help">
+        <p id="token-help" class="small">64 hexadecimal characters. Kept only in this page’s memory; never saved or included in a URL. Signing out clears private views and pending requests.</p>
+        <button id="login-button" class="primary" type="submit">Connect to service</button>
+      </form>
+      <p class="boundary">This is the authenticated live service, not the offline, read-only dashboard. Actions affect the configured execution provider.</p>
+    </section>
+    <div id="workspace" hidden>
+      <section class="workspace-heading" aria-labelledby="workspace-title">
+        <div><p class="eyebrow">Operator workspace</p><h1 id="workspace-title">Live pipeline operations</h1><p>Exact source. Admitted state. Retained evidence.</p></div>
+        <div class="connection-tools"><span id="connection-status" class="live-badge" role="status">Not connected</span><button id="refresh-all" type="button">Refresh &amp; reconnect</button></div>
+      </section>
+      <p id="observation-note" class="small">Finite live snapshots are observations, not a complete event history. Controls require a fresh identity check.</p>
+      <div class="workspace-grid">
+        <aside class="project-column" aria-label="Projects and runs">
+          <section class="panel" aria-labelledby="projects-title">
+            <div class="section-heading"><h2 id="projects-title">Projects</h2><button id="refresh-projects" type="button" class="quiet">Refresh</button></div>
+            <form id="enroll-form">
+              <label for="available-project">Allowlisted repository</label>
+              <select id="available-project" required><option value="">Loading allowlist…</option></select>
+              <p id="available-description" class="small"></p>
+              <button id="enroll-button" type="submit" disabled>Enroll project</button>
+            </form>
+            <div class="section-divider"></div>
+            <form id="start-form">
+              <label for="enrolled-project">Enrolled project</label>
+              <select id="enrolled-project" required><option value="">No enrolled projects</option></select>
+              <p id="project-description" class="small">Select a reviewed project to run its configured source and pipeline.</p>
+              <button id="start-button" class="primary" type="submit" disabled>Start source-bound run</button>
+            </form>
+            <p class="small boundary">Source is resolved by the service from the reviewed repository reference. No commands or paths are supplied by this page.</p>
+          </section>
+          <section class="panel" aria-labelledby="runs-title">
+            <div class="section-heading"><h2 id="runs-title">Runs</h2><button id="refresh-runs" type="button" class="quiet">Refresh</button></div>
+            <label for="run-filter">Project filter</label><select id="run-filter"><option value="">All projects</option></select>
+            <p id="runs-status" class="small">Loading runs…</p><div id="run-list" class="run-list" aria-label="Select a run"></div>
+          </section>
+        </aside>
+        <div class="detail-column">
+          <section id="empty-run" class="panel empty-state"><p class="eyebrow">Execution inspector</p><h2>Select a run</h2><p>Start a source-bound run or select an admitted run from the list. No execution data is invented here.</p></section>
+          <div id="run-detail" hidden>
+            <section class="panel" aria-labelledby="run-title">
+              <div class="section-heading"><div><p class="eyebrow">Selected execution</p><h2 id="run-title"></h2></div><button id="refresh-detail" type="button">Refresh run</button></div>
+              <div id="run-badges" class="badges"></div><p id="run-warning" class="warning" hidden></p>
+              <dl id="run-facts" class="facts"></dl>
+              <details><summary>Exact native execution identity</summary><pre id="execution-identity" class="identity"></pre></details>
+              <div class="control-bar" aria-label="Execution controls"><button id="control-cancel" type="button" class="danger" disabled>Cancel run</button><button id="control-pause" type="button" disabled>Pause run</button><button id="control-resume" type="button" disabled>Resume run</button></div>
+              <p id="control-note" class="small">Only currently advertised provider capabilities are available. Every control requires confirmation and an exact identity check.</p>
+            </section>
+            <section class="panel" aria-labelledby="nodes-title"><h2 id="nodes-title">Admitted nodes</h2><p class="small">Node state is reported by the service, not inferred from log text.</p><div id="node-list" class="node-list"></div></section>
+            <section class="panel" aria-labelledby="logs-title">
+              <div class="section-heading"><h2 id="logs-title">Execution logs</h2><label class="check"><input id="follow-logs" type="checkbox"> Follow selected stream</label></div>
+              <p class="small">stdout/stderr are actual worker-captured bytes published when a step completes, with worker-owned byte cursors. Diagnostic logs retain native provider cursors. Following does not synthesize output; an active node can have no new bytes yet.</p>
+              <form id="log-form" class="log-tools">
+                <div><label for="log-node">Node</label><select id="log-node" required></select></div>
+                <div><label for="log-stream">Stream</label><select id="log-stream"><option value="stdout">stdout</option><option value="stderr">stderr</option><option value="diagnostic">diagnostic</option></select></div>
+                <div><label for="log-cursor">Stream cursor</label><input id="log-cursor" inputmode="numeric" value="0" pattern="[0-9]+" required autocomplete="off"></div>
+                <button id="read-log" type="submit">Read from cursor</button>
+              </form>
+              <p id="log-status" class="small" role="status">Select a node to read actual retained logs.</p><p id="log-gap" class="warning" role="status" hidden></p>
+              <pre id="log-output" class="log-output" tabindex="0" aria-label="Selected node log output"></pre>
+              <div class="log-footer"><span id="log-position" class="small">No log read yet</span><button id="clear-log" type="button">Clear displayed log</button></div>
+            </section>
+            <section class="panel" aria-labelledby="artifacts-title"><div class="section-heading"><h2 id="artifacts-title">Retained artifacts</h2><button id="refresh-artifacts" type="button">Refresh artifacts</button></div><p class="small">Only actual worker uploads retained by this service are listed. A receipt is not a product artifact.</p><p id="artifact-status" class="small" role="status"></p><div id="artifact-list" class="artifact-list"></div></section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <dialog id="control-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-warning">
+    <form id="control-form"><h2 id="confirm-title">Confirm execution control</h2><p id="confirm-warning">This affects the exact provider execution below. If its identity changes, the service must reject the request. Mutations are never automatically retried.</p><dl id="confirm-facts" class="facts"></dl><div class="dialog-actions"><button id="dismiss-control" type="button">Keep unchanged</button><button id="confirm-control" class="danger" type="submit">Confirm control</button></div></form>
+  </dialog>
+  <noscript><p class="notice">JavaScript is required for authenticated live operations. This public shell contains no private execution data.</p></noscript>
+</body>
+</html>

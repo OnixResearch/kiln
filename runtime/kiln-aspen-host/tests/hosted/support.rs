@@ -1,4 +1,5 @@
 use super::*;
+use std::os::unix::fs::PermissionsExt;
 
 pub(super) const TEST_MAXIMUM_NODES: usize = 8;
 pub(super) const TEST_MAXIMUM_EDGES: usize = 16;
@@ -24,6 +25,8 @@ const TEST_IDENTITY_DIGITS: usize = 64;
 const OPERATION_IDENTITY: &str = "1111111111111111111111111111111111111111111111111111111111111111";
 
 pub(super) fn host_paths(directory: &tempfile::TempDir) -> HostPaths {
+    std::fs::set_permissions(directory.path(), std::fs::Permissions::from_mode(0o700))
+        .unwrap_or_else(|_| unreachable!("private host directory permissions"));
     let runtime_profile = directory.path().join("runtime-profile.json");
     let profile_bytes = serde_json::to_vec(&profile_document_fixture())
         .unwrap_or_else(|_| unreachable!("runtime profile fixture must encode"));

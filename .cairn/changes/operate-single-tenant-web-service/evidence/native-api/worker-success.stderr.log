@@ -1,0 +1,4 @@
+kiln worker: step build started; command output is published on step completion
+kiln worker: step build completed; exit=0 stdout_truncated=false stderr_truncated=false
+kiln worker: step build started; command output is published on step completion
+kiln worker: step build completed; exit=0 stdout_truncated=false stderr_truncated=false

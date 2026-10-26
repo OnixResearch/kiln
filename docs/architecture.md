@@ -43,6 +43,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-conformance` | Shared positive and negative provider gates. |
 | `kiln-cli` | Local operator shell. |
 | `kiln-dashboard` | Local read-only operator shell over one canonical Kiln journal: event-identity recomputation, canonical replay, and a deterministic bounded report over the accepted observation projection. |
+| `kiln-web-service` | Explicit single-tenant HTTPS application composition over existing core/Git/Lattice ports, durable intake and recovery, separate operator/worker authority, exact-source job shell, captured output and real artifact transport; not an extension of read-only observation authority. |
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 

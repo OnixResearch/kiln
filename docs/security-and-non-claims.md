@@ -14,6 +14,31 @@ Capability admission occurs before dispatch. The selected provider cannot change
 
 A transport failure after acceptance produces `Unknown`. Reconciliation or operator policy must resolve this state.
 
+## Authentication hardening
+
+The deployed Celld Worker, not its in-memory Rust model, owns the five-minute
+timestamp window and durable mutation nonce rejection. It verifies HMACs through
+WebCrypto; the Rust protocol uses the HMAC library's verification primitive.
+An exact-operation retry needs a fresh nonce. Signed reads remain reusable only
+within the timestamp window; they are not a consume-once protocol. See
+[the Celld transport boundary](celld-event-store.md#transport-and-authentication).
+
+Public operator keys, signed request fields, and public BLAKE3 identities do not
+require secret-dependent constant-time equality. The local all-zero seed
+admission check is not a remote authentication oracle. These comparisons do
+not justify replacing ordinary equality with handwritten cryptographic code.
+
+The standalone Aspen host requires an owned private final socket directory and
+uses an owner-only socket. Clients must run as the same user; stable ancestor
+directories remain operator-owned provisioning. See
+[host startup requirements](../runtime/kiln-aspen-host/README.md#command).
+
+Registry advisory results describe the resolved root lock, not application
+exploitability, independently pinned runtime dependencies, or a newly qualified
+deployment. Compatible updates and residual cohort constraints are recorded in
+[reference pins](reference-pins.md#registry-execution-transport-cohort).
+
+
 ## Remote execution
 
 Remote protocol digests stay separate from Kiln BLAKE3 identities. Cache hits remain provider observations.

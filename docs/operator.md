@@ -1188,3 +1188,311 @@ This is distinct-host dissemination and readback over a private tailnet with
 local status authority. It is not WAN, hostile-node isolation, production
 deployment or release authority.
 
+## Single-tenant live web service
+
+`kiln-web-service` composes existing Kiln core, Git snapshot and Lattice workflow
+ports into a dedicated HTTPS application. The current consumer is Kiln self-CI;
+Kiln application/dashboard and provider-adapter maintainers own this composition
+and its repeatability rail. The existing `kiln-dashboard` HTML remains a separate
+offline, read-only report.
+
+**Current qualification:** the corrected immutable Lattice executable passes the
+unchanged strict native exercise: source-bound `Success`, intentional
+`DomainFailure`, and `Cancelled` after the actual command starts. Restart keeps
+the original execution without redispatch; logs, artifact bytes/hash,
+authentication, TLS and exact control checks pass. The measured executable,
+source and profile identities and resource retirement are retained in
+[the native receipt](../.cairn/changes/prepare-web-service-deployment/evidence/native-corrected/verification.json).
+The earlier cancellation misclassification and compiler failures remain
+historical evidence, not a verdict on this corrected cohort. Lattice's broader
+repository checks and Kiln's separate readiness checks are not all green; this
+local qualification grants no production activation or lifecycle acceptance.
+
+The packaged systemd VM rail and supported Onix/NixOS assembly pass for the
+frozen inputs retained in deployment evidence. Kiln's complete flake check also
+passes. These checks do not exercise the corrected native cancellation cohort
+or override the separate failing Cairn release-readiness verdict.
+
+### Install reviewed profiles and authority
+
+Use `config/web-service.ncl` and `config/web-worker.ncl` as the closed typed input
+builders. Export operator-reviewed Nickel expressions that apply those builders
+to real installed inputs; conformance fixtures are not deployment configuration.
+The independently installable `packages.${system}.web-service` contains the binary
+and supervised unit; `apps.${system}.kiln-web-service` selects that package.
+The default workspace package also contains the binary.
+
+- The service profile declares one registered HTTPS origin/listen address,
+  certificate/private-key paths, separate operator/worker token files, an owned
+  state directory, allowlisted local Git repositories/references and reviewed
+  workflow profiles. Browser enrollment selects only this allowlist; it cannot
+  submit paths, commands or replacement providers.
+- Token files contain exactly 64 hexadecimal bytes without a newline. Use
+  independent random tokens in owned private regular files, mode `0400` or `0600`,
+  outside source and worker checkout roots. The HTTPS key is likewise private. Install a
+  valid server certificate chain and an explicit worker CA; do not bypass TLS
+  validation in a deployed worker.
+- The worker profile binds the service origin, project, CA/token-file references,
+  source snapshot bounds, an owned checkout root, explicit executable/argv and
+  environment for each step, and declared relative regular-file artifacts.
+  Commands receive no ambient environment or service credential. Reviewed
+  commands still retain their worker account's authority: this is not a sandbox.
+- Workflow, HTTP, state, log and artifact bounds are positive and explicit.
+  Lattice's native serve connection limit counts lifetime exchanges, not just
+  concurrent clients; provision a finite budget for polling and worker uploads.
+  Exhaustion remains provider uncertainty, never successful completion.
+
+With the reviewed expression and output paths supplied by the operator:
+
+```console
+nickel export --format json --output "$KILN_WORKER_PROFILE" "$KILN_WORKER_NCL"
+b3sum "$KILN_WORKER_PROFILE"
+nickel export --format json --output "$KILN_SERVICE_PROFILE" "$KILN_SERVICE_NCL"
+kiln-web-service reviewed-request --profile "$KILN_SERVICE_PROFILE" --project "$KILN_PROJECT"
+kiln-web-service check --profile "$KILN_SERVICE_PROFILE"
+kiln-web-service serve --profile "$KILN_SERVICE_PROFILE"
+```
+
+Retain the original worker JSON and its exact BLAKE3; equivalent reserialization
+does not preserve that identity. Register the reviewed request's exact profile,
+graph, node mapping and worker operation identity with the existing Lattice
+`route_exact`/`shell_environment` handler. Its saved job invokes:
+
+```console
+kiln-web-service job --profile "$KILN_WORKER_PROFILE" --identity "$KILN_WORKER_BLAKE3"
+```
+
+Lattice supplies the exact `LATTICE_SOURCE_PROVIDER`,
+`LATTICE_SOURCE_REPOSITORY` and `LATTICE_SOURCE_REVISION`. The helper verifies that
+source context, admits the exact Git snapshot, and executes in an owned temporary
+checkout rather than the mutable worktree. Follow the existing
+[workflow application contract](lattice-workflow.md) for native handler setup;
+profile generation does not install or start it.
+
+### Supervised deployment
+
+Kiln self-CI is the consumer; Kiln maintains the application and these assets.
+The operator owns host selection, account/ACL reservation, TLS identity,
+credentials, workflow authority and activation. Assembling a package or system
+is not permission to activate it. No asset selects a real host or generates TLS.
+
+#### Product and Onix integration
+
+The dedicated product is `packages.${system}.web-service`. Its unit is installed
+at `lib/systemd/system/kiln-web-service.service`; the package installer substitutes
+`@out@` in `deployment/kiln-web-service.service.in` with the immutable output path.
+The package must contain `bin/kiln-web-service`.
+
+The external module export is exactly:
+
+```nix
+onixModules.kiln-web-service = { file = ./deployment/onixos-module.ncl; };
+```
+
+Use the reviewed Kiln flake as an existing consumer input. Pass its module set
+through Onix's existing provenance route, and resolve its requested package with
+an explicit overlay (inside the consumer's existing `onix.mkFlake` arguments):
+
+```nix
+moduleInputs.kiln = kiln.onixModules;
+overlays = [
+  (final: prev: {
+    kiln-web-service = kiln.packages.${final.stdenv.hostPlatform.system}.web-service;
+  })
+];
+```
+
+In the existing inventory, bind an instance's `service` to `kiln-web-service` and
+`module = { input = "kiln", name = "kiln-web-service" }`. Select exactly one
+existing machine in `roles.server.machines`. Required `roles.server.settings`:
+
+- `uid`, `gid`: operator-reserved non-root account IDs (not example host values).
+- `profile_path`: absolute, reviewed runtime JSON path; no shell syntax or unit
+  specifiers. The module does not create or replace this profile.
+- `credential_sources`: four absolute runtime source paths keyed by
+  `tls-certificate`, `tls-key`, `operator-token`, `worker-token`. These may name
+  operator-provisioned files or files materialized by the consumer's existing
+  artifact system. Do not pass Nix paths, secret strings, or store locations.
+
+The module is explicitly NixOS/systemd-specific, not an implementation of a new
+Onix backend. It emits private preserved state intent and native systemd leaves
+because the portable service provider has no notify-readiness contract. It has
+one fixed user/group/unit/state identity and rejects multiple instances or
+multiple server machines. No supplementary groups or firewall openings are
+created; grant the selected UID only the necessary repository read/traverse and
+Lattice Unix-socket access outside this module.
+
+The selected NixOS machine must enable `preservation` with an operator-chosen
+`persistentStoragePath`, and the consumer must pass its reviewed
+`inputs.preservation` into `mkFlake`. Provision that backing filesystem in the
+consumer's existing hardware/storage definition. Onix rejects this module's
+preserved state without the adapter; declaring a persistent root alone is not
+sufficient. Do not downgrade the state to volatile to bypass admission.
+
+#### Profile and credentials
+
+`config/web-systemd.ncl` accepts the same application input as
+`config/web-service.ncl`, **omitting** `tls`, `operator_token_file`,
+`worker_token_file`, and `state_directory`. It delegates all application checks
+to that builder and binds:
+
+- state: `/var/lib/kiln-web-service`;
+- certificate: `/run/credentials/kiln-web-service.service/tls-certificate`;
+- private key: `/run/credentials/kiln-web-service.service/tls-key`;
+- tokens: `/run/credentials/kiln-web-service.service/{operator-token,worker-token}`.
+
+Export the reviewed application through this helper as JSON at `profile_path`.
+The JSON contains references, not credential bytes. Supply real HTTPS origin,
+listen address (unprivileged port), repository/source/workflow identities and
+bounds through the original builder. The process has no bind capability. Keep
+repositories under an accessible read-only deployment path such as `/srv`, and
+proxy sockets under `/run`; `/home` is hidden and `/tmp` is private. Provision a
+traversable proxy socket parent even if the external provider is unavailable.
+Startup admission never performs a live provider exchange.
+
+For the standalone packaged unit, use `/etc/kiln-web-service/profile.json` and
+root-owned credential sources below `/var/lib/kiln-web-service-credentials/`:
+`tls-certificate.pem`, `tls-private-key.pem`, `operator-token`, `worker-token`.
+Pre-provision the dedicated `kiln-web-service` account with the reserved UID/GID
+and no login access. A systemd drop-in can replace references for another layout;
+clear `LoadCredential=` before replacing the four bindings. Do not change the
+credential destination names or bound state without an explicit profile review.
+
+Provision credential sources as root-owned, single-link regular files, mode
+0400 or 0600, in a root-owned 0700 directory outside application-writable state.
+The artifact owner must materialize these runtime files before start, never
+place decrypted bytes in the Nix store or profile. systemd loads the sources into
+root-owned **0440 files on a read-only credential mount**, with an ACL granting
+read only to root and the service UID. Kiln checks that exact ACL and mount flag
+before reading directly; no root helper, permission relaxation or private runtime
+copy is needed. Ordinary group/world-readable files remain denied. No-follow,
+single-link and private-key byte bounds still apply. Source provisioning remains
+a trusted operator/artifact boundary, not a claim of race safety against root.
+
+#### Supervision, rotation and recovery
+
+The actual unit runs `check --profile` before `serve --profile`; preflight does
+not mutate state, open listeners or dispatch work. `Type=notify` with
+`NotifyAccess=main` waits for initialized TLS/listener/canonical state. HTTPS
+`GET /healthz` is minimal and unauthenticated, with configured Host/origin
+admission. Readiness is not proof the external provider is reachable.
+
+State is owned by the dedicated identity, mode 0700, and is the only declared
+persistent writable path. Source access is read-only. The unit uses no-new-
+privileges, no capabilities, private devices/tmp, protected system/home/kernel,
+restricted syscalls/namespaces/address families, 1 GiB memory, 128 tasks, 1024
+open files and 200% CPU ceilings. Review those bounds against the chosen profile;
+use an explicit reviewed drop-in rather than silently widening them. Restart is
+on failure with a five-second delay and at most three attempts per minute;
+startup has 60 seconds and SIGTERM shutdown 30 seconds before group kill.
+External workflows belong to the provider and must not be child processes of
+this web-service unit.
+
+Rotate by provisioning replacement source files securely and restarting under
+operator authority. Do not delete state to force a restart: durable state binds
+the exact profile and recovers original operations without blind redispatch.
+Restore the same profile, UID and state after a crash. Changed profiles require
+explicit operator review; this helper provides no automatic state migration.
+
+#### Non-mutating evaluation and isolated proof
+
+Run these after integration, not while sibling changes are in flight:
+
+```sh
+nickel export deployment/fixtures/positive.ncl
+nickel export config/fixtures/web-systemd-positive.ncl
+nickel export --import-path "$ONIXOS/lib" deployment/fixtures/module-positive.ncl
+```
+
+Each `deployment/fixtures/negative-*.ncl` must fail export (module fixtures need
+that same reviewed Onix import path); so must
+`config/fixtures/negative-web-systemd-*.ncl`. They cover unsafe path expansion,
+traversal/injection, missing/store/application-writable credential sources,
+root/fractional account IDs, insecure origin and accidental state rebinding.
+Symlinks/ownership/credential contents require runtime admission, not textual
+path fixtures. The synthetic fixture package handle is only an eval argument;
+it is never substituted for the real executable in runtime proof.
+
+Build the dedicated package and run its disposable systemd qualification:
+
+```sh
+nix build path:$PWD#web-service --no-link --print-out-paths
+nix build path:$PWD#checks.x86_64-linux.web-service-deployment --no-link -L
+```
+
+Assemble/build the consumer system without activating it. The disposable VM
+exercises the packaged unit with real TLS and LoadCredential sources: HTTPS
+health, main-PID readiness, UID/mode/state, SIGTERM, restart/recovery and
+invalid/missing/private-file rejection. Run the
+native workflow success/failure/log/artifact/cancellation rail separately with
+the exact corrected Lattice cohort. Neither evaluation nor that isolated proof
+claims production activation, source trust, arbitrary-job confinement,
+lifecycle acceptance or release readiness.
+
+### Use the live interface
+
+Open the registered HTTPS origin and enter the operator token. The page keeps it
+only in memory; logout clears private views, in-flight requests and download
+URLs. There are no hosted accounts, persistent browser sessions or permissive
+CORS. Worker credentials cannot enroll, initiate, control or download private
+data.
+
+Enroll an allowlisted project, start its source-bound run and inspect exact
+revision/tree, attempt, native execution, node state and canonical outcome. Finite
+live snapshots reconnect with visible loss/uncertainty; they are not a complete
+event history. Mutations use durable request identities and are never blindly
+retried. Controls require current canonical revision, attempt, native execution
+and sequence plus the selected capability; stale/unsupported controls fail before
+effects and require fresh operator action.
+
+stdout/stderr are actual retained Bounded Exec bytes, uploaded on step completion
+with **worker-owned byte cursors**. Multiple steps sharing a native node append
+to that node's streams. Empty output, capture truncation, bounded reads and
+retention are explicit; active work need not produce new bytes yet. Diagnostic
+logs retain **native provider cursors**. Neither stream invents progress or
+completion. Text is rendered inertly; byte cursors are not inferred from displayed
+UTF-8 character counts.
+
+Artifacts are real declared worker files, bound to exact source, attempt,
+execution and known node. Uploads verify bounded bytes and BLAKE3 before atomic
+owned retention; downloads use opaque IDs rather than caller paths. A receipt or
+log is never substituted for a build product. Trusted worker declarations and
+matching hashes do not prove product semantics or provider honesty.
+
+The service has one state-directory owner, SQLite WAL/FULL durability and an
+exact profile identity. Restart reconciles original admitted work; it does not
+redispatch ambiguous work. Retention exhaustion rejects further intake rather
+than silently pruning authority. Profile migration, retention rotation,
+credential provisioning and worker isolation remain operator responsibilities.
+
+### Repeat the isolated native exercise
+
+From the repository development shell, supply a compatible, exact measured
+Lattice executable and matching source cohort with real shell-success semantics.
+Ensure `bwrap`, `bash`, `jj`, `openssl`, `nickel`, `b3sum`, Python and user namespaces
+are available. Scratch must be a new owned directory outside the producer's
+private `/tmp`:
+
+```console
+cargo build --locked -p kiln-web-service
+python3 scripts/web-service-smoke.py \
+  --service "$KILN_SERVICE_EXECUTABLE" \
+  --lattice "$LATTICE_EXECUTABLE" --lattice-source "$LATTICE_SOURCE" \
+  --root "$KILN_NEW_EXERCISE_ROOT" --evidence "$KILN_EXERCISE_EVIDENCE"
+```
+
+`--browser-hold` additionally waits for actual browser observations in the owned
+scratch `browser-done.json` before API checks. The rail creates a proper isolated
+CA and server leaf, disposable exact Git source, real reviewed commands/native
+workflows and private credentials. It checks successful and failed execution,
+multi-chunk output across repeated steps, empty streams, native diagnostics,
+artifact bytes/hash, role/origin/TLS rejection, replay, restart, stale/unsupported
+controls and canonical cancellation. Failed checks remain failures. It retains
+measured executable/profile/source identities and observations, then removes its
+processes, private keys, credentials and scratch tree.
+
+This is local scoped evidence, not deployment success, hostile-code confinement,
+source trust, arbitrary provider correctness, lifecycle acceptance or release
+eligibility. The corrected native run passes only for its recorded cohort;
+qualification does not transfer to changed executables or profiles.
+

@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "checks": {},
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "failure": {
+    "kind": "KeyboardInterrupt",
+    "diagnostic": ""
+  },
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

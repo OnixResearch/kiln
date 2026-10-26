@@ -200,6 +200,28 @@
           ];
           cargoTestFlags = [ "--workspace" ];
         };
+      webServicePackageFor =
+        system:
+        (packageFor system).overrideAttrs (_: {
+          pname = "kiln-web-service";
+          cargoBuildFlags = [
+            "-p"
+            "kiln-web-service"
+            "--bin"
+            "kiln-web-service"
+          ];
+          cargoTestFlags = [
+            "-p"
+            "kiln-web-service"
+          ];
+          postInstall = ''
+            install -Dm644 deployment/kiln-web-service.service.in \
+              "$out/lib/systemd/system/kiln-web-service.service"
+            substituteInPlace "$out/lib/systemd/system/kiln-web-service.service" \
+              --replace-fail '@out@' "$out"
+          '';
+          meta.description = "Authenticated single-tenant Kiln web service with supervised deployment assets";
+        });
       kilnAspenHostPackageFor =
         system:
         let
@@ -377,8 +399,13 @@
         };
     in
     {
+      onixModules.kiln-web-service = {
+        file = ./deployment/onixos-module.ncl;
+      };
+
       packages = eachSystem (system: {
         kiln = packageFor system;
+        web-service = webServicePackageFor system;
         kiln-aspen-host = kilnAspenHostPackageFor system;
         kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
         dashboard-tools = dashboardToolsPackageFor system;
@@ -424,6 +451,11 @@
           type = "app";
           program = "${packageFor system}/bin/kiln-dashboard";
           meta.description = "Render the local operator dashboard over a canonical Kiln journal";
+        };
+        kiln-web-service = {
+          type = "app";
+          program = "${webServicePackageFor system}/bin/kiln-web-service";
+          meta.description = "Run the authenticated source-bound single-tenant CI web service";
         };
         kiln-dashboard-refresh = {
           type = "app";
@@ -560,6 +592,10 @@
           boundaries = package;
           runtime-independence = package;
           dashboard-index-assets = dashboardIndexPackageFor system;
+          web-service-deployment = import ./checks/web-service-deployment.nix {
+            inherit pkgs;
+            package = webServicePackageFor system;
+          };
           format = pkgs.runCommand "kiln-format" { nativeBuildInputs = [ toolchain ]; } ''
             ${copySource}
             # Check every member, not the pristine partial producer workspaces.
@@ -938,6 +974,13 @@
               config/fixtures/dashboard-positive.ncl \
               config/fixtures/negative-dashboard-*.ncl \
               config/fixtures/dashboard-refresh-positive.ncl \
+              config/web-service.ncl \
+              config/web-worker.ncl \
+              config/web-systemd.ncl \
+              config/fixtures/*web-systemd*.ncl \
+              deployment/*.ncl \
+              deployment/fixtures/*.ncl \
+              config/fixtures/*web-service*.ncl \
               config/http-observation-profile.ncl \
               config/fixtures/http-observation-positive.ncl \
               config/fixtures/negative-http-observation-*.ncl \
@@ -956,6 +999,19 @@
             nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel typecheck config/patchgate-review.ncl
+            nickel typecheck config/web-service.ncl
+            nickel typecheck config/web-worker.ncl
+            nickel typecheck config/web-systemd.ncl
+            nickel export config/fixtures/web-systemd-positive.ncl >/dev/null
+            nickel export deployment/fixtures/positive.ncl >/dev/null
+            for fixture in deployment/fixtures/negative-*.ncl; do
+              case "$fixture" in *negative-module-*) continue ;; esac
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative deployment fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
+            nickel export config/fixtures/web-service-positive.ncl >/dev/null
             nickel export config/fixtures/patchgate-review-positive.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null

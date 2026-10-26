@@ -1,8 +1,7 @@
-use std::collections::BTreeMap;
-
 use kiln_core::operations::{JournalRecord, OutboxRecord};
 use kiln_core::types::{ContentId, CoreResult, Diagnostic, ExternalRef};
 use kiln_provider_api::EventAppendRequest;
+use std::collections::BTreeMap;
 
 use crate::admission::{AppendPlan, admit_append_batch};
 use crate::partition::map_partition;
@@ -64,9 +63,10 @@ fn object_name_for(stream: &ExternalRef, partition_count: usize) -> CoreResult<S
 }
 
 // r[impl kiln.celld.transport]
-/// Stateless worker router: validates the authenticated envelope, resolves the
-/// one named object for the stream, and applies the operation atomically.
-/// Partition placement never becomes Kiln fairness or dispatch authority.
+/// In-memory append model: validates the envelope MAC, resolves the one named
+/// object for the stream, and applies operation idempotency atomically. Shell
+/// clock admission and durable mutation nonces belong to the deployed Worker,
+/// not this model. Partition placement never becomes dispatch authority.
 #[derive(Clone, Debug)]
 pub struct CelldWorker {
     pub profile: CelldProfile,

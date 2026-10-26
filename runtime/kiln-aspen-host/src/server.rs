@@ -1,5 +1,5 @@
 use std::io::{Read, Write};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::os::unix::net::UnixListener;
 
 use kiln_adapter_aspen::profile::AdmittedAspenRuntimeProfile;
@@ -11,7 +11,8 @@ use crate::error::{HostBridgeError, Result};
 use crate::runtime::KilnAspenHostRuntime;
 
 const FRAME_OVERFLOW_SENTINEL_BYTES: usize = 1;
-const SOCKET_MODE: u32 = 0o660;
+const SOCKET_MODE: u32 = 0o600;
+const NON_OWNER_PERMISSION_BITS: u32 = 0o077;
 
 #[derive(Clone, Debug)]
 pub struct ServerConfig {
@@ -44,6 +45,39 @@ impl ServerConfig {
     }
 }
 
+fn admit_socket_directory(metadata: &std::fs::Metadata, effective_user: u32) -> Result<()> {
+    if !metadata.is_dir()
+        || metadata.uid() != effective_user
+        || metadata.permissions().mode() & NON_OWNER_PERMISSION_BITS != 0
+    {
+        return Err(HostBridgeError::Admission(
+            "Aspen host socket requires an owned private directory, not a symlink".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn bind_socket(socket_path: &std::path::Path) -> Result<UnixListener> {
+    let parent = socket_path.parent().ok_or_else(|| {
+        HostBridgeError::Admission("Aspen host socket requires a parent directory".to_string())
+    })?;
+    let metadata = std::fs::symlink_metadata(parent).map_err(|error| {
+        HostBridgeError::Io(format!("inspect Aspen host socket directory: {error}"))
+    })?;
+    admit_socket_directory(&metadata, rustix::process::geteuid().as_raw())?;
+    if std::fs::symlink_metadata(socket_path).is_ok() {
+        return Err(HostBridgeError::Io(
+            "Aspen host socket path already exists".to_string(),
+        ));
+    }
+    let listener = UnixListener::bind(socket_path)
+        .map_err(|error| HostBridgeError::Io(format!("bind Aspen host socket: {error}")))?;
+    std::fs::set_permissions(socket_path, std::fs::Permissions::from_mode(SOCKET_MODE)).map_err(
+        |error| HostBridgeError::Io(format!("set Aspen host socket permissions: {error}")),
+    )?;
+    Ok(listener)
+}
+
 // r[impl kiln.aspen_host.transport]
 pub fn serve(
     profile: &AdmittedAspenRuntimeProfile,
@@ -51,18 +85,7 @@ pub fn serve(
     config: &ServerConfig,
 ) -> Result<()> {
     config.validate()?;
-    if std::fs::symlink_metadata(&config.socket_path).is_ok() {
-        return Err(HostBridgeError::Io(
-            "Aspen host socket path already exists".to_string(),
-        ));
-    }
-    let listener = UnixListener::bind(&config.socket_path)
-        .map_err(|error| HostBridgeError::Io(format!("bind Aspen host socket: {error}")))?;
-    std::fs::set_permissions(
-        &config.socket_path,
-        std::fs::Permissions::from_mode(SOCKET_MODE),
-    )
-    .map_err(|error| HostBridgeError::Io(format!("set Aspen host socket permissions: {error}")))?;
+    let listener = bind_socket(&config.socket_path)?;
 
     let service_result = serve_requests(profile, runtime, config, &listener);
     let shutdown_result = runtime.shutdown();
@@ -127,3 +150,7 @@ fn serve_requests(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "server/tests.rs"]
+mod tests;

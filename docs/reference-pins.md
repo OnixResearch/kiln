@@ -159,6 +159,114 @@ recheck Rust 1.88 compilation, native peer/unknown-outcome conformance, and the
 workspace gates when changing this cohort. This is compatibility evidence,
 not a cryptographic audit or security guarantee.
 
+### Root registry dependency maintenance (2026-10-23)
+
+This maintenance changes only the root workspace registry cohort, not immutable
+producer imports or either standalone runtime lock. Cargo 1.88.0 in
+`nix develop path:.` generated the lock changes; the workspace still declares
+Rust 1.88. The complete changed package set is:
+
+| Registry package | Before | After | Published Rust minimum |
+|---|---|---|---|
+| `git2` (local Git/GitHub adapter line) | `0.20.2` | `0.20.4` | Not declared by the package |
+| `rustls` | `0.23.43` | `0.23.46` | 1.71 |
+| `rustls-webpki` | `0.103.15` | `0.103.16` | 1.71 |
+| `webpki-roots` (1.x parent) | `1.0.9` | `1.0.10` | 1.71 |
+| `webpki-root-certs` (1.x parent) | `1.0.9` | `1.0.10` | 1.71 |
+
+The MSRV entries come from registry version records and downloaded package
+manifests/Cargo metadata. No resolved package declares a minimum above 1.88;
+an absent declaration, especially `git2`'s, is not proof of compiler support.
+Rust 1.88 compilation and actual transport checks remain separate gates. The
+`git2` exact manifest pin, Rust source-profile constant, Nickel profile, and
+Git source guide move together to `0.20.4`; native `libgit2-sys
+0.18.7+1.9.6` and separate COB `git2 0.21.0` do not change. The root and HTTP
+observation Rustls floors and celld's exact Rustls pin move to `0.23.46`.
+Both 0.26.11 roots compatibility wrappers retain their versions and now resolve
+to the patched 1.0.10 parents. Iroh remains exactly `0.95.1`, every prerelease
+lock entry (including the signing table above) is unchanged, and the Pijul and
+Radicle cohorts are unchanged.
+
+The supplied baseline `cargo audit --json` reports **17 vulnerabilities
+and 10 warnings** (its JSON does not retain the process exit) against the 1,351-entry advisory DB at
+`84d943a6deeb8cc6c6f632531aaf4f1c62275239` (updated
+2026-10-23T16:42:16+02:00). After these changes,
+`nix develop path:. --command cargo audit --no-fetch --json` exited 1 with
+**10 vulnerabilities and 9 warnings**, using the locally installed 1,351-entry
+DB without refreshing it (`--no-fetch` reports null commit/date metadata).
+No advisories are ignored. The removed vulnerability IDs are
+`RUSTSEC-2026-0285`, `RUSTSEC-2026-0349`, `RUSTSEC-2026-0348`, and
+`RUSTSEC-2026-0346` (Rustls), `RUSTSEC-2026-0382` (webpki),
+`RUSTSEC-2026-0383` (root certs), and `RUSTSEC-2026-0381` (roots).
+The removed unsoundness warning is `RUSTSEC-2026-0008` (`git2::Buf`).
+
+Remaining vulnerability findings and their exact update boundaries:
+
+| IDs | Locked package and dependency edge | Constraint / published remedy |
+|---|---|---|
+| `RUSTSEC-2024-0344`, `RUSTSEC-2022-0093` | Exact `libpijul 1.0.0-beta.11` → `ed25519-dalek ^1.0` (`1.0.1`) → `curve25519-dalek ^3` (`3.2.0`) | Patched Dalek lines are respectively `curve25519-dalek >=4.1.3` and `ed25519-dalek >=2`; neither is a compatible patch for these edges. Requires a reviewed Pijul/API cohort change, not a local crypto fork. |
+| `RUSTSEC-2026-0119`, `RUSTSEC-2026-0118` | Iroh and `iroh-relay 0.95.1` → `hickory-resolver ^0.25.1` (`0.25.2`) → `hickory-proto ^0.25` (`0.25.2`) | Latest 0.25 patch is 0.25.2. Encoding fix requires proto >=0.26.1; the NSEC3 finding has no patched range and lists >=0.26.0-beta.1 as unaffected (DNSSEC handle moved to `hickory-net`). Hickory 0.26.1 supports Rust 1.88, but is outside both existing 0.25 constraints. |
+| `RUSTSEC-2026-0338`, `RUSTSEC-2026-0342`, `RUSTSEC-2026-0340`, `RUSTSEC-2026-0341`, `RUSTSEC-2026-0339` | Reqwest 0.12.28/0.13.5 optional `quinn ^0.11.1` → `quinn 0.11.11` → `quinn-proto ^0.11.15` (`0.11.15`) | All five fixes are covered by 0.11.18 (three by 0.11.17). Both declare Rust 1.85 and satisfy Quinn's semver range, but both require `rand ^0.10.1` → stable `chacha20 ^0.10.0`. Cargo rejects this against Iroh/relay → `crypto_box 0.10.0-pre.0` → locked `chacha20 0.10.0-rc.2`. Preserve that crypto cohort rather than forcing stable prerelease drift. |
+| `RUSTSEC-2023-0071` | `radicle-crypto 0.19.0` → `ssh-key ^0.6.3` (`0.6.7`), also `ssh-agent-lib 0.6.0` → `ssh-key ^0.6` → `rsa ^0.9` (`0.9.10`) | Advisory has no patched or unaffected range; merely updating RSA, including its newer prereleases, does not resolve the finding. |
+
+Remaining warnings (not counted as the ten vulnerabilities):
+
+| IDs | Locked package / edge | Maintenance boundary |
+|---|---|---|
+| `RUSTSEC-2023-0089` | `postcard 1.1.3` optional `heapless ^0.7.0` (`0.7.17`) → `atomic-polyfill ^1` (`1.0.3`) | Unmaintained; no patched range. A maintained atomic replacement requires changing this heapless/consumer edge, not a same-package patch. |
+| `RUSTSEC-2025-0141` | `libpijul 1.0.0-beta.11` and `zstd-seekable 0.1.23` → `bincode ^1.3` (`1.3.3`) | Unmaintained; no patched range. Replacing its serialization needs provider/format review. |
+| `RUSTSEC-2024-0384` | Iroh 0.95.1's WASM edge → `instant ^0.1`; `sanakirja 2.0.0-beta` → `parking_lot ^0.11` (`0.11.2`) → `instant ^0.1.9` (`0.1.13`), also via `parking_lot_core 0.8.6` | Unmaintained; no patched range. Replacement with `web-time` is not a lock-only package update. |
+| `RUSTSEC-2024-0436` | `netlink-packet-core 0.8.2` → `paste ^1` (`1.0.15`), reached by `netdev 0.38.2`, `netwatch 0.12.0`, `netlink-proto 0.12.2`, and `netlink-packet-route 0.25.1` | Unmaintained; no patched range. Latest 0.8 core is 0.8.2; a replacement macro package or newer core line needs consumer migration. |
+| `RUSTSEC-2025-0134` | Root-owned celld, HTTP observation and Onix pilot adapters → `rustls-pemfile 2.2.0` | Unmaintained; no patched range. Kiln can migrate its own PEM callers to `rustls-pki-types::pem::PemObject` separately; this is not blocked solely on upstream, but is an API/code change outside lock maintenance. |
+| `RUSTSEC-2026-0184`, `RUSTSEC-2026-0183` | Root local Git/GitHub adapters → exact `git2 0.20.4` | Both require >=0.21.0; the same-line Buf fix does not repair these distinct BlameHunk/Remote findings. Do not silently merge the separate 0.20 and COB 0.21 cohorts. |
+| `RUSTSEC-2026-0253` | `iroh-relay 0.95.1` → `lru ^0.16`, and `pkarr 5.0.3` → `lru ^0.16.3` (`0.16.4`) | Patch is >=0.18.2, outside both consumer constraints. |
+| `RUSTSEC-2026-0097` | `ed25519-dalek 1.0.1` → `rand ^0.7` (`0.7.3`) | Patched ranges are >=0.8.6,<0.9; >=0.9.3,<0.10; or >=0.10.1, all outside the old Dalek edge. |
+
+The update commands below exited 0; the Rustls command also resolved the
+manifest-requested `git2 0.20.4`. Before correcting celld's exact Rustls pin,
+the Rustls command exited 101. An unqualified `-p webpki-root-certs` exited 101
+as ambiguous; the qualified command below succeeded. The attempted
+`cargo update -p quinn-proto --precise 0.11.18` exited 101 with the crypto
+constraint above and made no lock changes.
+
+```console
+nix develop path:. --command cargo update -p rustls --precise 0.23.46
+nix develop path:. --command cargo update -p rustls-webpki --precise 0.103.16
+nix develop path:. --command cargo update -p webpki-roots@1.0.9 --precise 1.0.10
+nix develop path:. --command cargo update -p webpki-root-certs@1.0.9 --precise 1.0.10
+nix develop path:. --command cargo metadata --locked --format-version 1
+nix develop path:. --command cargo audit --no-fetch --json
+```
+
+Locked metadata exited 0 without regenerating the lock. No build, test, lint,
+or formatter was run as part of dependency resolution. Recommended real
+local transport/compiler checks for the integrated change (not passing receipts
+from this resolver review) are:
+
+```console
+nix develop path:. --command cargo test --locked -p kiln-adapter-http-observe --lib server_
+nix develop path:. --command cargo test --locked -p kiln-adapter-iroh --test workflow
+nix develop path:. --command cargo test --locked -p kiln-adapter-iroh-observe --lib
+nix develop path:. --command cargo test --locked -p kiln-adapter-git -p kiln-adapter-github
+```
+
+These rails include real TLS socket exchanges and authenticated native Iroh
+connections; they do not prove Internet DNS/relay availability, every TLS trust
+store path, or optional Reqwest HTTP/3. Iroh's native `quinn` dependency is the
+separate `iroh-quinn` package, not the advisory-bearing registry `quinn` edge.
+Cargo audit examines the lock, including optional/target-specific packages;
+none of the findings alone establishes application exploitability. This root
+lock review neither audits nor qualifies the separately pinned standalone runtime
+locks, vendored producers, deployed services, or changed executable cohorts.
+
+Integrated follow-up validation on Rust 1.88 passed the locked root workspace
+suite (555 passed, zero failed, three environment-gated tests ignored) and
+all-target Clippy with warnings denied. The suite exercised local Git snapshots,
+authenticated native Iroh exchanges, and the HTTP observation server's real TLS
+view, authorization-failure, TLS-failure and live-event paths. The root CLI demo
+also ran successfully. These are root-workspace observations, not standalone
+runtime dependency updates or production qualifications.
+
 
 ### Standalone runtime and optional tool cohort
 

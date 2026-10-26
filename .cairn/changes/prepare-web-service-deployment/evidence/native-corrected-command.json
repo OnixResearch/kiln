@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "python3",
+    "scripts/web-service-smoke.py",
+    "--service",
+    "/nix/store/6kr50bd924c3x56jhqycdfxn7ipzbyvg-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "--lattice",
+    "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+    "--lattice-source",
+    "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+    "--root",
+    "/home/brittonr/.cache/kiln-native-observed-cancel-b980dfbd-d670-4a9e-98c5-910c5fbb3f44",
+    "--evidence",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-web-service-deployment/evidence/native-corrected"
+  ],
+  "stdout": "{\"ready\": true, \"origin\": \"https://127.0.0.1:52031\", \"root\": \"/home/brittonr/.cache/kiln-native-observed-cancel-b980dfbd-d670-4a9e-98c5-910c5fbb3f44\"}\n",
+  "stderr": "",
+  "exit_code": 0
+}

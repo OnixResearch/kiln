@@ -1,0 +1,53 @@
+{
+  "command_timeout_ms": 60000,
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "success",
+  "repository_path": "/var/tmp/kiln-web-native-20261027-k/source",
+  "schema": "kiln.web-worker.v1",
+  "service_origin": "https://127.0.0.1:51211",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "steps": [
+    {
+      "argv": [
+        "ci.py",
+        "success"
+      ],
+      "artifacts": [
+        "artifact.txt"
+      ],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "build",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14"
+    },
+    {
+      "argv": [
+        "-c",
+        "print('second reviewed step', flush=True)"
+      ],
+      "artifacts": [],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "build",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14"
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/var/tmp/kiln-web-native-20261027-k/ca.pem",
+  "token_file": "/var/tmp/kiln-web-native-20261027-k/worker.token",
+  "work_root": "/var/tmp/kiln-web-native-20261027-k/work"
+}

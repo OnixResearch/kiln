@@ -1,0 +1,172 @@
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
+
+use git2::{Oid, Repository, Tree};
+use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
+use kiln_core::source::SourceResolution;
+use kiln_core::types::ProviderProfileId;
+
+use super::files;
+use super::profile::{WorkerProfile, hex};
+
+const MAX_TREE_DEPTH: usize = 128;
+
+#[derive(Clone, Debug)]
+pub struct SourceContext {
+    pub provider: String,
+    pub repository: String,
+    pub revision: String,
+}
+
+impl SourceContext {
+    pub fn from_environment() -> Result<Self, String> {
+        let read =
+            |key| std::env::var(key).map_err(|_| "worker source context missing".to_string());
+        Ok(Self {
+            provider: read("LATTICE_SOURCE_PROVIDER")?,
+            repository: read("LATTICE_SOURCE_REPOSITORY")?,
+            revision: read("LATTICE_SOURCE_REVISION")?,
+        })
+    }
+}
+
+pub struct PreparedSource {
+    // Owning the temporary directory removes the isolated checkout after the job.
+    _root: tempfile::TempDir,
+    pub checkout: PathBuf,
+    pub resolution: SourceResolution,
+}
+
+pub fn prepare(profile: &WorkerProfile, context: &SourceContext) -> Result<PreparedSource, String> {
+    profile.admit()?;
+    if context.provider != "git"
+        || !hex(&context.revision, 20)
+        || context.revision.bytes().all(|b| b == b'0')
+    {
+        return Err("worker source context invalid".into());
+    }
+    // Reject aliased repository paths before binding to LocalGitAdapter's canonical reference.
+    files::directory(&profile.repository_path)?;
+    files::owned_directory(&profile.work_root)?;
+    let provider =
+        ProviderProfileId::new("web-worker-git-v1").map_err(|_| "worker source profile invalid")?;
+    let adapter = LocalGitAdapter::new(
+        profile.repository_path.clone(),
+        context.revision.clone(),
+        GitSourceProfile::pinned_local(provider.clone(), profile.snapshot_limits.clone()),
+    )
+    .map_err(|_| "worker source admission failed")?;
+    let resolution =
+        resolve_and_acquire(&adapter, provider).map_err(|_| "worker snapshot admission failed")?;
+    if resolution.repository.native_id.as_str() != context.repository
+        || resolution.exact_revision.native_id.as_str() != context.revision
+    {
+        return Err("worker source binding mismatch".into());
+    }
+    let repository =
+        Repository::open(&profile.repository_path).map_err(|_| "worker repository unavailable")?;
+    let commit = repository
+        .find_commit(Oid::from_str(&context.revision).map_err(|_| "worker commit invalid")?)
+        .map_err(|_| "worker commit unavailable")?;
+    let tree = commit
+        .tree()
+        .map_err(|_| "worker source tree unavailable")?;
+    validate_tree(
+        &repository,
+        &tree,
+        0,
+        0,
+        profile.snapshot_limits.max_path_bytes,
+    )?;
+    let root = tempfile::Builder::new()
+        .prefix("kiln-web-job-")
+        .tempdir_in(&profile.work_root)
+        .map_err(|_| "worker isolation directory failed")?;
+    let checkout = root.path().join("checkout");
+    files::create_private(&checkout)?;
+    materialize(&repository, &tree, &checkout)?;
+    Ok(PreparedSource {
+        _root: root,
+        checkout,
+        resolution,
+    })
+}
+
+fn validate_tree(
+    repository: &Repository,
+    tree: &Tree<'_>,
+    prefix: usize,
+    depth: usize,
+    maximum_path: usize,
+) -> Result<(), String> {
+    if depth > MAX_TREE_DEPTH {
+        return Err("worker source tree depth exceeded".into());
+    }
+    for entry in tree {
+        let name = entry.name().ok_or("worker source path encoding denied")?;
+        let bytes = prefix
+            .checked_add(name.len())
+            .ok_or("worker source path overflow")?;
+        if name.is_empty()
+            || name == "."
+            || name == ".."
+            || name.eq_ignore_ascii_case(".git")
+            || name.contains(['/', '\\', '\0'])
+            || bytes > maximum_path
+        {
+            return Err("worker source path denied".into());
+        }
+        match entry.filemode() {
+            0o040_000 => validate_tree(
+                repository,
+                &repository
+                    .find_tree(entry.id())
+                    .map_err(|_| "worker source tree unavailable")?,
+                bytes + 1,
+                depth + 1,
+                maximum_path,
+            )?,
+            0o100_644 | 0o100_755 => {}
+            _ => return Err("worker source links and special files denied".into()),
+        }
+    }
+    Ok(())
+}
+
+fn materialize(repository: &Repository, tree: &Tree<'_>, destination: &Path) -> Result<(), String> {
+    for entry in tree {
+        let path = destination.join(entry.name().ok_or("worker source path encoding denied")?);
+        if entry.filemode() == 0o040_000 {
+            files::create_private(&path)?;
+            materialize(
+                repository,
+                &repository
+                    .find_tree(entry.id())
+                    .map_err(|_| "worker source tree unavailable")?,
+                &path,
+            )?;
+        } else {
+            let blob = repository
+                .find_blob(entry.id())
+                .map_err(|_| "worker source blob unavailable")?;
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+                .map_err(|_| "worker source materialization failed")?;
+            file.write_all(blob.content())
+                .map_err(|_| "worker source materialization failed")?;
+            file.set_permissions(fs::Permissions::from_mode(
+                if entry.filemode() == 0o100_755 {
+                    0o700
+                } else {
+                    0o600
+                },
+            ))
+            .map_err(|_| "worker source permissions failed")?;
+        }
+    }
+    Ok(())
+}

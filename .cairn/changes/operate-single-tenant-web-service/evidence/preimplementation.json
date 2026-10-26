@@ -1,0 +1,272 @@
+[
+  {
+    "gate": "proposal",
+    "exit_code": 0,
+    "receipt": {
+      "acceptance_ids": [],
+      "change": "operate-single-tenant-web-service",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "53ea726cec4f62705cd1b569d9d5707b5c6a618390c325d6458a227c24101f97",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+      "policy_selection": {
+        "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "84c371c76df4b7f4683a6b8bf3f811933be8d57125c27374e368a5d58b90a979",
+      "receipt_hash": "a7e2ac71e730863b0d1a7de6bf6023db52db91e789d4916c66612278fce20dae",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "proposal",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 22,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  },
+  {
+    "gate": "design",
+    "exit_code": 0,
+    "receipt": {
+      "acceptance_ids": [],
+      "change": "operate-single-tenant-web-service",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "df20fa39880a723dbc448818c2e8994e9bf29d491ca91ec202204a3e5438a1ec",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+      "policy_selection": {
+        "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "84c371c76df4b7f4683a6b8bf3f811933be8d57125c27374e368a5d58b90a979",
+      "receipt_hash": "a751c92a5663191d5ebbc8c030f70fc040795f1c00d8cf3b41c3946d4ca7476c",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "design",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 56,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 22,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/specs/single-tenant-web-service/spec.md",
+          "requirement_blocks": 8,
+          "scenario_blocks": 16,
+          "substantive_lines": 56,
+          "substantive_requirement_blocks": 8,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  },
+  {
+    "gate": "tasks",
+    "exit_code": 0,
+    "receipt": {
+      "acceptance_ids": [],
+      "change": "operate-single-tenant-web-service",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "e00c90d8ad7840da2edcb7251c8dcc62a3c34362fcb291a78c1f9a4abaa83080",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+      "policy_selection": {
+        "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": {
+        "declarations_present": false,
+        "probes": []
+      },
+      "profile_identity_hash": "84c371c76df4b7f4683a6b8bf3f811933be8d57125c27374e368a5d58b90a979",
+      "receipt_hash": "5b5968d9ff28102b8e8493d5457565c26ff23a0cd08000bfa46ae0bb350e38d3",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "tasks",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 56,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 22,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/specs/single-tenant-web-service/spec.md",
+          "requirement_blocks": 8,
+          "scenario_blocks": 16,
+          "substantive_lines": 56,
+          "substantive_requirement_blocks": 8,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 6,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/operate-single-tenant-web-service/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 6,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 6,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 6
+        }
+      ],
+      "task_ordering": {
+        "active": false,
+        "edges": [],
+        "issues": [],
+        "nodes": [],
+        "order": [],
+        "ready_tasks": [],
+        "valid": true
+      },
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  }
+]

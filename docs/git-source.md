@@ -4,7 +4,7 @@
 
 ## Profile
 
-The source of the profile is `config/git-source-profile.ncl`. The profile pins `git2` version `0.20.2` and `libgit2` version `1.9.6`.
+The source of the profile is `config/git-source-profile.ncl`. The profile pins `git2` version `0.20.4` and `libgit2` version `1.9.6`.
 
 The profile permits only the SHA-1 object format and repository format version `0`.
 

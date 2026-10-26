@@ -38,7 +38,7 @@ let MaxTotalBytes = 268435456 in
 {
   profile | Profile = {
     id = "git-source-v1",
-    library_source = "crates.io:git2:0.20.2",
+    library_source = "crates.io:git2:0.20.4",
     native_library_source = "crates.io:libgit2-sys:0.18.7+1.9.6",
     license = "MIT OR Apache-2.0",
     native_license = "GPL-2.0-only with libgit2 linking exception",

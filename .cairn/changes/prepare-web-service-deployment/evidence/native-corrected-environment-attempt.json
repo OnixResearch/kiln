@@ -1,0 +1,22 @@
+{
+  "scope": "Environment admission failed before native setup; no behavior qualification occurred.",
+  "attempt": {
+    "argv": [
+      "python3",
+      "scripts/web-service-smoke.py",
+      "--service",
+      "/nix/store/6kr50bd924c3x56jhqycdfxn7ipzbyvg-kiln-web-service-0.1.0/bin/kiln-web-service",
+      "--lattice",
+      "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "--lattice-source",
+      "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+      "--root",
+      "/home/brittonr/.cache/kiln-native-observed-cancel-b980dfbd-d670-4a9e-98c5-910c5fbb3f44",
+      "--evidence",
+      "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/prepare-web-service-deployment/evidence/native-corrected"
+    ],
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/home/brittonr/git/OnixResearch/kiln/scripts/web-service-smoke.py\", line 348, in <module>\n    main()\n    ~~~~^^\n  File \"/home/brittonr/git/OnixResearch/kiln/scripts/web-service-smoke.py\", line 337, in main\n    exercise = Exercise(args)\n  File \"/home/brittonr/git/OnixResearch/kiln/scripts/web-service-smoke.py\", line 49, in __init__\n    self.exe = {name: str(Path(shutil.which(name)).resolve(strict=True)) for name in (\"nickel\", \"b3sum\", \"openssl\", \"jj\", \"python3\", \"bwrap\", \"bash\")}\n                          ~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/pzdalg368npikvpq4ncz2saxnz19v53k-python3-3.13.12/lib/python3.13/pathlib/_local.py\", line 503, in __init__\n    super().__init__(*args)\n    ~~~~~~~~~~~~~~~~^^^^^^^\n  File \"/nix/store/pzdalg368npikvpq4ncz2saxnz19v53k-python3-3.13.12/lib/python3.13/pathlib/_local.py\", line 132, in __init__\n    raise TypeError(\n    ...<2 lines>...\n        f\"not {type(path).__name__!r}\")\nTypeError: argument should be a str or an os.PathLike object where __fspath__ returns a str, not 'NoneType'\n",
+    "exit_code": 1
+  }
+}

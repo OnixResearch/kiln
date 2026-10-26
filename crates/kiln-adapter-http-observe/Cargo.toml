@@ -12,7 +12,7 @@ blake3.workspace = true
 ed25519-dalek = "=2.2.0"
 kiln-core.workspace = true
 kiln-observe-core.workspace = true
-rustls = { version = "0.23.43", default-features = false, features = ["ring", "std", "tls12"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-pemfile = "2.2.0"
 serde.workspace = true
 serde_json.workspace = true

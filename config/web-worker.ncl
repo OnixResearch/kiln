@@ -1,0 +1,105 @@
+# Export this reviewed profile to JSON once. --identity pins BLAKE3 of those
+# original JSON bytes, including whitespace; never hash a reserialized profile.
+# Commands run in the exact admitted Git commit, not the mutable worktree.
+# Several steps may use the same native Lattice job node_id. Their real retained
+# stdout/stderr are uploaded with separate worker-owned byte cursors on step
+# completion. Native Lattice diagnostics remain a different stream. Bounded Exec
+# has no incremental output callback; no progress or log bytes are synthesized.
+# This is not a sandbox: use a dedicated account and reviewed commands; token
+# files must be private, owned, outside repository_path and work_root.
+let Integer = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_number value
+    && value >= 1
+    && value <= maximum
+    && std.number.floor value == value
+  )
+in
+let AbsolutePath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.is_match "^/[^\\x00-\\x1f\\x7f]+$" value
+    && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
+  )
+in
+let Component =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 128
+    && std.string.is_match "^[a-zA-Z0-9_.-]+$" value
+    && value != "."
+    && value != ".."
+  )
+in
+let RelativeFile =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 4096
+    && std.string.is_match "^[^/\\\\\\x00-\\x1f\\x7f]+(/[^/\\\\\\x00-\\x1f\\x7f]+)*$" value
+    && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
+  )
+in
+let Step = {
+  node_id | Component,
+  program | AbsolutePath,
+  argv | Array String,
+  environment | { _ : String },
+  artifacts | Array RelativeFile,
+}
+in
+fun input =>
+  let settings =
+    input
+      | {
+        project_id | Component,
+        repository_path | AbsolutePath,
+        service_origin
+          | std.contract.from_predicate (fun value =>
+            std.is_string value && std.string.is_match "^https://[^/?#@]+$" value
+          ),
+        token_file | AbsolutePath,
+        tls_ca_path | AbsolutePath,
+        work_root | AbsolutePath,
+        snapshot_limits
+          | {
+            max_entries | Integer 524288 | default = 65536,
+            max_path_bytes | Integer 4096 | default = 4096,
+            max_file_bytes | Integer 1073741824 | default = 16777216,
+            max_total_bytes | Integer 1073741824 | default = 268435456,
+          }
+          | default
+          = {},
+        command_timeout_ms | Integer 86400000 | default = 900000,
+        maximum_output_bytes | Integer 16777216 | default = 1048576,
+        teardown_timeout_ms | Integer 86400000 | default = 2000,
+        poll_interval_ms | Integer 86400000 | default = 10,
+        http_timeout_ms | Integer 86400000 | default = 10000,
+        lookup_timeout_ms | Integer 86400000 | default = 10000,
+        maximum_response_bytes | Integer 1048576 | default = 1048576,
+        maximum_artifact_bytes | Integer 67108864 | default = 16777216,
+        maximum_total_artifact_bytes | Integer 1073741824 | default = 67108864,
+        maximum_artifacts | Integer 4096 | default = 32,
+        steps | Array Step,
+      }
+  in
+  {
+    schema = "kiln.web-worker.v1",
+    project_id = settings.project_id,
+    repository_path = settings.repository_path,
+    service_origin = settings.service_origin,
+    token_file = settings.token_file,
+    tls_ca_path = settings.tls_ca_path,
+    work_root = settings.work_root,
+    snapshot_limits = settings.snapshot_limits,
+    command_timeout_ms = settings.command_timeout_ms,
+    maximum_output_bytes = settings.maximum_output_bytes,
+    teardown_timeout_ms = settings.teardown_timeout_ms,
+    poll_interval_ms = settings.poll_interval_ms,
+    http_timeout_ms = settings.http_timeout_ms,
+    lookup_timeout_ms = settings.lookup_timeout_ms,
+    maximum_response_bytes = settings.maximum_response_bytes,
+    maximum_artifact_bytes = settings.maximum_artifact_bytes,
+    maximum_total_artifact_bytes = settings.maximum_total_artifact_bytes,
+    maximum_artifacts = settings.maximum_artifacts,
+    steps = settings.steps,
+  }
