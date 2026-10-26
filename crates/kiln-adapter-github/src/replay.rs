@@ -304,6 +304,85 @@ impl SqliteStore {
     }
 }
 
+// r[impl kiln.dashboard.repositories.github_export]
+pub(crate) fn load_read_only(
+    path: &Path,
+    profile: &ContentId,
+    run: &ContentId,
+    maximum_record_bytes: usize,
+) -> PortResult<RunRecord> {
+    let maximum = sqlite_count(maximum_record_bytes)?;
+    let mut connection =
+        Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|_| storage_error("github_store_open"))?;
+    connection
+        .busy_timeout(Duration::from_millis(DATABASE_BUSY_TIMEOUT_MS))
+        .map_err(|_| storage_error("github_store_timeout"))?;
+    let transaction = connection
+        .transaction()
+        .map_err(|_| storage_error("github_store_transaction"))?;
+    let version: i64 = transaction
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .map_err(|_| storage_error("github_store_version"))?;
+    if version != DATABASE_VERSION {
+        return Err(domain(
+            "github_store_version",
+            "github.store",
+            "GitHub replay database version is unsupported",
+        ));
+    }
+    let metadata = transaction
+        .query_row(
+            "SELECT schema, profile_identity FROM github_meta WHERE singleton=1",
+            [],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .map_err(|_| storage_error("github_store_metadata"))?;
+    if metadata.0 != DATABASE_SCHEMA || metadata.1 != profile.as_str() {
+        return Err(domain(
+            "github_store_profile_conflict",
+            "github.store",
+            "GitHub replay state belongs to a different schema or exact service profile",
+        ));
+    }
+    // Bound the BLOB in SQLite before rusqlite allocates its bytes.
+    let row = transaction
+        .query_row(
+            "SELECT version, CASE WHEN length(record)<=?2 THEN record ELSE NULL END, immutable_identity, phase, work FROM github_runs WHERE run_identity=?1",
+            params![run.as_str(), maximum],
+            |row| Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, Option<Vec<u8>>>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, bool>(4)?,
+            )),
+        )
+        .optional()
+        .map_err(|_| storage_error("github_run_read"))?
+        .ok_or_else(|| domain("github_run_missing", "github.run", "GitHub run does not exist"))?;
+    let bytes = row.1.ok_or_else(|| {
+        domain(
+            "github_run_bound",
+            "github.run",
+            "GitHub stored run exceeds its durable byte bound",
+        )
+    })?;
+    let record = decode(row.0, &bytes, profile, maximum_record_bytes)?;
+    if &record.run_identity != run
+        || record.immutable_identity.as_str() != row.2
+        || record.phase.as_str() != row.3
+        || record.has_work() != row.4
+    {
+        return Err(domain(
+            "github_run_record",
+            "github.run",
+            "GitHub stored row disagrees with its validated run",
+        ));
+    }
+    Ok(record)
+}
+
 fn stored_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<(i64, Vec<u8>)> {
     Ok((row.get(0)?, row.get(1)?))
 }

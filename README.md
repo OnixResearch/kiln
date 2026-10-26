@@ -21,7 +21,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - bounded, deterministic, read-only observation projection over admitted state with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities;
 - a bounded HTTPS observation shell with canonical JSON views, a bounded SSE event leg, Ed25519 or UCAN holder-invocation authentication, TLS, and no control surface;
 - a bounded iroh observation shell for allowlisted peers with BLAKE3-verified payloads and maintained HTTP/iroh view equivalence;
-- a local operator dashboard over a canonical Kiln journal or SQLite event store with recomputed event identities, canonical replay, bounded paged views, a self-contained HTML report, a property-based terminal and browser rail over the dashboard and operator CLI, and no effect;
+- a local operator dashboard over a canonical Kiln journal or SQLite event store with recomputed event identities, canonical replay, bounded paged views, a responsive offline HTML console with search, filters, sorting, an adjacent run/attempt inspector, keyboard navigation and theme controls, independently admitted repository/history navigation, read-only GitHub observation export, separately configured atomic HTML delivery, a source-reloading developer preview, and property-based terminal/browser rails without provider effects;
 - an exact Aspen/Molten runtime profile, atomic event-store mapping, bounded content and callback contracts, and fail-closed ingress;
 - a standalone `kiln-aspen-host` composition shell that runs the real Aspen native service and concrete Lattice effect adapter;
 - exact-cohort host qualification receipt admission, retained-artifact identity checks, and stronger-claim rejection;
@@ -121,6 +121,9 @@ nix develop path:$PWD
 cargo test --locked --workspace
 cargo run --locked -p kiln-cli -- demo
 ```
+
+For dashboard development, the [offline preview workflow](docs/observation-dashboard.md#developer-preview)
+generates representative admitted sample data and supports source rebuilds with browser reload.
 
 The full local release gate list, including `cairn release-readiness`, is in
 [the operator guide](docs/operator.md#local-reference-run).

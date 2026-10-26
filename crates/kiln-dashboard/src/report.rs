@@ -221,3 +221,105 @@ pub fn build_report(
         non_claims: profile.non_claims.clone(),
     })
 }
+
+/// HTML-only drill-downs in addition to the base report's selected views.
+///
+/// Run details cover the admitted run pages. Attempt details cover each
+/// displayed run's bounded attempt list and active attempt. Explicit CLI
+/// selections remain in `report`, including admitted not-found results.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HtmlReport {
+    pub report: DashboardReport,
+    pub runs: Vec<ObservationView>,
+    pub attempts: Vec<ObservationView>,
+}
+
+/// Project the bounded offline navigation surface without adding work to text output.
+// r[impl kiln.observe.dashboard.html.interactive]
+// r[impl kiln.observe.dashboard.html.interactive.scenario.bounded]
+pub fn build_html_report(
+    profile: &DashboardProfile,
+    journal: &AdmittedJournal,
+    selection: &DashboardSelection,
+) -> CoreResult<HtmlReport> {
+    let mut report = build_report(profile, journal, selection)?;
+    let selected_run = report
+        .views
+        .run_detail
+        .as_ref()
+        .and_then(|view| match &view.body {
+            ViewBody::RunDetail(detail) => Some(&detail.run.run_id),
+            _ => None,
+        });
+    let run_ids = report
+        .views
+        .runs
+        .views
+        .iter()
+        .filter_map(|view| match &view.body {
+            ViewBody::RunList(list) => Some(&list.runs),
+            _ => None,
+        })
+        .flatten()
+        .map(|run| &run.run_id);
+    let mut runs = Vec::new();
+    for run_id in run_ids {
+        if Some(run_id) == selected_run {
+            continue;
+        }
+        runs.push(project_observation(
+            &profile.observation,
+            &journal.state,
+            &ObservationRequest {
+                state_revision: journal.state.revision,
+                view: ViewRequest::RunDetail {
+                    run_id: run_id.clone(),
+                },
+            },
+            &ObservationWindow::empty(),
+        )?);
+    }
+
+    let selected_attempt = report
+        .views
+        .attempt_detail
+        .as_ref()
+        .and_then(|view| match &view.body {
+            ViewBody::AttemptDetail(detail) => Some(&detail.attempt_id),
+            _ => None,
+        });
+    let mut attempt_ids = BTreeSet::new();
+    for view in report.views.run_detail.iter().chain(&runs) {
+        if let ViewBody::RunDetail(detail) = &view.body {
+            attempt_ids.insert(&detail.run.active_attempt);
+            attempt_ids.extend(detail.attempts.iter().map(|attempt| &attempt.attempt_id));
+        }
+    }
+    let mut attempts = Vec::new();
+    for attempt_id in attempt_ids {
+        if Some(attempt_id) == selected_attempt {
+            continue;
+        }
+        attempts.push(project_observation(
+            &profile.observation,
+            &journal.state,
+            &ObservationRequest {
+                state_revision: journal.state.revision,
+                view: ViewRequest::AttemptDetail {
+                    attempt_id: attempt_id.clone(),
+                },
+            },
+            &ObservationWindow::empty(),
+        )?);
+    }
+    for view in runs.iter().chain(&attempts) {
+        report
+            .redacted_fields
+            .extend(view.redacted_fields.iter().copied());
+    }
+    Ok(HtmlReport {
+        report,
+        runs,
+        attempts,
+    })
+}

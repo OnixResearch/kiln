@@ -1,18 +1,18 @@
 //! The HTML rendering of one dashboard report.
 //!
-//! The document is self-contained: inline style, no script, no external
+//! The document is self-contained: fixed inline style and script, no external
 //! resource, and no clock or environment input, so the same admitted state
-//! renders the same bytes every time. It reports exactly the facts the
-//! terminal report reports, including the view identities and the non-claims.
+//! renders the same bytes every time. Interactions only select already admitted
+//! views; their canonical identities, redactions and bounds remain authoritative.
 
 use kiln_core::domain::Outcome;
 use kiln_observe_core::{
-    AttemptDetailView, EventProjection, EventTailView, NotFoundTarget, RunDetailView,
-    StateSummaryView, ViewBody, ViewField,
+    AttemptDetailView, EventProjection, EventTailView, NotFoundTarget, ObservationView,
+    RunDetailView, StateSummaryView, ViewBody, ViewField,
 };
 
 use crate::journal::reference_text;
-use crate::report::DashboardReport;
+use crate::report::{DashboardReport, HtmlReport};
 
 /// Render one dashboard report as a self-contained HTML document.
 // r[impl kiln.observe.dashboard.html]
@@ -22,45 +22,127 @@ use crate::report::DashboardReport;
 // r[impl kiln.observe.dashboard.html.scenario.escaping]
 // r[impl kiln.observe.dashboard.html.nonclaims]
 #[must_use]
-pub fn render_html(report: &DashboardReport) -> String {
-    render_html_with_refresh(report, None)
+pub fn render_html(html: &HtmlReport) -> String {
+    render_html_with_refresh(html, None)
 }
 
-/// Render one dashboard report as a self-contained HTML document that reloads
-/// itself after the given interval.
+/// Render one dashboard report that reloads at the given admitted interval.
 ///
-/// The refresh is a document-level instruction, not a script, so the document
-/// still carries no script and no external resource.
+/// The fixed script reloads the current URL, preserving interactive fragment
+/// state. A document-level instruction provides the no-JavaScript fallback.
 // r[impl kiln.observe.dashboard.html.live_update]
 // r[impl kiln.observe.dashboard.html.live_update.scenario.match]
 // r[impl kiln.observe.dashboard.html.live_update.scenario.snapshot]
 // r[impl kiln.observe.dashboard.html.live_update.nonclaims]
 // r[impl kiln.observe.dashboard.html.live_update.nonclaims.scenario.scope]
 #[must_use]
-pub fn render_html_with_refresh(report: &DashboardReport, refresh_seconds: Option<u64>) -> String {
+pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>) -> String {
+    let report = &html.report;
     let mut out = String::new();
-    out.push_str("<!DOCTYPE html>\n");
-    out.push_str("<html lang=\"en\">\n<head>\n");
-    out.push_str("<meta charset=\"utf-8\">\n");
-    out.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
+    out.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
     if let Some(seconds) = refresh_seconds {
         out.push_str(&format!(
-            "<meta http-equiv=\"refresh\" content=\"{seconds}\">\n"
+            "<meta name=\"kiln-refresh-seconds\" content=\"{seconds}\">\n<noscript><meta http-equiv=\"refresh\" content=\"{seconds}\"></noscript>\n"
         ));
     }
     out.push_str(&format!(
-        "<title>Kiln dashboard {}</title>\n",
+        "<title>Kiln dashboard {}</title>\n<style>\n",
         escape(&report.profile_id)
     ));
-    out.push_str("<style>\n");
     out.push_str(STYLE);
-    out.push_str("</style>\n</head>\n<body>\n");
-    out.push_str("<header>\n");
+    out.push_str(r##"</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to dashboard</a>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Kiln dashboard">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">K</span><span>Kiln<span class="brand-caption">CI control plane</span></span></div>
+    <p class="nav-label">Workspace</p>
+    <nav class="section-nav js-only" aria-label="Dashboard sections">
+      <button type="button" data-jump="run-workspace"><span aria-hidden="true">01</span> Runs</button>
+      <button type="button" data-jump="events"><span aria-hidden="true">02</span> Activity</button>
+      <button type="button" data-jump="evidence"><span aria-hidden="true">03</span> Evidence</button>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="local-indicator">Local observation</span>
+      <p>No provider effects.<br>No CI control authority.</p>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="topbar">
+      <p class="breadcrumb">Workspace <span aria-hidden="true">/</span> <strong>Overview</strong></p>
+      <div class="topbar-actions">
+        <span class="pill">Read-only</span>
+        <button type="button" id="theme-toggle" class="js-only quiet-button">Theme: system</button>
+        <button type="button" id="shortcut-help" class="js-only quiet-button" aria-label="Keyboard shortcuts"><kbd>?</kbd></button>
+      </div>
+    </header>
+    <main id="main-content" tabindex="-1">
+      <header class="page-heading">
+        <div>
+          <p class="eyebrow">Continuous integration</p>
+          <h1>Run overview</h1>
+          <p class="subtitle">Runs, attempts and outcomes from one admitted journal.</p>
+        </div>
+        <div class="report-mode">
+"##);
+    match refresh_seconds {
+        Some(seconds) => out.push_str(&format!(
+            "<span class=\"mode\">Watched local report</span><span class=\"note\">Refresh every {seconds} seconds</span>"
+        )),
+        None => out.push_str("<span class=\"mode\">Snapshot</span><span class=\"note\">No automatic refresh</span>"),
+    }
+    out.push_str("</div></header>\n<div class=\"report-context\">");
     out.push_str(&format!(
-        "<h1>Kiln dashboard <span class=\"profile\">{}</span></h1>\n",
-        escape(&report.profile_id)
+        "<span>Profile <strong class=\"mono\">{}</strong></span><span>Observation <strong class=\"mono\">{}</strong></span><span>state revision <strong>{}</strong></span><span><strong>{}</strong> journal records</span>",
+        escape(&report.profile_id),
+        escape(&report.observation_profile_id),
+        report.journal.state_revision,
+        report.journal.record_count
     ));
-    out.push_str("<dl class=\"facts\">\n");
+    out.push_str("</div>\n");
+    if let ViewBody::StateSummary(summary) = &report.views.summary.body {
+        out.push_str(&summary_section(summary));
+    }
+    out.push_str("<div class=\"workspace\" id=\"run-workspace\">\n<section class=\"run-list\" aria-labelledby=\"runs-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Admitted history</p><h2 id=\"runs-heading\">Runs</h2></div><span class=\"pill\">Local only</span></div>\n");
+    out.push_str(&runs_section(report));
+    out.push_str("</section>\n<aside class=\"inspector\" aria-label=\"Selected run and attempt\">\n<section id=\"run-inspector\" aria-labelledby=\"run-detail-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Inspector</p><h2 id=\"run-detail-heading\">Run detail</h2></div><span class=\"inspector-mark\" aria-hidden=\"true\">↗</span></div>\n<p id=\"selection-status\" class=\"js-only selection-note\" role=\"status\"></p>\n");
+    for (index, view) in report
+        .views
+        .run_detail
+        .iter()
+        .chain(html.runs.iter())
+        .enumerate()
+    {
+        out.push_str(&detail_panel(
+            view,
+            true,
+            index == 0 && report.views.run_detail.is_some(),
+        ));
+    }
+    out.push_str("</section>\n<section id=\"attempt-inspector\" aria-labelledby=\"attempt-detail-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Execution</p><h2 id=\"attempt-detail-heading\">Attempt detail</h2></div></div>\n<p id=\"attempt-selection-status\" class=\"js-only selection-note\" role=\"status\"></p>\n");
+    for (index, view) in report
+        .views
+        .attempt_detail
+        .iter()
+        .chain(html.attempts.iter())
+        .enumerate()
+    {
+        out.push_str(&detail_panel(
+            view,
+            false,
+            index == 0 && report.views.attempt_detail.is_some(),
+        ));
+    }
+    out.push_str("</section>\n</aside>\n</div>\n");
+    if let ViewBody::EventTail(events) = &report.views.events.body {
+        out.push_str(&section(
+            "events",
+            "Recent activity",
+            &events_section(events),
+        ));
+    }
+    out.push_str("<section id=\"evidence\" aria-labelledby=\"evidence-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Trust boundaries</p><h2 id=\"evidence-heading\">Evidence &amp; provenance</h2></div><span class=\"pill\">Admitted facts, not authority</span></div><p class=\"note\">Local admitted observations only. Filtering and selection do not run jobs or change canonical state.</p>\n<details class=\"disclosure\"><summary>Report provenance</summary><dl class=\"facts\">\n");
     push_fact(
         &mut out,
         "observation profile",
@@ -86,56 +168,28 @@ pub fn render_html_with_refresh(report: &DashboardReport, refresh_seconds: Optio
         "state revision",
         &report.journal.state_revision.to_string(),
     );
-    out.push_str("</dl>\n</header>\n<main>\n");
-
-    if let ViewBody::StateSummary(summary) = &report.views.summary.body {
-        out.push_str(&section("summary", &summary_section(summary)));
-    }
-    out.push_str(&section("runs", &runs_section(report)));
-    if let Some(view) = report.views.run_detail.as_ref() {
-        out.push_str(&section("run detail", &run_detail_section(view)));
-    }
-    if let Some(view) = report.views.attempt_detail.as_ref() {
-        out.push_str(&section("attempt detail", &attempt_detail_section(view)));
-    }
-    if let ViewBody::EventTail(events) = &report.views.events.body {
-        out.push_str(&section("events", &events_section(events)));
-    }
-    out.push_str(&section("view identities", &identities_section(report)));
-    out.push_str(&section("redacted fields", &redactions_section(report)));
-    out.push_str(&section("non-claims", &non_claims_section(report)));
-    out.push_str("</main>\n</body>\n</html>\n");
+    out.push_str("</dl></details>\n<details class=\"disclosure\"><summary>Canonical view identities</summary>\n");
+    out.push_str(&identities_section(html));
+    out.push_str(
+        "</details>\n<details class=\"disclosure\"><summary>Profile redactions</summary>\n",
+    );
+    out.push_str(&redactions_section(report));
+    out.push_str(
+        "</details>\n<details class=\"disclosure\"><summary>Scope &amp; non-claims</summary>\n",
+    );
+    out.push_str(&non_claims_section(report));
+    out.push_str("</details>\n</section>\n<footer class=\"page-footer\"><span>Kiln / local observation surface</span><span>Bounded evidence. Explicit authority.</span></footer>\n</main>\n</div>\n</div>\n<dialog id=\"keyboard-help\" aria-labelledby=\"keyboard-help-heading\"><div class=\"section-heading\"><h2 id=\"keyboard-help-heading\">Keyboard shortcuts</h2><button type=\"button\" id=\"close-shortcuts\" aria-label=\"Close keyboard shortcuts\">Close</button></div><dl class=\"shortcut-list\"><dt><kbd>/</kbd></dt><dd>Focus run search</dd><dt><kbd>Esc</kbd></dt><dd>Clear focused search or close this help</dd><dt><kbd>?</kbd></dt><dd>Show keyboard shortcuts</dd><dt><kbd>Tab</kbd></dt><dd>Move through controls and run selections</dd><dt><kbd>Enter</kbd></dt><dd>Activate a focused selection or disclosure</dd></dl><p class=\"note\">Shortcuts never intercept typing in editable fields.</p></dialog>\n<script>\n");
+    out.push_str(SCRIPT);
+    out.push_str("\n</script>\n</body>\n</html>\n");
     out
 }
 
-const STYLE: &str = "\
-:root { color-scheme: light dark; }
-body { font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  margin: 0 auto; max-width: 72rem; padding: 2rem 1.25rem; }
-h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-h2 { font-size: 1.05rem; margin: 0 0 .5rem; }
-section { border-top: 1px solid rgba(128,128,128,.35); margin-top: 1.5rem; padding-top: 1rem; }
-.profile { font-weight: 400; color: #6b7280; }
-.facts { display: grid; grid-template-columns: max-content 1fr; gap: .1rem 1rem; margin: 0; }
-.facts dt { color: #6b7280; }
-.facts dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: .3rem .6rem .3rem 0; vertical-align: top;
-  border-bottom: 1px solid rgba(128,128,128,.22); }
-th { font-weight: 600; color: #6b7280; font-size: .82rem; text-transform: uppercase;
-  letter-spacing: .03em; }
-th.plain { text-transform: none; letter-spacing: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-td.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.outcome { font-weight: 600; }
-.outcome-success { color: #15803d; }
-.outcome-pending { color: #a16207; }
-.outcome-failure { color: #b91c1c; }
-.outcome-unknown { color: #6b7280; }
-.pill { display: inline-block; border: 1px solid rgba(128,128,128,.4); border-radius: 999px;
-  padding: 0 .5rem; margin-right: .35rem; font-size: .8rem; color: #6b7280; }
-.claims li { margin-bottom: .2rem; }
-.note { color: #6b7280; }
-";
+// r[impl kiln.observe.dashboard.html.console]
+// r[impl kiln.observe.dashboard.html.console.scenario.responsive]
+const STYLE: &str = include_str!("html.css");
+// r[impl kiln.observe.dashboard.html.interactive.scenario.navigation]
+// r[impl kiln.observe.dashboard.html.console.scenario.keyboard]
+const SCRIPT: &str = include_str!("html.js");
 
 fn push_fact(out: &mut String, label: &str, value: &str) {
     out.push_str(&format!(
@@ -145,26 +199,35 @@ fn push_fact(out: &mut String, label: &str, value: &str) {
     ));
 }
 
-fn section(title: &str, body: &str) -> String {
+fn section(id: &str, title: &str, body: &str) -> String {
     format!(
-        "<section>\n<h2>{}</h2>\n{}\n</section>\n",
+        "<section id=\"{}\" aria-labelledby=\"{}-heading\">\n<div class=\"section-heading\"><h2 id=\"{}-heading\">{}</h2></div>\n{}\n</section>\n",
+        escape(id),
+        escape(id),
+        escape(id),
         escape(title),
         body
     )
 }
 
 fn summary_section(summary: &StateSummaryView) -> String {
-    let mut out = String::new();
-    out.push_str("<dl class=\"facts\">\n");
-    push_fact(&mut out, "runs", &summary.run_count.to_string());
-    push_fact(&mut out, "attempts", &summary.attempt_count.to_string());
-    push_fact(&mut out, "holds", &summary.hold_count.to_string());
-    out.push_str("</dl>\n");
-    out.push_str("<table>\n<thead><tr><th>run outcomes</th><th>attempt outcomes</th></tr></thead>\n<tbody><tr><td>");
+    let mut out = String::from(
+        "<section class=\"overview\" aria-label=\"Admitted state summary\"><dl class=\"stat-grid\">",
+    );
+    for (label, value, note) in [
+        ("Total runs", summary.run_count, "In admitted state"),
+        ("Attempts", summary.attempt_count, "Including retry history"),
+        ("Holds", summary.hold_count, "Recorded admission holds"),
+    ] {
+        out.push_str(&format!(
+            "<div class=\"stat-card\"><dt>{label}</dt><dd>{value}<span>{note}</span></dd></div>"
+        ));
+    }
+    out.push_str("</dl><div class=\"outcome-summary\"><div><h3>Run outcomes</h3>");
     out.push_str(&outcome_counts(&summary.run_outcomes));
-    out.push_str("</td><td>");
+    out.push_str("</div><div><h3>Attempt outcomes</h3>");
     out.push_str(&outcome_counts(&summary.attempt_outcomes));
-    out.push_str("</td></tr></tbody>\n</table>\n");
+    out.push_str("</div></div></section>\n");
     out
 }
 
@@ -187,6 +250,37 @@ fn outcome_counts(counts: &[kiln_observe_core::OutcomeCount]) -> String {
 fn runs_section(report: &DashboardReport) -> String {
     let runs = &report.views.runs;
     let mut out = String::new();
+    out.push_str("<div class=\"controls js-only\" role=\"group\" aria-label=\"Filter and sort admitted runs\">\n<label for=\"run-search\">Search runs<input id=\"run-search\" type=\"search\" placeholder=\"Run ID or active attempt ID\" aria-describedby=\"run-search-help\"></label>\n<label for=\"outcome-filter\">Outcome<select id=\"outcome-filter\"><option value=\"\">All outcomes</option>");
+    for outcome in [
+        "Success",
+        "Pending",
+        "DomainFailure",
+        "Denied",
+        "ProviderError",
+        "Cancelled",
+        "TimedOut",
+        "Unknown",
+    ] {
+        out.push_str(&format!("<option value=\"{outcome}\">{outcome}</option>"));
+    }
+    out.push_str("</select></label>\n<label for=\"run-sort\">Sort by<select id=\"run-sort\"><option value=\"id\">Run ID</option><option value=\"outcome\">Outcome</option><option value=\"attempts\">Attempt count</option></select></label>\n<label for=\"sort-direction\">Direction<select id=\"sort-direction\"><option value=\"asc\">Ascending</option><option value=\"desc\">Descending</option></select></label>\n<button type=\"button\" id=\"clear-filters\">Clear filters</button>\n</div>\n<p id=\"run-search-help\" class=\"note js-only\">Search run or active attempt IDs. Only embedded rows are filtered.</p>\n<p id=\"run-result-count\" class=\"js-only\" role=\"status\"></p>\n<p id=\"run-empty\" hidden>No admitted runs match these filters. Clear filters to see all admitted rows.</p>\n<noscript><p class=\"note\">JavaScript is disabled: all admitted rows and detail views are shown below. Search and selection require JavaScript; no facts are fetched.</p></noscript>\n");
+    out.push_str("<div class=\"table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Admitted runs\"><table id=\"runs-table\">\n<thead><tr><th scope=\"col\">run</th><th scope=\"col\">outcome</th><th scope=\"col\">active attempt</th><th scope=\"col\">attempts</th></tr></thead>\n<tbody>\n");
+    for view in &runs.views {
+        let ViewBody::RunList(list) = &view.body else {
+            continue;
+        };
+        for run in &list.runs {
+            out.push_str(&format!(
+                "<tr data-run-row data-run-id=\"{id}\" data-active-attempt=\"{active}\" data-outcome=\"{outcome}\" data-attempt-count=\"{count}\"><td class=\"mono\"><span class=\"no-js-only\">{id}</span><button class=\"identity-button js-only\" type=\"button\" data-select-run data-run-id=\"{id}\" aria-label=\"Select run {id}\">{id}</button></td><td class=\"outcome {class}\">{outcome}</td><td class=\"mono\"><span class=\"no-js-only\">{active}</span><button class=\"identity-button js-only\" type=\"button\" data-select-attempt data-run-id=\"{id}\" data-attempt-id=\"{active}\" aria-label=\"Select attempt {active} for run {id}\">{active}</button></td><td>{count}</td></tr>\n",
+                id = escape(run.run_id.as_str()),
+                active = escape(run.active_attempt.as_str()),
+                outcome = escape(&format!("{:?}", run.outcome)),
+                class = outcome_class(run.outcome),
+                count = run.attempt_count
+            ));
+        }
+    }
+    out.push_str("</tbody>\n</table></div>\n");
     out.push_str("<p>");
     out.push_str(&format!(
         "<span class=\"pill\">pages {}</span><span class=\"pill\">runs {}</span><span class=\"pill\">requested {}</span><span class=\"pill\">effective {}</span>",
@@ -205,23 +299,62 @@ fn runs_section(report: &DashboardReport) -> String {
         out.push_str("<span class=\"pill\">truncated</span>");
     }
     out.push_str("</p>\n");
-    out.push_str("<table>\n<thead><tr><th>run</th><th>outcome</th><th>active attempt</th><th>attempts</th></tr></thead>\n<tbody>\n");
-    for view in &runs.views {
-        let ViewBody::RunList(list) = &view.body else {
-            continue;
-        };
-        for run in &list.runs {
-            out.push_str(&format!(
-                "<tr><td class=\"mono\">{}</td><td class=\"outcome {}\">{}</td><td class=\"mono\">{}</td><td>{}</td></tr>\n",
-                escape(run.run_id.as_str()),
-                outcome_class(run.outcome),
-                escape(&format!("{:?}", run.outcome)),
-                escape(run.active_attempt.as_str()),
-                run.attempt_count
-            ));
-        }
+    if runs.total_runs == 0 {
+        out.push_str("<p class=\"note\">No runs are present in this admitted observation.</p>\n");
     }
-    out.push_str("</tbody>\n</table>\n");
+    out
+}
+
+fn detail_panel(view: &ObservationView, run: bool, initial: bool) -> String {
+    let (target, owner, active, found) = match &view.body {
+        ViewBody::RunDetail(detail) => (
+            detail.run.run_id.as_str(),
+            detail.run.run_id.as_str(),
+            detail.run.active_attempt.as_str(),
+            true,
+        ),
+        ViewBody::AttemptDetail(detail) => {
+            (detail.attempt_id.as_str(), detail.run_id.as_str(), "", true)
+        }
+        ViewBody::NotFound(detail) => match &detail.target {
+            NotFoundTarget::Run(id) if run => (id.as_str(), id.as_str(), "", false),
+            NotFoundTarget::Attempt(id) if !run => (id.as_str(), "", "", false),
+            _ => return String::new(),
+        },
+        _ => return String::new(),
+    };
+    let attributes = if run {
+        format!(
+            "data-run-detail data-run-id=\"{}\" data-active-attempt=\"{}\"",
+            escape(target),
+            escape(active)
+        )
+    } else {
+        format!(
+            "data-attempt-detail data-attempt-id=\"{}\" data-run-id=\"{}\"",
+            escape(target),
+            escape(owner)
+        )
+    };
+    let mut out = format!(
+        "<article class=\"detail-panel\" {attributes} data-found=\"{found}\"{}>\n<h3>{} <span class=\"mono\">{}</span></h3>\n",
+        if initial { " data-initial" } else { "" },
+        if run { "Run" } else { "Attempt" },
+        escape(target)
+    );
+    out.push_str(&if run {
+        run_detail_section(view)
+    } else {
+        attempt_detail_section(view)
+    });
+    out.push_str("<dl class=\"facts view-identity\">\n");
+    push_fact(
+        &mut out,
+        "kiln.observe.view.v1 identity",
+        view.identity.as_str(),
+    );
+    out.push_str("</dl>\n");
+    out.push_str("</article>\n");
     out
 }
 
@@ -257,18 +390,19 @@ fn run_detail_body(detail: &RunDetailView) -> String {
     out.push_str("<table>\n<thead><tr><th>attempt</th><th>outcome</th><th>provider</th><th>products</th><th>metrics</th></tr></thead>\n<tbody>\n");
     for attempt in &detail.attempts {
         out.push_str(&format!(
-            "<tr><td class=\"mono\">{}</td><td class=\"outcome {}\">{}</td><td class=\"mono\">{}</td><td>{}</td><td>{}</td></tr>\n",
-            escape(attempt.attempt_id.as_str()),
-            outcome_class(attempt.outcome),
-            escape(&format!("{:?}", attempt.outcome)),
-            escape(
+            "<tr><td class=\"mono\"><span class=\"no-js-only\">{id}</span><button class=\"identity-button js-only\" type=\"button\" data-select-attempt data-attempt-id=\"{id}\" data-run-id=\"{run}\" aria-label=\"Select attempt {id} for run {run}\">{id}</button></td><td class=\"outcome {class}\">{outcome}</td><td class=\"mono\">{provider}</td><td>{products}</td><td>{metrics}</td></tr>\n",
+            id = escape(attempt.attempt_id.as_str()),
+            run = escape(detail.run.run_id.as_str()),
+            class = outcome_class(attempt.outcome),
+            outcome = escape(&format!("{:?}", attempt.outcome)),
+            provider = escape(
                 attempt
                     .provider_profile
                     .as_ref()
                     .map_or("-", |value| value.as_str())
             ),
-            attempt.product_count,
-            attempt.metric_count
+            products = attempt.product_count,
+            metrics = attempt.metric_count
         ));
     }
     out.push_str("</tbody>\n</table>\n");
@@ -496,7 +630,8 @@ fn event_detail(event: &EventProjection) -> String {
     }
 }
 
-fn identities_section(report: &DashboardReport) -> String {
+fn identities_section(html: &HtmlReport) -> String {
+    let report = &html.report;
     let mut out = String::new();
     out.push_str("<table>\n<thead><tr><th>view</th><th class=\"plain\">kiln.observe.view.v1 identity</th></tr></thead>\n<tbody>\n");
     out.push_str(&identity_row(
@@ -511,6 +646,18 @@ fn identities_section(report: &DashboardReport) -> String {
     }
     if let Some(view) = report.views.attempt_detail.as_ref() {
         out.push_str(&identity_row("attempt_detail", &view.identity));
+    }
+    for (index, view) in html.runs.iter().enumerate() {
+        out.push_str(&identity_row(
+            &format!("run_detail.additional[{index}]"),
+            &view.identity,
+        ));
+    }
+    for (index, view) in html.attempts.iter().enumerate() {
+        out.push_str(&identity_row(
+            &format!("attempt_detail.additional[{index}]"),
+            &view.identity,
+        ));
     }
     out.push_str(&identity_row("event_tail", &report.views.events.identity));
     out.push_str("</tbody>\n</table>\n");

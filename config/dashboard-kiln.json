@@ -1,0 +1,94 @@
+{
+  "bounds": {
+    "max_catalog_bytes": 1048576,
+    "max_histories": 16,
+    "max_input_bytes": 16777216,
+    "max_projects": 4,
+    "max_rendered_bytes": 16777216
+  },
+  "projects": [
+    {
+      "histories": [
+        {
+          "id": "pass",
+          "input": {
+            "kind": "journal",
+            "path": "../evidence/dashboard-repositories/github-pass.json"
+          },
+          "label": "Retained real build: passed",
+          "revision": "e25b7c1a1faac1e9f4eaea24bd9c7cd916ebb817",
+          "source": "Retained GitHub run for onixresearch/kiln; not a current branch-tip claim"
+        },
+        {
+          "id": "fail",
+          "input": {
+            "kind": "journal",
+            "path": "../evidence/dashboard-repositories/github-fail.json"
+          },
+          "label": "Retained genuine assertion failure",
+          "revision": "d363f0f6f302da6cde1aa5fb66b64c34ec0cc247",
+          "source": "Retained GitHub run for onixresearch/kiln; duplicate delivery retained the same execution"
+        },
+        {
+          "id": "recovery",
+          "input": {
+            "kind": "journal",
+            "path": "../evidence/dashboard-repositories/github-recovery.json"
+          },
+          "label": "Retained controller/bridge restart recovery",
+          "revision": "2bba857fe78760ef6409da4188125dd0bba9a907",
+          "source": "Retained GitHub run for onixresearch/kiln; executor survived controller/bridge interruption"
+        },
+        {
+          "id": "unknown",
+          "input": {
+            "kind": "journal",
+            "path": "../evidence/dashboard-repositories/github-unknown.json"
+          },
+          "label": "Retained earlier execution: unresolved",
+          "revision": "19b4f0ef56385d3566b5ade94217d683bae84bf9",
+          "source": "Retained GitHub run for onixresearch/kiln; Unknown is not a terminal success or failure"
+        }
+      ],
+      "id": "kiln-github",
+      "label": "Kiln / GitHub CI history"
+    },
+    {
+      "histories": [
+        {
+          "id": "success",
+          "input": {
+            "kind": "journal",
+            "path": "../.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/success-journal.json"
+          },
+          "label": "Retained real Kiln Nix build: passed",
+          "revision": "4a2a3e6a80fd5c8c5f42e4a0ace6c333d26d4e8a",
+          "source": "Retained dedicated Kiln self-CI fork rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih; not canonical publication"
+        },
+        {
+          "id": "failure",
+          "input": {
+            "kind": "journal",
+            "path": "../.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/failure-journal.json"
+          },
+          "label": "Retained genuine Kiln Nix build failure",
+          "revision": "86e35b5e9d191f9992fbc3c5fb85a8c0bf51db16",
+          "source": "Retained dedicated Kiln self-CI fork rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih"
+        },
+        {
+          "id": "unavailable",
+          "input": {
+            "kind": "journal",
+            "path": "../.cairn/archive/1970-01-01-qualify-kiln-self-ci/evidence/success/unavailable-journal.json"
+          },
+          "label": "Retained unavailable worker: unresolved",
+          "revision": "995da1ff126ece7bbca91f5fc014bf100e4818f7",
+          "source": "Retained dedicated Kiln self-CI fork rad:z2J2jH8gk8G8pzjuvvAsYc6jjyih; no successful completion inferred"
+        }
+      ],
+      "id": "kiln-radicle",
+      "label": "Kiln / Radicle self-CI history"
+    }
+  ],
+  "schema_version": 1
+}

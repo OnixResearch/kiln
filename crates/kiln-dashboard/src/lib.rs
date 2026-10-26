@@ -5,6 +5,7 @@
 //! logic, no control intake, and no canonical state. Every reported fact comes
 //! from the accepted observation projection over an admitted journal state.
 
+pub mod catalog;
 pub mod journal;
 pub mod profile;
 pub mod render;

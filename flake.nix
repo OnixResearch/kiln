@@ -813,6 +813,11 @@
               config/fixtures/observation-positive.ncl \
               config/fixtures/negative-observation-*.ncl \
               config/dashboard-profile.ncl \
+              config/dashboard-catalog.ncl \
+              config/dashboard-kiln.ncl \
+              config/dashboard-publication.ncl \
+              config/fixtures/dashboard-catalog-*.ncl \
+              config/fixtures/dashboard-publication-*.ncl \
               config/fixtures/dashboard-positive.ncl \
               config/fixtures/negative-dashboard-*.ncl \
               config/http-observation-profile.ncl \
@@ -890,6 +895,11 @@
             nickel export config/fixtures/nix-eval-jobs-positive.ncl >/dev/null
             nickel export config/fixtures/observation-positive.ncl >/dev/null
             nickel export config/fixtures/dashboard-positive.ncl >/dev/null
+            nickel typecheck config/dashboard-catalog.ncl
+            nickel typecheck config/dashboard-publication.ncl
+            nickel export config/dashboard-kiln.ncl >/dev/null
+            nickel export config/fixtures/dashboard-catalog-positive.ncl >/dev/null
+            nickel export config/fixtures/dashboard-publication-positive.ncl >/dev/null
             nickel export config/fixtures/http-observation-positive.ncl >/dev/null
             nickel export config/fixtures/iroh-observation-positive.ncl >/dev/null
             nickel export config/fixtures/nix-build-positive.ncl >/dev/null
@@ -921,69 +931,77 @@
             done
             touch "$out"
           '';
+          dashboard-publication =
+            pkgs.runCommand "kiln-dashboard-publication" { nativeBuildInputs = [ pkgs.python3 ]; }
+              ''
+                ${copySource}
+                python3 -m unittest discover -s scripts -p test_dashboard_publish.py
+                touch "$out"
+              '';
           # Property-based terminal rail for the operator dashboard. The
           # tool is separately executed and never linked into a Kiln package.
           # r[impl kiln.observe.dashboard.property_rail.cohort]
           # r[impl kiln.observe.dashboard.property_rail.cohort.scenario.pin]
-          bombadil = pkgs.runCommand "kiln-bombadil" { nativeBuildInputs = [ (bombadilPackageFor system) ]; }
-            ''
-              ${copySource}
-              export HOME="$PWD/home"
-              mkdir -p "$HOME" traces
-              cp checks/bombadil/journal-4-runs.json checks/bombadil/journal.json
-              bombadil terminal test \
-                --specification checks/bombadil/kiln-dashboard.spec.ts \
-                --rows 200 --columns 160 --time-limit 60s \
-                --output-path "$PWD/traces/admitted-4-runs" --output-path-overwrite \
-                -- ${packageFor system}/bin/kiln-dashboard \
-                --journal checks/bombadil/journal.json \
-                --profile fixtures/dashboard/profile-v1.json
-              cp checks/bombadil/journal-20-runs.json checks/bombadil/journal.json
-              bombadil terminal test \
-                --specification checks/bombadil/kiln-dashboard.spec.ts \
-                --rows 200 --columns 160 --time-limit 60s \
-                --output-path "$PWD/traces/bounded-20-runs" --output-path-overwrite \
-                -- ${packageFor system}/bin/kiln-dashboard \
-                --journal checks/bombadil/journal.json \
-                --profile fixtures/dashboard/profile-v1.json
-              cp checks/bombadil/journal-pilot.json checks/bombadil/journal.json
-              bombadil terminal test \
-                --specification checks/bombadil/kiln-dashboard.spec.ts \
-                --rows 200 --columns 160 --time-limit 60s \
-                --output-path "$PWD/traces/admitted-pilot-journal" --output-path-overwrite \
-                -- ${packageFor system}/bin/kiln-dashboard \
-                --journal checks/bombadil/journal.json \
-                --profile fixtures/dashboard/profile-v1.json
-              cp checks/bombadil/journal-tampered.json checks/bombadil/journal.json
-              bombadil terminal test \
-                --specification checks/bombadil/kiln-dashboard-rejected.spec.ts \
-                --rows 200 --columns 160 --time-limit 60s \
-                --output-path "$PWD/traces/rejected-tampered" --output-path-overwrite \
-                -- ${packageFor system}/bin/kiln-dashboard \
-                --journal checks/bombadil/journal.json \
-                --profile fixtures/dashboard/profile-v1.json
-              rm checks/bombadil/journal.json
-              bombadil terminal test \
-                --specification checks/bombadil/kiln-cli-demo.spec.ts \
-                --rows 200 --columns 160 --time-limit 60s \
-                --output-path "$PWD/traces/kiln-cli-demo" --output-path-overwrite \
-                -- ${packageFor system}/bin/kiln demo
-              bombadil terminal test \
-                --specification checks/bombadil/kiln-cli-evidence.spec.ts \
-                --rows 200 --columns 160 --time-limit 60s \
-                --output-path "$PWD/traces/kiln-cli-evidence" --output-path-overwrite \
-                -- ${packageFor system}/bin/kiln evidence \
-                checks/bombadil/evidence-input.json \
-                "$PWD/kiln-cli-evidence.json"
-              bombadil terminal test \
-                --specification checks/bombadil/kiln-cli-evidence-rejected.spec.ts \
-                --rows 200 --columns 160 --time-limit 60s \
-                --output-path "$PWD/traces/kiln-cli-evidence-rejected" --output-path-overwrite \
-                -- ${packageFor system}/bin/kiln evidence \
-                checks/bombadil/evidence-malformed.json \
-                "$PWD/kiln-cli-evidence-rejected.json"
-              cp -r traces "$out"
-            '';
+          bombadil =
+            pkgs.runCommand "kiln-bombadil" { nativeBuildInputs = [ (bombadilPackageFor system) ]; }
+              ''
+                ${copySource}
+                export HOME="$PWD/home"
+                mkdir -p "$HOME" traces
+                cp checks/bombadil/journal-4-runs.json checks/bombadil/journal.json
+                bombadil terminal test \
+                  --specification checks/bombadil/kiln-dashboard.spec.ts \
+                  --rows 200 --columns 160 --time-limit 60s \
+                  --output-path "$PWD/traces/admitted-4-runs" --output-path-overwrite \
+                  -- ${packageFor system}/bin/kiln-dashboard \
+                  --journal checks/bombadil/journal.json \
+                  --profile fixtures/dashboard/profile-v1.json
+                cp checks/bombadil/journal-20-runs.json checks/bombadil/journal.json
+                bombadil terminal test \
+                  --specification checks/bombadil/kiln-dashboard.spec.ts \
+                  --rows 200 --columns 160 --time-limit 60s \
+                  --output-path "$PWD/traces/bounded-20-runs" --output-path-overwrite \
+                  -- ${packageFor system}/bin/kiln-dashboard \
+                  --journal checks/bombadil/journal.json \
+                  --profile fixtures/dashboard/profile-v1.json
+                cp checks/bombadil/journal-pilot.json checks/bombadil/journal.json
+                bombadil terminal test \
+                  --specification checks/bombadil/kiln-dashboard.spec.ts \
+                  --rows 200 --columns 160 --time-limit 60s \
+                  --output-path "$PWD/traces/admitted-pilot-journal" --output-path-overwrite \
+                  -- ${packageFor system}/bin/kiln-dashboard \
+                  --journal checks/bombadil/journal.json \
+                  --profile fixtures/dashboard/profile-v1.json
+                cp checks/bombadil/journal-tampered.json checks/bombadil/journal.json
+                bombadil terminal test \
+                  --specification checks/bombadil/kiln-dashboard-rejected.spec.ts \
+                  --rows 200 --columns 160 --time-limit 60s \
+                  --output-path "$PWD/traces/rejected-tampered" --output-path-overwrite \
+                  -- ${packageFor system}/bin/kiln-dashboard \
+                  --journal checks/bombadil/journal.json \
+                  --profile fixtures/dashboard/profile-v1.json
+                rm checks/bombadil/journal.json
+                bombadil terminal test \
+                  --specification checks/bombadil/kiln-cli-demo.spec.ts \
+                  --rows 200 --columns 160 --time-limit 60s \
+                  --output-path "$PWD/traces/kiln-cli-demo" --output-path-overwrite \
+                  -- ${packageFor system}/bin/kiln demo
+                bombadil terminal test \
+                  --specification checks/bombadil/kiln-cli-evidence.spec.ts \
+                  --rows 200 --columns 160 --time-limit 60s \
+                  --output-path "$PWD/traces/kiln-cli-evidence" --output-path-overwrite \
+                  -- ${packageFor system}/bin/kiln evidence \
+                  checks/bombadil/evidence-input.json \
+                  "$PWD/kiln-cli-evidence.json"
+                bombadil terminal test \
+                  --specification checks/bombadil/kiln-cli-evidence-rejected.spec.ts \
+                  --rows 200 --columns 160 --time-limit 60s \
+                  --output-path "$PWD/traces/kiln-cli-evidence-rejected" --output-path-overwrite \
+                  -- ${packageFor system}/bin/kiln evidence \
+                  checks/bombadil/evidence-malformed.json \
+                  "$PWD/kiln-cli-evidence-rejected.json"
+                cp -r traces "$out"
+              '';
           cairn-gate-cohort = pkgs.runCommand "kiln-cairn-gate-cohort" { } ''
             test '${cairnGateRevision}' = '15f00875562025e7ea7e0d1f4af24d1a2e2ac06f'
             cmp ${cairnGateSource}/fixtures/cairn-gate-contract/producer/fixtures-v1.json \
@@ -1303,6 +1321,7 @@
               pkgs.nixfmt
               pkgs.pkg-config
               pkgs.python3
+              pkgs.watchexec
               pkgs.zlib
               pkgs.openssl
             ];

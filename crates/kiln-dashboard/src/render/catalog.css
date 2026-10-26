@@ -1,0 +1,19 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: Canvas; color: CanvasText; }
+body > header { padding: 1rem clamp(.75rem, 3vw, 2rem); border-bottom: 1px solid GrayText; }
+h1 { font-size: clamp(1.35rem, 4vw, 2rem); }
+p, h2, li, label { overflow-wrap: anywhere; }
+nav ul { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; padding-inline-start: 1.25rem; }
+a { color: LinkText; }
+a:focus-visible, select:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+.catalog-controls { display: none; flex-wrap: wrap; gap: 1rem; }
+.catalog-js .catalog-controls { display: flex; }
+label { display: grid; gap: .35rem; flex: 1 1 16rem; min-width: 0; }
+select { min-height: 2.75rem; max-width: 100%; width: 100%; font: inherit; }
+#catalog-status { font-weight: 600; }
+main > section { padding: .5rem; }
+main > section > h2, main > section > p { margin-inline: .5rem; }
+iframe { display: block; width: 100%; height: 85vh; min-height: 32rem; border: 1px solid GrayText; background: Canvas; }
+[hidden] { display: none !important; }
+@media (max-width: 40rem) { iframe { height: 80vh; } nav ul { display: block; } nav li { margin-block: .5rem; } }

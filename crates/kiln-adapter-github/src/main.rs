@@ -5,7 +5,7 @@ use kiln_adapter_github::server::{open_store, runtime, serve};
 use kiln_core::types::ContentId;
 use kiln_provider_api::PortFailure;
 
-const USAGE: &str = "usage: kiln-adapter-github --profile PROFILE.json\n       kiln-adapter-github status --profile PROFILE.json --run RUN_BLAKE3\n       kiln-adapter-github reconcile --profile PROFILE.json --run RUN_BLAKE3";
+const USAGE: &str = "usage: kiln-adapter-github --profile PROFILE.json\n       kiln-adapter-github status --profile PROFILE.json --run RUN_BLAKE3\n       kiln-adapter-github reconcile --profile PROFILE.json --run RUN_BLAKE3\n       kiln-adapter-github export --profile PROFILE.json --run RUN_BLAKE3 --output JOURNAL.json [--database-snapshot SNAPSHOT.sqlite]";
 
 fn run() -> Result<(), PortFailure> {
     let mut args = std::env::args().skip(1);
@@ -28,6 +28,7 @@ fn run() -> Result<(), PortFailure> {
         Some("--profile") => "serve",
         Some("status") => "status",
         Some("reconcile") => "reconcile",
+        Some("export") => "export",
         _ => return Err(arguments()),
     };
     if mode != "serve" && args.next().as_deref() != Some("--profile") {
@@ -44,11 +45,35 @@ fn run() -> Result<(), PortFailure> {
             args.next().ok_or_else(arguments)?,
         )?)
     };
+    let output = if mode == "export" {
+        if args.next().as_deref() != Some("--output") {
+            return Err(arguments());
+        }
+        Some(args.next().map(PathBuf::from).ok_or_else(arguments)?)
+    } else {
+        None
+    };
+    let database_snapshot = match args.next().as_deref() {
+        Some("--database-snapshot") if mode == "export" => {
+            Some(args.next().map(PathBuf::from).ok_or_else(arguments)?)
+        }
+        None => None,
+        _ => return Err(arguments()),
+    };
     if args.next().is_some() {
         return Err(arguments());
     }
     let admitted = load_config(&profile)?;
     if let Some(run) = run_identity {
+        if let Some(output) = output {
+            return kiln_adapter_github::export::export_observation(
+                &admitted,
+                &profile,
+                &run,
+                &output,
+                database_snapshot.as_deref(),
+            );
+        }
         let record = if mode == "reconcile" {
             runtime(&admitted)?.reconcile_run(&run)?
         } else {

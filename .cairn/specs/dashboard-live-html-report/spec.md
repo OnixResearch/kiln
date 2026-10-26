@@ -6,14 +6,14 @@ Defines the `dashboard-live-html-report` capability.
 
 ## Requirements
 
-### Requirement: Live HTML dashboard report
-r[kiln.observe.dashboard.html.live_update] A watched HTML report MUST be rewritten on the profile's watch interval, MUST ask the reader to reload at that interval without carrying a script, and MUST replace its file atomically so a reader never observes a partial document.
+### Requirement: Live HTML report
+r[kiln.observe.dashboard.html.live_update] The watched HTML report MUST follow the admitted input at the declared watch interval using atomically replaced self-contained documents.
 
-#### Scenario: A watched report is rewritten and asks for a reload
+#### Scenario: A watched report follows the input
 r[kiln.observe.dashboard.html.live_update.scenario.match]
-- GIVEN a watched HTML report and an admitted dashboard profile
+- GIVEN a watched HTML output
 - WHEN the shell renders a frame
-- THEN it MUST replace the report file atomically, and the document MUST carry a reload instruction at the profile's watch interval and MUST carry no script.
+- THEN it MUST atomically replace the document and carry a reload instruction derived from the profile interval; local interactive state MUST survive through its fragment.
 
 #### Scenario: An unwatched report stays a snapshot
 r[kiln.observe.dashboard.html.live_update.scenario.snapshot]

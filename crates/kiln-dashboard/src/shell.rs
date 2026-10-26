@@ -4,17 +4,18 @@
 //! [`crate::profile`], [`crate::journal`], [`crate::report`], and
 //! [`crate::render`] decides admission, projection, and rendering.
 
-use std::io::IsTerminal;
+use std::io::{IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use kiln_core::types::{AttemptId, RunId};
 
+use crate::catalog::{Catalog, CatalogRenderer, HistoryInput, MAX_CATALOG_BYTES};
 use crate::journal::{AdmittedJournal, JournalDocument, MAX_JOURNAL_BYTES, admit_document};
-use crate::profile::{MAX_PROFILE_BYTES, ProfileDocument};
-use crate::render::html::render_html_with_refresh;
+use crate::profile::{DashboardProfile, MAX_PROFILE_BYTES, ProfileDocument};
+use crate::render::html::{render_html, render_html_with_refresh};
 use crate::render::{RenderStyle, render_report};
-use crate::report::{DashboardSelection, build_report};
+use crate::report::{DashboardSelection, build_html_report, build_report};
 use crate::store::{admit_store, parse_reference};
 
 /// The usage text of the dashboard shell.
@@ -24,14 +25,18 @@ usage: kiln-dashboard --journal <path> --profile <path> [--run <id>] [--attempt 
        kiln-dashboard --store <path> --stream <ns:kind:id> --profile <path>
                       [--run <id>] [--attempt <id>] [--watch] [--plain]
                       [--format text|html] [--output <path>]
+       kiln-dashboard --catalog <path> --profile <path> --format html --output <path>
+                      [--watch | --refresh-seconds <seconds>]
 
   --journal <path>        canonical Kiln journal document to observe
+  --catalog <path>        bounded repository/history catalog (HTML output only)
   --store <path>          canonical SQLite event store to observe, read only
   --stream <ns:kind:id>   the event store stream to observe
   --profile <path>        canonical dashboard profile document
   --run <id>              run to detail; defaults to the first observed run
   --attempt <id>          attempt to detail; defaults to the selected run's active attempt
   --watch                 re-read the input on the profile's watch interval
+  --refresh-seconds <n>   finite HTML generation with browser refresh (1..86400)
   --plain                 render without ANSI styling
   --format <text|html>    report format; text is the default
   --output <path>         write the report to a file instead of standard output
@@ -69,6 +74,8 @@ pub enum Input {
         path: PathBuf,
         stream: Box<kiln_core::types::ExternalRef>,
     },
+    /// Independently admitted repository histories, rendered only as HTML.
+    Catalog { path: PathBuf },
 }
 
 /// The parsed dashboard shell options.
@@ -81,6 +88,7 @@ pub struct Options {
     pub plain: bool,
     pub format: ReportFormat,
     pub output: Option<PathBuf>,
+    pub refresh_seconds: Option<u64>,
 }
 
 /// The outcome of parsing dashboard shell arguments.
@@ -96,6 +104,7 @@ pub enum Parsed {
 pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, String> {
     let mut journal_path: Option<PathBuf> = None;
     let mut store_path: Option<PathBuf> = None;
+    let mut catalog_path: Option<PathBuf> = None;
     let mut stream: Option<String> = None;
     let mut profile_path: Option<PathBuf> = None;
     let mut selection = DashboardSelection::default();
@@ -103,9 +112,23 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
     let mut plain = false;
     let mut format = ReportFormat::Text;
     let mut output: Option<PathBuf> = None;
+    let mut refresh_seconds = None;
     let mut arguments = arguments.peekable();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
+            "--catalog" => {
+                catalog_path = Some(PathBuf::from(next_value(&mut arguments, "--catalog")?));
+            }
+            "--refresh-seconds" => {
+                let value = next_value(&mut arguments, "--refresh-seconds")?;
+                let seconds: u64 = value
+                    .parse()
+                    .map_err(|_| "invalid --refresh-seconds".to_string())?;
+                if seconds == 0 || seconds > 86400 {
+                    return Err("--refresh-seconds must be 1..86400".to_string());
+                }
+                refresh_seconds = Some(seconds);
+            }
             "--journal" => {
                 journal_path = Some(PathBuf::from(next_value(&mut arguments, "--journal")?));
             }
@@ -146,19 +169,39 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
         }
     }
     let profile_path = profile_path.ok_or_else(|| "--profile is required".to_string())?;
-    let input = match (journal_path, store_path) {
-        (Some(_), Some(_)) => {
-            return Err("--journal and --store are mutually exclusive".to_string());
+    if refresh_seconds.is_some() && (watch || format != ReportFormat::Html) {
+        return Err("--refresh-seconds requires HTML and cannot be mixed with --watch".to_string());
+    }
+    let input = if let Some(path) = catalog_path {
+        if journal_path.is_some() || store_path.is_some() || stream.is_some() {
+            return Err(
+                "--catalog cannot be mixed with --journal, --store or --stream".to_string(),
+            );
         }
-        (Some(path), None) => Input::Journal { path },
-        (None, Some(path)) => {
-            let stream = stream.ok_or_else(|| "--stream is required".to_string())?;
-            Input::Store {
-                path,
-                stream: Box::new(parse_reference(&stream)?),
+        if format != ReportFormat::Html
+            || output.is_none()
+            || plain
+            || selection.run.is_some()
+            || selection.attempt.is_some()
+        {
+            return Err("--catalog requires --format html --output and does not support --plain, --run or --attempt".to_string());
+        }
+        Input::Catalog { path }
+    } else {
+        match (journal_path, store_path) {
+            (Some(_), Some(_)) => {
+                return Err("--journal and --store are mutually exclusive".to_string());
             }
+            (Some(path), None) => Input::Journal { path },
+            (None, Some(path)) => {
+                let stream = stream.ok_or_else(|| "--stream is required".to_string())?;
+                Input::Store {
+                    path,
+                    stream: Box::new(parse_reference(&stream)?),
+                }
+            }
+            (None, None) => return Err("--journal, --store or --catalog is required".to_string()),
         }
-        (None, None) => return Err("--journal or --store is required".to_string()),
     };
     Ok(Parsed::Options(Options {
         input,
@@ -168,6 +211,7 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
         plain,
         format,
         output,
+        refresh_seconds,
     }))
 }
 
@@ -231,20 +275,31 @@ pub fn render_frame(
     profile: &ProfileDocument,
     style: RenderStyle,
 ) -> Result<(), String> {
+    let refresh = options.refresh_seconds.or_else(|| {
+        options
+            .watch
+            .then(|| profile.profile.watch_interval_ms.div_ceil(1000).max(1))
+    });
+    if let Input::Catalog { path } = &options.input {
+        let output = options
+            .output
+            .as_ref()
+            .ok_or("catalog requires an output path")?;
+        protect_output(path, &options.profile_path, output)?;
+        let rendered = render_catalog(path, &profile.profile, refresh)?;
+        return write_atomic(output, &rendered);
+    }
     let journal = admit_input(options)?;
-    let report = build_report(&profile.profile, &journal, &options.selection)
-        .map_err(|error| format!("dashboard projection: {}: {}", error.code, error.message))?;
     let rendered = match options.format {
-        ReportFormat::Text => render_report(&report, style),
+        ReportFormat::Text => build_report(&profile.profile, &journal, &options.selection)
+            .map(|report| render_report(&report, style)),
         ReportFormat::Html => {
-            // A watched HTML report reloads itself so a browser tab follows
-            // the journal; an unwatched one stays a snapshot.
-            let refresh = options
-                .watch
-                .then(|| profile.profile.watch_interval_ms.div_ceil(1000).max(1));
-            render_html_with_refresh(&report, refresh)
+            // A watched HTML report reloads the atomically replaced document.
+            build_html_report(&profile.profile, &journal, &options.selection)
+                .map(|report| render_html_with_refresh(&report, refresh))
         }
-    };
+    }
+    .map_err(|error| format!("dashboard projection: {}: {}", error.code, error.message))?;
     match &options.output {
         Some(path) => write_atomic(path, &rendered)?,
         None => print!("{rendered}"),
@@ -254,9 +309,29 @@ pub fn render_frame(
 
 /// Write a report so a reader never sees a half-written document.
 fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
-    let temporary = path.with_extension("html.tmp");
-    std::fs::write(&temporary, content).map_err(|error| format!("report write failed: {error}"))?;
-    std::fs::rename(&temporary, path).map_err(|error| format!("report replace failed: {error}"))
+    static NEXT_TEMPORARY: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let serial = NEXT_TEMPORARY.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let mut name = path
+        .file_name()
+        .ok_or("report output must name a file")?
+        .to_os_string();
+    name.push(format!(".{}.{}.tmp", std::process::id(), serial));
+    let temporary = path.with_file_name(name);
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .map_err(|error| format!("report temporary create failed: {error}"))?;
+    let result = (|| {
+        file.write_all(content.as_bytes())
+            .and_then(|()| file.sync_all())
+            .map_err(|error| format!("report write failed: {error}"))?;
+        std::fs::rename(&temporary, path).map_err(|error| format!("report replace failed: {error}"))
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result
 }
 
 /// Admit the observed input into canonical Kiln state.
@@ -272,6 +347,9 @@ pub fn admit_input(options: &Options) -> Result<AdmittedJournal, String> {
         Input::Store { path, stream } => {
             let store_profile = kiln_adapter_sqlite::canonical_profile();
             admit_store(path, &store_profile, stream)
+        }
+        Input::Catalog { .. } => {
+            Err("catalog histories must be admitted independently".to_string())
         }
     }
 }
@@ -299,11 +377,157 @@ pub fn read_bounded(path: &Path, max_bytes: usize) -> Result<Vec<u8>, String> {
             path.display()
         ));
     }
-    std::fs::read(path).map_err(|error| format!("{}: {error}", path.display()))
+    let file = std::fs::File::open(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    let mut bytes = Vec::new();
+    file.take(bound.saturating_add(1))
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    if bytes.len() > max_bytes {
+        return Err(format!(
+            "{}: file exceeds the named byte bound of {max_bytes}",
+            path.display()
+        ));
+    }
+    Ok(bytes)
 }
 
 fn next_value(arguments: &mut impl Iterator<Item = String>, name: &str) -> Result<String, String> {
     arguments
         .next()
         .ok_or_else(|| format!("{name} requires a value"))
+}
+/// Refuse to replace any catalog input, including through symlinked directories.
+pub fn protect_output(
+    catalog_path: &Path,
+    profile_path: &Path,
+    output: &Path,
+) -> Result<(), String> {
+    let catalog = Catalog::parse(&read_bounded(catalog_path, MAX_CATALOG_BYTES)?)?;
+    let directory = catalog_path.parent().unwrap_or_else(|| Path::new("."));
+    let output = resolved_output(output)?;
+    let mut sources = vec![catalog_path.to_path_buf(), profile_path.to_path_buf()];
+    for project in &catalog.projects {
+        for history in &project.histories {
+            let input = directory.join(history.input.path());
+            sources.push(input.clone());
+            if matches!(history.input, HistoryInput::Store { .. }) {
+                for suffix in ["-wal", "-shm", "-journal"] {
+                    let mut sidecar = input.as_os_str().to_os_string();
+                    sidecar.push(suffix);
+                    sources.push(PathBuf::from(sidecar));
+                }
+            }
+        }
+    }
+    for source in sources {
+        if resolved_output(&source)? == output {
+            return Err(format!(
+                "report output collides with a protected input: {}",
+                source.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn resolved_output(path: &Path) -> Result<PathBuf, String> {
+    match std::fs::canonicalize(path) {
+        Ok(path) => Ok(path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let parent = path
+                .parent()
+                .filter(|p| !p.as_os_str().is_empty())
+                .unwrap_or_else(|| Path::new("."));
+            let parent = std::fs::canonicalize(parent)
+                .map_err(|error| format!("{}: {error}", parent.display()))?;
+            let name = path.file_name().ok_or("report path must name a file")?;
+            Ok(parent.join(name))
+        }
+        Err(error) => Err(format!("{}: {error}", path.display())),
+    }
+}
+
+/// Admit every catalog history independently, with filesystem effects confined here.
+// r[impl kiln.dashboard.repositories.catalog.scenario.navigation]
+pub fn render_catalog(
+    path: &Path,
+    profile: &DashboardProfile,
+    refresh: Option<u64>,
+) -> Result<String, String> {
+    let catalog = Catalog::parse(&read_bounded(path, MAX_CATALOG_BYTES)?)?;
+    let directory = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut inputs = Vec::new();
+    let mut total_bytes = 0u64;
+    for project in &catalog.projects {
+        for history in &project.histories {
+            let input_path = directory.join(history.input.path());
+            let metadata = std::fs::metadata(&input_path)
+                .map_err(|error| format!("{}: {error}", input_path.display()))?;
+            if !metadata.is_file() {
+                return Err(format!(
+                    "{}: history input is not a regular file",
+                    input_path.display()
+                ));
+            }
+            if matches!(history.input, HistoryInput::Store { .. }) {
+                total_bytes = total_bytes
+                    .checked_add(metadata.len())
+                    .ok_or("aggregate input size overflow")?;
+                for suffix in ["-wal", "-shm", "-journal"] {
+                    let mut sidecar = input_path.as_os_str().to_os_string();
+                    sidecar.push(suffix);
+                    match std::fs::metadata(Path::new(&sidecar)) {
+                        Ok(metadata) => {
+                            total_bytes = total_bytes
+                                .checked_add(metadata.len())
+                                .ok_or("aggregate input size overflow")?;
+                        }
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                        Err(error) => return Err(format!("store sidecar metadata: {error}")),
+                    }
+                }
+            }
+            if total_bytes > catalog.bounds.max_input_bytes {
+                return Err("catalog aggregate input byte bound exceeded".to_string());
+            }
+            inputs.push(input_path);
+        }
+    }
+    let mut renderer = CatalogRenderer::new(&catalog);
+    let mut inputs = inputs.into_iter();
+    for project in &catalog.projects {
+        for history in &project.histories {
+            let path = inputs.next().ok_or("catalog input accounting error")?;
+            let journal = match &history.input {
+                HistoryInput::Journal { .. } => {
+                    let remaining = usize::try_from(catalog.bounds.max_input_bytes - total_bytes)
+                        .unwrap_or(usize::MAX)
+                        .min(MAX_JOURNAL_BYTES);
+                    let bytes = read_bounded(&path, remaining)?;
+                    total_bytes += bytes.len() as u64;
+                    let document = JournalDocument::parse(&bytes).map_err(|error| {
+                        format!("journal document: {}: {}", error.code, error.message)
+                    })?;
+                    admit_document(&document).map_err(|error| {
+                        format!("journal admission: {}: {}", error.code, error.message)
+                    })
+                }
+                HistoryInput::Store { stream, .. } => admit_store(
+                    &path,
+                    &kiln_adapter_sqlite::canonical_profile(),
+                    &parse_reference(stream)?,
+                ),
+            }
+            .map_err(|error| format!("{}/{}: {error}", project.id, history.id))?;
+            let report = build_html_report(profile, &journal, &DashboardSelection::default())
+                .map_err(|error| {
+                    format!(
+                        "{}/{}: {}: {}",
+                        project.id, history.id, error.code, error.message
+                    )
+                })?;
+            renderer.push(project, history, &render_html(&report))?;
+        }
+    }
+    renderer.finish(refresh)
 }

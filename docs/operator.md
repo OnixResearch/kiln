@@ -65,13 +65,18 @@ and [HTTP observation](http-observation.md). The iroh leg is
 admits a canonical Kiln journal document or a canonical SQLite event store,
 verifies every record's event identity by recomputation, replays the record
 stream canonically, and renders the bounded run, attempt, and event views as a
-deterministic terminal report. The same surface is reachable as
-`kiln dashboard`. It reads only the files the operator names and performs no
+deterministic terminal report or a self-contained offline interactive HTML page.
+The same surface is reachable as `kiln dashboard`. HTML controls search, filter,
+and sort the admitted run pages and select embedded run and attempt details;
+they never fetch more history or trigger CI. Inline trusted JavaScript keeps
+local filter and selection state in the URL fragment across watch reloads,
+while a no-JavaScript fallback retains the readable admitted report. It reads
+only the files the operator names, loads no external resources, and performs no
 effect. A property-based terminal rail drives the packaged binaries under a
 pseudo terminal and checks the rendered report and the operator CLI against
 properties derived from the staged inputs and the checked-in profiles. The same
-rail's browser driver checks the self-contained HTML report the dashboard can
-write. See [operator dashboard](observation-dashboard.md).
+rail has a browser specification for the HTML report and its local controls.
+See [operator dashboard](observation-dashboard.md).
 
 ## Logs and follow
 
