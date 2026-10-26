@@ -1,0 +1,47 @@
+{
+  "adapter_blake3": "44107caf68981bcd5fc08c1f68c2fd4a6e73a063d3f3c747f284af815ef46210",
+  "fresh_short_model": {
+    "local_model_port_calls": 1,
+    "native_missing_request_digests_preserved": true,
+    "receipt": {
+      "native_report": "{\n  \"schema_version\": 1,\n  \"dry_run\": true,\n  \"authorizes_acceptance\": false,\n  \"main\": {\n    \"channel\": \"main\",\n    \"state\": \"BREJJQ5HN5XAZKSOK5FL4GYUBWBGEWTT32WVWEUNWMK6TBQVXP3AC\"\n  },\n  \"inbox\": {\n    \"channel\": \"inbox\",\n    \"state\": \"IPPSY2Z7WLFUM5PKYG5XHEO5ELOJUCZXI52U2YJI7Y3E4ZP73G5QC\"\n  },\n  \"configuration\": {\n    \"source\": \"main\",\n    \"path\": \"patchgate.json\",\n    \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n    \"values\": {\n      \"policy_path\": \"POLICY.md\",\n      \"protected\": [\n        \"src/**\"\n      ],\n      \"documentation_paths\": [\n        \"docs/**\"\n      ],\n      \"max_change_chars\": 8000,\n      \"timeout_seconds\": 300.0,\n      \"check_timeout_seconds\": 900.0,\n      \"max_review_requests\": 16,\n      \"review_timeout_seconds\": 60.0\n    }\n  },\n  \"items\": [\n    {\n      \"hash\": \"ILNX4Z7GXUCSL3TBGRR37LUSGU25ZQYMNHLNCHXUXDUTMY6VOQZAC\",\n      \"message\": \"Boundary fixture\",\n      \"paths\": [\n        \"notes/model.txt\"\n      ],\n      \"state\": \"accepted\",\n      \"reason\": \"\",\n      \"needs\": [],\n      \"decided\": true,\n      \"merge\": null,\n      \"note\": \"\"\n    }\n  ],\n  \"records\": [\n    {\n      \"hash\": \"ILNX4Z7GXUCSL3TBGRR37LUSGU25ZQYMNHLNCHXUXDUTMY6VOQZAC\",\n      \"decision\": \"accept\",\n      \"message\": \"Boundary fixture\",\n      \"by\": \"model\",\n      \"summary\": \"Change fixture text.\",\n      \"reason\": \"Fixture policy permits it.\",\n      \"at\": \"2026-10-26T16:36:26+00:00\",\n      \"model\": \"native-protocol-fixture\",\n      \"provenance\": {\n        \"requests\": [],\n        \"verifiers\": {\n          \"schema_version\": 1,\n          \"patchgate\": \"0.1.0\",\n          \"pijul\": \"pijul 1.0.0-beta.24\",\n          \"nix\": null\n        }\n      },\n      \"review\": {\n        \"candidates\": [\n          \"ILNX4Z7GXUCSL3TBGRR37LUSGU25ZQYMNHLNCHXUXDUTMY6VOQZAC\"\n        ],\n        \"policy\": {\n          \"path\": \"POLICY.md\",\n          \"sha256\": \"0378c4dfb3ff7d3b5781e01648ca96a4c568801900978ec86a4246045468f24e\"\n        },\n        \"main\": {\n          \"channel\": \"main\",\n          \"state\": \"BREJJQ5HN5XAZKSOK5FL4GYUBWBGEWTT32WVWEUNWMK6TBQVXP3AC\"\n        }\n      },\n      \"configuration\": {\n        \"source\": \"main\",\n        \"path\": \"patchgate.json\",\n        \"sha256\": \"fab791703af4394de78452cb2c762a55aaefa9814d7b1c042cc45c139176bd25\",\n        \"values\": {\n          \"policy_path\": \"POLICY.md\",\n          \"protected\": [\n            \"src/**\"\n          ],\n          \"documentation_paths\": [\n            \"docs/**\"\n          ],\n          \"max_change_chars\": 8000,\n          \"timeout_seconds\": 300.0,\n          \"check_timeout_seconds\": 900.0,\n          \"max_review_requests\": 16,\n          \"review_timeout_seconds\": 60.0\n        }\n      },\n      \"answers\": [\n        {\n          \"schema_version\": 1,\n          \"operation\": \"review\",\n          \"api\": \"openai\",\n          \"model\": \"native-protocol-fixture\",\n          \"question\": \"review\",\n          \"choice\": \"accept\",\n          \"option_count\": 3,\n          \"options_sha256\": \"9f3cec30f1fec7ac140ce1ea8625058992c1dc4935042db43148fb0f9c6fbcdf\",\n          \"abstained\": false\n        }\n      ]\n    }\n  ],\n  \"selection\": {\n    \"requested_changes\": [\n      \"ILNX4Z7GXUCSL3TBGRR37LUSGU25ZQYMNHLNCHXUXDUTMY6VOQZAC\"\n    ],\n    \"requested_authors\": [],\n    \"include_dependencies\": false,\n    \"selected\": [\n      \"ILNX4Z7GXUCSL3TBGRR37LUSGU25ZQYMNHLNCHXUXDUTMY6VOQZAC\"\n    ],\n    \"added_dependencies\": []\n  },\n  \"review_usage\": {\n    \"requests\": 1,\n    \"max_requests\": 16,\n    \"elapsed_seconds\": 0.35137982,\n    \"timeout_seconds\": 60.0,\n    \"stop\": null\n  }\n}\n",
+      "observation": {
+        "authorizes_acceptance": false,
+        "candidate_id": "fresh-short-model",
+        "candidate_root": "02efc7aec37d644ea35b6da4f2d9fd092ba9f75fb925613817b5f199e626fe49",
+        "contract_version": 1,
+        "effect_id": "fresh-short-model",
+        "idempotency_key": "5383f99d935de560fc5adc1bdfd7af118f9d53c7300746de4cbcba992babd0a9",
+        "isolated": true,
+        "native_binding_identity": "87fba786f98e2978bc694dd1c7c632bed8019fc74e8d17d23ca58a98af7002d9",
+        "pipeline_revision": "boundary-pipeline",
+        "policy_identity": "d03d100d5f26d0bedbf9374c5df154de1f9381b01584b8e4931c5ffbb97f69d3",
+        "provider_profile": "patchgate-native-fixture",
+        "report_identity": "76e85fdfaed96a302c882c7c2ad23d44f17f293d664104c84e341a6f2fe8cacf",
+        "reviews": [
+          {
+            "change": {
+              "contract_version": 1,
+              "native_id": "ILNX4Z7GXUCSL3TBGRR37LUSGU25ZQYMNHLNCHXUXDUTMY6VOQZAC",
+              "native_kind": "change",
+              "provider_namespace": "pijul"
+            },
+            "decision": "accepted"
+          }
+        ]
+      },
+      "request_identity": "c5f72651cd763327b938e397693208d70fbdf00ff8bb213225082c77f3d3f8c9",
+      "schema": "kiln.patchgate.review.v1"
+    }
+  },
+  "historical_operational_stop_not_fresh_review": true,
+  "non_claims": [
+    "local deterministic model-protocol fixture, not a live model or accuracy evidence",
+    "boundary fixture snapshot hashes native change text, not source tree correspondence",
+    "no original source mutation, acceptance authority, Nix or release qualification"
+  ],
+  "schema": "kiln.patchgate.boundary-smoke.v1",
+  "source_revision": "97c1216fe13000d9dcbb97f70ddd5423180eea2c",
+  "source_work_and_audit_unchanged_during_reviews": true,
+  "undeclared_prerequisite_no_model_calls": true
+}

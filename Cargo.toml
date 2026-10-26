@@ -18,6 +18,7 @@ members = [
   "crates/kiln-adapter-iroh",
   "crates/kiln-adapter-github",
   "crates/kiln-adapter-cairn",
+  "crates/kiln-adapter-patchgate",
   "crates/kiln-adapter-mantle",
   "crates/kiln-adapter-nix",
   "crates/kiln-nix-build",
@@ -103,6 +104,7 @@ kiln-adapter-git = { path = "crates/kiln-adapter-git" }
 kiln-adapter-pijul = { path = "crates/kiln-adapter-pijul" }
 kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
 kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
+kiln-adapter-patchgate = { path = "crates/kiln-adapter-patchgate" }
 kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }
 kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
 kiln-adapter-nix = { path = "crates/kiln-adapter-nix" }

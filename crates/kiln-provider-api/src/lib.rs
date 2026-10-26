@@ -14,6 +14,7 @@ use kiln_core::provider::{
     ProviderRole, classify_provider_failure,
 };
 use kiln_core::remote::{RemoteAction, RemoteObservation};
+use kiln_core::review::{ReviewEffectPlan, ReviewEvaluationObservation};
 use kiln_core::source::{PijulSnapshotEntry, PijulSnapshotLimits};
 use kiln_core::types::{
     Alias, ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, RunId, TaskId,
@@ -379,6 +380,25 @@ pub trait GatePort {
     fn profile(&self) -> &CapabilityProfile;
     fn evaluate(&mut self, plan: &GateEffectPlan) -> PortResult<GateEvaluationObservation>;
     fn reconcile(&mut self, plan: &GateEffectPlan) -> PortResult<GateEvaluationObservation>;
+}
+
+// r[impl kiln.patchgate.request]
+// r[impl kiln.patchgate.nonclaims]
+/// Isolated review evidence under the collaboration role, without mutation authority.
+pub trait ReviewPort {
+    fn profile(&self) -> &CapabilityProfile;
+    fn review(&mut self, plan: &ReviewEffectPlan) -> PortResult<ReviewEvaluationObservation>;
+    fn review_with_cancellation(
+        &mut self,
+        plan: &ReviewEffectPlan,
+        cancellation: &AtomicBool,
+    ) -> PortResult<ReviewEvaluationObservation>;
+    fn reconcile(
+        &self,
+        plan: &ReviewEffectPlan,
+        prior: &ReviewEvaluationObservation,
+        report: &[u8],
+    ) -> PortResult<ReviewEvaluationObservation>;
 }
 
 pub fn role_matches_port(profile: &CapabilityProfile, expected: ProviderRole) -> CoreResult<()> {

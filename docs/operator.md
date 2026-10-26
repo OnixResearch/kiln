@@ -117,6 +117,132 @@ Restore the latest committed journal snapshot. Then classify each outbox lease.
 
 Reconcile expired or ambiguous effects before redispatch. Do not claim exactly-once provider execution.
 
+## Isolated Patchgate review
+
+<!-- r[impl kiln.patchgate.profile] r[impl kiln.patchgate.nonclaims] -->
+
+`kiln-patchgate-review` produces isolated review evidence. It is not Cairn's
+proposal/design/tasks gate and never runs `accept`, `revert`, `watch` or a source
+mutation command. Kiln maintainers own the adapter and repeatability rail;
+Patchgate owns native review/merge policy. A reviewed Lattice shell can invoke
+this CLI and retain its receipt without receiving merge authority.
+
+### Provision and bind the inputs
+
+- Install Patchgate from
+  `https://github.com/brittonr/patchgate` revision
+  `97c1216fe13000d9dcbb97f70ddd5423180eea2c`, native report schema 1. Private
+  acquisition is operator-managed and is not part of normal Kiln builds/tests.
+- Keep its patched Pijul executable/database cohort separate from
+  `kiln-adapter-pijul`'s beta.11 library profile. The native smoke below used
+  Patchgate's patched beta.24 executable; that does not establish compatibility
+  with the old library profile.
+- Apply `config/patchgate-review.ncl` to operator-owned settings and export the
+  result as `profile.json`. The positive fixture under `config/fixtures/` shows
+  the shape, not deployable identities. Supply the absolute program/repository,
+  executable BLAKE3, provider ID, explicit environment, process/collection limits,
+  exact initial main/inbox states, trusted native configuration and policy.
+  Preserve native SHA-256 values; do not replace them with Kiln hashes.
+- Use an immutable executable path and trusted runtime closure. The adapter
+  hashes the bounded executable before dispatch, but does not attest its source,
+  transitive tools, or prevent replacement of an operator-writable path between
+  hashing and execution. Operators own credentials, model endpoints and Nix
+  policy. Only profile-declared environment variables reach the child.
+- Prepare `intent.json` with `effect_id`, `pipeline_revision` and `candidate`.
+  The candidate contains `id`, `ordered_changes`, `dependencies`, `policy_id`
+  and `frozen_sources` as `{change, snapshot}` entries. Every ordered change
+  binds a full native Pijul change reference, the initial main state reference,
+  an admitted frozen source snapshot, the same pipeline revision and the selected
+  collaboration-provider ID. Empty main uses native state `null` and target
+  reference ID `empty`. Include the entire selected prerequisite closure;
+  undeclared extra changes fail admission. Duplicate frozen-source keys fail.
+
+The planner computes canonical candidate, policy, native-input and idempotency
+identities without reading the repository or dispatching Patchgate. Source
+snapshot facts remain caller-admitted; review does not prove that they describe
+the evaluated filesystem.
+
+### Plan, run, retain and reconcile
+
+```console
+cargo build --locked -p kiln-adapter-patchgate --bin kiln-patchgate-review
+kiln-patchgate-review plan --profile profile.json --intent intent.json > plan.json
+kiln-patchgate-review review --profile profile.json --plan plan.json > receipt.json
+kiln-patchgate-review reconcile --profile profile.json --plan plan.json --receipt receipt.json > reconciled.json
+```
+
+Use the installed binary or `cargo run --locked -p kiln-adapter-patchgate --bin
+kiln-patchgate-review --` when it is not on `PATH`. The root flake exports the
+same executable as the `kiln-patchgate-review` app.
+
+The fixed native invocation is `review --dry-run --json` with explicit full
+`--change` selections and profile-bound repository/channels. Automatic dependency
+expansion is disabled: every authorized prerequisite must be explicit in the
+bound candidate, so an undeclared prerequisite cannot trigger a model review.
+Bounded Exec supplies null stdin, cleared environment, bounded stdout/stderr,
+deadlines, cancellation and process-group teardown. SIGINT/SIGTERM request
+cancellation; CLI cancellation exits 130. Other failures exit nonzero and must
+not be consumed as review rejection or approval.
+
+A successful exit means the evidence was admitted, **not** that every change was
+accepted. Inspect `observation.reviews`: rejected, escalated, blocked, waiting,
+pending, removed, reverted and unknown stay distinct. Accepted, rejected and
+escalated decisions require fresh decided items and matching records; a prior
+terminal ledger state alone is not evidence of a completed new review.
+Model-assisted acceptance requires complete coverage when bounded windows are
+reported; a rejecting/escalating window can legitimately stop early. Operational
+stops and partial evidence cannot become acceptance. The pinned producer can
+emit an empty `provenance.requests` vector for a fresh short model review. Kiln
+preserves that absence and makes no unavailable prompt/schema digest or verified
+model-weight claim; it validates request evidence whenever the producer supplies it.
+
+The `kiln.patchgate.review.v1` receipt retains the exact native JSON bytes as a
+string alongside their BLAKE3 identity, the request identity and normalized
+observation. Keep it access-controlled: reports can contain private paths,
+messages and model evidence. Reconciliation validates that exact prior receipt
+against the plan without inspecting the executable or dispatching again. A
+moved target, changed configuration/profile/policy, different effect, or altered
+report needs new evidence. This is applicability checking, not a signature or
+authenticity claim. Review never grants acceptance or release authority.
+
+### Real producer repeatability
+
+In the development shell, with `PATCHGATE` naming the pinned installed program,
+`PIJUL` its patched executable and `ADAPTER` the built Kiln CLI:
+
+```console
+python3 scripts/patchgate-review-native.py \
+  --adapter "$ADAPTER" --patchgate "$PATCHGATE" --pijul "$PIJUL" \
+  --output /tmp/kiln-patchgate-native.json
+```
+
+The rail creates a temporary repository, HOME and signer. It checks real
+documentation acceptance, credential-header rejection, protected-path escalation,
+exact reconciliation and refusal of stale/tampered/duplicate inputs. It
+independently compares the complete original channel inventory and every original
+channel state, work files/directories and gate audit state, including dirty/untracked
+data. No caller signer or model credentials reach review; all three cases make zero model requests.
+
+The retained run is in
+`.cairn/changes/add-patchgate-review-adapter/evidence/native-smoke.json`.
+The adjacent `verification.json` records the local checks and the separate
+traceability/release-readiness hold: the new requirement IDs remain in the active
+change, outside the accepted-spec registry. No acceptance, sync or archive is
+implied by implementation verification.
+
+`evidence/boundary-smoke.json` in the same change records a separate throwaway
+run through the installed producer with a local deterministic model-protocol
+fixture, not a live model: a short model review retained its genuinely absent
+request digests, an undeclared prerequisite made no model-port call, and a
+historical operational-stop ledger entry was refused as fresh review evidence.
+It does not qualify model accuracy, conflict-resolution safety, reusable final
+merged snapshots, live model weights, remote delivery, Nix verification,
+deployment or release. Dry-run may call a configured model and create temporary
+keys or Nix store results in other scenarios: source-nonmutating is not globally
+effect-free, sandboxed or hermetic. See `LICENSES.md` for linked Bounded Exec's
+AGPL obligations and separate executable provenance responsibilities.
+
+
 ## Nix job discovery
 
 `kiln-adapter-nix-eval` discovers jobs; it does not realize derivations, authorize

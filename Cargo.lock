@@ -2878,6 +2878,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-patchgate"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "bounded-exec",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "serde",
+ "serde_json",
+ "signal-hook",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-pijul"
 version = "0.1.0"
 dependencies = [

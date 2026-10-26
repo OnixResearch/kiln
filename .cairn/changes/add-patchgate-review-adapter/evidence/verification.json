@@ -1,0 +1,117 @@
+{
+  "schema": "kiln.patchgate.implementation-verification.v1",
+  "date": "2026-10-26",
+  "scope": "Local implementation and installed-producer observations; not lifecycle acceptance or release qualification",
+  "maintenance_owner": "Kiln maintainers",
+  "consumer": "An operator or reviewed workflow shell invoking kiln-patchgate-review",
+  "adapter_blake3": "44107caf68981bcd5fc08c1f68c2fd4a6e73a063d3f3c747f284af815ef46210",
+  "patchgate_source_revision": "97c1216fe13000d9dcbb97f70ddd5423180eea2c",
+  "command_environment": "Repository-local nix develop path:. --no-write-lock-file",
+  "checks": [
+    {
+      "command": "cargo test --locked --offline -p kiln-adapter-patchgate",
+      "status": "passed",
+      "adapter_tests": 12
+    },
+    {
+      "command": "cargo test --locked --workspace --offline",
+      "status": "passed"
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets --offline -- -D warnings",
+      "status": "passed"
+    },
+    {
+      "command": "cargo fmt --check",
+      "status": "passed"
+    },
+    {
+      "command": "nix build path:.#checks.x86_64-linux.nickel --no-write-lock-file --no-link --builders '' --max-jobs 2 -L",
+      "status": "passed"
+    },
+    {
+      "command": "checks.x86_64-linux.no-std, realized within the local Nix check run",
+      "status": "passed",
+      "target": "wasm32-unknown-unknown",
+      "packages": ["kiln-core", "kiln-observe-core", "kiln-radicle-source-contract"]
+    },
+    {
+      "command": "nix flake check path:. --no-write-lock-file --builders '' --max-jobs 2 -L",
+      "status": "passed",
+      "evaluated_check_attributes": 40,
+      "system": "x86_64-linux",
+      "omitted_systems": ["aarch64-linux"]
+    },
+    {
+      "command": "cairn gate proposal add-patchgate-review-adapter --root . --policy cairn-policy/generated/cairn-policy.json",
+      "status": "passed",
+      "receipt_hash": "5801144402f43fd75b5878496a6cef54848789f98f54c4db348296c4786e83a4"
+    },
+    {
+      "command": "cairn gate design add-patchgate-review-adapter --root . --policy cairn-policy/generated/cairn-policy.json",
+      "status": "passed",
+      "receipt_hash": "c70e11c305171c2ffe20ca3fad312b797f8fe26e4a666ff18369b84f2ed195b3"
+    },
+    {
+      "command": "cairn gate tasks add-patchgate-review-adapter --root . --policy cairn-policy/generated/cairn-policy.json",
+      "status": "passed",
+      "receipt_hash": "502767e55a41471b196c61e5deda64288e4af15523c009419365b66257c7ab7d",
+      "scope": "Final structural gate with all eight implementation checklist tasks completed"
+    },
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "status": "passed",
+      "receipt_hash": "3aa83e88c3adc82a917d16f4e0f7dd2abd0ef473d78559670abab35329fccd5a"
+    },
+    {
+      "command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json",
+      "status": "failed",
+      "reason": "New implementation references are declared in the active change, not in the accepted-spec registry selected by repository policy",
+      "observed_dangling": [
+        "kiln.patchgate.conformance",
+        "kiln.patchgate.execution",
+        "kiln.patchgate.nonclaims",
+        "kiln.patchgate.request",
+        "kiln.patchgate.result"
+      ],
+      "receipt_hash": "b6458cb1113863a049114eff4bddd477e3ecde62bf5aebd9b9f0ad040f17d627"
+    },
+    {
+      "command": "cairn release-readiness --root . --policy cairn-policy/generated/cairn-policy.json",
+      "status": "failed",
+      "reason": "traceability_coverage is false; onix_release_ready is false",
+      "receipt_hash": "fcad0cae4fa8931b6c7b520ef214741e84eb1fec3ab8f56df157dd4fe03bd0b3",
+      "note": "Read-only receipt command returned a failing verdict; no acceptance, sync or archive was executed"
+    }
+  ],
+  "native_evidence": [
+    {
+      "path": "native-smoke.json",
+      "blake3": "750540e422676aaa83b2ea4c869bb0db646896183d523206f351d086e2d87b41",
+      "observations": [
+        "Real installed Patchgate/Pijul accepted, rejected and escalated decisions",
+        "Exact retained-evidence reconciliation without redispatch",
+        "Stale request, tampered report and duplicate source refused",
+        "Complete original channel inventory, every original channel state, work files and gate audit state unchanged",
+        "Zero model requests across the three deterministic native cases"
+      ]
+    },
+    {
+      "path": "boundary-smoke.json",
+      "blake3": "e71ec68eefd03e315efe2850fe1593db4f95b4038e1a261d5483176b0c281c43",
+      "observations": [
+        "Undeclared prerequisite refused without model-port calls",
+        "Historical operational-stop ledger state not admitted as fresh review evidence",
+        "Fresh short model-protocol fixture review preserved genuinely absent request digests",
+        "Original source work files and audit state unchanged during reviews"
+      ]
+    }
+  ],
+  "non_claims": [
+    "The model-port boundary case uses a local deterministic protocol fixture, not a live model or model-accuracy evidence",
+    "Review receipts do not authorize acceptance or prove source-tree correspondence, model weights, reusable final merged snapshots, source correctness, Nix verification, deployment or release eligibility",
+    "Source-nonmutating dry-run is not globally effect-free, hermetic or sandboxed",
+    "These local observations do not accept or archive the active Cairn change, sign, publish or mutate a remote repository",
+    "The full Nix run measures its frozen source snapshot; later documentation and evidence-only descendants do not requalify changed executable sources"
+  ]
+}

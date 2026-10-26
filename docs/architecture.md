@@ -22,6 +22,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-aspen` | Exact Aspen/Molten runtime profile, identity, atomic durability, content, typed effects, ingress, and bounded Unix transport mapping. |
 | `kiln-aspen-extension` | Deterministic Kiln callback decisions and one-shot native callback executable bound to the host's exact runtime profile. |
 | `kiln-adapter-cairn` | Exact Cairn gate lowering, bounded execution, result admission, and reconciliation. |
+| `kiln-adapter-patchgate` | Selected isolated review through an operator-installed Patchgate executable, bounded report admission and exact retained-evidence reconciliation; no source mutation authority. |
 | `kiln-adapter-mantle` | Exact Mantle build lowering, bounded execution, product admission, logs, and reconciliation. |
 | `kiln-adapter-nix` | Exact local Nix derivation execution, native realisation admission, rooted products, bounded logs, and reconciliation. |
 | `kiln-nix-build` | Discovery-task to exact Nix profile/plan mapping, durable build state, operator CLI, and output GC-root lifecycle. |
@@ -45,7 +46,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 
-`kiln-provider-api` owns the source-repository, Pijul-repository, collaboration-mutation, discovery, workflow, gate, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
+`kiln-provider-api` owns the source-repository, Pijul-repository, collaboration-mutation, isolated-review, discovery, workflow, gate, remote-execution, remote-lifecycle, and trigger-intake ports. Concrete adapter crates implement these ports. They do not publish replacement application contracts.
 
 Each port returns typed domain or infrastructure failures. Timeout, cancellation, and unknown results stay distinct until an application shell applies retry policy.
 
@@ -127,6 +128,15 @@ A candidate set binds ordered changes, dependencies, target revisions, snapshots
 A gate effect binds the candidate root, pipeline revision, policy identity, sorted evidence set, provider profile, effect, and native target. The core admits exact provider observations before it maps pass or block into a candidate result.
 
 A merge result creates only a collaboration effect request. The collaboration provider keeps merge authority.
+
+`ReviewEffectPlan` and `ReviewPort` admit isolated review evidence separately
+from lifecycle gates. Every observation binds the exact candidate, pipeline,
+policy, provider, effect and native-input identity, and covers every requested
+change once in request order. Accepted, rejected, escalated, blocked and waiting
+remain review facts, not CI execution outcomes. Patchgate's adapter retains the
+original report under BLAKE3 without replacing native SHA-256/NAR identities or
+granting acceptance authority. Caller-supplied source snapshots remain
+caller-admitted facts; review does not prove their filesystem correspondence.
 
 ## Operations
 

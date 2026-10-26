@@ -13,6 +13,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
 - authenticated Iroh workflow transport through a private local Unix proxy and worker-local Lattice endpoint;
 - exact Cairn gate request, process, result, and reconciliation admission;
+- bounded isolated Patchgate review evidence with exact candidate/configuration admission and retained-report reconciliation, separate from acceptance authority; see the [operator procedure](docs/operator.md#isolated-patchgate-review);
 - exact Mantle build request, bounded process, product, log, and reconciliation admission;
 - exact stock and separately selected Onix Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;

@@ -300,6 +300,11 @@
           program = "${packageFor system}/bin/kiln-adapter-iroh";
           meta.description = "Run the authenticated Iroh native workflow worker or Unix proxy";
         };
+        kiln-patchgate-review = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-patchgate-review";
+          meta.description = "Run isolated Patchgate review and retain exact non-authorizing evidence";
+        };
         kiln-github-job = {
           type = "app";
           program = "${packageFor system}/bin/kiln-github-job";
@@ -817,7 +822,9 @@
               config/fixtures/negative-ucan-*.ncl \
               config/iroh-observation-profile.ncl \
               config/fixtures/iroh-observation-positive.ncl \
-              config/fixtures/negative-iroh-observation-*.ncl
+              config/fixtures/negative-iroh-observation-*.ncl \
+              config/patchgate-review.ncl \
+              config/fixtures/*patchgate-review*.ncl
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
@@ -825,6 +832,8 @@
             nickel export config/pijul-source-profile.ncl >/dev/null
             nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/cairn-gate-profile.ncl >/dev/null
+            nickel typecheck config/patchgate-review.ncl
+            nickel export config/fixtures/patchgate-review-positive.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null
             nickel export --field profile config/nix-eval-jobs-onix-profile.ncl >/dev/null
