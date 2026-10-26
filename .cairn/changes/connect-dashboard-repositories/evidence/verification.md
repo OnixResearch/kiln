@@ -119,3 +119,34 @@ Dashboard profile: `359c4d0f8a07f926937df605fd5c3aa77fb78f131208ae0fd10a756b5d6f
   lifecycle task/evidence results. The aarch64-linux checks were not exercised.
 - After recording the results, the final Cairn task gate passed with all six
   tasks complete and zero issues; repository validation also remained valid.
+
+## Source publication and lifecycle continuation
+
+The subsequent operator request authorized commit and push. Dashboard source
+`359789e5828c41a18400da686b60010c314a76b6` was fast-forwarded to canonical
+Radicle `main` and the declared GitHub projection. Unrelated audit-hardening
+source, Cargo dependencies and accepted audit specs remained outside that commit.
+The [publication receipt](source-publication.json) binds the exact revision,
+normalized archive, path manifest, hosting profile, licenses and observations.
+Fresh native Radicle and credential-isolated Garden HTTPS acquisitions reproduced
+all 4,652 tracked files and the 66,621,440-byte archive, BLAKE3
+`c27755d2ead0c3973dd8fd3a9785db9d0efef0def8991c3757c99c2829b4352c`.
+GitHub's ref API and Rosa's repository API returned that same revision; delegate,
+threshold and public visibility were unchanged.
+
+Isolated source verification passed 33 dashboard tests, seven GitHub export tests
+and nine publisher tests. The actual renderer and local atomic publisher produced
+the same report identity recorded above. Chromium displayed the genuine failure
+history and retained the selected Radicle unavailable history after reload.
+These focused observations do not transfer the earlier mixed-working-tree full
+Nix/workspace qualification to the isolated publication.
+
+Continuation corrected this change's delta heading from `## Requirements` to
+`## ADDED Requirements`, after the real Cairn sync preview rejected the former
+with `delta_merge.no_operations`. Proposal, design and task gates passed; the
+corrected sync dry-run admitted four additions with no mutation, and repository
+validation remained valid. Full [preflight receipts](lifecycle-preflight.json)
+identify their original-working-tree scope, including unrelated audit changes.
+The publication record and delta-format correction are later local descendants,
+not members of the published source archive. No acceptance sync execution,
+archival, production deployment or release was performed.

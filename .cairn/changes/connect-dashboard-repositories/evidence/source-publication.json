@@ -1,0 +1,150 @@
+{
+  "schema": "kiln.dashboard.source-publication.v1",
+  "date": "2026-10-26",
+  "maintenance_owner": "Kiln dashboard and provider-adapter maintainers",
+  "authorization": {
+    "request": "commit and push and continue",
+    "scope": "Fast-forward the completed dashboard source to canonical Radicle main and its declared GitHub projection; preserve unrelated audit work; no lifecycle acceptance, archival, production deployment or release"
+  },
+  "source_revision": "359789e5828c41a18400da686b60010c314a76b6",
+  "rollback_revision": "116277d82e8fac37eb2820cdf9b6360d778aa265",
+  "source_archive": {
+    "blake3": "c27755d2ead0c3973dd8fd3a9785db9d0efef0def8991c3757c99c2829b4352c",
+    "bytes": 66621440,
+    "members": 4652,
+    "format": "ustar",
+    "recipe": "GNU tar --format=ustar --no-recursion --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX; UTF-8 bytewise sorted tracked regular-file paths, NUL-delimited --verbatim-files-from; no directory entries or VCS metadata"
+  },
+  "source_manifest": {
+    "path": "source-publication-manifest.json",
+    "blake3": "08100b724b844688c6652788046f8479100c8f4a1c24c025a263634202455a69",
+    "serialization": "UTF-8 JSON array; lexically sorted keys, no insignificant whitespace, one trailing newline"
+  },
+  "bindings": [
+    {
+      "blake3": "7837099f6836e1f5ee573e2e3ff60751dfa1d975aa9e86f27188e8a37426d3a4",
+      "bytes": 7941,
+      "executable": false,
+      "kind": "file",
+      "path": ".cairn/changes/connect-dashboard-repositories/evidence/verification.md"
+    },
+    {
+      "blake3": "6fef58584ff96f6c8014b7ed157035c5c5073a9762967986d3f536fa8c8d9b1a",
+      "bytes": 11781,
+      "executable": false,
+      "kind": "file",
+      "path": ".cairn/changes/make-dashboard-interactive/evidence/verification.md"
+    },
+    {
+      "blake3": "3624b38ff10f1d09761f54df6df6255dc67c11612386025692205e7d06d2a4a7",
+      "bytes": 21553,
+      "executable": false,
+      "kind": "file",
+      "path": "LICENSES.md"
+    },
+    {
+      "blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+      "bytes": 31,
+      "executable": false,
+      "kind": "file",
+      "path": "config/hosting-profile.ncl"
+    }
+  ],
+  "checks": {
+    "environment": "Isolated Jujutsu workspace with repository-local Nix dev shell; unchanged pre-audit Cargo.lock and manifests; TMPDIR=/var/tmp",
+    "dashboard": {
+      "command": "cargo test --locked --offline -p kiln-dashboard",
+      "passed": 33,
+      "failed": 0,
+      "scope": "Existing source tested before the publisher files were added to this same source candidate; those two added files were then separately exercised. No existing product source changed during completion."
+    },
+    "github_export": {
+      "command": "cargo test --locked --offline -p kiln-adapter-github tests::export",
+      "passed": 7,
+      "failed": 0
+    },
+    "publisher": {
+      "command": "python3 -m unittest discover -s scripts -p test_dashboard_publish.py",
+      "passed": 9,
+      "failed": 0
+    },
+    "runtime": {
+      "commands": [
+        "kiln-dashboard --catalog config/dashboard-kiln.json --profile fixtures/dashboard/profile-v1.json --format html --output <report>",
+        "python3 scripts/dashboard-publish.py --config <isolated-local-publication.json>"
+      ],
+      "result": "Actual renderer and local atomic publisher succeeded; generated, last-good and delivered HTML were byte-identical",
+      "html_blake3": "df2321c93a250781cde87adac1a4a8db3d4deb434e56df94c72618037f26ca0e"
+    },
+    "browser": {
+      "result": "Chromium displayed the genuine DomainFailure history, switched to the Radicle unavailable history and restored that exact repository/history after reload",
+      "diagnostic": "One cross-origin Function diagnostic followed frame instrumentation; a clean open and history switch recorded no page errors. No Function access exists in the generated source. Attribution to instrumentation is inference, not a product fix."
+    },
+    "scope": "Prior full-workspace/Nix checks measured the earlier mixed working tree including unrelated audit edits. They are not claimed as fresh all-check qualification of this isolated source. Kache reported cache storage errors but compilation and the listed tests succeeded uncached."
+  },
+  "refs": [
+    {
+      "remote": "rad",
+      "ref": "refs/heads/main",
+      "revision": "359789e5828c41a18400da686b60010c314a76b6",
+      "result": "Fast-forward accepted; transport reported synchronization with 3 seeds"
+    },
+    {
+      "remote": "github",
+      "ref": "refs/heads/main",
+      "revision": "359789e5828c41a18400da686b60010c314a76b6",
+      "result": "Fast-forward accepted; public GitHub ref API returned the exact revision"
+    }
+  ],
+  "governance": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1,
+    "visibility": "public",
+    "unchanged": true,
+    "signed_refs_before": "e0045ac2a5d7437de5d689e5a22c46ccecce4d94",
+    "signed_refs_after": "fed9c5fe6fe4f930b2d030925794f399a9812729",
+    "signed_refs_feature": "parent"
+  },
+  "acquisitions": [
+    {
+      "transport": "native",
+      "revision": "359789e5828c41a18400da686b60010c314a76b6",
+      "verified_members": 4652,
+      "archive_blake3": "c27755d2ead0c3973dd8fd3a9785db9d0efef0def8991c3757c99c2829b4352c",
+      "archive_bytes": 66621440,
+      "credential_isolated": false,
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    },
+    {
+      "transport": "garden",
+      "revision": "359789e5828c41a18400da686b60010c314a76b6",
+      "verified_members": 4652,
+      "archive_blake3": "c27755d2ead0c3973dd8fd3a9785db9d0efef0def8991c3757c99c2829b4352c",
+      "archive_bytes": 66621440,
+      "credential_isolated": true,
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git"
+    }
+  ],
+  "replica_observation": {
+    "url": "https://rosa.radicle.network/api/v1/repos/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "main": "359789e5828c41a18400da686b60010c314a76b6",
+    "visibility": "public",
+    "threshold": 1
+  },
+  "lifecycle_continuation": {
+    "source_issue": "The published repository-integration delta used a full accepted-spec heading; Cairn sync preview rejected it as delta_merge.no_operations",
+    "correction": "Changed only ## Requirements to ## ADDED Requirements in a later lifecycle-only descendant",
+    "result": "Proposal, design and task gates passed; sync dry-run admitted four added requirement blocks without mutation; repository validation passed",
+    "receipts": "lifecycle-preflight.json",
+    "scope": "Preflight receipts were observed in the original working tree with unrelated audit work still present; not source-only qualification or acceptance authority"
+  },
+  "non_claims": [
+    "This receipt, its path manifest and lifecycle correction are later descendants, not members of the source archive they identify",
+    "Unrelated audit source, dependency locks and accepted audit specs were excluded from publication",
+    "No lifecycle sync execution, archival, policy bypass, production deployment, activation or binary release was performed",
+    "Reference, replica and archive observations are bounded read-time facts, not indefinite availability, independent replication, CI correctness, source trust, freshest history or release eligibility"
+  ]
+}

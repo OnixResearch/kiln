@@ -4,7 +4,7 @@
 
 Connect the offline read-only dashboard to real CI records without changing provider authority or canonical state.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Canonical GitHub observation export
 r[kiln.dashboard.repositories.github_export]
