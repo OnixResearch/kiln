@@ -1,0 +1,114 @@
+{
+  "schema": "kiln.dashboard-product-interface.source-publication.v1",
+  "date": "2026-10-26",
+  "maintenance_owner": "Kiln dashboard and provider-adapter maintainers",
+  "authorization": {
+    "request": "commit and push. what are we missing versus buildbot, blacksmith, others",
+    "scope": "Publish completed dashboard, Rats browser index and live-refresh source plus this publication evidence; retain unrelated security/dependency work locally. No lifecycle acceptance/archive, service activation, production deployment or release approval."
+  },
+  "source_revision": "cedca693a3318146479fbf803ccde7f76948797c",
+  "rollback_revision": "610f26885929434e3475658f3db38d2c3e825080",
+  "source_archive": {
+    "blake3": "59d4971dabb9d8dc043ef0d68efabe206cd211adc85d9dc93e721abefeb6c679",
+    "bytes": 72888320,
+    "members": 4761,
+    "format": "ustar",
+    "recipe": "GNU tar --format=ustar --no-recursion --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX; UTF-8 bytewise sorted tracked regular-file paths, NUL-delimited --verbatim-files-from; no directory entries or VCS metadata"
+  },
+  "source_manifest": {
+    "path": "source-publication-manifest.json",
+    "blake3": "018cc24467f2a344523fc5dae0ca913d32c2165a9402accf4851a6780ab0352e",
+    "serialization": "UTF-8 JSON array; lexically sorted keys, no insignificant whitespace, one trailing newline"
+  },
+  "checks": {
+    "environment": "Isolated Jujutsu workspace at the source revision; original pre-audit root manifest/lock; repository-local Nix build inputs; explicit local builders.",
+    "full_flake": {
+      "argv": [
+        "nix",
+        "flake",
+        "check",
+        "path:.",
+        "--no-write-lock-file",
+        "-L",
+        "--builders",
+        "",
+        "--max-jobs",
+        "2"
+      ],
+      "observed_verdict": "all checks passed!",
+      "system": "x86_64-linux",
+      "not_checked": [
+        "aarch64-linux"
+      ],
+      "package_derivation": "/nix/store/ndlx4m2fw5glsj4m2q3pk7kcrr9a3vp8-kiln-0.1.0.drv",
+      "package_output": "/nix/store/3yiy9s3zmaryxxnrar59mnhci8vdsp1k-kiln-0.1.0",
+      "publication_tests_passed": 9,
+      "refresh_tests_passed": 17,
+      "session_log_reference": "artifact://612; complete unelided command output artifact://600"
+    },
+    "runtime": {
+      "command": "nix run --builders '' --max-jobs 2 path:.#kiln-dashboard -- --catalog <source-bound absolute-path catalog> --profile fixtures/dashboard/profile-v1.json --format html --output <candidate.html>",
+      "result": "Real packaged renderer exited successfully over the two projects and seven retained histories selected by config/dashboard-kiln.ncl; only input paths were made absolute for the throwaway catalog.",
+      "html_blake3": "f751237d6acbd67c173b362acfa52938cfe2a9588e4d7963a09707dc29a9bb17",
+      "observation_scope": "Rendering retained CI journals does not rerun CI or establish branch-tip freshness.",
+      "diagnostic": "Nix reported an ignored busy evaluation-cache database warning; rendering completed."
+    },
+    "browser": {
+      "result": "Offline Chromium displayed the exact GitHub DomainFailure run and attempt; reload restored page=runs/history=fail; Projects displayed the actual Rats/Ratzilla index. Desktop 1440x1000 and mobile 390x844 surfaces were observed; mobile had no document horizontal overflow.",
+      "diagnostic": "One opaque-frame Function SecurityError was recorded during browser instrumentation. The reported top-level document location contains CSS. Attribution to instrumentation is inference, not a product fix or an error-free-browser claim."
+    }
+  },
+  "refs": [
+    {
+      "remote": "rad",
+      "ref": "refs/heads/main",
+      "revision": "cedca693a3318146479fbf803ccde7f76948797c",
+      "result": "Fast-forward accepted; transport reported synchronization with 3 seeds"
+    },
+    {
+      "remote": "github",
+      "ref": "refs/heads/main",
+      "revision": "cedca693a3318146479fbf803ccde7f76948797c",
+      "result": "Fast-forward accepted; public GitHub ref API returned the exact revision",
+      "readback": "https://api.github.com/repos/OnixResearch/kiln/git/ref/heads/main"
+    }
+  ],
+  "governance": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1,
+    "visibility": "public",
+    "unchanged": true,
+    "signed_refs_before": "152d80a2eefd9ff3c7c66c05abf4007e51ee4f7a",
+    "signed_refs_after": "c530a93f24d9910b697da2bc794f75f7d9a3655c",
+    "signed_ref_feature": "parent"
+  },
+  "acquisitions": [
+    {
+      "transport": "native",
+      "revision": "cedca693a3318146479fbf803ccde7f76948797c",
+      "verified_members": 4761,
+      "archive_blake3": "59d4971dabb9d8dc043ef0d68efabe206cd211adc85d9dc93e721abefeb6c679",
+      "archive_bytes": 72888320,
+      "credential_isolated": false,
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    },
+    {
+      "transport": "garden",
+      "revision": "cedca693a3318146479fbf803ccde7f76948797c",
+      "verified_members": 4761,
+      "archive_blake3": "59d4971dabb9d8dc043ef0d68efabe206cd211adc85d9dc93e721abefeb6c679",
+      "archive_bytes": 72888320,
+      "credential_isolated": true,
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git"
+    }
+  ],
+  "non_claims": [
+    "This receipt and manifest are later descendants, not members of the source archive they identify.",
+    "Unrelated root registry updates, Celld authentication hardening and Aspen host hardening remain outside this source publication.",
+    "The previous finite Aspen3 product-preview delivery is retained evidence; this publication does not replace the live dashboard index or activate a publisher.",
+    "Passing checks, acquisition identity and source publication do not grant lifecycle acceptance, source trust, permanent availability, deployment success or release eligibility."
+  ]
+}
