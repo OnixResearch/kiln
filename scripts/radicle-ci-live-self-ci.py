@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import runpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -239,8 +240,16 @@ class Exercise(BaseExercise):
                 "product": product, "failure_marker": failure_marker, "release": release,
                 "native_duplicate_fetch": duplicate, "duplicate_preserved_operation": duplicate_journal["ingress"]["operation_id"]})
             self.after_case(case, reports[-1])
+            # Keep canonical evidence, not a copied operator cache, between cases.
+            cache = Path(bindings["root"]) / "eval-home/.cache/nix"
+            if cache.exists():
+                shutil.rmtree(cache)
         return reports
 
+    # Native-input/cohort verification leg; delivery and browser proof are
+    # retained separately through docs/observation-dashboard.md.
+    # r[verify kiln.dashboard.live.fresh] r[verify kiln.dashboard.live.fresh.scenario.outcomes]
+    # r[verify kiln.dashboard.live.claims] r[verify kiln.dashboard.live.claims.scenario.scope]
     # r[impl kiln.self_ci.evidence] r[verify kiln.self_ci.evidence]
     # r[impl kiln.self_ci.claims] r[verify kiln.self_ci.claims]
     def execute(self):

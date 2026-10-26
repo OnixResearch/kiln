@@ -526,7 +526,7 @@ pub fn render_catalog(
                         project.id, history.id, error.code, error.message
                     )
                 })?;
-            renderer.push(project, history, &render_html(&report))?;
+            renderer.push(project, history, &render_html(&report), &report.report)?;
         }
     }
     renderer.finish(refresh)

@@ -1,0 +1,243 @@
+{
+  "schema": "kiln.dashboard.live.fresh-publication.v1",
+  "date": "2026-10-26",
+  "maintenance_owner": "Kiln dashboard maintainers; operators own CI source/controller state, SSH enrollment and user supervision",
+  "immediate_outcome": "Fresh dedicated fork success, genuine compile failure and unavailable-provider Pending observed through supervised collection and byte-matched Aspen3 HTML",
+  "durable_capability": "Bounded finite read-only collection and publication, independently replayable canonical evidence, last-good recovery and per-completed-case cache retirement",
+  "base_source_revision": "610f26885929434e3475658f3db38d2c3e825080",
+  "fork_repository": "rad:z2uAozFHEnksqYLpnBUXkNoJUien6",
+  "canonical_repository": "untouched by dedicated canary",
+  "runtime_cohort": "native/cohort.json",
+  "invocation": "native/invocation.json",
+  "input_manifest": "fresh-input-manifest.json",
+  "source_and_tool_blake3": [
+    {
+      "blake3": "35ec456ea0cd30a3316e2b61664056088f29d8cf88c78699e5d65d0dfc16e438",
+      "path": "scripts/dashboard-refresh.py"
+    },
+    {
+      "blake3": "2a4e3fbdc6d222528b81687388ed40c24d6771c2ad8887822be43cb2ae5dd4d5",
+      "path": "scripts/dashboard-publish.py"
+    },
+    {
+      "blake3": "1a0b14935fdcf735543335986ce51dd10915a23597e58240de1cd6aaced7bebf",
+      "path": "scripts/radicle-ci-live-self-ci.py"
+    },
+    {
+      "blake3": "1a0b14935fdcf735543335986ce51dd10915a23597e58240de1cd6aaced7bebf",
+      "path": "/var/tmp/kiln-dashboard-live.Nx2x8t/native/scripts/radicle-ci-live-self-ci.py"
+    },
+    {
+      "blake3": "ee8934439d66038f56b1af7edbb0812ca80490ea5bc0e65ce4ad925a35ad2263",
+      "path": "/home/brittonr/.config/kiln/dashboard-profile.json"
+    },
+    {
+      "blake3": "cadfdd429dbd25bd532a4d10bdf7144c73c1487cc116a5f4e268e930ad0ed07e",
+      "path": "/home/brittonr/.config/kiln/dashboard-publication.json"
+    },
+    {
+      "blake3": "229af856b3ee4e287d6b58c79302e11a4cdb2720655906e396ca9e523e659c0c",
+      "path": "/home/brittonr/.config/kiln/dashboard-refresh.json"
+    },
+    {
+      "blake3": "d7ff1cce4a667a67466ecc4be6c2cdbb7248664c07916023f0dfbcd7cfac8529",
+      "path": "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-dashboard"
+    }
+  ],
+  "cases": [
+    {
+      "case": "success",
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z2uAozFHEnksqYLpnBUXkNoJUien6",
+        "revision": "2f0da3abfd75200ab75c616fdd4ec1d1092123b3"
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "e05ddd5365fc4bed0740b32c47129941c666b911e4b455f03a12a26952526d22",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "canonical_outcome": "Success",
+      "failure_marker": null,
+      "remote_status": {
+        "outcome": "success",
+        "revision": "2f0da3abfd75200ab75c616fdd4ec1d1092123b3",
+        "candidate": "b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac"
+      }
+    },
+    {
+      "case": "failure",
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z2uAozFHEnksqYLpnBUXkNoJUien6",
+        "revision": "055badc572cba61939b387ec6fc23406c7601432"
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "245db2260f0e36984a9634f81f90137b6adb07ba20e9db695010eb23f52ef5f8",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "canonical_outcome": "DomainFailure",
+      "failure_marker": "self_ci_genuine_failure",
+      "remote_status": {
+        "outcome": "failure",
+        "revision": "055badc572cba61939b387ec6fc23406c7601432",
+        "candidate": "2aaa7fe2c1eaa3c4869e1991be142a2ea3e1e8ac5deeefe998ed10bef7167c5f"
+      }
+    },
+    {
+      "case": "unavailable",
+      "source": {
+        "provider": "radicle",
+        "repository": "rad:z2uAozFHEnksqYLpnBUXkNoJUien6",
+        "revision": "c16243f89e788ce92b910a11ec46b69aa6bdf844"
+      },
+      "operation_id": {
+        "contract_version": 1,
+        "native_id": "fbbb4186c509fa5d2bc5011309efc40c3ed0d8f98de8ca4fe920e34995aec443",
+        "native_kind": "service-operation-blake3",
+        "provider_namespace": "molten"
+      },
+      "canonical_outcome": "Pending",
+      "failure_marker": null,
+      "remote_status": null
+    }
+  ],
+  "publication": {
+    "renderer": "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-dashboard",
+    "tools": "/nix/store/7z1j5bxazdb6g81xld61f6kfjidh3fmz-kiln-dashboard-tools-0.1.0",
+    "candidate_root": "/var/tmp/kiln-dashboard-ci-20261026d/candidates",
+    "local_report": "/home/brittonr/.local/state/kiln/dashboard/last-good.html",
+    "destination": "brittonr@aspen3:/home/brittonr/.local/share/kiln/dashboard/index.html",
+    "report_blake3": "4d07c85f3481b1488a9573cd653e565ebd9b17b2bcad6bda05bcf3ae744d9916",
+    "bytes": 153157,
+    "remote_owner": "brittonr",
+    "remote_mode": "600",
+    "local_remote_match": true,
+    "interval_seconds": 30,
+    "stop_restart": {
+      "action": "Stop only kiln-dashboard-refresh.timer; restart kiln-dashboard-refresh.service and kiln-dashboard-refresh.timer",
+      "result": "InvocationID=d23ad20b7520444eac14420de9bc8163\nResult=success\nExecMainStatus=0",
+      "timer": "active",
+      "canonical_journal_and_report_hashes_unchanged": true,
+      "hashes": [
+        "faeada59b396237bc8f27cb4a2ced659a2d682abd31709eaf2bbbdc84262b312  /var/tmp/kiln-dashboard-ci-20261026d/candidates/53680e37e7edeb38ca42afae967740c7b41f0d54e287663fb442d5bbe7043f51/ci-journal.json",
+        "d3b222172a96e7be8fbe57548024b84efa9dfc19691d368848f3d15869cab76a  /var/tmp/kiln-dashboard-ci-20261026d/candidates/2aaa7fe2c1eaa3c4869e1991be142a2ea3e1e8ac5deeefe998ed10bef7167c5f/ci-journal.json",
+        "ffb9eb7d8086c67ec3cef597f22b767f6e1e9978d93ca2bbb88fcb169a23971b  /var/tmp/kiln-dashboard-ci-20261026d/candidates/b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac/ci-journal.json",
+        "4d07c85f3481b1488a9573cd653e565ebd9b17b2bcad6bda05bcf3ae744d9916  /home/brittonr/.local/state/kiln/dashboard/last-good.html"
+      ]
+    },
+    "repeatability": {
+      "result": "Exact delivered bytes reproduced with no CI credentials from retained candidate journals and operated profile",
+      "renderer_argv": [
+        "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-dashboard",
+        "--catalog",
+        "/var/tmp/kiln-dashboard-replay.Kc7dbd/catalog.json",
+        "--profile",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/operate-dashboard-live/evidence/operated-config/profile.json",
+        "--format",
+        "html",
+        "--output",
+        "/var/tmp/kiln-dashboard-replay.Kc7dbd/reproduced.html",
+        "--refresh-seconds",
+        "30"
+      ],
+      "report_blake3": "4d07c85f3481b1488a9573cd653e565ebd9b17b2bcad6bda05bcf3ae744d9916",
+      "scratch_retired": true
+    }
+  },
+  "browser": {
+    "engine": "Chromium",
+    "artifact": "Byte-matched local copy of Aspen3 HTML",
+    "visible_selections": [
+      {
+        "case": "success",
+        "history": "b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac",
+        "revisionText": [
+          "operator-declared revision: 2f0da3abfd75200ab75c616fdd4ec1d1092123b3"
+        ],
+        "outcomes": [
+          "Success"
+        ]
+      },
+      {
+        "case": "failure",
+        "history": "2aaa7fe2c1eaa3c4869e1991be142a2ea3e1e8ac5deeefe998ed10bef7167c5f",
+        "revisionText": [
+          "operator-declared revision: 055badc572cba61939b387ec6fc23406c7601432"
+        ],
+        "outcomes": [
+          "DomainFailure"
+        ]
+      },
+      {
+        "case": "unavailable",
+        "history": "53680e37e7edeb38ca42afae967740c7b41f0d54e287663fb442d5bbe7043f51",
+        "revisionText": [
+          "operator-declared revision: c16243f89e788ce92b910a11ec46b69aa6bdf844"
+        ],
+        "outcomes": [
+          "Pending"
+        ]
+      }
+    ],
+    "desktop_visual": "Captured and inspected the real failure history at 1706x1125; no fabricated UI",
+    "narrow_viewport": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "selected": "2aaa7fe2c1eaa3c4869e1991be142a2ea3e1e8ac5deeefe998ed10bef7167c5f",
+      "visibleReports": 1
+    },
+    "managed_tab_diagnostic": "The long-lived managed file tab recorded cross-frame Function SecurityErrors. Generated HTML has no Function access. A fresh Chromium page without managed-tab initialization loaded the same artifact and selected the failure with zero page errors; diagnostic not suppressed.",
+    "fresh_unmanaged_page": {
+      "selected": "2aaa7fe2c1eaa3c4869e1991be142a2ea3e1e8ac5deeefe998ed10bef7167c5f",
+      "outcomes": [
+        [
+          "Pending"
+        ],
+        [
+          "DomainFailure"
+        ],
+        [
+          "Success"
+        ]
+      ],
+      "errors": []
+    }
+  },
+  "retirement": {
+    "receipts": [
+      "native/retirement.json",
+      "native/remote-retirement.json",
+      "native/remote-observer-retirement.json",
+      "native/teardown-releases.json"
+    ],
+    "errors": [],
+    "private_canary_credentials_retired": true,
+    "completed_case_cache_directories_absent": true,
+    "retained_canary_footprint": "363 MiB observed with du -sh",
+    "dashboard_timer_left_active": true,
+    "ci_canary_processes_stopped": true
+  },
+  "prior_last_good_failure_and_recovery": "supervised-recovery.json",
+  "non_claims": [
+    "a real Nix build is not activation, deployment, release authority or arbitrary reproducibility",
+    "distinct-host source delivery is not production deployment, activation or release authority",
+    "fork-based self-CI is not canonical publication, delegate or governance change",
+    "private dedicated test identities grant no production repository or governance authority",
+    "same-host native loopback TCP is not WAN or distinct-host qualification",
+    "status object creation and signing remained local; dissemination and readback were distinct-host",
+    "the publisher and observer hosts are trusted canaries; no hostile-node isolation is claimed",
+    "the real Kiln build is not production rollout, activation or release authority",
+    "the remote observer is a trusted canary identity; no hostile-node isolation is claimed",
+    "the remote publisher host is trusted and is not a hostile-worker boundary",
+    "trusted canary source and shared-user workers do not establish hostile-worker confinement",
+    "two owned hosts on a private tailnet are not WAN or hostile-network qualification",
+    "upstream event deduplication is distinct from canonical controller reconciliation",
+    "The timer collects existing canonical journals; it is not a continuously running production CI controller.",
+    "The configured dedicated canary has ended. No newest-source completeness, production rollout, release eligibility or Patchgate acceptance is claimed.",
+    "Source-only publication of earlier dashboard closeout is separate from this local operated proof."
+  ]
+}

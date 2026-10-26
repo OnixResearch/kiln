@@ -1,0 +1,13 @@
+[package]
+name = "rat-table"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+# Kiln-owned wrapper only: upstream source and manifests stay byte-for-byte pristine.
+[lib]
+path = "../../../vendor/subwayrat/crates/rat-table/src/lib.rs"
+
+[dependencies]
+ratatui = { version = "=0.30.1", default-features = false }

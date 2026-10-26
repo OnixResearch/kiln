@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.dashboard-product-interface.nix-gates.v1",
+  "final_command": [
+    "nix",
+    "flake",
+    "check",
+    "path:.",
+    "--no-write-lock-file",
+    "-L",
+    "--builders",
+    "",
+    "--max-jobs",
+    "2"
+  ],
+  "observed_verdict": "all checks passed!",
+  "system": "x86_64-linux",
+  "not_checked": [
+    "aarch64-linux"
+  ],
+  "final_native_package_derivation": "/nix/store/2jn5by9nzlp2z0g07b9mkg26qbc3k8rf-kiln-0.1.0.drv",
+  "final_octet_derivation": "/nix/store/prdxayr2sh91rf9amhqqqybgxy9li8nq-kiln-octet.drv",
+  "final_format_derivation": "/nix/store/34y279xwq1cp0xhbkwdpj3pqa7z1yyjd-kiln-format.drv",
+  "summary_tail": " code 0\nkiln-bombadil> Throughput (state samples/sec): 1.0\nkiln-bombadil> Output written to: /build/source/traces/bounded-20-runs\nkiln-dashboard-publication> .........\nkiln-dashboard-publication> ----------------------------------------------------------------------\nkiln-dashboard-publication> Ran 9 tests in 2.613s\nkiln-dashboard-publication> \nkiln-dashboard-publication> OK\nkiln-bombadil> \nkiln-bombadil> Exited as process terminated with exit code 0\nkiln-bombadil> Throughput (state samples/sec): 0.9\nkiln-bombadil> Output written to: /build/source/traces/admitted-pilot-journal\nkiln-bombadil> \nkiln-bombadil> Exited as process terminated with exit code 1\nkiln-bombadil> Throughput (state samples/sec): 1.0\nkiln-bombadil> Output written to: /build/source/traces/rejected-tampered\nkiln-bombadil> \nkiln-bombadil> Exited as process terminated with exit code 0\nkiln-bombadil> Throughput (state samples/sec): 1.0\nkiln-bombadil> Output written to: /build/source/traces/kiln-cli-demo\nkiln-bombadil> \nkiln-bombadil> Exited as process terminated with exit code 0\nkiln-bombadil> Throughput (state samples/sec): 1.0\nkiln-bombadil> Output written to: /build/source/traces/kiln-cli-evidence\nkiln-bombadil> \nkiln-bombadil> Exited as process terminated with exit code 1\nkiln-bombadil> Throughput (state samples/sec): 0.9\nkiln-bombadil> Output written to: /build/source/traces/kiln-cli-evidence-rejected\nkiln-dashboard-publication> .................\nkiln-dashboard-publication> ----------------------------------------------------------------------\nkiln-dashboard-publication> Ran 17 tests in 5.373s\nkiln-dashboard-publication> \nkiln-dashboard-publication> OK\nbuilding '/nix/store/mc459w2g3mk471fla85k3r5q6jb15rk1-kiln-release-evidence.drv'...\nall checks passed!\nwarning: The check omitted these incompatible systems: aarch64-linux\nUse '--all-systems' to check all.\n\n\nWall time: 421.26 seconds\n\n[Showing lines 1-462 and 4007-4468 of 4468; 3,544 middle lines (223.5KB) elided. Read artifact://560 for full output]",
+  "log_reference": "Session artifact://560 contains the full 4468-line final command log.",
+  "environment_observation": "Initial default-builder Octet command failed before builds because the remote build-hook lock-file name exceeded filesystem limits. Explicit local builders completed Octet and the full final flake check; no operator Nix configuration was changed.",
+  "non_claims": [
+    "Passing these gates is not acceptance, publication, hosted deployment, CI source freshness or release approval.",
+    "Separate traceability evidence retains unaccepted dashboard deltas and independent Patchgate dangling references; accepted requirement IDs have no missing entries."
+  ]
+}

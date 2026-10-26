@@ -222,6 +222,99 @@ Use `--watch` for local regeneration, or `--refresh-seconds 30` for a finite ren
 that asks the browser to reload. The latter is HTML-only, accepts 1..86400 seconds
 and cannot be combined with `--watch`.
 
+### SaaS-style workspace interface
+
+Catalog reports open in one responsive application shell. **Overview** shows
+declared project and independently admitted history inventory, explicit history
+shortcuts and the selected history’s summary. These are not global CI totals:
+overlapping journals are never combined into a new revision or observation.
+**Projects** contains the real Rats index, declared metadata cards and accessible
+HTML navigation. **Runs**, **Activity** and **Evidence** present the selected
+report’s bounded run/attempt inspector, event tail and provenance respectively,
+without nesting another application sidebar inside the report.
+
+The header search matches declared project/history identifiers and labels,
+source and revision metadata. Results open an exact existing history; no-match
+queries display an explicit empty state. Run-ID/active-attempt search and outcome
+filters remain inside **Runs**. Changing the project selector requires an explicit
+history choice; a missing saved history remains missing rather than selecting a
+replacement. Metadata and event text remain inert, including Unicode and markup.
+
+**Settings** changes system/light/dark appearance and comfortable/compact spacing.
+Route, metadata query, appearance, exact project/history and per-history run
+filters live in the URL fragment and survive reload and browser Back. No account,
+cookie or local-storage service is needed. `/` focuses metadata search outside
+editable fields, `Esc` clears/closes search, and `?` opens keyboard help. The mobile
+menu exposes the same navigation. **Reload report** rereads the current artifact;
+it does not collect observations or run CI.
+
+Reports retain opaque-origin `sandbox="allow-scripts"` isolation. A source-checked
+bridge exchanges only inert saved state, admitted presentation choices and bounded
+content-height messages; it grants neither same-origin access nor provider
+authority. Without JavaScript, ordinary navigation and complete reports remain
+readable. Unavailable WASM is reported visibly on Projects with HTML navigation
+and native history controls still available.
+
+This is a **SaaS-style read-only interface**, not a hosted SaaS service: no accounts,
+tenants, billing, collaboration backend or CI execution controls are simulated.
+Kiln dashboard maintainers own the shell and presentation bridge. Ordinary native
+builds and catalog rendering reproduce it; unchanged pinned Rats assets require no
+regeneration. The finite Aspen3 product preview is separate from `index.html` and
+does not reconfigure or activate a publisher.
+
+<!-- r[impl kiln.dashboard.product.scope] -->
+<!-- r[impl kiln.dashboard.product.scope.scenario.delivery] -->
+
+### Rats browser index
+
+The catalog's primary index is the pinned Subwayrat `DataTable`, rendered by
+Ratzilla 0.3.1's DOM backend through WebAssembly. Focus the table and use
+Up/Down or Home/End to choose a row, then Enter to open its report. Pointer
+selection chooses a row; **Open chosen history** activates it. Choosing a row
+does not silently replace a missing active history. Repository/history identity
+and each report's filters remain in the existing URL fragment.
+
+The table receives only admitted metadata, never journal records or credentials.
+Unicode table cells use ASCII escapes because this upstream widget truncates byte
+slices; the chosen-row details and HTML navigation retain full Unicode labels.
+At narrow widths the table shows one repository/history column. **HTML repository
+and history navigation** remains an accessible alternative. If WASM initialization
+fails, the page reports the failure and opens that navigation. Without JavaScript,
+all report sections and ordinary links remain readable.
+
+JavaScript, WASM and dependency notices are embedded in the same bounded HTML;
+opening the file does not fetch modules, fonts, WASM or data. Existing atomic
+publication transports that file unchanged. Native Kiln builds embed committed
+assets and do not require a browser compiler, sibling checkout or private ratcore.
+
+The isolated `web/dashboard-index/` workspace pins Rust 1.90.0 and wasm32; the
+native workspace stays on Rust 1.88. Browser compilation also pins wasm-bindgen
+0.2.121 and esbuild 0.27.2 through the existing Nix cohort. After changing browser
+Rust, the loader or the reviewed source import, regenerate and check assets:
+
+```console
+nix develop path:.#dashboard-index -c python3 scripts/build-dashboard-index.py
+nix develop path:.#dashboard-index -c python3 scripts/build-dashboard-index.py --check
+nix build path:.#checks.x86_64-linux.dashboard-index-assets --no-link -L
+```
+
+Rebuild `kiln-dashboard` after regeneration, then rerender the catalog. Do not edit
+`crates/kiln-dashboard/src/render/generated/` by hand. The sandboxed asset check
+rebuilds and compares all three assets, runs the pure selection/boundary tests,
+checks the actual wasm32 code with Clippy, and formats only Kiln-owned browser
+source. It deliberately leaves pristine imported widget source unchanged.
+
+Kiln dashboard maintainers own the browser shell, asset lock and repeatability
+rail; Subwayrat owns the widget. [The retained integration evidence](../.cairn/changes/use-rats-browser-index/evidence/verification.json)
+covers the exercised offline Chromium inputs, not arbitrary Rats widgets, CI
+success, deployment or release eligibility. Independent Patchgate holds remain.
+<!-- r[impl kiln.dashboard.rats.claims] -->
+<!-- r[impl kiln.dashboard.rats.claims.scenario.scope] -->
+<!-- r[verify kiln.dashboard.rats.claims] -->
+<!-- r[verify kiln.dashboard.rats.claims.scenario.scope] -->
+<!-- r[verify kiln.dashboard.rats.offline] -->
+<!-- r[verify kiln.dashboard.rats.offline.scenario.fallback] -->
+
 ### GitHub replay export
 
 The GitHub replay database is not the canonical SQLite event-store schema. Export
@@ -402,3 +495,238 @@ Passing dashboard checks do not prove CI success, provider correctness, source
 trust, journal completeness, release readiness, or that the observed revision is
 the newest one in existence. They prove only the checked journal admission,
 projection, bounds, and observed revision.
+
+## Producer-local supervised collection and publication
+
+`kiln-dashboard-refresh --config PATH` performs **one finite cycle**: admit closed
+configuration, scan a bounded immediate candidate root, atomically replace an
+observation catalog, and call the matching publisher to render and deliver HTML.
+It has no watcher loop, dispatch, reconciliation, signing, provider retry or status
+write. Use the dedicated maintained Radicle fork self-CI rail to produce journals;
+this observer does not re-enable retired GitHub/Iroh services or credentials.
+
+Run it on the **producer that owns the canonical journals**, not on Aspen3. Its
+only remote payload is self-contained HTML delivered through the existing enrolled
+SSH route to
+`brittonr@aspen3:/home/brittonr/.local/share/kiln/dashboard/index.html`. Candidate
+journals, catalogs, profiles and CI credentials remain on the producer. Both local
+report and remote destination parents must already exist; neither tool provisions
+the remote host. The operator must separately establish noninteractive SSH, a
+trusted host key, and remote `rsync` before enabling supervision.
+
+### Immutable tools and explicit configuration
+
+Build the small observation-tools package independently of Rust CI products:
+
+```sh
+set -eu
+umask 077
+mkdir -p "$HOME/.local/share/kiln" "$HOME/.local/bin" \
+  "$HOME/.config/kiln" "$HOME/.config/systemd/user" \
+  "$HOME/.local/state/kiln/dashboard"
+nix build path:.#dashboard-tools \
+  --out-link "$HOME/.local/share/kiln/dashboard-tools"
+tools=$(realpath -e "$HOME/.local/share/kiln/dashboard-tools")
+ln -sfn "$tools/bin/kiln-dashboard-refresh" "$HOME/.local/bin/kiln-dashboard-refresh"
+ln -sfn "$tools/bin/kiln-dashboard-publish" "$HOME/.local/bin/kiln-dashboard-publish"
+install -m 0644 "$tools/share/systemd/user/kiln-dashboard-refresh.service" \
+  "$HOME/.config/systemd/user/kiln-dashboard-refresh.service"
+install -m 0644 "$tools/share/systemd/user/kiln-dashboard-refresh.timer" \
+  "$HOME/.config/systemd/user/kiln-dashboard-refresh.timer"
+```
+
+The out-link retains the immutable closure as a Nix GC root. The package contains
+real `bin/kiln-dashboard-refresh` and `bin/kiln-dashboard-publish` executable
+wrappers, Python, local `rsync` and OpenSSH runtime paths. Matching script sources
+remain siblings under `libexec/kiln-dashboard/` for publisher reuse. Its only unit
+files are under `share/systemd/user/`; installing them does not start anything.
+Apps `nix run path:.#kiln-dashboard-refresh -- --config PATH` and
+`nix run path:.#kiln-dashboard-publish -- --config PATH` select the same wrappers.
+The existing root/default package and `kiln-dashboard` renderer retain their
+meanings; the tools package does not build or select a renderer for the operator.
+
+Select an existing absolute source root from the dedicated runner's actual
+configuration and a separately reviewed immutable renderer executable. Do not
+create an empty candidate directory and call that a CI observation. The following
+procedure prompts for those real paths, copies the profile, and prepares typed
+Nickel applications around explicit JSON inputs. Run it from the reviewed checkout:
+
+```sh
+set -eu
+printf 'Existing producer-local self-CI candidate root: '
+IFS= read -r candidate_root
+printf 'Reviewed immutable kiln-dashboard executable: '
+IFS= read -r dashboard_executable
+case "$candidate_root" in /*) ;; *) echo 'absolute candidate root required' >&2; exit 1;; esac
+case "$dashboard_executable" in /nix/store/*/bin/kiln-dashboard) ;; *) echo 'immutable renderer required' >&2; exit 1;; esac
+test -d "$candidate_root" && test -x "$dashboard_executable"
+install -m 0600 fixtures/dashboard/profile-v1.json "$HOME/.config/kiln/dashboard-profile.json"
+python3 - "$PWD" "$candidate_root" "$dashboard_executable" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+repo, root, executable = sys.argv[1:]
+config = Path.home() / ".config/kiln"
+state = Path.home() / ".local/state/kiln/dashboard"
+publication = {
+    "schema_version": 1,
+    "dashboard_executable": executable,
+    "catalog": str(state / "catalog.json"),
+    "profile": str(config / "dashboard-profile.json"),
+    "local_report": str(state / "last-good.html"),
+    "destination": {
+        "kind": "ssh", "host": "brittonr@aspen3",
+        "path": "/home/brittonr/.local/share/kiln/dashboard/index.html",
+    },
+    "max_report_bytes": 16777216,
+    "subprocess_timeout_seconds": 30,
+    "interval_ms": 30000,
+}
+refresh = {
+    "schema_version": 1,
+    "candidate_root": root,
+    "catalog_output": publication["catalog"],
+    "publication_config": str(config / "dashboard-publication.json"),
+    "project_id": "kiln-self-ci",
+    "project_label": "Kiln dedicated Radicle fork self-CI",
+    "max_candidates": 128,
+    "max_histories": 32,
+    "max_journal_bytes": 1048576,
+}
+for name, value in (("dashboard-publication", publication), ("dashboard-refresh", refresh)):
+    inputs = config / (name + "-inputs.json")
+    inputs.write_text(json.dumps(value, indent=2) + "\n")
+    builder = Path(repo) / "config" / (name + ".ncl")
+    (config / (name + ".ncl")).write_text(
+        f"(import {json.dumps(str(builder))}) (import {json.dumps(str(inputs))})\n"
+    )
+PY
+nickel export --format json --output "$HOME/.config/kiln/dashboard-publication.json" \
+  "$HOME/.config/kiln/dashboard-publication.ncl"
+nickel export --format json --output "$HOME/.config/kiln/dashboard-refresh.json" \
+  "$HOME/.config/kiln/dashboard-refresh.ncl"
+```
+
+Review the exported JSON before executing it. The `.ncl` files retain absolute
+references to the reviewed checkout's typed builders for subsequent re-export;
+runtime requires only the exported JSON, profile, immutable renderer and tools.
+Keep the separately selected renderer closure rooted too. The example bounds are
+explicit operating choices, not claims about every producer's journal sizes or
+retained history; choose bounds that admit the actual dedicated root.
+
+The refresh configuration is closed version 1 with **exactly** these fields:
+
+| Field | Meaning |
+|---|---|
+| `schema_version` | Integer `1` |
+| `candidate_root` | Absolute existing producer-local immediate candidate directory |
+| `catalog_output` | Absolute generated catalog file; must equal the publication config's resolved `catalog` |
+| `publication_config` | Absolute existing publisher JSON configuration file |
+| `project_id` | Catalog project identity, not a forge or source identity |
+| `project_label` | Operator-declared display label |
+| `max_candidates` | Positive bound on all immediate root entries, at most 1024 |
+| `max_histories` | Positive retained-history bound, at most 128 and no greater than `max_candidates` |
+| `max_journal_bytes` | Positive per-journal byte bound, at most 16777216; `max_candidates * max_journal_bytes` must not exceed 268435456 |
+
+Only non-symlink 64-lowercase-hex candidate directories are eligible. Original
+`<candidate_root>/<candidate>/ci-journal.json` files with schema
+`kiln.radicle-ci.journal.v1`, `source = {provider, repository, revision}` and canonical
+`records` feed the existing renderer; no journal is copied into a new canonical
+state or changed. Missing journals are not completed runs. Present malformed,
+oversized or symlink journals and input/output collisions fail visibly. Eligible
+histories sort by observed journal `mtime_ns` descending and candidate identity
+ascending for ties. Source metadata is an operator declaration, not source trust;
+observed update order is not a global newest-source guarantee. Excess root entries
+fail rather than silently choosing an arbitrary scan prefix. An owned no-follow
+lock serializes finite cycles, including manually invoked collectors.
+
+### Supervise only the named observation units
+
+First exercise the real installed finite path with the reviewed JSON:
+
+```sh
+"$HOME/.local/bin/kiln-dashboard-refresh" --config "$HOME/.config/kiln/dashboard-refresh.json"
+systemctl --user daemon-reload
+systemctl --user enable --now kiln-dashboard-refresh.timer
+systemctl --user status kiln-dashboard-refresh.timer kiln-dashboard-refresh.service
+systemctl --user list-timers kiln-dashboard-refresh.timer
+journalctl --user -u kiln-dashboard-refresh.service -n 40 --no-pager
+```
+
+The oneshot executes `%h/.local/bin/kiln-dashboard-refresh --config
+%h/.config/kiln/dashboard-refresh.json`. Each activation finishes or fails within
+five minutes; stop grants ten seconds before killing the service control group.
+`UMask=0077` protects producer-local artifacts. `Restart=no` preserves visible
+failures without an automatic service retry. The timer first activates after one
+second, then waits `OnUnitInactiveSec=30s` after a cycle finishes; long cycles do
+not overlap or accumulate catch-up work. `Persistent=false` provides no downtime
+catch-up queue. The publisher's `interval_ms=30000` is the matching HTML/browser
+cadence, not a second scheduling loop. A later timer observation is not a retry or
+redispatch of CI.
+
+When the SSH route uses an agent, explicitly import its current socket into the
+user manager before starting the service:
+
+```sh
+systemctl --user import-environment SSH_AUTH_SOCK
+```
+
+The units intentionally do not hide the home directory or private temporary
+directories, which could make the operator's enrolled SSH key/agent unavailable.
+Agent availability after logout/reboot and user-manager persistence are operator
+prerequisites, not supplied by this package; enabling the timer does not enable
+lingering or provision credentials.
+
+Restart only these units after reviewing restored inputs or updating the immutable
+tool symlinks, and inspect the next actual cycle:
+
+```sh
+systemctl --user daemon-reload
+systemctl --user restart kiln-dashboard-refresh.timer kiln-dashboard-refresh.service
+systemctl --user status kiln-dashboard-refresh.timer kiln-dashboard-refresh.service
+journalctl --user -u kiln-dashboard-refresh.service -n 40 --no-pager
+```
+
+Stopping the timer propagates to the active service through its `PartOf=` binding.
+Stopping only the service leaves the timer armed and is not a durable shutdown.
+To stop observation and prevent login-time reactivation:
+
+```sh
+systemctl --user disable --now kiln-dashboard-refresh.timer
+systemctl --user stop kiln-dashboard-refresh.service
+```
+
+These commands never stop or restart CI, provider, forge or unrelated user units.
+The observer rebuilds solely from durable journals and exact configuration after
+restart. Collection, generation or transfer failures remain nonzero/journal-visible
+and retain last-good HTML; a generated catalog is observation state, not evidence
+that delivery succeeded. A lost remote acknowledgement may leave new complete HTML
+on Aspen3 and the prior local report; cross-host atomicity is not claimed. An
+interrupted cycle can leave temporary files but never a partially replaced final
+HTML file. Stopped or failed publication leaves readable **stale** HTML: browser
+reload is not proof of new collection, freshness or success. Fresh success/failure
+proof requires separately executed dedicated self-CI and exact newly written
+canonical histories, not retained runs or report timestamps.
+
+The maintained `scripts/radicle-ci-live-self-ci.py` retires each completed case's
+disposable `eval-home/.cache/nix` after its existing canonical, status and recovery
+checks. It retains journals, exact source identities and logs, and never removes
+the operator's original cache. Reserve scratch for one copied operator cache plus
+build/evidence state; a failed case can retain its cache for explicit owned-state
+cleanup. Stopping the dedicated canary retires its CI processes and credentials,
+not the read-only dashboard timer. The timer does not provision a continuously
+running production CI controller or make retained observations fresh again.
+
+The [operated fresh proof](../.cairn/changes/operate-dashboard-live/evidence/fresh-publication.json)
+binds the dedicated fork's exact success, genuine compile failure and unresolved
+provider-unavailable histories to the Aspen3 report. Publisher restart preserved
+all canonical journal bytes; credential-free replay of the retained inputs
+reproduced the delivered HTML exactly. This is a completed canary, not an ongoing
+production CI service; the independent Patchgate/release holds remain in force.
+
+Focused integration checks are `nix build path:.#checks.x86_64-linux.dashboard-publication`
+and `nix build path:.#checks.x86_64-linux.nickel` (substitute the producer system
+where appropriate). These cover collector/publisher behavior and typed positive
+and expected-negative configuration admission; they do not install/start units,
+qualify a runtime cohort, or waive separate Patchgate/release holds.

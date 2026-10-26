@@ -1031,6 +1031,34 @@ fn catalog_rejects_ambiguous_identities_versions_unknown_fields_and_bounds() {
             .unwrap_or_else(|| unreachable!()) = serde_json::json!(value);
         assert!(parse(&invalid).is_err(), "{name}={value}");
     }
+    for field in ["label", "source", "revision"] {
+        let pointer = format!("/projects/0/histories/0/{field}");
+        let mut boundary = valid.clone();
+        boundary
+            .pointer_mut("/projects/0/histories/0")
+            .and_then(serde_json::Value::as_object_mut)
+            .unwrap_or_else(|| unreachable!())
+            .insert(field.to_string(), serde_json::json!("é".repeat(512)));
+        assert!(parse(&boundary).is_ok(), "1024-byte {field}");
+        for value in ["é".repeat(513), String::new(), "line\nbreak".into()] {
+            *boundary
+                .pointer_mut(&pointer)
+                .unwrap_or_else(|| unreachable!()) = serde_json::json!(value);
+            assert!(parse(&boundary).is_err(), "invalid {field}");
+        }
+    }
+    for id in [
+        String::new(),
+        "a".repeat(129),
+        "répository".into(),
+        "../input/path".into(),
+    ] {
+        let mut invalid = valid.clone();
+        *invalid
+            .pointer_mut("/projects/0/histories/0/id")
+            .unwrap_or_else(|| unreachable!()) = serde_json::json!(id);
+        assert!(parse(&invalid).is_err());
+    }
     let mut invalid = valid;
     *invalid
         .pointer_mut("/projects/0/histories/0/input")
@@ -1056,19 +1084,31 @@ fn catalog_resolves_relative_histories_and_preserves_independent_view_identities
     .unwrap_or_else(|_| unreachable!());
     let rendered = kiln_dashboard::shell::render_catalog(&catalog_path, &profile, None)
         .unwrap_or_else(|_| unreachable!());
-    for count in [1, 2] {
-        let original =
-            build_html_report(&profile, &admitted(count), &DashboardSelection::default())
-                .unwrap_or_else(|_| unreachable!());
-        assert!(rendered.contains(original.report.views.summary.identity.as_str()));
-        let detail = original
-            .report
-            .views
-            .run_detail
-            .as_ref()
-            .unwrap_or_else(|| unreachable!());
-        assert!(rendered.contains(detail.identity.as_str()));
-    }
+    let documents: Vec<_> = rendered
+        .split(" srcdoc=\"")
+        .skip(1)
+        .map(|value| {
+            value
+                .split('"')
+                .next()
+                .unwrap_or_else(|| unreachable!())
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+        })
+        .collect();
+    let expected: Vec<_> = [1, 2]
+        .into_iter()
+        .map(|count| {
+            let original =
+                build_html_report(&profile, &admitted(count), &DashboardSelection::default())
+                    .unwrap_or_else(|_| unreachable!());
+            kiln_dashboard::render::html::render_html(&original)
+        })
+        .collect();
+    assert_eq!(documents, expected);
     // A corrupt second history fails the entire artifact, not just that panel.
     let mut corrupt: serde_json::Value =
         serde_json::from_slice(&journal_document(2)).unwrap_or_else(|_| unreachable!());
@@ -1095,12 +1135,23 @@ fn catalog_rejects_aggregate_and_output_overflow_without_replacing_last_good_rep
     let catalog_path = directory.join("catalog.json");
     let output_path = directory.join("report.html");
     std::fs::write(&output_path, "previous admitted report").unwrap_or_else(|_| unreachable!());
-    for bound in ["max_input_bytes", "max_rendered_bytes"] {
+    std::fs::write(
+        &catalog_path,
+        serde_json::to_vec(&catalog_value()).unwrap_or_else(|_| unreachable!()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let admitted_bytes = kiln_dashboard::shell::render_catalog(&catalog_path, &profile, None)
+        .unwrap_or_else(|_| unreachable!())
+        .len();
+    for (bound, limit) in [
+        ("max_input_bytes", 1),
+        ("max_rendered_bytes", admitted_bytes - 1),
+    ] {
         let mut catalog = catalog_value();
         *catalog
             .get_mut("bounds")
             .and_then(|bounds| bounds.get_mut(bound))
-            .unwrap_or_else(|| unreachable!()) = serde_json::json!(1);
+            .unwrap_or_else(|| unreachable!()) = serde_json::json!(limit);
         std::fs::write(
             &catalog_path,
             serde_json::to_vec(&catalog).unwrap_or_else(|_| unreachable!()),
@@ -1131,6 +1182,21 @@ fn catalog_rejects_aggregate_and_output_overflow_without_replacing_last_good_rep
         let retained = std::fs::read_to_string(&output_path).unwrap_or_else(|_| unreachable!());
         assert_eq!(retained, "previous admitted report");
     }
+    let mut exact = catalog_value();
+    *exact
+        .pointer_mut("/bounds/max_rendered_bytes")
+        .unwrap_or_else(|| unreachable!()) = serde_json::json!(admitted_bytes);
+    std::fs::write(
+        &catalog_path,
+        serde_json::to_vec(&exact).unwrap_or_else(|_| unreachable!()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        kiln_dashboard::shell::render_catalog(&catalog_path, &profile, None)
+            .unwrap_or_else(|_| unreachable!())
+            .len(),
+        admitted_bytes
+    );
 }
 
 #[test]

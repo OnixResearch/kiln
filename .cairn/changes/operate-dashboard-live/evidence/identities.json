@@ -1,0 +1,68 @@
+{
+  "schema": "kiln.dashboard.live.identities.v1",
+  "date": "2026-10-26",
+  "native_tool_source_revision": "610f26885929434e3475658f3db38d2c3e825080",
+  "canonical_candidate_root": "/var/tmp/kiln-dashboard-ci-20261026b",
+  "files": [
+    {
+      "blake3": "35ec456ea0cd30a3316e2b61664056088f29d8cf88c78699e5d65d0dfc16e438",
+      "path": "/home/brittonr/git/OnixResearch/kiln/scripts/dashboard-refresh.py"
+    },
+    {
+      "blake3": "2a4e3fbdc6d222528b81687388ed40c24d6771c2ad8887822be43cb2ae5dd4d5",
+      "path": "/home/brittonr/git/OnixResearch/kiln/scripts/dashboard-publish.py"
+    },
+    {
+      "blake3": "b0e920fdb8808deb0c36bf3aa41ae3f782babceeaa9c7a0b52dacb2c6dcf0be5",
+      "path": "/home/brittonr/git/OnixResearch/kiln/scripts/test_dashboard_refresh.py"
+    },
+    {
+      "blake3": "aa9415408f7eee710bcf981e681c539047705fac69b27662e35b3f66f0cf037a",
+      "path": "/home/brittonr/git/OnixResearch/kiln/config/dashboard-refresh.ncl"
+    },
+    {
+      "blake3": "2b3b920eb1c8578f016c538b246ce5dbfd469852f89e2da08274524ca1e3490a",
+      "path": "/home/brittonr/git/OnixResearch/kiln/config/systemd/kiln-dashboard-refresh.service"
+    },
+    {
+      "blake3": "0ec746145067d18d05da96536ba476cdcdc50d24bf4a97a8af226670376e4a63",
+      "path": "/home/brittonr/git/OnixResearch/kiln/config/systemd/kiln-dashboard-refresh.timer"
+    },
+    {
+      "blake3": "8effa2b6131bbe150632e305f74df192152763f2cc3412c8dce6bd78ff2a39af",
+      "path": "/home/brittonr/git/OnixResearch/kiln/flake.nix"
+    },
+    {
+      "blake3": "ee8934439d66038f56b1af7edbb0812ca80490ea5bc0e65ce4ad925a35ad2263",
+      "path": "/home/brittonr/.config/kiln/dashboard-profile.json"
+    },
+    {
+      "blake3": "b2636a3bd63d56056931aa9e68fbcbcbcd219425cc3d731c2241497b46159bd3",
+      "path": "/home/brittonr/.config/kiln/dashboard-publication.json"
+    },
+    {
+      "blake3": "955929fa28577a8b365187182e5c8a3f7e02a748f4648854b47f5c1948402d92",
+      "path": "/home/brittonr/.config/kiln/dashboard-refresh.json"
+    },
+    {
+      "blake3": "496533e6f80428aea7f1f5d59557155bd52a818d2fcb0251c429ed1ebb0a4f2f",
+      "path": "/nix/store/za4yykfqdjfsa7flpa1mzcfykczkds31-kiln-dashboard-operated-renderer"
+    },
+    {
+      "blake3": "95749d6df9c7f58a9c45f958b0fc60531fe926e4a0d4d79be09969f00b781665",
+      "path": "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-radicle-ci"
+    },
+    {
+      "blake3": "d0a0c353e7567bd7aef0a2437edbf019e0b2596abd38b6d74b01873e02811e7a",
+      "path": "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-onixos-worker"
+    },
+    {
+      "blake3": "3380cb8b933ad5fd1cbceb122dfe42a5d501a40bf31c61102ec5b29352c8dbf9",
+      "path": "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-aspen-extension"
+    },
+    {
+      "blake3": "124063c82649ea6405febbd0d5eb28f8adaa2cd2e35ad17e0cce2151b84fd69d",
+      "path": "/nix/store/gdbmhlm9sf5qkvw3rf6c1ra3ksv8d5ka-kiln-aspen-host-0.1.0/bin/kiln-aspen-host"
+    }
+  ]
+}

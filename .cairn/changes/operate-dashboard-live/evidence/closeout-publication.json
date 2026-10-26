@@ -1,0 +1,91 @@
+{
+  "schema": "kiln.dashboard.lifecycle-publication.v1",
+  "date": "2026-10-26",
+  "source_revision": "610f26885929434e3475658f3db38d2c3e825080",
+  "rollback_revision": "359789e5828c41a18400da686b60010c314a76b6",
+  "scope": "Approved acceptance/archive of the two completed dashboard changes and publication of their prior local receipt; no Patchgate acceptance or release eligibility",
+  "archive": {
+    "blake3": "f175162fc941af2c6af17a1a61cbe9fd42ad5be2d8818b94b9eb0033de54cae7",
+    "bytes": 67717120,
+    "members": 4658,
+    "recipe": "GNU tar --format=ustar --no-recursion --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX; UTF-8 bytewise sorted tracked regular-file paths, NUL-delimited --verbatim-files-from; no directory entries or VCS metadata"
+  },
+  "manifest": {
+    "path": "closeout-source-manifest.json",
+    "blake3": "742dd080ad513d55d31f32a9826ff8d91cdea947f1055097a10f1b9aac55558d"
+  },
+  "bindings": [
+    {
+      "blake3": "4d435dda4de8aece28760bd52f14ebe33b69cd50fa2d2ab988ed1af993adb9e1",
+      "bytes": 24036,
+      "executable": false,
+      "kind": "file",
+      "path": ".cairn/archive/1970-01-01-connect-dashboard-repositories/evidence/closeout.json"
+    },
+    {
+      "blake3": "d7d179abdc26336150146a6b7e05c17f12aaabf5b1e39cb15f1fadab33ef468a",
+      "bytes": 8699,
+      "executable": false,
+      "kind": "file",
+      "path": ".cairn/archive/1970-01-01-connect-dashboard-repositories/evidence/release-readiness-after-closeout.json"
+    },
+    {
+      "blake3": "3624b38ff10f1d09761f54df6df6255dc67c11612386025692205e7d06d2a4a7",
+      "bytes": 21553,
+      "executable": false,
+      "kind": "file",
+      "path": "LICENSES.md"
+    },
+    {
+      "blake3": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0",
+      "bytes": 31,
+      "executable": false,
+      "kind": "file",
+      "path": "config/hosting-profile.ncl"
+    }
+  ],
+  "refs": {
+    "rad": "610f26885929434e3475658f3db38d2c3e825080",
+    "github": "610f26885929434e3475658f3db38d2c3e825080",
+    "github_readback": "https://api.github.com/repos/OnixResearch/kiln/git/ref/heads/main",
+    "replica_readback": "https://rosa.radicle.network/api/v1/repos/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+  },
+  "governance": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "delegate": "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+    "threshold": 1,
+    "visibility": "public",
+    "unchanged": true,
+    "signed_refs_before": "fed9c5fe6fe4f930b2d030925794f399a9812729",
+    "signed_refs_after": "152d80a2eefd9ff3c7c66c05abf4007e51ee4f7a",
+    "feature": "parent",
+    "transport_reported_synced_seeds": 3
+  },
+  "acquisitions": [
+    {
+      "transport": "native",
+      "revision": "610f26885929434e3475658f3db38d2c3e825080",
+      "verified_members": 4658,
+      "archive_blake3": "f175162fc941af2c6af17a1a61cbe9fd42ad5be2d8818b94b9eb0033de54cae7",
+      "archive_bytes": 67717120
+    },
+    {
+      "transport": "garden",
+      "revision": "610f26885929434e3475658f3db38d2c3e825080",
+      "verified_members": 4658,
+      "archive_blake3": "f175162fc941af2c6af17a1a61cbe9fd42ad5be2d8818b94b9eb0033de54cae7",
+      "archive_bytes": 67717120
+    }
+  ],
+  "checks": {
+    "scope": "Lifecycle-only changes; task/archive native gates and source/readback identity observations, not new Rust behavior qualification",
+    "accepted_requirement_linkage": "887/887, no missing IDs",
+    "remaining_hold": "Six separate active kiln.patchgate requirement markers remain dangling; release-readiness valid=false and onix_release_ready=false"
+  },
+  "non_claims": [
+    "This receipt and manifest are later descendants, not members of the source archive they identify",
+    "Unrelated audit changes and new live-operation work were not included in closeout publication",
+    "Native/Garden and replica readbacks are bounded observations, not permanent availability or source trust",
+    "No governance, threshold, delegate, visibility, activation or release change occurred"
+  ]
+}

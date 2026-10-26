@@ -4,7 +4,7 @@ set -euo pipefail
 # A checkout is only an import input. Read the pinned Git object, never its
 # mutable working tree. Runtime Cargo/Nix acquisition uses the committed bytes.
 if (( $# != 2 )); then
-  printf 'usage: %s <lattice|cairn|valence|artifact|bounded-exec|mantle|ucan> <source-checkout>\n' "$0" >&2
+  printf 'usage: %s <lattice|cairn|valence|artifact|bounded-exec|mantle|ucan|subwayrat> <source-checkout>\n' "$0" >&2
   exit 2
 fi
 name=$1
@@ -31,6 +31,9 @@ case "$name" in
   ucan)
     source_commit=d46816f19606b518307ba21ab33e8b93b6ebf646
     archive_blake3=e795d4c2d0155ebfac4c305b765c6e6b73d9401cd3fc897c9cd0a7190e8367f5 ;;
+  subwayrat)
+    source_commit=2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901
+    archive_blake3=2e6588dd7b182c5a689c5e7be42f67fb09a5aa806449709f05066f6004e5f8d7 ;;
   *) printf 'unknown source import: %s\n' "$name" >&2; exit 2 ;;
 esac
 repo_root=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")

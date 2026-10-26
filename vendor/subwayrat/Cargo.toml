@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rat-branches",
+    "crates/rat-canvas",
+    "crates/rat-diff",
+    "crates/rat-editor",
+    "crates/rat-image",
+    "crates/rat-inline",
+    "crates/rat-keymap",
+    "crates/rat-layers",
+    "crates/rat-leaderkey",
+    "crates/rat-markdown",
+    "crates/rat-selection",
+    "crates/rat-spinner",
+    "crates/rat-streaming",
+    "crates/rat-table",
+    "crates/rat-widgets",
+    "crates/rat-nodegraph",
+    "crates/rat-spreadsheet",
+    "crates/rat-tree",
+    "crates/rat-scrolltile",
+    "crates/rat-outline",
+    "crates/rat-agenda",
+    "crates/rat-datepicker",
+    "crates/rat-fuzzy",
+    "crates/rat-capture",
+    "crates/rat-backlinks",
+    "crates/rat-tags",
+    "crates/rat-chrome",
+    "crates/rat-typst",
+    "crates/showcase",
+]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+ratatui = "0.30"
+unicode-width = "0.2"
+base64 = "0.22"
+ratcore = { git = "ssh://git@github.com/brittonr/ratcore.git", rev = "ec0bdc559b54b8099653acce018b1b1131568fc7" }

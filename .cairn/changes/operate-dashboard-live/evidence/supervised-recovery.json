@@ -1,0 +1,37 @@
+{
+  "schema": "kiln.dashboard.live.supervised-recovery.v1",
+  "date": "2026-10-26",
+  "scope": "Installed collector, actual systemd user supervision, real renderer and real Aspen3 SSH delivery over explicitly labeled retained journals; not fresh CI proof",
+  "candidate_root": "/home/brittonr/git/OnixResearch/kiln/.cairn/archive/1970-01-01-compose-radicle-source-to-build-ci/evidence/native/candidates",
+  "tools": "/nix/store/7z1j5bxazdb6g81xld61f6kfjidh3fmz-kiln-dashboard-tools-0.1.0",
+  "renderer": "/nix/store/za4yykfqdjfsa7flpa1mzcfykczkds31-kiln-dashboard-operated-renderer",
+  "remote_destination": "brittonr@aspen3:/home/brittonr/.local/share/kiln/dashboard/index.html",
+  "delivered_report": {
+    "blake3": "d0753a7af314de607ed69e75a0255fff4f5aa353080b98986ad4682dfc157cfa",
+    "bytes": 153127,
+    "remote_owner": "brittonr",
+    "remote_mode": "600",
+    "local_remote_match": true
+  },
+  "profile_blake3_before_and_after_recovery": "ee8934439d66038f56b1af7edbb0812ca80490ea5bc0e65ce4ad925a35ad2263",
+  "failure": {
+    "input": "Temporarily replace the operated dashboard profile with {\"profile\":null}",
+    "service_invocation": "a7ffbbc30d1f43019ced7fc36665ea3a",
+    "result": "exit-code",
+    "exec_main_status": 1,
+    "diagnostic": "dashboard refresh failed: dashboard generation failed (exit 1); prior report retained",
+    "local_last_good_blake3": "d0753a7af314de607ed69e75a0255fff4f5aa353080b98986ad4682dfc157cfa",
+    "remote_last_good_blake3": "d0753a7af314de607ed69e75a0255fff4f5aa353080b98986ad4682dfc157cfa"
+  },
+  "recovery": {
+    "action": "Re-export the exact typed profile and restart only kiln-dashboard-refresh.service and kiln-dashboard-refresh.timer",
+    "service_invocation": "59880afd5ea446a6b9c4bd99b40c27dd",
+    "result": "success",
+    "exec_main_status": 0,
+    "timer_active": true,
+    "local_remote_report_blake3": "d0753a7af314de607ed69e75a0255fff4f5aa353080b98986ad4682dfc157cfa"
+  },
+  "stop_observation": "Stopping only the new timer left both named observer units inactive; no CI unit was stopped",
+  "browser": "Opened the byte-matched report in Chromium, observed all three actual retained histories and inspected a desktop screenshot; baseline label explicitly says not fresh CI proof",
+  "non_claims": ["not fresh self-CI evidence", "not arbitrary source authenticity or newest-source completeness", "not production rollout or release readiness"]
+}

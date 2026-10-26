@@ -1,0 +1,17 @@
+{
+  "source_repository": "https://github.com/brittonr/subwayrat",
+  "source_commit": "2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "LICENSE",
+    "LICENSING.md",
+    "Cargo.toml",
+    "crates/rat-table/Cargo.toml",
+    "crates/rat-table/src/lib.rs"
+  ],
+  "archive_blake3": "2e6588dd7b182c5a689c5e7be42f67fb09a5aa806449709f05066f6004e5f8d7",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {"rat-table": "MIT"},
+  "scope": "Pristine upstream DataTable Rust source, package/workspace manifests and license notices. Kiln's independent browser workspace uses a local wrapper manifest pointing directly to this lib.rs; the upstream terminal workspace and ratcore dependency are not built.",
+  "nonclaims": "This immutable local import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+}

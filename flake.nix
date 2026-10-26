@@ -272,12 +272,117 @@
             "--nocapture"
           ];
         };
+      # r[impl kiln.dashboard.live.supervision]
+      # r[impl kiln.dashboard.live.supervision.scenario.cadence]
+      dashboardToolsPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        pkgs.stdenvNoCC.mkDerivation {
+          pname = "kiln-dashboard-tools";
+          version = "0.1.0";
+          dontUnpack = true;
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/bin"
+            install -Dm644 ${./scripts/dashboard-refresh.py} "$out/libexec/kiln-dashboard/dashboard-refresh.py"
+            install -Dm644 ${./scripts/dashboard-publish.py} "$out/libexec/kiln-dashboard/dashboard-publish.py"
+            for tool in refresh publish; do
+              makeWrapper ${pkgs.python3}/bin/python3 "$out/bin/kiln-dashboard-$tool" \
+                --add-flags "-I -B $out/libexec/kiln-dashboard/dashboard-$tool.py" \
+                --prefix PATH : ${
+                  pkgs.lib.makeBinPath [
+                    pkgs.rsync
+                    pkgs.openssh
+                  ]
+                }
+            done
+            install -Dm644 ${./config/systemd/kiln-dashboard-refresh.service} \
+              "$out/share/systemd/user/kiln-dashboard-refresh.service"
+            install -Dm644 ${./config/systemd/kiln-dashboard-refresh.timer} \
+              "$out/share/systemd/user/kiln-dashboard-refresh.timer"
+            runHook postInstall
+          '';
+          meta.description = "Finite read-only dashboard collection and atomic HTML publication tools";
+        };
+
+      # r[impl kiln.dashboard.rats.provenance]
+      # r[verify kiln.dashboard.rats.provenance]
+      dashboardIndexPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./web/dashboard-index/rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        rustPlatform.buildRustPackage {
+          pname = "kiln-dashboard-index-assets";
+          version = "0.1.0";
+          # Embed the same WASM bytes as the explicit browser dev shell build.
+          # Native Kiln binaries retain their normal cargo-auditable policy.
+          auditable = false;
+          src = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [
+              ./web/dashboard-index/Cargo.toml
+              ./web/dashboard-index/Cargo.lock
+              ./web/dashboard-index/rust-toolchain.toml
+              ./web/dashboard-index/src
+              ./web/dashboard-index/rat-table/Cargo.toml
+              ./web/dashboard-index/loader.js
+              ./web/dashboard-index/notices
+              ./vendor/subwayrat
+              ./vendor/subwayrat.source.json
+              ./scripts/build-dashboard-index.py
+              ./crates/kiln-dashboard/src/render/generated
+              ./LICENSE-MIT
+              ./LICENSE-APACHE
+            ];
+          };
+          cargoRoot = "web/dashboard-index";
+          cargoLock.lockFile = ./web/dashboard-index/Cargo.lock;
+          nativeBuildInputs = [
+            pkgs.python3
+            pkgs.wasm-bindgen-cli
+            pkgs.esbuild
+          ];
+          buildPhase = ''
+            runHook preBuild
+            python3 scripts/build-dashboard-index.py --check
+            runHook postBuild
+          '';
+          checkPhase = ''
+            runHook preCheck
+            cargo test --locked --offline --manifest-path web/dashboard-index/Cargo.toml --lib
+            cargo clippy --locked --offline --manifest-path web/dashboard-index/Cargo.toml \
+              --target wasm32-unknown-unknown -- -D warnings
+            cargo fmt --manifest-path web/dashboard-index/Cargo.toml --package kiln-dashboard-index -- --check
+            runHook postCheck
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/share/kiln-dashboard-index"
+            cp crates/kiln-dashboard/src/render/generated/* "$out/share/kiln-dashboard-index/"
+            runHook postInstall
+          '';
+          meta.description = "Reproduced locked offline Rats/Ratzilla dashboard index assets";
+        };
     in
     {
       packages = eachSystem (system: {
         kiln = packageFor system;
         kiln-aspen-host = kilnAspenHostPackageFor system;
         kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
+        dashboard-tools = dashboardToolsPackageFor system;
+        dashboard-index-assets = dashboardIndexPackageFor system;
         celld-cohort = celldCohortPackageFor system;
         pijul-cohort-fixture-producer = pijulCohortPackageFor system;
         secretspec-cohort = secretspecPackageFor system;
@@ -319,6 +424,16 @@
           type = "app";
           program = "${packageFor system}/bin/kiln-dashboard";
           meta.description = "Render the local operator dashboard over a canonical Kiln journal";
+        };
+        kiln-dashboard-refresh = {
+          type = "app";
+          program = "${dashboardToolsPackageFor system}/bin/kiln-dashboard-refresh";
+          meta.description = "Collect bounded canonical CI histories and publish one dashboard report";
+        };
+        kiln-dashboard-publish = {
+          type = "app";
+          program = "${dashboardToolsPackageFor system}/bin/kiln-dashboard-publish";
+          meta.description = "Render and atomically deliver an explicitly configured dashboard catalog";
         };
         default = self.apps.${system}.kiln;
       });
@@ -444,6 +559,7 @@
           tests = package;
           boundaries = package;
           runtime-independence = package;
+          dashboard-index-assets = dashboardIndexPackageFor system;
           format = pkgs.runCommand "kiln-format" { nativeBuildInputs = [ toolchain ]; } ''
             ${copySource}
             # Check every member, not the pristine partial producer workspaces.
@@ -816,10 +932,12 @@
               config/dashboard-catalog.ncl \
               config/dashboard-kiln.ncl \
               config/dashboard-publication.ncl \
+              config/dashboard-refresh.ncl \
               config/fixtures/dashboard-catalog-*.ncl \
               config/fixtures/dashboard-publication-*.ncl \
               config/fixtures/dashboard-positive.ncl \
               config/fixtures/negative-dashboard-*.ncl \
+              config/fixtures/dashboard-refresh-positive.ncl \
               config/http-observation-profile.ncl \
               config/fixtures/http-observation-positive.ncl \
               config/fixtures/negative-http-observation-*.ncl \
@@ -897,9 +1015,11 @@
             nickel export config/fixtures/dashboard-positive.ncl >/dev/null
             nickel typecheck config/dashboard-catalog.ncl
             nickel typecheck config/dashboard-publication.ncl
+            nickel typecheck config/dashboard-refresh.ncl
             nickel export config/dashboard-kiln.ncl >/dev/null
             nickel export config/fixtures/dashboard-catalog-positive.ncl >/dev/null
             nickel export config/fixtures/dashboard-publication-positive.ncl >/dev/null
+            nickel export config/fixtures/dashboard-refresh-positive.ncl >/dev/null
             nickel export config/fixtures/http-observation-positive.ncl >/dev/null
             nickel export config/fixtures/iroh-observation-positive.ncl >/dev/null
             nickel export config/fixtures/nix-build-positive.ncl >/dev/null
@@ -935,7 +1055,9 @@
             pkgs.runCommand "kiln-dashboard-publication" { nativeBuildInputs = [ pkgs.python3 ]; }
               ''
                 ${copySource}
+                export KILN_DASHBOARD_EXECUTABLE=${package}/bin/kiln-dashboard
                 python3 -m unittest discover -s scripts -p test_dashboard_publish.py
+                python3 -m unittest discover -s scripts -p test_dashboard_refresh.py
                 touch "$out"
               '';
           # Property-based terminal rail for the operator dashboard. The
@@ -1310,8 +1432,18 @@
             overlays = [ (import rust-overlay) ];
           };
           toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          browserToolchain = pkgs.rust-bin.fromRustupToolchainFile ./web/dashboard-index/rust-toolchain.toml;
         in
         {
+          dashboard-index = pkgs.mkShell {
+            packages = [
+              browserToolchain
+              pkgs.python3
+              pkgs.wasm-bindgen-cli
+              pkgs.esbuild
+              pkgs.b3sum
+            ];
+          };
           default = pkgs.mkShell {
             packages = [
               toolchain

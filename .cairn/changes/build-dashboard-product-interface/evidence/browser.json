@@ -1,0 +1,271 @@
+{
+  "schema": "kiln.dashboard-product-interface.browser.v1",
+  "scope": "Actual compiled native renderer output opened as file:// in offline Chromium; not a mock-up or hosted/multi-tenant service.",
+  "browser": "Chrome/155.0.8059.84",
+  "owner": "Kiln dashboard maintainers",
+  "durable_capability": "Reusable bounded catalog application shell and source-checked report presentation bridge over every admitted catalog.",
+  "artifact_blake3": "d8e575c16818d7e7fec0b62f7cef6f70c8387257b4adcc21179aa4877db70e26",
+  "viewport_widths_exercised": [
+    320,
+    390,
+    1440
+  ],
+  "fixtures": {
+    "delivery": "Three retained real canonical self-CI histories in the enrolled local catalog.",
+    "adversarial": "Two temporary declared projects referencing the same retained journals, with hostile markup/Unicode metadata and explicit missing selections; no new CI execution."
+  },
+  "observations": [
+    {
+      "case": "Real pinned Rats End/Enter opens exact admitted history offline",
+      "observed": {
+        "history": "b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac",
+        "page": "runs",
+        "frame": {
+          "sandbox": "allow-scripts",
+          "visible": true
+        }
+      }
+    },
+    {
+      "case": "Activity and Evidence show only matching bounded report sections",
+      "observed": {
+        "activity": {
+          "page": "activity",
+          "events": "block",
+          "runs": "none",
+          "rows": 2,
+          "identity": "-attempt-b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac provider nix-build-v1\n1attempt_completedattempt radicle-ci-attempt-b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac outcome Success products 1 metrics 0 external molten:service-receipt-blake3:11226ea469dc5e21ce51341d558ecf5929fcd443b33eba92d7bf62ed1118c4fe\n\n\n\n"
+        },
+        "evidence": {
+          "page": "evidence",
+          "evidence": "block",
+          "runs": "none",
+          "text": "Trust boundariesEvidence & provenanceAdmitted facts, not authorityLocal admitted observations only. Filtering and selection do not run jobs or change canonical state.\nReport provenance\nobservation profileobservation-v1\njournal schemakiln.radicle-ci.journal.v1\ndeclared identitybf08bc2394a36835ff2ad22f2cf80e67dcf3cab52b4d31a09b30ed2ded3b9b4d\nrecords2"
+        }
+      }
+    },
+    {
+      "case": "Run empty-state, per-history filters, global appearance and actual file reload restoration",
+      "observed": {
+        "filtered": {
+          "empty": true,
+          "rows": 0,
+          "theme": "dark",
+          "density": "compact"
+        },
+        "restored": {
+          "parent": {
+            "page": "runs",
+            "theme": "dark",
+            "density": "compact",
+            "history": "b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac"
+          },
+          "child": {
+            "query": "definitely-no-matching-run",
+            "empty": true,
+            "theme": "dark",
+            "embedded": "true",
+            "page": "runs",
+            "density": "compact"
+          }
+        }
+      }
+    },
+    {
+      "case": "Real metadata search, empty state and hostile Unicode labels stay inert",
+      "observed": {
+        "search": {
+          "results": "1 matching history.",
+          "result": "<svg onload=alert(1)> / café 界 / <img src=x onerror=alert(2)> / 雪 — <script>alert(3)</script> · operator declaration only",
+          "cards": [
+            "hostile-labels"
+          ],
+          "injectedElements": 0
+        },
+        "selection": {
+          "page": "Runs",
+          "project": "<svg onload=alert(1)> / café 界",
+          "source": "<script>alert(3)</script>",
+          "history": "unicode"
+        },
+        "empty": {
+          "empty": true,
+          "results": "0 matching histories.",
+          "visibleCards": 0
+        }
+      }
+    },
+    {
+      "case": "Missing saved identity stays missing; project change requires explicit history selection",
+      "observed": {
+        "missing": {
+          "status": "Selected repository/history removed/gone is missing. No replacement history was selected. Choose an available history to continue.",
+          "reportsHidden": true,
+          "project": "removed",
+          "history": "gone"
+        },
+        "historyAfterProjectChoice": "",
+        "recovered": "Retained compile failure"
+      }
+    },
+    {
+      "case": "Actual 390px mobile menu, real Rats layout and keyboard-help dialog",
+      "observed": {
+        "width": 390,
+        "scrollWidth": 390,
+        "page": "Projects",
+        "menu": "false",
+        "ratsWidth": 324,
+        "helpOpened": true,
+        "helpClosed": true
+      }
+    },
+    {
+      "case": "Actual JavaScript-disabled artifact stays readable offline",
+      "observed": {
+        "width": 390,
+        "scrollWidth": 390,
+        "navigation": 3,
+        "visibleFrames": 3,
+        "visibleControls": 0,
+        "childReadable": true
+      }
+    },
+    {
+      "case": "Unavailable WASM is visible; native fallback opens real admitted history",
+      "observed": {
+        "status": "Repository/history index initialization failed: Cannot read properties of undefined (reading 'instantiate'). HTML navigation remains available.",
+        "nav": true,
+        "opened": "Runs",
+        "report": "Selected run: kiln-aspen-run-3f95c0e929deb2ea5ed71d91a843f911877e898c429c57b78aa6c74cbcbc6316."
+      }
+    },
+    {
+      "case": "Initial 320px project action overflow reproduction (fixed and re-exercised below)",
+      "observed": [
+        {
+          "page": "Projects",
+          "width": 320,
+          "scrollWidth": 324
+        },
+        {
+          "page": "Runs",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Activity",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Evidence",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Settings",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Overview",
+          "width": 320,
+          "scrollWidth": 320
+        }
+      ]
+    },
+    {
+      "case": "320px Projects overflow regression fixed at source",
+      "observed": {
+        "page": "Projects",
+        "width": 320,
+        "scrollWidth": 320
+      }
+    },
+    {
+      "case": "Final artifact all routes fit 320px after project action fix",
+      "observed": [
+        {
+          "page": "Runs",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Activity",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Evidence",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Settings",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Overview",
+          "width": 320,
+          "scrollWidth": 320
+        },
+        {
+          "page": "Projects",
+          "width": 320,
+          "scrollWidth": 320
+        }
+      ]
+    },
+    {
+      "case": "Clean raw Chromium page: actual WASM selection/filter editing and origin/message boundaries",
+      "observed": {
+        "errors": [],
+        "external": [],
+        "history": "b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac",
+        "boundary": {
+          "parentDomBlocked": true,
+          "embedded": "true"
+        },
+        "spoofRejected": true
+      }
+    },
+    {
+      "case": "Actual standalone journal report keeps original console, filters and theme",
+      "observed": {
+        "filteredCleared": true,
+        "sidebarVisible": true,
+        "activitiesVisible": true,
+        "evidenceVisible": true,
+        "theme": "light",
+        "embedded": false
+      }
+    },
+    {
+      "case": "Final artifact no-JavaScript fallback reread after final CSS",
+      "observed": {
+        "width": 390,
+        "scrollWidth": 390,
+        "links": 3,
+        "visibleFrames": 3,
+        "visibleControls": 0
+      }
+    }
+  ],
+  "negative_then_positive": {
+    "resize": "Initial summary content height 218px was below the parent’s 320px admission bound, leaving the default 850px viewport. Child reports now clamp height messages to named 320–20000px bounds; real overview iframe observed 320px.",
+    "project_cards": "At 320px, project action arrow spans extended to 323.64px. Nonshrinking actions and a flexing min-width:0 title fix the card layout; final all six routes observed scrollWidth=320."
+  },
+  "screenshots": [
+    "desktop-overview.png",
+    "desktop-runs.png",
+    "mobile-projects.png"
+  ],
+  "diagnostic_limit": "The long-lived managed automation tab reported cross-origin named Function SecurityErrors after frame inspection, also noted in prior Rats evidence. A fresh raw Chromium page exercised real WASM selection, filter editing, sandbox blocking and spoof rejection with zero page errors and zero external requests. The diagnostic cause is not proven; sandbox permissions were not relaxed.",
+  "non_claims": [
+    "No browser ran on Aspen3; local bytes identical to delivered preview were exercised.",
+    "No arbitrary journal, all browser versions, hosted accounts, source freshness, CI success or release eligibility is claimed.",
+    "Standalone journal rendering and both CLI entry points remain supported; product navigation belongs to the catalog surface."
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.dashboard.live.partial-execution.v1",
+  "date": "2026-10-26",
+  "root": "/var/tmp/kiln-dashboard-ci-20261026b",
+  "source": {"provider": "radicle", "repository": "rad:z4MDPdPbD3PbQeN8E8wbPnZDBQPoj", "revision": "fa8c1f09fe59e28557459e959a6827d2d42876fd"},
+  "candidate": "311b2d602ea5a7a307cc86776fcd039223f37fbda2ddc573d1434512cd9c1e53",
+  "observed_outcome": "Success",
+  "observations": ["The actual dashboard first showed Pending for this new candidate", "After real broker/controller/worker completion, Chromium displayed Success with the exact same revision and candidate", "The canonical outcome and local written status passed the maintained runner checks before remote status-reader acquisition failed"],
+  "delivered_report_blake3": "8fc2c2649918950459fb16e697dcc6498579cb138094b21fbb4aa8d3080b8a1b",
+  "local_remote_report_match": true,
+  "incomplete_phase": "Independent remote status reconciliation",
+  "missing_prerequisite": "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-radicle-ci was absent on aspen1",
+  "correction": "nix copy --to ssh-ng://aspen1 /nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0 completed; remote executable existence check passed",
+  "owned_root_release": {"build_output_roots_released": true, "source_root_released": true},
+  "not_executed": ["genuine negative self-CI case", "unavailable-provider case"],
+  "non_claim": "This partial exercise alone does not satisfy the complete fresh positive/negative acceptance criterion"
+}

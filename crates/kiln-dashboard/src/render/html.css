@@ -258,3 +258,37 @@ dialog .note { font-size: .75rem; }
   .facts { grid-template-columns: minmax(0, 1fr); gap: .1rem; }
   .facts dd { margin-bottom: .5rem; }
 }
+
+/* r[impl kiln.dashboard.product.isolation] */
+:root[data-embedded="true"] .app-shell { display: block; min-height: 0; }
+:root[data-embedded="true"] .sidebar,
+:root[data-embedded="true"] .topbar,
+:root[data-embedded="true"] .page-heading,
+:root[data-embedded="true"] .page-footer,
+:root[data-embedded="true"] .skip-link { display: none; }
+:root[data-embedded="true"] main { max-width: none; margin: 0; padding: 0; }
+:root[data-embedded="true"] body { background: transparent; }
+:root[data-embedded="true"] .report-context { padding: .2rem .1rem 1rem; }
+:root[data-embedded="true"] #events { margin-top: 0; }
+:root[data-embedded="true"][data-page="overview"] #run-workspace,
+:root[data-embedded="true"][data-page="overview"] #events,
+:root[data-embedded="true"][data-page="overview"] #evidence,
+:root[data-embedded="true"][data-page="runs"] .overview,
+:root[data-embedded="true"][data-page="runs"] #events,
+:root[data-embedded="true"][data-page="runs"] #evidence,
+:root[data-embedded="true"][data-page="activity"] .overview,
+:root[data-embedded="true"][data-page="activity"] #run-workspace,
+:root[data-embedded="true"][data-page="activity"] #evidence,
+:root[data-embedded="true"][data-page="evidence"] .overview,
+:root[data-embedded="true"][data-page="evidence"] #run-workspace,
+:root[data-embedded="true"][data-page="evidence"] #events { display: none; }
+:root[data-density="compact"] section { padding: .9rem; margin-bottom: .85rem; }
+:root[data-density="compact"] .overview { padding: 0; }
+:root[data-density="compact"] .workspace { gap: .85rem; }
+:root[data-density="compact"] #runs-table td,
+:root[data-density="compact"] th,
+:root[data-density="compact"] td { padding-top: .5rem; padding-bottom: .5rem; }
+:root[data-density="compact"] .controls { padding: .6rem 0; gap: .4rem; }
+:root[data-density="compact"] .stat-card { padding: .65rem .85rem; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+

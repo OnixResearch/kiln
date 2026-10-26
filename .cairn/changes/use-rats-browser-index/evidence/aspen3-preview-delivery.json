@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.dashboard-rats-index.aspen3-preview-delivery.v1",
+  "scope": "One finite delivery of the verified Rats browser UI alongside the existing Aspen3 dashboard; no live-dashboard replacement, publisher reconfiguration or service activation.",
+  "host": "brittonr@aspen3",
+  "destination": "/home/brittonr/.local/share/kiln/dashboard/rats-preview.html",
+  "local_report": "/var/tmp/kiln-rats-preview/aspen3.html",
+  "catalog": "/home/brittonr/.local/state/kiln/dashboard/catalog.json",
+  "profile": "/home/brittonr/.config/kiln/dashboard-profile.json",
+  "renderer": "/home/brittonr/.cargo-target/debug/kiln-dashboard",
+  "configuration": "/var/tmp/kiln-rats-preview/aspen3-publication.ncl",
+  "publication_command": ["python3", "scripts/dashboard-publish.py", "--config", "/var/tmp/kiln-rats-preview/aspen3-publication.json"],
+  "publication_exit_code": 0,
+  "publication_stdout": "dashboard report delivered; no CI freshness or success claim\n",
+  "preview_local_and_remote_blake3": "4e8724a58d1155c679bac24e14597b743c22acd590b57b9dfe8bb2032bb8e66d",
+  "existing_index": "/home/brittonr/.local/share/kiln/dashboard/index.html",
+  "existing_index_before_and_after_blake3": "4d07c85f3481b1488a9573cd653e565ebd9b17b2bcad6bda05bcf3ae744d9916",
+  "browser_check": {
+    "scope": "Local byte-identical copy of the delivered HTML in managed Chromium; not a browser session running on Aspen3.",
+    "offline": true,
+    "ratzilla_table_mounted": true,
+    "retained_histories": 3,
+    "keyboard_end_enter_selected_history": "b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac",
+    "external_network_requests": 0
+  },
+  "non_claims": [
+    "The preview renders existing canonical journals; it does not rerun CI or establish newest-source freshness.",
+    "No operator publication configuration, live dashboard bytes or background service was changed by this delivery.",
+    "This is a separate local-file preview on Aspen3, not an HTTP service, production deployment, source publication, specification acceptance or release approval."
+  ]
+}

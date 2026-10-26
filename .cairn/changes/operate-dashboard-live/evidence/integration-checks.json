@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.dashboard.live.integration-checks.v1",
+  "date": "2026-10-26",
+  "scope": "Integrated implementation before operated evidence-only closeout",
+  "checks": [
+    {"command": "KILN_DASHBOARD_EXECUTABLE=/nix/store/za4yykfqdjfsa7flpa1mzcfykczkds31-kiln-dashboard-operated-renderer TMPDIR=/var/tmp python3 -m unittest discover -s scripts -p test_dashboard_refresh.py", "result": "pass", "tests": 17},
+    {"command": "TMPDIR=/var/tmp python3 -m unittest discover -s scripts -p test_dashboard_publish.py", "result": "pass", "tests": 9},
+    {"command": "nix build path:.#dashboard-tools", "result": "pass", "output": "/nix/store/7z1j5bxazdb6g81xld61f6kfjidh3fmz-kiln-dashboard-tools-0.1.0"},
+    {"command": "nix build path:.#checks.x86_64-linux.nickel", "result": "pass", "output": "/nix/store/kyahwxx0n59ag6wh83qapmbj1i06cdbl-kiln-nickel"},
+    {"command": "systemd-analyze --user verify config/systemd/kiln-dashboard-refresh.service config/systemd/kiln-dashboard-refresh.timer", "result": "pass_after_installation", "unrelated_warning": "Pre-existing pueue-gc.timer is executable; no unrelated unit was edited"},
+    {"command": "nix develop path:. -c cargo fmt --check", "result": "pass"},
+    {"command": "nix develop path:. -c cargo test --locked --workspace", "result": "pass"},
+    {"command": "nix develop path:. -c cargo clippy --locked --workspace --all-targets -- -D warnings", "result": "pass"},
+    {"command": "nix build path:.#checks.x86_64-linux.octet --no-link -L", "result": "pass"},
+    {"command": "nix flake check path:. --no-write-lock-file --builders '' --max-jobs 2 -L", "result": "all checks passed", "system": "x86_64-linux", "omitted_incompatible_system": "aarch64-linux", "includes": ["real-renderer publication tests: 9 publisher and 17 collector", "Nickel positive and negative fixtures", "Bombadil CLI, rejection and browser rails"]},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "result": "valid"},
+    {"command": "cairn gate tasks operate-dashboard-live --root . --policy cairn-policy/generated/cairn-policy.json", "result": "PASS"}
+  ],
+  "resolved_initial_failures": [
+    "The initially selected shared-target renderer predates --catalog; selected and Nix-store-retained the actually current renderer instead, then all 17 collector tests passed",
+    "Formatted newly added Nickel configuration/fixtures, then the full Nickel check passed",
+    "Corrected the operated profile export to retain its required top-level profile envelope, then actual remote publication passed"
+  ],
+  "environment_observations": [
+    "The /tmp dataset hit quota. Preserved the task renderer in the Nix store and removed only this task's disposable /tmp/kiln-dashboard-target and /tmp/kiln-dashboard-nix-cache; verification scratch uses /var/tmp",
+    "The existing kache index reported disk I/O errors and disabled caching; workspace tests and clippy still completed successfully"
+  ],
+  "non_claims": ["not aarch64 qualification", "not a fresh CI result", "not release eligibility; separate Patchgate/readiness holds are not waived"]
+}

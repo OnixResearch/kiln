@@ -1,0 +1,15 @@
+# r[impl kiln.dashboard.live.supervision]
+# r[impl kiln.dashboard.live.supervision.scenario.cadence]
+[Unit]
+Description=Observe and publish Kiln dashboard histories every 30 seconds
+
+[Timer]
+Unit=kiln-dashboard-refresh.service
+OnActiveSec=1s
+OnUnitInactiveSec=30s
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+
+[Install]
+WantedBy=timers.target

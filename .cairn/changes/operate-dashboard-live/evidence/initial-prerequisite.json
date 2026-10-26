@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.dashboard.live.prerequisite-observation.v1",
+  "date": "2026-10-26",
+  "scope": "Initial producer-local observer activation before the dedicated fresh-CI root exists; not a fresh CI result",
+  "timer": {
+    "unit": "kiln-dashboard-refresh.timer",
+    "active_state": "active",
+    "sub_state": "waiting",
+    "result": "success"
+  },
+  "service": {
+    "unit": "kiln-dashboard-refresh.service",
+    "active_state": "failed",
+    "result": "exit-code",
+    "exec_main_status": 1,
+    "diagnostic": "dashboard refresh failed: file/process operation failed"
+  },
+  "missing_prerequisite": "/var/tmp/kiln-dashboard-ci-20261026/candidates",
+  "missing_prerequisite_basis": "Explicit collision check found no dedicated root before runtime provisioning; collector observes existing roots and never creates CI state",
+  "remote_destination": "brittonr@aspen3:/home/brittonr/.local/share/kiln/dashboard/index.html",
+  "remote_blake3_before": "df2321c93a250781cde87adac1a4a8db3d4deb434e56df94c72618037f26ca0e",
+  "remote_blake3_after": "df2321c93a250781cde87adac1a4a8db3d4deb434e56df94c72618037f26ca0e",
+  "remote_last_good_preserved": true,
+  "authority": "Only the new dashboard timer/service were enabled or started; unrelated user units and canonical Radicle governance were not changed"
+}

@@ -1,0 +1,171 @@
+{
+  "schema": "kiln.dashboard-rats-index.verification.v1",
+  "scope": "Actual pinned Subwayrat DataTable through Ratzilla DomBackend, embedded in independently admitted read-only catalog HTML.",
+  "outcome": "Implemented and exercised locally; active Cairn delta is not accepted or archived.",
+  "consumer": "Kiln repository/history catalog and its existing single-file publication transport",
+  "owners": {
+    "integration": "Kiln dashboard maintainers",
+    "widget": "Subwayrat maintainers",
+    "freshness_and_delivery": "Operator"
+  },
+  "tools": [
+    {
+      "command": [
+        "rustc",
+        "--version"
+      ],
+      "version": "rustc 1.88.0 (6b00bc388 2025-06-23)"
+    },
+    {
+      "command": [
+        "rustc",
+        "--version"
+      ],
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+    },
+    {
+      "command": [
+        "wasm-bindgen",
+        "--version"
+      ],
+      "version": "wasm-bindgen 0.2.121"
+    },
+    {
+      "command": [
+        "esbuild",
+        "--version"
+      ],
+      "version": "0.27.2"
+    }
+  ],
+  "source": {
+    "subwayrat_revision": "2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901",
+    "selected_archive_blake3": "2e6588dd7b182c5a689c5e7be42f67fb09a5aa806449709f05066f6004e5f8d7",
+    "verification": "scripts/import-pinned-source.sh subwayrat ../rats/subwayrat: exit 0; existing selected import verified byte-for-byte",
+    "inputs_and_assets": "checks.json / provenance",
+    "licenses": "Original notices embedded; archive omissions use exact revision MIT texts under web/dashboard-index/notices. No ratcore or sibling runtime dependency."
+  },
+  "checks": {
+    "native_workspace": {
+      "exit_code": 0,
+      "passed": 590
+    },
+    "focused_dashboard": {
+      "exit_code": 0,
+      "passed": 33
+    },
+    "native_clippy": {
+      "exit_code": 0,
+      "scope": "--locked --workspace --all-targets -- -D warnings"
+    },
+    "sandboxed_assets": {
+      "exit_code": 0,
+      "output": "/nix/store/jg4i1p21avvg9483i7r4p255nic4kgjb-kiln-dashboard-index-assets-0.1.0",
+      "proof": "Fresh JS/WASM/notices match committed bytes; 3 pure model tests pass; real wasm32 Clippy and owned-source rustfmt pass."
+    },
+    "flake_evaluation": {
+      "exit_code": 0,
+      "build": false,
+      "scope": "x86_64-linux evaluation; incompatible aarch64-linux omitted"
+    },
+    "format": {
+      "cargo_fmt": 0,
+      "nixfmt": 0
+    },
+    "full_flake_build": "Not run; only the targeted browser asset derivation was built."
+  },
+  "browser": {
+    "engine": "Managed Chromium 155",
+    "delivery": "file:// with browser offline=true",
+    "canonical_input": "config/dashboard-kiln.ncl: seven retained GitHub/Radicle histories; not fresh CI executions",
+    "actual_widget_mount": true,
+    "keyboard": "ArrowDown chose GitHub fail; Enter opened exactly kiln-github/fail; Home/End and the 128th row exercised.",
+    "pointer": "Row 4 plus Open chosen history opened exactly kiln-radicle/success. Scrolled row 127 activated unicode/h-127.",
+    "saved_state": "Repository/history restored after reload; no-such-run search filter for kiln-radicle/success survived switching histories and reload.",
+    "missing": {
+      "status": "Selected repository/history kiln-github/removed is missing. No replacement history was selected. Choose an available history to continue.",
+      "index": "Current selection is unavailable: kiln-github / removed. No replacement was opened. Choose an available row explicitly to open another report.",
+      "visible": 0,
+      "disabled": true
+    },
+    "hostile_input": {
+      "histories": 128,
+      "project_label": "512 × U+00E9, exactly 1024 UTF-8 bytes",
+      "first_history_label": "<img src=\"https://invalid.example/hostile\" onerror=\"globalThis.pwned=1\"> 🐀 </script><script>globalThis.pwned=2</script>",
+      "observed": {
+        "injected_elements": 0,
+        "pwned": null,
+        "full_unicode_retained": true,
+        "last_visible_row": "127"
+      }
+    },
+    "narrow": {
+      "width": 390,
+      "scroll_width": 390
+    },
+    "without_wasm": {
+      "status": "Repository/history index initialization failed: Cannot read properties of undefined (reading 'instantiate'). HTML navigation remains available.",
+      "open": true,
+      "selected": 1,
+      "table": false
+    },
+    "without_javascript": {
+      "reports": 7,
+      "links": 7,
+      "open": true,
+      "report": {
+        "title": "Run overview",
+        "body": true,
+        "controls": true
+      }
+    },
+    "external_network_requests": 0,
+    "clean_page_errors": [],
+    "visuals": [
+      "desktop.png",
+      "narrow.png"
+    ],
+    "diagnostic_limit": "An earlier long-lived automation tab reported cross-origin named Function errors after frame inspection. A clean final page with an error listener, keyboard activation and filter editing recorded none; no arbitrary automation or embedding claim."
+  },
+  "artifact_bytes": {
+    "javascript": 11949,
+    "wasm_base64": 670164,
+    "dependency_notices": 819537,
+    "seven_history_html": 1864874
+  },
+  "negative_then_positive": {
+    "loader": "Initial minified local function lookup failed visibly. Stable window.kilnRatsLoader.load_index now initializes the real offline widget.",
+    "synchronization": "Initial no-std Ratatui build emitted unresolved critical-section env imports. Enabling Ratatui std removed them; real browser path passed.",
+    "drift": {
+      "observed_exit": 1,
+      "diagnostic": "Dashboard index asset drift: rats-index.wasm.b64",
+      "resolution": "Disable cargo-auditable only for the browser asset derivation; final sandboxed reconstruction matches the explicit browser shell bytes."
+    },
+    "local_build_environment": "Initial native linking inherited Nix purity enforcement from print-dev-env; local commands use NIX_ENFORCE_PURITY=0. Remote builder hook failed with File name too long; successful asset checks ran locally with --builders empty. Kache cache I/O warnings did not prevent successful compilation."
+  },
+  "lifecycle": {
+    "receipts": "lifecycle-checks.json",
+    "validation": "PASS",
+    "task_gate": "PASS",
+    "accepted_missing_ids": [],
+    "dangling": [
+      "kiln.dashboard.rats.provenance",
+      "kiln.dashboard.rats.provenance.scenario.drift",
+      "kiln.patchgate.conformance",
+      "kiln.patchgate.execution",
+      "kiln.patchgate.nonclaims",
+      "kiln.patchgate.profile",
+      "kiln.patchgate.request",
+      "kiln.patchgate.result"
+    ],
+    "release_ready": false,
+    "authority": "No specification acceptance, archive, publication, service activation, remote deployment or Patchgate hold waiver."
+  },
+  "repeatability": "See docs/observation-dashboard.md#rats-browser-index. Regenerate in the pinned dashboard-index dev shell, build the sandboxed asset check, rebuild native kiln-dashboard, render the declared catalog, then open the resulting file offline.",
+  "nonclaims": [
+    "No CI or provider effects were dispatched by these renders.",
+    "Retained observations are not current branch-tip success or source truth.",
+    "The synthetic 128-history/hostile-label input is UI rehearsal, not real CI.",
+    "No arbitrary Rats widget compatibility, browser security boundary, aarch64 runtime, full-flake build, deployment or release eligibility is established."
+  ]
+}

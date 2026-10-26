@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.dashboard.live.storage-failure.v1",
+  "date": "2026-10-26",
+  "root": "/var/tmp/kiln-dashboard-ci-20261026c",
+  "source": {"provider": "radicle", "repository": "rad:z4ALD542GpT1xUfNQsqG6jijbWcHy", "revision": "1d32cbbd654e326750369719d812123d23328a79"},
+  "completed": "The positive case completed canonical outcome, independent remote status, root release and publisher restart checks and wrote success-journal.json",
+  "failed_phase": "Next case preparation and automatic broker ingress",
+  "negative_source_not_qualified": "fdec20265f1065382fde465cea92db00fdb8839f",
+  "observed_errors": ["native-broker exited before readiness", "OSError: [Errno 28] No space left on device while writing teardown receipts"],
+  "storage_observations": {
+    "root_available_bytes_at_failure": 0,
+    "operator_nix_cache_observed_du": "5.4G",
+    "previous_owned_run_observed_du": "5.6G",
+    "failed_owned_run_observed_du": "6.4G",
+    "available_after_removing_only_retired_owned_candidate_cache_copies": "15G"
+  },
+  "correction": "Retire each completed case's disposable eval-home/.cache/nix after all existing checks, before starting the next case; preserve canonical evidence and the operator cache",
+  "teardown_observations": {"remote_root_absent": true, "remote_observer_retirement_errors": [], "owned_local_node_key_files_and_signer_env_absent": true, "explicit_project_release": {"build_output_roots_released": true, "source_root_released": true}},
+  "retirement_receipt_limit": "Some original teardown JSON writes failed at disk exhaustion; filesystem and explicit release observations above are separate post-failure evidence, not fabricated original receipts",
+  "non_claim": "The incomplete negative and unavailable cases are not counted as passing"
+}

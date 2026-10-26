@@ -1,0 +1,366 @@
+{
+  "pre_implementation_gates": [
+    {
+      "argv": [
+        "cairn",
+        "gate",
+        "proposal",
+        "build-dashboard-product-interface",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "change": "build-dashboard-product-interface",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "56b6339008c1124ab6cf11cbffe190da7959a6a4a328729f5f73382c5933545e",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+        "policy_selection": {
+          "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": null,
+        "profile_identity_hash": "b7bb1bf414c0684fb824ee9982683f32d33e258bb8538aee246cfa3dad76d257",
+        "receipt_hash": "adf13e59e41b09704634c42f603155369be4565418bd5d8a41970e029f0abf28",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "proposal",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "argv": [
+        "cairn",
+        "gate",
+        "design",
+        "build-dashboard-product-interface",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "change": "build-dashboard-product-interface",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "b6982333f108d319e6905ca9915e174147334eec3d369dfaa69d1901d842f463",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+        "policy_selection": {
+          "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": null,
+        "profile_identity_hash": "b7bb1bf414c0684fb824ee9982683f32d33e258bb8538aee246cfa3dad76d257",
+        "receipt_hash": "789e66ad5ae8654cfec023070ff72b72302f7ec208514fb0da15768dfeb1a733",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "design",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 11,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/specs/dashboard-product-interface/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 5,
+            "substantive_lines": 20,
+            "substantive_requirement_blocks": 5,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "argv": [
+        "cairn",
+        "gate",
+        "tasks",
+        "build-dashboard-product-interface",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "change": "build-dashboard-product-interface",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "25ff2a9a7b0c74cc033259a396216fcee67eee7dbc01f0974ce8c9854589c654",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+        "policy_selection": {
+          "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": {
+          "declarations_present": false,
+          "probes": []
+        },
+        "profile_identity_hash": "b7bb1bf414c0684fb824ee9982683f32d33e258bb8538aee246cfa3dad76d257",
+        "receipt_hash": "775bd9ee38394e1b441ba5e9ef8955f96e798688049e573820a04d15c91e7e92",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "tasks",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 11,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/specs/dashboard-product-interface/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 5,
+            "substantive_lines": 20,
+            "substantive_requirement_blocks": 5,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 5,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/build-dashboard-product-interface/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 5,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 5,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 5
+          }
+        ],
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        },
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    }
+  ],
+  "native_checks": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "kiln-dashboard"
+      ],
+      "exit_code": 0,
+      "passed": 33
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "exit_code": 0,
+      "passed": 590
+    },
+    {
+      "argv": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "passed": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 1,
+      "passed": 0,
+      "stderr": "`cargo metadata` exited with an error: error: failed to load manifest for workspace member `/home/brittonr/git/OnixResearch/kiln/vendor/cairn/crates/cairn-core`\nreferenced by workspace at `/home/brittonr/git/OnixResearch/kiln/vendor/cairn/Cargo.toml`\n\nCaused by:\n  failed to read `/home/brittonr/git/OnixResearch/kiln/vendor/cairn/crates/cairn-core/Cargo.toml`\n\nCaused by:\n  No such file or directory (os error 2)\n\nThis utility formats all bin and lib files of the current crate using rustfmt.\n\nUsage: cargo fmt [OPTIONS] [-- <rustfmt_options>...]\n\nArguments:\n  [rustfmt_options]...  Options passed to rustfmt\n\nOptions:\n  -q, --quiet\n          No output printed to stdout\n  -v, --verbose\n          Use verbose output\n      --version\n          Print rustfmt version and exit\n  -p, --package <package>...\n          Specify package to format\n      --manifest-path <manifest-path>\n          Specify path to Cargo.toml\n      --message-format <message-format>\n          Specify message-format: short|json|human\n      --all\n          Format all packages, and also their local path-based dependencies\n      --check\n          Run rustfmt in check mode\n  -h, --help\n          Print help\n\n"
+    }
+  ],
+  "final_focused": {
+    "argv": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "kiln-dashboard"
+    ],
+    "exit_code": 0,
+    "passed": 33
+  },
+  "formatting_note": "cargo fmt --all traverses an incomplete pre-existing vendored Cairn workspace. Scoped cargo fmt -p kiln-dashboard -p kiln-cli -- --check passed; unrelated vendor files unchanged.",
+  "non_claims": [
+    "Native tests do not exercise browser behavior; separate actual-artifact browser evidence is retained.",
+    "Kache reported cache-database I/O warnings and compiled without cache; native builds/checks succeeded."
+  ]
+}

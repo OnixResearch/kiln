@@ -1,0 +1,31 @@
+{
+  "schema": "kiln.dashboard-product-interface.aspen3-delivery.v1",
+  "host": "brittonr@aspen3",
+  "destination": "/home/brittonr/.local/share/kiln/dashboard/product-preview.html",
+  "local_report": "/var/tmp/kiln-product-preview/catalog.html",
+  "catalog": "/home/brittonr/.local/state/kiln/dashboard/catalog.json",
+  "profile": "/home/brittonr/.config/kiln/dashboard-profile.json",
+  "typed_configuration": "/var/tmp/kiln-product-preview/publication.ncl",
+  "publication": {
+    "argv": [
+      "python3",
+      "scripts/dashboard-publish.py",
+      "--config",
+      "/var/tmp/kiln-product-preview/publication.json"
+    ],
+    "exit_code": 0,
+    "stdout": "dashboard report delivered; no CI freshness or success claim\n",
+    "stderr": ""
+  },
+  "local_blake3": "d8e575c16818d7e7fec0b62f7cef6f70c8387257b4adcc21179aa4877db70e26",
+  "remote_blake3_output": "d8e575c16818d7e7fec0b62f7cef6f70c8387257b4adcc21179aa4877db70e26  /home/brittonr/.local/share/kiln/dashboard/product-preview.html\n4d07c85f3481b1488a9573cd653e565ebd9b17b2bcad6bda05bcf3ae744d9916  /home/brittonr/.local/share/kiln/dashboard/index.html\n4e8724a58d1155c679bac24e14597b743c22acd590b57b9dfe8bb2032bb8e66d  /home/brittonr/.local/share/kiln/dashboard/rats-preview.html\n",
+  "prior_remote_blake3_output": "4d07c85f3481b1488a9573cd653e565ebd9b17b2bcad6bda05bcf3ae744d9916  /home/brittonr/.local/share/kiln/dashboard/index.html\n4e8724a58d1155c679bac24e14597b743c22acd590b57b9dfe8bb2032bb8e66d  /home/brittonr/.local/share/kiln/dashboard/rats-preview.html\n",
+  "preview_byte_equal": true,
+  "live_index_and_prior_rats_preview_unchanged": true,
+  "both_cli_entry_points": "d8e575c16818d7e7fec0b62f7cef6f70c8387257b4adcc21179aa4877db70e26  /var/tmp/kiln-product-preview/catalog.html\nd8e575c16818d7e7fec0b62f7cef6f70c8387257b4adcc21179aa4877db70e26  /var/tmp/kiln-product-preview/operator-cli.html\n",
+  "source_blake3": "5d1344ad3515e37591c7052cba85211960c89df0dfd0cc1cd1e234e28ec9bc42  crates/kiln-dashboard/src/catalog.rs\n6d4e7e06d60f4924e7c89bcff3df21090b1b78474d6364808643b99a26a79a8f  crates/kiln-dashboard/src/shell.rs\n0127201fc841e022ed50e428e765d64b2b8da5b5b150121c146f521b19c25a92  crates/kiln-dashboard/src/render/catalog.css\n48b8f746a1b19b143266c68ea99b5a2ec1bd8bfde2cb6135c515cf2af49f0092  crates/kiln-dashboard/src/render/catalog.js\n6b3fb984597a61fa47fc217c7521f69cc37ca934fabc56fc883b5fc8d5d41d59  crates/kiln-dashboard/src/render/html.css\n302d964da40b23eb6ded06f43ed1c58ded456c0baa9e3e991710e8667f681bc3  crates/kiln-dashboard/src/render/html.js\nbaaf7207b9d2839ed7651a6ebbe62c927801221bf78a7a3cd0e37a422848fe97  README.md\n0f10d4b22952e93fc009fa68d5f5123f570e4cd24edabeb765275397dbc4f027  docs/observation-dashboard.md\n",
+  "non_claims": [
+    "Finite separate preview delivery only; no publisher configuration, service activation, live index replacement, source publication, spec acceptance or release approval.",
+    "Rendering existing journals does not rerun CI or establish newest-source freshness."
+  ]
+}

@@ -23,6 +23,11 @@
     theme: "system"
   };
   let state;
+  let presentation;
+  let sizeObserver;
+  const minimumReportHeight = 320;
+  const maximumReportHeight = 20000;
+  const reportHeightPadding = 8;
 
   const compare = (left, right) => left < right ? -1 : left > right ? 1 : 0;
   const admittedValue = (control, value, fallback) =>
@@ -47,7 +52,7 @@
   }
 
   function render() {
-    document.documentElement.dataset.theme = state.theme;
+    document.documentElement.dataset.theme = presentation ? presentation.theme : state.theme;
     byId("theme-toggle").textContent = `Theme: ${state.theme}`;
     search.value = state.q;
     outcome.value = state.outcome;
@@ -200,16 +205,40 @@
     }
   });
   window.addEventListener("popstate", restore);
-  // Opaque-origin sandboxed catalog children exchange only inert fragment state.
-  // Never read parent DOM, navigate the parent, or trust unrelated windows.
+  // r[impl kiln.dashboard.product.isolation]
+  // r[impl kiln.dashboard.product.isolation.scenario.route]
+  // Opaque-origin children accept inert state/presentation only from their parent.
+  function reportSize() {
+    if (!presentation) return;
+    const contentHeight = Math.ceil(document.querySelector(".app-shell").getBoundingClientRect().height) + reportHeightPadding;
+    const height = Math.min(maximumReportHeight, Math.max(minimumReportHeight, contentHeight));
+    window.parent.postMessage({ type: "kiln-dashboard-resize", height }, "*");
+  }
   window.addEventListener("message", (event) => {
     if (window.parent === window || event.source !== window.parent || !event.data
-      || event.data.type !== "kiln-dashboard-restore" || typeof event.data.fragment !== "string") return;
-    const fragment = event.data.fragment;
-    if (fragment && !fragment.startsWith("#")) return;
-    if (location.hash !== fragment) location.hash = fragment;
-    restore();
+      || typeof event.data !== "object" || Array.isArray(event.data)) return;
+    const message = event.data;
+    if (message.type === "kiln-dashboard-restore") {
+      if (typeof message.fragment !== "string" || (message.fragment && !message.fragment.startsWith("#"))) return;
+      if (location.hash !== message.fragment) location.hash = message.fragment;
+      restore();
+    } else if (message.type === "kiln-dashboard-present") {
+      if (!["overview", "runs", "activity", "evidence"].includes(message.page)
+        || !["system", "light", "dark"].includes(message.theme)
+        || !["comfortable", "compact"].includes(message.density)) return;
+      presentation = { page: message.page, theme: message.theme, density: message.density };
+      document.documentElement.dataset.embedded = "true";
+      document.documentElement.dataset.page = presentation.page;
+      document.documentElement.dataset.density = presentation.density;
+      render();
+      if (!sizeObserver && typeof ResizeObserver === "function") {
+        sizeObserver = new ResizeObserver(reportSize);
+        sizeObserver.observe(document.querySelector(".app-shell"));
+      }
+    }
+    requestAnimationFrame(reportSize);
   });
+  window.addEventListener("resize", reportSize);
   restore();
   document.documentElement.classList.add("js-enabled");
   if (window.parent !== window) {

@@ -1,0 +1,8 @@
+{
+  "errors": [],
+  "host": "aspen1",
+  "node_stopped": true,
+  "root": "/var/tmp/kiln-dashboard-ci-20261026d",
+  "root_removed": true,
+  "schema": "kiln.radicle-ci.distinct-host-retirement.v1"
+}

@@ -1,0 +1,110 @@
+{
+  "schema": "kiln.dashboard.live.native-evidence-manifest.v1",
+  "algorithm": "blake3",
+  "files": [
+    {
+      "blake3": "3a6357d74724ce376df7ebdca19cfe4b13023699887d82a67a42e9516c3fa4e5",
+      "path": "native/verification.json"
+    },
+    {
+      "blake3": "78d4af7361ead603529d62b14dd2c8f6f2e1008d6ecb6c2f887e8f7c9b19e8f5",
+      "path": "native/cohort.json"
+    },
+    {
+      "blake3": "6f180cc6db08cf226d4bb97a0f10d84ed5353ded5564d2774702cacc47d19d9a",
+      "path": "native/retirement.json"
+    },
+    {
+      "blake3": "db40aff6cfd49b9df06ba55e0cde1cc4e1f0cab6e04900d91da07d334841ed8f",
+      "path": "native/remote-retirement.json"
+    },
+    {
+      "blake3": "39ab12a9e8ba98264478a0aeca1ce18c3c9ded9cc81e59917a2ac617b016394c",
+      "path": "native/remote-observer-retirement.json"
+    },
+    {
+      "blake3": "51ef8f976db27cf374c6c37597048e1d2ee8a7372e2cb4bd03530018b06d8e0b",
+      "path": "native/teardown-releases.json"
+    },
+    {
+      "blake3": "82cae2d249559a1963d70282ea3f0642d154cad85b892992a164bc1191be82a9",
+      "path": "native/success-source.json"
+    },
+    {
+      "blake3": "693538cdaf0f603071228639ce339fe0fef783b802a60fe927ffdeb3936f3293",
+      "path": "native/failure-source.json"
+    },
+    {
+      "blake3": "ace36657cd4410bde6882b56172871ac84f4074f210a5b8e80d20044ec2602c8",
+      "path": "native/unavailable-source.json"
+    },
+    {
+      "blake3": "78b1130fc8ecacfc9c0f2c24de2f7914f92848c853a4f2e32b99a489636dedbf",
+      "path": "native/success-journal.json"
+    },
+    {
+      "blake3": "800985f76599767b1d7d29344a048bccf88b903686694bff498a042c40bdb555",
+      "path": "native/failure-journal.json"
+    },
+    {
+      "blake3": "f3f6ca1bfd72a4760fd0e3e766e264ba13236d7b8b45058cd9e38333e4bc6d69",
+      "path": "native/unavailable-journal.json"
+    },
+    {
+      "blake3": "a569545122065dff1ae0a53836245d8173d4af35162af6ad937bd36123c5a01f",
+      "path": "native/project.json"
+    },
+    {
+      "blake3": "48e411f967ef02c06e3a6f2fa597be237d53ea89221867fc6372586fb9073a4e",
+      "path": "native/controller.json"
+    },
+    {
+      "blake3": "acb86d3db12c00722b9673de6452f601ea4ac243401c6616afccd9f6a1d47029",
+      "path": "native/aspen.json"
+    },
+    {
+      "blake3": "f7a2ae8b13eee3674d786e7d2fa39e097ff893e1b129437f54d86c33f374d0c5",
+      "path": "native/status-profile.json"
+    },
+    {
+      "blake3": "b0efb816b6c6ada45e752829492d708fc8da4f548888128962d8db61913333bd",
+      "path": "native/radicle.json"
+    },
+    {
+      "blake3": "3a6cfd89f9e0bc6103b775eaf00d49af13821cd64f7a13d9591b15557209be55",
+      "path": "native/invocation.json"
+    },
+    {
+      "blake3": "b0ce6f0157e171902a773fcd3b0eefa1426a5cd98141367f83ab2f81180db140",
+      "path": "native/runtime-inputs.json"
+    },
+    {
+      "blake3": "faeada59b396237bc8f27cb4a2ced659a2d682abd31709eaf2bbbdc84262b312",
+      "path": "native/candidates/53680e37e7edeb38ca42afae967740c7b41f0d54e287663fb442d5bbe7043f51/ci-journal.json"
+    },
+    {
+      "blake3": "d3b222172a96e7be8fbe57548024b84efa9dfc19691d368848f3d15869cab76a",
+      "path": "native/candidates/2aaa7fe2c1eaa3c4869e1991be142a2ea3e1e8ac5deeefe998ed10bef7167c5f/ci-journal.json"
+    },
+    {
+      "blake3": "ffb9eb7d8086c67ec3cef597f22b767f6e1e9978d93ca2bbb88fcb169a23971b",
+      "path": "native/candidates/b02d967ff9b78e8dea01a21d006e7654d897ee06443033472fa3d71aa7e08bac/ci-journal.json"
+    },
+    {
+      "blake3": "ee8934439d66038f56b1af7edbb0812ca80490ea5bc0e65ce4ad925a35ad2263",
+      "path": "operated-config/profile.json"
+    },
+    {
+      "blake3": "cadfdd429dbd25bd532a4d10bdf7144c73c1487cc116a5f4e268e930ad0ed07e",
+      "path": "operated-config/publication.json"
+    },
+    {
+      "blake3": "229af856b3ee4e287d6b58c79302e11a4cdb2720655906e396ca9e523e659c0c",
+      "path": "operated-config/refresh.json"
+    },
+    {
+      "blake3": "310ae15246df30f8ccffe38983b698b67a2ec009597663adce4e4f8182603376",
+      "path": "operated-config/catalog.json"
+    }
+  ]
+}

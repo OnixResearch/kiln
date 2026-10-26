@@ -48,6 +48,8 @@ exclude = [
   "vendor/ucan",
   "runtime/kiln-aspen-host",
   "runtime/kiln-radicle-nix-provider",
+  "web/dashboard-index",
+  "vendor/subwayrat",
 ]
 resolver = "3"
 

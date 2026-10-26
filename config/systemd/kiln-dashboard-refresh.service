@@ -1,0 +1,15 @@
+# r[impl kiln.dashboard.live.supervision]
+# r[impl kiln.dashboard.live.supervision.scenario.cadence]
+# r[impl kiln.dashboard.live.recovery.scenario.restart]
+[Unit]
+Description=Collect and publish one read-only Kiln dashboard report
+PartOf=kiln-dashboard-refresh.timer
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/kiln-dashboard-refresh --config %h/.config/kiln/dashboard-refresh.json
+TimeoutStartSec=5min
+TimeoutStopSec=10s
+KillMode=control-group
+Restart=no
+UMask=0077

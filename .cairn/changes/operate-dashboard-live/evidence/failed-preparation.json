@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.dashboard.live.failed-execution.v1",
+  "date": "2026-10-26",
+  "root": "/var/tmp/kiln-dashboard-ci-20261026",
+  "phase": "distinct-host node preparation, before broker/controller execution",
+  "error": "Remote observer connection to the declared local CI address timed out after 120 seconds",
+  "cause": "Operator invocation mistakenly used 100.110.43.111; actual tailscale ip -4 reports 100.110.43.11",
+  "correction": "Use measured local address 100.110.43.11 with a distinct new owned execution root",
+  "fresh_ci_outcomes": [],
+  "retirement": {
+    "errors": [],
+    "private_credentials_retired": true,
+    "production_state_or_status_mutated": false,
+    "all_five_recorded_local_canary_processes_exited": true
+  },
+  "non_claim": "No successful or failing CI result was produced or substituted by this failed preparation"
+}

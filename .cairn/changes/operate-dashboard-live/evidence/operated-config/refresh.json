@@ -1,0 +1,11 @@
+{
+  "candidate_root": "/var/tmp/kiln-dashboard-ci-20261026d/candidates",
+  "catalog_output": "/home/brittonr/.local/state/kiln/dashboard/catalog.json",
+  "max_candidates": 128,
+  "max_histories": 32,
+  "max_journal_bytes": 1048576,
+  "project_id": "kiln-self-ci",
+  "project_label": "Kiln dedicated Radicle fork self-CI / fresh 2026-10-26",
+  "publication_config": "/home/brittonr/.config/kiln/dashboard-publication.json",
+  "schema_version": 1
+}

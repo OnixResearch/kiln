@@ -1,0 +1,177 @@
+{
+  "schema": "kiln.dashboard.live.spec-acceptance.v1",
+  "date": "2026-10-26",
+  "command": [
+    "cairn",
+    "sync",
+    "operate-dashboard-live",
+    "--root",
+    ".",
+    "--policy",
+    "cairn-policy/generated/cairn-policy.json",
+    "--execute"
+  ],
+  "receipt": {
+    "acceptance_ids": [],
+    "actions": [
+      {
+        "description": "merge delta spec into main specs: ./.cairn/changes/operate-dashboard-live/specs/dashboard-live-operation/spec.md",
+        "kind": "sync_delta_spec",
+        "path": "./.cairn/changes/operate-dashboard-live/specs/dashboard-live-operation/spec.md"
+      }
+    ],
+    "blocked": false,
+    "change": "operate-dashboard-live",
+    "cross_repo_dependencies": {
+      "blocked_count": 0,
+      "dependency_count": 0,
+      "input_hash": "5cfdbfa16578058fae3e546f7daefa74868bad74f1d5d369f1f2c9daa6509f71",
+      "non_claims": [
+        "dependency satisfaction proves presented receipt linkage only",
+        "dependency satisfaction does not prove upstream correctness or remote trust",
+        "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+      ],
+      "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+      "receipt_hash": "67535a1dc740324dfb48a44e811a0d291c366c2d6d435a5c4955e259accbf2cb",
+      "rows": [],
+      "satisfied_count": 0,
+      "schema": "cairn.cross-repo-dependency-receipt.v1",
+      "valid": true,
+      "verdict": "PASS"
+    },
+    "cross_repo_evidence_issues": [],
+    "delta_specs": [
+      "./.cairn/changes/operate-dashboard-live/specs/dashboard-live-operation/spec.md"
+    ],
+    "dry_run": false,
+    "input_hash": "a3c59f43a9507ed127e0b2d5e8db9bbeee502f29ef1ab0251f91fb0f8745b7f2",
+    "layout": "cairn",
+    "merge_preflight": {
+      "documents": [
+        {
+          "accepted_before_exists": false,
+          "accepted_before_hash": "97425ab36d4089c6aff778c9f8be567d491b9afd1576dc6dcc4709599991c0b5",
+          "blocked": false,
+          "changed": true,
+          "delta_hash": "e7df0aec874d13cccbd0d29707d700913fee445ed2c435b7bce30959b396b385",
+          "destination": ".cairn/specs/dashboard-live-operation/spec.md",
+          "diagnostics": [],
+          "expected_after_hash": "0e19a713e31bc2cb518779bede292a6e801b012fa7b2f2414397ae2731d01cdb",
+          "operations": [
+            {
+              "block_hash": "d6a1e3635c074d660c0897025def9cb996c141e80da19c39f196e663db3daa62",
+              "heading": "### Requirement: Bounded read-only candidate collection",
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.collection"
+            },
+            {
+              "block_hash": "fd872c33a4618b58748c0be2d9b47673217ac124b1384498037fbf1a9b199247",
+              "heading": "### Requirement: Supervised finite publication",
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.supervision"
+            },
+            {
+              "block_hash": "acd615c1dc3928555ebfc773e179eaf45afa363e31a5e6e943ebaed498837fc3",
+              "heading": "### Requirement: Last-good recovery",
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.recovery"
+            },
+            {
+              "block_hash": "5fb96e82c86da62f96bcc1160cd6ab940c965881bfe4ec4e8347db0f976e17c5",
+              "heading": "### Requirement: Fresh real CI proof",
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.fresh"
+            },
+            {
+              "block_hash": "4332d248b470b144e0805bd0fc2be5f27c85ddeac6b54263f80e385933bfafc5",
+              "heading": "### Requirement: Evidence and authority scope",
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.claims"
+            }
+          ],
+          "outcomes": [
+            {
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.collection",
+              "state": "applied"
+            },
+            {
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.supervision",
+              "state": "applied"
+            },
+            {
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.recovery",
+              "state": "applied"
+            },
+            {
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.fresh",
+              "state": "applied"
+            },
+            {
+              "kind": "added",
+              "requirement_id": "kiln.dashboard.live.claims",
+              "state": "applied"
+            }
+          ],
+          "source": ".cairn/changes/operate-dashboard-live/specs/dashboard-live-operation/spec.md"
+        }
+      ]
+    },
+    "mutated": true,
+    "mutation_manifest": {
+      "after": {
+        "entries": [
+          {
+            "content_hash": "0e19a713e31bc2cb518779bede292a6e801b012fa7b2f2414397ae2731d01cdb",
+            "exists": true,
+            "path": "./.cairn/specs/dashboard-live-operation/spec.md"
+          }
+        ],
+        "manifest_hash": "81abdeb386cc9f3bff52cdfb05db598926678c40ae677bc618047a0eb92f86ca"
+      },
+      "before": {
+        "entries": [
+          {
+            "content_hash": null,
+            "exists": false,
+            "path": "./.cairn/specs/dashboard-live-operation/spec.md"
+          }
+        ],
+        "manifest_hash": "755f6dab50685fb21081516f333dfcd9ce228c425b7cd604a17a4b519f8c7151"
+      },
+      "kind": "sync",
+      "manifest_hash": "e3d26f5c420a114fec14de1ca46b3be3d3cd9df8edb6e6a130cc29bed912a70a"
+    },
+    "non_claims": [
+      "workflow state proves only the selected policy graph and observed structural artifact facts",
+      "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+      "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+      "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+    ],
+    "plan_hash": "2887b8e0cfe5ced9b5e9d8ab0c2eaa379669c4a42a2293108028c9cece96a1e5",
+    "policy": "kiln-default",
+    "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+    "profile_identity_hash": "8866b181b3ad4850f6fef5e4ea0da49b60168fad34ca4475430855894b4edc29",
+    "reasons": [],
+    "receipt_hash": "8286bc76745013e1323e418866d4f6077b4b46066bab059aaa65b7b1cae88016",
+    "review_receipt_hashes": [],
+    "spec_effect": "delta",
+    "workflow_profile": "spec-driven",
+    "workflow_profile_compatibility_fallback": false,
+    "workflow_profile_source": "change_create",
+    "workflow_profile_version": 1
+  },
+  "post_run_annotation_check": {
+    "result": "Python ASTs identical; only post-run traceability comments differ",
+    "exit_code": 0,
+    "current_runner_blake3": "8663a0f1cbed77454ab36856ffd1413df76a3825efe124cf3c9f5c1ac2380400",
+    "scope": "Four related traceability markers and their explanation only; native runtime behavior unchanged from exact operated runner in fresh-publication.json"
+  },
+  "non_claims": [
+    "No Patchgate delta accepted or hold waived",
+    "No remote source publication performed by this local spec sync"
+  ]
+}

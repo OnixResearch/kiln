@@ -1,0 +1,15 @@
+{
+  "catalog": "/home/brittonr/.local/state/kiln/dashboard/catalog.json",
+  "dashboard_executable": "/nix/store/jiqvr7imlb9b0zqwwsyg8776pv3wxsb2-kiln-0.1.0/bin/kiln-dashboard",
+  "destination": {
+    "host": "brittonr@aspen3",
+    "kind": "ssh",
+    "path": "/home/brittonr/.local/share/kiln/dashboard/index.html"
+  },
+  "interval_ms": 30000,
+  "local_report": "/home/brittonr/.local/state/kiln/dashboard/last-good.html",
+  "max_report_bytes": 16777216,
+  "profile": "/home/brittonr/.config/kiln/dashboard-profile.json",
+  "schema_version": 1,
+  "subprocess_timeout_seconds": 30
+}

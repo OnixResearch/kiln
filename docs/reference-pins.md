@@ -49,6 +49,15 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Mantle | `d75158b00b080535f2ffea12430665ca3d57ea82` | Build-contract producer fixtures and Nickel contract only | [`vendor/mantle.source.json`](../vendor/mantle.source.json) |
 | UCAN | `d46816f19606b518307ba21ab33e8b93b6ebf646` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
 
+The separate browser workspace additionally consumes Subwayrat `rat-table` at
+`2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901`, recorded in
+[`vendor/subwayrat.source.json`](../vendor/subwayrat.source.json). Its selected
+MIT source, original manifests and license notices stay pristine. A Kiln-owned
+wrapper manifest disables terminal defaults and points directly to that imported
+source; neither the rest of the terminal workspace nor private ratcore is built.
+The independent browser lock and [asset regeneration rail](observation-dashboard.md#rats-browser-index)
+own registry and compiled-output identities; the root Cargo lock is unchanged.
+
 These are selected upstream Git-object archives, not copies of mutable working
 trees. The imports preserve original source, manifests, license texts, and
 applicable provenance notices byte-for-byte. Root workspace manifests retained
@@ -92,6 +101,7 @@ scripts/import-pinned-source.sh artifact "$ARTIFACT_SOURCE"
 scripts/import-pinned-source.sh bounded-exec "$BOUNDED_EXEC_SOURCE"
 scripts/import-pinned-source.sh mantle "$MANTLE_SOURCE"
 scripts/import-pinned-source.sh ucan "$UCAN_SOURCE"
+scripts/import-pinned-source.sh subwayrat "$SUBWAYRAT_SOURCE"
 ```
 
 The importer runs `git archive --format=tar COMMIT -- PATHS...` in the exact
@@ -101,7 +111,7 @@ destination already exists, it compares bytes, symlink targets, and executable
 bits and refuses replacement on drift. It does not inspect the checkout's HEAD
 or working tree. Git, Bash, jq, BLAKE3's `b3sum`, GNU tar, and GNU coreutils are
 import-time tools only.
-Each source record additionally retains the BLAKE3 identity of the original full
+The root-workspace source records additionally retain the BLAKE3 identity of the original full
 `git archive --format=tar COMMIT` as `full_archive_blake3`. That is provenance
 for the whole upstream revision, not an instruction to redistribute it. The
 importer verifies only the explicitly selected archive; unrelated producer
