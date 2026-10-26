@@ -1,0 +1,583 @@
+{
+  "date": "2026-10-26",
+  "authorization": "User said begin to the proposed lifecycle acceptance/archive, source publication and live-operation plan",
+  "acceptance": {
+    "command": "cairn sync connect-dashboard-repositories --root . --policy cairn-policy/generated/cairn-policy.json --execute",
+    "receipt_hash": "b445b81182347e5fe56d09c5b181afd8714e4bd7940be0be1934ae5a25cad4ad",
+    "requirements_added": 4,
+    "mutated": true
+  },
+  "traceability": {
+    "command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json",
+    "requirements": 887,
+    "referenced": 887,
+    "missing": [],
+    "dangling": [
+      "kiln.patchgate.conformance",
+      "kiln.patchgate.execution",
+      "kiln.patchgate.nonclaims",
+      "kiln.patchgate.profile",
+      "kiln.patchgate.request",
+      "kiln.patchgate.result"
+    ],
+    "valid": false,
+    "receipt_hash": "b9e57ec82a8997bc89a1782b12b06b25a74669aadd1f7ba88e8dad8c48a30c41",
+    "scope": "Declared linkage only; the separate active Patchgate delta was not accepted or bypassed"
+  },
+  "operations": [
+    {
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "make-dashboard-interactive",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "change": "make-dashboard-interactive",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "29ae98bb86d81967e7455bbceb0ce0237ce0ffdb5b343813469eec485e45d078",
+        "issues": [],
+        "layout": "cairn",
+        "policy": "kiln-default",
+        "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+        "policy_selection": {
+          "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": {
+          "declarations_present": false,
+          "probes": []
+        },
+        "receipt_hash": "58bef079d500c0deabde020bcb9807ffc23216a5614568cd1ffa4769a8e5188a",
+        "stage": "tasks",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/make-dashboard-interactive/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 27,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/make-dashboard-interactive/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 13,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/make-dashboard-interactive/specs/dashboard-html-surface/spec.md",
+            "requirement_blocks": 5,
+            "scenario_blocks": 10,
+            "substantive_lines": 35,
+            "substantive_requirement_blocks": 5,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/make-dashboard-interactive/specs/dashboard-live-html-report/spec.md",
+            "requirement_blocks": 1,
+            "scenario_blocks": 2,
+            "substantive_lines": 7,
+            "substantive_requirement_blocks": 1,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 9,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/make-dashboard-interactive/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 9,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 9,
+            "task_done": 9,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        },
+        "valid": true,
+        "verdict": "PASS"
+      }
+    },
+    {
+      "command": [
+        "cairn",
+        "archive",
+        "make-dashboard-interactive",
+        "--execute",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "actions": [
+          {
+            "description": "move active change to archive: make-dashboard-interactive",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-make-dashboard-interactive"
+          }
+        ],
+        "blocked": false,
+        "change": "make-dashboard-interactive",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "5cfdbfa16578058fae3e546f7daefa74868bad74f1d5d369f1f2c9daa6509f71",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+          "receipt_hash": "67535a1dc740324dfb48a44e811a0d291c366c2d6d435a5c4955e259accbf2cb",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "453e1cdcdf4ce48663fc8dd342e217e5dc66342fca8f14c6d5f1c63fa0b872fb",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "5e450ad9ba98227ce28f18dfc74263b8988f4c61854b51bf1633c3b4fd75e631",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-make-dashboard-interactive/design.md"
+              },
+              {
+                "content_hash": "6fef58584ff96f6c8014b7ed157035c5c5073a9762967986d3f536fa8c8d9b1a",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-make-dashboard-interactive/evidence/verification.md"
+              },
+              {
+                "content_hash": "17bea0124b722ac0577a8eb61d6843061f56238866974fbc2d9981f95bdf18b8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-make-dashboard-interactive/proposal.md"
+              },
+              {
+                "content_hash": "636dc9fb2ab0374031ac86000b954194cd215028eaabd45a51d59ce2f62eb5df",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-make-dashboard-interactive/specs/dashboard-html-surface/spec.md"
+              },
+              {
+                "content_hash": "bdf1f9683e99bcf89c9fc85086d9845760a95fa3d8169f8a19b8172d4b79311d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-make-dashboard-interactive/specs/dashboard-live-html-report/spec.md"
+              },
+              {
+                "content_hash": "a5cd13ea74f0fd8508a4d481a7dfbe8b3efeeb94fbeb494606afc3fcfb531e66",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-make-dashboard-interactive/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/make-dashboard-interactive"
+              }
+            ],
+            "manifest_hash": "dd761372a3e5cae0eab705826e1ff412170ac11023f7e2fcf066b20da76e3554"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "5e450ad9ba98227ce28f18dfc74263b8988f4c61854b51bf1633c3b4fd75e631",
+                "exists": true,
+                "path": "./.cairn/changes/make-dashboard-interactive/design.md"
+              },
+              {
+                "content_hash": "6fef58584ff96f6c8014b7ed157035c5c5073a9762967986d3f536fa8c8d9b1a",
+                "exists": true,
+                "path": "./.cairn/changes/make-dashboard-interactive/evidence/verification.md"
+              },
+              {
+                "content_hash": "17bea0124b722ac0577a8eb61d6843061f56238866974fbc2d9981f95bdf18b8",
+                "exists": true,
+                "path": "./.cairn/changes/make-dashboard-interactive/proposal.md"
+              },
+              {
+                "content_hash": "636dc9fb2ab0374031ac86000b954194cd215028eaabd45a51d59ce2f62eb5df",
+                "exists": true,
+                "path": "./.cairn/changes/make-dashboard-interactive/specs/dashboard-html-surface/spec.md"
+              },
+              {
+                "content_hash": "bdf1f9683e99bcf89c9fc85086d9845760a95fa3d8169f8a19b8172d4b79311d",
+                "exists": true,
+                "path": "./.cairn/changes/make-dashboard-interactive/specs/dashboard-live-html-report/spec.md"
+              },
+              {
+                "content_hash": "a5cd13ea74f0fd8508a4d481a7dfbe8b3efeeb94fbeb494606afc3fcfb531e66",
+                "exists": true,
+                "path": "./.cairn/changes/make-dashboard-interactive/tasks.md"
+              }
+            ],
+            "manifest_hash": "e131d07ac1d82c673f6b5606c228bade9ab958ade4ed17231c84e06ea9c40256"
+          },
+          "kind": "archive",
+          "manifest_hash": "31427327d2ef8554470ae96ce5b8819407aac6d7edc123a6c8941066d720f1e1"
+        },
+        "plan_hash": "95e34e178449911e00c7b6a7778d8944969889049c5928d45db7895a813c9f76",
+        "policy": "kiln-default",
+        "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+        "reasons": [],
+        "receipt_hash": "d1ad1ac03ba31300d1c3f63eb519a12999c75a7917400ac944de360572ee2ea2"
+      }
+    },
+    {
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "connect-dashboard-repositories",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "change": "connect-dashboard-repositories",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "056ece5013a63ab858864ef8288717107471467ea93aeb40c7942ab62593f628",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+        "policy_selection": {
+          "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": {
+          "declarations_present": false,
+          "probes": []
+        },
+        "profile_identity_hash": "f2f0105007d053b3640d83f3966bc3c885f1cd741d0698c50587932b53a9bdd8",
+        "receipt_hash": "5ef585edfd3c612572e2d5baaaec66dee99fa714d3f9afdacdbc88f6814e7d6e",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "tasks",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/connect-dashboard-repositories/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 12,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/connect-dashboard-repositories/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 11,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/connect-dashboard-repositories/specs/dashboard-repository-integration/spec.md",
+            "requirement_blocks": 4,
+            "scenario_blocks": 4,
+            "substantive_lines": 17,
+            "substantive_requirement_blocks": 4,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 6,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/connect-dashboard-repositories/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 6,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 6,
+            "task_done": 6,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        },
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "command": [
+        "cairn",
+        "archive",
+        "connect-dashboard-repositories",
+        "--execute",
+        "--root",
+        ".",
+        "--policy",
+        "cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: connect-dashboard-repositories",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories"
+          }
+        ],
+        "blocked": false,
+        "change": "connect-dashboard-repositories",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "5cfdbfa16578058fae3e546f7daefa74868bad74f1d5d369f1f2c9daa6509f71",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+          "receipt_hash": "67535a1dc740324dfb48a44e811a0d291c366c2d6d435a5c4955e259accbf2cb",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "97d083960c12e0541fc2a50a2a5c57ab205c50dc6c6ed6c7392301096dd13607",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "6e8ddc5a0ef56ae5df7496d93ab50783c3a6b1c15931f9aba6211f77540ff087",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/design.md"
+              },
+              {
+                "content_hash": "52015034c1e6a246609ae29ede36da8d7ed6bc64d63be8d8ce5ae47ab9619768",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/evidence/lifecycle-preflight.json"
+              },
+              {
+                "content_hash": "08100b724b844688c6652788046f8479100c8f4a1c24c025a263634202455a69",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/evidence/source-publication-manifest.json"
+              },
+              {
+                "content_hash": "aa7f0f6a3ff1f15552d85244de2bfdb83423b4f6e551b3bda1cc1c349445aa5d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/evidence/source-publication.json"
+              },
+              {
+                "content_hash": "4b1f5dfe69904846daff85ae482e8da4c6fda14278fa94ab4a9341307a7d9e86",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/metadata.json"
+              },
+              {
+                "content_hash": "a610317a5a82cc1496f960f2ae63f4e893b28671c3bc317d56d818af276045dd",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/proposal.md"
+              },
+              {
+                "content_hash": "506504ee3e2f1a25fa8fa0e82e9450ce5dd3a4d366af653c0666ea0e37882ec5",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/specs/dashboard-repository-integration/spec.md"
+              },
+              {
+                "content_hash": "7b91fcdcaf985cbefbcad70637f98bf160af4f64507fb1cd12fead99e015167c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-connect-dashboard-repositories/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/connect-dashboard-repositories"
+              }
+            ],
+            "manifest_hash": "90174d78810404513ac31759a58224ef1049d71488599666cf06b08e3bbb12aa"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "6e8ddc5a0ef56ae5df7496d93ab50783c3a6b1c15931f9aba6211f77540ff087",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/design.md"
+              },
+              {
+                "content_hash": "52015034c1e6a246609ae29ede36da8d7ed6bc64d63be8d8ce5ae47ab9619768",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/evidence/lifecycle-preflight.json"
+              },
+              {
+                "content_hash": "08100b724b844688c6652788046f8479100c8f4a1c24c025a263634202455a69",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/evidence/source-publication-manifest.json"
+              },
+              {
+                "content_hash": "aa7f0f6a3ff1f15552d85244de2bfdb83423b4f6e551b3bda1cc1c349445aa5d",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/evidence/source-publication.json"
+              },
+              {
+                "content_hash": "4b1f5dfe69904846daff85ae482e8da4c6fda14278fa94ab4a9341307a7d9e86",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/metadata.json"
+              },
+              {
+                "content_hash": "a610317a5a82cc1496f960f2ae63f4e893b28671c3bc317d56d818af276045dd",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/proposal.md"
+              },
+              {
+                "content_hash": "506504ee3e2f1a25fa8fa0e82e9450ce5dd3a4d366af653c0666ea0e37882ec5",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/specs/dashboard-repository-integration/spec.md"
+              },
+              {
+                "content_hash": "7b91fcdcaf985cbefbcad70637f98bf160af4f64507fb1cd12fead99e015167c",
+                "exists": true,
+                "path": "./.cairn/changes/connect-dashboard-repositories/tasks.md"
+              }
+            ],
+            "manifest_hash": "801a08f9c77f19d1c083990c1db1811b8b72f2ac99a74341245b596442a02023"
+          },
+          "kind": "archive",
+          "manifest_hash": "4b322993844771b1a08b0313511650239b1568b4fdea7eb2b6dbfb7b45bcf94a"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "4931924d8c13ec1d7fcc6c42bc6c427c9f12fd2f8e5ae98b51c0d29a1a9dbdf6",
+        "policy": "kiln-default",
+        "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+        "profile_identity_hash": "f2f0105007d053b3640d83f3966bc3c885f1cd741d0698c50587932b53a9bdd8",
+        "reasons": [],
+        "receipt_hash": "7ce3be69049033fa9b708fd18da3606335c6ba64edbf8ece2051ff7f118203d0",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    }
+  ]
+}

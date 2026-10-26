@@ -471,6 +471,21 @@ lands in the next revision. The GitHub projection remains a read-only
 projection and never carries Radicle governance. This publication grants no
 deployment, activation, binary release or release authority.
 
+## Dashboard source and real-CI observation evidence
+
+r[verify kiln.dashboard.repositories.real_ci]
+r[verify kiln.dashboard.repositories.real_ci.scenario.scope]
+
+The dashboard's [repository integration verification](../.cairn/archive/1970-01-01-connect-dashboard-repositories/evidence/verification.md)
+records replay/export of actual retained GitHub and Radicle executions, exact
+source revisions, passing and genuine failing outcomes, duplicate/restart
+observations, and unresolved runs. Retained history is not a fresh branch-tip
+execution. The adjacent source-publication receipt binds dashboard revision
+`359789e5828c41a18400da686b60010c314a76b6`, independently of CI execution,
+freshness, production eligibility or subsequent lifecycle acceptance. These
+declared traceability anchors link the checked evidence; they are not a new
+behavioral proof or an approval of the separate active Patchgate change.
+
 ## Recovery
 
 Keep an independent source archive and signed-reference capture. Keep the rollback revision outside a running Kiln service.
