@@ -1,0 +1,226 @@
+{
+  "schema": "onix.operator-authorized.source-publication.v1",
+  "repository": "kiln",
+  "operator_authority": {
+    "request": "commit and push both",
+    "scope_decision": "All pending changes",
+    "scope": "All pending source and evidence in this repository; no release, lifecycle acceptance, archive, governance mutation or deployment."
+  },
+  "source": {
+    "revision": "dcc215e5fa061264d5b15176a793ddca902f79b8",
+    "rollback_revision": "6c6646c7fce47cb6e95d369762901a88fa3dffde",
+    "branch": "main",
+    "archive": {
+      "algorithm": "BLAKE3",
+      "digest": "3e35c98b2747e511d1cf3e43a87e4b898b112e1cbfdcbb0f9c17296afad225b8",
+      "members": 4923,
+      "format": "POSIX PAX; sorted jj paths; mtime 0; uid/gid 0; normalized Git-style permissions; no atime/ctime",
+      "reproduction_command": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "jj --ignore-working-copy file list -r dcc215e5fa061264d5b15176a793ddca902f79b8 -T 'path ++ \"\\0\"' | tar --null --no-recursion --files-from=- --format=pax --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' --create --file=- | b3sum"
+      ]
+    },
+    "canonical_rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "mirror": "https://github.com/OnixResearch/kiln.git"
+  },
+  "publication": {
+    "canonical_push": {
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "stdout": "",
+      "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 6c6646c7fce4 to dcc215e5fa06]\ngit: ✓ Canonical reference refs/heads/main updated to target commit dcc215e5fa061264d5b15176a793ddca902f79b8        \ngit: ✓ Synced with 2 seed(s)        \ngit: \ngit:   https://app.radicle.xyz/nodes/iris.radicle.network/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/dcc215e5fa061264d5b15176a793ddca902f79b8        \ngit: \n",
+      "exit_code": 0
+    },
+    "mirror_push": {
+      "argv": [
+        "jj",
+        "git",
+        "push",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main"
+      ],
+      "stdout": "",
+      "stderr": "Changes to push to github:\n  bookmark: main [move forward from 6c6646c7fce4 to dcc215e5fa06]\n",
+      "exit_code": 0
+    },
+    "fast_forward": true,
+    "force_push": false,
+    "source_rewriting": false
+  },
+  "governance": {
+    "before": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "after": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1
+    },
+    "unchanged": true,
+    "visibility_before": "public",
+    "visibility_after": "public",
+    "signed_refs": {
+      "argv": [
+        "rad",
+        "inspect",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "--sigrefs"
+      ],
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 4cd6827e8ac74574edd6f1fa142aa774146b8020 parent\n",
+      "stderr": "",
+      "exit_code": 0
+    }
+  },
+  "acquisition": {
+    "native": {
+      "kind": "native-radicle-local-signed-storage",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "destination": "/tmp/kiln-lattice-publication-rbSjAdkD/kiln-native-radicle-local-signed-storage",
+      "clone": {
+        "argv": [
+          "jj",
+          "git",
+          "clone",
+          "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+          "/tmp/kiln-lattice-publication-rbSjAdkD/kiln-native-radicle-local-signed-storage"
+        ],
+        "stdout": "",
+        "stderr": "Fetching into new repo in \"/tmp/kiln-lattice-publication-rbSjAdkD/kiln-native-radicle-local-signed-storage\"\nbookmark: main@origin [new] tracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: snmrlrpk e420d250 (empty) (no description set)\nParent commit (@-)      : uvxwvonl dcc215e5 main | Add supervised CI web service and qualify native cancellation\nAdded 4923 files, modified 0 files, removed 0 files\n",
+        "exit_code": 0
+      },
+      "head": {
+        "argv": [
+          "jj",
+          "log",
+          "-r",
+          "main@origin",
+          "--no-graph",
+          "-T",
+          "commit_id ++ \"\\n\""
+        ],
+        "stdout": "dcc215e5fa061264d5b15176a793ddca902f79b8\n",
+        "stderr": "",
+        "exit_code": 0
+      },
+      "archive": {
+        "argv": [
+          "bash",
+          "-o",
+          "pipefail",
+          "-c",
+          "jj --ignore-working-copy file list -r dcc215e5fa061264d5b15176a793ddca902f79b8 -T 'path ++ \"\\0\"' | tar --null --no-recursion --files-from=- --format=pax --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' --create --file=- | b3sum"
+        ],
+        "stdout": "3e35c98b2747e511d1cf3e43a87e4b898b112e1cbfdcbb0f9c17296afad225b8  -\n",
+        "stderr": "",
+        "exit_code": 0
+      },
+      "revision_matches": true,
+      "archive_matches": true
+    },
+    "anonymous_https": {
+      "name": "Kiln",
+      "url": "https://github.com/OnixResearch/kiln.git",
+      "destination": "/tmp/kiln-lattice-publication-rbSjAdkD/kiln-anonymous-isolated",
+      "clone": {
+        "argv": [
+          "env",
+          "-i",
+          "PATH=/home/brittonr/.local/bin:/home/brittonr/.nix-profile/bin:/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin:/nix/store/gzh2rx2sjwra135my0jw3va49hm7z4vf-bun-1.3.13/bin:/nix/store/jnsflr3i2c90hrlly1cgwvxr9s74kgab-docker-29.8.0/bin:/nix/store/f51vybn5cd5v88pk7hnrdr6db1q0rzw7-ghzinga-0.5.0/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/xvd6920kffyyshg7mbw5wvfk6lg9wfkl-jq-1.8.2-bin/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/ggcm0s524bsly3qc7kww945qs7003psf-openssh-10.5p1/bin:/nix/store/mcdxl3mmx2s8zy6gxy4ss5paiaz79qkc-pueue-4.0.4/bin:/nix/store/a8hj1bz1gd378sxz4fabmgrl61ad202p-socat-1.8.1.3/bin:/home/brittonr/.optmem:/run/wrappers/bin:/etc/profiles/per-user/brittonr/bin:/run/current-system/sw/bin",
+          "HOME=/tmp/kiln-lattice-publication-rbSjAdkD/anonymous-home-qEOEO2Sl",
+          "XDG_CONFIG_HOME=/tmp/kiln-lattice-publication-rbSjAdkD/anonymous-home-qEOEO2Sl/config",
+          "JJ_CONFIG=/dev/null",
+          "GIT_CONFIG_GLOBAL=/dev/null",
+          "GIT_CONFIG_SYSTEM=/dev/null",
+          "GIT_CONFIG_NOSYSTEM=1",
+          "GIT_CONFIG_COUNT=0",
+          "GIT_TERMINAL_PROMPT=0",
+          "GIT_ASKPASS=/bin/false",
+          "SSH_ASKPASS=/bin/false",
+          "jj",
+          "git",
+          "clone",
+          "https://github.com/OnixResearch/kiln.git",
+          "/tmp/kiln-lattice-publication-rbSjAdkD/kiln-anonymous-isolated"
+        ],
+        "stdout": "",
+        "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\nFetching into new repo in \"/tmp/kiln-lattice-publication-rbSjAdkD/kiln-anonymous-isolated\"\nbookmark: add-local-ci-composition-e2e@origin     [new] untracked\nbookmark: kiln-live-ci-validation-20261018@origin [new] untracked\nbookmark: kiln-live-ci-validation-20261019@origin [new] untracked\nbookmark: main@origin                             [new] tracked\nbookmark: publication-candidate-2026-10-15@origin [new] untracked\nbookmark: publication-evidence-2026-10-15@origin  [new] untracked\nbookmark: qualify-live-github-iroh-ci@origin      [new] untracked\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: ktznswmr 8185b0d3 (empty) (no description set)\nParent commit (@-)      : uvxwvonl dcc215e5 main | Add supervised CI web service and qualify native cancellation\nAdded 4923 files, modified 0 files, removed 0 files\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\n",
+        "exit_code": 0
+      },
+      "head": {
+        "argv": [
+          "jj",
+          "log",
+          "-r",
+          "main@origin",
+          "--no-graph",
+          "-T",
+          "commit_id ++ \"\\n\""
+        ],
+        "stdout": "dcc215e5fa061264d5b15176a793ddca902f79b8\n",
+        "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\n",
+        "exit_code": 0
+      },
+      "archive": {
+        "argv": [
+          "bash",
+          "-o",
+          "pipefail",
+          "-c",
+          "jj --ignore-working-copy file list -r dcc215e5fa061264d5b15176a793ddca902f79b8 -T 'path ++ \"\\0\"' | tar --null --no-recursion --files-from=- --format=pax --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' --create --file=- | b3sum"
+        ],
+        "stdout": "3e35c98b2747e511d1cf3e43a87e4b898b112e1cbfdcbb0f9c17296afad225b8  -\n",
+        "stderr": "",
+        "exit_code": 0
+      },
+      "revision_matches": true,
+      "archive_matches": true
+    }
+  },
+  "verification_scope": {
+    "native_qualification": "The existing immutable Lattice executable and strict Kiln native receipt remain the behavioral evidence; publishing current sources does not rebuild or requalify changed executables.",
+    "producer_repository_holds": "Lattice library/TUI/Octet failures and immutable Nix vendor-path admission failure remain failures.",
+    "consumer_readiness_holds": "Kiln traceability/release-readiness failures remain separate from source publication.",
+    "receipt_boundary": "This receipt is added in an evidence-only descendant, not part of the source archive it identifies."
+  },
+  "maintenance_owners": {
+    "source": "Kiln maintainers",
+    "remote_governance": "Repository delegates",
+    "runtime_activation": "Operator"
+  },
+  "non_claims": [
+    "Source-ref publication is not release readiness, production activation, lifecycle acceptance or new runtime qualification.",
+    "Native acquisition uses local signed Radicle storage; push reported two seed synchronizations, not an independent WAN-read guarantee.",
+    "Anonymous HTTPS acquisition is measured with an empty environment, private empty HOME and disabled system/global Git configuration.",
+    "No delegates, threshold, visibility, unrelated bookmarks or third-party remotes were changed."
+  ]
+}
