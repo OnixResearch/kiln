@@ -1,0 +1,293 @@
+{
+  "schema": "onix.operator-authorized.source-publication.v1",
+  "repository": "kiln",
+  "operator_authority": {
+    "request": "commit and push",
+    "scope": "Accumulated interactive/live-dashboard, authenticated-network-access and read-only Onix COB source and evidence; canonical Radicle main plus the declared GitHub projection. Source publication only; no lifecycle acceptance, archive, release or deployment."
+  },
+  "source": {
+    "revision": "af54cbec9177cc8c3388467a0faaf0fc63207f3d",
+    "rollback_revision": "0c56456214196618bba512990ac479e69ebd7b63",
+    "branch": "main",
+    "canonical_rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "mirror": "https://github.com/OnixResearch/kiln.git",
+    "archive": {
+      "algorithm": "BLAKE3",
+      "digest": "da408de25dafa8bcbd4e9394dbaee4f8253eea225e0b798284abf47ae18715da",
+      "members": 5159,
+      "format": "POSIX PAX; sorted jj paths; mtime 0; uid/gid 0; normalized Git-style permissions; no atime/ctime",
+      "reproduction_command": [
+        "bash",
+        "-o",
+        "pipefail",
+        "-c",
+        "jj --ignore-working-copy file list -r af54cbec9177cc8c3388467a0faaf0fc63207f3d -T 'path ++ \"\\0\"' | tar --null --no-recursion --files-from=- --format=pax --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' --create --file=- | b3sum"
+      ]
+    },
+    "bindings": {
+      "argv": [
+        "b3sum",
+        "LICENSES.md",
+        ".cairn/changes/add-onix-cob-dashboard/evidence/verification.json",
+        "config/hosting-profile.ncl",
+        "config/default.ncl"
+      ],
+      "exit_code": 0,
+      "stdout": "639b71a9c74d0289c1d9aacb637629b25ef176f3526645e4bc2933a6a1f15afb  LICENSES.md\nf822163ec7f89ad4033a193e5556329e89299d4e9aa5385a6e5908fe843aefaf  .cairn/changes/add-onix-cob-dashboard/evidence/verification.json\n1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0  config/hosting-profile.ncl\neaf5d3d7994f38a433301a991a50b84150cccd924b680a019f42549f4e5bf444  config/default.ncl\n",
+      "stderr": ""
+    },
+    "lifecycle_evidence": {
+      "argv": [
+        "b3sum",
+        "config/hosting-profile.ncl",
+        ".cairn/changes/add-onix-cob-dashboard/evidence/verification.json",
+        ".cairn/changes/complete-live-dashboard/evidence/verification.json",
+        ".cairn/changes/allow-network-authenticated-web-access/evidence/final-gates.json"
+      ],
+      "exit_code": 0,
+      "stdout": "1f650f733802d74f9064da668a337948a86f82e2f9340f2d68e6c670fbf15de0  config/hosting-profile.ncl\nf822163ec7f89ad4033a193e5556329e89299d4e9aa5385a6e5908fe843aefaf  .cairn/changes/add-onix-cob-dashboard/evidence/verification.json\nedbcd0581dfe5dcd90f23130621649933e596b8841db29ad028d15e5fdd5a2e8  .cairn/changes/complete-live-dashboard/evidence/verification.json\nedea8234b8dfda2d761c1612bf1e09ed53a1d307ae27185b1213ebf73f3dbdb7  .cairn/changes/allow-network-authenticated-web-access/evidence/final-gates.json\n",
+      "stderr": ""
+    },
+    "maintenance_owner": "Kiln maintainers"
+  },
+  "publication": {
+    "canonical_push": {
+      "argv": [
+        "jj",
+        "--config",
+        "git.subprocess=true",
+        "git",
+        "push",
+        "--remote",
+        "rad",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "observed_result": "main fast-forwarded from 0c5645621419 to af54cbec9177; canonical refs/heads/main updated to af54cbec9177cc8c3388467a0faaf0fc63207f3d; synced with 2 seeds.",
+      "evidence_source": "Direct shell command output in the operator-authorized commit/push session."
+    },
+    "mirror_push": {
+      "argv": [
+        "jj",
+        "--config",
+        "git.subprocess=true",
+        "git",
+        "push",
+        "--remote",
+        "github",
+        "--bookmark",
+        "main"
+      ],
+      "exit_code": 0,
+      "observed_result": "main fast-forwarded from 0c5645621419 to af54cbec9177.",
+      "evidence_source": "Direct shell command output in the same session; independently confirmed by anonymous HTTPS acquisition."
+    },
+    "fast_forward": true,
+    "force_push": false,
+    "source_rewriting": false
+  },
+  "governance": {
+    "identity_observation": {
+      "argv": [
+        "rad",
+        "inspect",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "--identity"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"payload\": {\n    \"xyz.radicle.project\": {\n      \"defaultBranch\": \"main\",\n      \"description\": \"Provider-neutral CI control plane\",\n      \"name\": \"Kiln\"\n    }\n  },\n  \"delegates\": [\n    \"did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\"\n  ],\n  \"threshold\": 1\n}\n",
+      "stderr": ""
+    },
+    "visibility_observation": {
+      "argv": [
+        "rad",
+        "inspect",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "--visibility"
+      ],
+      "exit_code": 0,
+      "stdout": "public\n",
+      "stderr": ""
+    },
+    "signed_refs": {
+      "argv": [
+        "rad",
+        "inspect",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "--sigrefs"
+      ],
+      "exit_code": 0,
+      "stdout": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx a4f7d0320927461ddb29a7d62ecd2725e9a2c3a7 parent\n",
+      "stderr": ""
+    },
+    "governance_mutations_performed": false
+  },
+  "acquisition": {
+    "native": {
+      "kind": "native-radicle-local-signed-storage",
+      "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "revision": {
+        "argv": [
+          "jj",
+          "--ignore-working-copy",
+          "log",
+          "-r",
+          "main@origin",
+          "--no-graph",
+          "-T",
+          "commit_id ++ \"\\n\""
+        ],
+        "exit_code": 0,
+        "stdout": "af54cbec9177cc8c3388467a0faaf0fc63207f3d\n",
+        "stderr": ""
+      },
+      "archive": {
+        "argv": [
+          "bash",
+          "-o",
+          "pipefail",
+          "-c",
+          "jj --ignore-working-copy file list -r af54cbec9177cc8c3388467a0faaf0fc63207f3d -T 'path ++ \"\\0\"' | tar --null --no-recursion --files-from=- --format=pax --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' --create --file=- | b3sum"
+        ],
+        "exit_code": 0,
+        "stdout": "da408de25dafa8bcbd4e9394dbaee4f8253eea225e0b798284abf47ae18715da  -\n",
+        "stderr": ""
+      },
+      "revision_matches": true,
+      "archive_matches": true
+    },
+    "anonymous_github_https": {
+      "url": "https://github.com/OnixResearch/kiln.git",
+      "credential_isolation": "env -i; empty temporary HOME/XDG_CONFIG_HOME; JJ_CONFIG, global/system Git config disabled; no inherited SSH agent; noninteractive failing askpass.",
+      "revision": {
+        "argv": [
+          "jj",
+          "--ignore-working-copy",
+          "log",
+          "-r",
+          "main@origin",
+          "--no-graph",
+          "-T",
+          "commit_id ++ \"\\n\""
+        ],
+        "exit_code": 0,
+        "stdout": "af54cbec9177cc8c3388467a0faaf0fc63207f3d\n",
+        "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\n"
+      },
+      "archive": {
+        "argv": [
+          "bash",
+          "-o",
+          "pipefail",
+          "-c",
+          "jj --ignore-working-copy file list -r af54cbec9177cc8c3388467a0faaf0fc63207f3d -T 'path ++ \"\\0\"' | tar --null --no-recursion --files-from=- --format=pax --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' --create --file=- | b3sum"
+        ],
+        "exit_code": 0,
+        "stdout": "da408de25dafa8bcbd4e9394dbaee4f8253eea225e0b798284abf47ae18715da  -\n",
+        "stderr": ""
+      },
+      "revision_matches": true,
+      "archive_matches": true
+    },
+    "anonymous_garden_https": {
+      "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "clone": {
+        "argv": [
+          "env",
+          "-i",
+          "PATH=/home/brittonr/.local/bin:/home/brittonr/.nix-profile/bin:/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin:/nix/store/gzh2rx2sjwra135my0jw3va49hm7z4vf-bun-1.3.13/bin:/nix/store/jnsflr3i2c90hrlly1cgwvxr9s74kgab-docker-29.8.0/bin:/nix/store/f51vybn5cd5v88pk7hnrdr6db1q0rzw7-ghzinga-0.5.0/bin:/nix/store/8yjpgadavqdwphcd2kw4dfvxmgdp5sb3-git-2.55.0/bin:/nix/store/xvd6920kffyyshg7mbw5wvfk6lg9wfkl-jq-1.8.2-bin/bin:/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin:/nix/store/ggcm0s524bsly3qc7kww945qs7003psf-openssh-10.5p1/bin:/nix/store/mcdxl3mmx2s8zy6gxy4ss5paiaz79qkc-pueue-4.0.4/bin:/nix/store/a8hj1bz1gd378sxz4fabmgrl61ad202p-socat-1.8.1.3/bin:/home/brittonr/.optmem:/run/wrappers/bin:/etc/profiles/per-user/brittonr/bin:/run/current-system/sw/bin",
+          "HOME=/tmp/kiln-dashboard-publication-xIs6fQu4",
+          "XDG_CONFIG_HOME=/tmp/kiln-dashboard-publication-xIs6fQu4/garden-config",
+          "JJ_CONFIG=/dev/null",
+          "GIT_CONFIG_GLOBAL=/dev/null",
+          "GIT_CONFIG_SYSTEM=/dev/null",
+          "GIT_TERMINAL_PROMPT=0",
+          "GIT_ASKPASS=/bin/false",
+          "SSH_ASKPASS=/bin/false",
+          "GIT_CONFIG_COUNT=1",
+          "GIT_CONFIG_KEY_0=protocol.version",
+          "GIT_CONFIG_VALUE_0=0",
+          "jj",
+          "--config",
+          "git.subprocess=true",
+          "git",
+          "clone",
+          "--branch",
+          "main",
+          "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+          "/tmp/kiln-dashboard-publication-xIs6fQu4/garden-https"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\nFetching into new repo in \"/tmp/kiln-dashboard-publication-xIs6fQu4/garden-https\"\ngit: warning: no common commits        \nbookmark: main@origin [new] tracked\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: uwxytyqy fdfc1220 (empty) (no description set)\nParent commit (@-)      : qwnlxpxm af54cbec main | Complete interactive live dashboard and read-only Onix COB browser\nAdded 5159 files, modified 0 files, removed 0 files\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\n"
+      },
+      "revision": {
+        "argv": [
+          "jj",
+          "--ignore-working-copy",
+          "log",
+          "-r",
+          "main@origin",
+          "--no-graph",
+          "-T",
+          "commit_id ++ \"\\n\""
+        ],
+        "exit_code": 0,
+        "stdout": "af54cbec9177cc8c3388467a0faaf0fc63207f3d\n",
+        "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\n"
+      },
+      "archive": {
+        "argv": [
+          "bash",
+          "-o",
+          "pipefail",
+          "-c",
+          "jj --ignore-working-copy file list -r af54cbec9177cc8c3388467a0faaf0fc63207f3d -T 'path ++ \"\\0\"' | tar --null --no-recursion --files-from=- --format=pax --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --mtime=@0 --owner=0 --group=0 --numeric-owner --mode='a=rX,u+w' --create --file=- | b3sum"
+        ],
+        "exit_code": 0,
+        "stdout": "da408de25dafa8bcbd4e9394dbaee4f8253eea225e0b798284abf47ae18715da  -\n",
+        "stderr": ""
+      },
+      "revision_matches": true,
+      "archive_matches": true
+    }
+  },
+  "replica_observation": {
+    "required_seed": "z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo",
+    "required_seed_alias": "rosa.radicle.network",
+    "required_count": 1,
+    "signed_refs_revision": "a4f7d0320927461ddb29a7d62ecd2725e9a2c3a7",
+    "status": {
+      "argv": [
+        "rad",
+        "sync",
+        "status",
+        "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      ],
+      "exit_code": 0,
+      "stdout": "╭──────────────────────────────────────────────────────────────────────────────╮\n│ Node ID           Alias                           ?   SigRefs   Timestamp    │\n├──────────────────────────────────────────────────────────────────────────────┤\n│ (you)             brittonr                        ✓   a4f7d03   1 minute ago │\n│ z6MkeWR…yaNakyL   seed.dazuzu.com                 ✓   a4f7d03   1 minute ago │\n│ z6Mkpe2…fxMpnsJ   yzynet-bj1                      ✓   a4f7d03   1 minute ago │\n│ z6Mkq9e…vqYL4Dw   radicle.spacetime.technology    ✓   a4f7d03   1 minute ago │\n│ z6MkmXd…79iS2Wf   seed.pipapo.org                 ✓   a4f7d03   1 minute ago │\n│ z6Mkhfi…YmaARYV   community.computer              ✓   a4f7d03   1 minute ago │\n│ z6MkmvN…3GFjkf2   seed.cielago.xyz                ✓   a4f7d03   1 minute ago │\n│ z6MkjDY…HXsXzm5   radicle.at                      ✓   a4f7d03   1 minute ago │\n│ z6Mkwfr…4j2TdQ2   radicle.jarg.io                 ✓   a4f7d03   1 minute ago │\n│ z6MkgNT…wVgKv67   radicle.thaler.fyi              ✓   a4f7d03   1 minute ago │\n│ z6MkrH7…ab5PHkZ   seed2                           ✓   a4f7d03   1 minute ago │\n│ z6MkmMc…NuvGyqB   seed1                           ✓   a4f7d03   1 minute ago │\n│ z6Mkfhj…WmqjsQw   blackprism                      ✓   a4f7d03   1 minute ago │\n│ z6MkrLM…ocNYPm7   iris.radicle.network            ✓   a4f7d03   1 minute ago │\n│ z6MkuyP…TvoWKJR   index.radicle.garden            ✓   a4f7d03   1 minute ago │\n│ z6MkiwJ…6bgkbQ7   seed.heptapod.dev               ✓   a4f7d03   1 minute ago │\n│ z6Mkmqo…4ebScxo   rosa.radicle.network            ✓   a4f7d03   1 minute ago │\n│ z6MkjWY…q6fE1KV   seed.clem.gleeze.com            ✗   b108a98   4 hours ago  │\n│ z6Mkh6T…ubNX2P3   thistle.levitte.org             ✗   d233041   19 hours ago │\n│ z6Mksqu…7327TEt   radicle.linuxw.info             ✗   d233041   19 hours ago │\n│ z6MktPg…hngbJWC   radicle-seed.b4mad.industries   ✗   d233041   19 hours ago │\n│ z6Mkwdj…g3toC41   rad.hlmn.net                    ✗   152d80a   23 hours ago │\n│ z6Mko5W…Zoomvng   garden.bastidehub.xyz           ✗   e0045ac   1 day ago    │\n│ z6Mkubs…KbT7pSw   rug-munch-media                 ✗   e8fe76e   3 days ago   │\n│ z6Mkg4S…ezGFsgi   pahgein                         ✗   55a9e34   1 week ago   │\n│ z6MkiYe…6ctshzg   vmi1581511.contaboserver.net    ✗   594f2df   1 week ago   │\n│ z6Mkncc…Y9uy83m   aigars.digital                  ✗   8419d75   1 week ago   │\n│ z6Mkm7V…8rzzrW7   radicle.byrd.ws                 ✗   1039f05   1 week ago   │\n│ z6Mkutb…hyzxvRL   Dosadi                          ✗   f730db5   1 week ago   │\n│ z6MkfQq…K9qqKoi   radicle.lan                     ✗   33f8157   3 weeks ago  │\n│ z6MkpkP…cmuD8td   freedom-radicle-index           ✗   4cec44f   3 weeks ago  │\n│ z6MkvVh…j3kQ51f   nos-seed                        ✗   33f8157   1 month ago  │\n│ z6MkmdX…1HqzPqH   lougheed                        ✗   33f8157   1 month ago  │\n│ z6MkveT…wD3Gcx4   seed.moist.place                ✗   33f8157   1 month ago  │\n│ z6MkhTU…uPPCwFB   openhands-vps                   ✗   33f8157   1 month ago  │\n│ z6Mkif1…YSt9EL5   seed.kat5.dev                   ✗   33f8157   1 month ago  │\n│ z6Mkt4u…kZo4obe   radicle.lab.arborisis.com       ✗   33f8157   1 month ago  │\n│ z6Mkhzc…Hryj1M7   ghostme.link                    ✗   33f8157   1 month ago  │\n│ z6MkjnQ…aJHpghi   nuclide-amd                     ✗   33f8157   1 month ago  │\n│ z6Mkoqm…znbu7e4   sftsrv                          ✗   33f8157   1 month ago  │\n│ z6Mksmm…CmfDcLm   seed.iauthored.it               ✗   33f8157   1 month ago  │\n│ z6MkhxZ…tAzh88z   rad.porygon.dex                 ✗   33f8157   1 month ago  │\n│ z6Mkgcs…4dzx57K   radicle.pastilhas.dev           ✗   33f8157   1 month ago  │\n│ z6Mkhtf…U2vFB9c   rad.fmhy.bid                    ✗   4cec44f   1 month ago  │\n│ z6MkhHX…xfptYL9   seed.petal.cafe                 ✗   62656d4   1 month ago  │\n│ z6MknNv…UC7bv39   seed.michelao.ovh               ✗   7743565   2 months ago │\n│ z6MktUB…tWpHSU9   cat                             ✗   705a571   2 months ago │\n│ z6Mkuva…QFbrzJR   rad.spacetime.technology        ✗   58ce23f   2 months ago │\n│ z6MkkjX…gdCQpt8   wqyeo-seed                      ✗   58ce23f   2 months ago │\n│ z6MksHa…ewzJQHY   rad.decentralizedscience.org    ✗   3ad7656   2 months ago │\n│ z6Mkhkf…tPgyezE   kepler                          ✗   3ad7656   2 months ago │\n│ z6MkpRr…KnvMiAs   node.radicle.june.cat           ✗   3ad7656   2 months ago │\n│ z6Mkw9z…nssr3ap   HeliodexServer                  ✗   3ad7656   2 months ago │\n│ z6Mkq8c…aG3bUrq   station                         ✗   3ad7656   2 months ago │\n│ z6Mkpwm…Wg6pDdC   casungo                         ✗   3ad7656   2 months ago │\n│ z6MknJe…Wg82yfB   radicle12.distrilab.eu          ✗   026896b   2 months ago │\n│ z6MkrBK…gYSNWCv   rad-sloe.plumj.am               ✗   a0bdb12   2 months ago │\n╰──────────────────────────────────────────────────────────────────────────────╯\n✗ Hint: \n   ? … Status:\n       ✓ … in sync          ✗ … out of sync\n       ! … not announced    • … unknown\n",
+      "stderr": ""
+    },
+    "required_seed_observed_in_sync": true
+  },
+  "verification_limits": {
+    "retained_verification": ".cairn/changes/add-onix-cob-dashboard/evidence/verification.json",
+    "product_checks_rerun_for_push": false,
+    "package_gate": "blocked",
+    "package_failure": "reports::reports_preserve_raw_bytes_bind_exact_attempt_and_compare_real_test_coverage_history: service state already has an owner",
+    "deployment_vm_executed": false,
+    "global_traceability": "Previously retained unrelated dangling references remain; COB requirement linkage is complete."
+  },
+  "diagnostics": [
+    "rad inspect without an explicit RID failed because the jj working directory lacks Radicle repository metadata; the explicit-RID inspection succeeded.",
+    "An incorrect rad sync RID status invocation failed; rad sync status RID succeeded and is retained above.",
+    "An early member-list argument contained a NUL and rejected the surrounding Promise.all capture after clone processes had started. Existing acquisition directories were reused; exact revision and archive checks above verified their completion."
+  ],
+  "non_claims": [
+    "A later evidence-only descendant carries this receipt; the receipt binds the exact source revision named above, not arbitrary later branch tips.",
+    "Source publication does not waive failed package or traceability gates, qualify executables, confer release eligibility, or activate a deployment.",
+    "Native readback uses the local Radicle signed storage; the Rosa observation is separate replica-status evidence, not a fresh native fetch from Rosa.",
+    "Replica agreement and archive matching establish bounded identity observations, not source or CI correctness, indefinite availability, or physical independence of HTTPS origins."
+  ]
+}
