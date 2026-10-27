@@ -977,6 +977,12 @@
               config/web-service.ncl \
               config/web-worker.ncl \
               config/web-systemd.ncl \
+              config/web-access.ncl \
+              config/web-automation.ncl \
+              config/web-cobs.ncl \
+              config/fixtures/*web-access*.ncl \
+              config/fixtures/*web-automation*.ncl \
+              config/fixtures/*web-cobs*.ncl \
               config/fixtures/*web-systemd*.ncl \
               deployment/*.ncl \
               deployment/fixtures/*.ncl \
@@ -1002,6 +1008,10 @@
             nickel typecheck config/web-service.ncl
             nickel typecheck config/web-worker.ncl
             nickel typecheck config/web-systemd.ncl
+            nickel typecheck config/web-cobs.ncl
+            nickel export config/fixtures/web-access-positive.ncl >/dev/null
+            nickel export config/fixtures/web-automation-positive.ncl >/dev/null
+            nickel export config/fixtures/web-cobs-positive.ncl >/dev/null
             nickel export config/fixtures/web-systemd-positive.ncl >/dev/null
             nickel export deployment/fixtures/positive.ncl >/dev/null
             for fixture in deployment/fixtures/negative-*.ncl; do

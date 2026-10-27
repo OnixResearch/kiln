@@ -1269,6 +1269,147 @@ checkout rather than the mutable worktree. Follow the existing
 [workflow application contract](lattice-workflow.md) for native handler setup;
 profile generation does not install or start it.
 
+### Optional read-only Onix COB browser
+
+The live workspace's **Onix COBs** view reads explicitly selected local Git
+stores, independently of CI project enrollment. It does not search the current
+directory, `$RAD_HOME`, a Radicle node, sibling checkouts or remote peers. Omitting
+`--cobs` leaves the browser unconfigured; an admitted empty repository list is
+configured but empty. Neither case discovers a default store.
+
+Apply [`config/web-cobs.ncl`](../config/web-cobs.ncl) to an operator-reviewed
+input record with a `repositories` array. The builder exports schema
+`kiln.web-cobs.v1`; each repository has exactly these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Stable public local key used by the `repository` query parameter; the Nickel component contract permits at most 100 lowercase ASCII letters, digits, `_`, `.` or `-`, excluding `.` and `..`. |
+| `label` | Public display label, 1–128 printable ASCII characters in the authoring contract. |
+| `repository_id` | Operator-declared native repository identity, 1–256 printable ASCII characters; this is not the local key or a derived path. |
+| `git_directory` | Absolute server-owned Git directory, not a worktree or browser-supplied path; no `..` components. Select the actual bare store or worktree's Git directory explicitly. |
+
+Runtime admission also rejects duplicate local keys, native repository IDs or
+Git directory paths. The selected directory must exist as a directory, not a
+final symlink, for a read to succeed. This is bounded local observation, not
+hostile-filesystem confinement. Public keys, labels and native IDs are disclosed
+to admitted readers: do not put secrets or host paths in those fields. Server
+`git_directory` paths and filesystem diagnostics are not returned in API JSON.
+
+Supply the reviewed expression and exported JSON paths separately from the
+original service profile:
+
+```console
+nickel typecheck config/web-cobs.ncl
+nickel export --format json --output "$KILN_COBS_PROFILE" "$KILN_COBS_NCL"
+kiln-web-service check --profile "$KILN_SERVICE_PROFILE" --cobs "$KILN_COBS_PROFILE"
+kiln-web-service serve --profile "$KILN_SERVICE_PROFILE" --cobs "$KILN_COBS_PROFILE"
+```
+
+Retain any independently admitted `--access` and `--automation` options on both
+commands. `check` admits the policy, not store availability, signatures or
+history completeness; inspect actual readback after startup. This runtime policy
+does not change the canonical CI `ServiceProfile` identity, worker JSON identity,
+CI journal, source enrollment or workflow authority. The packaged deployment
+does not implicitly enable it; a separately reviewed service invocation must
+pass `--cobs` and provision read access to the selected directories.
+
+The registry exposes exactly these six types, with no producer reducer:
+
+- `xyz.onixresearch.cairn-change`
+- `xyz.onixresearch.rfd`
+- `xyz.onixresearch.adr`
+- `xyz.onixresearch.verification-obligation`
+- `xyz.onixresearch.release-decision`
+- `xyz.onixresearch.policy-exception`
+
+Authenticated viewers and operators may make bodyless GET requests:
+
+- `/api/cobs` accepts only optional `repository` (local key), `type` (exact
+  registered name), `q`, `limit` and `cursor`. Search is case-insensitive substring
+  matching over the root-commit summary, object ID, local key, label, native
+  repository ID and type, not full action content. Ordering is by local key,
+  type and native object ID. The default page has 25 objects; `limit` is 1–100.
+  Keep filters and limit unchanged when following the returned `next_cursor`.
+  Cursor snapshots bind those selections and observed object/ref-tip identities;
+  moved refs or changed selections reject stale paging instead of silently
+  skipping to another result.
+- `/api/cobs/object?repository=KEY&type=TYPE&object=OID` requires all three exact
+  selections. `OID` is the native 40-character lowercase hexadecimal root commit
+  ID, not the generated Kiln display identity. Missing objects return an explicit
+  missing result; malformed identities, unknown/duplicate query fields, bodies,
+  browser paths, writes, anonymous readers and worker credentials are rejected.
+
+Inventory returns all admitted public repository keys/labels/native IDs in
+`repositories`, selected-store availability and counts in `sources`, all six
+`types`, paged `objects`, filtered `total`, `next_cursor`, `snapshot`, `complete`
+and `non_claims`. An unavailable selected store makes the inventory incomplete,
+not falsely empty; detail reads fail explicitly on unavailable/malformed stores
+or exhausted bounds. Distinguish these from an available store containing no
+supported objects. The page restores repository/type/search/paging and the exact
+object selection in its URL. A stale selection does not auto-select a replacement;
+clearing a session clears private COB views and pending reads.
+
+Native refs are `refs/cobs/<type>/<root-oid>` or
+`refs/namespaces/<key>/refs/cobs/<type>/<root-oid>`. The inspector preserves every
+observed ref tip, native operation ID, Git parents, recorded author/time/message
+and numbered JSON action blob identity/content. Each operation is checked against
+its type manifest. History follows operation parents back to the selected root;
+parents named by `Rad-Resource` or `Rad-Related` trailers are resource links, not
+history edges. Concurrent tips remain observations, not a chosen semantic winner.
+
+Current implementation bounds are fixed, not policy knobs:
+
+| Read boundary | Maximum |
+| --- | --- |
+| Policy JSON / repositories | 262,144 bytes / 64 |
+| Each decoded query value / response JSON | 256 bytes / 4,194,304 bytes |
+| Scanned refs per store / inventory objects across selected stores | 16,384 / 4,096 |
+| Ref tips per object / history operations per detail | 128 / 128 |
+| Git parents per operation / tree entries per operation | 128 / 256 |
+| Commit / tree / manifest bytes | 65,536 / 65,536 / 4,096 |
+| Numbered actions per operation / bytes per action | 128 / 262,144 |
+| Retained action bytes across one history / displayed root-summary characters | 1,048,576 / 256 |
+
+Raw action JSON and commit metadata are untrusted recorded content, rendered as
+inert text. `signature_status = "not_verified"`, `signatures_verified = false`
+and `reduced_state = null` are deliberate boundaries: this is not Cairn-reduced
+lifecycle state, actor authentication, signed-ref verification, a semantic
+conflict verdict, remote completeness, synchronization or publication proof.
+Browsing performs no Radicle signing, mutation, fetch, sync or publication and
+grants no CI, gate, acceptance or release authority. No repository credentials
+or transport authority are admitted by this policy.
+
+Kiln application/dashboard maintainers own this view and its repeatability
+rail; operators own store selection, local filesystem authority, policy review,
+reader enrollment and deployment. Repeat the persistent authoring checks from
+the development shell:
+
+```sh
+nickel typecheck config/web-cobs.ncl
+nickel export config/fixtures/web-cobs-positive.ncl >/dev/null
+for fixture in config/fixtures/negative-web-cobs-*.ncl; do
+  if nickel export "$fixture" >/dev/null 2>&1; then
+    echo "negative COB fixture unexpectedly passed: $fixture" >&2
+    exit 1
+  fi
+done
+cargo test --locked -p kiln-web-service --test cobs
+nix build path:$PWD#checks.x86_64-linux.nickel --no-link -L
+```
+
+The positive fixture and unknown-field/relative-path rejection fixtures are
+authoring checks, not installed-store or successful runtime evidence. For actual
+readback, open **Onix COBs** as an admitted viewer/operator, inspect inventory and
+one exact native object, follow a returned cursor, restore its URL and clear the
+session. Repeat with a deliberately unavailable selected store and verify an
+explicit incomplete/error state rather than an empty-success claim. Local
+fixtures and browser observations do not qualify deployment or release readiness.
+
+Inspect the candidate-bound local outcomes in
+`.cairn/changes/add-onix-cob-dashboard/evidence/verification.json`; the commands
+and procedure above are repeatability instructions, not a claim that a new
+candidate has passed them.
+
 ### Supervised deployment
 
 Kiln self-CI is the consumer; Kiln maintains the application and these assets.
@@ -1431,11 +1572,47 @@ lifecycle acceptance or release readiness.
 
 ### Use the live interface
 
-Open the registered HTTPS origin and enter the operator token. The page keeps it
-only in memory; logout clears private views, in-flight requests and download
-URLs. There are no hosted accounts, persistent browser sessions or permissive
-CORS. Worker credentials cannot enroll, initiate, control or download private
-data.
+Open the registered HTTPS origin. The page first makes a bounded, read-only
+`GET /api/session` without `Authorization`. An admitted network identity opens
+the workspace with its exact principal label and viewer/operator role; a 401
+leaves the bearer form available. Direct localhost access still requires an
+admitted bearer. Manually entered tokens stay only in memory; clearing the
+session erases private views, pending requests and download URLs. Reload and
+back/forward restoration recheck network authorization and never restore a
+cleared bearer token. There are no hosted accounts, persistent browser sessions
+or permissive CORS. A browser clear-session action cannot revoke network access.
+
+Export separate reviewed `config/web-access.ncl` and `config/web-automation.ncl`
+inputs and pass their JSON outputs as `--access` and `--automation` to both
+`check` and `serve`. They do not replace the original service/worker profiles.
+Access policy admits independent viewer credentials and, optionally, exact
+Tailscale user ID/login/role bindings with a distinct private proxy credential.
+Viewer requests can inspect retained facts but cannot enroll, run, control or
+configure automation. Worker credentials remain limited to exact worker ingress.
+Denied writes are attributable audit observations, not canonical CI events.
+
+For an operator-authorized private-tailnet deployment, preserve the original
+backend origin, profiles, tokens and state. Bind Nginx only to the declared
+Tailscale addresses; keep Funnel disabled and unrelated Tailscale Serve routes
+unchanged. Admit the exact public Host and Origin, translate only that Origin
+to the registered backend origin, and validate upstream TLS against its CA.
+Missing-Origin writes still reach backend rejection; foreign origins are denied.
+
+Use `kiln-web-service proxy-auth --access "$KILN_ACCESS_PROFILE"` behind Nginx
+`auth_request`. This private loopback endpoint resolves the actual TCP peer
+through the configured tailscaled Unix LocalAPI socket. Only registered exact
+user ID/login pairs on untagged tailnet nodes are admitted. Nginx must overwrite
+the peer socket and forwarded principal headers, clear client Authorization,
+and supply the distinct proxy credential to the resolver and HTTPS backend.
+Never trust browser-supplied identity headers or give every peer a shared
+operator bearer. Unregistered/tagged peers fail closed before application effects.
+
+Supply the proxy credential using systemd `LoadCredential` and a startup-generated
+private Nginx include in a 0700 `RuntimeDirectory` under `UMask=0077`. Keep it out
+of the Nix store, source, URLs, HTML/JavaScript and logs. Restart the proxy after
+rotation. The local operator owns peer ACLs, principal enrollment, CA renewal,
+credentials and listener exposure; Kiln dashboard/service maintainers own the
+reusable identity and browser flow. This is not a hostile-code sandbox.
 
 Enroll an allowlisted project, start its source-bound run and inspect exact
 revision/tree, attempt, native execution, node state and canonical outcome. Finite
@@ -1445,13 +1622,21 @@ retried. Controls require current canonical revision, attempt, native execution
 and sequence plus the selected capability; stale/unsupported controls fail before
 effects and require fresh operator action.
 
-stdout/stderr are actual retained Bounded Exec bytes, uploaded on step completion
-with **worker-owned byte cursors**. Multiple steps sharing a native node append
-to that node's streams. Empty output, capture truncation, bounded reads and
-retention are explicit; active work need not produce new bytes yet. Diagnostic
-logs retain **native provider cursors**. Neither stream invents progress or
-completion. Text is rendered inertly; byte cursors are not inferred from displayed
-UTF-8 character counts.
+stdout/stderr are actual retained Bounded Exec bytes, continuously uploaded
+before command exit with **worker-owned byte cursors**. Several steps sharing a
+native node append to its streams. Bounded Exec owns command termination while
+private bounded transports retain output; cancellation/deadline stops the owned
+process group and descendants. Ingress failure never masks the command outcome
+or silently retries ambiguous uploads. Initial worker binding obeys one absolute
+lookup deadline, including each HTTPS request and polling sleep.
+
+Empty output, capture truncation, read bounds and retention are explicit; active
+work need not produce new bytes yet. Diagnostic logs retain **native provider
+cursors**. Log search operates on retained bytes, including chunk boundaries;
+full-stream download supplies the exact retained bytes and BLAKE3 metadata.
+Neither stream invents progress or completion. Text is inert; byte cursors are
+never inferred from displayed UTF-8 character counts. Follow works with an
+admitted network session as well as a manual bearer.
 
 Artifacts are real declared worker files, bound to exact source, attempt,
 execution and known node. Uploads verify bounded bytes and BLAKE3 before atomic
@@ -1464,6 +1649,68 @@ exact profile identity. Restart reconciles original admitted work; it does not
 redispatch ambiguous work. Retention exhaustion rejects further intake rather
 than silently pruning authority. Profile migration, retention rotation,
 credential provisioning and worker isolation remain operator responsibilities.
+
+#### Workspace navigation and recorded evidence
+
+- **Overview:** retained totals, current project health and recorded run-duration
+  trends. Historical unknowns are excluded, not treated as zero. Node timing is
+  unknown when the first native observation is already terminal; no start time
+  or duration is fabricated.
+- **Runs:** metadata search, project/outcome/exact-source filters, oldest/newest
+  ordering and stable bounded pagination. Cursors bind the filter/order and
+  exclude later arrivals. A missing or filtered selection is not silently
+  replaced. Page, run, node, inspection tab, comparison, appearance and density
+  are URL-restored, including a full reload.
+- **Pipeline:** the admitted dependency edges, observed stage state and exact
+  node inspection. Edges and unknown timings are never inferred from log text.
+- **Rerun exact revision** creates a new source-bound attempt at the selected
+  immutable revision. **Run latest admitted reference** resolves the current
+  reviewed reference into a new candidate. **Retry known failed nodes** selects
+  the failed/downstream subgraph and requires an exact registered provider route;
+  missing subset support is rejection, never a full-graph fallback or success.
+  Actions require explicit confirmation and fresh selected-run facts.
+- **Tests & coverage:** reviewed worker steps may declare relative `reports`
+  with `kind` `junit`, `cobertura`, `lcov`, `gate`, `review` or `provenance` and a
+  `path`. Original profile bytes remain pinned; adding declarations requires a
+  newly reviewed profile and exact provider route. Raw retained reports bind
+  source, attempt, execution and node; malformed/stale/oversized uploads fail.
+  Missing reports are unavailable, not passing tests or full coverage.
+- **Compare & flaky:** compares retained outcome, duration, test status and
+  coverage facts. Repeated-test instability requires actual pass/fail history
+  for the same exact source revision, pipeline, node, report and test identity;
+  a changed source alone never becomes a flaky-test claim.
+- **Activity** distinguishes canonical events from attributable admission audit.
+  **Evidence** exposes exact source/pipeline/execution/artifact linkage and
+  recorded gate/review/provenance documents. Expand recorded-facts groups to
+  inspect native values. A document's verdict is not accepted gate authority,
+  review acceptance, source trust or release readiness.
+- **Operations:** provider observations, durable queue order, admitted execution
+  capacity and retained usage. A near-limit warning precedes intake exhaustion;
+  it does not prune state, promise placement or convert unknown provider state
+  into healthy capacity.
+
+#### Registered automation
+
+Only server-reviewed registrations appear in **Automation**. Operators may
+enable/disable declared sources/destinations, choose allowed push/PR categories,
+adjust schedule intervals within reviewed bounds and select admitted notification
+outcomes. Browser requests cannot add repository paths, credentials or URLs.
+
+Signed push/PR intake verifies the exact repository/reference/current revision,
+signature and replay identity before run reservation. Schedules reserve durably,
+skip missed intervals rather than burst unbounded catch-up work, and preserve
+their next due time across restart. A persisted round-robin selection gives due
+schedules and pending notifications fair turns within `max_tick_effects`.
+
+HTTPS completion/failure delivery reserves before sending and retains delivered,
+rejected or ambiguous observations without blind resend. Bounded serial delivery
+runs outside the engine mutex, keeping API/worker ingress available while a
+receiver waits; the single poll executor resumes workflow/schedule polling after
+the delivery batch. Configure notification timeouts and effect budgets with that
+poll-delay bound in mind. Credentials/destinations never enter the page. No
+declared trigger or notification means no invented subscription or destination;
+the current operator owns enrollment and delivery policy.
+
 
 ### Repeat the isolated native exercise
 
@@ -1482,8 +1729,9 @@ python3 scripts/web-service-smoke.py \
 ```
 
 `--browser-hold` additionally waits for actual browser observations in the owned
-scratch `browser-done.json` before API checks. The rail creates a proper isolated
-CA and server leaf, disposable exact Git source, real reviewed commands/native
+scratch `browser-done.json` after API checks and before resource retirement. The
+native `passed` flag covers the API exercise; inspect `browser.passed` separately.
+The rail creates a proper isolated CA and server leaf, disposable exact Git source, real reviewed commands/native
 workflows and private credentials. It checks successful and failed execution,
 multi-chunk output across repeated steps, empty streams, native diagnostics,
 artifact bytes/hash, role/origin/TLS rejection, replay, restart, stale/unsupported
@@ -1491,8 +1739,34 @@ controls and canonical cancellation. Failed checks remain failures. It retains
 measured executable/profile/source identities and observations, then removes its
 processes, private keys, credentials and scratch tree.
 
-This is local scoped evidence, not deployment success, hostile-code confinement,
-source trust, arbitrary provider correctness, lifecycle acceptance or release
-eligibility. The corrected native run passes only for its recorded cohort;
-qualification does not transfer to changed executables or profiles.
+The completion-notification restart check compares exact notification
+idempotency identities at the real HTTPS receiver. An unrelated pending delivery
+may finish during restart; total receiver traffic alone is not replay evidence.
+Long activity identities wrap within record cards on narrow displays.
+
+The complete-dashboard observations, including retained failures and corrected
+deep-link/mobile browser checks, are under
+`.cairn/changes/complete-live-dashboard/evidence/`. Their immediate consumer is
+Kiln self-CI; dashboard/service maintainers own the reusable rail and operators
+own host activation and separately admitted access/automation policies.
+
+The separate [local activation receipt](../.cairn/changes/complete-live-dashboard/evidence/deployment.json)
+records the supervised tailnet deployment, genuine tokenless operator identity,
+log-follow cursor progression, byte/hash-verified retained-log download and
+desktop/mobile observations. Original profiles, all four retained runs, eight
+retained log members and unrelated tailnet routes were preserved. The listener
+continues to use the original private deployment CA; clients must trust it.
+The [live-response diagnostic](../.cairn/changes/complete-live-dashboard/evidence/live-completion-diagnostic.json)
+retains Chromium cancellation events alongside completed finite snapshot and
+heartbeat readback; it does not claim an empty browser diagnostics log.
+
+The [verification record](../.cairn/changes/complete-live-dashboard/evidence/verification.json)
+retains the broader Radicle mutation timeout failure and nine dangling
+traceability IDs. Those failures remain release holds, not waived checks.
+
+The isolated exercise proves only its recorded cohort, not host deployment.
+Neither that exercise nor the local activation establishes hostile-code
+confinement, source trust, arbitrary provider correctness, lifecycle acceptance
+or release eligibility. Qualification does not transfer to changed executables
+or profiles.
 

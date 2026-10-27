@@ -1,0 +1,65 @@
+{
+  "schema": "kiln.dashboard.complete.verification.v1",
+  "workspace_tests": {
+    "command": "env CARGO_TARGET_DIR=/home/brittonr/.cargo-target/kiln-web-service CARGO_BUILD_JOBS=8 nix develop path:. --no-write-lock-file -c env RUSTC_WRAPPER= RUSTC_WORKSPACE_WRAPPER= cargo test --locked --workspace",
+    "exit_code": 0,
+    "suites": 108,
+    "passed": 669,
+    "failed": 0,
+    "ignored": 4,
+    "transcript": "cargo-test.log"
+  },
+  "workspace_clippy": {
+    "command": "env CARGO_TARGET_DIR=/home/brittonr/.cargo-target/kiln-web-service CARGO_BUILD_JOBS=8 nix develop path:. --no-write-lock-file -c env RUSTC_WRAPPER= RUSTC_WORKSPACE_WRAPPER= cargo clippy --locked --workspace --all-targets -- -D warnings",
+    "exit_code": 0
+  },
+  "native": {
+    "evidence": "native-07/verification.json",
+    "native_passed": true,
+    "browser_passed": true
+  },
+  "package": {
+    "path": "/nix/store/635nv7lqwyvlm4qr772007m5q31w43np-kiln-web-service-0.1.0",
+    "derivation": "/nix/store/mi6pax536jnr56dnipaqmayx5p2lkcab-kiln-web-service-0.1.0.drv",
+    "build_exit_code": 0,
+    "executable_blake3": "efbb0039120fcdaf2840c6618edce09438daf553af628aa9a80404d86771fc08",
+    "original_profile_access_automation_preflight_exit_code": 0,
+    "same_executable_as_preflight": true
+  },
+  "full_flake_check": {
+    "command": "nix flake check path:. --no-write-lock-file --builders '' -L",
+    "exit_code": 1,
+    "failing_check": "checks.x86_64-linux.radicle-mutation-native-fixtures",
+    "failing_test": "accepted_write_times_out_to_unknown_then_reconciles",
+    "observed": "TimedOut",
+    "expected": "Unknown",
+    "source": "crates/kiln-adapter-radicle/tests/mutation_native.rs:449"
+  },
+  "lifecycle": {
+    "validate_exit_code": 0,
+    "coverage_exit_code": 1,
+    "dangling": [
+      "kiln.dashboard.product.shell",
+      "kiln.dashboard.rats.provenance",
+      "kiln.dashboard.rats.provenance.scenario.drift",
+      "kiln.patchgate.conformance",
+      "kiln.patchgate.execution",
+      "kiln.patchgate.nonclaims",
+      "kiln.patchgate.profile",
+      "kiln.patchgate.request",
+      "kiln.patchgate.result"
+    ],
+    "release_readiness_exit_code": 0,
+    "evidence": "lifecycle-checks.json"
+  },
+  "non_claims": [
+    "The broader flake and traceability failures are retained, not waived or promoted to passing release gates.",
+    "Native and browser proof is scoped to the declared local cohort; production activation is recorded separately."
+  ],
+  "dedicated_nix": {
+    "command": "nix build path:.#checks.x86_64-linux.octet path:.#checks.x86_64-linux.web-service-deployment path:.#checks.x86_64-linux.nickel path:.#checks.x86_64-linux.format --builders '' --no-write-lock-file --no-link -L",
+    "exit_code": 0,
+    "vm_package": "/nix/store/635nv7lqwyvlm4qr772007m5q31w43np-kiln-web-service-0.1.0",
+    "vm_test_seconds": 42.14
+  }
+}

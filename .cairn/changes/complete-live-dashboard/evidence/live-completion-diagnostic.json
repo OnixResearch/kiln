@@ -1,0 +1,158 @@
+{
+  "schema": "kiln.dashboard.live-completion-diagnostic.v1",
+  "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+  "checks": {
+    "connection": "Live · authenticated",
+    "manual_heartbeat": {
+      "status": 200,
+      "body": ": heartbeat\n\n"
+    },
+    "live_resources": [
+      {
+        "duration": 23.80000001192093,
+        "body_bytes": 5020
+      },
+      {
+        "duration": 27,
+        "body_bytes": 13
+      },
+      {
+        "duration": 26.69999998807907,
+        "body_bytes": 13
+      },
+      {
+        "duration": 36.799999952316284,
+        "body_bytes": 13
+      }
+    ],
+    "network": [
+      {
+        "kind": "response",
+        "id": "603423.10",
+        "status": 200,
+        "url": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=0",
+        "headers": {
+          "Strict-Transport-Security": "max-age=31536000",
+          "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+          "Cache-Control": "no-store",
+          "Connection": "keep-alive",
+          "Referrer-Policy": "no-referrer",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Length": "5020",
+          "Date": "Tue, 27 Oct 2026 22:36:10 GMT",
+          "Content-Type": "text/event-stream",
+          "Server": "nginx/1.30.4",
+          "X-Frame-Options": "DENY"
+        }
+      },
+      {
+        "kind": "finished",
+        "id": "603423.10",
+        "bytes": 5518
+      },
+      {
+        "kind": "response",
+        "id": "603423.13",
+        "status": 200,
+        "url": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=37",
+        "headers": {
+          "Strict-Transport-Security": "max-age=31536000",
+          "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+          "Cache-Control": "no-store",
+          "Connection": "keep-alive",
+          "Referrer-Policy": "no-referrer",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Length": "13",
+          "Date": "Tue, 27 Oct 2026 22:36:11 GMT",
+          "Content-Type": "text/event-stream",
+          "Server": "nginx/1.30.4",
+          "X-Frame-Options": "DENY"
+        }
+      },
+      {
+        "kind": "failed",
+        "id": "603423.13",
+        "error": "net::ERR_ABORTED",
+        "canceled": true
+      },
+      {
+        "kind": "response",
+        "id": "603423.14",
+        "status": 200,
+        "url": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=37",
+        "headers": {
+          "Strict-Transport-Security": "max-age=31536000",
+          "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+          "Cache-Control": "no-store",
+          "Connection": "keep-alive",
+          "Referrer-Policy": "no-referrer",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Length": "13",
+          "Date": "Tue, 27 Oct 2026 22:36:13 GMT",
+          "Content-Type": "text/event-stream",
+          "Server": "nginx/1.30.4",
+          "X-Frame-Options": "DENY"
+        }
+      },
+      {
+        "kind": "finished",
+        "id": "603423.14",
+        "bytes": 509
+      },
+      {
+        "kind": "response",
+        "id": "603423.15",
+        "status": 200,
+        "url": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=37",
+        "headers": {
+          "Strict-Transport-Security": "max-age=31536000",
+          "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+          "Cache-Control": "no-store",
+          "Connection": "keep-alive",
+          "Referrer-Policy": "no-referrer",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Length": "13",
+          "Date": "Tue, 27 Oct 2026 22:36:14 GMT",
+          "Content-Type": "text/event-stream",
+          "Server": "nginx/1.30.4",
+          "X-Frame-Options": "DENY"
+        }
+      },
+      {
+        "kind": "finished",
+        "id": "603423.15",
+        "bytes": 509
+      },
+      {
+        "kind": "response",
+        "id": "603423.16",
+        "status": 200,
+        "url": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=37",
+        "headers": {
+          "Strict-Transport-Security": "max-age=31536000",
+          "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+          "Cache-Control": "no-store",
+          "Connection": "keep-alive",
+          "Referrer-Policy": "no-referrer",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Length": "13",
+          "Date": "Tue, 27 Oct 2026 22:36:14 GMT",
+          "Content-Type": "text/event-stream",
+          "Server": "nginx/1.30.4",
+          "X-Frame-Options": "DENY"
+        }
+      },
+      {
+        "kind": "finished",
+        "id": "603423.16",
+        "bytes": 509
+      }
+    ]
+  },
+  "prior_browser_diagnostics": {
+    "count": 64,
+    "only_live_request_cancellations": true,
+    "dropped": 0
+  },
+  "boundary": "The UI consumed a complete snapshot and successive finite heartbeats and remained authenticated. Chromium also recorded canceled live requests; the raw diagnostics remain retained, not discarded or claimed absent. Private-CA bypass was limited to visual automation; prior separate HTTPS probes verified the original CA and hostname."
+}

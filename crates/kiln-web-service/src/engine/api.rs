@@ -1,17 +1,15 @@
-use super::model::{RequestKind, RequestRecord, RunRecord, workflow_plan};
+use super::model::{RequestKind, RequestRecord};
 use super::{ApiResponse, Engine, Role, identity};
-use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
-use kiln_core::domain::{Command, State};
-use kiln_core::types::{Alias, AttemptId, ExternalRef, ProviderProfileId, RunId};
+use kiln_core::domain::Command;
+use kiln_core::types::{Alias, AttemptId, ExternalRef};
 use kiln_core::workflow::{
     WorkflowControlAction, WorkflowControlRequest, WorkflowLogReadRequest, WorkflowLogStream,
-    WorkflowSourceContext,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
-pub(super) fn json_response(status: u16, value: impl Serialize) -> Result<ApiResponse, String> {
+pub(crate) fn json_response(status: u16, value: impl Serialize) -> Result<ApiResponse, String> {
     Ok(ApiResponse {
         status,
         content_type: "application/json",
@@ -19,7 +17,7 @@ pub(super) fn json_response(status: u16, value: impl Serialize) -> Result<ApiRes
         download_name: None,
     })
 }
-pub(super) fn error(status: u16, code: &str) -> Result<ApiResponse, String> {
+pub(crate) fn error(status: u16, code: &str) -> Result<ApiResponse, String> {
     json_response(
         status,
         json!({"code":code,"message":match status {400=>"Request does not match the bounded API contract",403=>"Role is not authorized for this operation",404=>"Requested resource was not found",409=>"Request conflicts with current identity or retained state",_=>"Provider operation is unavailable or ambiguous"}}),
@@ -75,7 +73,7 @@ pub(super) fn deserialize_execution<'de, D: serde::Deserializer<'de>>(
     }
     Ok(value)
 }
-fn query(target: &str) -> Result<(&str, BTreeMap<&str, &str>), ()> {
+pub(crate) fn query(target: &str) -> Result<(&str, BTreeMap<&str, &str>), ()> {
     if target.len() > 8192 || target.bytes().any(|b| b.is_ascii_control()) {
         return Err(());
     }
@@ -91,7 +89,7 @@ fn query(target: &str) -> Result<(&str, BTreeMap<&str, &str>), ()> {
     }
     Ok((path, values))
 }
-fn decoded(value: &str) -> Result<String, ()> {
+pub(crate) fn decoded(value: &str) -> Result<String, ()> {
     let mut bytes = Vec::new();
     let mut chars = value.bytes();
     while let Some(b) = chars.next() {
@@ -126,7 +124,7 @@ impl Engine {
         )
         .map_err(|_| "native request encoding failed".into())
     }
-    fn request_replay(
+    pub(super) fn request_replay(
         &self,
         key: &str,
         fingerprint: &kiln_core::types::ContentId,
@@ -165,7 +163,7 @@ impl Engine {
         }
         Ok(None)
     }
-    fn reserve_request(
+    pub(super) fn reserve_request(
         &mut self,
         key: String,
         fingerprint: kiln_core::types::ContentId,
@@ -187,7 +185,7 @@ impl Engine {
         );
         self.persist()
     }
-    fn finish_request(
+    pub(super) fn finish_request(
         &mut self,
         key: &str,
         status: u16,
@@ -210,21 +208,23 @@ impl Engine {
         body: &[u8],
         role: Role,
     ) -> Result<ApiResponse, String> {
-        if self.storage_failed {
-            return error(503, "durable_state_unavailable");
-        }
-        let response = self.route(method, target, body, role)?;
-        let maximum = if response.content_type == "application/octet-stream" {
-            self.profile.bounds.max_artifact_bytes
-        } else {
-            self.profile.bounds.max_response_bytes
+        let label = match role {
+            Role::Viewer => "viewer",
+            Role::Operator => "operator",
+            Role::Worker => "worker",
         };
-        if response.body.len() > maximum {
-            return error(503, "response_bound");
-        }
-        Ok(response)
+        self.api_as(
+            method,
+            target,
+            body,
+            &crate::access::Principal {
+                id: format!("system:{label}"),
+                label: format!("Embedded {label}"),
+                role,
+            },
+        )
     }
-    fn route(
+    pub(super) fn route(
         &mut self,
         method: &str,
         target: &str,
@@ -257,22 +257,39 @@ impl Engine {
         let artifact_upload =
             method == "POST" && matches!(run_route, Some((_, Some("artifacts"), None)));
         let log_upload = method == "POST" && matches!(run_route, Some((_, Some("logs"), None)));
-        if role == Role::Worker && !worker_lookup && !artifact_upload && !log_upload {
+        let report_upload =
+            method == "POST" && matches!(run_route, Some((_, Some("reports"), None)));
+        if role == Role::Worker
+            && !worker_lookup
+            && !artifact_upload
+            && !log_upload
+            && !report_upload
+        {
             return error(403, "worker_scope");
         }
-        if role == Role::Operator && (artifact_upload || log_upload) {
+        if role != Role::Worker && (artifact_upload || log_upload || report_upload) {
             return error(403, "worker_only");
         }
         if method == "GET" && !body.is_empty() {
             return error(400, "unexpected_body");
+        }
+        if path == "/api/automation" {
+            return self.automation_route(method, target, body, role);
+        }
+        if method == "GET" {
+            if let Some(response) = self.dashboard_route(path, &params)? {
+                return Ok(response);
+            }
+        }
+        if method == "POST" && path == "/api/runs" && params.is_empty() {
+            return self.start_run(body);
         }
         if method == "GET" && path == "/api/projects" && params.is_empty() {
             let available:Vec<Value>=self.profile.projects.iter().map(|p|json!({"id":p.id,"label":p.label,"repository":p.repository_path,"reference":p.reference})).collect();
             let enrolled:Vec<Value>=self.profile.projects.iter().filter(|p|self.state.enrolled.contains(&p.id)).map(|p|Ok(json!({"id":p.id,"label":p.label,"repository":p.repository_path,"reference":p.reference,"pipeline_identity":identity(&p.workflow)?}))).collect::<Result<_,String>>()?;
             return json_response(200, json!({"available":available,"enrolled":enrolled}));
         }
-        if method == "POST" && params.is_empty() && (path == "/api/projects" || path == "/api/runs")
-        {
+        if method == "POST" && path == "/api/projects" && params.is_empty() {
             let req: ProjectRequest = match serde_json::from_slice(body) {
                 Ok(v) => v,
                 Err(_) => return error(400, "request_invalid"),
@@ -287,145 +304,26 @@ impl Engine {
             if self.state.requests.len() >= self.profile.bounds.max_requests {
                 return error(409, "request_retention");
             }
-            let project = match self
+            let Some(project) = self
                 .profile
                 .projects
                 .iter()
                 .find(|p| p.id == req.project_id)
                 .cloned()
-            {
-                Some(v) => v,
-                None => return error(404, "project_not_allowlisted"),
+            else {
+                return error(404, "project_not_allowlisted");
             };
-            if path == "/api/projects" {
-                self.state.enrolled.insert(project.id.clone());
-                self.reserve_request(
-                    req.request_id.clone(),
-                    fingerprint,
-                    project.id.clone(),
-                    RequestKind::Enroll,
-                )?;
-                return self.finish_request(&req.request_id,200,json!({"id":project.id,"label":project.label,"repository":project.repository_path,"reference":project.reference,"pipeline_identity":identity(&project.workflow)?}));
-            }
-            if !self.state.enrolled.contains(&project.id) {
-                return error(409, "project_not_enrolled");
-            }
-            if self
-                .state
-                .runs
-                .values()
-                .any(|r| r.project_id == project.id && !r.outcome().is_terminal())
-            {
-                return error(409, "project_active");
-            }
-            if self.state.runs.len() >= self.profile.bounds.max_runs {
-                return error(409, "run_retention");
-            }
-            let provider = ProviderProfileId::new(format!("web-git-{}", project.id))
-                .map_err(|_| "source profile identity invalid")?;
-            let adapter = LocalGitAdapter::new(
-                project.repository_path.clone(),
-                project.reference.clone(),
-                GitSourceProfile::pinned_local(provider.clone(), project.source_limits.clone()),
-            );
-            let source = match adapter.and_then(|a| resolve_and_acquire(&a, provider)) {
-                Ok(v) => v,
-                Err(_) => return error(503, "source_unavailable"),
-            };
-            let pipeline = identity(&project.workflow)?;
-            let run_identity = identity(&(&self.profile.service_id, &req, &source, &pipeline))?;
-            let id = format!("web-run-{}", run_identity.as_str());
-            let source_context = WorkflowSourceContext {
-                provider: Alias::new("git").map_err(|_| "git alias invalid")?,
-                repository: source.repository.clone(),
-                revision: ExternalRef::new(
-                    "git",
-                    "revision",
-                    source.exact_revision.native_id.as_str(),
-                )
-                .map_err(|_| "native Git revision invalid")?,
-            };
-            let plan = workflow_plan(&project, &run_identity, &pipeline, Some(source_context))?;
-            kiln_adapter_lattice::lower_request(
-                &project.lattice(self.profile.bounds.max_runs)?,
-                &plan,
-            )
-            .map_err(|_| "source-bound workflow rejected")?;
-            let mut record = RunRecord {
-                id: id.clone(),
-                ordinal: self.state.version,
-                project_id: project.id.clone(),
-                pipeline_identity: pipeline,
-                source,
-                plan: plan.clone(),
-                events: Vec::new(),
-                phase: "dispatch_reserved".into(),
-                observation: None,
-                error_code: None,
-                artifacts: Vec::new(),
-                logs: Vec::new(),
-                state: State::default(),
-            };
-            record.apply(Command::StartRun {
-                run_id: RunId::new(id.clone()).map_err(|_| "run identity invalid")?,
-                attempt_id: plan.attempt_id.clone(),
-                provider_profile: plan.provider_profile.clone(),
-                effect_id: plan.effect_id.clone(),
-            })?;
-            self.state.runs.insert(id.clone(), record);
+            self.state.enrolled.insert(project.id.clone());
             self.reserve_request(
                 req.request_id.clone(),
                 fingerprint,
-                id.clone(),
-                RequestKind::Start,
+                project.id.clone(),
+                RequestKind::Enroll,
             )?;
-            let result = self
-                .ports
-                .get_mut(&project.id)
-                .ok_or("project port missing")?
-                .dispatch(&plan);
-            self.accept(&id, result)?;
-            let view = serde_json::to_value(self.state.runs.get(&id).ok_or("run missing")?.view())
-                .map_err(|_| "run view encoding failed")?;
-            return self.finish_request(&req.request_id, 201, view);
+            return self.finish_request(&req.request_id,200,json!({"id":project.id,"label":project.label,"repository":project.repository_path,"reference":project.reference,"pipeline_identity":identity(&project.workflow)?}));
         }
         if method == "GET" && path == "/api/runs" {
-            if params
-                .keys()
-                .any(|k| !matches!(*k, "project_id" | "source_revision"))
-            {
-                return error(400, "query_invalid");
-            }
-            let project = match params.get("project_id").map(|v| decoded(v)).transpose() {
-                Ok(v) => v,
-                Err(_) => return error(400, "query_invalid"),
-            };
-            let revision = match params
-                .get("source_revision")
-                .map(|v| decoded(v))
-                .transpose()
-            {
-                Ok(v) => v,
-                Err(_) => return error(400, "query_invalid"),
-            };
-            let mut runs: Vec<_> = self
-                .state
-                .runs
-                .values()
-                .filter(|r| {
-                    project.as_ref().is_none_or(|p| p == &r.project_id)
-                        && revision
-                            .as_ref()
-                            .is_none_or(|v| v == r.source.exact_revision.native_id.as_str())
-                        && (role == Role::Operator
-                            || (!r.outcome().is_terminal() && r.phase == "active"))
-                })
-                .collect();
-            runs.sort_by(|a, b| b.ordinal.cmp(&a.ordinal).then_with(|| a.id.cmp(&b.id)));
-            return json_response(
-                200,
-                json!({"runs":runs.iter().map(|r|r.view()).collect::<Vec<_>>()}),
-            );
+            return self.run_list(&params, role);
         }
         if method == "GET" && path == "/api/live" {
             if params.keys().any(|k| *k != "after") {
@@ -453,6 +351,15 @@ impl Engine {
             };
             match (method, resource, artifact) {
                 ("GET", None, None) if params.is_empty() => return json_response(200, run.view()),
+                ("POST", Some("rerun"), None) if params.is_empty() => return self.rerun(id, body),
+                ("POST", Some("reports"), None) if params.is_empty() => {
+                    return self.upload_report(id, body);
+                }
+                ("GET", Some("reports"), None) if params.is_empty() => return self.run_reports(id),
+                ("GET", Some("compare"), None) => return self.compare_runs(id, &params),
+                ("GET", Some("activity"), None) => return self.activity(Some(id), &params),
+                ("GET", Some("evidence"), None) if params.is_empty() => return self.evidence(id),
+                ("GET", Some("logs"), Some("download")) => return self.download_logs(id, &params),
                 ("POST", Some("control"), None) if params.is_empty() => {
                     return self.control(id, body);
                 }
@@ -475,6 +382,13 @@ impl Engine {
         error(404, "route_missing")
     }
     fn control(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
+        let queued_action = serde_json::from_slice::<Value>(body).ok().is_some_and(|v| {
+            v.get("attempt_id").is_none()
+                && v.get("action").and_then(Value::as_str) == Some("cancel")
+        });
+        if self.state.runs.get(id).is_some_and(|r| r.phase == "queued") || queued_action {
+            return self.cancel_queued(id, body);
+        }
         let req: ControlRequest = match serde_json::from_slice(body) {
             Ok(v) => v,
             Err(_) => return error(400, "control_invalid"),
@@ -554,10 +468,10 @@ impl Engine {
         )
     }
     fn logs(&mut self, id: &str, params: &BTreeMap<&str, &str>) -> Result<ApiResponse, String> {
-        if params.len() != 4
+        if !(params.len() == 4 || params.len() == 5 && params.contains_key("q"))
             || params
                 .keys()
-                .any(|k| !matches!(*k, "node_id" | "stream" | "cursor" | "max_bytes"))
+                .any(|k| !matches!(*k, "node_id" | "stream" | "cursor" | "max_bytes" | "q"))
         {
             return error(400, "log_query_invalid");
         }
@@ -592,6 +506,19 @@ impl Engine {
             || max > run.plan.bounds.max_log_read_bytes
         {
             return error(400, "log_node_or_bound");
+        }
+        if let Some(q) = params.get("q") {
+            let q = match decoded(q) {
+                Ok(v) if !v.is_empty() && v.len() <= 256 => v,
+                _ => return error(400, "log_search_invalid"),
+            };
+            if stream == WorkflowLogStream::Diagnostic {
+                return error(400, "diagnostic_search_unavailable");
+            }
+            if q.len() > max {
+                return error(400, "log_search_bound");
+            }
+            return self.search_logs(id, &node, stream_name, cursor, max, &q);
         }
         if stream != WorkflowLogStream::Diagnostic {
             return self.captured_logs(id, &node, stream_name, cursor, max);

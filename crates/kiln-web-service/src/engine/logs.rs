@@ -236,4 +236,153 @@ impl Engine {
             "gap":false,"truncated":truncated || next < end,"retained":retained}),
         )
     }
+    fn retained_stream(
+        &self,
+        id: &str,
+        node: &str,
+        stream: &str,
+    ) -> Result<(Vec<u8>, bool, bool), String> {
+        let run = self.state.runs.get(id).ok_or("run missing")?;
+        validate(run)?;
+        let matching: Vec<_> = run
+            .logs
+            .iter()
+            .filter(|c| c.node_id == node && c.stream == stream)
+            .collect();
+        let size = matching
+            .iter()
+            .try_fold(0usize, |sum, c| sum.checked_add(c.bytes))
+            .ok_or("log byte overflow")?;
+        let mut bytes = Vec::with_capacity(size);
+        let mut truncated = false;
+        for chunk in &matching {
+            bytes.extend(storage::read_retained(
+                &self.profile.state_directory.join("logs"),
+                &chunk.id,
+                chunk.bytes,
+                &chunk.blake3,
+            )?);
+            truncated |= chunk.truncated;
+        }
+        Ok((bytes, !matching.is_empty(), truncated))
+    }
+    pub(super) fn search_logs(
+        &self,
+        id: &str,
+        node: &str,
+        stream: &str,
+        cursor: u64,
+        max: usize,
+        q: &str,
+    ) -> Result<ApiResponse, String> {
+        let (bytes, retained, truncated) = match self.retained_stream(id, node, stream) {
+            Ok(v) => v,
+            Err(_) => return error(503, "log_content_conflict"),
+        };
+        let start = match usize::try_from(cursor) {
+            Ok(v) if v <= bytes.len() => v,
+            _ => return error(400, "log_cursor_out_of_range"),
+        };
+        let needle = q.as_bytes();
+        let found = bytes
+            .get(start..)
+            .ok_or("retained log cursor invalid")?
+            .windows(needle.len())
+            .position(|w| w == needle)
+            .map(|offset| start + offset);
+        let Some(found) = found else {
+            return json_response(
+                200,
+                json!({"node_id":node,"stream":stream,"source":"worker-capture","cursor":cursor,"next_cursor":bytes.len(),"text":"","matches":[],"gap":false,"truncated":truncated,"retained":retained,"searched_bytes":bytes.len().saturating_sub(start)}),
+            );
+        };
+        let end = found.saturating_add(max).min(bytes.len());
+        let window = bytes
+            .get(found..end)
+            .ok_or("retained log search range invalid")?;
+        let matches: Vec<_> = window
+            .windows(needle.len())
+            .enumerate()
+            .filter(|(_, w)| *w == needle)
+            .take(100)
+            .map(|(offset, _)| json!({"cursor":found+offset,"bytes":needle.len()}))
+            .collect();
+        json_response(
+            200,
+            json!({"node_id":node,"stream":stream,"source":"worker-capture","cursor":found,"next_cursor":end,"text":String::from_utf8_lossy(window),"matches":matches,"gap":false,"truncated":truncated,"retained":retained,"searched_bytes":found-start+needle.len()}),
+        )
+    }
+    pub(super) fn download_logs(
+        &self,
+        id: &str,
+        params: &std::collections::BTreeMap<&str, &str>,
+    ) -> Result<ApiResponse, String> {
+        if params
+            .keys()
+            .any(|k| !matches!(*k, "node_id" | "stream" | "metadata"))
+            || !(2..=3).contains(&params.len())
+        {
+            return error(400, "log_query_invalid");
+        }
+        let node = match params.get("node_id").map(|v| super::api::decoded(v)) {
+            Some(Ok(v)) => v,
+            _ => return error(400, "node_invalid"),
+        };
+        let stream = match params.get("stream") {
+            Some(v) if matches!(*v, "stdout" | "stderr") => *v,
+            _ => return error(400, "stream_invalid"),
+        };
+        let run = self.state.runs.get(id).ok_or("run missing")?;
+        if !run.plan.nodes.iter().any(|n| n.id.as_str() == node) {
+            return error(400, "node_invalid");
+        }
+        let (bytes, retained, truncated) = match self.retained_stream(id, &node, stream) {
+            Ok(v) => v,
+            Err(_) => return error(503, "log_content_conflict"),
+        };
+        let safe_node: String = node
+            .chars()
+            .filter(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+            .take(128)
+            .collect();
+        let filename = format!(
+            "{id}-{safe_node}-{stream}{}.log",
+            if truncated {
+                "-retained-truncated"
+            } else {
+                "-retained"
+            }
+        );
+        if let Some(metadata) = params.get("metadata") {
+            if *metadata != "true" {
+                return error(400, "log_query_invalid");
+            }
+            return json_response(
+                200,
+                json!({"retained":retained,"truncated":truncated,"bytes":bytes.len(),"blake3":blake3::hash(&bytes).to_hex().as_str(),"filename":filename,"download_path":format!("/api/runs/{id}/logs/download?node_id={}&stream={stream}",url_component(&node))}),
+            );
+        }
+        if !retained {
+            return error(404, "log_stream_not_retained");
+        }
+        Ok(ApiResponse {
+            status: 200,
+            content_type: "application/octet-stream",
+            body: bytes,
+            download_name: Some(filename),
+        })
+    }
+}
+
+fn url_component(value: &str) -> String {
+    let mut encoded = String::new();
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            encoded.push(byte as char);
+        } else {
+            use std::fmt::Write;
+            let _ = write!(encoded, "%{byte:02X}");
+        }
+    }
+    encoded
 }

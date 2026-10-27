@@ -1,17 +1,24 @@
 //! Source-bound fixed-profile job shell. Commands run in a fresh admitted Git
 //! snapshot, with an empty ambient environment. This is not an OS sandbox:
 //! reviewed commands retain the worker account's filesystem/network authority.
-//! Bounded Exec publishes retained command output when each step completes;
-//! Lattice nodes represent the configured job, not synthetic per-command nodes.
+//! Bounded Exec owns the reviewed command's PID and process group while private
+//! bounded transports publish its output before exit.
 
 mod client;
 pub(crate) mod files;
 mod process;
 mod profile;
+mod reports;
 mod source;
+mod streaming;
 
 pub use profile::{Step, WorkerProfile};
 pub use source::SourceContext;
+
+/// Fixed exec adapter selected by the application before normal CLI parsing.
+pub fn stream_child_main(arguments: impl Iterator<Item = std::ffi::OsString>) -> i32 {
+    streaming::child_main(arguments)
+}
 
 use std::path::Path;
 use std::sync::Arc;
@@ -52,21 +59,42 @@ pub fn run_job(
     let service = client::ServiceClient::new(profile)?;
     let binding = service.await_binding(profile, &source.resolution, cancellation)?;
     let mut total_artifact_bytes = 0usize;
+    let mut total_report_bytes = 0usize;
     let mut log_uploads = client::LogUploads::default();
     for step in &profile.steps {
+        if !binding.nodes.iter().any(|node| node.id == step.node_id) {
+            continue;
+        }
         if cancellation.load(Ordering::SeqCst) {
             return Ok(130);
         }
-        let output = process::execute(profile, step, &source.checkout, cancellation)?;
-        let uploaded = (|| {
-            service.upload_logs(
-                profile,
-                &source.resolution,
-                &binding,
-                &step.node_id,
-                &output,
-                &mut log_uploads,
-            )?;
+        let output = process::execute_streamed(
+            profile,
+            step,
+            &source.checkout,
+            cancellation,
+            binding.log_bounds.maximum_chunk_bytes,
+            |chunk| {
+                service.upload_log_chunk(
+                    profile,
+                    &source.resolution,
+                    &binding,
+                    &step.node_id,
+                    chunk,
+                    &mut log_uploads,
+                )
+            },
+        )?;
+        // Reports must survive process failure and failed log/artifact ingress.
+        let reports = service.upload_reports(
+            profile,
+            &source.resolution,
+            &binding,
+            step,
+            &source.checkout,
+            &mut total_report_bytes,
+        );
+        let artifacts = (|| {
             for artifact in &step.artifacts {
                 let bytes =
                     files::artifact(&source.checkout, artifact, profile.maximum_artifact_bytes)?;
@@ -91,6 +119,7 @@ pub fn run_job(
             }
             Ok::<(), String>(())
         })();
+        let uploaded = output.ingress.and(reports).and(artifacts);
         let code = finish_step(output.code, uploaded)?;
         if code != 0 {
             return Ok(code);

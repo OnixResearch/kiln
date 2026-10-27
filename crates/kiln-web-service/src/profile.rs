@@ -45,6 +45,8 @@ pub struct ProjectProfile {
     pub label: String,
     pub repository_path: PathBuf,
     pub reference: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub admitted_references: Vec<String>,
     pub source_limits: GitSnapshotLimits,
     pub workflow: WorkflowConfig,
 }
@@ -89,8 +91,17 @@ pub(crate) fn read_token(path: &Path) -> Result<Vec<u8>, String> {
 
 impl ProjectProfile {
     pub fn reviewed_request(&self) -> Result<serde_json::Value, String> {
+        self.reviewed_request_for_nodes(&[])
+    }
+    pub fn reviewed_request_for_nodes(
+        &self,
+        selected_nodes: &[String],
+    ) -> Result<serde_json::Value, String> {
         let id = crate::engine::identity(&self.workflow)?;
-        let plan = crate::engine::model::workflow_plan(self, &id, &id, None)?;
+        let plan = crate::engine::model::selected_plan(
+            crate::engine::model::workflow_plan(self, &id, &id, None)?,
+            selected_nodes,
+        )?;
         let request = kiln_adapter_lattice::lower_request(&self.lattice(1)?, &plan)
             .map_err(|_| "workflow lowering rejected")?;
         serde_json::to_value(request).map_err(|_| "workflow request encoding failed".into())
@@ -229,6 +240,19 @@ impl ServiceProfile {
                 .contains(&0)
             {
                 return Err("invalid or duplicate allowlisted project".into());
+            }
+            let mut references = BTreeSet::new();
+            if project.admitted_references.len() > 64
+                || project.admitted_references.iter().any(|r| {
+                    r.is_empty()
+                        || r.len() > 1024
+                        || r.starts_with('-')
+                        || r.bytes()
+                            .any(|b| b.is_ascii_control() || b.is_ascii_whitespace())
+                        || !references.insert(r)
+                })
+            {
+                return Err("invalid admitted source references".into());
             }
             let lattice = project.lattice(b.max_runs)?;
             kiln_adapter_lattice::admit_profile(&lattice)

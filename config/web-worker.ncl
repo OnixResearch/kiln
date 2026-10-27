@@ -2,9 +2,9 @@
 # original JSON bytes, including whitespace; never hash a reserialized profile.
 # Commands run in the exact admitted Git commit, not the mutable worktree.
 # Several steps may use the same native Lattice job node_id. Their real retained
-# stdout/stderr are uploaded with separate worker-owned byte cursors on step
-# completion. Native Lattice diagnostics remain a different stream. Bounded Exec
-# has no incremental output callback; no progress or log bytes are synthesized.
+# stdout/stderr are uploaded during execution with separate worker-owned byte
+# cursors. Bounded Exec owns the process while private bounded transports retain
+# output; native diagnostics remain separate. No progress or bytes are synthesized.
 # This is not a sandbox: use a dedicated account and reviewed commands; token
 # files must be private, owned, outside repository_path and work_root.
 let Integer = fun maximum =>
@@ -39,12 +39,22 @@ let RelativeFile =
     && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
   )
 in
+let Report = {
+  kind
+    | std.contract.from_predicate (fun value =>
+      std.array.elem value ["junit", "cobertura", "lcov", "gate", "review", "provenance"]
+    ),
+  path | RelativeFile,
+}
+in
 let Step = {
   node_id | Component,
   program | AbsolutePath,
   argv | Array String,
   environment | { _ : String },
   artifacts | Array RelativeFile,
+  # Omitted declarations remain omitted, preserving existing profile JSON identity.
+  reports | Array Report | optional,
 }
 in
 fun input =>

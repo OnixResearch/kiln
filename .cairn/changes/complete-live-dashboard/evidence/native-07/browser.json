@@ -1,0 +1,34 @@
+{
+  "origin": "https://127.0.0.1:35571",
+  "checks": {
+    "mobile_activity": {
+      "viewport_width": 390,
+      "document_width": 390,
+      "run_link_count": 61,
+      "record_count": 50,
+      "wrap": "anywhere",
+      "token_empty": true
+    },
+    "prior_interaction_evidence": "../native-05/browser.json (non-layout interaction checks only; its mobile failure is superseded here)",
+    "deep_link_reload": {
+      "initial": {
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "url": "https://127.0.0.1:35571/?page=runs&view=pipeline&run=web-run-7e5fb71921463e5dc211ae02ac71875f04d4d37e5383bf900882716d8ee23bfc&theme=dark&density=compact"
+      },
+      "reload": {
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "url": "https://127.0.0.1:35571/?page=runs&view=pipeline&run=web-run-7e5fb71921463e5dc211ae02ac71875f04d4d37e5383bf900882716d8ee23bfc&theme=dark&density=compact"
+      },
+      "theme": "dark",
+      "density": "compact"
+    }
+  },
+  "non_claims": [
+    "Disposable native cohort. Chromium bypasses only its isolated self-signed CA; private operator transport headers are injected outside frontend JavaScript.",
+    "No production activation or release authority."
+  ],
+  "failures": [],
+  "passed": true
+}

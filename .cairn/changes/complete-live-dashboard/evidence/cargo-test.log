@@ -1,0 +1,1330 @@
+[kache] the cache index could not be opened after retries (opening index database /var/cache/kache-nix/user-brittonr/index.db: disk I/O error: Error code 4618: disk I/O error).
+[kache] Caching is disabled for this build — compilation still succeeds,
+[kache] just without cache hits or stores (everything builds uncached).
+[kache] This is usually a storage issue: the cache directory is on a
+[kache] filesystem that doesn't support reliable file locking, or it is
+[kache] being accessed from more than one machine at the same time.
+[kache] → set KACHE_CACHE_DIR to a fast, local, single-machine path
+   Compiling kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.78s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_aspen-c8fb4470abc70636)
+
+running 16 tests
+test tests::contracts::runtime_composition_is_explicit_and_never_falls_back ... ok
+test tests::contracts::equal_digest_text_keeps_roles_and_namespaces_distinct ... ok
+test tests::runtime::journal_and_outbox_commit_atomically_and_conflicts_change_nothing ... ok
+test tests::runtime::workflow_exchange_preserves_response_and_unknown_acceptance ... ok
+test tests::unix::unix_server_codec_rejects_operation_shape_unknown_fields_and_bounds ... ok
+test tests::contracts::denied_and_stale_effects_never_produce_a_fabric_plan ... ok
+test tests::contracts::exact_profile_admits_and_drift_fails_without_fallback ... ok
+test tests::runtime::lost_commit_acknowledgement_reconciles_without_duplicate_mutation ... ok
+test tests::runtime::remote_disconnect_after_acceptance_remains_unknown ... ok
+test tests::runtime::content_mapping_rejects_missing_corrupt_and_overbound_objects ... ok
+test tests::contracts::architecture_keeps_aspen_out_of_core_and_ambient_effects_out_of_callback ... ok
+test tests::runtime::timeout_and_cancellation_do_not_commit ... ok
+test tests::contracts::callback_frames_are_canonical_bounded_and_strict ... ok
+test tests::contracts::independent_consumer_accepts_the_static_producer_fixture ... ok
+test tests::completion::hosted_provider_completion_maps_exact_terminal_and_rejects_linkage_drift ... ok
+test tests::unix::unix_aspen_transport_accepts_exact_response_and_denies_missing_endpoint ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_cairn-1416bfe4346f327e)
+
+running 14 tests
+test tests::executable_substitution_fails_before_process_execution ... ok
+test tests::profile_rejects_revision_schema_and_limit_drift ... ok
+test tests::repeated_effect_rejects_candidate_and_policy_substitution ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::tampered_native_receipt_identity_is_rejected ... ok
+test tests::malformed_and_truncated_outputs_are_provider_errors ... ok
+test tests::exact_machine_fixture_admits_pass_repeat_and_reconciliation ... ok
+test tests::independent_consumer_accepts_producer_fixture_and_rejects_substitution ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_rerun ... ok
+test tests::core_and_provider_manifests_do_not_import_cairn_or_bounded_exec ... ok
+test tests::controlled_policy_error_preserves_diagnostic_class ... ok
+test tests::exact_machine_fixture_preserves_blocked_findings ... ok
+test tests::bounded_runtime_preserves_timeout_and_cancellation ... ok
+test tests::bounded_runtime_hashes_exact_file_and_rejects_missing_executable ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.19s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_cdevents-d59c870e2ec2788a)
+
+running 6 tests
+test tests::lossy_profile_is_rejected ... ok
+test tests::missing_correlation_rejects_without_canonical_action ... ok
+test tests::unknown_event_type_and_missing_fields_fail_closed ... ok
+test tests::task_run_round_trip_preserves_declared_fields ... ok
+test tests::independent_fixture_decodes_with_the_pinned_profile ... ok
+test tests::imported_success_is_observational_and_duplicates_are_explicit ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_celld-afb5c41f86b2e67b)
+
+running 54 tests
+test admission::tests::rejects_a_migration_exceeding_the_step_bound ... ok
+test admission::tests::completed_lease_requires_no_action ... ok
+test admission::tests::expired_lease_requires_reconcile ... ok
+test admission::tests::ambiguous_provider_outcome_requires_reconciliation ... ok
+test admission::tests::rejects_a_migration_cycle ... ok
+test admission::tests::rejects_a_non_contiguous_append ... ok
+test admission::tests::leases_move_unclaimed_to_leased ... ok
+test admission::tests::checked_replay_rejects_corrupted_identity_before_evolution ... ok
+test admission::tests::admits_one_batch_at_the_expected_revision ... ok
+test admission::tests::plans_a_known_migration ... ok
+test admission::tests::rejects_an_empty_append ... ok
+test admission::tests::rejects_a_stale_expected_revision ... ok
+test admission::tests::checked_replay_evolves_valid_history_without_provider_dispatch ... ok
+test admission::tests::rejects_an_unknown_migration_edge ... ok
+test admission::tests::rejects_a_duplicate_event_identity ... ok
+test client::tests::append_classifies_a_tls_failure ... ok
+test client::tests::append_classifies_an_unknown_outcome ... ok
+test client::tests::append_classifies_a_disconnection ... ok
+test client::tests::append_classifies_a_key_mismatch ... ok
+test client::tests::append_classifies_a_timeout ... ok
+test client::tests::append_classifies_a_malformed_response ... ok
+test admission::tests::classifies_repeats_and_conflicts ... ok
+test client::tests::append_rejects_a_stale_request_before_dispatch ... ok
+test client::tests::a_missing_authenticated_read_never_fabricates_an_empty_journal ... ok
+test client::tests::append_classifies_a_redirect ... ok
+test partition::tests::maps_a_partition_deterministically ... ok
+test client::tests::append_rejects_a_second_partition_before_transport ... ok
+test client::tests::append_commits_on_acceptance ... ok
+test partition::tests::rejects_zero_partition_count ... ok
+test partition::tests::maps_different_streams_within_the_partition_policy ... ok
+test profile::tests::local_sqlite_only_cannot_admit_an_unobserved_runtime ... ok
+test profile::tests::rejects_drifted_release ... ok
+test profile::tests::rejects_hostile_tenants_on_the_alpha_cohort ... ok
+test profile::tests::rejects_output_gate_disabled ... ok
+test profile::tests::rejects_storage_probe_disabled ... ok
+test profile::tests::rejects_undeclared_trust_domain ... ok
+test profile::tests::rejects_unobserved_artifact_deployment_storage_and_ingress_changes ... ok
+test protocol::tests::rejects_an_empty_nonce ... ok
+test profile::tests::rejects_private_route_and_untrusted_origin_before_worker_dispatch ... ok
+test profile::tests::rejects_stale_cohort_observations_and_observed_disabled_storage ... ok
+test protocol::tests::rejects_a_wrong_signature ... ok
+test protocol::tests::length_framing_rejects_equal_legacy_nonce_and_operation_bytes ... ok
+test profile::tests::rejects_zero_bounds ... ok
+test worker::tests::cohort_admission_requires_output_gate_and_probe ... ok
+test protocol::tests::classifies_accepted_and_rejected_responses ... ok
+test protocol::tests::signs_and_verifies_an_envelope ... ok
+test worker::tests::worker_rejects_a_bad_signature ... ok
+test worker::tests::worker_does_not_commit_past_a_rejection ... ok
+test worker::tests::worker_commits_outbox_and_event_together ... ok
+test worker::tests::compatible_cohort_differential_is_identical ... ok
+test worker::tests::cohort_restart_preserves_committed_facts ... ok
+test worker::tests::worker_replays_equal_operation_without_mutation ... ok
+test worker::tests::worker_commits_one_append ... ok
+test worker::tests::conflicting_payload_is_rejected_after_commit ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/live_control.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/live_control-7401909b27500722)
+
+running 1 test
+test actual_worker_controls ... ignored, requires the pinned loopback Celld HTTPS cohort runner
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/live_worker.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/live_worker-7ef215507165c7ad)
+
+running 1 test
+test actual_worker_persists_event_outbox_and_reconciles_a_lost_append_response ... ignored, requires the loopback Celld cohort runner tests/celld-live-cohort.sh
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_cob-2ed9ff0ea66abb60)
+
+running 5 tests
+test tests::every_cairn_profile_has_a_read_only_adapter ... ok
+test tests::unknown_profile_has_no_implicit_adapter ... ok
+test tests::registry_requires_all_cairn_profiles ... ok
+test tests::dispatch_orders_observation_signer_preview_and_effect ... ok
+test tests::stale_observation_and_missing_signer_block_effects ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_git-6145ab88ef24f7f8)
+
+running 8 tests
+test tests::profile_rejects_network_and_format_drift ... ok
+test tests::pinned_profile_is_read_only ... ok
+test tests::adapter_exposes_no_network_or_mutation_surface ... ok
+test tests::missing_repository_and_unsupported_features_fail_closed ... ok
+test tests::real_repository_resolves_and_acquires_repeatably ... ok
+test tests::moved_reference_is_rejected_before_identity_return ... ok
+test tests::missing_commit_object_fails_closed ... ok
+test tests::detached_commit_annotated_tag_and_empty_tree_are_supported ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_github-bca33fc0c982436c)
+
+running 50 tests
+test events::tests::repository_policy_respects_core_native_identity_boundary ... ok
+test events::tests::malformed_signature_forms_fail_closed ... ok
+test events::tests::hmac_matches_rfc4231_vector_and_rejects_modified_bytes ... ok
+test secret::tests::secret_values_reject_header_injection_and_invalid_encoding ... ok
+test secret::tests::debug_discloses_neither_secret_material_nor_secret_length ... ok
+test events::tests::authentication_precedes_json_decode_and_failure_does_not_reveal_payload ... ok
+test events::tests::repository_name_id_and_internal_name_consistency_are_required ... ok
+test events::tests::pr_base_number_and_head_repository_consistency_are_enforced ... ok
+test events::tests::deleted_pushes_closed_prs_and_unselected_events_are_ignored ... ok
+test events::tests::case_normalization_preserves_native_spelling_without_dedup_bypass ... ok
+test events::tests::all_selected_pr_actions_use_head_not_base_or_merge_sha ... ok
+test events::tests::pr_action_redelivery_deduplicates_but_distinct_prs_and_event_kinds_do_not ... ok
+test events::tests::delivery_and_incidental_payload_changes_do_not_change_semantic_candidate ... ok
+test events::tests::push_retains_native_facts_but_dispatches_exact_sha_and_canonical_repository ... ok
+test events::tests::malformed_json_missing_fields_and_duplicate_critical_fields_are_rejected ... ok
+test events::tests::body_and_header_bounds_and_delivery_guid_are_enforced ... ok
+test events::tests::malformed_sha_and_reference_never_become_executable_candidates ... ok
+test tests::export::malformed_profile_does_not_create_a_database ... ok
+test status::tests::plan_identity_binds_every_semantic_field_and_full_run_marker ... ok
+test events::tests::forks_require_explicit_policy_and_retain_exact_source_facts ... ok
+test status::tests::client_debug_discloses_neither_token_material_nor_length ... ok
+test tests::unsupported_graph_controls_and_unbounded_acknowledgement_fail_before_resources ... ok
+test status::tests::real_http_publish_retains_exact_projection_and_uses_fixed_protocol ... ok
+test job::tests::rejects_wrong_source_and_profile_bytes_before_execution ... ok
+test status::tests::denied_rate_limited_and_redirect_responses_never_follow_or_retry ... ok
+test status::tests::reconciliation_allows_lifecycle_history_but_rejects_conflicting_exact_markers ... ok
+test tests::export::export_rejects_source_aliases_and_sidecars_without_replacement ... ok
+test tests::durable_delivery_and_candidate_dedup_reject_conflict_and_stale_cas ... ok
+test tests::export::export_never_resolves_credentials_or_contacts_workflow ... ok
+test job::tests::missing_unsafe_and_oversized_tree_never_materialize ... ok
+test tests::export::missing_and_stale_profiles_preserve_prior_output_and_database ... ok
+test tests::retention_and_changed_profile_never_erase_prior_replay_state ... ok
+test tests::export::snapshot_export_preserves_original_profile_and_protects_snapshot ... ok
+test tests::accepted_dispatch_with_failed_recovery_stays_unknown_and_recovers_without_redispatch ... ok
+test status::tests::provider_repository_case_normalization_preserves_exact_origin_endpoint_and_revision ... ok
+test tests::incomplete_connection_does_not_block_another_webhook_and_overload_does_not_stop_daemon ... ok
+test tests::interrupted_reservation_never_becomes_permission_to_dispatch ... ok
+test job::tests::exact_checkout_content_and_real_exit_outcome ... ok
+test tests::terminal_intent_does_not_hide_an_ambiguous_pending_status ... ok
+test tests::stale_observations_consume_durable_budget_and_never_publish_success ... ok
+test tests::export::exported_success_failure_unresolved_and_pending_replay_exactly ... ok
+test status::dns_tests::dns_protocol_admits_only_bounded_fixed_port_addresses_and_fixed_destination ... ok
+test secret::tests::declared_resolution_checks_arguments_and_clears_environment ... ok
+test tests::export::malformed_and_corrupt_stores_preserve_prior_report ... ok
+test job::tests::deadline_cancellation_and_output_overflow_are_not_success ... ok
+test tests::http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_headers ... ok
+test status::dns_tests::stalled_resolver_subprocess_deadline_kills_and_reaps_its_process_group ... ok
+test secret::tests::drift_failures_and_malformed_output_are_redacted ... ok
+test status::tests::reconciliation_paginates_and_exhaustion_cannot_prove_absence_or_complete_match ... ok
+test status::tests::post_mismatches_malformed_lost_timeout_and_oversized_responses_are_unknown ... ok
+
+test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_github-706aeeffee417792)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/github-job.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_github_job-6ff4192ba7c7e979)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/job.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/job-8bd1938d0c8f3b80)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/local_ci_e2e.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/local_ci_e2e-161b168b4e53cb99)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_http_observe-ebb247d10e0c67de)
+
+running 25 tests
+test tests::live_buffer_drops_oldest_and_reports_loss ... ok
+test tests::sse_frame_is_bounded_and_identified ... ok
+test tests::conformance_manifest_requires_all_cases ... ok
+test tests::profile_admission_accepts_complete_profile ... ok
+test tests::profile_admission_rejects_drift ... ok
+test tests::request_mapping_admits_views_and_rejects_unknowns ... ok
+test tests::nickel_http_profile_fixture_is_admitted ... ok
+test tests::nickel_ucan_profile_fixture_is_admitted ... ok
+test tests::request_reader_enforces_bounds_and_timeouts ... ok
+test tests::ucan_profile_admission_rejects_drift_and_missing_nonclaims ... ok
+test tests::ucan_profile_rejects_unanchored_proof_token ... ok
+test tests::ucan_rejects_self_issued_holder_token ... ok
+test tests::auth_verifies_and_rejects ... ok
+test tests::ucan_rejects_caveated_token ... ok
+test tests::server_rejects_unanchored_ucan_invocation ... ok
+test tests::ucan_proof_chain_is_admitted_and_revocation_is_denied ... ok
+test tests::ucan_holder_invocation_is_admitted_and_replayed_nonce_denied ... ok
+test tests::server_tls_failure_does_not_break_service ... ok
+test tests::ucan_replay_cache_bound_denies_new_nonce ... ok
+test tests::server_serves_ucan_holder_invocation ... ok
+test tests::server_serves_identity_bearing_view ... ok
+test tests::ucan_rejects_wrong_target_capability_operation_and_expired_token ... ok
+test tests::server_rejects_unauthorized_unknown_and_malformed ... ok
+test tests::server_live_delivers_new_committed_event ... ok
+test tests::server_live_delivers_and_reports_loss ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_iroh-661bb04ef3ad8332)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_iroh-ea3134518d4efd0d)
+
+running 1 test
+test tests::identity_is_private_create_once_and_rejects_unsafe_inputs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/workflow.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/workflow-dc8487863c4bc383)
+
+running 8 tests
+test profile_admission_rejects_drift_empty_authority_and_invalid_bounds ... ok
+test proxy_denies_unlisted_local_user_without_opening_worker_provider_socket ... ok
+test a_valid_but_unlinked_provider_response_is_not_success ... ok
+test lost_response_stays_unknown_to_unix_consumer_and_exact_recovery_does_not_redispatch ... ok
+test authenticated_native_operations_preserve_acceptance_controls_logs_and_recovery ... ok
+test unavailable_provider_is_unknown_not_safe_retry_through_proxy ... ok
+test deadline_after_provider_acceptance_stays_unknown_and_recovers_original_request ... ok
+test denied_peer_profile_drift_stale_identity_and_bad_frames_never_open_provider_socket ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.40s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_iroh_observe-eeb48e21f6d82405)
+
+running 12 tests
+test tests::conformance_manifest_requires_all_cases ... ok
+test tests::did_key_is_stable_and_aligned_with_endpoint_identity ... ok
+test tests::equivalence_accepts_equal_views_and_rejects_divergence ... ok
+test tests::profile_admission_accepts_complete_profile ... ok
+test tests::nickel_iroh_profile_fixture_is_admitted ... ok
+test tests::payload_identity_binds_log_bytes_and_event_records ... ok
+test tests::corrupted_payload_identity_is_rejected ... ok
+test tests::profile_admission_rejects_drift_and_missing_bounds ... ok
+test tests::trusted_peer_serves_equal_http_and_iroh_views ... ok
+test tests::log_range_delivers_verified_payload ... ok
+test tests::unknown_and_revoked_peers_are_denied ... ok
+test tests::transport_failure_is_bounded_and_never_claims_a_view ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.07s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_jj-d9da972a3e898956)
+
+running 2 tests
+test tests::rejects_divergent_change_before_acquisition ... ok
+test tests::resolves_exact_commit_and_tree ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_lattice-6e5b6c8f222721eb)
+
+running 19 tests
+test tests::profile_rejects_missing_operation_and_capability_drift ... ok
+test tests::pinned_profile_is_exact_and_admitted ... ok
+test tests::unsupported_node_fails_before_transport ... ok
+test tests::unavailable_provider_fails_without_fallback ... ok
+test tests::request_lowering_is_deterministic ... ok
+test tests::source_context_preserves_mixed_case_provider_identity ... ok
+test tests::unrequested_control_fails_before_transport ... ok
+test tests::unix::unavailable_socket_fails_without_fallback ... ok
+test tests::disconnect_after_acceptance_stays_unknown_with_execution_identity ... ok
+test tests::recovery_only_dispatch_never_sends_a_new_dispatch ... ok
+test tests::unix::unknown_dispatch_recovers_acceptance_without_redispatch ... ok
+test tests::dispatch_and_observe_preserve_linkage_and_complete ... ok
+test tests::cancellation_returns_a_linked_terminal_observation ... ok
+test tests::pause_and_log_operations_are_bounded ... ok
+test tests::pinned_producer_fixtures_pass_independent_consumer_admission ... ok
+test tests::stale_execution_is_rejected_without_state_change ... ok
+test tests::unix::pinned_recovery_fixtures_pass_producer_admission ... ok
+test tests::unix::not_found_recovery_remains_unknown_without_retry_authority ... ok
+test tests::unix::concrete_socket_client_covers_every_exchange_operation ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_mantle-f30f716606bd2c5d)
+
+running 9 tests
+test tests::independent_consumer_accepts_exact_producer_fixtures ... ok
+test tests::core_and_provider_manifests_do_not_import_mantle_or_bounded_exec ... ok
+test tests::profile_and_file_identity_drift_fail_before_dispatch ... ok
+test tests::bounded_runtime_hashes_files_and_enforces_log_bounds ... ok
+test tests::repeated_effect_rejects_candidate_and_plan_substitution ... ok
+test tests::cache_cannot_hide_a_missing_required_product ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::exact_native_report_admits_success_repeat_logs_and_reconciliation ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_redispatch ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_nix-53a2cc1ef7e2de93)
+
+running 14 tests
+test tests::executable_derivation_and_profile_drift_fail_before_dispatch ... ok
+test tests::pinned_profile_is_admitted ... ok
+test tests::log_requests_are_identity_bound_and_bounded ... ok
+test tests::successful_build_is_recorded_and_readable ... ok
+test tests::inconsistent_limits_are_rejected ... ok
+test tests::duplicate_dispatch_reuses_the_record ... ok
+test tests::conflicting_or_mismatched_plans_do_not_execute ... ok
+test tests::timeout_and_cancellation_are_terminal ... ok
+test tests::unknown_outcome_has_no_terminal_receipt ... ok
+test tests::missing_product_or_wrong_path_is_a_provider_error ... ok
+test tests::nonzero_exit_is_failed_with_a_terminal_receipt ... ok
+test tests::flat_profile_config_is_admitted ... ok
+test tests::multi_output_build_is_admitted ... ok
+test tests::observation_only_restore_has_no_log_and_rejects_conflicts ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_nix_eval-6f4f1410601dba15)
+
+running 28 tests
+test tests::producer_statistics_are_typed_and_do_not_widen_the_stock_schema ... ok
+test tests::bounded_runtime_hashes_files_and_rejects_non_root_entries ... ok
+test tests::executable_manifest_source_and_cohort_drift_fail_before_launch ... ok
+test tests::explicit_nonfixture_request_drift_rejects_before_roots_or_process ... ok
+test tests::onix_binding_requires_selector_platform_and_explicit_cohort_selection ... ok
+test tests::error_classification_uses_the_selected_cohort ... ok
+test tests::onix_policy_and_nonclaims_cannot_be_promoted ... ok
+test tests::explicit_cancellation_uses_the_cancellation_path ... ok
+test tests::onix_request_drift_rejects_before_roots_or_process ... ok
+test tests::spawn_failure_cleans_the_private_gc_root_directory ... ok
+test tests::onix_binding_rejects_malformed_deserialized_flake_hashes ... ok
+test tests::explicit_nonfixture_flake_drift_rejects_construction_and_dispatch ... ok
+test tests::gc_root_identity_bound_admits_the_boundary_and_rejects_overflow_before_dispatch ... ok
+test tests::stock_profile_rejects_onix_cohort_before_process_launch ... ok
+test tests::onix_binding_rejects_mutable_indirect_and_malformed_roots ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::complete_stream_maps_tasks_and_preserves_job_error ... ok
+test tests::onix_manifest_provenance_and_fatal_jobs_fail_closed ... ok
+test tests::explicit_nonfixture_source_admits_discovery_without_fixture_source ... ok
+test tests::onix_runtime_drift_rejects_before_roots_or_process ... ok
+test tests::gc_roots_require_complete_handoff_and_preserve_cleanup_failure ... ok
+test tests::duplicate_jobs_oversized_lines_and_gc_root_loss_fail_closed ... ok
+test tests::shared_discovery_conformance_accepts_the_exact_adapter ... ok
+test tests::malformed_truncated_and_conflicting_cache_streams_fail_closed ... ok
+test tests::exact_onix_discovery_maps_tasks_and_retains_roots_until_handoff ... ok
+test tests::stock_profile_serialization_omits_onix_binding_and_preserves_selection ... ok
+test tests::timeout_cancellation_crash_and_unknown_remain_distinct ... ok
+test tests::incremental_decoder_is_invariant_across_chunk_boundaries ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/onix_live.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/onix_live-bd0423fb9b8323d6)
+
+running 1 test
+test exact_onix_discovers_nickel_jobs_maps_dependency_and_releases_roots ... ignored, requires the exact optional Onix evaluator, plugin, manifest and immutable fixture
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_opentelemetry-32e5501a9821539a)
+
+running 7 tests
+test tests::profile_drift_and_authority_promotion_fail_closed ... ok
+test tests::backend_acceptance_does_not_create_ci_success ... ok
+test tests::unregistered_metric_name_is_rejected ... ok
+test tests::backend_loss_does_not_change_canonical_state ... ok
+test tests::projection_is_deterministic_and_keeps_kiln_links ... ok
+test tests::independent_fixture_preserves_batch_identity_and_all_signals ... ok
+test tests::secret_is_redacted_before_batch_encoding ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_patchgate-e97ca3b224965e2c)
+
+running 12 tests
+test tests::executable_replacement_is_refused_before_dispatch ... ok
+test tests::retained_receipt_binds_original_bytes_and_the_exact_request ... ok
+test tests::deterministic_acceptance_needs_actual_landed_state_not_model_or_empty_records ... ok
+test tests::empty_native_main_and_verification_bindings_preserve_native_semantics ... ok
+test tests::operational_stops_and_native_execution_errors_are_not_rejections ... ok
+test tests::real_process_gets_null_stdin_and_only_explicit_environment ... ok
+test tests::exact_selection_refuses_duplicates_missing_items_and_extra_prerequisites ... ok
+test tests::model_bindings_allow_simulated_main_advancement_but_not_foreign_policy ... ok
+test tests::native_bindings_and_configuration_cannot_be_substituted ... ok
+test tests::all_native_nonaccepting_states_remain_distinct ... ok
+test tests::process_success_is_not_approval_and_process_failure_is_not_rejection ... ok
+test tests::real_process_deadline_cancellation_and_capture_overflow_preserve_failure_classes ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_patchgate_review-8e408ed7ba170d42)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_pijul-fed8f6282127a9c3)
+
+running 10 tests
+test archive::tests::archive_accepts_regular_file_and_rejects_special_permissions ... ok
+test tests::exact_native_observation_resolves_repeatably ... ok
+test tests::profile_rejects_version_format_capability_and_bound_drift ... ok
+test tests::moving_or_substituted_state_fails_without_partial_success ... ok
+test tests::missing_busy_and_damaged_provider_failures_remain_distinct ... ok
+test tests::core_standalone_and_cli_remain_independent_of_pijul_runtime ... ok
+test tests::pinned_profile_is_exact_and_read_only ... ok
+test tests::concrete_shell_uses_native_library_without_mutation_or_network_surface ... ok
+test tests::equal_snapshots_do_not_collapse_distinct_pijul_histories ... ok
+test tests::malformed_and_bounded_snapshots_fail_closed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_radicle-00a1dbff2d5eeb50)
+
+running 41 tests
+test mutation::tests::write_outcomes_keep_timeout_and_unknown_distinct ... ok
+test status::tests::exact_expected_head_is_admitted_and_stale_head_is_rejected ... ok
+test status::tests::terminal_outcomes_are_classified_and_unknown_is_rejected ... ok
+test status::tests::replayed_key_requires_equal_run_revision_and_outcome ... ok
+test tests::production_composition_has_no_fixture_direct_nix_or_core_provider_edge ... ok
+test status::tests::first_write_and_own_single_head_are_admitted ... ok
+test status::tests::foreign_and_multiple_heads_are_rejected ... ok
+test status::tests::malformed_and_zero_signers_are_rejected ... ok
+test source::tests::authority_contract_and_cohort_drift_fail_closed ... ok
+test tests::maps_patch_and_preserves_failure ... ok
+test status::tests::empty_resolution_reason_fails_before_executable_access ... ok
+test tests::rejects_run_substitution_and_preserves_timeout_failure ... ok
+test tests::rejects_stdout_noise_fields ... ok
+test tests::rejects_unknown_version ... ok
+test tests::maps_push_and_emits_two_protocol_lines ... ok
+test tests::rejects_zero_poll_bound_before_provider_calls ... ok
+test mutation::tests::undeclared_target_and_action_are_rejected ... ok
+test status::tests::executable_identity_drift_fails_closed ... ok
+test source::tests::pinned_source_profile_is_narrow_and_admitted ... ok
+test mutation::tests::zero_deadline_executable_substitution_and_merge_authority_are_rejected ... ok
+test mutation::tests::rendered_review_matches_the_pinned_radicle_shape ... ok
+test mutation::tests::pinned_profile_and_declared_plan_are_admitted ... ok
+test status::tests::resolved_signer_debug_is_redacted ... ok
+test status::tests::legacy_status_profile_is_rejected ... ok
+test source::tests::malformed_native_identities_fail_before_repository_access ... ok
+test status::tests::unlisted_object_type_is_rejected ... ok
+test status::tests::authority_expansion_is_rejected ... ok
+test status::tests::missing_secret_declaration_is_rejected ... ok
+test status::tests::production_profile_rejects_executable_substitution ... ok
+test status::tests::zero_profile_bound_is_rejected ... ok
+test defelo::tests::published_broker_fixture_maps_only_authoritative_trigger_facts ... ok
+test defelo::tests::deployed_push_maps_and_emits_exact_protocol_lines ... ok
+test status::tests::pinned_profile_and_allowed_plan_are_admitted ... ok
+test status::tests::foreign_repository_is_rejected ... ok
+test status::tests::oversized_payload_fails_before_signer_or_storage_access ... ok
+test defelo::tests::invalid_envelopes_and_unknown_outcome_fail_closed ... ok
+test status::tests::revision_is_mandatory_and_must_name_an_exact_radicle_commit ... ok
+test workflow::tests::profile_admits_trigger_only_and_rejects_fixture_or_collaboration ... ok
+test status::tests::status_dispatch_round_trips_and_rejects_unknown_fields ... ok
+test replay::tests::sqlite_replay_reserves_once_and_rejects_conflicting_transition ... ok
+test workflow::tests::uncertain_dispatch_recovers_without_redispatch_after_restart ... ok
+
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_radicle-ede3caa484ea4d6e)
+
+running 2 tests
+test tests::protocol_preflight_accepts_published_wire_and_rejects_malformed_input ... ok
+test tests::runtime_selection_is_explicit_and_aspen_requires_exact_paths ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/mutation_native.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/mutation_native-c9346cf6c2d8eab4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/source_native.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/source_native-7bde54e650de5281)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/status_native.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/status_native-c5567c949b0757cc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_remote-0a627db4248c00b8)
+
+running 3 tests
+test tests::disconnect_after_acceptance_stays_unknown ... ok
+test tests::missing_digest_fails_before_upload ... ok
+test tests::observation_mode_admission_blocks_unsupported_wait ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_sqlite-c71c1ef7ebc5868a)
+
+running 9 tests
+test tests::unsafe_profile_is_rejected_without_durability_claim ... ok
+test tests::pure_append_model_rejects_stale_duplicate_and_gap_inputs ... ok
+test tests::explicit_migration_accepts_known_edge_and_rejects_unknown_version ... ok
+test tests::interrupted_transaction_exposes_neither_side ... ok
+test tests::committed_events_and_outbox_replay_after_restart ... ok
+test tests::damaged_event_bytes_stop_replay ... ok
+test tests::lease_survives_restart_and_expiry_requires_reconciliation ... ok
+test tests::retention_preserves_stream_revision_and_replays_from_exact_snapshot ... ok
+test tests::lock_backup_snapshot_and_bounds_are_explicit ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_valence-c2cb567d6e8834f4)
+
+running 7 tests
+test tests::profile_drift_and_kiln_builder_promotion_fail_closed ... ok
+test tests::missing_nonclaim_and_malformed_span_are_rejected ... ok
+test tests::attempt_projection_is_valid_recorded_only_evidence ... ok
+test tests::pinned_producer_fixture_passes_independent_import ... ok
+test tests::imported_success_does_not_change_canonical_state ... ok
+test tests::stale_subject_is_rejected ... ok
+test tests::unavailable_provider_does_not_promote_or_mutate_state ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_adapter_webhook-b38f7ba1c0efe270)
+
+running 8 tests
+test tests::blake3_signature_is_deterministic_and_redacted ... ok
+test tests::private_address_stops_before_secret_access ... ok
+test tests::rate_limit_tls_and_response_bounds_are_explicit ... ok
+test tests::request_projection_is_deterministic_and_exact ... ok
+test tests::redirect_and_definite_rejection_are_not_followed ... ok
+test tests::dynamic_destination_and_oversized_body_stop_before_effects ... ok
+test tests::timeout_after_possible_acceptance_is_unknown_without_unsafe_retry ... ok
+test tests::accepted_receiver_is_bounded_and_secret_debug_is_redacted ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_aspen_extension-79da010bf0b83eaf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_aspen_extension-d5496e74c154336a)
+
+running 3 tests
+test tests::runtime_profile_arguments_reject_missing_duplicate_and_unsafe_values ... ok
+test tests::exact_non_default_runtime_profile_is_admitted ... ok
+test tests::runtime_profile_rejects_changed_invalid_missing_and_oversized_documents ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/callback.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/callback-9443eb1813f90ab9)
+
+running 3 tests
+test callback_rejects_stale_authority_and_duplicate_completion ... ok
+test callback_checkpoints_recovers_drains_and_stops_with_generation_fencing ... ok
+test callback_accepts_valid_trigger_deterministically_and_denies_without_effects ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/hosted.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/hosted-a656be89c718646a)
+
+running 4 tests
+test post_accept_disconnect_is_unknown_until_exact_reconciliation ... ok
+test local_service_accepts_rejects_replays_and_recovers_after_restart ... ok
+test process::separate_callback_process_accepts_canonical_input_and_rejects_bad_frames ... ok
+test process::native_host_frames_repeat_and_denials_release_no_effects ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln-bcc2aba7faf33884)
+
+running 2 tests
+test tests::evidence_rejects_missing_input ... ok
+test tests::evidence_identity_is_deterministic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_codec-5bfd1662b83826be)
+
+running 2 tests
+test tests::rejects_output_above_bound ... ok
+test tests::equal_values_have_equal_packed_identity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_conformance-ac41812aa992d7fd)
+
+running 10 tests
+test tests::dependency_boundaries_reject_reference_runtime ... ok
+test tests::dependency_boundaries_reject_provider_runtime ... ok
+test tests::conformance_rejects_provider_substitution ... ok
+test tests::dependency_boundaries_reject_every_forbidden_edge ... ok
+test tests::provider_contract_gate_rejects_adapter_owned_ports ... ok
+test tests::reusable_provider_conformance_covers_repeat_cancel_timeout_and_reconcile ... ok
+test tests::dashboard_core_has_no_shell_runtime ... ok
+test tests::provider_contracts_have_one_application_owner ... ok
+test tests::reference_boundary_allows_docs_and_rejects_product_integration ... ok
+test tests::dependency_boundaries_accept_current_core ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/core_contracts.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/core_contracts-96fe78c88448e7df)
+
+running 12 tests
+test wait_predicate_is_read_only ... ok
+test source_only_publication_rejects_rewrite_scope_and_readback_drift ... ok
+test unsupported_pause_dispatches_nothing ... ok
+test cursor_gap_is_explicit ... ok
+test consistent_publication_bundle_passes ... ok
+test rollback_sequence_fails ... ok
+test source_only_publication_fast_forward_admits ... ok
+test exact_candidate_and_merge_preflight_pass ... ok
+test status_filter_covers_every_exact_selection_dimension ... ok
+test cyclic_or_reversed_dependency_fails ... ok
+test unknown_cob_schema_fails_closed ... ok
+test cob_profile_and_fresh_plan_pass ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/provider_contract.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/provider_contract-82b81c6b3410c018)
+
+running 2 tests
+test declared_lifecycle_is_admitted ... ok
+test undeclared_pause_fails_closed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_core-7686f7cbcf62d9ae)
+
+running 82 tests
+test build::tests::stale_candidate_and_missing_products_are_rejected ... ok
+test build::tests::exact_build_observation_is_admitted ... ok
+test discovery::tests::terminal_classification_preserves_uncertainty ... ok
+test domain::tests::starts_run_deterministically ... ok
+test gating::tests::speculative_admission_is_bounded_by_candidate_count ... ok
+test gating::tests::serial_admission_never_speculates ... ok
+test cob::tests::detects_missing_initial_profile ... ok
+test gating::tests::failed_candidate_shrinks_window ... ok
+test domain::tests::unknown_outcome_is_not_terminal_success ... ok
+test hosting::qualification::tests::individual_observation_cannot_be_spliced_from_another_cohort ... ok
+test hosting::tests::published_profile_requires_rid ... ok
+test hosting::qualification::tests::complete_local_evidence_does_not_establish_global_durability ... ok
+test operations::tests::dominant_share_rejects_missing_capacity ... ok
+test domain::tests::rejects_terminal_mutation ... ok
+test gating::tests::unknown_outcome_never_becomes_a_gate_result ... ok
+test hosting::qualification::tests::duplicate_cannot_replace_missing_kind ... ok
+test gating::tests::substituted_candidate_policy_and_receipt_facts_fail_closed ... ok
+test hosting::qualification::tests::failed_gate_cannot_be_promoted_to_qualification ... ok
+test hosting::tests::readonly_mirror_rejects_write ... ok
+test provider::tests::admits_declared_operation ... ok
+test discovery::tests::observation_identity_and_gc_handoff_bind_exact_facts ... ok
+test interchange::tests::builder_and_control_plane_are_distinct ... ok
+test interchange::tests::projections_cannot_promote_authority ... ok
+test provider::tests::rejects_hidden_fallback ... ok
+test provider::tests::rejects_observation_from_substituted_profile ... ok
+test gating::tests::exact_gate_plan_is_admitted ... ok
+test gating::tests::exact_pass_and_block_map_to_candidate_results ... ok
+test gating::tests::gate_plan_rejects_noncanonical_evidence_and_pipeline_drift ... ok
+test hosting::qualification::tests::bounded_claim_does_not_hide_added_release_authority ... ok
+test hosting::qualification::tests::stale_receipt_is_rejected_against_expected_cohort ... ok
+test operations::tests::larger_share_ranks_first_for_equal_usage ... ok
+test provider::tests::failure_translation_preserves_each_class ... ok
+test remote::tests::cache_hit_without_output_is_not_success ... ok
+test remote::tests::disconnect_after_acceptance_is_unknown ... ok
+test hosting::qualification::tests::admits_complete_exact_cohort_with_only_bounded_local_claim ... ok
+test remote::tests::equal_native_text_keeps_distinct_kinds ... ok
+test hosting::qualification::tests::unsupported_receipt_version_is_not_admitted ... ok
+test interchange::tests::imported_success_has_no_state_authority ... ok
+test hosting::qualification::tests::uncertain_case_cannot_be_promoted_to_success ... ok
+test review::tests::request_obeys_change_and_dependency_bounds ... ok
+test hosting::qualification::tests::missing_observation_cannot_qualify ... ok
+test cob::tests::complete_resolution_rejects_partial_heads ... ok
+test discovery::tests::evaluator_cohort_drift_changes_observation_identity ... ok
+test gating::tests::stale_result_does_not_apply ... ok
+test source::tests::native_source_profiles_keep_distinct_identity_namespaces ... ok
+test source::tests::local_git_profile_has_no_network_or_mutation_authority ... ok
+test source::tests::rejects_ambiguous_jujutsu_revision ... ok
+test source::tests::git_snapshot_manifest_is_deterministic ... ok
+test source::tests::rejects_moved_or_unsupported_git_resolution ... ok
+test source::tests::replayed_or_invalidly_signed_trigger_fails_closed ... ok
+test task_ops::tests::admits_ready_task ... ok
+test trigger::tests::rejects_substitution_and_oversized_log_url ... ok
+test review::tests::observation_versions_and_invalid_requests_fail_admission ... ok
+test review::tests::all_review_decisions_remain_admissible_isolated_evidence ... ok
+test review::tests::request_reuses_dependency_order_and_node_validation ... ok
+test review::tests::missing_extra_duplicate_foreign_and_reordered_reviews_are_refused ... ok
+test source::tests::admits_stable_local_git_resolution ... ok
+test trigger::tests::admits_matching_bounded_observation ... ok
+test review::tests::every_change_must_bind_the_plan_pipeline_and_provider ... ok
+test remote::tests::capability_admission_is_value_based ... ok
+test source::tests::admits_exact_jujutsu_commit ... ok
+test source::tests::git_snapshot_rejects_unsafe_duplicate_and_gitlink_entries ... ok
+test source::tests::pijul_snapshot_is_deterministic_and_rejects_invalid_entries ... ok
+test review::tests::duplicate_and_unfrozen_changes_are_refused ... ok
+test review::tests::change_and_target_reference_versions_are_validated ... ok
+test review::tests::isolation_and_non_authorization_are_both_required ... ok
+test source::tests::narrow_source_profile_does_not_gain_forge_authority ... ok
+test source::tests::pijul_facts_bind_complete_stable_state ... ok
+test task_ops::tests::denies_delayed_task_without_time ... ok
+test trigger::tests::rejects_zero_poll_bound ... ok
+test types::tests::accepts_namespaced_external_identity ... ok
+test types::tests::rejects_malformed_content_identity ... ok
+test types::tests::rejects_oversized_identifier ... ok
+test workflow::tests::cyclic_plan_is_rejected ... ok
+test discovery::tests::exact_jobs_map_deterministically_with_dependencies ... ok
+test task_ops::tests::redacts_secret_value ... ok
+test workflow::tests::linked_completion_maps_to_success ... ok
+test workflow::tests::ordered_acyclic_plan_is_admitted ... ok
+test review::tests::every_request_binding_is_checked_for_substitution ... ok
+test workflow::tests::paused_execution_cannot_claim_terminal_success ... ok
+test workflow::tests::stale_attempt_is_rejected ... ok
+test discovery::tests::aliased_derivations_are_admitted_and_cycles_fail_closed ... ok
+
+test result: ok. 82 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_dashboard-1c15311cc8d4adbe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_dashboard-0751af567f3dacdf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dashboard.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/dashboard-95f8c4d4f8552861)
+
+running 33 tests
+test catalog_cli_rejects_input_and_selection_modes_that_could_lose_history_boundaries ... ok
+test exported_profile_is_admitted ... ok
+test profile_rejects_zero_bound_and_missing_non_claim ... ok
+test canonical_journal_is_admitted ... ok
+test reordered_journal_is_rejected ... ok
+test rendering_is_deterministic ... ok
+test catalog_output_cannot_replace_inputs_through_symlink_aliases ... ok
+test redacted_fields_are_named_and_absent ... ok
+test event_tail_reports_the_bounded_window_tail ... ok
+test catalog_rejects_ambiguous_identities_versions_unknown_fields_and_bounds ... ok
+test tampered_event_bytes_are_rejected ... ok
+test html_empty_history_and_missing_selections_do_not_invent_details ... ok
+test canonical_json_identity_convention_is_admitted ... ok
+test run_list_pages_with_the_admitted_cursor ... ok
+test run_list_truncation_is_reported ... ok
+test canonical_prefix_is_admitted_with_its_observed_revision ... ok
+test unknown_event_identity_kind_is_rejected ... ok
+test summary_reports_admitted_run_and_attempt_counts ... ok
+test selected_run_and_attempt_are_detailed ... ok
+test dashboard_view_matches_the_accepted_projection ... ok
+test shell_rejects_a_tampered_journal ... ok
+test admitted_hostile_identifiers_are_escaped_in_text_and_attributes ... ok
+test html_details_cover_only_paged_runs_and_explicit_selection_with_exact_views ... ok
+test shell_renders_the_named_journal ... ok
+test journal_without_canonical_records_is_rejected ... ok
+test unknown_selection_reports_not_found ... ok
+test html_generation_is_deterministic ... ok
+test html_attempt_details_respect_history_bound_active_attempt_and_redaction ... ok
+test sqlite_event_store_is_admitted_and_projected ... ok
+test sqlite_event_store_is_read_only_for_the_dashboard ... ok
+test catalog_resolves_relative_histories_and_preserves_independent_view_identities ... ok
+test catalog_rejects_aggregate_and_output_overflow_without_replacing_last_good_report ... ok
+test shell_watch_mode_redraws_the_report ... ok
+
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_nix_build-8fd9ffe536b35303)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_nix_build-78212211171c47e9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/composition.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/composition-7e50da9ee2fa9b3f)
+
+running 5 tests
+test task_drift_is_rejected ... ok
+test task_build_is_admitted_and_rooted ... ok
+test durable_state_round_trips_bound_profile ... ok
+test task_maps_to_exact_profile_and_plan ... ok
+test preflight_failure_stops_before_build ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/discovery_live.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/discovery_live-1af3938e9968794a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_observe_core-5da6a207f9d7e108)
+
+running 17 tests
+test tests::profile_identity_is_stable_and_binds_non_claims ... ok
+test tests::conformance_manifest_requires_all_cases ... ok
+test tests::profile_admission_requires_declared_non_claims ... ok
+test tests::encoded_bound_is_enforced ... ok
+test tests::state_summary_is_deterministic_and_read_only ... ok
+test tests::redaction_omits_fields_and_reports_them ... ok
+test tests::identity_binds_request_state_window_and_profile ... ok
+test tests::unknown_state_revision_and_view_are_rejected ... ok
+test tests::unexpected_window_fact_is_rejected ... ok
+test tests::run_detail_bounds_attempts ... ok
+test tests::complete_log_cursor_reports_empty_terminal_window ... ok
+test tests::log_range_reports_retained_gap_and_bounds ... ok
+test tests::event_tail_caps_and_reports_earlier_history ... ok
+test tests::event_tail_rejects_non_tail_gap_and_ahead_windows ... ok
+test tests::attempt_detail_bounds_products_and_metrics ... ok
+test tests::run_list_caps_page_and_reports_more ... ok
+test tests::nickel_profile_fixture_matches_rust_profile ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_onixos_pilot-1ebee8a3590c4e66)
+
+running 6 tests
+test coordinator::tests::partial_and_symlink_journals_fail_closed ... ok
+test coordinator::tests::invalid_transport_does_not_reserve_an_undispatchable_intent ... ok
+test coordinator::tests::terminal_requires_exact_native_and_real_admitted_worker_facts ... ok
+test coordinator::tests::durable_intent_replays_without_evidence_and_rejects_record_substitution ... ok
+test coordinator::tests::authentication_binds_bytes_key_cohort_plan_and_freshness ... ok
+test coordinator::tests::negative_builds_preserve_terminal_class_and_unknown_never_completes ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_onixos_pilot-1980a8765ced2dd1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_onixos_worker-70b908949479a899)
+
+running 3 tests
+test project::tests::explicit_source_root_release_is_idempotent_and_never_removes_another_target ... ok
+test tests::native_source_context_must_match_every_admitted_fact ... ok
+test project::tests::frozen_tree_preserves_bytes_modes_and_rejects_unsafe_or_oversized_members ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_provider_api-034110070b6b8312)
+
+running 2 tests
+test tests::infrastructure_outcomes_remain_distinct ... ok
+test tests::roles_remain_distinct ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_radicle_ci-0a54bd7c065abebd)
+
+running 9 tests
+test project::tests::onix_keeps_reviewed_cohort_and_selector_but_binds_measured_source ... ok
+test project::tests::fixed_profile_has_distinct_candidate_bindings_and_unchanged_selector ... ok
+test project::tests::unknown_discovery_never_invents_build_evidence ... ok
+test journal::tests::substituted_operation_source_and_conflicting_native_outcomes_are_rejected ... ok
+test coordinator::tests::rejected_worker_evidence_cannot_poison_a_reserved_journal ... ok
+test project::tests::substituted_source_discovery_task_build_and_cohort_fail_closed ... ok
+test journal::tests::native_or_worker_alone_cannot_complete_a_reserved_attempt ... ok
+test journal::tests::matching_evidence_replays_exact_products_and_revision_bound_status ... ok
+test coordinator::tests::repeated_progress_preserves_dispatch_and_can_admit_late_completion ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_radicle_ci-9eecc6283116f6dc)
+
+running 1 test
+test tests::uncertain_canonical_or_status_truth_cannot_finish_a_broker_run ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_radicle_source_contract-1c554d19ac14fab3)
+
+running 10 tests
+test tests::rejects_unknown_wire_fields ... ok
+test tests::accepts_exact_parent_level_receipt ... ok
+test tests::contract_publishes_explicit_non_claims ... ok
+test tests::rejects_digest_and_snapshot_bound_failures ... ok
+test tests::rejects_floating_or_malformed_request_facts ... ok
+test tests::rejects_moved_or_unexpected_signed_refs ... ok
+test tests::contract_manifest_has_no_provider_runtime_dependency ... ok
+test tests::rejects_feature_and_verification_downgrades ... ok
+test tests::rejects_identity_and_revision_substitution ... ok
+test tests::rejects_zero_and_inconsistent_bounds ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/producer_fixtures.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/producer_fixtures-1f594cbad968fb67)
+
+running 1 test
+test producer_fixtures_match_independent_admission ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_standalone-379b48dde070d95e)
+
+running 9 tests
+test tests::client_deadline_does_not_change_attempt_outcome ... ok
+test tests::machine_status_output_is_versioned_and_bounded ... ok
+test tests::interruption_commits_nothing ... ok
+test tests::hold_wires_to_canonical_command_without_provider_effect ... ok
+test tests::recovery_rejects_partial_log_metadata ... ok
+test tests::reference_profile_completes_accepted_and_rejected_runs ... ok
+test tests::unknown_outcome_survives_recovery ... ok
+test tests::event_and_outbox_commit_together ... ok
+test tests::bounded_log_survives_store_clone ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_web_service-ace72f57173bbc27)
+
+running 30 tests
+test access::tests::whois_requires_exact_registered_user_and_untagged_node ... ok
+test auth::tests::proxy_identity_requires_distinct_credential_and_explicit_binding ... ok
+test auth::tests::bearer_roles_cannot_be_substituted_or_partially_matched ... ok
+test access::tests::map_never_admits_wildcard_or_public_resolver ... ok
+test worker::streaming::tests::stream_child_entry ... ignored, exec adapter launched only by worker process tests
+test worker::tests::live_log_budget_accounts_each_ingress_chunk_and_rejected_reservations_are_atomic ... ok
+test server::notify::tests::readiness_supports_systemd_abstract_socket_names ... ok
+test server::notify::tests::readiness_reaches_supervisor_and_missing_supervisor_fails_closed ... ok
+test server::tests::only_exact_registered_trigger_path_can_enter_signed_ingress ... ok
+test server::tests::viewer_reads_but_never_mutates_and_writes_require_exact_origin ... ok
+test server::tests::framing_accepts_one_bounded_json_request_and_rejects_ambiguous_bodies ... ok
+test worker::files::tests::private_acl_grants_only_root_and_the_exact_service_identity ... ok
+test access::tests::localapi_resolver_preserves_large_user_ids_and_rejects_non_tailnet_peers ... ok
+test worker::reports::tests::declared_reports_read_exact_regular_bytes_and_deny_missing_links_escapes_and_oversize ... ok
+test worker::tests::worker_credential_reads_owned_private_regular_file_only ... ok
+test worker::tests::source_attempt_execution_and_node_bindings_are_all_required ... ok
+test worker::tests::worker_profile_denies_secret_environment_and_untrusted_artifact_declarations ... ok
+test worker::tests::exact_commit_runs_reviewed_command_and_produces_actual_artifact_not_mutable_worktree ... ok
+test worker::tests::real_artifacts_admit_regular_bytes_and_reject_escape_symlink_hardlink_fifo_and_bounds ... ok
+test worker::tests::symlink_source_is_rejected_instead_of_following_outside_checkout ... ok
+test worker::tests::wrong_source_context_and_snapshot_overflow_never_materialize ... ok
+test worker::client::deadline_tests::binding_lookup_admits_exact_source_within_budget_after_pending_dispatch ... ok
+test worker::tests::in_flight_cancellation_stops_owned_command_and_preserves_cancelled_exit ... ok
+test worker::tests::output_is_ingressed_before_exit_and_each_retained_byte_is_uploaded_once ... ok
+test worker::tests::overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_exit ... ok
+test worker::tests::child_environment_is_explicit_and_failure_deadline_and_cancellation_are_not_success ... ok
+test worker::client::deadline_tests::binding_lookup_does_not_start_request_after_poll_sleep_exhausts_budget ... ok
+test worker::tests::streaming_cancellation_and_deadline_terminate_owned_descendants ... ok
+test worker::client::deadline_tests::binding_lookup_keeps_shorter_http_timeout_and_never_retries_failure ... ok
+test worker::client::deadline_tests::binding_lookup_budget_bounds_slow_valid_https_response ... ok
+
+test result: ok. 29 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.58s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/kiln_web_service-e8e1d60cb2fbfd70)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/engine.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/engine-18e3c5d4d10c2ea1)
+
+running 40 tests
+test profile_load_accepts_reviewed_nested_fields_and_rejects_unknown_native_bounds ... ok
+test automation::notification_authority_rejects_url_confusion_and_unadmitted_networks ... ok
+test failed_durable_reservation_prevents_provider_effects_and_further_authority ... ok
+test dashboard::historical_runs_restore_without_invented_timing_and_profile_serialization_is_unchanged ... ok
+test private_state_ownership_and_unknown_profile_authority_fail_closed ... ok
+test controls_reject_stale_and_unsupported_before_mutation_and_replay_exact_result ... ok
+test automation::definitely_rejected_source_never_dispatches_after_enrollment_or_polling ... ok
+test automation::due_schedule_reserves_once_and_operator_configuration_cannot_add_authority ... ok
+test restart_discards_unadmitted_artifact_bytes_without_inventing_metadata ... ok
+test dashboard::viewer_denials_are_attributable_and_before_effects ... ok
+test automation::receiver_blocked_notification_does_not_block_worker_or_api_ingress ... ok
+test log_ingress_rejects_private_roles_stale_identity_conflicts_and_open_json ... ok
+test artifacts_are_real_bounded_identity_checked_retained_bytes_and_worker_is_narrow ... ok
+test dashboard::logs_search_across_chunk_boundary_and_download_exact_bytes_with_metadata ... ok
+test dashboard::overview_records_observed_timing_and_operations_warns_before_admission_exhaustion ... ok
+test native_log_cursor_gap_and_bounds_are_preserved ... ok
+test reports::unavailable_reports_and_recorded_review_never_invent_test_results_or_gate_authority ... ok
+test dashboard::failed_retry_executes_only_failed_downstream_graph_and_restore_rejects_tampering ... ok
+test dashboard::missing_subset_provider_route_is_not_a_full_graph_fallback_or_success ... ok
+test automation::signed_pull_request_and_stale_or_unregistered_sources_have_opposite_effects ... ok
+test accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution ... ok
+test automation::restart_never_resends_reserved_notification_and_rejects_stale_completion ... ok
+test runtime::configured_notification_failure_prevents_running_service_claim ... ok
+test runtime::preflight_accepts_readonly_credentials_without_binding_creating_or_reconciling ... ok
+test missing_reply_after_durable_start_returns_original_resource_without_redispatch ... ok
+test restart_removes_only_owned_unadmitted_log_files_and_recovers_publication_pairs ... ok
+test dashboard::durable_queue_dispatches_once_in_order_and_cancellation_has_no_provider_effect ... ok
+test allowlist_exact_source_and_request_replay_survive_restart ... ok
+test captured_logs_round_trip_empty_chunks_byte_cursors_and_restart_without_native_reads ... ok
+test automation::signed_push_is_exact_once_across_restart_and_bad_signature_never_dispatches ... ok
+test log_chunk_count_total_bytes_and_chunk_bytes_are_actual_run_bounds ... ok
+test dashboard::exact_and_latest_reruns_bind_new_candidates_to_selected_revisions ... ok
+test dashboard::stable_search_cursor_excludes_new_runs_and_rejects_changed_filters ... ok
+test runtime::preflight_rejects_unsafe_secrets_tls_and_filesystem_inputs_without_state ... ok
+test timed_out_dispatch_remains_unknown_and_control_disconnect_never_replays_mutation ... ok
+test reports::reports_preserve_raw_bytes_bind_exact_attempt_and_compare_real_test_coverage_history ... ok
+test automation::real_https_acceptance_and_disconnect_are_durable_and_never_blindly_retried ... ok
+test log_bytes_and_metadata_tampering_fail_on_read_and_recovery ... ok
+test runtime::initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart ... ok
+test automation::single_effect_budget_cannot_starve_later_schedule_or_pending_notification ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.60s
+
+     Running tests/reports.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/reports-a4c655e25b1c3fa3)
+
+running 8 tests
+test declaration_paths_reject_escapes_and_empty_reports_leave_old_step_serialization_unchanged ... ok
+test junit_preserves_real_outcomes_failure_text_skips_and_source_identity ... ok
+test cobertura_and_lcov_preserve_equivalent_real_line_and_branch_counts ... ok
+test upload_checks_all_binding_dimensions_hash_and_absence_without_inventing_tests ... ok
+test junit_rejects_malformed_entities_ambiguous_cases_and_invalid_metrics ... ok
+test coverage_rejects_false_totals_duplicate_lines_nonfinite_and_traversal ... ok
+test native_gate_review_provenance_retain_verdicts_identities_nonclaims_without_acceptance ... ok
+test report_bounds_reject_bytes_depth_fields_and_case_count ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/worker.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/worker-ab10755c519002ce)
+
+running 2 tests
+test original_profile_bytes_are_authority_not_equivalent_reserialized_json ... ok
+test pinned_profiles_reject_unknown_authority_fields_and_secret_forwarding ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/onix_radicle_cob_git_store-2463725136b639fa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/git_store.rs (/home/brittonr/.cargo-target/kiln-web-service/debug/deps/git_store-42175bdd1749512c)
+
+running 4 tests
+test stale_exact_head_is_rejected_even_when_operation_ancestry_matches_current ... ok
+test bounded_scan_counts_distinct_ids_not_valid_namespace_refs ... ok
+test malformed_symbolic_foreign_author_and_tampered_signatures_fail_closed ... ok
+test signed_cob_roundtrip_with_borrowed_repository_and_exact_update ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+   Doc-tests kiln_adapter_aspen
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cairn
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cdevents
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_celld
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_cob
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_git
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_github
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_http_observe
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_iroh
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_iroh_observe
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_jj
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_lattice
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_mantle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_nix
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_nix_eval
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_opentelemetry
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_patchgate
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_pijul
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_radicle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_remote
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_sqlite
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_valence
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_adapter_webhook
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_aspen_extension
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_codec
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_conformance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_dashboard
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_nix_build
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_observe_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_onixos_pilot
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_provider_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_radicle_ci
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_radicle_source_contract
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_standalone
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests kiln_web_service
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests onix_radicle_cob_git_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

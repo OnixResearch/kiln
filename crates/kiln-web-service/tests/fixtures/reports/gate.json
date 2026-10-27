@@ -1,0 +1,1 @@
+{"schema":"cairn.gate-result.v1","identity":"b3:74ec4946c7cc3154dfbd4cecef96803cb46c6310adcff85979ae88c00496d957","request_identity":"b3:d3472e0b9e7e94165b3a5f24a0405d399d2a9e9cdb9b07b8109f125ae6c2a1ed","result":{"valid":false,"verdict":"block"},"non_claims":["gate binding does not prove source correctness","a recorded document is not gate acceptance"]}

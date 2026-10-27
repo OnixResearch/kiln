@@ -53,6 +53,7 @@ fun input =>
             label | c.NonEmpty,
             repository_path | c.AbsolutePath,
             reference | c.NonEmpty,
+            admitted_references | Array c.NonEmpty | default = [],
             source_limits | { max_entries | c.Positive, max_path_bytes | c.Positive, max_file_bytes | c.Positive, max_total_bytes | c.Positive },
             workflow | Workflow,
           },

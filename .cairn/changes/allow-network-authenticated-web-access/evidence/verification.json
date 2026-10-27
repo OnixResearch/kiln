@@ -1,0 +1,461 @@
+{
+  "schema": "kiln.network-authenticated-web-access.v1",
+  "recorded_at": "2026-10-27T20:42:15.433Z",
+  "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+  "maintenance_owner": {
+    "browser": "Kiln dashboard maintainers",
+    "deployment": "Local operator"
+  },
+  "authority": "Every tailnet peer permitted to reach the listener has operator authority.",
+  "application": {
+    "store_path": "/nix/store/c5h77qk8h95p270421khp67y6mx3b5nx-kiln-web-service-0.1.0",
+    "derivation": "/nix/store/67iwb0brynkznxdzwf3f10ymnwgvm1bk-kiln-web-service-0.1.0.drv",
+    "source_snapshot": "/nix/store/dy145ck490l28h3bv82hl8rq7ixbgnh8-source",
+    "served_javascript_matches_source": true,
+    "b3sum": "5c468a6df72ef1e6efd54adb1aeb8ca795fa6431195e19fdcd48693a09ef82e7  /home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service/src/web.js\n3b032b9a825f136b9873b4d4cd2372c1a9ec175ca10132839692ed240c00b5b5  /home/brittonr/git/OnixResearch/kiln/docs/operator.md\nc4440b710ad0f88cf5e6d91c510040a7ff0c20d9e1bf1b58c759741e6db4ddcd  /home/brittonr/.config/kiln/web-service/tailscale-proxy.conf\nf04335d68072b278c9f4a9ed66e51a424c49913bd5a2498558d9f160f4dfbb8d  /home/brittonr/.config/kiln/web-service/prepare-tailnet-authorization.sh\n52e46b5b256c758536bb709e13e1481143e07bf7865382e8de791e14f59360c4  /home/brittonr/.config/systemd/user/kiln-tailnet-proxy.service\nb6cd59bbcb64ba10f7a2dd4c4969f4ceff78ab69323232707592f15fa854ff7f  /home/brittonr/.nix-profile/bin/kiln-web-service\n"
+  },
+  "focused_package_check": {
+    "command": "nix build path:/home/brittonr/git/OnixResearch/kiln#web-service --no-link --print-out-paths --no-write-lock-file --max-jobs 1 --builders ''",
+    "result": "passed",
+    "tests": {
+      "unit": 15,
+      "engine": 20,
+      "worker": 2,
+      "total": 37
+    }
+  },
+  "browser_entry": {
+    "requests": [
+      {
+        "path": "/api/projects",
+        "method": "GET",
+        "has_authorization": false
+      },
+      {
+        "path": "/api/live",
+        "method": "GET",
+        "has_authorization": false
+      },
+      {
+        "path": "/api/runs",
+        "method": "GET",
+        "has_authorization": false
+      }
+    ],
+    "workspace": true,
+    "login": false,
+    "sign_out": false,
+    "auth_status": "Network-authenticated operator",
+    "browser_state": {
+      "cookie": "",
+      "local_storage": 0,
+      "session_storage": 0,
+      "token_input": ""
+    },
+    "view": {
+      "url": "https://britton-desktop.bison-tailor.ts.net:8443/",
+      "title": "Kiln · Live operations",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "deviceScaleFactor": 1.25
+      },
+      "scroll": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000,
+        "scrollWidth": 1440,
+        "scrollHeight": 1601
+      },
+      "elements": [
+        {
+          "id": 1,
+          "role": "link",
+          "name": "Skip to operations",
+          "states": []
+        },
+        {
+          "id": 2,
+          "role": "link",
+          "name": "Kiln live operations",
+          "states": []
+        },
+        {
+          "id": 3,
+          "role": "button",
+          "name": "Refresh & reconnect",
+          "states": []
+        },
+        {
+          "id": 4,
+          "role": "button",
+          "name": "Refresh",
+          "states": []
+        },
+        {
+          "id": 5,
+          "role": "combobox",
+          "name": "Allowlisted repository",
+          "value": "No unenrolled repositories available",
+          "states": [
+            "expanded=false"
+          ]
+        },
+        {
+          "id": 6,
+          "role": "option",
+          "name": "No unenrolled repositories available",
+          "states": [
+            "selected=true"
+          ]
+        },
+        {
+          "id": 7,
+          "role": "button",
+          "name": "Enroll project",
+          "states": [
+            "disabled"
+          ]
+        },
+        {
+          "id": 8,
+          "role": "combobox",
+          "name": "Enrolled project",
+          "value": "Kiln — Rust workspace tests",
+          "states": [
+            "expanded=false"
+          ]
+        },
+        {
+          "id": 9,
+          "role": "option",
+          "name": "Select an enrolled project",
+          "states": [
+            "selected=false"
+          ]
+        },
+        {
+          "id": 10,
+          "role": "option",
+          "name": "Kiln — Rust workspace tests",
+          "states": [
+            "selected=true"
+          ]
+        },
+        {
+          "id": 11,
+          "role": "button",
+          "name": "Start source-bound run",
+          "states": []
+        },
+        {
+          "id": 12,
+          "role": "button",
+          "name": "Refresh",
+          "states": []
+        },
+        {
+          "id": 13,
+          "role": "combobox",
+          "name": "Project filter",
+          "value": "All projects",
+          "states": [
+            "expanded=false"
+          ]
+        },
+        {
+          "id": 14,
+          "role": "option",
+          "name": "All projects",
+          "states": [
+            "selected=true"
+          ]
+        },
+        {
+          "id": 15,
+          "role": "option",
+          "name": "Kiln — Rust workspace tests",
+          "states": [
+            "selected=false"
+          ]
+        },
+        {
+          "id": 16,
+          "role": "button",
+          "name": "kiln-self-ci · web-run-5e36990d5ebbbcb3641102a925f58a570489493a9f316a085f231e20d81ce790 Source 0c56456214196618bba512990ac479e69ebd7b63 Success · terminal",
+          "states": []
+        },
+        {
+          "id": 17,
+          "role": "button",
+          "name": "kiln-self-ci · web-run-fc1098b34663c6f43ff65590ea8e530966d7c63999afaa26a3e84474b9500b21 Source 0c56456214196618bba512990ac479e69ebd7b63 DomainFailure · terminal",
+          "states": []
+        }
+      ]
+    }
+  },
+  "browser_start": {
+    "status": 201,
+    "created": {
+      "attempt_id": "web-attempt-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61",
+      "canonical_tree": "59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05",
+      "controls": {
+        "cancel": true,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "execution": {
+        "contract_version": 1,
+        "native_id": "b3:20e82cbbb05cdac3da1ea317e0154e6f0ef9bfa5027c358a8f243ca267b1d836",
+        "native_kind": "execution",
+        "provider_namespace": "lattice"
+      },
+      "id": "web-run-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61",
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_chunks": 256,
+        "maximum_total_bytes": 16777216
+      },
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Pending"
+        }
+      ],
+      "outcome": "Pending",
+      "phase": "active",
+      "project_id": "kiln-self-ci",
+      "repository": {
+        "contract_version": 1,
+        "native_id": "0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7",
+        "native_kind": "repository",
+        "provider_namespace": "git"
+      },
+      "revision": 1,
+      "sequence": 0,
+      "source_revision": "0c56456214196618bba512990ac479e69ebd7b63"
+    },
+    "requests": [
+      {
+        "path": "/api/runs",
+        "has_authorization": false
+      }
+    ],
+    "detail": "SELECTED EXECUTION\n\nweb-run-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61\nRefresh run\nOutcome: Pending\nPhase: active\nProject\nkiln-self-ci\nRepository\n{\n  \"contract_version\": 1,\n  \"provider_namespace\": \"git\",\n  \"native_kind\": \"repository\",\n  \"native_id\": \"0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7\"\n}\nSource revision\n0c56456214196618bba512990ac479e69ebd7b63\nCanonical tree\n59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05\nRun revision\n1\nAttempt\nweb-attempt-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61\nSequence\n0\nExact native execution identity\nCancel run\nPause run\nResume run\n\nOnly advertised capabilities are enabled. A fresh read and confirmation bind each control to this exact attempt, revision, sequence, and execution.\n\nAdmitted nodes\n\nNode state is reported by the service, not inferred from log text.\n\ntest\nPending\nExecution logs\nFollow selected stream\n\nstdout/stderr are actual worker-captured bytes published when a step completes, with worker-owned byte cursors. Diagnostic logs retain native provider cursors. Following does not synthesize output; an active node can have no new bytes yet.\n\nNode\ntest\nStream\nstdout\nstderr\ndiagnostic\nStream cursor\nRead from cursor\n\nSelect a node and read actual retained logs. Worker output arrives on step completion; diagnostics are native provider logs.\n\nNo log read yet\nClear displayed log\nRetained artifacts\nRefresh artifacts\n\nOnly actual worker uploads retained by this service are listed. A receipt is not a product artifact.\n\nReading retained artifact metadata…"
+  },
+  "live_run": {
+    "id": "web-run-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61",
+    "project_id": "kiln-self-ci",
+    "source_revision": "0c56456214196618bba512990ac479e69ebd7b63",
+    "canonical_tree": "59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05",
+    "repository": {
+      "contract_version": 1,
+      "provider_namespace": "git",
+      "native_kind": "repository",
+      "native_id": "0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7"
+    },
+    "revision": 2,
+    "attempt_id": "web-attempt-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61",
+    "outcome": "Success",
+    "phase": "terminal",
+    "execution": {
+      "contract_version": 1,
+      "provider_namespace": "lattice",
+      "native_kind": "execution",
+      "native_id": "b3:20e82cbbb05cdac3da1ea317e0154e6f0ef9bfa5027c358a8f243ca267b1d836"
+    },
+    "sequence": 2,
+    "nodes": [
+      {
+        "id": "test",
+        "state": "Completed"
+      }
+    ],
+    "controls": {
+      "cancel": false,
+      "pause": false,
+      "resume": false
+    },
+    "error_code": null,
+    "log_bounds": {
+      "maximum_chunk_bytes": 65536,
+      "maximum_total_bytes": 16777216,
+      "maximum_chunks": 256
+    }
+  },
+  "logs": {
+    "status": 200,
+    "requests": [
+      {
+        "path": "/api/runs/web-run-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61/logs",
+        "has_authorization": false
+      }
+    ],
+    "contains_real_test_result": true,
+    "position": "Worker-captured output · byte cursor · 0 → 16384 · retained: true",
+    "gap": "Captured output or this read is truncated. Missing bytes are not reconstructed; retained bytes may remain at the next cursor.",
+    "sample": "running 16 tests\ntest tests::completion::hosted_provider_completion_maps_exact_terminal_and_rejects_linkage_drift ... ok\ntest tests::contracts::equal_digest_text_keeps_roles_and_namespaces_distinct ... ok\ntest tests::contracts::denied_and_stale_effects_never_produce_a_fabric_plan ... ok\ntest tests::contracts::architecture_keeps_aspen_out_of_core_and_ambient_effects_out_of_callback ... ok\ntest tests::contracts::callback_frames_are_canonical_bounded_and_strict ... ok\ntest tests::contracts::independent_consumer_accepts_the_static_producer_fixture ... ok\ntest tests::contracts::runtime_composition_is_explicit_and_never_falls_back ... ok\ntest tests::contracts::exact_profile_admits_and_drift_fails_"
+  },
+  "local_authentication": {
+    "discovery_status": 401,
+    "invalid_bearer_rejected": true,
+    "signed_in": {
+      "auth_status": "Authenticated operator",
+      "sign_out": true,
+      "runs": 3
+    },
+    "signed_out": {
+      "workspace": false,
+      "private_runs": 0,
+      "token_input": "",
+      "status": "Signed out"
+    },
+    "requests": [
+      {
+        "path": "/api/projects",
+        "has_authorization": false
+      },
+      {
+        "path": "/api/projects",
+        "has_authorization": true
+      },
+      {
+        "path": "/api/projects",
+        "has_authorization": true
+      },
+      {
+        "path": "/api/live",
+        "has_authorization": true
+      },
+      {
+        "path": "/api/runs",
+        "has_authorization": true
+      }
+    ]
+  },
+  "late_discovery": {
+    "delayed_discovery_status": 401,
+    "discovery_arrived_after_manual_submit": true,
+    "manual_session_preserved": true,
+    "auth_status": "Authenticated operator"
+  },
+  "page_restoration": {
+    "persisted_event_smoke": {
+      "cleared": {
+        "workspace_hidden": true,
+        "run_elements": 0,
+        "log_text": "",
+        "token_input": ""
+      },
+      "new_discovery_status": 200,
+      "new_discovery_has_authorization": false,
+      "workspace": true
+    },
+    "real_back_navigation": {
+      "workspace": true,
+      "auth_status": "Network-authenticated operator",
+      "navigation_type": "back_forward"
+    },
+    "reload": {
+      "workspace": true,
+      "auth_status": "Network-authenticated operator"
+    }
+  },
+  "final_boundaries": [
+    {
+      "name": "tailnet_without_bearer",
+      "status": 200
+    },
+    {
+      "name": "tailnet_foreign_origin",
+      "status": 403
+    },
+    {
+      "name": "tailnet_missing_origin",
+      "status": 403,
+      "code": "origin_required"
+    },
+    {
+      "name": "tailnet_null_origin",
+      "status": 403
+    },
+    {
+      "name": "tailnet_foreign_host",
+      "status": 403
+    },
+    {
+      "name": "localhost_without_bearer",
+      "status": 401,
+      "code": "unauthorized"
+    },
+    {
+      "name": "localhost_worker_cannot_start",
+      "status": 403,
+      "code": "worker_scope"
+    },
+    {
+      "name": "localhost_operator_read",
+      "status": 200
+    }
+  ],
+  "recovery": {
+    "restart": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "restart",
+        "kiln-web-service.service",
+        "kiln-tailnet-proxy.service"
+      ],
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0
+    },
+    "live": {
+      "status": 200,
+      "has_authorization": false,
+      "auth_status": "Network-authenticated operator",
+      "workspace": true
+    },
+    "history_preserved": true,
+    "profiles_unchanged": true,
+    "profile_b3sum": "7ecaea0c852f78b1247526291c9a53eeeaa0d0334231097c381d5a0a5721a09e  /home/brittonr/.config/kiln/web-service/service.json\nc5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc  /home/brittonr/.config/kiln/web-service/worker.json\n",
+    "serve_routes_unchanged": true,
+    "units": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nResult=success\n\nId=kiln-tailnet-proxy.service\nActiveState=active\nSubState=running\nResult=success\n",
+    "private_modes": "700 brittonr /run/user/1555/kiln-tailnet-proxy\n600 brittonr /run/user/1555/kiln-tailnet-proxy/authorization.conf\n"
+  },
+  "tls": {
+    "curl_and_python": "CA and hostname verification enabled; no insecure TLS flags",
+    "managed_browser": "Known local certificate admitted through CDP for UI automation only; no system/browser trust store changed"
+  },
+  "encountered_and_resolved": [
+    {
+      "stage": "first_package_build",
+      "failure": "Remote build hook failed with an overlong current-load lock filename.",
+      "resolution": "Built the same derivation locally with --builders empty and --max-jobs 1."
+    },
+    {
+      "stage": "unit_verification",
+      "failure": "The retained CI command environment supplied a job HOME, causing incorrect %h resolution in systemd-analyze.",
+      "resolution": "Verified the actual unit with the host HOME; activation succeeded."
+    },
+    {
+      "stage": "profile_installation",
+      "failure": "Installed Nix does not support the attempted --name flag.",
+      "resolution": "Added the immutable output with priority 4, removed the obsolete web-service profile entry, and restarted the actual units."
+    },
+    {
+      "stage": "late_discovery_smoke",
+      "failure": "Raw interception was already handled by browser instrumentation.",
+      "resolution": "Used real network latency instead of interception; the delayed real 401 did not replace a newer manual session."
+    }
+  ],
+  "non_claims": [
+    "The native source-bound CI run tested commit 0c56456214196618bba512990ac479e69ebd7b63, not the modified working tree; the separately built package ran its 37 focused tests.",
+    "No public Funnel, per-user identity, hostile-code confinement, cross-host reachability, lifecycle acceptance, publication or release-readiness claim.",
+    "The first UI log read is a bounded chunk, not a claim to have displayed the entire log.",
+    "Canonical service/worker profiles and original retained runs were not migrated or deleted."
+  ]
+}

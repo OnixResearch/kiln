@@ -1,0 +1,39 @@
+{
+  "project_id": "slow",
+  "repository_path": "/home/brittonr/git/.kiln-complete-dashboard-smoke/source",
+  "service_origin": "https://127.0.0.1:33543",
+  "token_file": "/home/brittonr/git/.kiln-complete-dashboard-smoke/worker.token",
+  "tls_ca_path": "/home/brittonr/git/.kiln-complete-dashboard-smoke/ca.pem",
+  "work_root": "/home/brittonr/git/.kiln-complete-dashboard-smoke/work",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_path_bytes": 1024,
+    "max_file_bytes": 65536,
+    "max_total_bytes": 1048576
+  },
+  "command_timeout_ms": 60000,
+  "maximum_output_bytes": 65536,
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_total_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "steps": [
+    {
+      "node_id": "build",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "argv": [
+        "ci.py",
+        "slow",
+        "/home/brittonr/git/.kiln-complete-dashboard-smoke/command-slow.started",
+        "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum"
+      ],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "artifacts": [
+        "artifact.txt"
+      ]
+    }
+  ]
+}

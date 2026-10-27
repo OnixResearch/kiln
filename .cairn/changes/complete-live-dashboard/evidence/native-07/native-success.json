@@ -1,0 +1,51 @@
+{
+  "controls": {
+    "cancel": true,
+    "pause": false,
+    "resume": false
+  },
+  "graph": {
+    "edges": [
+      {
+        "source": "build",
+        "target": "verify"
+      }
+    ],
+    "identity": "b3:2ce6e2cdf7337ee2540efe259bfbc20bcadad2b444d87d1242d1960a12025bcc",
+    "nodes": [
+      {
+        "adapter_kind": "local",
+        "effect_class": "build",
+        "id": "build",
+        "kind": "build",
+        "operation_identity": "b3:8c2639ccddb18f4402cc671d632a08840afc2ddb7d0104b64f83c294f70799c2"
+      },
+      {
+        "adapter_kind": "local",
+        "effect_class": "test",
+        "id": "verify",
+        "kind": "test",
+        "operation_identity": "b3:2750f1cde3bd697e2f75722961ccaa6c137a1282cffd5307cbc9340ed3fead29"
+      }
+    ],
+    "schema": "lattice.workflow-graph.v1"
+  },
+  "idempotency_key": "b3:95b75b1661a8a3cdfa5847f2aa2b68497049bfd528f65c1596aa29e848ea523f",
+  "identity": "b3:bec3d71b704901214c1f124cf05d99432a915b6682f887b56e41fb3e06898e5b",
+  "kiln": {
+    "attempt_identity": "b3:decb5b8f43b459c08fab83f9c2e63676b493a4b31ff97d416f909c4fdc3b3cbb",
+    "candidate_identity": "b3:5e86d22cb7d202b28cbde8d509475bd8aed2549b26933612a8d12de0dcee936d",
+    "effect_identity": "b3:b173843580c97119f8b54ab4276f699e0d36aca7fbcac3cb5eec502572e5cf63",
+    "pipeline_revision_identity": "b3:9f155b60c5075fe52c8e5d46070598aaf548fbc392a72a5a282547c38cac801f",
+    "workflow_policy_identity": "b3:e53c49bfdd2b6060956f986c5286ead776f4f4958103397b08ee5b8e5ce41fc0"
+  },
+  "observation": {
+    "maximum_log_read_bytes": 32,
+    "maximum_log_references": 64,
+    "maximum_total_log_bytes": 1048576
+  },
+  "platform": "linux-x86_64",
+  "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+  "schema": "lattice.workflow-request.v2",
+  "source": null
+}

@@ -1,0 +1,2 @@
+kiln worker: step build completed; exit=1 stdout_truncated=false stderr_truncated=false
+kiln worker: failed step output could not be admitted

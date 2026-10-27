@@ -1,0 +1,201 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "tls": "TLS1.3 succeeded; TLS1.2 rejected",
+    "success": {
+      "run": {
+        "id": "web-run-42a6be38abbecdb544f53794404f92592f70af577300467afd3eb7b56184da15",
+        "project_id": "success",
+        "source_revision": "a2438c2f8aa02918d63300035ad0a85089f57a79",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-42a6be38abbecdb544f53794404f92592f70af577300467afd3eb7b56184da15",
+        "outcome": "Success",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:e48eeb0bd914f036659fea2c8d3a2d447a532d213f5fd6478a866438bf7bf523"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Completed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793136697074,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793136697074,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 14,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "verify"
+          }
+        ],
+        "created_at_ms": 1793136695977,
+        "started_at_ms": 1793136696004,
+        "completed_at_ms": 1793136697074,
+        "duration_ms": 1070,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "122e7f4a47ae3a0a499431d8ecebcd625a74741af7f61c810382fe7c95ee5ffa"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "8420f9ac98bbac3b8df5fbda1ef40484772875e8144549fbf6e62b794ebf00b5"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        }
+      },
+      "logs": {
+        "cursor": 0,
+        "gap": false,
+        "next_cursor": 92,
+        "node_id": "build",
+        "retained": true,
+        "source": "worker-capture",
+        "stream": "stdout",
+        "text": "actual command started\nactual artifact bytes: exact-source-artifact-v1\nsecond reviewed step\n",
+        "truncated": false,
+        "reads": 4
+      },
+      "artifact": {
+        "attempt_id": "web-attempt-42a6be38abbecdb544f53794404f92592f70af577300467afd3eb7b56184da15",
+        "blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+        "bytes": 25,
+        "download_path": "/api/runs/web-run-42a6be38abbecdb544f53794404f92592f70af577300467afd3eb7b56184da15/artifacts/f6f1d82fa6be600b4f94faeffce600af3261613262c83a603773cccb29c71b35",
+        "id": "f6f1d82fa6be600b4f94faeffce600af3261613262c83a603773cccb29c71b35",
+        "name": "artifact.txt",
+        "node_id": "build"
+      }
+    }
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "origin": "https://127.0.0.1:38829",
+  "source_revision": "a2438c2f8aa02918d63300035ad0a85089f57a79",
+  "service_profile_blake3": "9c006415570c4591403bf1ca4faf8c80b3bc4735bc80e84bd757243f8be183fe",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "service": {
+      "path": "/home/brittonr/.cargo-target/kiln-web-service/debug/kiln-web-service",
+      "blake3": "a1fa626eefab7a419fe07e08b028ef94d9f7d9ee37f3dc5fb9797d4aef7b7dc3"
+    },
+    "lattice": {
+      "path": "/nix/store/q11gs4s6jlcf38g85jafp0wxy9nhq4x7-lattice-qualified-kiln-runtime/bin/lattice",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "failure": {
+    "kind": "RuntimeError",
+    "diagnostic": "GET /api/runs/web-run-42a6be38abbecdb544f53794404f92592f70af577300467afd3eb7b56184da15/logs?node_id=build&stream=stdout&cursor=0&max_bytes=64&q=actual%20artifact: unexpected status/size 400: b'{\"code\":\"log_node_or_bound\",\"message\":\"Request does not match the bounded API contract\"}'"
+  },
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

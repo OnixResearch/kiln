@@ -1,8 +1,9 @@
 //! Bounded HTTPS shell. Authorization precedes every application call.
 
+use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, Once};
 use std::time::{Duration, Instant};
@@ -10,10 +11,34 @@ use std::time::{Duration, Instant};
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use rustls_pemfile::{certs, private_key};
 
+use crate::access::{AccessProfile, IdentityResolver, Principal};
 use crate::auth::Credentials;
 use crate::engine::{ApiResponse, Engine};
 use crate::profile::ServiceProfile;
 use zeroize::Zeroizing;
+
+/// Explicit runtime policies, never part of the canonical ServiceProfile identity.
+#[derive(Debug, Default)]
+pub struct Options {
+    pub access: Option<PathBuf>,
+    pub automation: Option<PathBuf>,
+    pub cobs: Option<PathBuf>,
+}
+
+impl Options {
+    fn access_profile(&self) -> Result<AccessProfile, String> {
+        self.access
+            .as_deref()
+            .map(AccessProfile::load)
+            .unwrap_or_else(|| Ok(AccessProfile::default()))
+    }
+    fn automation_profile(&self) -> Result<Option<crate::automation::AutomationProfile>, String> {
+        self.automation
+            .as_deref()
+            .map(crate::automation::AutomationProfile::load)
+            .transpose()
+    }
+}
 
 #[path = "server/admission.rs"]
 mod admission;
@@ -22,8 +47,18 @@ mod notify;
 
 /// Admit startup inputs without creating state, binding listeners or contacting providers.
 pub fn check(path: &Path) -> Result<(), String> {
+    check_with_options(path, &Options::default())
+}
+
+pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
-    let _credentials = Credentials::load(&profile)?;
+    let _credentials = Credentials::load(&profile, options.access_profile()?)?;
+    let _automation = options.automation_profile()?;
+    let _cobs = options
+        .cobs
+        .as_deref()
+        .map(crate::cobs::Profile::load)
+        .transpose()?;
     let _tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)
 }
@@ -33,13 +68,32 @@ const MAX_HEADER_FIELDS: usize = 64;
 const SECURITY_HEADERS: &str = "Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\nStrict-Transport-Security: max-age=31536000\r\n";
 
 pub fn run(path: &Path) -> Result<(), String> {
+    run_with_options(path, &Options::default())
+}
+
+pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
-    let credentials = Credentials::load(&profile)?;
+    let access = options.access_profile()?;
+    let access_identity = access.identity()?;
+    let credentials = Credentials::load(&profile, access)?;
+    let automation = options.automation_profile()?;
+    let cobs = crate::cobs::Browser::new(
+        options
+            .cobs
+            .as_deref()
+            .map(crate::cobs::Profile::load)
+            .transpose()?,
+    )?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;
     let listener = TcpListener::bind(profile.listen_address)
         .map_err(|_| "listener could not bind".to_owned())?;
-    let engine = Mutex::new(Engine::open(profile.clone())?);
+    let mut engine = Engine::open(profile.clone())?;
+    engine.configure_access_identity(&access_identity)?;
+    if let Some(automation) = automation {
+        engine.configure_automation(automation)?;
+    }
+    let engine = Mutex::new(engine);
     let stop = Arc::new(AtomicBool::new(false));
     for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
         signal_hook::flag::register(signal, Arc::clone(&stop))
@@ -54,6 +108,7 @@ pub fn run(path: &Path) -> Result<(), String> {
         profile: &profile,
         credentials: &credentials,
         engine: &engine,
+        cobs: &cobs,
     };
     notify::ready()?;
     std::thread::scope(|scope| -> Result<(), String> {
@@ -62,10 +117,21 @@ pub fn run(path: &Path) -> Result<(), String> {
         let engine_ref = &engine;
         let polling = scope.spawn(move || {
             while !stop_ref.load(Ordering::Acquire) {
-                let result = engine_ref
-                    .lock()
-                    .map_err(|_| ())
-                    .and_then(|mut engine| engine.poll().map_err(|_| ()));
+                let result = (|| -> Result<(), ()> {
+                    let notifications =
+                        engine_ref.lock().map_err(|_| ())?.poll().map_err(|_| ())?;
+                    // One bounded serial executor: no HTTPS runs under Engine's
+                    // mutex and no detached deliveries accumulate across polls.
+                    for notification in notifications {
+                        let observation = notification.deliver().map_err(|_| ())?;
+                        engine_ref
+                            .lock()
+                            .map_err(|_| ())?
+                            .record_notification(observation)
+                            .map_err(|_| ())?;
+                    }
+                    Ok(())
+                })();
                 if result.is_err() {
                     failed_ref.store(true, Ordering::Release);
                     stop_ref.store(true, Ordering::Release);
@@ -122,6 +188,74 @@ pub fn run(path: &Path) -> Result<(), String> {
     }
 }
 
+/// Private nginx auth_request endpoint. Its credential is never returned to a browser.
+/// The trusted nginx caller must overwrite X-Kiln-Peer from the TCP peer socket.
+pub fn proxy_auth(path: &Path) -> Result<(), String> {
+    let access = AccessProfile::load(path)?;
+    let profile = access
+        .proxy
+        .as_ref()
+        .ok_or("proxy identity policy is not configured")?;
+    let secret = Zeroizing::new(crate::profile::read_token(&profile.credential_file)?);
+    let verifier = crate::auth::TokenVerifier::new(&secret)?;
+    let resolver = IdentityResolver::new(profile)?;
+    let listener = TcpListener::bind(profile.listen_address)
+        .map_err(|_| "private proxy listener unavailable")?;
+    listener
+        .set_nonblocking(true)
+        .map_err(|_| "private proxy listener mode failed")?;
+    let stop = Arc::new(AtomicBool::new(false));
+    for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+        signal_hook::flag::register(signal, Arc::clone(&stop))
+            .map_err(|_| "proxy shutdown handler unavailable")?;
+    }
+    notify::ready()?;
+    while !stop.load(Ordering::Acquire) {
+        let stream = match listener.accept() {
+            Ok((stream, peer)) if peer.ip().is_loopback() => stream,
+            Ok(_) => continue,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(ACCEPT_INTERVAL);
+                continue;
+            }
+            Err(_) => return Err("private proxy listener failed".into()),
+        };
+        let mut stream = DeadlineStream {
+            stream,
+            deadline: Instant::now() + Duration::from_secs(5),
+        };
+        let request = read_request(&mut BufReader::new(&mut stream), 8192, 0);
+        let principal = request
+            .ok()
+            .filter(|request| {
+                request.method == "GET"
+                    && request.target == "/verify"
+                    && header(request, "host") == Some("kiln-proxy-auth")
+                    && header(request, "authorization").is_none()
+                    && header(request, "origin").is_none()
+                    && header(request, "x-kiln-principal").is_none()
+                    && header(request, "x-kiln-proxy-key")
+                        .is_some_and(|key| key.len() == 64 && verifier.matches(key.as_bytes()))
+            })
+            .and_then(|request| {
+                header(&request, "x-kiln-peer")
+                    .and_then(|peer| resolver.resolve(profile, peer).ok())
+            });
+        // Never put labels, roles, credentials or error details in the auth response.
+        if let Some(principal) = principal {
+            let _ = write!(
+                stream,
+                "HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\nCache-Control: no-store\r\nX-Kiln-Principal: {}\r\n\r\n",
+                principal.id
+            );
+            let _ = stream.flush();
+        } else {
+            let _ = write_response(&mut stream, error_response(403, "peer_denied"));
+        }
+    }
+    Ok(())
+}
+
 struct Permit<'a>(&'a AtomicUsize);
 impl Drop for Permit<'_> {
     fn drop(&mut self) {
@@ -133,6 +267,7 @@ struct Context<'a> {
     profile: &'a ServiceProfile,
     credentials: &'a Credentials,
     engine: &'a Mutex<Engine>,
+    cobs: &'a crate::cobs::Browser,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -227,15 +362,12 @@ impl Write for DeadlineStream {
     }
 }
 
-#[derive(Debug)]
+// Headers remain private, are bounded by the framing reader, and are never logged.
 struct Request {
     method: String,
     target: String,
-    host: String,
-    origin: Option<String>,
-    authorization: Option<String>,
-    content_type: Option<String>,
     body: Vec<u8>,
+    headers: BTreeMap<String, String>,
 }
 
 fn line<R: BufRead>(reader: &mut R, remaining: &mut usize) -> Result<Vec<u8>, u16> {
@@ -283,11 +415,8 @@ fn read_request<R: BufRead>(
     let mut request = Request {
         method: method.to_owned(),
         target: target.to_owned(),
-        host: String::new(),
-        origin: None,
-        authorization: None,
-        content_type: None,
         body: Vec::new(),
+        headers: BTreeMap::new(),
     };
     let mut length = None;
     let mut ended = false;
@@ -307,15 +436,11 @@ fn read_request<R: BufRead>(
             return Err(400);
         }
         let value = value.trim_matches(' ');
-        match name.to_ascii_lowercase().as_str() {
-            "host" if request.host.is_empty() => request.host = value.to_owned(),
-            "origin" if request.origin.is_none() => request.origin = Some(value.to_owned()),
-            "authorization" if request.authorization.is_none() => {
-                request.authorization = Some(value.to_owned())
-            }
-            "content-type" if request.content_type.is_none() => {
-                request.content_type = Some(value.to_owned())
-            }
+        let name = name.to_ascii_lowercase();
+        if request.headers.contains_key(&name) {
+            return Err(400);
+        }
+        match name.as_str() {
             "content-length" if length.is_none() => {
                 if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
                     return Err(400);
@@ -326,15 +451,15 @@ fn read_request<R: BufRead>(
                 }
                 length = Some(size);
             }
-            "host" | "origin" | "authorization" | "content-type" | "content-length"
-            | "transfer-encoding" | "expect" => return Err(400),
+            "transfer-encoding" | "expect" => return Err(400),
             _ => {}
         }
+        request.headers.insert(name, value.to_owned());
     }
     if !ended {
         return Err(431);
     }
-    if request.host.is_empty() {
+    if header(&request, "host").is_none_or(str::is_empty) {
         return Err(400);
     }
     if request.method == "GET" && length.unwrap_or(0) != 0 {
@@ -349,44 +474,107 @@ fn read_request<R: BufRead>(
 }
 
 fn route(request: Request, context: &Context<'_>) -> ApiResponse {
+    let principal = context.credentials.authenticate_request(
+        header(&request, "authorization"),
+        header(&request, "x-kiln-proxy-key"),
+        header(&request, "x-kiln-principal"),
+    );
     let host = context
         .profile
         .origin
         .strip_prefix("https://")
         .unwrap_or("");
-    if request.host != host
-        || request
-            .origin
-            .as_deref()
-            .is_some_and(|origin| origin != context.profile.origin)
+    if header(&request, "host") != Some(host)
+        || header(&request, "origin").is_some_and(|origin| origin != context.profile.origin)
     {
-        return error_response(403, "origin_denied");
+        return denied(&request, context, principal.as_ref(), 403, "origin_denied");
+    }
+    if forbidden_identity(&request) {
+        return denied(&request, context, None, 403, "identity_header_denied");
+    }
+    if principal.is_none()
+        && (header(&request, "x-kiln-proxy-key").is_some()
+            || header(&request, "x-kiln-principal").is_some())
+    {
+        return denied(&request, context, None, 401, "proxy_identity_denied");
+    }
+    if let Some(id) = trigger_id(&request) {
+        // Only this exact signed intake has an Origin/bearer exception. Authentication,
+        // repository/ref binding and replay admission belong to the registered trigger.
+        if header(&request, "authorization").is_some()
+            || header(&request, "x-kiln-proxy-key").is_some()
+            || header(&request, "x-kiln-principal").is_some()
+        {
+            return denied(
+                &request,
+                context,
+                principal.as_ref(),
+                403,
+                "trigger_identity_denied",
+            );
+        }
+        if !json_content(&request) {
+            return denied(&request, context, None, 415, "json_required");
+        }
+        let (Some(delivery), Some(event), Some(signature)) = (
+            header(&request, "x-github-delivery"),
+            header(&request, "x-github-event"),
+            header(&request, "x-hub-signature-256"),
+        ) else {
+            return denied(&request, context, None, 401, "signature_required");
+        };
+        let headers = kiln_adapter_github::events::DeliveryHeaders {
+            delivery: delivery.to_owned(),
+            event: event.to_owned(),
+            signature: signature.to_owned(),
+        };
+        return match context.engine.lock() {
+            Ok(mut engine) => engine
+                .automation_trigger(id, &headers, &request.body)
+                .unwrap_or_else(|_| error_response(503, "service_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
     }
     if request.target.starts_with("/api/") {
-        let Some(role) = context
-            .credentials
-            .authenticate(request.authorization.as_deref())
-        else {
+        if let Err((status, code)) =
+            api_admission(&request, &context.profile.origin, principal.as_ref())
+        {
+            return denied(&request, context, principal.as_ref(), status, code);
+        }
+        let Some(principal) = principal else {
             return error_response(401, "unauthorized");
         };
-        if request.method == "POST" {
-            if request.origin.as_deref() != Some(context.profile.origin.as_str()) {
-                return error_response(403, "origin_required");
+        let path = request
+            .target
+            .split_once('?')
+            .map_or(request.target.as_str(), |(path, _)| path);
+        if path == "/api/cobs" || path.starts_with("/api/cobs/") {
+            if principal.role == crate::engine::Role::Worker || request.method != "GET" {
+                return denied(&request, context, Some(&principal), 403, "cobs_read_only");
             }
-            if !request.content_type.as_deref().is_some_and(|content| {
-                content == "application/json" || content == "application/json; charset=utf-8"
-            }) {
-                return error_response(415, "json_required");
-            }
+            return context.cobs.response(
+                &request.method,
+                &request.target,
+                &request.body,
+                principal.role,
+            );
         }
         match context.engine.lock() {
             Ok(mut engine) => engine
-                .api(&request.method, &request.target, &request.body, role)
+                .api_as(&request.method, &request.target, &request.body, &principal)
                 .unwrap_or_else(|_| error_response(503, "service_unavailable")),
             Err(_) => error_response(503, "service_unavailable"),
         }
     } else if request.method == "GET" {
-        let (content_type, bytes): (&'static str, &[u8]) = match request.target.as_str() {
+        let path = request
+            .target
+            .split_once('?')
+            .map_or(request.target.as_str(), |(path, _)| path);
+        // Compiled UI entrypoint; interaction logic is embedded from web.js.
+        // r[impl kiln.dashboard.cobs.view]
+        // r[impl kiln.dashboard.cobs.view.scenario.restore]
+        // r[impl kiln.dashboard.cobs.view.scenario.cleared]
+        let (content_type, bytes): (&'static str, &[u8]) = match path {
             "/" => ("text/html; charset=utf-8", include_bytes!("web.html")),
             "/web.js" => ("text/javascript; charset=utf-8", include_bytes!("web.js")),
             "/web.css" => ("text/css; charset=utf-8", include_bytes!("web.css")),
@@ -405,6 +593,79 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         }
     } else {
         error_response(405, "method_denied")
+    }
+}
+
+fn header<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
+    request.headers.get(name).map(String::as_str)
+}
+
+fn forbidden_identity(request: &Request) -> bool {
+    request.headers.keys().any(|name| {
+        (name.starts_with("x-kiln-")
+            && !matches!(name.as_str(), "x-kiln-proxy-key" | "x-kiln-principal"))
+            || name.starts_with("tailscale-")
+            || matches!(
+                name.as_str(),
+                "x-forwarded-user" | "x-auth-request-user" | "remote-user"
+            )
+    })
+}
+
+fn trigger_id(request: &Request) -> Option<&str> {
+    if request.method != "POST" {
+        return None;
+    }
+    request
+        .target
+        .strip_prefix("/api/triggers/")
+        .filter(|id| crate::profile::identifier(id))
+}
+
+fn json_content(request: &Request) -> bool {
+    matches!(
+        header(request, "content-type"),
+        Some("application/json" | "application/json; charset=utf-8")
+    )
+}
+
+fn api_admission(
+    request: &Request,
+    origin: &str,
+    principal: Option<&Principal>,
+) -> Result<(), (u16, &'static str)> {
+    if principal.is_none() {
+        return Err((401, "unauthorized"));
+    }
+    if request.method == "POST" {
+        if header(request, "origin") != Some(origin) {
+            return Err((403, "origin_required"));
+        }
+        if !json_content(request) {
+            return Err((415, "json_required"));
+        }
+        if principal.is_some_and(|principal| principal.role == crate::engine::Role::Viewer) {
+            return Err((403, "operator_required"));
+        }
+    }
+    Ok(())
+}
+
+fn denied(
+    request: &Request,
+    context: &Context<'_>,
+    principal: Option<&Principal>,
+    status: u16,
+    code: &str,
+) -> ApiResponse {
+    match context.engine.lock() {
+        Ok(mut engine) => {
+            match engine.record_denial(&request.method, &request.target, principal, code) {
+                Ok(()) => error_response(status, code),
+                Err(_) => error_response(503, "audit_unavailable"),
+            }
+        }
+        Err(_) => error_response(503, "service_unavailable"),
     }
 }
 
@@ -485,6 +746,9 @@ mod tests {
             b"GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 1\r\n\r\nx",
             b"GET / HTTP/1.1\r\nHost: localhost\r\n folded: value\r\n\r\n",
             b"POST /api/projects HTTP/1.1\r\nHost: localhost\r\nContent-Length: +2\r\n\r\n{}",
+            b"GET /api/session HTTP/1.1\r\nHost: localhost\r\nX-Kiln-Principal: tailscale:1\r\nx-kiln-principal: tailscale:2\r\n\r\n",
+            b"POST /api/triggers/github HTTP/1.1\r\nHost: localhost\r\nX-GitHub-Delivery: first\r\nX-GitHub-Delivery: second\r\nContent-Length: 2\r\n\r\n{}",
+            b"POST /api/triggers/github HTTP/1.1\r\nHost: localhost\r\nX-Hub-Signature-256: first\r\nx-hub-signature-256: second\r\nContent-Length: 2\r\n\r\n{}",
         ] { assert!(parse(bytes).is_err()); }
         assert_eq!(
             parse(b"POST /api/projects HTTP/1.1\r\nHost: localhost\r\nContent-Length: 17\r\n\r\n")
@@ -500,5 +764,73 @@ mod tests {
             .err(),
             Some(431)
         );
+    }
+
+    #[test]
+    fn viewer_reads_but_never_mutates_and_writes_require_exact_origin() {
+        let viewer = Principal {
+            id: "viewer:reader".into(),
+            label: "Reader".into(),
+            role: crate::engine::Role::Viewer,
+        };
+        let operator = Principal {
+            role: crate::engine::Role::Operator,
+            ..viewer.clone()
+        };
+        let read = parse(b"GET /api/runs HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            api_admission(&read, "https://localhost", Some(&viewer)),
+            Ok(())
+        );
+        assert_eq!(
+            api_admission(&read, "https://localhost", None),
+            Err((401, "unauthorized"))
+        );
+        let mut write = parse(b"POST /api/runs HTTP/1.1\r\nHost: localhost\r\nOrigin: https://localhost\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}").unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            api_admission(&write, "https://localhost", Some(&operator)),
+            Ok(())
+        );
+        assert_eq!(
+            api_admission(&write, "https://localhost", Some(&viewer)),
+            Err((403, "operator_required"))
+        );
+        write.headers.remove("origin");
+        assert_eq!(
+            api_admission(&write, "https://localhost", Some(&operator)),
+            Err((403, "origin_required"))
+        );
+        write
+            .headers
+            .insert("origin".into(), "https://foreign.example".into());
+        assert_eq!(
+            api_admission(&write, "https://localhost", Some(&operator)),
+            Err((403, "origin_required"))
+        );
+    }
+
+    #[test]
+    fn only_exact_registered_trigger_path_can_enter_signed_ingress() {
+        let raw =
+            b"POST /api/triggers/github HTTP/1.1\r\nHost: localhost\r\nContent-Length: 2\r\n\r\n{}";
+        let mut request = parse(raw).unwrap_or_else(|_| unreachable!());
+        assert_eq!(trigger_id(&request), Some("github"));
+        for target in [
+            "/api/triggers/",
+            "/api/triggers/github/extra",
+            "/api/triggers/github?bypass=1",
+            "/api/runs",
+        ] {
+            request.target = target.into();
+            assert_eq!(trigger_id(&request), None);
+        }
+        request.target = "/api/triggers/github".into();
+        request.method = "GET".into();
+        assert_eq!(trigger_id(&request), None);
+        request
+            .headers
+            .insert("x-kiln-role".into(), "operator".into());
+        assert!(forbidden_identity(&request));
     }
 }

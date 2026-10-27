@@ -263,6 +263,38 @@ fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart(
         let response = checked(client.get(&health).send());
         assert_eq!(response.status(), 200);
         assert_eq!(checked(response.text()), "{\"status\":\"ok\"}");
+        for navigation in [
+            "/?page=runs&run=retained-run&view=logs&node=build",
+            "/?page=settings&theme=dark&density=compact",
+        ] {
+            let response = checked(client.get(format!("{}{navigation}", profile.origin)).send());
+            assert_eq!(response.status(), 200);
+            assert_eq!(
+                response
+                    .headers()
+                    .get("content-type")
+                    .and_then(|value| value.to_str().ok()),
+                Some("text/html; charset=utf-8")
+            );
+        }
+        assert_eq!(
+            checked(
+                client
+                    .get(format!("{}/missing?page=runs", profile.origin))
+                    .send()
+            )
+            .status(),
+            404
+        );
+        assert_eq!(
+            checked(
+                client
+                    .get(format!("{}/api/runs?limit=1", profile.origin))
+                    .send()
+            )
+            .status(),
+            401
+        );
         assert_eq!(
             checked(
                 client

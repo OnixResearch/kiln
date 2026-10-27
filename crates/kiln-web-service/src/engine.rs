@@ -8,14 +8,22 @@ use kiln_provider_api::WorkflowPort;
 use serde::Serialize;
 
 use crate::profile::{MAX_PROFILE_BYTES, ServiceProfile};
-mod api;
+mod admission;
+pub(crate) mod api;
 mod artifacts;
+mod automation;
+mod dashboard;
 mod logs;
 pub(crate) mod model;
+mod queue;
+mod reports;
+pub use automation::{NotificationCompletion, NotificationWork};
 mod storage;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Role {
+    Viewer,
     Operator,
     Worker,
 }
@@ -34,6 +42,7 @@ pub struct Engine {
     ports: BTreeMap<String, Box<dyn WorkflowPort + Send>>,
     known: BTreeSet<String>,
     storage_failed: bool,
+    automation_profile: Option<crate::automation::AutomationProfile>,
     _lock: File,
 }
 
@@ -97,6 +106,7 @@ impl Engine {
             ports,
             known: BTreeSet::new(),
             storage_failed: false,
+            automation_profile: None,
             _lock: lock,
         })
     }
@@ -112,7 +122,7 @@ impl Engine {
         }
         Ok(())
     }
-    pub fn poll(&mut self) -> Result<(), String> {
+    pub fn poll(&mut self) -> Result<Vec<NotificationWork>, String> {
         if self.storage_failed {
             return Err("durable state is unavailable; restart requires recovery".into());
         }
@@ -120,17 +130,18 @@ impl Engine {
             .state
             .runs
             .iter()
-            .filter(|(_, r)| !r.outcome().is_terminal())
+            .filter(|(_, r)| !r.outcome().is_terminal() && r.phase != "queued")
             .map(|(id, _)| id.clone())
             .collect();
         for id in ids {
             self.refresh(&id)?;
         }
-        Ok(())
+        self.dispatch_queued()?;
+        self.tick_automation()
     }
     fn refresh(&mut self, id: &str) -> Result<(), String> {
         let record = self.state.runs.get(id).ok_or("run missing")?;
-        if record.outcome().is_terminal() {
+        if record.outcome().is_terminal() || record.phase == "queued" {
             return Ok(());
         }
         let plan = record.plan.clone();
@@ -189,6 +200,7 @@ impl Engine {
                 self.fail_unknown(id, code)
             }
             Ok(observation) => {
+                let now = host_time_ms()?;
                 let run = self.state.runs.get_mut(id).ok_or("run missing")?;
                 let outcome = admit_workflow_observation(&run.plan, &observation);
                 if outcome.is_err()
@@ -205,6 +217,33 @@ impl Engine {
                     && matches!(run.phase.as_str(), "active" | "terminal" | "unknown")
                 {
                     return Ok(());
+                }
+                if run.created_at_ms.is_some() {
+                    if run.started_at_ms.is_none()
+                        && matches!(
+                            observation.state,
+                            WorkflowState::Running | WorkflowState::Paused
+                        )
+                    {
+                        run.started_at_ms = Some(now);
+                    }
+                    if observation.state.is_terminal() && run.completed_at_ms.is_none() {
+                        run.completed_at_ms = Some(now);
+                    }
+                    for node in &observation.nodes {
+                        let timing = run
+                            .node_timing
+                            .entry(node.node_id.as_str().to_owned())
+                            .or_default();
+                        if node.state == kiln_core::workflow::WorkflowNodeState::Running
+                            && timing.started_at_ms.is_none()
+                        {
+                            timing.started_at_ms = Some(now);
+                        }
+                        if node.state.is_terminal() && timing.completed_at_ms.is_none() {
+                            timing.completed_at_ms = Some(now);
+                        }
+                    }
                 }
                 if observation.state.is_terminal() {
                     run.complete(
@@ -225,4 +264,11 @@ impl Engine {
             }
         }
     }
+}
+
+pub(super) fn host_time_ms() -> Result<u64, String> {
+    let elapsed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| "host clock precedes epoch")?;
+    u64::try_from(elapsed.as_millis()).map_err(|_| "host clock exceeds bound".into())
 }

@@ -1,6 +1,7 @@
 "use strict";
 
 (() => {
+  document.documentElement.classList.add("catalog-js");
   const LIVE_DELAY_MS = 1500;
   const MAX_LIVE_FAILURES = 6;
   const MAX_BACKOFF_MS = 15000;
@@ -12,12 +13,17 @@
   const CONTROL_FRESHNESS_MS = 30000;
   const $ = (id) => document.getElementById(id);
   const state = {
-    token: null, epoch: 0, requests: new Set(), urls: new Set(), urlTimers: new Set(),
+    session: null, token: null, epoch: 0, requests: new Set(), urls: new Set(), urlTimers: new Set(),
     projects: { available: [], enrolled: [] }, runs: [], selected: null, run: null,
     observedAt: 0, connected: false, liveVersion: "0", liveTimer: null,
     liveController: null, liveGeneration: 0, liveFailures: 0,
     logTimer: null, logGeneration: 0, logBusy: false, logNext: "0", logKey: "",
     artifactsGeneration: 0, confirm: null, mutation: false, detailGeneration: 0,
+    principal: null, permissions: {}, route: null, nextCursor: null, total: 0,
+    runsGeneration: 0, pageGeneration: 0, refsGeneration: 0,
+    endpointGeneration: new Map(),
+    runsError: "",
+    cobsNextCursor: null,
   };
 
   function text(value) {
@@ -70,11 +76,20 @@
       reader.releaseLock();
     }
   }
+  async function boundedBlob(response) {
+    if (!response.body) throw new Error("The service returned no download body.");
+    const reader = response.body.getReader();
+    const chunks = [];
+    let bytes = 0;
+    try { while (true) { const part = await reader.read(); if (part.done) break; bytes += part.value.byteLength; if (bytes > 256 * 1024 * 1024) throw new Error("Download exceeds this browser’s 256 MiB memory bound. No partial file was offered."); chunks.push(part.value); } return new Blob(chunks, { type: response.headers.get("Content-Type") || "application/octet-stream" }); }
+    finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
+  }
 
-  async function api(target, { method = "GET", body, kind = "json", controller = new AbortController() } = {}) {
-    if (!state.token) throw new DOMException("Signed out", "AbortError");
+  async function api(target, { method = "GET", body, kind = "json", controller = new AbortController(), bootstrap = false } = {}) {
+    if (!state.session && !bootstrap) throw new DOMException("Signed out", "AbortError");
     const epoch = state.epoch;
-    const headers = { Authorization: `Bearer ${state.token}`, Accept: kind === "sse" ? "text/event-stream" : kind === "blob" ? "application/octet-stream" : "application/json" };
+    const headers = { Accept: kind === "sse" ? "text/event-stream" : kind === "blob" ? "application/octet-stream" : "application/json" };
+    if (state.token) headers.Authorization = `Bearer ${state.token}`;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     state.requests.add(controller);
     const timeout = setTimeout(() => controller.abort(new DOMException("Request timed out", "TimeoutError")), REQUEST_TIMEOUT_MS);
@@ -86,7 +101,8 @@
       });
       if (epoch !== state.epoch) throw new DOMException("Session changed", "AbortError");
       if (response.status === 401) {
-        logout("Authentication expired or the operator token was rejected. Sign in again.");
+        if (bootstrap) { await response.body?.cancel(); return null; }
+        logout(state.session === "network" ? "Network access was rejected. Reopen the page to recheck access." : "Authentication expired or the operator token was rejected. Sign in again.");
         throw new DOMException("Signed out", "AbortError");
       }
       if (!response.ok) {
@@ -97,7 +113,7 @@
         throw error;
       }
       let result;
-      if (kind === "blob") result = await response.blob();
+      if (kind === "blob") result = await boundedBlob(response);
       else {
         const source = await boundedText(response, MAX_JSON_BYTES);
         if (kind === "sse") result = source;
@@ -139,30 +155,34 @@
     const enrolled = state.projects.enrolled.find((row) => row.id === $("enrolled-project").value);
     $("available-description").textContent = available ? `${text(available.repository)} · ${text(available.reference)}` : "Only service-allowlisted repositories can be enrolled.";
     $("project-description").textContent = enrolled ? `${text(enrolled.repository)} · ${text(enrolled.reference)}\nPipeline: ${text(enrolled.pipeline_identity)}` : "Enroll or select a project before starting a run.";
-    $("enroll-button").disabled = state.mutation || !available;
-    $("start-button").disabled = state.mutation || !enrolled;
+    $("enroll-button").disabled = !canOperate() || state.mutation || !available;
+    $("start-button").disabled = !canOperate() || state.mutation || !enrolled;
   }
   async function loadProjects() {
     const epoch = state.epoch;
     const result = await api("/api/projects");
     if (epoch !== state.epoch) throw new DOMException("Session changed", "AbortError");
+    adoptProjects(result);
+  }
+  function adoptProjects(result) {
     if (!Array.isArray(result.available) || !Array.isArray(result.enrolled)) throw new Error("The project response is invalid; repository choices are unavailable.");
     state.projects = result;
     const enrolledIds = new Set(result.enrolled.map((row) => row.id));
     const available = result.available.filter((row) => !enrolledIds.has(row.id));
     options($("available-project"), available, available.length ? "Select an allowlisted repository" : "No unenrolled repositories available", $("available-project").value);
     options($("enrolled-project"), result.enrolled, result.enrolled.length ? "Select an enrolled project" : "No enrolled projects", $("enrolled-project").value);
-    options($("run-filter"), result.enrolled, "All projects", $("run-filter").value);
+    options($("run-filter"), result.enrolled, "All projects", state.route?.project || "");
     if (result.enrolled.length === 1) $("enrolled-project").value = result.enrolled[0].id;
     projectDescriptions();
+    renderProjects();
     renderRunList();
   }
 
   function renderRunList() {
     const focused = document.activeElement?.dataset.runId;
-    const filter = $("run-filter").value;
-    const runs = state.runs.filter((run) => !filter || run.project_id === filter);
-    $("runs-status").textContent = runs.length ? `${runs.length} retained run${runs.length === 1 ? "" : "s"}${state.connected ? "" : " · snapshot may be stale"}` : "No retained runs match this project. Start a run from an enrolled project.";
+    const runs = state.runs;
+    $("runs-status").textContent = state.runsError || `${runs.length} shown of ${text(state.total)} matching retained runs · bounded page${state.connected ? "" : " · snapshot may be stale"}`;
+    $("runs-next").disabled = !state.nextCursor;
     $("run-list").replaceChildren();
     for (const run of runs) {
       const button = element("button", undefined, "run-choice");
@@ -170,7 +190,7 @@
       button.dataset.runId = run.id;
       if (run.id === state.selected) button.setAttribute("aria-current", "true");
       button.append(element("span", `${text(run.project_id)} · ${text(run.id)}`), element("span", `Source ${text(run.source_revision)}`, "run-source"), element("span", `${text(run.outcome)} · ${text(run.phase)}`, "run-summary"));
-      button.addEventListener("click", () => selectRun(run.id));
+      button.addEventListener("click", () => navigate({ page: "runs", run: run.id, node: "", cursor: state.route.cursor }));
       $("run-list").append(button);
       if (focused === run.id) button.focus({ preventScroll: true });
     }
@@ -193,18 +213,27 @@
     renderRunList();
     const selected = state.runs.find((run) => run.id === state.selected);
     if (selected) adoptRun(selected);
-    else if (state.selected) {
-      $("run-warning").textContent = "This run is absent from the latest retained snapshot. Displayed details are stale; refresh the run before any control.";
-      $("run-warning").hidden = false;
-      state.observedAt = 0;
-      updateControlButtons();
-    }
   }
   async function loadRuns() {
-    const epoch = state.epoch;
-    const result = await api("/api/runs");
-    if (epoch !== state.epoch) throw new DOMException("Session changed", "AbortError");
-    adoptRuns(result.runs);
+    const generation = ++state.runsGeneration;
+    const route = state.route;
+    const query = new URLSearchParams({ limit: "25", order: route.order });
+    for (const [key, value] of [["q", route.q], ["project_id", route.project], ["outcome", route.outcome], ["source_revision", route.source], ["cursor", route.cursor]]) if (value) query.set(key, value);
+    try {
+      const result = await api(`/api/runs?${query}`);
+      if (generation !== state.runsGeneration) return;
+      state.runsError = "";
+      state.nextCursor = result.next_cursor;
+      state.total = result.total;
+      adoptRuns(result.runs);
+    } catch (error) {
+      if (!isAborted(error) && generation === state.runsGeneration) {
+        state.runs = []; state.nextCursor = null; state.total = 0;
+        state.runsError = `Run browser unavailable: ${explain(error)} No other page was substituted. Use First page to discard an invalid cursor.`;
+        renderRunList();
+      }
+      throw error;
+    }
   }
   async function loadDetail() {
     const id = state.selected;
@@ -229,10 +258,12 @@
     renderRunList();
     try {
       await loadDetail();
-      if (state.selected === id) await loadArtifacts();
+      if (state.selected === id) { await loadArtifacts(); await loadRunView(); }
     } catch (error) {
       if (isAborted(error) || id !== state.selected) return;
       $("empty-run").hidden = Boolean(state.run);
+      $("empty-run-title").textContent = error.status === 404 ? "Run not found" : "Run unavailable";
+      $("empty-run-message").textContent = `${id}: ${explain(error)} No other run was substituted.`;
       notice(`Run details unavailable: ${explain(error)}`);
     }
   }
@@ -254,21 +285,19 @@
     if (!state.connected) warnings.push("Live observation is disconnected. These details may be stale.");
     $("run-warning").textContent = warnings.join(" ");
     $("run-warning").hidden = !warnings.length;
-    addFacts($("run-facts"), [["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence]]);
+    addFacts($("run-facts"), [["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ["Duration", duration(run.duration_ms)]]);
     $("execution-identity").textContent = text(run.execution);
     const nodes = Array.isArray(run.nodes) ? run.nodes : [];
-    $("node-list").replaceChildren();
-    if (!nodes.length) $("node-list").append(element("p", "No workflow nodes have been admitted for this run.", "small"));
-    for (const node of nodes) {
-      const row = element("div", undefined, "node-row");
-      row.append(element("strong", text(node.id)), element("span", text(node.state), "node-state"));
-      $("node-list").append(row);
-    }
+    renderGraph(run);
     const previousNode = $("log-node").value;
-    options($("log-node"), nodes, nodes.length ? null : "No admitted nodes", previousNode);
+    options($("log-node"), nodes, nodes.length ? null : "No admitted nodes", state.route.node || previousNode);
+    if (state.route.node && !nodes.some((node) => node.id === state.route.node)) {
+      options($("log-node"), [], `Node not found: ${state.route.node}`, "");
+    }
     if (previousNode && previousNode !== $("log-node").value) resetLogs();
-    $("read-log").disabled = !nodes.length;
-    $("follow-logs").disabled = !nodes.length;
+    $("read-log").disabled = !$("log-node").value;
+    $("follow-logs").disabled = !$("log-node").value;
+    $("download-log").disabled = !$("log-node").value;
     updateControlButtons();
   }
   function exactIdentity(run) {
@@ -277,8 +306,9 @@
   function updateControlButtons() {
     const run = state.run;
     const fresh = state.connected && Date.now() - state.observedAt < CONTROL_FRESHNESS_MS;
-    for (const action of ["cancel", "pause", "resume"]) $("control-" + action).disabled = state.mutation || !fresh || !exactIdentity(run) || run.controls?.[action] !== true;
-    $("control-note").textContent = !run ? "Select a run to inspect available controls." : !exactIdentity(run) ? "Exact control identity is unavailable or cannot be represented safely. Controls are disabled; no approximate identity will be sent." : !fresh ? "Snapshot is stale or live observation is disconnected. Refresh and reconnect before controlling this execution." : "Only advertised capabilities are enabled. A fresh read and confirmation bind each control to this exact attempt, revision, sequence, and execution.";
+    for (const action of ["cancel", "pause", "resume"]) $("control-" + action).disabled = !canOperate() || state.mutation || !fresh || !(exactIdentity(run) || (action === "cancel" && run?.phase === "queued")) || run.controls?.[action] !== true;
+    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state)));
+    $("control-note").textContent = !canOperate() ? "Read-only principal. Execution mutations are disabled." : run?.phase === "queued" ? "Queued work has no provider execution yet. Cancel removes this exact queued request before dispatch." : !run ? "Select a run to inspect controls." : !exactIdentity(run) ? "Exact control identity unavailable. No approximate identity will be sent." : !fresh ? "Snapshot stale or live observation disconnected. Refresh before control." : "Only advertised capabilities are enabled. Fresh reads and confirmation bind controls to the exact execution.";
   }
 
   function scheduleLive(delay, generation) {
@@ -286,7 +316,7 @@
     state.liveTimer = setTimeout(() => live(generation), delay);
   }
   async function live(generation) {
-    if (!state.token || generation !== state.liveGeneration) return;
+    if (!state.session || generation !== state.liveGeneration) return;
     const controller = new AbortController();
     state.liveController = controller;
     try {
@@ -306,9 +336,14 @@
         const snapshot = JSON.parse(data.join("\n"));
         if (!Number.isSafeInteger(snapshot.version) || snapshot.version < 0 || !Array.isArray(snapshot.runs)) throw new Error("Invalid live snapshot identity; the previous view may be stale.");
         if (BigInt(snapshot.version) < BigInt(state.liveVersion)) throw new Error("The live version moved backwards. Refresh to re-establish service state.");
+        const versionChanged = String(snapshot.version) !== state.liveVersion;
         state.liveVersion = String(snapshot.version);
         connection("Live · authenticated", true);
-        adoptRuns(snapshot.runs);
+        const incoming = new Map(snapshot.runs.map((run) => [run.id, run]));
+        if (!versionChanged) renderRunList();
+        else if (state.route.page === "runs") void readAction(loadRuns)();
+        else if (["overview", "operations", "activity"].includes(state.route.page)) void readAction(loadPage)();
+        if (state.selected && incoming.has(state.selected)) adoptRun(incoming.get(state.selected));
         recognized = true;
       }
       if (!recognized) throw new Error("The live endpoint returned no snapshot or heartbeat.");
@@ -316,7 +351,7 @@
       connection("Live · authenticated", true);
       scheduleLive(LIVE_DELAY_MS, generation);
     } catch (error) {
-      if (generation !== state.liveGeneration || isAborted(error) || !state.token) return;
+      if (generation !== state.liveGeneration || isAborted(error) || !state.session) return;
       state.liveFailures++;
       const stopped = state.liveFailures >= MAX_LIVE_FAILURES;
       connection(stopped ? "Disconnected · reconnect required" : `Stale · reconnect ${state.liveFailures}/${MAX_LIVE_FAILURES}`, false);
@@ -340,7 +375,7 @@
     notice("");
     state.liveVersion = "0";
     startLive();
-    await Promise.all([loadProjects(), loadRuns(), state.selected ? loadDetail() : Promise.resolve(), state.selected ? loadArtifacts() : Promise.resolve()]);
+    await Promise.all([loadProjects(), loadRuns(), state.selected ? loadDetail() : Promise.resolve(), loadPage()]);
   }
 
   function setMutation(busy) {
@@ -350,7 +385,7 @@
     $("confirm-control").disabled = busy;
   }
   async function mutate(target, payload, success) {
-    if (state.mutation) return null;
+    if (state.mutation || !canOperate()) { if (!canOperate()) notice("This principal has read-only access. Nothing was sent."); return null; }
     const requestId = crypto.randomUUID();
     const epoch = state.epoch;
     setMutation(true);
@@ -373,12 +408,14 @@
     $("confirm-facts").replaceChildren();
   }
   async function prepareControl(action) {
+    if (!canOperate()) return;
     const id = state.selected;
     try {
       const freshRun = await loadDetail();
       const run = state.run;
-      if (!freshRun || state.selected !== id || !exactIdentity(run) || run.controls?.[action] !== true || !state.connected) throw new Error("This exact execution no longer advertises the requested control. Nothing was sent.");
-      const identity = structuredClone({ action, attempt_id: run.attempt_id, expected_revision: run.revision, expected_sequence: run.sequence, execution: run.execution });
+      const queuedCancel = action === "cancel" && run?.phase === "queued";
+      if (!freshRun || state.selected !== id || (!queuedCancel && !exactIdentity(run)) || run.controls?.[action] !== true || !state.connected) throw new Error("This exact execution no longer advertises the requested control. Nothing was sent.");
+      const identity = queuedCancel ? { action } : structuredClone({ action, attempt_id: run.attempt_id, expected_revision: run.revision, expected_sequence: run.sequence, execution: run.execution });
       state.confirm = { id, identity };
       $("confirm-title").textContent = `Confirm ${action} run`;
       $("confirm-control").textContent = `Confirm ${action}`;
@@ -404,7 +441,7 @@
     $("log-gap").hidden = true;
     $("log-cursor").value = "0";
     $("log-position").textContent = "No log read yet";
-    $("log-status").textContent = "Select a node and read actual retained logs. Worker output arrives on step completion; diagnostics are native provider logs.";
+    $("log-status").textContent = "Select a node and read actual retained logs. Live worker bytes can arrive before command completion; diagnostics are native provider logs.";
   }
   function cursorValue(value) {
     if (typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("The service returned a cursor that cannot be represented exactly. No approximate cursor was used.");
@@ -417,7 +454,8 @@
     const id = state.selected;
     const node = $("log-node").value;
     const stream = $("log-stream").value;
-    const key = `${id}\0${node}\0${stream}`;
+    const search = $("log-search").value.trim();
+    const key = `${id}\0${node}\0${stream}\0${search}`;
     let cursor;
     try { cursor = cursorValue(follow ? state.logNext : $("log-cursor").value); }
     catch (error) { $("log-status").textContent = explain(error); return; }
@@ -435,7 +473,9 @@
       const maximum = state.run?.log_bounds?.maximum_chunk_bytes;
       if (!Number.isSafeInteger(maximum) || maximum <= 0) throw new Error("The run has no valid admitted log-read bound.");
       const readBytes = Math.min(LOG_READ_BYTES, maximum);
-      const result = await api(`${pathFor(id)}/logs?${new URLSearchParams({ node_id: node, stream, cursor, max_bytes: String(readBytes) })}`);
+      const query = new URLSearchParams({ node_id: node, stream, cursor, max_bytes: String(readBytes) });
+      if (search) query.set("q", search);
+      const result = await api(`${pathFor(id)}/logs?${query}`);
       if (generation !== state.logGeneration || id !== state.selected) return;
       if (result.node_id !== node || result.stream !== stream || typeof result.text !== "string") throw new Error("The returned log identity does not match the selected node and stream.");
       const expectedSource = stream === "diagnostic" ? "native-provider" : "worker-capture";
@@ -472,7 +512,7 @@
       if (generation === state.logGeneration) {
         state.logBusy = false;
         $("read-log").disabled = !$("log-node").value;
-        if ($("follow-logs").checked && state.token) state.logTimer = setTimeout(() => readLog(true), LOG_FOLLOW_MS);
+        if ($("follow-logs").checked && state.session) state.logTimer = setTimeout(() => readLog(true), LOG_FOLLOW_MS);
       }
     }
   }
@@ -525,7 +565,10 @@
       state.urlTimers.add(timer);
       if (id === state.selected) $("artifact-status").textContent = `Authenticated bytes received for ${text(artifact.name)}; download handed to your browser. BLAKE3 is the service’s retained identity, not a claim of product correctness.`;
     } catch (error) {
-      if (!isAborted(error) && id === state.selected) $("artifact-status").textContent = `Download unavailable: ${explain(error)}`;
+      if (!isAborted(error) && epoch === state.epoch) {
+        if (id === state.selected) $("artifact-status").textContent = `Download unavailable: ${explain(error)}`;
+        notice(`Download unavailable for ${text(artifact.name)}: ${explain(error)}`);
+      }
     } finally {
       if (epoch === state.epoch) { button.disabled = false; button.textContent = "Download"; }
     }
@@ -533,6 +576,7 @@
 
   function logout(message = "Signed out. Private views and pending requests were cleared.") {
     state.epoch++;
+    state.session = null;
     state.token = null;
     for (const controller of state.requests) controller.abort();
     state.requests.clear();
@@ -558,6 +602,20 @@
     resetLogs();
     for (const id of ["run-list", "run-title", "run-facts", "run-badges", "run-warning", "execution-identity", "node-list", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
     for (const id of ["available-project", "enrolled-project", "run-filter", "log-node"]) $(id).replaceChildren();
+    state.principal = null;
+    state.permissions = {};
+    state.pageGeneration++;
+    state.runsGeneration++;
+    state.refsGeneration++;
+    state.endpointGeneration.clear();
+    state.total = 0; state.nextCursor = null;
+    state.runsError = "";
+    state.cobsNextCursor = null;
+    for (const id of ["cob-list", "cob-detail", "cob-source-status", "cob-status", "cob-repository", "cob-type"]) $(id).replaceChildren();
+    $("cob-search").value = "";
+    $("source-reference").replaceChildren();
+    for (const id of ["source-revision", "log-search"]) $(id).value = "";
+    for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status"]) $(id).replaceChildren();
     $("operator-token").value = "";
     $("workspace").hidden = true;
     $("run-detail").hidden = true;
@@ -580,26 +638,552 @@
       catch (error) { if (!isAborted(error) && epoch === state.epoch) notice(explain(error)); }
     };
   }
+  async function openWorkspace(epoch) {
+    if (epoch !== state.epoch || !state.session) return;
+    $("login-panel").hidden = true;
+    $("workspace").hidden = false;
+    $("logout").hidden = false;
+    $("auth-status").textContent = `${text(state.principal?.label)} · ${text(state.principal?.role)}`;
+    $("auth-status").dataset.state = "connected";
+    addFacts($("principal-facts"), [["Principal", state.principal?.label], ["ID", state.principal?.id], ["Role", state.principal?.role], ["Admission", state.session === "network" ? "Trusted network identity" : "Manual bearer (memory only)"]]);
+    notice("");
+    projectDescriptions();
+    startLive();
+    await restoreRoute();
+  }
+  async function discoverNetworkAccess() {
+    const epoch = state.epoch;
+    try {
+      const result = await api("/api/session", { bootstrap: true });
+      if (epoch !== state.epoch || result === null) return;
+      adoptSession(result);
+      state.session = "network";
+      await loadProjects();
+      await openWorkspace(epoch);
+    } catch (error) {
+      if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
+    }
+  }
+  const pages = ["overview", "projects", "runs", "cobs", "activity", "evidence", "automation", "operations", "settings"];
+  const views = ["pipeline", "logs", "artifacts", "tests", "compare", "activity", "evidence"];
+  function canOperate() { return !!state.session && state.permissions.operate === true; }
+  function adoptSession(result) {
+    if (!result?.principal || result.permissions?.read !== true) throw new Error("No admitted readable principal was returned.");
+    state.principal = result.principal;
+    state.permissions = result.permissions;
+  }
+  function timestamp(ms) { return Number.isSafeInteger(ms) && !Number.isNaN(new Date(ms).valueOf()) ? new Date(ms).toISOString() : "Unavailable (not recorded)"; }
+  function duration(ms) { return Number.isSafeInteger(ms) && ms >= 0 ? `${(ms / 1000).toFixed(3)} s` : "Unavailable (not recorded)"; }
+  function readRoute() {
+    const params = new URLSearchParams(location.search);
+    // Accept catalog-style fragment links as well, but never read credentials from either location.
+    if (location.hash.startsWith("#page=")) for (const [key, value] of new URLSearchParams(location.hash.slice(1))) if (!params.has(key)) params.set(key, value);
+    return {
+      page: pages.includes(params.get("page")) ? params.get("page") : "overview",
+      view: views.includes(params.get("view")) ? params.get("view") : "pipeline",
+      run: params.get("run") || "", node: params.get("node") || "",
+      stream: ["stdout", "stderr", "diagnostic"].includes(params.get("stream")) ? params.get("stream") : "stdout",
+      q: params.get("q") || "", project: params.get("project") || "", outcome: params.get("outcome") || "", source: params.get("source") || "",
+      cursor: params.get("cursor") || "", activity_cursor: params.get("activity_cursor") || "", order: params.get("order") === "asc" ? "asc" : "desc", other: params.get("other") || "",
+      cob_repository: params.get("cob_repository") || "", cob_type: params.get("cob_type") || "", cob_q: params.get("cob_q") || "", cob_cursor: params.get("cob_cursor") || "",
+      cob: params.get("cob") || "", cob_repo: params.get("cob_repo") || "", cob_kind: params.get("cob_kind") || "",
+      theme: ["system", "light", "dark"].includes(params.get("theme")) ? params.get("theme") : "system", density: params.get("density") === "compact" ? "compact" : "comfortable"
+    };
+  }
+  function navigate(patch) {
+    const route = { ...state.route, ...patch };
+    if (Object.hasOwn(patch, "run") && patch.run !== state.route.run && !Object.hasOwn(patch, "activity_cursor")) route.activity_cursor = "";
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(route)) if (value) params.set(key, value);
+    history.pushState(null, "", `${location.pathname}?${params}`);
+    void readAction(restoreRoute)();
+  }
+  async function restoreRoute() {
+    const previous = state.route;
+    state.route = readRoute();
+    const route = state.route;
+    document.documentElement.dataset.theme = route.theme;
+    document.documentElement.dataset.density = route.density;
+    $("app-theme").value = route.theme;
+    $("app-density").value = route.density;
+    for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
+    for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === route.page) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
+    for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = node.dataset.runPanel !== route.view;
+    for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
+    const title = route.page === "cobs" ? "Onix COBs" : route.page[0].toUpperCase() + route.page.slice(1);
+    $("workspace-title").textContent = title;
+    $("app-breadcrumb").textContent = title;
+    document.title = `Kiln · ${title}`;
+    for (const [id, key] of [["run-search", "q"], ["run-filter", "project"], ["run-outcome", "outcome"], ["run-source", "source"], ["run-order", "order"], ["compare-other", "other"], ["evidence-run", "run"], ["log-stream", "stream"]]) $(id).value = route[key];
+    for (const [id, value] of [["run-filter", route.project], ["run-outcome", route.outcome]]) {
+      const select = $(id);
+      if (value && ![...select.options].some((option) => option.value === value)) { const option = element("option", `Unavailable selection: ${value}`); option.value = value; select.append(option); }
+      select.value = value;
+    }
+    $("app-sidebar").classList.remove("is-open");
+    $("app-menu-toggle").setAttribute("aria-expanded", "false");
+    document.documentElement.classList.remove("app-menu-open");
+    if (!state.session) return;
+    if (previous && (previous.page !== route.page || previous.run !== route.run || previous.node !== route.node || previous.view !== route.view || previous.stream !== route.stream)) resetLogs();
+    state.pageGeneration++;
+    if (route.page === "runs") {
+      if (state.selected !== route.run) {
+        state.selected = route.run || null; state.run = null; state.observedAt = 0;
+        state.detailGeneration++; state.artifactsGeneration++;
+        $("run-detail").hidden = true; $("empty-run").hidden = false;
+        $("empty-run-title").textContent = route.run ? "Loading selected run" : "Select a run";
+        $("empty-run-message").textContent = route.run ? `Reading exact retained identity: ${route.run}` : "Choose a retained run. No run is selected automatically.";
+      }
+      try { await loadRuns(); } catch (error) { if (isAborted(error)) return; notice(`Run browser unavailable: ${explain(error)} The selected run is fetched independently; no page was substituted.`); }
+      if (state.route !== route) return;
+      if (route.run && (state.selected !== route.run || !state.run)) await selectRun(route.run);
+      else if (route.run) { renderDetail(); await loadRunView(); }
+      else { state.selected = null; state.run = null; $("run-detail").hidden = true; $("empty-run").hidden = false; $("empty-run-title").textContent = "Select a run"; $("empty-run-message").textContent = "Choose a retained run. No run is selected automatically."; }
+    } else await loadPage();
+  }
+  function runLink(id, label = id, view = "pipeline") {
+    const link = element("a", text(label));
+    const params = new URLSearchParams({ page: "runs", run: id, view });
+    link.href = `?${params}`;
+    link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate({ page: "runs", run: id, view, node: "" }); } });
+    return link;
+  }
+  function section(title, parent, className = "panel") { const node = element("section", undefined, className); node.append(element("h3", title)); parent.append(node); return node; }
+  function renderRecorded(parent, value, depth = 0) {
+    if (value === null || value === undefined) { parent.append(element("p", "Unavailable (not recorded)", "small")); return; }
+    if (Array.isArray(value)) {
+      if (!value.length) parent.append(element("p", "No retained records in this bounded view.", "small"));
+      for (const row of value) { const card = element("article", undefined, "record-card"); renderRecorded(card, row, depth + 1); parent.append(card); }
+      return;
+    }
+    if (typeof value !== "object") { parent.append(element("span", text(value))); return; }
+    const facts = element("dl", undefined, "facts");
+    parent.append(facts);
+    for (const [key, item] of Object.entries(value)) {
+      const label = element("dt", key.replaceAll("_", " "));
+      const cell = element("dd");
+      facts.append(label, cell);
+      if (item && typeof item === "object") {
+        const details = element("details"); details.append(element("summary", `${key.replaceAll("_", " ")} · recorded facts`)); cell.append(details);
+        if (depth < 7) renderRecorded(details, item, depth + 1); else details.append(element("pre", text(item), "identity"));
+      } else if ((key === "run_id" || key === "parent_run_id") && typeof item === "string") cell.append(runLink(item));
+      else if (key.endsWith("_at_ms") || key === "next_due_ms" || key === "reserved_at_ms") cell.textContent = timestamp(item);
+      else if (key === "duration_ms") cell.textContent = duration(item);
+      else cell.textContent = text(item);
+    }
+  }
+  async function renderEndpoint(target, id, render = renderRecorded) {
+    const generation = state.pageGeneration;
+    const requestGeneration = (state.endpointGeneration.get(id) || 0) + 1;
+    state.endpointGeneration.set(id, requestGeneration);
+    const run = state.route.run;
+    const parent = $(id);
+    parent.replaceChildren(element("p", "Loading admitted records…", "small"));
+    try {
+      const result = await api(target);
+      if (generation !== state.pageGeneration || requestGeneration !== state.endpointGeneration.get(id) || run !== state.route.run) return;
+      parent.replaceChildren(); render(parent, result); return true;
+    } catch (error) {
+      if (!isAborted(error) && generation === state.pageGeneration && requestGeneration === state.endpointGeneration.get(id)) parent.replaceChildren(element("p", `Unavailable: ${explain(error)} No presence, absence or success is inferred.`, "warning"));
+    }
+  }
+  function activityQuery() { const query = new URLSearchParams({ limit: "50" }); if (state.route.activity_cursor) query.set("cursor", state.route.activity_cursor); return query; }
+  async function loadPage() {
+    const route = state.route;
+    if (route.page === "overview") await renderEndpoint("/api/overview", "overview-content", renderOverview);
+    if (route.page === "projects") { renderProjects(); await loadRefs(); }
+    if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
+    if (route.page === "evidence") {
+      if (route.run) await renderEndpoint(`${pathFor(route.run)}/evidence`, "evidence-content", renderEvidence);
+      else $("evidence-content").replaceChildren(element("p", "Enter a retained run ID. No evidence from another attempt is substituted.", "small"));
+    }
+    if (route.page === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
+    if (route.page === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
+    if (route.page === "cobs") await loadCobs();
+    if (route.page === "runs") await loadRunView();
+  }
+  async function loadRunView() {
+    const route = state.route;
+    if (!route.run || route.page !== "runs") return;
+    if (route.view === "tests") await renderEndpoint(`${pathFor(route.run)}/reports`, "reports-content", renderReports);
+    if (route.view === "compare") {
+      if (route.other) await renderEndpoint(`${pathFor(route.run)}/compare?${new URLSearchParams({ other: route.other })}`, "compare-content", renderComparison);
+      else $("compare-content").replaceChildren(element("p", "Choose another retained run. Missing reports or historical durations remain unavailable, not zero.", "small"));
+    }
+    if (route.view === "activity") await renderEndpoint(`${pathFor(route.run)}/activity?${activityQuery()}`, "run-activity-content", renderActivity);
+    if (route.view === "evidence") await renderEndpoint(`${pathFor(route.run)}/evidence`, "run-evidence-content", renderEvidence);
+    if (route.view === "artifacts") await loadArtifacts();
+  }
+  // r[impl kiln.dashboard.cobs.view]
+  async function loadCobs() {
+    const route = state.route;
+    state.cobsNextCursor = null;
+    $("cob-next").disabled = true;
+    $("cob-first").disabled = !route.cob_cursor;
+    $("cob-status").textContent = "Reading configured local COB stores…";
+    $("cob-source-status").replaceChildren();
+    $("cob-detail").replaceChildren();
+    $("cob-search").value = route.cob_q;
+    for (const [id, selected, label] of [["cob-repository", route.cob_repository, "All configured repositories"], ["cob-type", route.cob_type, "All Onix types"]]) {
+      const select = $(id);
+      if (![...select.options].some((option) => option.value === selected)) { const option = element("option", selected ? `Unavailable selection: ${selected}` : label); option.value = selected; select.append(option); }
+      select.value = selected;
+    }
+    const query = new URLSearchParams({ limit: "25" });
+    for (const [key, value] of [["repository", route.cob_repository], ["type", route.cob_type], ["q", route.cob_q], ["cursor", route.cob_cursor]]) if (value) query.set(key, value);
+    const loaded = await renderEndpoint(`/api/cobs?${query}`, "cob-list", renderCobs);
+    if (!state.session || state.route !== route) return;
+    if (!loaded) $("cob-status").textContent = "COB inventory unavailable. Exact selection is inspected independently; no page was substituted.";
+    if (!route.cob) {
+      $("cob-detail").append(element("h2", "Select an Onix COB"), element("p", "Choose an object to inspect its exact identity and recorded operation content. No object is selected automatically.", "small"));
+    } else if (!route.cob_repo || !route.cob_kind) {
+      $("cob-detail").append(element("p", "The COB link needs its exact repository, type and object ID. No other object was substituted.", "warning"));
+    } else {
+      const selection = new URLSearchParams({ repository: route.cob_repo, type: route.cob_kind, object: route.cob });
+      await renderEndpoint(`/api/cobs/object?${selection}`, "cob-detail", renderCobDetail);
+    }
+  }
+  function renderCobs(parent, result) {
+    if (!Array.isArray(result.objects) || !Array.isArray(result.repositories) || !Array.isArray(result.types)) throw new Error("COB inventory response is invalid.");
+    for (const [id, rows, label, selected] of [["cob-repository", result.repositories, "All configured repositories", state.route.cob_repository], ["cob-type", result.types, "All Onix types", state.route.cob_type]]) {
+      options($(id), rows, label, selected);
+      if (selected && ![...$(id).options].some((option) => option.value === selected)) { const option = element("option", `Unavailable selection: ${selected}`); option.value = selected; $(id).append(option); $(id).value = selected; }
+    }
+    state.cobsNextCursor = result.next_cursor || null;
+    $("cob-next").disabled = !state.cobsNextCursor;
+    $("cob-status").textContent = `${result.objects.length} shown of ${text(result.total)} matching local objects · bounded snapshot${result.complete === false ? " · incomplete: some stores unavailable" : ""}`;
+    const sources = $("cob-source-status");
+    if (!result.configured) sources.append(element("p", "No COB stores are configured. The service operator must admit a separate --cobs repository policy. This is not proof that no Onix objects exist.", "warning"));
+    for (const source of result.sources || []) sources.append(element("p", source.status === "available" ? `${text(source.label)} · ${text(source.objects)} local Onix objects` : `${text(source.label)} · unavailable or outside read bounds. No absence is inferred.`, source.status === "available" ? "small" : "warning"));
+    for (const object of result.objects) {
+      const link = element("a", undefined, "run-choice cob-choice");
+      const patch = { page: "cobs", cob: object.object_id, cob_repo: object.repository, cob_kind: object.type_name };
+      link.href = `?${new URLSearchParams({ ...state.route, ...patch })}`;
+      if (state.route.cob === object.object_id && state.route.cob_repo === object.repository && state.route.cob_kind === object.type_name) link.setAttribute("aria-current", "true");
+      link.append(element("strong", text(object.title)), element("span", `${text(object.repository_label)} · ${text(object.type_name)}`, "small"), element("span", text(object.object_id), "run-source"), element("span", `${object.ref_tips.length} observed ref tip(s) · signatures not verified`, "small"));
+      link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate(patch); } });
+      parent.append(link);
+    }
+    if (!result.objects.length) parent.append(element("p", result.complete === false ? "No matching objects were read from the available subset. Unavailable stores may contain objects." : "No matching Onix COBs in the configured local snapshot. Remote peers and unconfigured stores were not queried.", "small"));
+  }
+  function renderCobDetail(parent, result) {
+    const object = result.object;
+    if (!object?.identity || !Array.isArray(object.operations)) throw new Error("COB history response is invalid.");
+    const identity = object.identity;
+    parent.append(element("h2", text(identity.title)));
+    const clear = element("button", "Clear selected COB"); clear.type = "button"; clear.addEventListener("click", () => navigate({ cob: "", cob_repo: "", cob_kind: "" })); parent.append(clear);
+    const facts = element("dl", undefined, "facts"); addFacts(facts, [["Repository", identity.repository_label], ["Native repository ID", identity.repository_id], ["Type", identity.type_name], ["Native object ID", identity.object_id], ["Kiln observation key", identity.id], ["Observed operations", object.operation_count], ["Retained action bytes", object.retained_action_bytes], ["Observation", object.observation], ["Signatures", "Not verified"], ["Reduced lifecycle state", "Not inferred by this raw view"]]); parent.append(facts);
+    const tips = section("Observed ref tips", parent, "record-card"); renderRecorded(tips, identity.ref_tips);
+    parent.append(element("p", "Every operation below is recorded data, ordered by operation identity—not a chosen semantic winner. Git author fields are unverified claims. Embedded source text is inert; no links or scripts are executed.", "warning"));
+    for (const operation of object.operations) {
+      const card = section(`Operation ${text(operation.id)}`, parent, "record-card cob-operation");
+      const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Recorded", timestamp(operation.recorded_at_ms)], ["Git author (unverified)", `${text(operation.author_name)} <${text(operation.author_email)}>`], ["Git parents", operation.git_parents], ["History parents", operation.history_parents], ["Commit message", operation.message]]); card.append(metadata);
+      for (const action of operation.actions || []) { const details = element("details"); details.open = true; details.append(element("summary", `Raw action ${text(action.index)} · ${text(action.bytes)} bytes · blob ${text(action.blob_id)}`), element("pre", JSON.stringify(action.value, null, 2), "identity cob-action")); card.append(details); }
+    }
+    for (const boundary of result.non_claims || []) parent.append(element("p", boundary, "small"));
+  }
+  function renderOverview(parent, result) {
+    const grid = element("div", undefined, "inventory-grid"); parent.append(grid);
+    for (const [label, value] of Object.entries(result.totals || {})) { const card = element("article", undefined, "inventory-card"); card.append(element("span", label, "metric-label"), element("strong", text(value), "metric-value")); grid.append(card); }
+    const health = section("Project health", parent);
+    for (const project of result.projects || []) { const card = section(`${text(project.label)} · ${text(project.health)}`, health, "record-card"); card.append(element("p", text(project.id), "small")); if (project.latest_run) card.append(runLink(project.latest_run.id, `Latest: ${project.latest_run.outcome} · ${duration(project.latest_run.duration_ms)}`)); else card.append(element("p", "No retained runs.", "small")); }
+    if (!result.projects?.length) health.append(element("p", "No enrolled project health is recorded.", "small"));
+    const trend = section("Recorded duration trend", parent);
+    trend.append(element("p", `${text(result.timing?.recorded)} / ${text(result.timing?.total)} retained runs have recorded timing. Historical unknowns are excluded, not treated as zero.`, "small"));
+    const rows = result.duration_trend || [];
+    const max = Math.max(1, ...rows.map((row) => Number.isSafeInteger(row.duration_ms) ? row.duration_ms : 0));
+    for (const row of rows) { const item = element("div", undefined, "trend-row"); item.append(runLink(row.run_id, `${row.project_id} · ${row.outcome}`), element("span", `${duration(row.duration_ms)} · ${timestamp(row.completed_at_ms)}`, "small")); if (Number.isSafeInteger(row.duration_ms)) { const bar = element("meter"); bar.min = 0; bar.max = max; bar.value = row.duration_ms; bar.setAttribute("aria-label", `${row.run_id}: ${duration(row.duration_ms)}`); item.append(bar); } trend.append(item); }
+    if (!rows.length) trend.append(element("p", "No recorded duration samples available.", "small"));
+  }
+  function renderProjects() {
+    const parent = $("project-cards"); parent.replaceChildren();
+    for (const project of state.projects.enrolled) { const card = section(text(project.label || project.id), parent, "project-card surface"); const facts = element("dl", undefined, "facts"); addFacts(facts, [["ID", project.id], ["Repository", project.repository], ["Reference", project.reference], ["Pipeline", project.pipeline_identity]]); card.append(facts); const button = element("button", "Browse runs"); button.type = "button"; button.addEventListener("click", () => navigate({ page: "runs", project: project.id, cursor: "", run: "", node: "" })); card.append(button); }
+    if (!state.projects.enrolled.length) parent.append(element("p", "No enrolled projects.", "small"));
+  }
+  async function loadRefs() {
+    const id = $("enrolled-project").value;
+    const generation = ++state.refsGeneration;
+    if (!id) { options($("source-reference"), [], "Select a project first", ""); return; }
+    $("source-status").textContent = "Reading admitted source references…";
+    try { const result = await api(`/api/projects/${encodeURIComponent(id)}/refs`); if (generation !== state.refsGeneration || id !== $("enrolled-project").value) return; options($("source-reference"), result.references.map((row) => ({ id: row.reference, label: `${row.reference} · ${text(row.source_revision)}` })), null, $("source-reference").value); $("source-status").textContent = "Latest resolves the admitted reference when the new run is dispatched; exact revision is reachability-checked by the service."; }
+    catch (error) { if (!isAborted(error) && generation === state.refsGeneration) { options($("source-reference"), [], "References unavailable", ""); $("source-status").textContent = explain(error); } }
+  }
+  function renderGraph(run) {
+    const focused = document.activeElement?.dataset.nodeId;
+    const parent = $("pipeline-graph"); const list = $("node-list"); parent.replaceChildren(); list.replaceChildren();
+    const nodes = run.nodes || []; const edges = run.edges;
+    if (!Array.isArray(edges)) parent.append(element("p", "Dependency graph unavailable for this historical run.", "small"));
+    const positions = new Map(); const rank = new Map(nodes.map((node) => [node.id, 0]));
+    // Bound traversal; malformed cyclic input never creates an unbounded layout loop.
+    if (Array.isArray(edges)) for (let i = 0; i < nodes.length; i++) { let changed = false; for (const edge of edges) if (rank.has(edge.source) && rank.has(edge.target) && rank.get(edge.target) <= rank.get(edge.source)) { rank.set(edge.target, Math.min(nodes.length, rank.get(edge.source) + 1)); changed = true; } if (!changed) break; }
+    const columns = new Map(); for (const node of nodes) { const col = rank.get(node.id); const row = columns.get(col) || 0; columns.set(col, row + 1); positions.set(node.id, { x: 24 + col * 230, y: 24 + row * 110 }); }
+    if (nodes.length && Array.isArray(edges)) {
+      const width = Math.max(...[...positions.values()].map((pos) => pos.x)) + 215; const height = Math.max(...[...positions.values()].map((pos) => pos.y)) + 90;
+      const canvas = element("div", undefined, "dag-canvas"); canvas.style.width = `${width}px`; canvas.style.height = `${height}px`; parent.append(canvas);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("width", width); svg.setAttribute("height", height); svg.setAttribute("aria-hidden", "true"); canvas.append(svg);
+      for (const edge of edges) { const from = positions.get(edge.source); const to = positions.get(edge.target); if (!from || !to) continue; const path = document.createElementNS(svg.namespaceURI, "path"); const mid = (from.x + 190 + to.x) / 2; path.setAttribute("d", `M${from.x + 190},${from.y + 36} C${mid},${from.y + 36} ${mid},${to.y + 36} ${to.x},${to.y + 36}`); path.setAttribute("class", "dag-edge"); svg.append(path); const arrow = document.createElementNS(svg.namespaceURI, "path"); arrow.setAttribute("d", `M${to.x - 7},${to.y + 31} L${to.x},${to.y + 36} L${to.x - 7},${to.y + 41}`); arrow.setAttribute("class", "dag-edge"); svg.append(arrow); }
+      for (const node of nodes) {
+        const button = element("button", undefined, "dag-node"); button.type = "button"; button.dataset.nodeId = node.id;
+        button.style.left = `${positions.get(node.id).x}px`; button.style.top = `${positions.get(node.id).y}px`;
+        button.append(element("strong", node.id), element("span", `${text(node.state)} · ${duration(node.duration_ms)}`, "small"));
+        if (node.id === state.route.node) button.setAttribute("aria-current", "true");
+        button.addEventListener("click", () => navigate({ node: node.id })); canvas.append(button);
+        if (focused === node.id) button.focus({ preventScroll: true });
+      }
+    }
+    if (!nodes.length) list.append(element("p", "No workflow nodes admitted.", "small"));
+    for (const node of nodes) {
+      const row = element("button", undefined, "node-row"); row.type = "button"; row.dataset.nodeId = `list:${node.id}`;
+      row.append(element("strong", node.id), element("span", `${text(node.kind)} · ${text(node.state)} · ${duration(node.duration_ms)}`, "node-state"));
+      row.addEventListener("click", () => navigate({ node: node.id })); list.append(row);
+      if (focused === `list:${node.id}`) row.focus({ preventScroll: true });
+    }
+    const selected = nodes.find((node) => node.id === state.route.node);
+    if (selected) { addFacts($("node-facts"), [["Node", selected.id], ["Kind", selected.kind], ["State", selected.state], ["Started", timestamp(selected.started_at_ms)], ["Completed", timestamp(selected.completed_at_ms)], ["Duration", duration(selected.duration_ms)], ["Depends on", Array.isArray(edges) ? edges.filter((edge) => edge.target === selected.id).map((edge) => edge.source) : null]]); const button = element("button", "Inspect node logs"); button.type = "button"; button.addEventListener("click", () => navigate({ view: "logs", node: selected.id })); $("node-facts").append(button); }
+    else { $("node-facts").replaceChildren(element("p", state.route.node ? `Node not found: ${state.route.node}. No other node substituted.` : "Select a node for details.", state.route.node ? "warning" : "small")); }
+  }
+  async function prepareRerun(mode) {
+    if (!canOperate()) return;
+    const id = state.selected;
+    try { const run = await loadDetail(); if (!run || id !== state.selected) return; if (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state))) throw new Error("No known failed node set is available. Unknown states cannot be retried blindly."); state.confirm = { id, mode }; $("confirm-title").textContent = mode === "latest" ? "Run latest admitted reference" : mode === "failed" ? "Retry known failed nodes" : "Rerun exact source revision"; $("confirm-control").textContent = "Create new run"; addFacts($("confirm-facts"), [["Parent run", id], ["Project", run.project_id], ["Mode", mode], ["Source", mode === "latest" ? "Latest admitted reference (resolved by service)" : run.source_revision], ["Failed selection", mode === "failed" ? run.nodes.filter((node) => /^(failed|error)$/i.test(node.state)).map((node) => node.id) : "Not a node retry"], ["Boundary", "New candidate and attempt; queued durably if project is busy."]]); $("control-dialog").showModal(); $("dismiss-control").focus(); }
+    catch (error) { if (!isAborted(error)) notice(explain(error)); }
+  }
+  function renderFlaky(parent, rows) {
+    const group = section("Repeated-test instability", parent, "view-stack");
+    group.append(element("p", "Instability requires actual repeated pass/fail observations for the same exact source revision, pipeline, node, report and test identity. It is not inferred from code changes, execution logs or missing reports.", "small"));
+    if (!rows.length) group.append(element("p", "No repeated pass/fail instability is recorded in the bounded history. This does not prove all tests are stable.", "small"));
+    for (const row of rows) {
+      const card = section(`${text(row.suite)} / ${text(row.class_name)} / ${text(row.name)}`, group, "record-card");
+      const facts = element("dl", undefined, "facts"); addFacts(facts, [["Exact source revision", row.source_revision], ["Node", row.node_id], ["Report", row.report_name], ["Passed observations", row.passed], ["Failed observations", row.failed], ["Total observations", row.observations]]); card.append(facts);
+      const links = element("div", undefined, "control-bar"); for (const id of row.run_ids || []) links.append(runLink(id, id, "tests")); card.append(links);
+    }
+  }
+  function renderComparison(parent, result) {
+    parent.append(element("p", "Only admitted recorded facts are compared. Missing tests, coverage and timing stay unavailable. A changed test verdict is not acceptance authority.", "boundary"));
+    const facts = element("dl", undefined, "facts");
+    addFacts(facts, [["Current source", result.source?.current], ["Other source", result.source?.other], ["Current outcome", result.outcome?.current], ["Other outcome", result.outcome?.other], ["Current duration", duration(result.duration_ms?.current)], ["Other duration", duration(result.duration_ms?.other)], ["Duration delta (current − other)", Number.isSafeInteger(result.duration_ms?.delta) ? `${(result.duration_ms.delta / 1000).toFixed(3)} s` : null]]);
+    parent.append(facts, runLink(result.run_id, "Inspect current run"), runLink(result.other_run_id, "Inspect compared run"));
+    for (const key of ["current", "other"]) { const group = section(`${key === "current" ? "Current" : "Other"} structured tests & coverage`, parent, "record-card"); renderRecorded(group, result.reports?.[key]); }
+    const changes = section("Recorded test changes", parent, "view-stack");
+    changes.append(element("p", `Bounded comparison: ${text(result.test_changes_bounded)}. Tests absent on one side are unavailable, not passing.`, "small"));
+    if (!result.test_changes?.length) changes.append(element("p", "No test-status differences recorded in this comparison window.", "small"));
+    for (const row of result.test_changes || []) { const card = section(`${text(row.suite)} / ${text(row.class_name)} / ${text(row.name)}`, changes, "record-card"); const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Node", row.node_id], ["Report", row.report_name], ["Current status", row.current], ["Other status", row.other]]); card.append(metadata); }
+    renderFlaky(parent, result.flaky_history || []);
+  }
+  function renderReports(parent, result) {
+    const records = result.reports;
+    const runId = result.run_id || state.route.run;
+    if (result.summary) { const summary = section("Recorded report summary", parent, "record-card"); renderRecorded(summary, result.summary); }
+    if (Array.isArray(result.flaky_history)) renderFlaky(parent, result.flaky_history);
+    if (!Array.isArray(records)) throw new Error("Structured report response unavailable.");
+    parent.append(element("p", "Reported tests and coverage are recorded evidence, not execution-success or accepted-gate authority. Missing reports are unavailable, not zero failures or full coverage.", "boundary"));
+    if (!records.length) parent.append(element("p", "No declared reports retained for this run.", "small"));
+    for (const record of records) {
+      const report = record.report || record;
+      const card = section(`${text(record.name)} · ${text(report.kind)}`, parent, "record-card");
+      const facts = element("dl", undefined, "facts"); addFacts(facts, [["Node", record.node_id], ["Attempt", record.attempt_id], ["Source revision", record.source_revision], ["Source BLAKE3", report.source_blake3], ["Source bytes", report.source_bytes], ["Report identity", record.id], ["Recorded", timestamp(record.recorded_at_ms)]]); card.append(facts);
+      if (record.unavailable) card.append(element("p", `Report unavailable: ${text(record.unavailable)}. Missing normalized data is not a passing report.`, "warning"));
+      if (record.artifact) { const button = element("button", "Download retained report source"); button.type = "button"; button.addEventListener("click", () => downloadArtifact(runId, record.artifact, button)); card.append(button); }
+      if (report.tests) {
+        const tests = report.tests;
+        const summary = element("dl", undefined, "facts"); addFacts(summary, [["Total", tests.total], ["Passed", tests.passed], ["Failed", tests.failed], ["Errors", tests.errors], ["Skipped", tests.skipped], ["Reported seconds", tests.duration_seconds]]); card.append(summary);
+        for (const test of tests.cases || []) {
+          const details = element("details", undefined, "test-case"); details.append(element("summary", `${text(test.status)} · ${text(test.suite)} / ${text(test.class_name)} / ${text(test.name)}`));
+          if (test.status === "failed" || test.status === "error") details.open = true;
+          const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["File", test.file], ["Line", test.line], ["Reported seconds", test.duration_seconds], ["Message", test.message]]); details.append(metadata);
+          if (test.details) details.append(element("pre", test.details, "identity"));
+          card.append(details);
+        }
+      }
+      if (report.coverage) {
+        const coverage = report.coverage;
+        const summary = element("dl", undefined, "facts"); addFacts(summary, [["Format", coverage.format], ["Lines hit / found", coverage.lines_hit === null || coverage.lines_found === null ? null : `${coverage.lines_hit} / ${coverage.lines_found}`], ["Line rate", coverage.line_rate === null ? null : `${(coverage.line_rate * 100).toFixed(2)}%`], ["Branches hit / found", coverage.branches_hit === null || coverage.branches_found === null ? null : `${coverage.branches_hit} / ${coverage.branches_found}`], ["Branch rate", coverage.branch_rate === null ? null : `${(coverage.branch_rate * 100).toFixed(2)}%`]]); card.append(summary);
+        for (const file of coverage.files || []) { const details = element("details"); details.append(element("summary", text(file.path))); renderRecorded(details, file); card.append(details); }
+      }
+      if (report.evidence) renderEvidence(card, report.evidence);
+    }
+  }
+  function renderEvidence(parent, result) {
+    parent.append(element("p", "Recorded evidence only. A reported verdict, review, provenance link or retained artifact does not establish accepted gate authority or product correctness.", "warning"));
+    for (const key of ["source", "pipeline", "execution"]) if (Object.hasOwn(result, key)) { const group = section(key[0].toUpperCase() + key.slice(1) + " linkage", parent, "record-card"); renderRecorded(group, result[key]); }
+    if (result.run_id) parent.append(runLink(result.run_id, "Inspect this exact run", "pipeline"));
+    if (result.parent_run_id) parent.append(runLink(result.parent_run_id, "Inspect parent run"));
+    if (Array.isArray(result.artifacts)) {
+      const group = section("Retained artifact provenance", parent, "view-stack");
+      if (!result.artifacts.length) group.append(element("p", "No retained artifacts for this run.", "small"));
+      for (const artifact of result.artifacts) { const card = section(text(artifact.name), group, "record-card"); renderRecorded(card, artifact); const button = element("button", "Download exact retained artifact"); button.type = "button"; button.addEventListener("click", () => downloadArtifact(result.run_id, artifact, button)); card.append(button); }
+    }
+    if (Array.isArray(result.reports)) { const group = section("Recorded gate, review and report evidence", parent, "view-stack"); renderReports(group, { run_id: result.run_id, reports: result.reports }); }
+    if (!result.source && !result.pipeline && !result.execution) renderRecorded(parent, result);
+    if (Array.isArray(result.links) && result.links.length) {
+      const group = section("Recorded provenance links", parent, "view-stack");
+      for (const recorded of result.links) {
+        const row = element("div", undefined, "record-card"); row.append(element("p", text(recorded.path), "small"));
+        let link = null;
+        if (typeof recorded.value === "string" && /(?:^|[/.])run_id$/.test(recorded.path)) link = runLink(recorded.value);
+        else if (typeof recorded.value === "string" && recorded.value.startsWith("https://")) {
+          try { const url = new URL(recorded.value); if (url.protocol === "https:" && !url.username && !url.password) { link = element("a", recorded.value); link.href = url.href; link.target = "_blank"; link.rel = "noopener noreferrer"; link.referrerPolicy = "no-referrer"; } } catch { /* Invalid recorded URLs remain inert text. */ }
+        }
+        row.append(link || element("span", text(recorded.value)));
+        if (link?.target === "_blank") row.append(element("p", "Recorded external link; destination is not validated acceptance evidence.", "small"));
+        group.append(row);
+      }
+    }
+    if (result.claim_boundary) parent.append(element("p", text(result.claim_boundary), "boundary"));
+  }
+  function renderActivity(parent, result) {
+    if (!Array.isArray(result.items)) throw new Error("Activity response is invalid.");
+    parent.append(element("p", `${result.items.length} shown of ${text(result.total)} · bounded retained timeline · audit window: ${text(result.audit_window)}`, "small"));
+    for (const item of result.items) {
+      const card = section(`${item.kind === "audit" ? "Audit decision" : "Canonical event"} · ${timestamp(item.recorded_at_ms)}`, parent, "record-card");
+      if (item.run_id) card.append(runLink(item.run_id));
+      if (item.kind === "audit") renderRecorded(card, item.audit); else renderRecorded(card, { event_identity: item.event_identity, ordinal: item.ordinal, event_index: item.event_index, event: item.event });
+    }
+    if (!result.items.length) parent.append(element("p", "No retained activity in this bounded page.", "small"));
+    const controls = element("div", undefined, "control-bar");
+    const first = element("button", "First page"); first.type = "button"; first.disabled = !state.route.activity_cursor; first.addEventListener("click", () => navigate({ activity_cursor: "" }));
+    const next = element("button", "Next page"); next.type = "button"; next.disabled = !result.next_cursor; next.addEventListener("click", () => navigate({ activity_cursor: result.next_cursor }));
+    controls.append(first, next); parent.append(controls);
+  }
+  function renderOperations(parent, result) {
+    if (result.storage_failed) parent.append(element("p", "Durable storage is failed. Mutating admission is unavailable; no healthy state is inferred.", "warning"));
+    for (const warning of result.warnings || []) {
+      const row = element("div", undefined, "warning"); row.append(element("span", `${text(warning.code)}: ${text(warning.resource)} uses ${text(warning.used)} / ${text(warning.maximum)}. Retention admission may fail; no canonical data is automatically pruned.`));
+      if (warning.run_id) row.append(document.createTextNode(" "), runLink(warning.run_id, "Inspect affected run")); parent.append(row);
+    }
+    const capacity = section("Execution capacity", parent, "record-card"); renderRecorded(capacity, result.capacity);
+    const queue = section("Durable queue", parent, "view-stack");
+    if (!result.queue?.length) queue.append(element("p", "No queued work in the admitted snapshot.", "small"));
+    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(row.project_id)}`, queue, "record-card"); card.append(runLink(row.run_id), element("p", `Queued: ${timestamp(row.created_at_ms)}`, "small")); }
+    const providers = section("Provider observations", parent, "view-stack");
+    for (const row of result.providers || []) { const card = section(`${text(row.project_id)} · ${text(row.status)}`, providers, "record-card"); if (row.status === "unavailable") card.append(element("p", "Provider observation is unavailable, not healthy capacity.", "warning")); renderRecorded(card, row); }
+    const usage = section("Retained usage & limits", parent, "view-stack");
+    for (const row of result.usage || []) {
+      const card = section(text(row.resource), usage, "record-card"); card.append(element("p", `${text(row.used)} / ${text(row.maximum)}`, "small"));
+      if (row.run_id) card.append(runLink(row.run_id, "Inspect retained run"));
+      if (Number.isSafeInteger(row.used) && Number.isSafeInteger(row.maximum) && row.maximum > 0) { const meter = element("meter"); meter.min = 0; meter.max = row.maximum; meter.value = row.used; meter.setAttribute("aria-label", `${row.resource}: ${row.used} of ${row.maximum}`); card.append(meter); }
+    }
+    const policy = section("Retention policy", parent, "record-card"); renderRecorded(policy, result.retention_policy);
+    const access = element("dl", undefined, "facts"); addFacts(access, [["Access policy BLAKE3", result.access_policy_identity]]); parent.append(access);
+  }
+  function field(form, label, type, value, bounds = {}) {
+    const wrapper = element("label", undefined, type === "checkbox" ? "check" : "form-field");
+    const input = element("input"); input.type = type;
+    if (type === "checkbox") input.checked = value === true;
+    else input.value = value ?? "";
+    for (const [key, val] of Object.entries(bounds)) input[key] = val;
+    if (type === "checkbox") wrapper.append(input, document.createTextNode(label)); else wrapper.append(document.createTextNode(label), input);
+    input.disabled = !canOperate() || state.permissions.configure !== true;
+    form.append(wrapper); return input;
+  }
+  function renderAutomation(parent, result) {
+    parent.append(element("p", `Automation: ${text(result.status)}. ${result.configured ? "Only registered sources and destinations are editable." : "No automation policy is admitted. Register sources/destinations in server policy; browser input cannot create authority."}`, "small"));
+    const policy = element("dl", undefined, "facts"); addFacts(policy, [["Reviewed policy BLAKE3", result.policy_identity]]); parent.append(policy);
+    for (const [key, kind] of [["triggers", "trigger"], ["schedules", "schedule"], ["notifications", "notification"]]) {
+      const group = section(key[0].toUpperCase() + key.slice(1), parent, "view-stack");
+      if (!result[key]?.length) group.append(element("p", "No registrations.", "small"));
+      for (const row of result[key] || []) {
+        const form = element("form", undefined, "record-card automation-form"); form.append(element("h3", text(row.id)));
+        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", row.project_id], ["Reference", row.reference], ["Last status", row.last_status]]); form.append(facts);
+        const inputs = { enabled: field(form, "Enabled", "checkbox", row.enabled) };
+        if (kind === "trigger") {
+          inputs.push = field(form, "Signed push events", "checkbox", row.push); inputs.pull_request = field(form, "Signed pull request events", "checkbox", row.pull_request);
+          if (row.allow_push === false) inputs.push.disabled = true;
+          if (row.allow_pull_request === false) inputs.pull_request.disabled = true;
+        }
+        if (kind === "schedule") {
+          inputs.interval_ms = field(form, "Interval (milliseconds)", "number", row.interval_ms, { min: row.min_interval_ms, max: row.max_interval_ms, step: "1", required: true });
+          const next = Number.isSafeInteger(row.next_due_ms) ? new Date(row.next_due_ms).toISOString().slice(0, 23) : "";
+          inputs.next_due_ms = field(form, "Next due (UTC, not local time)", "text", next, { placeholder: "YYYY-MM-DDTHH:mm:ss.sss", maxLength: 23 });
+          form.append(element("p", `Allowed interval: ${text(row.min_interval_ms)}–${text(row.max_interval_ms)} ms. Last admitted next due: ${timestamp(row.next_due_ms)}.`, "small"));
+        }
+        if (kind === "notification") {
+          inputs.on_success = field(form, "Notify on success", "checkbox", row.on_success); inputs.on_failure = field(form, "Notify on failure", "checkbox", row.on_failure);
+          if (row.allow_success === false) inputs.on_success.disabled = true;
+          if (row.allow_failure === false) inputs.on_failure.disabled = true;
+        }
+        const button = element("button", "Save registered automation"); button.type = "submit"; button.disabled = !canOperate() || state.permissions.configure !== true; form.append(button);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault(); if (!canOperate() || state.permissions.configure !== true) return;
+          const payload = { kind, id: row.id };
+          for (const [name, input] of Object.entries(inputs)) {
+            if (input.type === "checkbox") payload[name] = input.checked;
+            else if (name === "next_due_ms") { if (!input.value.trim()) continue; if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?$/.test(input.value)) { notice("Enter next due as a UTC date and time including seconds."); return; } const ms = Date.parse(input.value + "Z"); if (!Number.isSafeInteger(ms)) { notice("Next due UTC time is invalid."); return; } payload[name] = ms; }
+            else { const number = Number(input.value); if (!Number.isSafeInteger(number)) { notice("Automation interval must be an exact integer."); return; } payload[name] = number; }
+          }
+          button.disabled = true;
+          const updated = await mutate("/api/automation", payload, "Automation registration updated.");
+          if (updated && state.session && state.route.page === "automation") { parent.replaceChildren(); renderAutomation(parent, updated); }
+          else button.disabled = !canOperate() || state.permissions.configure !== true;
+        });
+        group.append(form);
+      }
+    }
+    const intake = section("Signed event intake & schedule outcomes", parent, "view-stack"); renderRecorded(intake, result.sources);
+    const deliveries = section("HTTPS notification delivery status", parent, "view-stack"); renderRecorded(deliveries, result.deliveries);
+    const retention = section("Automation retention", parent, "record-card"); renderRecorded(retention, result.retention);
+  }
+  function saveBlob(blob, filename) {
+    const url = URL.createObjectURL(blob); state.urls.add(url);
+    const link = element("a"); link.href = url; link.download = filename.replace(/[\\/\u0000-\u001f\u007f]/g, "_"); link.hidden = true; document.body.append(link); link.click(); link.remove();
+    const timer = setTimeout(() => { URL.revokeObjectURL(url); state.urls.delete(url); state.urlTimers.delete(timer); }, 1000); state.urlTimers.add(timer);
+  }
+  async function downloadLogs() {
+    const id = state.selected; const node = $("log-node").value; const stream = $("log-stream").value;
+    if (!id || !node) return;
+    const epoch = state.epoch; const generation = state.logGeneration; $("download-log").disabled = true;
+    try {
+      const query = new URLSearchParams({ node_id: node, stream });
+      const metadata = await api(`${pathFor(id)}/logs/download?${query}&metadata=true`);
+      if (epoch !== state.epoch) return;
+      if (!Number.isSafeInteger(metadata.bytes) || metadata.bytes < 0) throw new Error("Exact retained download size is unavailable.");
+      const blob = await api(`${pathFor(id)}/logs/download?${query}`, { kind: "blob" });
+      if (epoch !== state.epoch) return;
+      if (blob.size !== metadata.bytes) throw new Error("Retained stream changed while downloading. Refresh metadata before another explicit download; no partial file was offered.");
+      saveBlob(blob, metadata.filename || `${id}-${node}-${stream}.log`);
+      if (id === state.selected && generation === state.logGeneration) $("log-status").textContent = `Downloaded ${blob.size} complete retained bytes for ${node}/${stream}. Retained: ${text(metadata.retained)} · truncated: ${text(metadata.truncated)} · BLAKE3: ${text(metadata.blake3)}. Missing source bytes are not reconstructed.`;
+    }
+    catch (error) { if (!isAborted(error) && epoch === state.epoch && generation === state.logGeneration && id === state.selected) $("log-status").textContent = `Retained stream download unavailable: ${explain(error)}`; }
+    finally { if (epoch === state.epoch) $("download-log").disabled = false; }
+  }
+  state.route = readRoute();
+  options($("run-outcome"), ["Pending", "Success", "DomainFailure", "Denied", "Cancelled", "TimedOut", "ProviderError", "Unknown"].map((id) => ({ id })), "All outcomes", state.route.outcome);
+  for (const node of document.querySelectorAll("[data-page]")) node.addEventListener("click", () => navigate({ page: node.dataset.page }));
+  for (const node of document.querySelectorAll("[data-view]")) node.addEventListener("click", () => navigate({ view: node.dataset.view }));
+  for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).addEventListener("click", () => { void prepareRerun(mode); });
+  for (const id of ["app-theme", "app-density"]) $(id).addEventListener("change", () => navigate({ [id === "app-theme" ? "theme" : "density"]: $(id).value }));
+  $("app-menu-toggle").addEventListener("click", () => { const open = $("app-sidebar").classList.toggle("is-open"); $("app-menu-toggle").setAttribute("aria-expanded", String(open)); document.documentElement.classList.toggle("app-menu-open", open); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") { $("app-sidebar").classList.remove("is-open"); $("app-menu-toggle").setAttribute("aria-expanded", "false"); document.documentElement.classList.remove("app-menu-open"); } });
+  $("runs-first").addEventListener("click", () => navigate({ cursor: "" }));
+  $("runs-next").addEventListener("click", () => { if (state.nextCursor) navigate({ cursor: state.nextCursor }); });
+  $("compare-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ other: $("compare-other").value.trim(), view: "compare" }); });
+  $("evidence-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ page: "evidence", run: $("evidence-run").value.trim() }); });
+  for (const name of ["activity", "automation", "operations"]) $("refresh-" + name).addEventListener("click", readAction(loadPage));
+  $("refresh-cobs").addEventListener("click", readAction(loadPage));
+  $("cob-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ cob_repository: $("cob-repository").value, cob_type: $("cob-type").value, cob_q: $("cob-search").value.trim(), cob_cursor: "" }); });
+  $("cob-reset").addEventListener("click", () => navigate({ cob_repository: "", cob_type: "", cob_q: "", cob_cursor: "" }));
+  $("cob-first").addEventListener("click", () => navigate({ cob_cursor: "" }));
+  $("cob-next").addEventListener("click", () => { if (state.cobsNextCursor) navigate({ cob_cursor: state.cobsNextCursor }); });
+  $("source-mode").addEventListener("change", () => { const mode = $("source-mode").value; $("start-button").textContent = mode === "latest" ? "Run latest admitted reference" : mode === "exact" ? "Run exact reachable revision" : "Run selected admitted reference"; $("source-revision").required = mode === "exact"; $("source-revision").disabled = mode !== "exact"; $("source-reference").disabled = mode !== "reference"; });
+  $("source-revision").disabled = true; $("source-reference").disabled = true;
+  $("download-log").addEventListener("click", () => { void downloadLogs(); });
+  window.addEventListener("popstate", () => { void readAction(restoreRoute)(); });
+  window.addEventListener("hashchange", () => { void readAction(restoreRoute)(); });
+  void restoreRoute();
   $("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const token = $("operator-token").value.trim();
     if (!/^[0-9a-fA-F]{64}$/.test(token)) { notice("Enter exactly 64 hexadecimal characters for the operator token."); return; }
     $("login-button").disabled = true;
+    state.session = "token";
     state.token = token;
     state.epoch++;
     const epoch = state.epoch;
     $("operator-token").value = "";
     try {
+      adoptSession(await api("/api/session"));
       await loadProjects();
-      if (epoch !== state.epoch || !state.token) return;
-      $("login-panel").hidden = true;
-      $("workspace").hidden = false;
-      $("logout").hidden = false;
-      $("auth-status").textContent = "Authenticated operator";
-      $("auth-status").dataset.state = "connected";
-      notice("");
-      startLive();
-      try { await loadRuns(); } catch (error) { if (!isAborted(error) && epoch === state.epoch) notice(`Run list unavailable: ${explain(error)}`); }
+      await openWorkspace(epoch);
     } catch (error) {
       if (!isAborted(error) && epoch === state.epoch) { const message = explain(error); logout(""); notice(`Sign-in could not establish operator access: ${message}`); }
     } finally { $("login-button").disabled = false; }
@@ -611,8 +1195,8 @@
   $("refresh-detail").addEventListener("click", readAction(loadDetail));
   $("refresh-artifacts").addEventListener("click", () => { void loadArtifacts(); });
   $("available-project").addEventListener("change", projectDescriptions);
-  $("enrolled-project").addEventListener("change", projectDescriptions);
-  $("run-filter").addEventListener("change", renderRunList);
+  $("enrolled-project").addEventListener("change", () => { projectDescriptions(); void readAction(loadRefs)(); });
+  $("run-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ q: $("run-search").value.trim(), project: $("run-filter").value, outcome: $("run-outcome").value, source: $("run-source").value.trim(), order: $("run-order").value, cursor: "" }); });
   $("enroll-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const projectId = $("available-project").value;
@@ -625,10 +1209,14 @@
     event.preventDefault();
     const projectId = $("enrolled-project").value;
     if (!projectId) return;
-    const result = await mutate("/api/runs", { project_id: projectId }, "Run request admitted. Inspect phase and outcome for actual execution state.");
+    const mode = $("source-mode").value;
+    const payload = { project_id: projectId };
+    if (mode === "reference") { if (!$("source-reference").value) { notice("Select an admitted reference."); return; } payload.reference = $("source-reference").value; }
+    if (mode === "exact") { if (!$("source-revision").value.trim()) { notice("Enter an exact reachable source revision."); return; } payload.source_revision = $("source-revision").value.trim(); }
+    const result = await mutate("/api/runs", payload, "Run request admitted. Inspect queue, phase and outcome for actual execution state.");
     if (!result) return;
     await readAction(loadRuns)();
-    if (result.id && state.token) await selectRun(result.id);
+    if (result.id && state.session) navigate({ page: "runs", run: result.id, node: "", view: "pipeline" });
   });
   for (const action of ["cancel", "pause", "resume"]) $("control-" + action).addEventListener("click", () => { void prepareControl(action); });
   $("dismiss-control").addEventListener("click", dismissControl);
@@ -638,13 +1226,16 @@
     const pending = state.confirm;
     if (!pending || state.mutation) return;
     dismissControl();
-    await mutate(`${pathFor(pending.id)}/control`, pending.identity, "Control response received. Observe admitted state for its result; no success is inferred.");
-    if (state.token && pending.id === state.selected) await readAction(loadDetail)();
+    if (pending.mode) await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", view: "pipeline" }); });
+    else await mutate(`${pathFor(pending.id)}/control`, pending.identity, "Control response received. Observe admitted state for its result; no success is inferred.");
+    if (state.session && pending.id === state.selected) await readAction(loadDetail)();
   });
   $("log-form").addEventListener("submit", (event) => { event.preventDefault(); stopLogFollow(); void readLog(false); });
-  for (const id of ["log-node", "log-stream"]) $(id).addEventListener("change", resetLogs);
+  for (const id of ["log-node", "log-stream", "log-search"]) $(id).addEventListener("change", () => { resetLogs(); if (id === "log-node") navigate({ node: $("log-node").value, view: "logs" }); else if (id === "log-stream") navigate({ stream: $("log-stream").value }); });
   $("follow-logs").addEventListener("change", () => { stopLogFollow(); if ($("follow-logs").checked) void readLog(state.logKey !== ""); });
   $("clear-log").addEventListener("click", resetLogs);
-  // A restored back/forward-cache page must not resurrect a prior operator session.
-  window.addEventListener("pagehide", () => logout("Signed out when leaving the live page."));
+  // Restoration rechecks network authorization; a cleared bearer is never restored.
+  window.addEventListener("pagehide", () => logout("Disconnected when leaving the live page."));
+  window.addEventListener("pageshow", (event) => { if (event.persisted) void discoverNetworkAccess(); });
+  void discoverNetworkAccess();
 })();

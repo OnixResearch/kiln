@@ -233,15 +233,91 @@ impl Store {
                 || run.id != format!("web-run-{}", run.plan.idempotency_key.as_str())
                 || run.pipeline_identity != super::identity(&project.workflow)?
                 || run.plan
-                    != super::model::workflow_plan(
-                        project,
-                        &run.plan.idempotency_key,
-                        &run.pipeline_identity,
-                        Some(source),
+                    != super::model::selected_plan(
+                        super::model::workflow_plan(
+                            project,
+                            &run.plan.idempotency_key,
+                            &run.pipeline_identity,
+                            Some(source),
+                        )?,
+                        &run.selected_nodes,
                     )?
                 || (run.phase == "terminal") != run.outcome().is_terminal()
             {
                 return Err("stored execution linkage conflicts with reviewed profile".into());
+            }
+        }
+        for run in state.runs.values() {
+            if !matches!(
+                run.phase.as_str(),
+                "queued"
+                    | "dispatch_reserved"
+                    | "control_reserved"
+                    | "active"
+                    | "unknown"
+                    | "terminal"
+            ) || run.phase == "queued"
+                && (run.observation.is_some()
+                    || run.outcome() != kiln_core::domain::Outcome::Pending
+                    || !run.artifacts.is_empty()
+                    || !run.logs.is_empty()
+                    || !run.reports.is_empty())
+            {
+                return Err("stored queue phase conflicts with execution".into());
+            }
+            if let Some(parent_id) = &run.parent_run_id {
+                let parent = state
+                    .runs
+                    .get(parent_id)
+                    .ok_or("stored retry parent missing")?;
+                if parent.ordinal >= run.ordinal
+                    || parent.project_id != run.project_id
+                    || !parent.outcome().is_terminal()
+                {
+                    return Err("stored retry parent conflict".into());
+                }
+                if !run.selected_nodes.is_empty() {
+                    let observation = parent
+                        .observation
+                        .as_ref()
+                        .ok_or("stored failed retry observation missing")?;
+                    let mut selected: std::collections::BTreeSet<String> = observation
+                        .nodes
+                        .iter()
+                        .filter(|n| n.state == kiln_core::workflow::WorkflowNodeState::Failed)
+                        .map(|n| n.node_id.as_str().into())
+                        .collect();
+                    if selected.is_empty()
+                        || observation
+                            .nodes
+                            .iter()
+                            .any(|n| n.state == kiln_core::workflow::WorkflowNodeState::Unknown)
+                        || run.source != parent.source
+                    {
+                        return Err("stored failed retry source or outcome conflict".into());
+                    }
+                    let project = profile
+                        .projects
+                        .iter()
+                        .find(|p| p.id == run.project_id)
+                        .ok_or("stored retry project missing")?;
+                    loop {
+                        let before = selected.len();
+                        for edge in &project.workflow.edges {
+                            if selected.contains(&edge.source) {
+                                selected.insert(edge.target.clone());
+                            }
+                        }
+                        if selected.len() == before {
+                            break;
+                        }
+                    }
+                    if selected.into_iter().collect::<Vec<_>>() != run.selected_nodes {
+                        return Err("stored retry selection conflict".into());
+                    }
+                }
+            } else if !run.selected_nodes.is_empty() {
+                return Err("stored retry selection has no parent".into());
             }
         }
         reconcile_retained_storage(profile, &state, "artifacts")?;
@@ -263,6 +339,7 @@ impl Store {
                     &chunk.blake3,
                 )?;
             }
+            super::reports::verify_retained(run, &profile.state_directory.join("artifacts"))?;
         }
         Ok((Self { connection }, state, lock))
     }
@@ -289,6 +366,7 @@ fn validate(state: &DurableState, b: &ServiceBounds) -> Result<(), String> {
     if state.runs.len() > b.max_runs
         || state.enrolled.len() > b.max_projects
         || state.requests.len() > b.max_requests
+        || state.audit.len() > b.max_requests.saturating_mul(4).max(64)
         || state
             .runs
             .values()
@@ -297,8 +375,24 @@ fn validate(state: &DurableState, b: &ServiceBounds) -> Result<(), String> {
         return Err("durable retention bound exceeded".into());
     }
     let mut total = 0usize;
+    if state
+        .access_policy_identity
+        .as_deref()
+        .is_some_and(|id| !hex_identity(id))
+    {
+        return Err("stored access policy identity rejected".into());
+    }
     for run in state.runs.values() {
         super::logs::validate(run)?;
+        super::reports::validate(run)?;
+        if run.event_recorded_at_ms.len() > run.events.len()
+            || run
+                .node_timing
+                .keys()
+                .any(|id| !run.plan.nodes.iter().any(|n| n.id.as_str() == id))
+        {
+            return Err("stored observed timing linkage rejected".into());
+        }
         let mut run_bytes = 0usize;
         let mut names = std::collections::BTreeSet::new();
         for artifact in &run.artifacts {

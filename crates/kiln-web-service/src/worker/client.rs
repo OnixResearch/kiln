@@ -42,36 +42,27 @@ pub struct LogBounds {
 
 #[derive(Default)]
 pub struct LogUploads<'node> {
-    cursors: BTreeMap<&'node str, [u64; 2]>,
+    cursors: BTreeMap<&'node str, [Option<u64>; 2]>,
     total_bytes: usize,
     chunks: usize,
 }
 
 impl LogUploads<'_> {
-    pub fn reserve(
-        &mut self,
-        bounds: &LogBounds,
-        output: &super::process::StepOutput,
-    ) -> Result<(), String> {
+    pub fn reserve(&mut self, bounds: &LogBounds, bytes: usize) -> Result<(), String> {
         if bounds.maximum_chunk_bytes == 0 {
             return Err("worker log chunk bound invalid".into());
         }
-        let mut total_bytes = self.total_bytes;
-        let mut chunks = self.chunks;
-        for capture in [&output.stdout, &output.stderr] {
-            total_bytes = total_bytes
-                .checked_add(capture.bytes.len())
-                .ok_or("worker log byte total overflow")?;
-            chunks = chunks
-                .checked_add(
-                    capture
-                        .bytes
-                        .len()
-                        .div_ceil(bounds.maximum_chunk_bytes)
-                        .max(1),
-                )
-                .ok_or("worker log chunk total overflow")?;
+        if bytes > bounds.maximum_chunk_bytes {
+            return Err("worker log chunk exceeds bound".into());
         }
+        let total_bytes = self
+            .total_bytes
+            .checked_add(bytes)
+            .ok_or("worker log byte total overflow")?;
+        let chunks = self
+            .chunks
+            .checked_add(1)
+            .ok_or("worker log chunk total overflow")?;
         if total_bytes > bounds.maximum_total_bytes || chunks > bounds.maximum_chunks {
             return Err("worker captured logs exceed run bounds".into());
         }
@@ -100,10 +91,10 @@ struct Runs {
 }
 
 pub struct ServiceClient {
-    client: reqwest::blocking::Client,
-    origin: String,
-    authorization: reqwest::header::HeaderValue,
-    maximum_response_bytes: usize,
+    pub(super) client: reqwest::blocking::Client,
+    pub(super) origin: String,
+    pub(super) authorization: reqwest::header::HeaderValue,
+    pub(super) maximum_response_bytes: usize,
 }
 
 impl ServiceClient {
@@ -123,6 +114,7 @@ impl ServiceClient {
             .tls_built_in_root_certs(false)
             .add_root_certificate(ca)
             .redirect(reqwest::redirect::Policy::none())
+            .retry(reqwest::retry::never())
             .no_proxy()
             .timeout(Duration::from_millis(profile.http_timeout_ms))
             .build()
@@ -135,7 +127,7 @@ impl ServiceClient {
         })
     }
 
-    fn response(&self, response: reqwest::blocking::Response) -> Result<Value, String> {
+    pub(super) fn response(&self, response: reqwest::blocking::Response) -> Result<Value, String> {
         if !response.status().is_success() {
             return Err("worker service rejected request".into());
         }
@@ -161,6 +153,19 @@ impl ServiceClient {
         profile: &WorkerProfile,
         source: &SourceResolution,
     ) -> Result<Option<RunBinding>, String> {
+        self.lookup_with_timeout(
+            profile,
+            source,
+            Duration::from_millis(profile.http_timeout_ms),
+        )
+    }
+
+    fn lookup_with_timeout(
+        &self,
+        profile: &WorkerProfile,
+        source: &SourceResolution,
+        timeout: Duration,
+    ) -> Result<Option<RunBinding>, String> {
         let response = self
             .client
             .get(format!("{}/api/runs", self.origin))
@@ -169,6 +174,7 @@ impl ServiceClient {
                 ("source_revision", source.exact_revision.native_id.as_str()),
             ])
             .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+            .timeout(timeout)
             .send()
             .map_err(|_| "worker run lookup failed")?;
         let runs: Runs = serde_json::from_value(self.response(response)?)
@@ -196,8 +202,7 @@ impl ServiceClient {
         source: &SourceResolution,
         cancellation: &AtomicBool,
     ) -> Result<RunBinding, String> {
-        let start = Instant::now();
-        let deadline = Duration::from_millis(profile.lookup_timeout_ms);
+        let deadline = Instant::now() + Duration::from_millis(profile.lookup_timeout_ms);
         // Only initial dispatch acceptance may lag behind job startup. Failures
         // are not retried and no mutation is retried.
         let maximum_attempts = profile.lookup_timeout_ms / profile.poll_interval_ms + 1;
@@ -205,12 +210,24 @@ impl ServiceClient {
             if cancellation.load(Ordering::SeqCst) {
                 return Err("worker cancelled before run binding".into());
             }
-            if let Some(run) = self.lookup(profile, source)? {
-                return Ok(run);
-            }
-            let remaining = deadline.saturating_sub(start.elapsed());
+            let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
                 return Err("worker active run was not admitted before deadline".into());
+            }
+            let result = self.lookup_with_timeout(
+                profile,
+                source,
+                remaining.min(Duration::from_millis(profile.http_timeout_ms)),
+            );
+            if cancellation.load(Ordering::SeqCst) {
+                return Err("worker cancelled before run binding".into());
+            }
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err("worker active run was not admitted before deadline".into());
+            }
+            if let Some(run) = result? {
+                return Ok(run);
             }
             std::thread::sleep(remaining.min(Duration::from_millis(profile.poll_interval_ms)));
         }
@@ -252,16 +269,28 @@ impl ServiceClient {
         Ok(())
     }
 
-    pub fn upload_logs<'node>(
+    pub fn upload_log_chunk<'node>(
         &self,
         profile: &WorkerProfile,
         source: &SourceResolution,
         binding: &RunBinding,
         node_id: &'node str,
-        output: &super::process::StepOutput,
+        chunk: &super::streaming::Chunk,
         progress: &mut LogUploads<'node>,
     ) -> Result<(), String> {
-        progress.reserve(&binding.log_bounds, output)?;
+        if chunk.bytes.is_empty()
+            && !chunk.truncated
+            && progress
+                .cursors
+                .get(node_id)
+                .is_some_and(|[stdout, stderr]| match chunk.stream {
+                    super::streaming::Stream::Stdout => stdout.is_some(),
+                    super::streaming::Stream::Stderr => stderr.is_some(),
+                })
+        {
+            return Ok(());
+        }
+        progress.reserve(&binding.log_bounds, chunk.bytes.len())?;
         let current = self
             .lookup(profile, source)?
             .ok_or("worker active run missing")?;
@@ -269,52 +298,42 @@ impl ServiceClient {
         if !current.nodes.iter().any(|node| node.id == node_id) {
             return Err("worker log node binding invalid".into());
         }
-        let [stdout_cursor, stderr_cursor] = progress.cursors.entry(node_id).or_default();
-        for (stream, capture, cursor) in [
-            ("stdout", &output.stdout, stdout_cursor),
-            ("stderr", &output.stderr, stderr_cursor),
-        ] {
-            let mut remaining = capture.bytes.as_slice();
-            loop {
-                // The first iteration also records a truthfully empty stream.
-                let (bytes, rest) =
-                    remaining.split_at(remaining.len().min(binding.log_bounds.maximum_chunk_bytes));
-                let length =
-                    u64::try_from(bytes.len()).map_err(|_| "worker log cursor overflow")?;
-                let next_cursor = cursor
-                    .checked_add(length)
-                    .ok_or("worker log cursor overflow")?;
-                let request = LogChunk {
-                    attempt_id: &binding.attempt_id,
-                    execution: &binding.execution,
-                    source_revision: &binding.source_revision,
-                    node_id,
-                    stream,
-                    cursor: *cursor,
-                    body_base64: base64::engine::general_purpose::STANDARD.encode(bytes),
-                    blake3: blake3::hash(bytes).to_hex().to_string(),
-                    truncated: capture.truncated && rest.is_empty(),
-                };
-                let response = self
-                    .client
-                    .post(format!("{}/api/runs/{}/logs", self.origin, binding.id))
-                    .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
-                    .header(reqwest::header::ORIGIN, &self.origin)
-                    .header(reqwest::header::CONTENT_TYPE, "application/json")
-                    .body(serde_json::to_vec(&request).map_err(|_| "worker log encoding failed")?)
-                    .send()
-                    .map_err(|_| "worker log upload failed")?;
-                let response = self.response(response)?;
-                if response.get("next_cursor").and_then(Value::as_u64) != Some(next_cursor) {
-                    return Err("worker log upload cursor mismatch".into());
-                }
-                *cursor = next_cursor;
-                if rest.is_empty() {
-                    break;
-                }
-                remaining = rest;
-            }
+        let [stdout, stderr] = progress.cursors.entry(node_id).or_default();
+        let cursor = match chunk.stream {
+            super::streaming::Stream::Stdout => stdout,
+            super::streaming::Stream::Stderr => stderr,
+        };
+        let next_cursor = cursor
+            .unwrap_or_default()
+            .checked_add(
+                u64::try_from(chunk.bytes.len()).map_err(|_| "worker log cursor overflow")?,
+            )
+            .ok_or("worker log cursor overflow")?;
+        let request = LogChunk {
+            attempt_id: &binding.attempt_id,
+            execution: &binding.execution,
+            source_revision: &binding.source_revision,
+            node_id,
+            stream: chunk.stream.name(),
+            cursor: cursor.unwrap_or_default(),
+            body_base64: base64::engine::general_purpose::STANDARD.encode(&chunk.bytes),
+            blake3: blake3::hash(&chunk.bytes).to_hex().to_string(),
+            truncated: chunk.truncated,
+        };
+        let response = self
+            .client
+            .post(format!("{}/api/runs/{}/logs", self.origin, binding.id))
+            .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+            .header(reqwest::header::ORIGIN, &self.origin)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(serde_json::to_vec(&request).map_err(|_| "worker log encoding failed")?)
+            .send()
+            .map_err(|_| "worker log upload failed")?;
+        let response = self.response(response)?;
+        if response.get("next_cursor").and_then(Value::as_u64) != Some(next_cursor) {
+            return Err("worker log upload cursor mismatch".into());
         }
+        *cursor = Some(next_cursor);
         Ok(())
     }
 }
@@ -344,10 +363,21 @@ pub fn admit_binding(
         || run.log_bounds.maximum_chunks == 0
         || run.log_bounds.maximum_chunk_bytes > run.log_bounds.maximum_total_bytes
         || execution.provider_namespace.as_str() != "lattice"
-        || profile
-            .steps
+        || run.nodes.is_empty()
+        || run
+            .nodes
             .iter()
-            .any(|step| !run.nodes.iter().any(|node| node.id == step.node_id))
+            .any(|node| !super::profile::component(&node.id))
+        || !run
+            .nodes
+            .iter()
+            .any(|node| profile.steps.iter().any(|step| step.node_id == node.id))
+        || run.nodes.iter().enumerate().any(|(index, node)| {
+            run.nodes
+                .iter()
+                .take(index)
+                .any(|prior| prior.id == node.id)
+        })
     {
         return Err("worker active run source or node binding mismatch".into());
     }
@@ -363,9 +393,14 @@ pub fn exact_binding(expected: &RunBinding, current: &RunBinding) -> Result<(), 
         || current.canonical_tree != expected.canonical_tree
         || current.project_id != expected.project_id
         || current.log_bounds != expected.log_bounds
+        || current.nodes != expected.nodes
         || current.outcome != "Pending"
     {
         return Err("worker attempt or execution became stale".into());
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "client/deadline_tests.rs"]
+mod deadline_tests;

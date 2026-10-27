@@ -1,0 +1,503 @@
+{
+  "schema": "kiln.onix-cob-dashboard.verification.v1",
+  "baseline": {
+    "endpoint_status": 404
+  },
+  "native": {
+    "origin": "https://127.0.0.1:37623",
+    "fixture_objects": 34,
+    "registered_types": 6,
+    "preflight_exit_code": 0,
+    "preflight_state_unchanged": true,
+    "paging": {
+      "first": 10,
+      "second": 10,
+      "overlap": false,
+      "changed_filter_status": 409
+    },
+    "preflight_observation": {
+      "exit_code": 0,
+      "closed_service_state_and_profile_blake3_unchanged": true
+    },
+    "separate_policy_restart_same_ci_profile": true,
+    "fixture_generation": "Disposable real libgit2 generator created 34 objects; generator removed after exercising HTTPS and browser paths."
+  },
+  "api": [
+    {
+      "method": "GET",
+      "target": "/api/cobs",
+      "status": 401,
+      "code": "unauthorized"
+    },
+    {
+      "method": "GET",
+      "target": "/api/cobs",
+      "status": 403,
+      "code": "cobs_read_only"
+    },
+    {
+      "method": "POST",
+      "target": "/api/cobs",
+      "status": 403,
+      "code": "cobs_read_only"
+    },
+    {
+      "method": "GET",
+      "target": "/api/cobs?path=/etc/passwd",
+      "status": 400,
+      "code": "query_invalid"
+    },
+    {
+      "repository": "objects",
+      "total": 34,
+      "complete": true,
+      "sources": [
+        {
+          "id": "objects",
+          "label": "Onix fixture repository",
+          "objects": 34,
+          "repository_id": "fixture:all-types",
+          "status": "available"
+        }
+      ]
+    },
+    {
+      "repository": "empty",
+      "total": 0,
+      "complete": true,
+      "sources": [
+        {
+          "id": "empty",
+          "label": "Empty local repository",
+          "objects": 0,
+          "repository_id": "fixture:empty",
+          "status": "available"
+        }
+      ]
+    },
+    {
+      "repository": "unavailable",
+      "total": 0,
+      "complete": false,
+      "sources": [
+        {
+          "id": "unavailable",
+          "label": "Unavailable local repository",
+          "objects": null,
+          "repository_id": "fixture:unavailable",
+          "status": "unavailable"
+        }
+      ]
+    },
+    {
+      "type": "xyz.onixresearch.cairn-change",
+      "object": "7db60236e39fc2dc05409a762c513d0ddc5898eb",
+      "status": 200,
+      "operations": 2,
+      "ref_tips": 2,
+      "signatures_verified": false,
+      "reduced_state": null
+    },
+    {
+      "type": "xyz.onixresearch.rfd",
+      "object": "8bb27c800bc9fc71859993a40be35f78d06a374a",
+      "status": 200,
+      "operations": 2,
+      "ref_tips": 2,
+      "signatures_verified": false,
+      "reduced_state": null
+    },
+    {
+      "type": "xyz.onixresearch.adr",
+      "object": "1714a02e1398b6719acc468cf236dbe8ea6b5000",
+      "status": 200,
+      "operations": 2,
+      "ref_tips": 2,
+      "signatures_verified": false,
+      "reduced_state": null
+    },
+    {
+      "type": "xyz.onixresearch.verification-obligation",
+      "object": "6da0320fa228075929c6d8ca92fff05e6faf0666",
+      "status": 200,
+      "operations": 2,
+      "ref_tips": 2,
+      "signatures_verified": false,
+      "reduced_state": null
+    },
+    {
+      "type": "xyz.onixresearch.release-decision",
+      "object": "41cb2228447d910179cb31fe5e13f0991d5786d3",
+      "status": 200,
+      "operations": 2,
+      "ref_tips": 2,
+      "signatures_verified": false,
+      "reduced_state": null
+    },
+    {
+      "type": "xyz.onixresearch.policy-exception",
+      "object": "03f154c5c7ed1d5ccda3c3109f02df5d8bf8978a",
+      "status": 200,
+      "operations": 2,
+      "ref_tips": 2,
+      "signatures_verified": false,
+      "reduced_state": null
+    }
+  ],
+  "browser": {
+    "desktop": {
+      "operations": 2,
+      "actions": 2,
+      "xss": true,
+      "images": 0,
+      "scripts": 0,
+      "repository": "objects",
+      "type": "xyz.onixresearch.rfd",
+      "search": "ONIX",
+      "selected": "8bb27c800bc9fc71859993a40be35f78d06a374a",
+      "overflow": false,
+      "paging": {
+        "first": 25,
+        "second": 9,
+        "overlap": false,
+        "back_forward_restored": true
+      }
+    },
+    "reload": {
+      "url": "https://127.0.0.1:37623/?page=cobs&view=pipeline&stream=stdout&order=desc&cob_repository=objects&cob_type=xyz.onixresearch.rfd&cob_q=ONIX&cob=8bb27c800bc9fc71859993a40be35f78d06a374a&cob_repo=objects&cob_kind=xyz.onixresearch.rfd&theme=system&density=comfortable",
+      "repository": "objects",
+      "type": "xyz.onixresearch.rfd",
+      "search": "ONIX",
+      "selected": "8bb27c800bc9fc71859993a40be35f78d06a374a",
+      "operations": 2,
+      "bearer_reentry_required": true
+    },
+    "missing_selection": {
+      "selected": "0000000000000000000000000000000000000000",
+      "operations": 0,
+      "message": "Unavailable: cob_object_missing: Requested resource was not found No presence, absence or success is inferred."
+    },
+    "unavailable": "Unavailable local repository · unavailable or outside read bounds. No absence is inferred.",
+    "empty": "Empty local repository · 0 local Onix objects",
+    "late_selection_response": {
+      "selected": "1714a02e1398b6719acc468cf236dbe8ea6b5000",
+      "title": "Onix adr — fixture",
+      "operations": 2,
+      "real_response_delayed_in_application_world": true
+    },
+    "logout_after_real_response": {
+      "passed": true,
+      "private_views_empty": true,
+      "pending_response_did_not_repopulate": true
+    },
+    "mobile": {
+      "width": 390,
+      "scrollWidth": 375,
+      "selected": "8bb27c800bc9fc71859993a40be35f78d06a374a",
+      "operations": 2,
+      "menuClosed": true,
+      "inertDOM": true,
+      "narrow_320": {
+        "width": 320,
+        "scrollWidth": 320
+      },
+      "main_world_inert": true
+    },
+    "unconfigured": {
+      "source": "No COB stores are configured. The service operator must admit a separate --cobs repository policy. This is not proof that no Onix objects exist.",
+      "detail": "Unavailable: cob_repository_missing: Requested resource was not found No presence, absence or success is inferred.",
+      "objects": 0
+    },
+    "screenshots": [
+      "desktop.webp",
+      "mobile.webp"
+    ]
+  },
+  "non_claims": [
+    "Isolated local native Git and HTTPS observations; not production deployment.",
+    "Raw histories do not verify signatures, reduce Cairn lifecycle state or establish actor/acceptance/release authority.",
+    "No Radicle initialization, signing, mutation, fetch, synchronization or publication.",
+    "Earlier unrelated flake/traceability holds are retained, not waived."
+  ],
+  "checks": {
+    "workspace_tests": {
+      "command": "env CARGO_TARGET_DIR=/home/brittonr/.cargo-target/kiln-web-service CARGO_BUILD_JOBS=8 nix develop path:. --no-write-lock-file -c env RUSTC_WRAPPER= RUSTC_WORKSPACE_WRAPPER= cargo test --locked --workspace",
+      "exit_code": 0,
+      "suites": 109,
+      "passed": 676,
+      "failed": 0,
+      "ignored": 4
+    },
+    "cob_regression": {
+      "command": "cargo test --locked -p kiln-web-service --test cobs",
+      "passed": 7,
+      "failed": 0
+    },
+    "nickel": [
+      {
+        "argv": [
+          "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+          "typecheck",
+          "config/web-cobs.ncl"
+        ],
+        "exit_code": 0
+      },
+      {
+        "argv": [
+          "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+          "export",
+          "config/fixtures/web-cobs-positive.ncl"
+        ],
+        "exit_code": 0
+      },
+      {
+        "argv": [
+          "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+          "export",
+          "config/fixtures/negative-web-cobs-unknown-field.ncl"
+        ],
+        "exit_code": 1
+      },
+      {
+        "argv": [
+          "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+          "export",
+          "config/fixtures/negative-web-cobs-relative-path.ncl"
+        ],
+        "exit_code": 1
+      }
+    ],
+    "lifecycle": {
+      "pre_implementation_gates": [
+        {
+          "argv": [
+            "/etc/profiles/per-user/brittonr/bin/cairn",
+            "gate",
+            "proposal",
+            "add-onix-cob-dashboard",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit_code": 0,
+          "verdict": "PASS"
+        },
+        {
+          "argv": [
+            "/etc/profiles/per-user/brittonr/bin/cairn",
+            "gate",
+            "design",
+            "add-onix-cob-dashboard",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit_code": 0,
+          "verdict": "PASS"
+        },
+        {
+          "argv": [
+            "/etc/profiles/per-user/brittonr/bin/cairn",
+            "gate",
+            "tasks",
+            "add-onix-cob-dashboard",
+            "--root",
+            ".",
+            "--policy",
+            "cairn-policy/generated/cairn-policy.json"
+          ],
+          "exit_code": 0,
+          "verdict": "PASS"
+        }
+      ],
+      "validate_exit_code": 0,
+      "traceability": {
+        "exit_code": 1,
+        "receipt_hash": "bc933138c88edc1b4b8fd7a8fdca63fd7fec844648c7e1ca7ebec1d852d82e85",
+        "dangling": [
+          "kiln.dashboard.product.shell",
+          "kiln.dashboard.rats.provenance",
+          "kiln.dashboard.rats.provenance.scenario.drift",
+          "kiln.patchgate.conformance",
+          "kiln.patchgate.execution",
+          "kiln.patchgate.nonclaims",
+          "kiln.patchgate.profile",
+          "kiln.patchgate.request",
+          "kiln.patchgate.result"
+        ],
+        "missing": [],
+        "cob_requirements_linked": true
+      },
+      "release_readiness": {
+        "exit_code": 0,
+        "non_claim": "A readiness-policy receipt does not waive the observed Nix package failure or authorize publication."
+      },
+      "sync": {
+        "command": "cairn sync add-onix-cob-dashboard --root . --policy cairn-policy/generated/cairn-policy.json --execute",
+        "destination": ".cairn/specs/onix-cob-dashboard/spec.md",
+        "receipt_hash": "bf92694744c6cae33812aa13602cb032580a0777f8ce33ed29c8a384c91e1975",
+        "archive_performed": false
+      }
+    },
+    "broader_holds": {
+      "full_flake_check": {
+        "command": "nix flake check path:. --no-write-lock-file --builders '' -L",
+        "exit_code": 1,
+        "failing_check": "checks.x86_64-linux.radicle-mutation-native-fixtures",
+        "failing_test": "accepted_write_times_out_to_unknown_then_reconciles",
+        "observed": "TimedOut",
+        "expected": "Unknown",
+        "source": "crates/kiln-adapter-radicle/tests/mutation_native.rs:449"
+      },
+      "lifecycle_traceability": {
+        "validate_exit_code": 0,
+        "coverage_exit_code": 1,
+        "dangling": [
+          "kiln.dashboard.product.shell",
+          "kiln.dashboard.rats.provenance",
+          "kiln.dashboard.rats.provenance.scenario.drift",
+          "kiln.patchgate.conformance",
+          "kiln.patchgate.execution",
+          "kiln.patchgate.nonclaims",
+          "kiln.patchgate.profile",
+          "kiln.patchgate.request",
+          "kiln.patchgate.result"
+        ],
+        "release_readiness_exit_code": 0,
+        "evidence": "lifecycle-checks.json"
+      },
+      "not_rerun_to_reconfirm": true
+    },
+    "clippy": {
+      "command": "env CARGO_TARGET_DIR=/home/brittonr/.cargo-target/kiln-web-service CARGO_BUILD_JOBS=8 nix develop path:. --no-write-lock-file -c env RUSTC_WRAPPER= RUSTC_WORKSPACE_WRAPPER= cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    "nix": {
+      "format": {
+        "exit_code": 0,
+        "derivation": "/nix/store/hr7zjjbyzxbaflnl2w20zl4xhv1pfz9l-kiln-format.drv",
+        "path": "/nix/store/96zgcqhxxjk453hpgv1ddj4gz8a0dhzq-kiln-format"
+      },
+      "nickel": {
+        "exit_code": 0,
+        "derivation": "/nix/store/aavf71rp514yxgizwf53347q4gin5jjf-kiln-nickel.drv",
+        "path": "/nix/store/z6m79la831lrn8s6pnr8v2p25rpxsfpd-kiln-nickel"
+      },
+      "octet": {
+        "exit_code": 0,
+        "derivation": "/nix/store/jbk6dlmln4p4a90859p6y7m7lqnva1dc-kiln-octet.drv",
+        "path": "/nix/store/pr42bwgv8ynq1m7mwb41rdmgvcvhrcdd-kiln-octet"
+      },
+      "web_service_deployment": {
+        "exit_code": 1,
+        "blocked_by": "kiln-web-service package test reports::reports_preserve_raw_bytes_bind_exact_attempt_and_compare_real_test_coverage_history",
+        "error": "service state already has an owner",
+        "package_derivation": "/nix/store/6n2gpjcadnp18rcjbkfzdz88s7qfbw07-kiln-web-service-0.1.0.drv",
+        "vm_executed": false
+      }
+    },
+    "final_format": {
+      "command": "nix develop path:. --no-write-lock-file -c cargo fmt -- --check",
+      "exit_code": 0
+    }
+  },
+  "capability": {
+    "immediate_outcome": "Read-only Onix COB browser integrated into the existing authenticated live workspace",
+    "durable_contribution": "Separately admitted local-store policy, bounded native reader, seven deterministic libgit2 regression tests and Nickel positive/negative rail",
+    "maintenance_owner": "Kiln application/dashboard maintainers; operators retain policy/store/deployment authority",
+    "consumer": "Existing Kiln self-CI live workspace",
+    "repeatability": [
+      "cargo test --locked -p kiln-web-service --test cobs",
+      "nickel typecheck config/web-cobs.ncl",
+      "nickel export config/fixtures/web-cobs-positive.ncl",
+      "Run the operator guide optional read-only Onix COB browser procedure against explicitly admitted stores"
+    ]
+  },
+  "verification_chronology": [
+    "Workspace test run: 676 passed, zero failed, four ignored.",
+    "Integration suite corrected to comply with checked-index/borrow lints; all seven cases rerun and passed, workspace Clippy passed.",
+    "Real local HTTPS/browser proof covered all six types and explicit source states, no production activation.",
+    "Nix policy/format/Octet gates passed; web-service package failed in the named reports test before the deployment VM ran.",
+    "Native spec synchronization and traceability entrypoint annotations added; COB requirements now have no missing/dangling references. Final source formatting checked separately."
+  ],
+  "requirement_evidence": {
+    "kiln.dashboard.cobs.read": [
+      "api: all six exact histories and identities",
+      "checks.cob_regression"
+    ],
+    "kiln.dashboard.cobs.read.scenario.present": [
+      "api: six two-operation, two-ref-tip fixture histories"
+    ],
+    "kiln.dashboard.cobs.read.scenario.unavailable": [
+      "native.paging",
+      "browser.unavailable",
+      "checks.cob_regression"
+    ],
+    "kiln.dashboard.cobs.authority": [
+      "api: anonymous/worker/write/path rejection",
+      "native.preflight_observation"
+    ],
+    "kiln.dashboard.cobs.authority.scenario.reader": [
+      "api: authenticated viewer histories without host paths",
+      "checks.cob_regression: repository-file and ref immutability"
+    ],
+    "kiln.dashboard.cobs.authority.scenario.denied": [
+      "api: 401,403,403,400",
+      "checks.cob_regression: exact selection/query/policy rejection"
+    ],
+    "kiln.dashboard.cobs.view": [
+      "browser.desktop",
+      "browser.mobile"
+    ],
+    "kiln.dashboard.cobs.view.scenario.restore": [
+      "browser.reload",
+      "browser.missing_selection",
+      "browser.desktop.paging"
+    ],
+    "kiln.dashboard.cobs.view.scenario.cleared": [
+      "browser.late_selection_response",
+      "browser.logout_after_real_response",
+      "browser.unconfigured",
+      "browser.empty",
+      "browser.unavailable"
+    ]
+  },
+  "final_source_and_visual_blake3": {
+    "crates/kiln-web-service/src/cobs.rs": "91d04b6a016d6290a053052d5a3e02f20f5f1fe0114e2cd32da67344c68841de",
+    "crates/kiln-web-service/src/cobs/store.rs": "4953b16afc6166d0f35193e6c5aa371e223e17e09ca329c49dca03542455d6c0",
+    "crates/kiln-web-service/src/web.js": "b497b1471f993cb4f7c0a725b7cfa0e7e5c2d091b05b7eaa0247bc30bacf034f",
+    "crates/kiln-web-service/src/web.html": "8fc58519cd915b4b8442bb111766f59cd4d947bd03a67a98e2b5c5af465c2afc",
+    "crates/kiln-web-service/src/web.css": "f6fc10c3b9409cc032d2cfcd7f3018cb2fd0a407e5da08c879e3fb66d2109078",
+    "crates/kiln-web-service/src/server.rs": "6a38edf7278c1c29485beeddf537d8503f3fe473e5adb08d34ec53f6391caa14",
+    "crates/kiln-web-service/src/main.rs": "7ca9a9db126810c4ae6a6a62cd0b503a9fbf6fc41d0bebe4640a8ceaa7ab5012",
+    "crates/kiln-web-service/src/lib.rs": "fb5523dd17722d59385caa7927dbf1ae54ddb6fd68edb4886dbbe3d35f7f0782",
+    "crates/kiln-web-service/src/engine.rs": "c17e063c50bc378eb0279af0b9575bbad9d84e44fc442ecc57d0bd70b2f94b73",
+    "crates/kiln-web-service/src/engine/api.rs": "da60b179ce033e6fd65d99288336bbf1703836ed2205833d6ef21ca79c5e077c",
+    "crates/kiln-web-service/tests/cobs.rs": "1a86ece8d4b0c551d48bc8e81c320a46b0c730139d16403fc934484da88f3a5c",
+    "config/web-cobs.ncl": "4fa425970db90e2d040990c520abb1ea8c7a6aaaaf0998acde8ba07e1f26b8aa",
+    "config/fixtures/web-cobs-inputs.ncl": "f6d4e1eaba94ec6035a3575c71878ff75fe06f752227e084142c98181b0e7dbb",
+    "config/fixtures/web-cobs-positive.ncl": "c5c4d3e8f53d9b1c3309005dc2cec8d465b92b76d7dee8986829591432731f4b",
+    "config/fixtures/negative-web-cobs-unknown-field.ncl": "f5199f67cb9a4a3e45465d0d1b32b280909093b960dfbe07f5bc70d3cf2cbe8a",
+    "config/fixtures/negative-web-cobs-relative-path.ncl": "ac0632d5301f986e2e828ccdc3dd9264e1f698f525f244298d3ee5504e62b5f2",
+    "flake.nix": "c5e3c773de58ab4a637330aa4efcbe7854e49cc267f1a7e0cd64f2f835b6c0c5",
+    "README.md": "562b81c014356e0fe6c83d38c34688bba3928ee47f337972c732bd7e1e8d3b9f",
+    "docs/operator.md": "eeb7f72056e5ae3b4e27ccce269daf53bc653cb8d21726a45a99733e60ac1183",
+    ".cairn/specs/onix-cob-dashboard/spec.md": "94c443079b4b9e48be4872a94fcebb73b6127e89a00e8374d043605c4c993190",
+    ".cairn/changes/add-onix-cob-dashboard/proposal.md": "8ce9979124caceab056959862e463f0390e7dd4b9edf9573d1545b99eeb4b5cd",
+    ".cairn/changes/add-onix-cob-dashboard/design.md": "e03d16b538a3f4f11bbce92abe0c0a979b9a1bee5048d02193802e1e12a37b13",
+    ".cairn/changes/add-onix-cob-dashboard/tasks.md": "fd01d82b88c054af8bdf2dd1c970edaf3cc8236a69dcb076b3d1865786599b75",
+    ".cairn/changes/add-onix-cob-dashboard/specs/onix-cob-dashboard/spec.md": "eaaa127179966ec332f7f825b9e529f75ce117a812f4122c9f43981268b07cbf",
+    ".cairn/changes/add-onix-cob-dashboard/evidence/desktop.webp": "8282d5d67557c9beb4c7c857ca3abd4b2828d7a26f18fa59dfc2ef677f6bbdfe",
+    ".cairn/changes/add-onix-cob-dashboard/evidence/mobile.webp": "ae6fe7889e4471e18a94b3d51c70d2f772b301ffc7ca33bc1b7966989b07c64e"
+  },
+  "cleanup": {
+    "disposable_generator_removed": true,
+    "smoke_services_stopped": true,
+    "browser_closed": true,
+    "production_activated": false,
+    "publication_performed": false,
+    "temporary_credentials_retained": false
+  }
+}

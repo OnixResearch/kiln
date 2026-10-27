@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="1" errors="1" skipped="1"><testsuite name="service" tests="4" failures="1" errors="1" skipped="1" time="1.5"><testcase classname="api" name="healthy" time="0.1" file="src/api.rs" line="7"/><testcase classname="api" name="rejects" time="0.2"><failure message="expected 403 &amp; got 200">assertion failed
+expected: 403
+actual: 200</failure></testcase><testcase classname="api" name="offline" time="0.3"><error message="connection refused">transport unavailable</error></testcase><testcase classname="api" name="slow" time="0"><skipped message="requires external host"/></testcase></testsuite></testsuites>

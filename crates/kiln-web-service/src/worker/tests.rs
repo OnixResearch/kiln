@@ -83,6 +83,7 @@ fn fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
             argv: vec!["reviewed.sh".into()],
             environment: BTreeMap::new(),
             artifacts: vec!["product.txt".into()],
+            reports: vec![],
         }],
     };
     let id = ProviderProfileId::new("fixture-git")
@@ -286,86 +287,20 @@ fn child_environment_is_explicit_and_failure_deadline_and_cancellation_are_not_s
 }
 
 #[test]
-fn captured_log_budget_counts_real_chunks_and_empty_streams_across_steps() {
-    let (_root, mut profile, context) = fixture();
-    let prepared = source::prepare(&profile, &context)
-        .unwrap_or_else(|error| unreachable!("checkout: {error:?}"));
-    profile
-        .steps
-        .first_mut()
-        .unwrap_or_else(|| unreachable!())
-        .argv = vec!["-c".into(), "printf abcde; printf xy >&2".into()];
-    let output = process::execute(
-        &profile,
-        profile.steps.first().unwrap_or_else(|| unreachable!()),
-        &prepared.checkout,
-        &AtomicBool::new(false),
-    )
-    .unwrap_or_else(|error| unreachable!("execution: {error:?}"));
-    assert_eq!(output.stdout.bytes, b"abcde");
-    assert_eq!(output.stderr.bytes, b"xy");
+fn live_log_budget_accounts_each_ingress_chunk_and_rejected_reservations_are_atomic() {
     let bounds = client::LogBounds {
-        maximum_chunk_bytes: 2,
-        maximum_total_bytes: 14,
-        maximum_chunks: 8,
+        maximum_chunk_bytes: 4,
+        maximum_total_bytes: 8,
+        maximum_chunks: 3,
     };
     let mut progress = client::LogUploads::default();
-    progress
-        .reserve(&bounds, &output)
-        .unwrap_or_else(|error| unreachable!("first step: {error:?}"));
-    progress
-        .reserve(&bounds, &output)
-        .unwrap_or_else(|error| unreachable!("exact run bound: {error:?}"));
-    assert!(progress.reserve(&bounds, &output).is_err());
-    let mut too_few_chunks = bounds.clone();
-    too_few_chunks.maximum_chunks = 3;
-    assert!(
-        client::LogUploads::default()
-            .reserve(&too_few_chunks, &output)
-            .is_err()
-    );
-    let mut too_few_bytes = bounds.clone();
-    too_few_bytes.maximum_total_bytes = 6;
-    assert!(
-        client::LogUploads::default()
-            .reserve(&too_few_bytes, &output)
-            .is_err()
-    );
-    // A rejected reservation must not spend any of the valid budget.
-    let mut rejected = client::LogUploads::default();
-    assert!(rejected.reserve(&too_few_chunks, &output).is_err());
-    rejected
-        .reserve(&bounds, &output)
-        .unwrap_or_else(|error| unreachable!("unspent budget: {error:?}"));
-    profile
-        .steps
-        .first_mut()
-        .unwrap_or_else(|| unreachable!())
-        .argv = vec!["-c".into(), ":".into()];
-    let empty = process::execute(
-        &profile,
-        profile.steps.first().unwrap_or_else(|| unreachable!()),
-        &prepared.checkout,
-        &AtomicBool::new(false),
-    )
-    .unwrap_or_else(|error| unreachable!("empty execution: {error:?}"));
-    assert_eq!(empty.code, 0);
-    assert!(empty.stdout.bytes.is_empty());
-    assert!(empty.stderr.bytes.is_empty());
-    let mut empty_bounds = client::LogBounds {
-        maximum_chunk_bytes: 1,
-        maximum_total_bytes: 1,
-        maximum_chunks: 1,
-    };
-    assert!(
-        client::LogUploads::default()
-            .reserve(&empty_bounds, &empty)
-            .is_err()
-    );
-    empty_bounds.maximum_chunks = 2;
-    client::LogUploads::default()
-        .reserve(&empty_bounds, &empty)
-        .unwrap_or_else(|error| unreachable!("both empty streams: {error:?}"));
+    assert!(progress.reserve(&bounds, 5).is_err());
+    assert_eq!(progress.reserve(&bounds, 4), Ok(()));
+    assert_eq!(progress.reserve(&bounds, 4), Ok(()));
+    assert!(progress.reserve(&bounds, 1).is_err());
+    // Empty/truncated markers spend a chunk but not retained-byte budget.
+    assert_eq!(progress.reserve(&bounds, 0), Ok(()));
+    assert!(progress.reserve(&bounds, 0).is_err());
 }
 
 #[test]
@@ -409,7 +344,7 @@ fn real_artifacts_admit_regular_bytes_and_reject_escape_symlink_hardlink_fifo_an
 
 #[test]
 fn source_attempt_execution_and_node_bindings_are_all_required() {
-    let (_root, profile, context) = fixture();
+    let (_root, mut profile, context) = fixture();
     let prepared = source::prepare(&profile, &context)
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "checkout", error));
     let source = &prepared.resolution;
@@ -433,10 +368,47 @@ fn source_attempt_execution_and_node_bindings_are_all_required() {
             maximum_chunks: 128,
         },
     };
+    let mut unselected = profile
+        .steps
+        .first()
+        .unwrap_or_else(|| unreachable!())
+        .clone();
+    unselected.node_id = "not-selected".into();
+    profile.steps.push(unselected);
     client::admit_binding(&profile, source, &binding)
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "exact run", error));
     client::exact_binding(&binding, &binding)
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "current attempt", error));
+    // A full native DAG includes peers executed by separately reviewed jobs.
+    // Only the nonempty intersection with this worker profile is local work.
+    let mut dag = binding.clone();
+    dag.nodes.push(client::Node {
+        id: "verify".into(),
+    });
+    assert_eq!(client::admit_binding(&profile, source, &dag), Ok(()));
+    let mut verify_profile = profile.clone();
+    verify_profile.steps.truncate(1);
+    verify_profile
+        .steps
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .node_id = "verify".into();
+    assert_eq!(client::admit_binding(&verify_profile, source, &dag), Ok(()));
+    assert!(client::admit_binding(&verify_profile, source, &binding).is_err());
+    let mut malformed_peer = dag.clone();
+    malformed_peer
+        .nodes
+        .get_mut(1)
+        .unwrap_or_else(|| unreachable!())
+        .id = "../verify".into();
+    assert!(client::admit_binding(&profile, source, &malformed_peer).is_err());
+    let mut peer_only = binding.clone();
+    peer_only
+        .nodes
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .id = "verify".into();
+    assert!(client::admit_binding(&profile, source, &peer_only).is_err());
     let mut stale = binding.clone();
     stale.attempt_id = "attempt-2".into();
     assert!(client::exact_binding(&binding, &stale).is_err());
@@ -477,6 +449,13 @@ fn source_attempt_execution_and_node_bindings_are_all_required() {
     assert!(client::admit_binding(&profile, source, &stale).is_err());
     stale = binding.clone();
     stale.log_bounds.maximum_chunks += 1;
+    assert!(client::exact_binding(&binding, &stale).is_err());
+    stale = binding.clone();
+    stale.nodes.push(client::Node { id: "build".into() });
+    assert!(client::admit_binding(&profile, source, &stale).is_err());
+    stale = binding.clone();
+    stale.nodes.first_mut().unwrap_or_else(|| unreachable!()).id = "unreviewed".into();
+    assert!(client::admit_binding(&profile, source, &stale).is_err());
     assert!(client::exact_binding(&binding, &stale).is_err());
     let mut json = serde_json::to_value(&binding)
         .unwrap_or_else(|error| unreachable!("binding JSON: {error:?}"));
@@ -596,4 +575,201 @@ fn in_flight_cancellation_stops_owned_command_and_preserves_cancelled_exit() {
         assert!(!output.stdout.truncated);
         assert!(!output.stderr.truncated);
     });
+}
+
+#[test]
+fn output_is_ingressed_before_exit_and_each_retained_byte_is_uploaded_once() {
+    let (_root, mut profile, context) = fixture();
+    let prepared =
+        source::prepare(&profile, &context).unwrap_or_else(|error| unreachable!("{error}"));
+    profile
+        .steps
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .argv = vec!["-c".into(),
+        "printf early-out; printf early-err >&2; while test ! -f release; do :; done; printf late-out; printf late-err >&2; : > completed".into()];
+    let mut uploaded_stdout = Vec::new();
+    let mut uploaded_stderr = Vec::new();
+    let output = process::execute_streamed(
+        &profile,
+        profile.steps.first().unwrap_or_else(|| unreachable!()),
+        &prepared.checkout,
+        &AtomicBool::new(false),
+        64,
+        |chunk| {
+            let uploaded = match chunk.stream {
+                super::streaming::Stream::Stdout => &mut uploaded_stdout,
+                super::streaming::Stream::Stderr => &mut uploaded_stderr,
+            };
+            uploaded.extend_from_slice(&chunk.bytes);
+            if uploaded_stdout == b"early-out" && uploaded_stderr == b"early-err" {
+                assert!(!prepared.checkout.join("completed").exists());
+                fs::write(prepared.checkout.join("release"), b"go")
+                    .unwrap_or_else(|error| unreachable!("{error}"));
+            }
+            Ok(())
+        },
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(output.code, 0);
+    assert_eq!(output.ingress, Ok(()));
+    assert_eq!(uploaded_stdout, b"early-outlate-out");
+    assert_eq!(uploaded_stderr, b"early-errlate-err");
+    assert_eq!(uploaded_stdout, output.stdout.bytes);
+    assert_eq!(uploaded_stderr, output.stderr.bytes);
+    assert!(prepared.checkout.join("completed").exists());
+}
+
+#[test]
+fn overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_exit() {
+    let (_root, mut profile, context) = fixture();
+    let prepared =
+        source::prepare(&profile, &context).unwrap_or_else(|error| unreachable!("{error}"));
+    profile.maximum_output_bytes = 4;
+    profile
+        .steps
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .argv = vec!["-c".into(), "printf abcdef; printf 123456 >&2".into()];
+    let mut stdout_bytes = Vec::new();
+    let mut stderr_bytes = Vec::new();
+    let mut stdout_truncated = 0;
+    let mut stderr_truncated = 0;
+    let output = process::execute_streamed(
+        &profile,
+        profile.steps.first().unwrap_or_else(|| unreachable!()),
+        &prepared.checkout,
+        &AtomicBool::new(false),
+        2,
+        |chunk| {
+            assert!(chunk.bytes.len() <= 2);
+            let (bytes, truncated) = match chunk.stream {
+                super::streaming::Stream::Stdout => (&mut stdout_bytes, &mut stdout_truncated),
+                super::streaming::Stream::Stderr => (&mut stderr_bytes, &mut stderr_truncated),
+            };
+            bytes.extend_from_slice(&chunk.bytes);
+            *truncated += usize::from(chunk.truncated);
+            Ok(())
+        },
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(output.code, 125);
+    assert_eq!(stdout_bytes, b"abcd");
+    assert_eq!(stderr_bytes, b"1234");
+    assert_eq!((stdout_truncated, stderr_truncated), (1, 1));
+    for (command, expected_code) in [("printf abcdef", 125), ("printf abcdef; exit 17", 17)] {
+        profile
+            .steps
+            .first_mut()
+            .unwrap_or_else(|| unreachable!())
+            .argv = vec!["-c".into(), command.into()];
+        let mut attempts = 0;
+        let output = process::execute_streamed(
+            &profile,
+            profile.steps.first().unwrap_or_else(|| unreachable!()),
+            &prepared.checkout,
+            &AtomicBool::new(false),
+            2,
+            |_| {
+                attempts += 1;
+                Err("rejected ingress".into())
+            },
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!(attempts, 1);
+        assert_eq!(output.code, expected_code);
+        assert_eq!(
+            super::finish_step(output.code, output.ingress),
+            Ok(expected_code)
+        );
+    }
+    profile.maximum_output_bytes = 4096;
+    profile
+        .steps
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .argv = vec!["-c".into(), "printf accepted-process".into()];
+    let output = process::execute_streamed(
+        &profile,
+        profile.steps.first().unwrap_or_else(|| unreachable!()),
+        &prepared.checkout,
+        &AtomicBool::new(false),
+        2,
+        |_| Err("rejected ingress".into()),
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(output.code, 0);
+    assert!(super::finish_step(output.code, output.ingress).is_err());
+    profile
+        .steps
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .argv = vec!["-c".into(), ":".into()];
+    let mut stdout_empty_records = 0;
+    let mut stderr_empty_records = 0;
+    let output = process::execute_streamed(
+        &profile,
+        profile.steps.first().unwrap_or_else(|| unreachable!()),
+        &prepared.checkout,
+        &AtomicBool::new(false),
+        2,
+        |chunk| {
+            assert!(chunk.bytes.is_empty());
+            assert!(!chunk.truncated);
+            let empty_records = match chunk.stream {
+                super::streaming::Stream::Stdout => &mut stdout_empty_records,
+                super::streaming::Stream::Stderr => &mut stderr_empty_records,
+            };
+            *empty_records += 1;
+            Ok(())
+        },
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(output.code, 0);
+    assert_eq!(output.ingress, Ok(()));
+    assert_eq!((stdout_empty_records, stderr_empty_records), (1, 1));
+}
+
+#[test]
+fn streaming_cancellation_and_deadline_terminate_owned_descendants() {
+    for cancelled in [false, true] {
+        let (_root, mut profile, context) = fixture();
+        let prepared =
+            source::prepare(&profile, &context).unwrap_or_else(|error| unreachable!("{error}"));
+        profile.command_timeout_ms = if cancelled { 2000 } else { 300 };
+        profile
+            .steps
+            .first_mut()
+            .unwrap_or_else(|| unreachable!())
+            .argv = vec!["-c".into(),
+            "/bin/sh -c 'while :; do :; done' & printf '%s' \"$!\" > descendant.pid; printf ready; while :; do :; done".into()];
+        let cancellation = AtomicBool::new(false);
+        let output = process::execute_streamed(
+            &profile,
+            profile.steps.first().unwrap_or_else(|| unreachable!()),
+            &prepared.checkout,
+            &cancellation,
+            64,
+            |chunk| {
+                if cancelled && chunk.bytes == b"ready" {
+                    cancellation.store(true, std::sync::atomic::Ordering::SeqCst);
+                }
+                Ok(())
+            },
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!(output.code, if cancelled { 130 } else { 124 });
+        assert_eq!(output.stdout.bytes, b"ready");
+        let pid = fs::read_to_string(prepared.checkout.join("descendant.pid"))
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let status = fs::read_to_string(format!("/proc/{pid}/stat"));
+        assert!(
+            status.is_err()
+                || status.as_ref().is_ok_and(|stat| {
+                    stat.rsplit_once(')')
+                        .is_some_and(|(_, tail)| tail.trim_start().starts_with('Z'))
+                }),
+            "owned descendant remains alive"
+        );
+    }
 }

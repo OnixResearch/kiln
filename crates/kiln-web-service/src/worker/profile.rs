@@ -46,6 +46,8 @@ pub struct Step {
     pub argv: Vec<String>,
     pub environment: BTreeMap<String, String>,
     pub artifacts: Vec<PathBuf>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reports: Vec<crate::reports::ReportDeclaration>,
 }
 
 pub fn component(value: &str) -> bool {
@@ -151,7 +153,22 @@ impl WorkerProfile {
         }
         let mut artifacts = 0usize;
         let mut artifact_names = std::collections::BTreeSet::new();
+        let mut reports = 0usize;
+        let mut report_names = std::collections::BTreeSet::new();
         for step in &self.steps {
+            reports = reports
+                .checked_add(step.reports.len())
+                .ok_or("report count overflow")?;
+            if reports > crate::reports::MAX_REPORTS {
+                return Err("worker report count exceeds bound".into());
+            }
+            for report in &step.reports {
+                if !crate::reports::safe_relative_path(&report.path)
+                    || !report_names.insert((step.node_id.clone(), report.path.clone()))
+                {
+                    return Err("worker report paths must be safe and unique per node".into());
+                }
+            }
             artifacts = artifacts
                 .checked_add(step.artifacts.len())
                 .ok_or("artifact count overflow")?;

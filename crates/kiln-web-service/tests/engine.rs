@@ -23,6 +23,9 @@ struct Backend {
     cancelled: bool,
     control_disconnect: bool,
     timeout: bool,
+    failed_nodes: std::collections::BTreeSet<String>,
+    skipped_nodes: std::collections::BTreeSet<String>,
+    registered_node_sets: Option<std::collections::BTreeSet<Vec<String>>>,
 }
 struct Port {
     profile: CapabilityProfile,
@@ -52,15 +55,19 @@ fn observation(plan: &WorkflowEffectPlan, state: &Backend) -> WorkflowObservatio
         sequence: state.sequence,
         state: if state.cancelled {
             WorkflowState::Cancelled
+        } else if state.terminal && !state.failed_nodes.is_empty() {
+            WorkflowState::Failed
         } else if state.terminal {
             WorkflowState::Completed
         } else {
             WorkflowState::Running
         },
         terminal,
-        successful: state.terminal && !state.cancelled,
+        successful: state.terminal && !state.cancelled && state.failed_nodes.is_empty(),
         outcome: if state.cancelled {
             Outcome::Cancelled
+        } else if state.terminal && !state.failed_nodes.is_empty() {
+            Outcome::DomainFailure
         } else if state.terminal {
             Outcome::Success
         } else {
@@ -71,12 +78,20 @@ fn observation(plan: &WorkflowEffectPlan, state: &Backend) -> WorkflowObservatio
             .iter()
             .map(|n| WorkflowNodeObservation {
                 node_id: n.id.clone(),
-                state: node_state,
+                state: if state.terminal && state.failed_nodes.contains(n.id.as_str()) {
+                    WorkflowNodeState::Failed
+                } else if state.terminal && state.skipped_nodes.contains(n.id.as_str()) {
+                    WorkflowNodeState::Skipped
+                } else {
+                    node_state
+                },
                 terminal,
-                successful: state.terminal && !state.cancelled,
+                successful: state.terminal
+                    && !state.cancelled
+                    && !state.failed_nodes.contains(n.id.as_str()),
                 adapter: ExternalRef::new("lattice", "adapter", "local")
                     .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}")),
-                receipt: terminal.then(|| {
+                receipt: (terminal && !state.skipped_nodes.contains(n.id.as_str())).then(|| {
                     ExternalRef::new("lattice", "receipt", "node-receipt")
                         .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"))
                 }),
@@ -97,6 +112,22 @@ impl WorkflowPort for Port {
         let mut state = self.backend.lock();
         state.dispatches += 1;
         state.plan = Some(plan.clone());
+        let selected: Vec<_> = plan
+            .nodes
+            .iter()
+            .map(|n| n.id.as_str().to_owned())
+            .collect();
+        if state
+            .registered_node_sets
+            .as_ref()
+            .is_some_and(|sets| !sets.contains(&selected))
+        {
+            return Err(PortFailure::Domain(kiln_core::types::Diagnostic::new(
+                "route_not_registered",
+                "workflow.nodes",
+                "No exact registered route for selected graph",
+            )));
+        }
         if state.disconnect {
             return Err(PortFailure::Unknown(InfrastructureFailure {
                 code: "accepted_disconnect".into(),
@@ -231,6 +262,18 @@ fn checked<T, E: std::fmt::Debug>(result: Result<T, E>) -> T {
 fn open(profile: ServiceProfile, backend: Arc<Mutex<Backend>>) -> Engine {
     checked(try_open(profile, backend))
 }
+fn finish_notifications(
+    engine: &mut Engine,
+    notifications: Vec<kiln_web_service::engine::NotificationWork>,
+) {
+    for notification in notifications {
+        checked(engine.record_notification(checked(notification.deliver())));
+    }
+}
+fn poll(engine: &mut Engine) {
+    let notifications = checked(engine.poll());
+    finish_notifications(engine, notifications);
+}
 fn try_open(profile: ServiceProfile, backend: Arc<Mutex<Backend>>) -> Result<Engine, String> {
     let capability = profile
         .projects
@@ -358,7 +401,7 @@ fn allowlist_exact_source_and_request_replay_survive_restart() {
         .status,
         409
     );
-    assert_eq!(start(&mut engine, "second-active").status, 409);
+    assert_eq!(start(&mut engine, "second-active").status, 202);
     let id = field(&run, "id")
         .as_str()
         .unwrap_or_else(|| unreachable!("fixture string"))
@@ -366,9 +409,7 @@ fn allowlist_exact_source_and_request_replay_survive_restart() {
     drop(engine);
     let mut engine = open(profile.clone(), backend.clone());
     assert_eq!(start(&mut engine, "start").body, response.body);
-    engine
-        .poll()
-        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    poll(&mut engine);
     assert_eq!(backend.lock().dispatches, 1);
     assert_eq!(backend.lock().recoveries, 1);
     assert_eq!(
@@ -418,7 +459,7 @@ fn accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution() {
     let response = start(&mut engine, "ambiguous");
     let run = value(&response);
     assert_eq!(field(&run, "outcome"), "Unknown");
-    assert_eq!(start(&mut engine, "not-retry").status, 409);
+    assert_eq!(start(&mut engine, "not-retry").status, 202);
     drop(engine);
     {
         let mut state = backend.lock();
@@ -427,9 +468,7 @@ fn accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution() {
         state.terminal = true;
     }
     let mut engine = open(profile, backend.clone());
-    engine
-        .poll()
-        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    poll(&mut engine);
     let resolved = value(&get(
         &mut engine,
         &format!(
@@ -448,7 +487,7 @@ fn accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution() {
             .unwrap_or_else(|| unreachable!("fixture execution")),
         "original-execution"
     );
-    assert_eq!(backend.lock().dispatches, 1);
+    assert_eq!(backend.lock().dispatches, 2);
     assert_eq!(backend.lock().recoveries, 1);
 }
 
@@ -671,7 +710,7 @@ fn timed_out_dispatch_remains_unknown_and_control_disconnect_never_replays_mutat
     let run = value(&start(&mut engine, "timeout"));
     assert_eq!(field(&run, "outcome"), "Unknown");
     assert_eq!(field(&run, "error_code"), "provider_timed_out");
-    assert_eq!(start(&mut engine, "new-after-timeout").status, 409);
+    assert_eq!(start(&mut engine, "new-after-timeout").status, 202);
     assert_eq!(backend.lock().dispatches, 1);
     let (_root, profile, _) = fixture();
     let backend = Arc::new(Mutex::new(Backend {
@@ -694,9 +733,7 @@ fn timed_out_dispatch_remains_unknown_and_control_disconnect_never_replays_mutat
         call(&mut engine, "POST", &path, request.clone(), Role::Operator).body,
         response.body
     );
-    engine
-        .poll()
-        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    poll(&mut engine);
     assert_eq!(
         value(&get(
             &mut engine,
@@ -737,8 +774,10 @@ fn restart_discards_unadmitted_artifact_bytes_without_inventing_metadata() {
     let mut engine = open(profile, backend);
     assert!(!temporary.exists());
     assert_eq!(
-        value(&get(&mut engine, "/api/runs", Role::Operator)),
-        json!({"runs":[]})
+        value(&get(&mut engine, "/api/runs", Role::Operator))
+            .get("runs")
+            .unwrap_or(&serde_json::Value::Null),
+        &json!([])
     );
 }
 
@@ -1292,3 +1331,10 @@ fn restart_removes_only_owned_unadmitted_log_files_and_recovers_publication_pair
 
 #[path = "engine/runtime.rs"]
 mod runtime;
+
+#[path = "engine/automation.rs"]
+mod automation;
+#[path = "engine/dashboard.rs"]
+mod dashboard;
+#[path = "engine/reports.rs"]
+mod reports;

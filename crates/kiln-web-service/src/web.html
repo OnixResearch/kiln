@@ -1,100 +1,56 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="referrer" content="no-referrer">
-  <meta name="color-scheme" content="light dark">
-  <title>Kiln · Live operations</title>
-  <link rel="stylesheet" href="/catalog.css">
-  <link rel="stylesheet" href="/web.css">
-  <script src="/web.js" defer></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">
+  <title>Kiln · Live workspace</title><link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><script src="/web.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to operations</a>
-  <header class="live-header">
-    <a class="live-brand" href="/" aria-label="Kiln live operations"><span class="live-mark" aria-hidden="true">k</span><span>Kiln<small>Live operations</small></span></a>
-    <div class="session-tools"><span id="auth-status" class="live-badge">Signed out</span><button id="logout" type="button" hidden>Sign out</button></div>
-  </header>
-  <main id="main" tabindex="-1">
+<a class="skip-link" href="#main">Skip to workspace</a>
+<aside id="app-sidebar" class="app-sidebar" aria-label="Workspace navigation">
+  <a class="brand" href="/?page=overview"><span class="brand-mark" aria-hidden="true">k</span><span>Kiln<span class="brand-caption">Live workspace</span></span></a>
+  <div class="workspace-card"><span class="workspace-avatar" aria-hidden="true">CI</span><div><strong>Pipeline operations</strong><span class="workspace-caption">Exact source · retained evidence</span></div></div>
+  <p class="nav-label">Workspace</p>
+  <nav class="app-navigation" aria-label="Main"><button data-page="overview" type="button">Overview</button><button data-page="projects" type="button">Projects</button><button data-page="runs" type="button">Runs</button><button data-page="cobs" type="button">Onix COBs</button><button data-page="activity" type="button">Activity</button><button data-page="evidence" type="button">Evidence</button><button data-page="automation" type="button">Automation</button><button data-page="operations" type="button">Operations</button><button data-page="settings" type="button">Settings</button></nav>
+  <div class="sidebar-boundary"><p>Authenticated live service. Actions affect the configured execution provider. Recorded evidence is not acceptance authority.</p></div>
+</aside>
+<div class="app-workspace">
+  <header class="app-topbar"><div class="topbar-location"><button id="app-menu-toggle" class="icon-button" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="app-sidebar">☰</button><span class="topbar-workspace">Kiln</span><span class="breadcrumb-divider">/</span><span id="app-breadcrumb">Overview</span></div><div class="session-tools"><span id="auth-status" class="live-badge">Signed out</span><button id="logout" type="button" hidden>Clear session</button></div></header>
+  <main id="main" class="app-main" tabindex="-1">
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
-    <section id="login-panel" class="login-panel panel" aria-labelledby="login-title">
-      <p class="eyebrow">Single-tenant operator access</p>
-      <h1 id="login-title">Your work, live.</h1>
-      <p>Enroll reviewed repositories, run their configured pipelines, and inspect admitted execution evidence.</p>
-      <form id="login-form" autocomplete="off">
-        <label for="operator-token">Operator token</label>
-        <input id="operator-token" name="operator-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required pattern="[0-9A-Fa-f]{64}" minlength="64" maxlength="64" aria-describedby="token-help">
-        <p id="token-help" class="small">64 hexadecimal characters. Kept only in this page’s memory; never saved or included in a URL. Signing out clears private views and pending requests.</p>
-        <button id="login-button" class="primary" type="submit">Connect to service</button>
-      </form>
-      <p class="boundary">This is the authenticated live service, not the offline, read-only dashboard. Actions affect the configured execution provider.</p>
-    </section>
+    <section id="login-panel" class="login-panel panel" aria-labelledby="login-title"><p class="eyebrow">Private live workspace</p><h1 id="login-title">Your work, live.</h1><p>Network identity is checked automatically. Alternatively, connect with an admitted viewer or operator bearer.</p><form id="login-form" autocomplete="off"><label for="operator-token">Access token</label><input id="operator-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required pattern="[0-9A-Fa-f]{64}" minlength="64" maxlength="64" aria-describedby="token-help"><p id="token-help" class="small">Kept only in page memory; never saved or included in a URL. Clearing the session erases private views and pending requests.</p><button id="login-button" class="primary" type="submit">Connect to service</button></form><p class="boundary">This public shell contains no private execution data.</p></section>
     <div id="workspace" hidden>
-      <section class="workspace-heading" aria-labelledby="workspace-title">
-        <div><p class="eyebrow">Operator workspace</p><h1 id="workspace-title">Live pipeline operations</h1><p>Exact source. Admitted state. Retained evidence.</p></div>
-        <div class="connection-tools"><span id="connection-status" class="live-badge" role="status">Not connected</span><button id="refresh-all" type="button">Refresh &amp; reconnect</button></div>
+      <section class="page-heading"><div><p class="eyebrow">Live workspace</p><h1 id="workspace-title">Overview</h1><p id="observation-note">Finite snapshots are observations, not a complete history. Unknown historical timing stays unknown.</p></div><div class="connection-tools"><span id="connection-status" class="live-badge" role="status">Not connected</span><button id="refresh-all" type="button">Refresh &amp; reconnect</button></div></section>
+      <section data-panel="overview" id="overview-panel" class="view-stack"><div id="overview-content" class="view-stack"></div></section>
+      <section data-panel="projects" hidden class="view-stack"><section class="panel"><div class="section-heading"><h2>Projects</h2><button id="refresh-projects" type="button">Refresh</button></div><div id="project-cards" class="project-grid"></div></section><div class="project-forms"><section class="panel"><h2>Enroll reviewed repository</h2><form id="enroll-form"><label for="available-project">Allowlisted repository</label><select id="available-project" required><option value="">Loading allowlist…</option></select><p id="available-description" class="small"></p><button id="enroll-button" type="submit" disabled data-operate>Enroll project</button></form></section><section class="panel"><h2>Start source-bound run</h2><form id="start-form"><label for="enrolled-project">Enrolled project</label><select id="enrolled-project" required><option value="">No enrolled projects</option></select><p id="project-description" class="small"></p><label for="source-mode">Source choice</label><select id="source-mode"><option value="latest">Latest admitted reference</option><option value="reference">Select admitted reference</option><option value="exact">Exact reachable revision</option></select><label for="source-reference">Admitted reference</label><select id="source-reference"><option value="">Select a project first</option></select><label for="source-revision">Exact source revision</label><input id="source-revision" maxlength="128" autocomplete="off" placeholder="Required only for exact revision"><p id="source-status" class="small"></p><button id="start-button" class="primary" type="submit" disabled data-operate>Run latest admitted reference</button></form><p class="small boundary">Only server-admitted repository sources; no commands or paths are supplied here. Busy projects queue durably.</p></section></div></section>
+      <section data-panel="runs" hidden>
+        <div class="workspace-grid"><aside class="project-column"><section class="panel"><div class="section-heading"><h2>Run browser</h2><button id="refresh-runs" type="button">Refresh</button></div><form id="run-search-form" class="view-stack"><div><label for="run-search">Search metadata</label><input id="run-search" type="search" maxlength="256" autocomplete="off" placeholder="Run, repository, revision…"></div><div><label for="run-filter">Project</label><select id="run-filter"><option value="">All projects</option></select></div><div><label for="run-outcome">Outcome</label><select id="run-outcome"><option value="">All outcomes</option><option>Active</option><option>Success</option><option>Failed</option><option>Cancelled</option><option>Unknown</option></select></div><div><label for="run-source">Exact source revision</label><input id="run-source" maxlength="128" autocomplete="off"></div><div><label for="run-order">Order</label><select id="run-order"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div><button type="submit">Apply filters</button></form><p id="runs-status" class="small" role="status">No private data loaded.</p><div id="run-list" class="run-list" aria-label="Select a run"></div><div class="control-bar"><button id="runs-first" type="button">First page</button><button id="runs-next" type="button" disabled>Next page</button></div></section></aside>
+        <div class="detail-column"><section id="empty-run" class="panel empty-state"><p class="eyebrow">Execution inspector</p><h2 id="empty-run-title">Select a run</h2><p id="empty-run-message">Choose a retained run. Missing or filtered runs are never silently replaced.</p></section><div id="run-detail" hidden>
+          <section class="panel"><div class="section-heading"><div><p class="eyebrow">Selected execution</p><h2 id="run-title"></h2></div><button id="refresh-detail" type="button">Refresh run</button></div><div id="run-badges" class="badges"></div><p id="run-warning" class="warning" hidden></p><dl id="run-facts" class="facts"></dl><details><summary>Exact native execution identity</summary><pre id="execution-identity" class="identity"></pre></details><div class="control-bar" aria-label="Execution controls"><button id="control-cancel" class="danger" type="button" disabled data-operate>Cancel run</button><button id="control-pause" type="button" disabled data-operate>Pause run</button><button id="control-resume" type="button" disabled data-operate>Resume run</button></div><p id="control-note" class="small"></p><div class="control-bar"><button id="rerun-exact" type="button" data-operate>Rerun exact revision</button><button id="rerun-latest" type="button" data-operate>Run latest admitted reference</button><button id="rerun-failed" type="button" data-operate>Retry known failed nodes</button></div></section>
+          <nav id="run-tabs" class="run-tabs" aria-label="Run inspection"><button type="button" data-view="pipeline">Pipeline</button><button type="button" data-view="logs">Logs</button><button type="button" data-view="artifacts">Artifacts</button><button type="button" data-view="tests">Tests &amp; coverage</button><button type="button" data-view="compare">Compare &amp; flaky</button><button type="button" data-view="activity">Activity</button><button type="button" data-view="evidence">Evidence</button></nav>
+          <section data-run-panel="pipeline" class="panel"><h2>Pipeline graph</h2><p class="small">Only admitted dependency edges and observed node states. Select a node to inspect its exact facts.</p><div id="pipeline-graph" class="pipeline-graph" tabindex="0" aria-label="Pipeline dependency graph"></div><div id="node-list" class="node-list"></div><dl id="node-facts" class="facts"></dl></section>
+          <section data-run-panel="logs" class="panel" hidden><div class="section-heading"><h2>Execution logs</h2><label class="check"><input id="follow-logs" type="checkbox">Follow selected stream</label></div><p class="small">Actual worker-captured stdout/stderr can arrive before completion. Diagnostics use native provider cursors; an empty read implies neither completion nor success.</p><form id="log-form" class="log-tools"><div><label for="log-node">Node</label><select id="log-node" required></select></div><div><label for="log-stream">Stream</label><select id="log-stream"><option value="stdout">stdout</option><option value="stderr">stderr</option><option value="diagnostic">diagnostic</option></select></div><div><label for="log-cursor">Stream cursor</label><input id="log-cursor" inputmode="numeric" value="0" pattern="[0-9]+" required autocomplete="off"></div><button id="read-log" type="submit">Read from cursor</button><div class="log-search"><label for="log-search">Literal retained-log search</label><input id="log-search" type="search" maxlength="256" autocomplete="off"></div></form><p id="log-status" class="small" role="status">Select a node to read retained logs.</p><p id="log-gap" class="warning" role="status" hidden></p><pre id="log-output" class="log-output" tabindex="0" aria-label="Selected node log output"></pre><div class="log-footer"><span id="log-position" class="small">No log read yet</span><button id="download-log" type="button">Download full retained stream</button><button id="clear-log" type="button">Clear displayed log</button></div></section>
+          <section data-run-panel="artifacts" class="panel" hidden><div class="section-heading"><h2>Retained artifacts</h2><button id="refresh-artifacts" type="button">Refresh artifacts</button></div><p class="small">Only retained uploads. A receipt is not a product artifact.</p><p id="artifact-status" class="small" role="status"></p><div id="artifact-list" class="artifact-list"></div></section>
+          <section data-run-panel="tests" class="panel" hidden><h2>Structured tests &amp; coverage</h2><div id="reports-content" class="view-stack"></div></section>
+          <section data-run-panel="compare" class="panel" hidden><h2>Compare runs &amp; repeated-test instability</h2><form id="compare-form" class="inline-form"><div><label for="compare-other">Other retained run ID</label><input id="compare-other" maxlength="256" required autocomplete="off"></div><button type="submit">Compare recorded facts</button></form><div id="compare-content" class="view-stack"></div></section>
+          <section data-run-panel="activity" class="panel" hidden><h2>Run activity &amp; audit</h2><div id="run-activity-content" class="view-stack"></div></section>
+          <section data-run-panel="evidence" class="panel" hidden><h2>Source-bound evidence</h2><div id="run-evidence-content" class="view-stack"></div></section>
+        </div></div></div>
       </section>
-      <p id="observation-note" class="small">Finite live snapshots are observations, not a complete event history. Controls require a fresh identity check.</p>
-      <div class="workspace-grid">
-        <aside class="project-column" aria-label="Projects and runs">
-          <section class="panel" aria-labelledby="projects-title">
-            <div class="section-heading"><h2 id="projects-title">Projects</h2><button id="refresh-projects" type="button" class="quiet">Refresh</button></div>
-            <form id="enroll-form">
-              <label for="available-project">Allowlisted repository</label>
-              <select id="available-project" required><option value="">Loading allowlist…</option></select>
-              <p id="available-description" class="small"></p>
-              <button id="enroll-button" type="submit" disabled>Enroll project</button>
-            </form>
-            <div class="section-divider"></div>
-            <form id="start-form">
-              <label for="enrolled-project">Enrolled project</label>
-              <select id="enrolled-project" required><option value="">No enrolled projects</option></select>
-              <p id="project-description" class="small">Select a reviewed project to run its configured source and pipeline.</p>
-              <button id="start-button" class="primary" type="submit" disabled>Start source-bound run</button>
-            </form>
-            <p class="small boundary">Source is resolved by the service from the reviewed repository reference. No commands or paths are supplied by this page.</p>
-          </section>
-          <section class="panel" aria-labelledby="runs-title">
-            <div class="section-heading"><h2 id="runs-title">Runs</h2><button id="refresh-runs" type="button" class="quiet">Refresh</button></div>
-            <label for="run-filter">Project filter</label><select id="run-filter"><option value="">All projects</option></select>
-            <p id="runs-status" class="small">Loading runs…</p><div id="run-list" class="run-list" aria-label="Select a run"></div>
-          </section>
-        </aside>
-        <div class="detail-column">
-          <section id="empty-run" class="panel empty-state"><p class="eyebrow">Execution inspector</p><h2>Select a run</h2><p>Start a source-bound run or select an admitted run from the list. No execution data is invented here.</p></section>
-          <div id="run-detail" hidden>
-            <section class="panel" aria-labelledby="run-title">
-              <div class="section-heading"><div><p class="eyebrow">Selected execution</p><h2 id="run-title"></h2></div><button id="refresh-detail" type="button">Refresh run</button></div>
-              <div id="run-badges" class="badges"></div><p id="run-warning" class="warning" hidden></p>
-              <dl id="run-facts" class="facts"></dl>
-              <details><summary>Exact native execution identity</summary><pre id="execution-identity" class="identity"></pre></details>
-              <div class="control-bar" aria-label="Execution controls"><button id="control-cancel" type="button" class="danger" disabled>Cancel run</button><button id="control-pause" type="button" disabled>Pause run</button><button id="control-resume" type="button" disabled>Resume run</button></div>
-              <p id="control-note" class="small">Only currently advertised provider capabilities are available. Every control requires confirmation and an exact identity check.</p>
-            </section>
-            <section class="panel" aria-labelledby="nodes-title"><h2 id="nodes-title">Admitted nodes</h2><p class="small">Node state is reported by the service, not inferred from log text.</p><div id="node-list" class="node-list"></div></section>
-            <section class="panel" aria-labelledby="logs-title">
-              <div class="section-heading"><h2 id="logs-title">Execution logs</h2><label class="check"><input id="follow-logs" type="checkbox"> Follow selected stream</label></div>
-              <p class="small">stdout/stderr are actual worker-captured bytes published when a step completes, with worker-owned byte cursors. Diagnostic logs retain native provider cursors. Following does not synthesize output; an active node can have no new bytes yet.</p>
-              <form id="log-form" class="log-tools">
-                <div><label for="log-node">Node</label><select id="log-node" required></select></div>
-                <div><label for="log-stream">Stream</label><select id="log-stream"><option value="stdout">stdout</option><option value="stderr">stderr</option><option value="diagnostic">diagnostic</option></select></div>
-                <div><label for="log-cursor">Stream cursor</label><input id="log-cursor" inputmode="numeric" value="0" pattern="[0-9]+" required autocomplete="off"></div>
-                <button id="read-log" type="submit">Read from cursor</button>
-              </form>
-              <p id="log-status" class="small" role="status">Select a node to read actual retained logs.</p><p id="log-gap" class="warning" role="status" hidden></p>
-              <pre id="log-output" class="log-output" tabindex="0" aria-label="Selected node log output"></pre>
-              <div class="log-footer"><span id="log-position" class="small">No log read yet</span><button id="clear-log" type="button">Clear displayed log</button></div>
-            </section>
-            <section class="panel" aria-labelledby="artifacts-title"><div class="section-heading"><h2 id="artifacts-title">Retained artifacts</h2><button id="refresh-artifacts" type="button">Refresh artifacts</button></div><p class="small">Only actual worker uploads retained by this service are listed. A receipt is not a product artifact.</p><p id="artifact-status" class="small" role="status"></p><div id="artifact-list" class="artifact-list"></div></section>
-          </div>
-        </div>
-      </div>
+      <section data-panel="cobs" hidden class="view-stack">
+        <section class="panel"><div class="section-heading"><h2>Onix collaborative objects</h2><button id="refresh-cobs" type="button">Refresh COBs</button></div><p class="small">Cairn changes, RFDs, ADRs, verification obligations, release decisions and policy exceptions. Read-only local Git observations: raw operation content is not reduced lifecycle state, verified signatures or acceptance authority.</p>
+          <form id="cob-search-form" class="inline-form"><div><label for="cob-repository">Repository</label><select id="cob-repository"><option value="">All configured repositories</option></select></div><div><label for="cob-type">Object type</label><select id="cob-type"><option value="">All Onix types</option></select></div><div><label for="cob-search">Search object metadata</label><input id="cob-search" type="search" maxlength="256" autocomplete="off" placeholder="Title, object ID, repository…"></div><button type="submit">Apply filters</button><button id="cob-reset" type="button">Clear filters</button></form>
+          <div id="cob-source-status" class="view-stack" role="status"></div>
+        </section>
+        <div class="workspace-grid"><section class="panel"><h2>COB browser</h2><p id="cob-status" class="small" role="status"></p><div id="cob-list" class="run-list"></div><div class="control-bar"><button id="cob-first" type="button">First page</button><button id="cob-next" type="button" disabled>Next page</button></div></section><section id="cob-detail" class="panel" aria-label="Selected COB inspector"><h2>Select an Onix COB</h2><p class="small">Choose an object to inspect its exact identity and recorded operation content.</p></section></div>
+      </section>
+      <section data-panel="activity" class="panel" hidden><div class="section-heading"><h2>Canonical activity &amp; attributable audit</h2><button id="refresh-activity" type="button">Refresh</button></div><p class="small">Bounded retained timeline. Audit decisions and canonical events are distinct observations.</p><div id="activity-content" class="view-stack"></div></section>
+      <section data-panel="evidence" class="panel" hidden><h2>Evidence browser</h2><p class="small">Inspect a retained run's source, pipeline, artifacts and recorded gate/review/provenance. Recorded verdicts are not acceptance authority.</p><form id="evidence-form" class="inline-form"><div><label for="evidence-run">Retained run ID</label><input id="evidence-run" maxlength="256" required autocomplete="off"></div><button type="submit">Inspect evidence</button></form><div id="evidence-content" class="view-stack"></div></section>
+      <section data-panel="automation" class="panel" hidden><div class="section-heading"><h2>Registered automation</h2><button id="refresh-automation" type="button">Refresh</button></div><p class="small">Signed push/PR intake, interval schedules and HTTPS destinations are admitted server-side. Credentials and destination URLs never enter this page. Ambiguous deliveries are not automatically retried.</p><div id="automation-content" class="view-stack"></div></section>
+      <section data-panel="operations" class="panel" hidden><div class="section-heading"><h2>Operations &amp; retention</h2><button id="refresh-operations" type="button">Refresh</button></div><p class="small">Observed capacity, queue and retained usage. Warnings do not prune canonical state.</p><div id="operations-content" class="view-stack"></div></section>
+      <section data-panel="settings" class="panel" hidden><h2>Workspace settings</h2><dl id="principal-facts" class="facts"></dl><div class="settings-row"><label for="app-theme">Appearance</label><select id="app-theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="settings-row"><label for="app-density">Density</label><select id="app-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div><p class="boundary">Appearance and navigation are URL-restored; credentials are never persisted. Viewer access is read-only. Authorization is enforced again by the service. Server policy, source bindings, signing secrets and destinations are not editable browser strings.</p></section>
     </div>
   </main>
-  <dialog id="control-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-warning">
-    <form id="control-form"><h2 id="confirm-title">Confirm execution control</h2><p id="confirm-warning">This affects the exact provider execution below. If its identity changes, the service must reject the request. Mutations are never automatically retried.</p><dl id="confirm-facts" class="facts"></dl><div class="dialog-actions"><button id="dismiss-control" type="button">Keep unchanged</button><button id="confirm-control" class="danger" type="submit">Confirm control</button></div></form>
-  </dialog>
-  <noscript><p class="notice">JavaScript is required for authenticated live operations. This public shell contains no private execution data.</p></noscript>
-</body>
-</html>
+</div>
+<dialog id="control-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-warning"><form id="control-form"><h2 id="confirm-title">Confirm execution control</h2><p id="confirm-warning">This affects the exact execution/source below. Mutations are never automatically retried. Unknown effects require observation before a new request.</p><dl id="confirm-facts" class="facts"></dl><div class="dialog-actions"><button id="dismiss-control" type="button">Keep unchanged</button><button id="confirm-control" class="danger" type="submit">Confirm</button></div></form></dialog>
+<noscript><p class="notice">JavaScript is required for authenticated live operations. This public shell contains no private execution data.</p></noscript>
+</body></html>

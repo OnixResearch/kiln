@@ -90,6 +90,7 @@ lattice-workflow-contract = { path = "vendor/lattice/crates/lattice-workflow-con
 lattice-workflow-transport = { path = "vendor/lattice/crates/lattice-workflow-contract/transport" }
 cairn-gate-contract = { path = "vendor/cairn/crates/cairn-gate-contract" }
 bounded-exec = { path = "vendor/bounded-exec/crates/bounded-exec" }
+bounded-exec-core = { path = "vendor/bounded-exec/crates/bounded-exec-core" }
 kiln-core = { path = "crates/kiln-core" }
 kiln-provider-api = { path = "crates/kiln-provider-api" }
 kiln-codec = { path = "crates/kiln-codec" }
@@ -117,6 +118,7 @@ kiln-radicle-ci = { path = "crates/kiln-radicle-ci" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
 kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
 kiln-adapter-sqlite = { path = "crates/kiln-adapter-sqlite" }
+kiln-adapter-webhook = { path = "crates/kiln-adapter-webhook" }
 kiln-aspen-extension = { path = "crates/kiln-aspen-extension" }
 valence-core = { path = "vendor/valence/crates/valence-core" }
 

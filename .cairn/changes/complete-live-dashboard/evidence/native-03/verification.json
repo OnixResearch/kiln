@@ -1,0 +1,3451 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "tls": "TLS1.3 succeeded; TLS1.2 rejected",
+    "success": {
+      "run": {
+        "id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+        "project_id": "success",
+        "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+        "outcome": "Success",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Completed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793136759550,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793136759550,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 14,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "verify"
+          }
+        ],
+        "created_at_ms": 1793136757340,
+        "started_at_ms": 1793136757393,
+        "completed_at_ms": 1793136759550,
+        "duration_ms": 2157,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        }
+      },
+      "logs": {
+        "cursor": 0,
+        "gap": false,
+        "next_cursor": 92,
+        "node_id": "build",
+        "retained": true,
+        "source": "worker-capture",
+        "stream": "stdout",
+        "text": "actual command started\nactual artifact bytes: exact-source-artifact-v1\nsecond reviewed step\n",
+        "truncated": false,
+        "reads": 4
+      },
+      "artifact": {
+        "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+        "blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+        "bytes": 25,
+        "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/eee1c3d03f86d27b7c48b01ebaacfcde0dfd5dd639352853e3d82bb2e03cb560",
+        "id": "eee1c3d03f86d27b7c48b01ebaacfcde0dfd5dd639352853e3d82bb2e03cb560",
+        "name": "artifact.txt",
+        "node_id": "build"
+      }
+    },
+    "pipeline": {
+      "id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+      "project_id": "success",
+      "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+      "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Completed",
+          "kind": "build",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136759550,
+          "duration_ms": null
+        },
+        {
+          "id": "verify",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136759550,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 64
+      },
+      "ordinal": 14,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [
+        {
+          "source": "build",
+          "target": "verify"
+        }
+      ],
+      "created_at_ms": 1793136757340,
+      "started_at_ms": 1793136757393,
+      "completed_at_ms": 1793136759550,
+      "duration_ms": 2157,
+      "report_summary": {
+        "coverage": [
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "coverage.xml",
+            "node_id": "build",
+            "report_id": "ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab"
+          },
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "lcov.info",
+            "node_id": "build",
+            "report_id": "f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602"
+          }
+        ],
+        "tests": {
+          "errors": 0,
+          "failed": 0,
+          "passed": 1,
+          "skipped": 0,
+          "total": 1
+        }
+      }
+    },
+    "reports": {
+      "flaky_history": [],
+      "reports": [
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "21fcf98ddc7330204ebb895b77a1fb1261fae14d52c769ec9f7fa1954128ba3d",
+            "bytes": 138,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/38cbab798288f943ff0ae01fe7b22470dda9c76cadd3849ddadb380b50a5ccf5",
+            "id": "38cbab798288f943ff0ae01fe7b22470dda9c76cadd3849ddadb380b50a5ccf5",
+            "name": "report-4935f6183b6c271bb9bbe16eadd09cc61f6fb19800f6412b7c852fa6d6bf5296.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "4935f6183b6c271bb9bbe16eadd09cc61f6fb19800f6412b7c852fa6d6bf5296",
+          "kind": "junit",
+          "name": "junit.xml",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758235,
+          "report": {
+            "coverage": null,
+            "evidence": null,
+            "kind": "junit",
+            "source_blake3": "21fcf98ddc7330204ebb895b77a1fb1261fae14d52c769ec9f7fa1954128ba3d",
+            "source_bytes": 138,
+            "tests": {
+              "cases": [
+                {
+                  "class_name": "SourceTest",
+                  "details": null,
+                  "duration_seconds": null,
+                  "file": "ci.py",
+                  "line": null,
+                  "message": null,
+                  "name": "test_source",
+                  "status": "passed",
+                  "suite": "source"
+                }
+              ],
+              "duration_seconds": null,
+              "errors": 0,
+              "failed": 0,
+              "passed": 1,
+              "skipped": 0,
+              "total": 1
+            }
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "96ac1a61acff3bf9fedfdfd98c87b97fb463fc515ea4f9e009d0ab795a355eee",
+            "bytes": 311,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/fcefc5ff5a0822c8844e06a658ee3771f879dc9a98c10c03e601fe36b1224fb1",
+            "id": "fcefc5ff5a0822c8844e06a658ee3771f879dc9a98c10c03e601fe36b1224fb1",
+            "name": "report-ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab",
+          "kind": "cobertura",
+          "name": "coverage.xml",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758312,
+          "report": {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "files": [
+                {
+                  "branches_found": null,
+                  "branches_hit": null,
+                  "lines": [
+                    {
+                      "hits": 1,
+                      "number": 19
+                    },
+                    {
+                      "hits": 1,
+                      "number": 20
+                    },
+                    {
+                      "hits": 0,
+                      "number": 21
+                    }
+                  ],
+                  "path": "ci.py"
+                }
+              ],
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "evidence": null,
+            "kind": "cobertura",
+            "source_blake3": "96ac1a61acff3bf9fedfdfd98c87b97fb463fc515ea4f9e009d0ab795a355eee",
+            "source_bytes": 311,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "c0f1592247841c039916f3184f5e79ae6ee6f65f5fbe5303c557713dc66d44bf",
+            "bytes": 67,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/58516fca1c80fbcb9eb17d16d5c0b14e0281e3ddd9eace20808f8af51c4b352e",
+            "id": "58516fca1c80fbcb9eb17d16d5c0b14e0281e3ddd9eace20808f8af51c4b352e",
+            "name": "report-f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602",
+          "kind": "lcov",
+          "name": "lcov.info",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758377,
+          "report": {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "files": [
+                {
+                  "branches_found": null,
+                  "branches_hit": null,
+                  "lines": [
+                    {
+                      "hits": 1,
+                      "number": 19
+                    },
+                    {
+                      "hits": 1,
+                      "number": 20
+                    },
+                    {
+                      "hits": 0,
+                      "number": 21
+                    }
+                  ],
+                  "path": "ci.py"
+                }
+              ],
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "evidence": null,
+            "kind": "lcov",
+            "source_blake3": "c0f1592247841c039916f3184f5e79ae6ee6f65f5fbe5303c557713dc66d44bf",
+            "source_bytes": 67,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "12974818489731fadf0e8a1d145e3d2a8645a3e678a392a0430ddf34a7f428c1",
+            "bytes": 265,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/0e93dfa4d6c56c65ac4aba3cda9ea37b896d6567b1e23f4dd0c198c2a2a435e3",
+            "id": "0e93dfa4d6c56c65ac4aba3cda9ea37b896d6567b1e23f4dd0c198c2a2a435e3",
+            "name": "report-6031e91267b1f38e790abd4a2462ef5d20f596bb8909a4682d24d5dd25ecbb0d.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "6031e91267b1f38e790abd4a2462ef5d20f596bb8909a4682d24d5dd25ecbb0d",
+          "kind": "gate",
+          "name": "gate.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758429,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.gate.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.gate.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "gate",
+            "source_blake3": "12974818489731fadf0e8a1d145e3d2a8645a3e678a392a0430ddf34a7f428c1",
+            "source_bytes": 265,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "6ac83d7f2e9dc6f896e48c878c79a80d9651357ef45e927382d55c4d6a753375",
+            "bytes": 267,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/3d255468875ca34846e8d150b8a7f12aba6355e14b5d2ed7d5a87d12bc3b9ed6",
+            "id": "3d255468875ca34846e8d150b8a7f12aba6355e14b5d2ed7d5a87d12bc3b9ed6",
+            "name": "report-cf4a05c187c008f492caaa3785cbe490bf835454e7e6d96c6df69a2e29b2a76e.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "cf4a05c187c008f492caaa3785cbe490bf835454e7e6d96c6df69a2e29b2a76e",
+          "kind": "review",
+          "name": "review.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758567,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.review.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.review.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "review",
+            "source_blake3": "6ac83d7f2e9dc6f896e48c878c79a80d9651357ef45e927382d55c4d6a753375",
+            "source_bytes": 267,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "26f11ff266f51eea121da123baebecee35846ce00fdac233ff39b2e2d58148b5",
+            "bytes": 271,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/ef523f6c061befde4004d5b23d0904567400b705d34aadc5a68a6af4170c46fb",
+            "id": "ef523f6c061befde4004d5b23d0904567400b705d34aadc5a68a6af4170c46fb",
+            "name": "report-23c8cfc2c9f06a8d9e48766887484317c285c6060e6430ee296d15097fbcb041.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "23c8cfc2c9f06a8d9e48766887484317c285c6060e6430ee296d15097fbcb041",
+          "kind": "provenance",
+          "name": "provenance.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758643,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.provenance.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.provenance.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "provenance",
+            "source_blake3": "26f11ff266f51eea121da123baebecee35846ce00fdac233ff39b2e2d58148b5",
+            "source_bytes": 271,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        }
+      ],
+      "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+      "summary": {
+        "coverage": [
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "coverage.xml",
+            "node_id": "build",
+            "report_id": "ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab"
+          },
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "lcov.info",
+            "node_id": "build",
+            "report_id": "f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602"
+          }
+        ],
+        "tests": {
+          "errors": 0,
+          "failed": 0,
+          "passed": 1,
+          "skipped": 0,
+          "total": 1
+        }
+      }
+    },
+    "evidence": {
+      "artifacts": [
+        {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "blake3": "21fcf98ddc7330204ebb895b77a1fb1261fae14d52c769ec9f7fa1954128ba3d",
+          "bytes": 138,
+          "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/38cbab798288f943ff0ae01fe7b22470dda9c76cadd3849ddadb380b50a5ccf5",
+          "id": "38cbab798288f943ff0ae01fe7b22470dda9c76cadd3849ddadb380b50a5ccf5",
+          "name": "report-4935f6183b6c271bb9bbe16eadd09cc61f6fb19800f6412b7c852fa6d6bf5296.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "blake3": "96ac1a61acff3bf9fedfdfd98c87b97fb463fc515ea4f9e009d0ab795a355eee",
+          "bytes": 311,
+          "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/fcefc5ff5a0822c8844e06a658ee3771f879dc9a98c10c03e601fe36b1224fb1",
+          "id": "fcefc5ff5a0822c8844e06a658ee3771f879dc9a98c10c03e601fe36b1224fb1",
+          "name": "report-ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "blake3": "c0f1592247841c039916f3184f5e79ae6ee6f65f5fbe5303c557713dc66d44bf",
+          "bytes": 67,
+          "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/58516fca1c80fbcb9eb17d16d5c0b14e0281e3ddd9eace20808f8af51c4b352e",
+          "id": "58516fca1c80fbcb9eb17d16d5c0b14e0281e3ddd9eace20808f8af51c4b352e",
+          "name": "report-f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "blake3": "12974818489731fadf0e8a1d145e3d2a8645a3e678a392a0430ddf34a7f428c1",
+          "bytes": 265,
+          "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/0e93dfa4d6c56c65ac4aba3cda9ea37b896d6567b1e23f4dd0c198c2a2a435e3",
+          "id": "0e93dfa4d6c56c65ac4aba3cda9ea37b896d6567b1e23f4dd0c198c2a2a435e3",
+          "name": "report-6031e91267b1f38e790abd4a2462ef5d20f596bb8909a4682d24d5dd25ecbb0d.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "blake3": "6ac83d7f2e9dc6f896e48c878c79a80d9651357ef45e927382d55c4d6a753375",
+          "bytes": 267,
+          "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/3d255468875ca34846e8d150b8a7f12aba6355e14b5d2ed7d5a87d12bc3b9ed6",
+          "id": "3d255468875ca34846e8d150b8a7f12aba6355e14b5d2ed7d5a87d12bc3b9ed6",
+          "name": "report-cf4a05c187c008f492caaa3785cbe490bf835454e7e6d96c6df69a2e29b2a76e.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "blake3": "26f11ff266f51eea121da123baebecee35846ce00fdac233ff39b2e2d58148b5",
+          "bytes": 271,
+          "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/ef523f6c061befde4004d5b23d0904567400b705d34aadc5a68a6af4170c46fb",
+          "id": "ef523f6c061befde4004d5b23d0904567400b705d34aadc5a68a6af4170c46fb",
+          "name": "report-23c8cfc2c9f06a8d9e48766887484317c285c6060e6430ee296d15097fbcb041.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+          "bytes": 25,
+          "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/eee1c3d03f86d27b7c48b01ebaacfcde0dfd5dd639352853e3d82bb2e03cb560",
+          "id": "eee1c3d03f86d27b7c48b01ebaacfcde0dfd5dd639352853e3d82bb2e03cb560",
+          "name": "artifact.txt",
+          "node_id": "build"
+        }
+      ],
+      "claim_boundary": "Recorded source, execution and report evidence is not gate acceptance, review approval or release authority",
+      "execution": {
+        "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+        "candidate_id": "web-candidate-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+        "effect_id": "web-effect-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+        "observation": {
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "candidate_id": "web-candidate-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "effect_id": "web-effect-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "idempotency_key": "64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "logs": [
+            {
+              "bytes": 10,
+              "cursor": 0,
+              "gap_before": false,
+              "node_id": "build",
+              "reference": {
+                "contract_version": 1,
+                "native_id": "b3:e791730ec3a5888eb19c82c73b6ba02727f176f6e4b6775ff26a8478d539b8a1",
+                "native_kind": "log",
+                "provider_namespace": "lattice"
+              },
+              "retained": true,
+              "stream": "Diagnostic",
+              "truncated": false
+            },
+            {
+              "bytes": 10,
+              "cursor": 0,
+              "gap_before": false,
+              "node_id": "verify",
+              "reference": {
+                "contract_version": 1,
+                "native_id": "b3:e1f7bea270cf8ce5a528de558a8600b47339f5c8fa2f735fc89fbcf338cb244d",
+                "native_kind": "log",
+                "provider_namespace": "lattice"
+              },
+              "retained": true,
+              "stream": "Diagnostic",
+              "truncated": false
+            }
+          ],
+          "nodes": [
+            {
+              "adapter": {
+                "contract_version": 1,
+                "native_id": "b3:f813521f4fd05c6da5c79ed63c369ff234e8d889b7d6f3db2e9291bc74d6b3c8",
+                "native_kind": "adapter",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "build",
+              "receipt": {
+                "contract_version": 1,
+                "native_id": "b3:30515a6e51e0180cc0028b47f3a9548bbbbcc1f994caa1dc32a0f25e841a8df7",
+                "native_kind": "receipt",
+                "provider_namespace": "lattice"
+              },
+              "state": "Completed",
+              "successful": true,
+              "terminal": true
+            },
+            {
+              "adapter": {
+                "contract_version": 1,
+                "native_id": "b3:6cb2da9a65e266c49060864a2cd9c3475256cb7b9868e28caac31ee229b86161",
+                "native_kind": "adapter",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "verify",
+              "receipt": {
+                "contract_version": 1,
+                "native_id": "b3:9a9d4c7401e4db78d8f75ef2bd4ad5e2384f2e5a8818342b4a651d4e1e521568",
+                "native_kind": "receipt",
+                "provider_namespace": "lattice"
+              },
+              "state": "Completed",
+              "successful": true,
+              "terminal": true
+            }
+          ],
+          "outcome": "Success",
+          "pipeline_revision_id": "web-pipeline-d16b91095717f0eb267c65cb7a6e42930fc822e834e2fccde48ccae1f48241ff",
+          "provider_profile": "lattice-web-native-success",
+          "receipt": {
+            "contract_version": 1,
+            "native_id": "b3:b28c15a95189e9e06a2e0a2de0c4b2e396931a2be0a95ddc4de92ca328ad4cf2",
+            "native_kind": "receipt",
+            "provider_namespace": "lattice"
+          },
+          "sequence": 2,
+          "state": "Completed",
+          "successful": true,
+          "terminal": true,
+          "workflow": {
+            "contract_version": 1,
+            "native_id": "b3:6890c4ea29f67d0d9287c712e871591ea5d732f32376ac02210b6e672b2e8918",
+            "native_kind": "workflow",
+            "provider_namespace": "lattice"
+          },
+          "workflow_policy_id": "web-native-success"
+        }
+      },
+      "parent_run_id": null,
+      "pipeline": {
+        "edges": [
+          {
+            "source": "build",
+            "target": "verify"
+          }
+        ],
+        "identity": "d16b91095717f0eb267c65cb7a6e42930fc822e834e2fccde48ccae1f48241ff",
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "Build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "aa7a1b00fa38112d097688a63052931ce36a22ca0e120df46683edf898ec0e26"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "Test",
+            "id": "verify",
+            "kind": "test",
+            "operation_identity": "8654f6e6151990c7023196b550e148055d663a4234e4f2d66dd6bc148b95371f"
+          }
+        ],
+        "revision_id": "web-pipeline-d16b91095717f0eb267c65cb7a6e42930fc822e834e2fccde48ccae1f48241ff"
+      },
+      "reports": [
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "12974818489731fadf0e8a1d145e3d2a8645a3e678a392a0430ddf34a7f428c1",
+            "bytes": 265,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/0e93dfa4d6c56c65ac4aba3cda9ea37b896d6567b1e23f4dd0c198c2a2a435e3",
+            "id": "0e93dfa4d6c56c65ac4aba3cda9ea37b896d6567b1e23f4dd0c198c2a2a435e3",
+            "name": "report-6031e91267b1f38e790abd4a2462ef5d20f596bb8909a4682d24d5dd25ecbb0d.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "6031e91267b1f38e790abd4a2462ef5d20f596bb8909a4682d24d5dd25ecbb0d",
+          "kind": "gate",
+          "name": "gate.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758429,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.gate.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.gate.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "gate",
+            "source_blake3": "12974818489731fadf0e8a1d145e3d2a8645a3e678a392a0430ddf34a7f428c1",
+            "source_bytes": 265,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "6ac83d7f2e9dc6f896e48c878c79a80d9651357ef45e927382d55c4d6a753375",
+            "bytes": 267,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/3d255468875ca34846e8d150b8a7f12aba6355e14b5d2ed7d5a87d12bc3b9ed6",
+            "id": "3d255468875ca34846e8d150b8a7f12aba6355e14b5d2ed7d5a87d12bc3b9ed6",
+            "name": "report-cf4a05c187c008f492caaa3785cbe490bf835454e7e6d96c6df69a2e29b2a76e.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "cf4a05c187c008f492caaa3785cbe490bf835454e7e6d96c6df69a2e29b2a76e",
+          "kind": "review",
+          "name": "review.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758567,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.review.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.review.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "review",
+            "source_blake3": "6ac83d7f2e9dc6f896e48c878c79a80d9651357ef45e927382d55c4d6a753375",
+            "source_bytes": 267,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "blake3": "26f11ff266f51eea121da123baebecee35846ce00fdac233ff39b2e2d58148b5",
+            "bytes": 271,
+            "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/artifacts/ef523f6c061befde4004d5b23d0904567400b705d34aadc5a68a6af4170c46fb",
+            "id": "ef523f6c061befde4004d5b23d0904567400b705d34aadc5a68a6af4170c46fb",
+            "name": "report-23c8cfc2c9f06a8d9e48766887484317c285c6060e6430ee296d15097fbcb041.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "23c8cfc2c9f06a8d9e48766887484317c285c6060e6430ee296d15097fbcb041",
+          "kind": "provenance",
+          "name": "provenance.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793136758643,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.provenance.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.provenance.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "provenance",
+            "source_blake3": "26f11ff266f51eea121da123baebecee35846ce00fdac233ff39b2e2d58148b5",
+            "source_bytes": 271,
+            "tests": null
+          },
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "unavailable": null
+        }
+      ],
+      "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+      "source": {
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "exact_revision": {
+          "contract_version": 1,
+          "native_id": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "native_kind": "commit",
+          "provider_namespace": "git"
+        },
+        "native_facts": {
+          "Git": {
+            "alternate_object_database": false,
+            "exact_commit": {
+              "contract_version": 1,
+              "native_id": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+              "native_kind": "commit",
+              "provider_namespace": "git"
+            },
+            "native_tree": {
+              "contract_version": 1,
+              "native_id": "ee55a4d80b6a59e73cf9f94e826bfbbafc032865",
+              "native_kind": "tree",
+              "provider_namespace": "git"
+            },
+            "object_format": "Sha1",
+            "observed_ref_after": {
+              "contract_version": 1,
+              "native_id": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+              "native_kind": "commit",
+              "provider_namespace": "git"
+            },
+            "observed_ref_before": {
+              "contract_version": 1,
+              "native_id": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+              "native_kind": "commit",
+              "provider_namespace": "git"
+            },
+            "partial_repository": false,
+            "replacement_objects": false,
+            "repository": {
+              "contract_version": 1,
+              "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306",
+              "native_kind": "repository",
+              "provider_namespace": "git"
+            },
+            "signature_observed": false,
+            "symbolic_reference": {
+              "contract_version": 1,
+              "native_id": "refs/heads/main",
+              "native_kind": "reference",
+              "provider_namespace": "git"
+            }
+          }
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "source_provider": "web-git-success",
+        "symbolic_reference": {
+          "contract_version": 1,
+          "native_id": "refs/heads/main",
+          "native_kind": "reference",
+          "provider_namespace": "git"
+        }
+      }
+    },
+    "log_search": {
+      "cursor": 23,
+      "gap": false,
+      "matches": [
+        {
+          "bytes": 15,
+          "cursor": 23
+        }
+      ],
+      "next_cursor": 55,
+      "node_id": "build",
+      "retained": true,
+      "searched_bytes": 38,
+      "source": "worker-capture",
+      "stream": "stdout",
+      "text": "actual artifact bytes: exact-sou",
+      "truncated": false
+    },
+    "retained_log": {
+      "blake3": "73945ddd79aa98acf1122d9ba045c99ac6079651a2a6dca7a0acf6eb478fda3b",
+      "bytes": 92,
+      "download_path": "/api/runs/web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8/logs/download?node_id=build&stream=stdout",
+      "filename": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8-build-stdout-retained.log",
+      "retained": true,
+      "truncated": false
+    },
+    "failure_log": {
+      "cursor": 0,
+      "gap": false,
+      "next_cursor": 27,
+      "node_id": "build",
+      "retained": true,
+      "source": "worker-capture",
+      "stream": "stderr",
+      "text": "actual intentional failure\n",
+      "truncated": false,
+      "reads": 2
+    },
+    "failure": {
+      "id": "web-run-ab70ca7280f9b32b9514a98106cd621373be418d1db40a42ff59d36d537c8dc0",
+      "project_id": "fail",
+      "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+      "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-ab70ca7280f9b32b9514a98106cd621373be418d1db40a42ff59d36d537c8dc0",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:0ac11d6f192539e837774cc6188b48537bc8e8764326d1268fdd1fa610502e6b"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Failed",
+          "kind": "build",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136760801,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 64
+      },
+      "ordinal": 78,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793136760172,
+      "started_at_ms": 1793136760280,
+      "completed_at_ms": 1793136760801,
+      "duration_ms": 521,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "preexit_stream": {
+      "log": {
+        "cursor": 0,
+        "gap": false,
+        "next_cursor": 23,
+        "node_id": "build",
+        "retained": true,
+        "source": "worker-capture",
+        "stream": "stdout",
+        "text": "actual command started\n",
+        "truncated": false
+      },
+      "run": {
+        "id": "web-run-089c52b22da7dd0a8be63b175b5866dd858430d664fed57564001f1a6990fa6e",
+        "project_id": "slow",
+        "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+        },
+        "revision": 1,
+        "attempt_id": "web-attempt-089c52b22da7dd0a8be63b175b5866dd858430d664fed57564001f1a6990fa6e",
+        "outcome": "Pending",
+        "phase": "active",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:3050e50cb31e881a4116cd86665e97e52d2e9c56378618e4f877ab9fbbd0a01e"
+        },
+        "sequence": 1,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Pending",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": null,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 99,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [],
+        "created_at_ms": 1793136761071,
+        "started_at_ms": 1793136761189,
+        "completed_at_ms": null,
+        "duration_ms": null,
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        }
+      },
+      "malformed_and_stale_reports_rejected": true
+    },
+    "authentication": "invalid token and worker control-plane role rejected",
+    "replay": "same request returns same run; changed request conflicts",
+    "restart": {
+      "execution_preserved": true,
+      "invocations_before": 3,
+      "invocations_after": 4
+    },
+    "cancellation": {
+      "id": "web-run-089c52b22da7dd0a8be63b175b5866dd858430d664fed57564001f1a6990fa6e",
+      "project_id": "slow",
+      "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+      "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+      },
+      "revision": 3,
+      "attempt_id": "web-attempt-089c52b22da7dd0a8be63b175b5866dd858430d664fed57564001f1a6990fa6e",
+      "outcome": "Cancelled",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:3050e50cb31e881a4116cd86665e97e52d2e9c56378618e4f877ab9fbbd0a01e"
+      },
+      "sequence": 3,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Cancelled",
+          "kind": "build",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136762654,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 64
+      },
+      "ordinal": 99,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793136761071,
+      "started_at_ms": 1793136761189,
+      "completed_at_ms": 1793136762654,
+      "duration_ms": 1465,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "stale_control": "rejected",
+    "unsupported_control": "rejected",
+    "queue": {
+      "queued": {
+        "attempt_id": "web-attempt-2b196d4c3a5b28e4e162e8e848383bd1d63d4eb60a32a47e0d79f58262f62a83",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793136761883,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": null,
+        "id": "web-run-2b196d4c3a5b28e4e162e8e848383bd1d63d4eb60a32a47e0d79f58262f62a83",
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_chunks": 64,
+          "maximum_total_bytes": 1048576
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "build",
+            "kind": "build",
+            "started_at_ms": null,
+            "state": "Pending"
+          }
+        ],
+        "ordinal": 117,
+        "outcome": "Pending",
+        "parent_run_id": null,
+        "phase": "queued",
+        "project_id": "slow",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 1,
+        "selected_nodes": [],
+        "sequence": 0,
+        "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+        "started_at_ms": null
+      },
+      "restored": {
+        "id": "web-run-2b196d4c3a5b28e4e162e8e848383bd1d63d4eb60a32a47e0d79f58262f62a83",
+        "project_id": "slow",
+        "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+        },
+        "revision": 1,
+        "attempt_id": "web-attempt-2b196d4c3a5b28e4e162e8e848383bd1d63d4eb60a32a47e0d79f58262f62a83",
+        "outcome": "Pending",
+        "phase": "queued",
+        "execution": null,
+        "sequence": 0,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Pending",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": null,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 117,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [],
+        "created_at_ms": 1793136761883,
+        "started_at_ms": null,
+        "completed_at_ms": null,
+        "duration_ms": null,
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        }
+      },
+      "advanced": {
+        "id": "web-run-2b196d4c3a5b28e4e162e8e848383bd1d63d4eb60a32a47e0d79f58262f62a83",
+        "project_id": "slow",
+        "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+        },
+        "revision": 1,
+        "attempt_id": "web-attempt-2b196d4c3a5b28e4e162e8e848383bd1d63d4eb60a32a47e0d79f58262f62a83",
+        "outcome": "Pending",
+        "phase": "active",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:b9d81223fe386947bb41f6146c64beb0cc5661f1795a7d2e07cbc47d6906a130"
+        },
+        "sequence": 1,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Pending",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": null,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 117,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [],
+        "created_at_ms": 1793136761883,
+        "started_at_ms": 1793136762828,
+        "completed_at_ms": null,
+        "duration_ms": null,
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        }
+      }
+    },
+    "instability": {
+      "duration_ms": {
+        "current": 2318,
+        "delta": 713,
+        "other": 1605
+      },
+      "flaky_history": [
+        {
+          "class_name": "SourceTest",
+          "failed": 1,
+          "name": "test_source",
+          "node_id": "build",
+          "observations": 3,
+          "passed": 2,
+          "report_name": "junit.xml",
+          "run_ids": [
+            "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+            "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+            "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8"
+          ],
+          "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+          "suite": "source"
+        }
+      ],
+      "other_run_id": "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+      "outcome": {
+        "current": "Success",
+        "other": "DomainFailure"
+      },
+      "reports": {
+        "current": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "730c8fae176b8e97a578595bbbb53617fbe5d8888a35d80025045f98a014abc5"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "11b49e5a9bcf5db40bc97b6418eab84de598ea77711737787a5a40140325e97d"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "other": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "e776cd1609cd2c2a44ed625b35a76ecca4b5d1cd7d6c069eccb9cd161565f530"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "553acaa0561a1f3a6d01a65769180fa30885c98f6d00635fe31a206a9dbca522"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 1,
+            "passed": 0,
+            "skipped": 0,
+            "total": 1
+          }
+        }
+      },
+      "run_id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+      "source": {
+        "current": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+        "other": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38"
+      },
+      "test_changes": [
+        {
+          "class_name": "SourceTest",
+          "current": "passed",
+          "name": "test_source",
+          "node_id": "build",
+          "other": "failed",
+          "report_name": "junit.xml",
+          "suite": "source"
+        }
+      ],
+      "test_changes_bounded": true
+    },
+    "viewer": {
+      "permissions": {
+        "configure": false,
+        "operate": false,
+        "read": true
+      },
+      "principal": {
+        "id": "viewer:native-reader",
+        "label": "Native read-only observer",
+        "role": "viewer"
+      }
+    },
+    "failed_retry": {
+      "id": "web-run-4e47ba013b04e9486e1d7fee9d76d984877ce260541bcd0ad27e39e00fb5198c",
+      "project_id": "fail",
+      "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+      "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-4e47ba013b04e9486e1d7fee9d76d984877ce260541bcd0ad27e39e00fb5198c",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:e0690d123763b5f25a844b490185ea1919def351d79b5168bb24983bdb97d5b6"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Failed",
+          "kind": "build",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136764065,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 64
+      },
+      "ordinal": 153,
+      "parent_run_id": "web-run-ab70ca7280f9b32b9514a98106cd621373be418d1db40a42ff59d36d537c8dc0",
+      "selected_nodes": [
+        "build"
+      ],
+      "edges": [],
+      "created_at_ms": 1793136763513,
+      "started_at_ms": 1793136763601,
+      "completed_at_ms": 1793136764065,
+      "duration_ms": 464,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "latest": {
+      "id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+      "project_id": "success",
+      "source_revision": "907a5eb3ac93acb3f813062e2a8dcb61773df58e",
+      "canonical_tree": "53dcf8b0597fe992dc403744f305686f64b0f432c78a08adfcc5b7f7c2b277d9",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:74734993f442d9ccf080ae48391f3a5bbde8c48eed2104aa62735b9cf4599236"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Failed",
+          "kind": "build",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136765928,
+          "duration_ms": null
+        },
+        {
+          "id": "verify",
+          "state": "Skipped",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136765928,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 64
+      },
+      "ordinal": 169,
+      "parent_run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+      "selected_nodes": [],
+      "edges": [
+        {
+          "source": "build",
+          "target": "verify"
+        }
+      ],
+      "created_at_ms": 1793136764494,
+      "started_at_ms": 1793136764598,
+      "completed_at_ms": 1793136765928,
+      "duration_ms": 1330,
+      "report_summary": {
+        "coverage": [
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "coverage.xml",
+            "node_id": "build",
+            "report_id": "5d5b1f74a234f9759bcd4336a32df1e791d598524304f415830b99cb33b368f3"
+          },
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "lcov.info",
+            "node_id": "build",
+            "report_id": "59b8c0eb388b9531a09b1586d89d3f81e2a973975b234287a7dd95d40da98003"
+          }
+        ],
+        "tests": {
+          "errors": 0,
+          "failed": 1,
+          "passed": 0,
+          "skipped": 0,
+          "total": 1
+        }
+      }
+    },
+    "exact": {
+      "id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+      "project_id": "success",
+      "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+      "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:5553a9c859140b382ab14edce6a22eb8aa89b7451101e095ab84e22e2436a506"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Completed",
+          "kind": "build",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136770482,
+          "duration_ms": null
+        },
+        {
+          "id": "verify",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793136770482,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 64
+      },
+      "ordinal": 241,
+      "parent_run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+      "selected_nodes": [],
+      "edges": [
+        {
+          "source": "build",
+          "target": "verify"
+        }
+      ],
+      "created_at_ms": 1793136767951,
+      "started_at_ms": 1793136768164,
+      "completed_at_ms": 1793136770482,
+      "duration_ms": 2318,
+      "report_summary": {
+        "coverage": [
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "coverage.xml",
+            "node_id": "build",
+            "report_id": "730c8fae176b8e97a578595bbbb53617fbe5d8888a35d80025045f98a014abc5"
+          },
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "lcov.info",
+            "node_id": "build",
+            "report_id": "11b49e5a9bcf5db40bc97b6418eab84de598ea77711737787a5a40140325e97d"
+          }
+        ],
+        "tests": {
+          "errors": 0,
+          "failed": 0,
+          "passed": 1,
+          "skipped": 0,
+          "total": 1
+        }
+      }
+    },
+    "comparison": {
+      "duration_ms": {
+        "current": 1330,
+        "delta": -827,
+        "other": 2157
+      },
+      "flaky_history": [],
+      "other_run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+      "outcome": {
+        "current": "DomainFailure",
+        "other": "Success"
+      },
+      "reports": {
+        "current": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "5d5b1f74a234f9759bcd4336a32df1e791d598524304f415830b99cb33b368f3"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "59b8c0eb388b9531a09b1586d89d3f81e2a973975b234287a7dd95d40da98003"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 1,
+            "passed": 0,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "other": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        }
+      },
+      "run_id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+      "source": {
+        "current": "907a5eb3ac93acb3f813062e2a8dcb61773df58e",
+        "other": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38"
+      },
+      "test_changes": [
+        {
+          "class_name": "SourceTest",
+          "current": "failed",
+          "name": "test_source",
+          "node_id": "build",
+          "other": "passed",
+          "report_name": "junit.xml",
+          "suite": "source"
+        }
+      ],
+      "test_changes_bounded": true
+    },
+    "pagination": {
+      "first": {
+        "bounded": true,
+        "next_cursor": "eyJ2ZXJzaW9uIjoxLCJzbmFwc2hvdCI6MjQxLCJvcmRpbmFsIjoxNCwiaWQiOiJ3ZWItcnVuLTY0YzkzNzgyMjU1Y2Y5NjQ0ZjQwNDdhMmEyN2M4NTU3MTNhOWMzNzJiMTYxY2YwYjNlMmQ1YmRjM2I4NmZkZjgiLCJxdWVyeSI6ImIyMDY2NzZkYWU1YzQxZTA4M2EzMzY4NWI2N2MyM2I4YzhkNDExOGJhZmE5NTdiOTVhYmJmNmI2YTA0ODA2YmEiLCJvcmRlciI6ImFzYyJ9",
+        "runs": [
+          {
+            "attempt_id": "web-attempt-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+            "completed_at_ms": 1793136759550,
+            "controls": {
+              "cancel": false,
+              "pause": false,
+              "resume": false
+            },
+            "created_at_ms": 1793136757340,
+            "duration_ms": 2157,
+            "edges": [
+              {
+                "source": "build",
+                "target": "verify"
+              }
+            ],
+            "error_code": null,
+            "execution": {
+              "contract_version": 1,
+              "native_id": "b3:258093b46bb395bb5c85753a50863e61e9f85edb89b4862b31c5a1366a64d315",
+              "native_kind": "execution",
+              "provider_namespace": "lattice"
+            },
+            "id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "log_bounds": {
+              "maximum_chunk_bytes": 32,
+              "maximum_chunks": 64,
+              "maximum_total_bytes": 1048576
+            },
+            "nodes": [
+              {
+                "completed_at_ms": 1793136759550,
+                "duration_ms": null,
+                "id": "build",
+                "kind": "build",
+                "started_at_ms": null,
+                "state": "Completed"
+              },
+              {
+                "completed_at_ms": 1793136759550,
+                "duration_ms": null,
+                "id": "verify",
+                "kind": "test",
+                "started_at_ms": null,
+                "state": "Completed"
+              }
+            ],
+            "ordinal": 14,
+            "outcome": "Success",
+            "parent_run_id": null,
+            "phase": "terminal",
+            "project_id": "success",
+            "report_summary": {
+              "coverage": [
+                {
+                  "coverage": {
+                    "branch_rate": null,
+                    "branches_found": null,
+                    "branches_hit": null,
+                    "format": "cobertura",
+                    "line_rate": 0.6666666666666666,
+                    "lines_found": 3,
+                    "lines_hit": 2
+                  },
+                  "name": "coverage.xml",
+                  "node_id": "build",
+                  "report_id": "ba51a5bb9f702a1e90ff676981f14f66156cbc5c814791eb314c65cd758c04ab"
+                },
+                {
+                  "coverage": {
+                    "branch_rate": null,
+                    "branches_found": null,
+                    "branches_hit": null,
+                    "format": "lcov",
+                    "line_rate": 0.6666666666666666,
+                    "lines_found": 3,
+                    "lines_hit": 2
+                  },
+                  "name": "lcov.info",
+                  "node_id": "build",
+                  "report_id": "f525272dcfb95077f5f66b9a36fc07ef6ddadeb98f2b285863a6de3ac3e64602"
+                }
+              ],
+              "tests": {
+                "errors": 0,
+                "failed": 0,
+                "passed": 1,
+                "skipped": 0,
+                "total": 1
+              }
+            },
+            "repository": {
+              "contract_version": 1,
+              "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306",
+              "native_kind": "repository",
+              "provider_namespace": "git"
+            },
+            "revision": 2,
+            "selected_nodes": [],
+            "sequence": 2,
+            "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+            "started_at_ms": 1793136757393
+          }
+        ],
+        "total": 4
+      },
+      "second": {
+        "bounded": true,
+        "next_cursor": "eyJ2ZXJzaW9uIjoxLCJzbmFwc2hvdCI6MjQxLCJvcmRpbmFsIjoxNjksImlkIjoid2ViLXJ1bi04MTU0MWMxYzhlZjAwOGNmODlkMTdiN2VjNjk1OTc0OWEyZWIwZGIzZTM5YTg3YzUwNDkzYzY5MWJjYTA5N2ZjIiwicXVlcnkiOiJiMjA2Njc2ZGFlNWM0MWUwODNhMzM2ODViNjdjMjNiOGM4ZDQxMThiYWZhOTU3Yjk1YWJiZjZiNmEwNDgwNmJhIiwib3JkZXIiOiJhc2MifQ",
+        "runs": [
+          {
+            "attempt_id": "web-attempt-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "canonical_tree": "53dcf8b0597fe992dc403744f305686f64b0f432c78a08adfcc5b7f7c2b277d9",
+            "completed_at_ms": 1793136765928,
+            "controls": {
+              "cancel": false,
+              "pause": false,
+              "resume": false
+            },
+            "created_at_ms": 1793136764494,
+            "duration_ms": 1330,
+            "edges": [
+              {
+                "source": "build",
+                "target": "verify"
+              }
+            ],
+            "error_code": null,
+            "execution": {
+              "contract_version": 1,
+              "native_id": "b3:74734993f442d9ccf080ae48391f3a5bbde8c48eed2104aa62735b9cf4599236",
+              "native_kind": "execution",
+              "provider_namespace": "lattice"
+            },
+            "id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "log_bounds": {
+              "maximum_chunk_bytes": 32,
+              "maximum_chunks": 64,
+              "maximum_total_bytes": 1048576
+            },
+            "nodes": [
+              {
+                "completed_at_ms": 1793136765928,
+                "duration_ms": null,
+                "id": "build",
+                "kind": "build",
+                "started_at_ms": null,
+                "state": "Failed"
+              },
+              {
+                "completed_at_ms": 1793136765928,
+                "duration_ms": null,
+                "id": "verify",
+                "kind": "test",
+                "started_at_ms": null,
+                "state": "Skipped"
+              }
+            ],
+            "ordinal": 169,
+            "outcome": "DomainFailure",
+            "parent_run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "phase": "terminal",
+            "project_id": "success",
+            "report_summary": {
+              "coverage": [
+                {
+                  "coverage": {
+                    "branch_rate": null,
+                    "branches_found": null,
+                    "branches_hit": null,
+                    "format": "cobertura",
+                    "line_rate": 0.6666666666666666,
+                    "lines_found": 3,
+                    "lines_hit": 2
+                  },
+                  "name": "coverage.xml",
+                  "node_id": "build",
+                  "report_id": "5d5b1f74a234f9759bcd4336a32df1e791d598524304f415830b99cb33b368f3"
+                },
+                {
+                  "coverage": {
+                    "branch_rate": null,
+                    "branches_found": null,
+                    "branches_hit": null,
+                    "format": "lcov",
+                    "line_rate": 0.6666666666666666,
+                    "lines_found": 3,
+                    "lines_hit": 2
+                  },
+                  "name": "lcov.info",
+                  "node_id": "build",
+                  "report_id": "59b8c0eb388b9531a09b1586d89d3f81e2a973975b234287a7dd95d40da98003"
+                }
+              ],
+              "tests": {
+                "errors": 0,
+                "failed": 1,
+                "passed": 0,
+                "skipped": 0,
+                "total": 1
+              }
+            },
+            "repository": {
+              "contract_version": 1,
+              "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306",
+              "native_kind": "repository",
+              "provider_namespace": "git"
+            },
+            "revision": 2,
+            "selected_nodes": [],
+            "sequence": 2,
+            "source_revision": "907a5eb3ac93acb3f813062e2a8dcb61773df58e",
+            "started_at_ms": 1793136764598
+          }
+        ],
+        "total": 4
+      }
+    },
+    "filters": {
+      "bounded": true,
+      "next_cursor": null,
+      "runs": [
+        {
+          "attempt_id": "web-attempt-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+          "canonical_tree": "53dcf8b0597fe992dc403744f305686f64b0f432c78a08adfcc5b7f7c2b277d9",
+          "completed_at_ms": 1793136765928,
+          "controls": {
+            "cancel": false,
+            "pause": false,
+            "resume": false
+          },
+          "created_at_ms": 1793136764494,
+          "duration_ms": 1330,
+          "edges": [
+            {
+              "source": "build",
+              "target": "verify"
+            }
+          ],
+          "error_code": null,
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:74734993f442d9ccf080ae48391f3a5bbde8c48eed2104aa62735b9cf4599236",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+          "log_bounds": {
+            "maximum_chunk_bytes": 32,
+            "maximum_chunks": 64,
+            "maximum_total_bytes": 1048576
+          },
+          "nodes": [
+            {
+              "completed_at_ms": 1793136765928,
+              "duration_ms": null,
+              "id": "build",
+              "kind": "build",
+              "started_at_ms": null,
+              "state": "Failed"
+            },
+            {
+              "completed_at_ms": 1793136765928,
+              "duration_ms": null,
+              "id": "verify",
+              "kind": "test",
+              "started_at_ms": null,
+              "state": "Skipped"
+            }
+          ],
+          "ordinal": 169,
+          "outcome": "DomainFailure",
+          "parent_run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+          "phase": "terminal",
+          "project_id": "success",
+          "report_summary": {
+            "coverage": [
+              {
+                "coverage": {
+                  "branch_rate": null,
+                  "branches_found": null,
+                  "branches_hit": null,
+                  "format": "cobertura",
+                  "line_rate": 0.6666666666666666,
+                  "lines_found": 3,
+                  "lines_hit": 2
+                },
+                "name": "coverage.xml",
+                "node_id": "build",
+                "report_id": "5d5b1f74a234f9759bcd4336a32df1e791d598524304f415830b99cb33b368f3"
+              },
+              {
+                "coverage": {
+                  "branch_rate": null,
+                  "branches_found": null,
+                  "branches_hit": null,
+                  "format": "lcov",
+                  "line_rate": 0.6666666666666666,
+                  "lines_found": 3,
+                  "lines_hit": 2
+                },
+                "name": "lcov.info",
+                "node_id": "build",
+                "report_id": "59b8c0eb388b9531a09b1586d89d3f81e2a973975b234287a7dd95d40da98003"
+              }
+            ],
+            "tests": {
+              "errors": 0,
+              "failed": 1,
+              "passed": 0,
+              "skipped": 0,
+              "total": 1
+            }
+          },
+          "repository": {
+            "contract_version": 1,
+            "native_id": "540a5478fc46c2148605a37d7ff77ec32b553912bae89fc1102edb8c986de306",
+            "native_kind": "repository",
+            "provider_namespace": "git"
+          },
+          "revision": 2,
+          "selected_nodes": [],
+          "sequence": 2,
+          "source_revision": "907a5eb3ac93acb3f813062e2a8dcb61773df58e",
+          "started_at_ms": 1793136764598
+        }
+      ],
+      "total": 1
+    },
+    "automation": {
+      "push": {
+        "id": "f7bb0a6d08cc4a82002baf0ec8c9b735e69410bb4307d7b30590c0f563c7c5f7",
+        "kind": "trigger",
+        "registration_id": "source-event",
+        "received_at_ms": 1793136770818,
+        "status": "queued",
+        "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+        "error_code": null,
+        "project_id": "success",
+        "reference": "refs/heads/main",
+        "source_revision": "907a5eb3ac93acb3f813062e2a8dcb61773df58e",
+        "candidate_identity": "968aa9078a704540b6a56312b095cbffb3c4cabe248450cb68cbe20f24b8f205"
+      },
+      "pull_request": {
+        "id": "49735d1c9140339dc4ad14d9d6be3c25d15b3bba70024eebcdae6f93b245043d",
+        "kind": "trigger",
+        "registration_id": "source-event",
+        "received_at_ms": 1793136771372,
+        "status": "queued",
+        "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+        "error_code": null,
+        "project_id": "success",
+        "reference": "refs/heads/main",
+        "source_revision": "907a5eb3ac93acb3f813062e2a8dcb61773df58e",
+        "candidate_identity": "8402c6331ccf89c75890b59cfcf1a518177595419758ec8b164be6c2b47834a7"
+      },
+      "schedule": {
+        "error_code": null,
+        "id": "398551ab847f84154774e1344e7cf25ea8b1a421d56a89bba288655c5ad5a389",
+        "kind": "schedule",
+        "received_at_ms": 1793136775243,
+        "registration_id": "periodic",
+        "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+        "status": "queued"
+      },
+      "observed": {
+        "configured": true,
+        "deliveries": [
+          {
+            "completed_at_ms": 1793136776724,
+            "error_code": null,
+            "http_status": 204,
+            "id": "84c56f8f3524e583203848674dd9b60e3b25135d2ba5971440fca89fd9b8660c",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136776697,
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136776776,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "a46758062fec58130c908d259e3806cccb8f6dd80f70c1e0f9ca80af07a50d95",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136776697,
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136774218,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "734be3797bd6f69d306362107f0ce70bc4bc0b1c5e9e985a8437c5d4a43f283d",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136774147,
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136774176,
+            "error_code": null,
+            "http_status": 204,
+            "id": "ec47b19e021980f79fa72baeea69871e5b5cb0a0070c4afb464e0695399e2cc7",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136774147,
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136772826,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "4566f645859a9a2e58828320b5b74d9f728972f1ebeb0f188117709412ab5244",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136772747,
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136772771,
+            "error_code": null,
+            "http_status": 204,
+            "id": "eb2e0de148369023828cc5540063a530c0d83b439a8ef656b05ec2bd07fd0c24",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136772747,
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136770534,
+            "error_code": null,
+            "http_status": 204,
+            "id": "12e4d86179890dfe57524c8ff2144ad2d5463070ad71123f605e3da42f813662",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136770504,
+            "run_id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136770597,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "f0c3453ae3efee8e8aace25f1caf66d9ca894b302342b3ea1970a276bd5ddf6e",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136770504,
+            "run_id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136767763,
+            "error_code": null,
+            "http_status": 204,
+            "id": "29a14c855ad6b4f37916503054453464fcbf607e965e091a57df0982dde12df4",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136767737,
+            "run_id": "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136767843,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "69215b373dc90ee8ac31e7b43284330d8a7afc8dc6413b1c8a84cd9610c80b34",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136767737,
+            "run_id": "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136765991,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "58eae64cb3578c47ff8f95c7f0f4db1bb55ded96766d1e783bc83836ef883fe3",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136765943,
+            "run_id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136765963,
+            "error_code": null,
+            "http_status": 204,
+            "id": "77971b8339edc9c9d45b49ee929ae1406d7fb01b05a9a57dc301a3a646f63120",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136765943,
+            "run_id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136764111,
+            "error_code": null,
+            "http_status": 204,
+            "id": "c9573829746c655c58ffffec2aab4356d817d3943550384c055470dd96ef0127",
+            "registration_id": "failure",
+            "reserved_at_ms": 1793136764089,
+            "run_id": "web-run-4e47ba013b04e9486e1d7fee9d76d984877ce260541bcd0ad27e39e00fb5198c",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136760824,
+            "error_code": null,
+            "http_status": 204,
+            "id": "a08fbdc8f005d7a0c0b79852f42712fe65f02ddf4c031775d3347a4fb14471bf",
+            "registration_id": "failure",
+            "reserved_at_ms": 1793136760809,
+            "run_id": "web-run-ab70ca7280f9b32b9514a98106cd621373be418d1db40a42ff59d36d537c8dc0",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136759589,
+            "error_code": null,
+            "http_status": 204,
+            "id": "a1a785d120e7cbc09988e69524568e826f1ae96c9578dbd05dda31ac2ed47cca",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136759562,
+            "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136759620,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "df114b3f42b1f5c10cc56f8995edc0f772a1696bcbb34e9dd0e0b53f873446b2",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136759562,
+            "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "status": "ambiguous"
+          }
+        ],
+        "notifications": [
+          {
+            "allow_failure": true,
+            "allow_success": true,
+            "enabled": true,
+            "id": "completion",
+            "last_status": "delivered",
+            "on_failure": true,
+            "on_success": true,
+            "project_id": "success"
+          },
+          {
+            "allow_failure": true,
+            "allow_success": true,
+            "enabled": true,
+            "id": "ambiguous",
+            "last_status": "ambiguous",
+            "on_failure": true,
+            "on_success": true,
+            "project_id": "success"
+          },
+          {
+            "allow_failure": true,
+            "allow_success": true,
+            "enabled": true,
+            "id": "failure",
+            "last_status": "delivered",
+            "on_failure": true,
+            "on_success": true,
+            "project_id": "fail"
+          }
+        ],
+        "policy_identity": "88494c22fa61fb795768845fbd0d5433d6733ca132b6a613a3f7719538ab8499",
+        "retention": {
+          "deliveries": 16,
+          "max_records": 1000,
+          "requests": 2,
+          "sources": 3
+        },
+        "schedules": [
+          {
+            "enabled": false,
+            "id": "periodic",
+            "interval_ms": 3600000,
+            "last_status": "queued",
+            "max_interval_ms": 31536000000,
+            "min_interval_ms": 1000,
+            "next_due_ms": 1793140375240,
+            "project_id": "success",
+            "reference": "refs/heads/main"
+          }
+        ],
+        "sources": [
+          {
+            "error_code": null,
+            "id": "398551ab847f84154774e1344e7cf25ea8b1a421d56a89bba288655c5ad5a389",
+            "kind": "schedule",
+            "received_at_ms": 1793136775243,
+            "registration_id": "periodic",
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "status": "queued"
+          },
+          {
+            "error_code": null,
+            "id": "49735d1c9140339dc4ad14d9d6be3c25d15b3bba70024eebcdae6f93b245043d",
+            "kind": "trigger",
+            "received_at_ms": 1793136771372,
+            "registration_id": "source-event",
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "status": "queued"
+          },
+          {
+            "error_code": null,
+            "id": "f7bb0a6d08cc4a82002baf0ec8c9b735e69410bb4307d7b30590c0f563c7c5f7",
+            "kind": "trigger",
+            "received_at_ms": 1793136770818,
+            "registration_id": "source-event",
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "status": "queued"
+          }
+        ],
+        "status": "enabled",
+        "triggers": [
+          {
+            "allow_pull_request": true,
+            "allow_push": true,
+            "enabled": true,
+            "id": "source-event",
+            "last_status": "queued",
+            "project_id": "success",
+            "pull_request": true,
+            "push": true,
+            "reference": "refs/heads/main"
+          }
+        ]
+      },
+      "restarted": {
+        "configured": true,
+        "deliveries": [
+          {
+            "completed_at_ms": 1793136776724,
+            "error_code": null,
+            "http_status": 204,
+            "id": "84c56f8f3524e583203848674dd9b60e3b25135d2ba5971440fca89fd9b8660c",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136776697,
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136776776,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "a46758062fec58130c908d259e3806cccb8f6dd80f70c1e0f9ca80af07a50d95",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136776697,
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136774218,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "734be3797bd6f69d306362107f0ce70bc4bc0b1c5e9e985a8437c5d4a43f283d",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136774147,
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136774176,
+            "error_code": null,
+            "http_status": 204,
+            "id": "ec47b19e021980f79fa72baeea69871e5b5cb0a0070c4afb464e0695399e2cc7",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136774147,
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136772826,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "4566f645859a9a2e58828320b5b74d9f728972f1ebeb0f188117709412ab5244",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136772747,
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136772771,
+            "error_code": null,
+            "http_status": 204,
+            "id": "eb2e0de148369023828cc5540063a530c0d83b439a8ef656b05ec2bd07fd0c24",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136772747,
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136770534,
+            "error_code": null,
+            "http_status": 204,
+            "id": "12e4d86179890dfe57524c8ff2144ad2d5463070ad71123f605e3da42f813662",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136770504,
+            "run_id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136770597,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "f0c3453ae3efee8e8aace25f1caf66d9ca894b302342b3ea1970a276bd5ddf6e",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136770504,
+            "run_id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136767763,
+            "error_code": null,
+            "http_status": 204,
+            "id": "29a14c855ad6b4f37916503054453464fcbf607e965e091a57df0982dde12df4",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136767737,
+            "run_id": "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136767843,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "69215b373dc90ee8ac31e7b43284330d8a7afc8dc6413b1c8a84cd9610c80b34",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136767737,
+            "run_id": "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136765991,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "58eae64cb3578c47ff8f95c7f0f4db1bb55ded96766d1e783bc83836ef883fe3",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136765943,
+            "run_id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "status": "ambiguous"
+          },
+          {
+            "completed_at_ms": 1793136765963,
+            "error_code": null,
+            "http_status": 204,
+            "id": "77971b8339edc9c9d45b49ee929ae1406d7fb01b05a9a57dc301a3a646f63120",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136765943,
+            "run_id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136764111,
+            "error_code": null,
+            "http_status": 204,
+            "id": "c9573829746c655c58ffffec2aab4356d817d3943550384c055470dd96ef0127",
+            "registration_id": "failure",
+            "reserved_at_ms": 1793136764089,
+            "run_id": "web-run-4e47ba013b04e9486e1d7fee9d76d984877ce260541bcd0ad27e39e00fb5198c",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136760824,
+            "error_code": null,
+            "http_status": 204,
+            "id": "a08fbdc8f005d7a0c0b79852f42712fe65f02ddf4c031775d3347a4fb14471bf",
+            "registration_id": "failure",
+            "reserved_at_ms": 1793136760809,
+            "run_id": "web-run-ab70ca7280f9b32b9514a98106cd621373be418d1db40a42ff59d36d537c8dc0",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136759589,
+            "error_code": null,
+            "http_status": 204,
+            "id": "a1a785d120e7cbc09988e69524568e826f1ae96c9578dbd05dda31ac2ed47cca",
+            "registration_id": "completion",
+            "reserved_at_ms": 1793136759562,
+            "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "status": "delivered"
+          },
+          {
+            "completed_at_ms": 1793136759620,
+            "error_code": "notification_acceptance_unknown",
+            "http_status": null,
+            "id": "df114b3f42b1f5c10cc56f8995edc0f772a1696bcbb34e9dd0e0b53f873446b2",
+            "registration_id": "ambiguous",
+            "reserved_at_ms": 1793136759562,
+            "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "status": "ambiguous"
+          }
+        ],
+        "notifications": [
+          {
+            "allow_failure": true,
+            "allow_success": true,
+            "enabled": true,
+            "id": "completion",
+            "last_status": "delivered",
+            "on_failure": true,
+            "on_success": true,
+            "project_id": "success"
+          },
+          {
+            "allow_failure": true,
+            "allow_success": true,
+            "enabled": true,
+            "id": "ambiguous",
+            "last_status": "ambiguous",
+            "on_failure": true,
+            "on_success": true,
+            "project_id": "success"
+          },
+          {
+            "allow_failure": true,
+            "allow_success": true,
+            "enabled": true,
+            "id": "failure",
+            "last_status": "delivered",
+            "on_failure": true,
+            "on_success": true,
+            "project_id": "fail"
+          }
+        ],
+        "policy_identity": "88494c22fa61fb795768845fbd0d5433d6733ca132b6a613a3f7719538ab8499",
+        "retention": {
+          "deliveries": 16,
+          "max_records": 1000,
+          "requests": 2,
+          "sources": 3
+        },
+        "schedules": [
+          {
+            "enabled": false,
+            "id": "periodic",
+            "interval_ms": 3600000,
+            "last_status": "queued",
+            "max_interval_ms": 31536000000,
+            "min_interval_ms": 1000,
+            "next_due_ms": 1793140375240,
+            "project_id": "success",
+            "reference": "refs/heads/main"
+          }
+        ],
+        "sources": [
+          {
+            "error_code": null,
+            "id": "398551ab847f84154774e1344e7cf25ea8b1a421d56a89bba288655c5ad5a389",
+            "kind": "schedule",
+            "received_at_ms": 1793136775243,
+            "registration_id": "periodic",
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "status": "queued"
+          },
+          {
+            "error_code": null,
+            "id": "49735d1c9140339dc4ad14d9d6be3c25d15b3bba70024eebcdae6f93b245043d",
+            "kind": "trigger",
+            "received_at_ms": 1793136771372,
+            "registration_id": "source-event",
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "status": "queued"
+          },
+          {
+            "error_code": null,
+            "id": "f7bb0a6d08cc4a82002baf0ec8c9b735e69410bb4307d7b30590c0f563c7c5f7",
+            "kind": "trigger",
+            "received_at_ms": 1793136770818,
+            "registration_id": "source-event",
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "status": "queued"
+          }
+        ],
+        "status": "enabled",
+        "triggers": [
+          {
+            "allow_pull_request": true,
+            "allow_push": true,
+            "enabled": true,
+            "id": "source-event",
+            "last_status": "queued",
+            "project_id": "success",
+            "pull_request": true,
+            "push": true,
+            "reference": "refs/heads/main"
+          }
+        ]
+      },
+      "https_received": [
+        {
+          "path": "/completion",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "outcome": "success",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "completion"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "completion"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "a1a785d120e7cbc09988e69524568e826f1ae96c9578dbd05dda31ac2ed47cca"
+            }
+          }
+        },
+        {
+          "path": "/ambiguous",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-64c93782255cf9644f4047a2a27c855713a9c372b161cf0b3e2d5bdc3b86fdf8",
+            "outcome": "success",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "ambiguous"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "ambiguous"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "df114b3f42b1f5c10cc56f8995edc0f772a1696bcbb34e9dd0e0b53f873446b2"
+            }
+          }
+        },
+        {
+          "path": "/failure",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-ab70ca7280f9b32b9514a98106cd621373be418d1db40a42ff59d36d537c8dc0",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "failure"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "failure"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "a08fbdc8f005d7a0c0b79852f42712fe65f02ddf4c031775d3347a4fb14471bf"
+            }
+          }
+        },
+        {
+          "path": "/failure",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-4e47ba013b04e9486e1d7fee9d76d984877ce260541bcd0ad27e39e00fb5198c",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "failure"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "failure"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "c9573829746c655c58ffffec2aab4356d817d3943550384c055470dd96ef0127"
+            }
+          }
+        },
+        {
+          "path": "/completion",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "completion"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "completion"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "77971b8339edc9c9d45b49ee929ae1406d7fb01b05a9a57dc301a3a646f63120"
+            }
+          }
+        },
+        {
+          "path": "/ambiguous",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-81541c1c8ef008cf89d17b7ec6959749a2eb0db3e39a87c50493c691bca097fc",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "ambiguous"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "ambiguous"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "58eae64cb3578c47ff8f95c7f0f4db1bb55ded96766d1e783bc83836ef883fe3"
+            }
+          }
+        },
+        {
+          "path": "/completion",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "completion"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "completion"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "29a14c855ad6b4f37916503054453464fcbf607e965e091a57df0982dde12df4"
+            }
+          }
+        },
+        {
+          "path": "/ambiguous",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-cdff8514d43ed34d84689a8574fbc9f57b6381bd78b31146b0ab5db51c929cab",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "ambiguous"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "ambiguous"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "69215b373dc90ee8ac31e7b43284330d8a7afc8dc6413b1c8a84cd9610c80b34"
+            }
+          }
+        },
+        {
+          "path": "/completion",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+            "outcome": "success",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "completion"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "completion"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "12e4d86179890dfe57524c8ff2144ad2d5463070ad71123f605e3da42f813662"
+            }
+          }
+        },
+        {
+          "path": "/ambiguous",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16",
+            "outcome": "success",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "ambiguous"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "ambiguous"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "f0c3453ae3efee8e8aace25f1caf66d9ca894b302342b3ea1970a276bd5ddf6e"
+            }
+          }
+        },
+        {
+          "path": "/completion",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "completion"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "completion"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "eb2e0de148369023828cc5540063a530c0d83b439a8ef656b05ec2bd07fd0c24"
+            }
+          }
+        },
+        {
+          "path": "/ambiguous",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "ambiguous"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "ambiguous"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "4566f645859a9a2e58828320b5b74d9f728972f1ebeb0f188117709412ab5244"
+            }
+          }
+        },
+        {
+          "path": "/completion",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "completion"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "completion"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "ec47b19e021980f79fa72baeea69871e5b5cb0a0070c4afb464e0695399e2cc7"
+            }
+          }
+        },
+        {
+          "path": "/ambiguous",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "ambiguous"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "ambiguous"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "734be3797bd6f69d306362107f0ce70bc4bc0b1c5e9e985a8437c5d4a43f283d"
+            }
+          }
+        },
+        {
+          "path": "/completion",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "completion"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "completion"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "84c56f8f3524e583203848674dd9b60e3b25135d2ba5971440fca89fd9b8660c"
+            }
+          }
+        },
+        {
+          "path": "/ambiguous",
+          "body": {
+            "schema": "kiln.webhook-notification.v1",
+            "run_id": "web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4",
+            "outcome": "domain_failure",
+            "notification_policy": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "notification-policy",
+              "native_id": "ambiguous"
+            },
+            "endpoint_profile": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "receiver",
+              "native_id": "ambiguous"
+            },
+            "idempotency_key": {
+              "contract_version": 1,
+              "provider_namespace": "kiln-web",
+              "native_kind": "idempotency",
+              "native_id": "a46758062fec58130c908d259e3806cccb8f6dd80f70c1e0f9ca80af07a50d95"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "origin": "https://127.0.0.1:33543",
+  "source_revision": "353d0cdf1bfae58041ed1c524a0751d9ff8a8d38",
+  "service_profile_blake3": "bad46b4e0604dac7f7f19d40ddfc02d6ac87e857912469656e661aa9b32fed39",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "service": {
+      "path": "/home/brittonr/.cargo-target/kiln-web-service/debug/kiln-web-service",
+      "blake3": "a1fa626eefab7a419fe07e08b028ef94d9f7d9ee37f3dc5fb9797d4aef7b7dc3"
+    },
+    "lattice": {
+      "path": "/nix/store/q11gs4s6jlcf38g85jafp0wxy9nhq4x7-lattice-qualified-kiln-runtime/bin/lattice",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "failure": {
+    "kind": "AssertionError",
+    "diagnostic": "{'audit_window': 1024, 'bounded': True, 'items': [{'audit': {'actor_id': 'github:source-event', 'actor_label': 'GitHub source-event', 'decision': 'trigger_denied', 'method': 'POST', 'ordinal': 425, 'recorded_at_ms': 1793136777186, 'role': 'operator', 'run_id': None, 'status': 409, 'target': '/api/triggers/source-event'}, 'kind': 'audit', 'ordinal': 425, 'recorded_at_ms': 1793136777186, 'run_id': None}, {'audit': {'actor_id': 'system:access-configuration', 'actor_label': 'Runtime access admission', 'decision': 'configured', 'method': 'CONFIGURE', 'ordinal': 423, 'recorded_at_ms': 1793136777052, 'role': 'operator', 'run_id': None, 'status': 200, 'target': '/runtime/access/4b2ada6a9f10355184d3260f60252c8f7c62a5f508b05ad0d133653f2a09a00d'}, 'kind': 'audit', 'ordinal': 423, 'recorded_at_ms': 1793136777052, 'run_id': None}, {'audit': {'actor_id': 'local:operator', 'actor_label': 'Local operator', 'decision': 'accepted', 'method': 'POST', 'ordinal': 422, 'recorded_at_ms': 1793136776880, 'role': 'operator', 'run_id': None, 'status': 200, 'target': '/api/automation'}, 'kind': 'audit', 'ordinal': 422, 'recorded_at_ms': 1793136776880, 'run_id': None}, {'audit': {'actor_id': 'local:operator', 'actor_label': 'Local operator', 'decision': 'admitted', 'method': 'POST', 'ordinal': 420, 'recorded_at_ms': 1793136776834, 'role': 'operator', 'run_id': None, 'status': 0, 'target': '/api/automation'}, 'kind': 'audit', 'ordinal': 420, 'recorded_at_ms': 1793136776834, 'run_id': None}, {'event': {'AttemptCompleted': {'attempt_id': 'web-attempt-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'command_id': 'web-command-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4-1', 'external_reference': {'contract_version': 1, 'native_id': 'b3:4bf2ca36385c62cb288e20b4542d9ff4c34b7ee2cbae194fb8450960fb255b77', 'native_kind': 'execution', 'provider_namespace': 'lattice'}, 'metrics': [], 'outcome': 'DomainFailure', 'products': []}}, 'event_identity': '6f321b675146fe3eb06947162b2cb765fae90c8771331d81e92ed9f5f8f7df70', 'event_index': 1, 'kind': 'canonical', 'ordinal': 383, 'project_id': 'success', 'recorded_at_ms': 1793136776662, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 414, 'recorded_at_ms': 1793136776529, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 414, 'recorded_at_ms': 1793136776529, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 412, 'recorded_at_ms': 1793136776481, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 412, 'recorded_at_ms': 1793136776481, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 411, 'recorded_at_ms': 1793136776419, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 411, 'recorded_at_ms': 1793136776419, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 409, 'recorded_at_ms': 1793136776357, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 409, 'recorded_at_ms': 1793136776357, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 408, 'recorded_at_ms': 1793136776296, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 408, 'recorded_at_ms': 1793136776296, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 406, 'recorded_at_ms': 1793136776252, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 406, 'recorded_at_ms': 1793136776252, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 405, 'recorded_at_ms': 1793136776198, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 405, 'recorded_at_ms': 1793136776198, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 403, 'recorded_at_ms': 1793136776150, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 403, 'recorded_at_ms': 1793136776150, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 402, 'recorded_at_ms': 1793136776093, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 402, 'recorded_at_ms': 1793136776093, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 400, 'recorded_at_ms': 1793136776026, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 400, 'recorded_at_ms': 1793136776026, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 399, 'recorded_at_ms': 1793136775932, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 399, 'recorded_at_ms': 1793136775932, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 397, 'recorded_at_ms': 1793136775875, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/reports'}, 'kind': 'audit', 'ordinal': 397, 'recorded_at_ms': 1793136775875, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 396, 'recorded_at_ms': 1793136775821, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/logs'}, 'kind': 'audit', 'ordinal': 396, 'recorded_at_ms': 1793136775821, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 394, 'recorded_at_ms': 1793136775745, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/logs'}, 'kind': 'audit', 'ordinal': 394, 'recorded_at_ms': 1793136775745, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 393, 'recorded_at_ms': 1793136775687, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/logs'}, 'kind': 'audit', 'ordinal': 393, 'recorded_at_ms': 1793136775687, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 391, 'recorded_at_ms': 1793136775625, 'role': 'worker', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 0, 'target': '/api/runs/web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4/logs'}, 'kind': 'audit', 'ordinal': 391, 'recorded_at_ms': 1793136775625, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'automation:schedule:periodic', 'actor_label': 'schedule periodic', 'decision': 'accepted', 'method': 'POST', 'ordinal': 387, 'recorded_at_ms': 1793136775389, 'role': 'operator', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'status': 201, 'target': '/api/runs'}, 'kind': 'audit', 'ordinal': 387, 'recorded_at_ms': 1793136775389, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'event': {'RunStarted': {'attempt_id': 'web-attempt-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4', 'command_id': 'web-command-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4-0', 'provider_profile': 'lattice-web-native-success', 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}}, 'event_identity': '125f7f896ee3eb068a77d858eb91eddddc0a775d75bf7abc75b42edd10e18f4d', 'event_index': 0, 'kind': 'canonical', 'ordinal': 383, 'project_id': 'success', 'recorded_at_ms': 1793136775286, 'run_id': 'web-run-514dc287505c1cea1e2a5a1923876065235a51c637c32088cea8b513fee283a4'}, {'audit': {'actor_id': 'automation:schedule:periodic', 'actor_label': 'schedule periodic', 'decision': 'admitted', 'method': 'POST', 'ordinal': 382, 'recorded_at_ms': 1793136775264, 'role': 'operator', 'run_id': None, 'status': 0, 'target': '/api/runs'}, 'kind': 'audit', 'ordinal': 382, 'recorded_at_ms': 1793136775264, 'run_id': None}, {'audit': {'actor_id': 'local:operator', 'actor_label': 'Local operator', 'decision': 'accepted', 'method': 'POST', 'ordinal': 380, 'recorded_at_ms': 1793136774302, 'role': 'operator', 'run_id': None, 'status': 200, 'target': '/api/automation'}, 'kind': 'audit', 'ordinal': 380, 'recorded_at_ms': 1793136774302, 'run_id': None}, {'audit': {'actor_id': 'local:operator', 'actor_label': 'Local operator', 'decision': 'admitted', 'method': 'POST', 'ordinal': 378, 'recorded_at_ms': 1793136774249, 'role': 'operator', 'run_id': None, 'status': 0, 'target': '/api/automation'}, 'kind': 'audit', 'ordinal': 378, 'recorded_at_ms': 1793136774249, 'run_id': None}, {'event': {'AttemptCompleted': {'attempt_id': 'web-attempt-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'command_id': 'web-command-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db-1', 'external_reference': {'contract_version': 1, 'native_id': 'b3:6fadf7a60c5162179d3cb6f9aaec0e2009b879299bed805810a0ff6d10ed834b', 'native_kind': 'execution', 'provider_namespace': 'lattice'}, 'metrics': [], 'outcome': 'DomainFailure', 'products': []}}, 'event_identity': '6bcac0dd341f74689f434eb8362d3120829de742ba0cc0f2a29509744791e5d1', 'event_index': 1, 'kind': 'canonical', 'ordinal': 314, 'project_id': 'success', 'recorded_at_ms': 1793136774128, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 372, 'recorded_at_ms': 1793136773964, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 372, 'recorded_at_ms': 1793136773964, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 370, 'recorded_at_ms': 1793136773917, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 370, 'recorded_at_ms': 1793136773917, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 369, 'recorded_at_ms': 1793136773861, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 369, 'recorded_at_ms': 1793136773861, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 367, 'recorded_at_ms': 1793136773817, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 367, 'recorded_at_ms': 1793136773817, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 366, 'recorded_at_ms': 1793136773759, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 366, 'recorded_at_ms': 1793136773759, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 364, 'recorded_at_ms': 1793136773714, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 364, 'recorded_at_ms': 1793136773714, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 363, 'recorded_at_ms': 1793136773609, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 363, 'recorded_at_ms': 1793136773609, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 361, 'recorded_at_ms': 1793136773564, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 361, 'recorded_at_ms': 1793136773564, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 360, 'recorded_at_ms': 1793136773481, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 360, 'recorded_at_ms': 1793136773481, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 358, 'recorded_at_ms': 1793136773430, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 358, 'recorded_at_ms': 1793136773430, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 357, 'recorded_at_ms': 1793136773315, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 357, 'recorded_at_ms': 1793136773315, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 355, 'recorded_at_ms': 1793136773264, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/reports'}, 'kind': 'audit', 'ordinal': 355, 'recorded_at_ms': 1793136773264, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 354, 'recorded_at_ms': 1793136773205, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/logs'}, 'kind': 'audit', 'ordinal': 354, 'recorded_at_ms': 1793136773205, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 352, 'recorded_at_ms': 1793136773160, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/logs'}, 'kind': 'audit', 'ordinal': 352, 'recorded_at_ms': 1793136773160, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 351, 'recorded_at_ms': 1793136773106, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 201, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/logs'}, 'kind': 'audit', 'ordinal': 351, 'recorded_at_ms': 1793136773106, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 349, 'recorded_at_ms': 1793136773045, 'role': 'worker', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 0, 'target': '/api/runs/web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db/logs'}, 'kind': 'audit', 'ordinal': 349, 'recorded_at_ms': 1793136773045, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'event': {'AttemptCompleted': {'attempt_id': 'web-attempt-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'command_id': 'web-command-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca-1', 'external_reference': {'contract_version': 1, 'native_id': 'b3:32d917bb3465bc230d655990167131693d65104c232bb772c1e45e4e369edc2a', 'native_kind': 'execution', 'provider_namespace': 'lattice'}, 'metrics': [], 'outcome': 'DomainFailure', 'products': []}}, 'event_identity': '8096d3b288c7fa02386918aa1c16f0007738e5faabcdecc8d441619c672fad39', 'event_index': 1, 'kind': 'canonical', 'ordinal': 296, 'project_id': 'success', 'recorded_at_ms': 1793136772674, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 340, 'recorded_at_ms': 1793136772511, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 340, 'recorded_at_ms': 1793136772511, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 338, 'recorded_at_ms': 1793136772463, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 338, 'recorded_at_ms': 1793136772463, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 337, 'recorded_at_ms': 1793136772384, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 337, 'recorded_at_ms': 1793136772384, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 335, 'recorded_at_ms': 1793136772333, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 335, 'recorded_at_ms': 1793136772333, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 334, 'recorded_at_ms': 1793136772221, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 334, 'recorded_at_ms': 1793136772221, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 332, 'recorded_at_ms': 1793136772183, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 332, 'recorded_at_ms': 1793136772183, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 331, 'recorded_at_ms': 1793136772117, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 331, 'recorded_at_ms': 1793136772117, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 329, 'recorded_at_ms': 1793136772062, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 329, 'recorded_at_ms': 1793136772062, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 328, 'recorded_at_ms': 1793136771914, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 328, 'recorded_at_ms': 1793136771914, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 326, 'recorded_at_ms': 1793136771857, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 326, 'recorded_at_ms': 1793136771857, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 325, 'recorded_at_ms': 1793136771742, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 325, 'recorded_at_ms': 1793136771742, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 323, 'recorded_at_ms': 1793136771702, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/reports'}, 'kind': 'audit', 'ordinal': 323, 'recorded_at_ms': 1793136771702, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 322, 'recorded_at_ms': 1793136771633, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/logs'}, 'kind': 'audit', 'ordinal': 322, 'recorded_at_ms': 1793136771633, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 320, 'recorded_at_ms': 1793136771578, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/logs'}, 'kind': 'audit', 'ordinal': 320, 'recorded_at_ms': 1793136771578, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'github:source-event', 'actor_label': 'GitHub source-event', 'decision': 'trigger_admitted', 'method': 'POST', 'ordinal': 319, 'recorded_at_ms': 1793136771523, 'role': 'operator', 'run_id': None, 'status': 202, 'target': '/api/triggers/source-event'}, 'kind': 'audit', 'ordinal': 319, 'recorded_at_ms': 1793136771523, 'run_id': None}, {'audit': {'actor_id': 'automation:trigger:source-event', 'actor_label': 'trigger source-event', 'decision': 'accepted', 'method': 'POST', 'ordinal': 316, 'recorded_at_ms': 1793136771458, 'role': 'operator', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'status': 202, 'target': '/api/runs'}, 'kind': 'audit', 'ordinal': 316, 'recorded_at_ms': 1793136771458, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'event': {'RunStarted': {'attempt_id': 'web-attempt-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db', 'command_id': 'web-command-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db-0', 'provider_profile': 'lattice-web-native-success', 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}}, 'event_identity': 'cd740b6eae319ed803aca796a5cb426950134dc0bdc9ec5f01f3a34979fcd0ae', 'event_index': 0, 'kind': 'canonical', 'ordinal': 314, 'project_id': 'success', 'recorded_at_ms': 1793136771431, 'run_id': 'web-run-f7c93c05df74ac71772ce82b77ae4b1a3a23afd82f643895c9958223a1fea5db'}, {'audit': {'actor_id': 'automation:trigger:source-event', 'actor_label': 'trigger source-event', 'decision': 'admitted', 'method': 'POST', 'ordinal': 313, 'recorded_at_ms': 1793136771415, 'role': 'operator', 'run_id': None, 'status': 0, 'target': '/api/runs'}, 'kind': 'audit', 'ordinal': 313, 'recorded_at_ms': 1793136771415, 'run_id': None}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 311, 'recorded_at_ms': 1793136771349, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/logs'}, 'kind': 'audit', 'ordinal': 311, 'recorded_at_ms': 1793136771349, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 309, 'recorded_at_ms': 1793136771296, 'role': 'worker', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 0, 'target': '/api/runs/web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca/logs'}, 'kind': 'audit', 'ordinal': 309, 'recorded_at_ms': 1793136771296, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'github:source-event', 'actor_label': 'GitHub source-event', 'decision': 'trigger_denied', 'method': 'POST', 'ordinal': 308, 'recorded_at_ms': 1793136771239, 'role': 'operator', 'run_id': None, 'status': 409, 'target': '/api/triggers/source-event'}, 'kind': 'audit', 'ordinal': 308, 'recorded_at_ms': 1793136771239, 'run_id': None}, {'audit': {'actor_id': 'github:source-event', 'actor_label': 'GitHub source-event', 'decision': 'trigger_denied', 'method': 'POST', 'ordinal': 307, 'recorded_at_ms': 1793136771194, 'role': 'operator', 'run_id': None, 'status': 403, 'target': '/api/triggers/source-event'}, 'kind': 'audit', 'ordinal': 307, 'recorded_at_ms': 1793136771194, 'run_id': None}, {'audit': {'actor_id': 'anonymous', 'actor_label': 'Unauthenticated', 'decision': 'trigger_denied', 'method': 'POST', 'ordinal': 306, 'recorded_at_ms': 1793136771146, 'role': 'unauthenticated', 'run_id': None, 'status': 403, 'target': '/api/triggers/source-event'}, 'kind': 'audit', 'ordinal': 306, 'recorded_at_ms': 1793136771146, 'run_id': None}, {'audit': {'actor_id': 'github:source-event', 'actor_label': 'GitHub source-event', 'decision': 'trigger_denied', 'method': 'POST', 'ordinal': 305, 'recorded_at_ms': 1793136771100, 'role': 'operator', 'run_id': None, 'status': 409, 'target': '/api/triggers/source-event'}, 'kind': 'audit', 'ordinal': 305, 'recorded_at_ms': 1793136771100, 'run_id': None}, {'audit': {'actor_id': 'github:source-event', 'actor_label': 'GitHub source-event', 'decision': 'trigger_admitted', 'method': 'POST', 'ordinal': 303, 'recorded_at_ms': 1793136771046, 'role': 'operator', 'run_id': None, 'status': 202, 'target': '/api/triggers/source-event'}, 'kind': 'audit', 'ordinal': 303, 'recorded_at_ms': 1793136771046, 'run_id': None}, {'audit': {'actor_id': 'automation:trigger:source-event', 'actor_label': 'trigger source-event', 'decision': 'accepted', 'method': 'POST', 'ordinal': 300, 'recorded_at_ms': 1793136770966, 'role': 'operator', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'status': 201, 'target': '/api/runs'}, 'kind': 'audit', 'ordinal': 300, 'recorded_at_ms': 1793136770966, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'event': {'RunStarted': {'attempt_id': 'web-attempt-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca', 'command_id': 'web-command-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca-0', 'provider_profile': 'lattice-web-native-success', 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}}, 'event_identity': '58a92a3e399613d69980fceca2652013e7541f17aa74ff60091ecc4384a7d773', 'event_index': 0, 'kind': 'canonical', 'ordinal': 296, 'project_id': 'success', 'recorded_at_ms': 1793136770864, 'run_id': 'web-run-b76a8298a76d408d8ffeaf00a4ce0d03d69334e7fdca4173c4a5ad3f42339bca'}, {'audit': {'actor_id': 'automation:trigger:source-event', 'actor_label': 'trigger source-event', 'decision': 'admitted', 'method': 'POST', 'ordinal': 295, 'recorded_at_ms': 1793136770842, 'role': 'operator', 'run_id': None, 'status': 0, 'target': '/api/runs'}, 'kind': 'audit', 'ordinal': 295, 'recorded_at_ms': 1793136770842, 'run_id': None}, {'event': {'AttemptCompleted': {'attempt_id': 'web-attempt-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'command_id': 'web-command-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16-1', 'external_reference': {'contract_version': 1, 'native_id': 'b3:5553a9c859140b382ab14edce6a22eb8aa89b7451101e095ab84e22e2436a506', 'native_kind': 'execution', 'provider_namespace': 'lattice'}, 'metrics': [], 'outcome': 'Success', 'products': []}}, 'event_identity': 'e50ea1f7c3573d15afae934f05a3cd764962e8273b3786c53c9475a22057354b', 'event_index': 1, 'kind': 'canonical', 'ordinal': 241, 'project_id': 'success', 'recorded_at_ms': 1793136770483, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 288, 'recorded_at_ms': 1793136770349, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 288, 'recorded_at_ms': 1793136770349, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 286, 'recorded_at_ms': 1793136770300, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 286, 'recorded_at_ms': 1793136770300, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 285, 'recorded_at_ms': 1793136770204, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 285, 'recorded_at_ms': 1793136770204, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 283, 'recorded_at_ms': 1793136770130, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 283, 'recorded_at_ms': 1793136770130, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 282, 'recorded_at_ms': 1793136769947, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 282, 'recorded_at_ms': 1793136769947, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 280, 'recorded_at_ms': 1793136769880, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 280, 'recorded_at_ms': 1793136769880, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 279, 'recorded_at_ms': 1793136769750, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/artifacts'}, 'kind': 'audit', 'ordinal': 279, 'recorded_at_ms': 1793136769750, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 277, 'recorded_at_ms': 1793136769696, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/artifacts'}, 'kind': 'audit', 'ordinal': 277, 'recorded_at_ms': 1793136769696, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 276, 'recorded_at_ms': 1793136769641, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 276, 'recorded_at_ms': 1793136769641, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 274, 'recorded_at_ms': 1793136769589, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 274, 'recorded_at_ms': 1793136769589, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 273, 'recorded_at_ms': 1793136769473, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 273, 'recorded_at_ms': 1793136769473, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 271, 'recorded_at_ms': 1793136769425, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 271, 'recorded_at_ms': 1793136769425, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 270, 'recorded_at_ms': 1793136769362, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 270, 'recorded_at_ms': 1793136769362, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 268, 'recorded_at_ms': 1793136769294, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 268, 'recorded_at_ms': 1793136769294, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 267, 'recorded_at_ms': 1793136769224, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 267, 'recorded_at_ms': 1793136769224, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 265, 'recorded_at_ms': 1793136769190, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 265, 'recorded_at_ms': 1793136769190, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 264, 'recorded_at_ms': 1793136769125, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 264, 'recorded_at_ms': 1793136769125, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 262, 'recorded_at_ms': 1793136769089, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 262, 'recorded_at_ms': 1793136769089, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 261, 'recorded_at_ms': 1793136769026, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 261, 'recorded_at_ms': 1793136769026, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 259, 'recorded_at_ms': 1793136768988, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/reports'}, 'kind': 'audit', 'ordinal': 259, 'recorded_at_ms': 1793136768988, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 258, 'recorded_at_ms': 1793136768923, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 258, 'recorded_at_ms': 1793136768923, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 256, 'recorded_at_ms': 1793136768885, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 256, 'recorded_at_ms': 1793136768885, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 255, 'recorded_at_ms': 1793136768800, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 255, 'recorded_at_ms': 1793136768800, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 253, 'recorded_at_ms': 1793136768733, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 253, 'recorded_at_ms': 1793136768733, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 252, 'recorded_at_ms': 1793136768670, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 252, 'recorded_at_ms': 1793136768670, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'admitted', 'method': 'POST', 'ordinal': 250, 'recorded_at_ms': 1793136768610, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 0, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 250, 'recorded_at_ms': 1793136768610, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}, {'audit': {'actor_id': 'local:worker', 'actor_label': 'Registered worker', 'decision': 'accepted', 'method': 'POST', 'ordinal': 249, 'recorded_at_ms': 1793136768490, 'role': 'worker', 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16', 'status': 201, 'target': '/api/runs/web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16/logs'}, 'kind': 'audit', 'ordinal': 249, 'recorded_at_ms': 1793136768490, 'run_id': 'web-run-516c387dfff83569068687d4cdd107a0922b7eb2f99c5f7f0e3f181075194f16'}], 'next_cursor': '100', 'total': 246}"
+  },
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

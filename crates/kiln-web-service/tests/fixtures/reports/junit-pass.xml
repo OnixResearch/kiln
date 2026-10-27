@@ -1,0 +1,1 @@
+<testsuite name="service" tests="2" failures="0" errors="0" skipped="0"><testcase classname="api" name="healthy" time="0.15"/><testcase classname="api" name="rejects" time="0.25"/></testsuite>
