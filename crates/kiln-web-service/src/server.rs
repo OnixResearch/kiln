@@ -23,6 +23,7 @@ pub struct Options {
     pub access: Option<PathBuf>,
     pub automation: Option<PathBuf>,
     pub cobs: Option<PathBuf>,
+    pub sources: Option<PathBuf>,
 }
 
 impl Options {
@@ -59,6 +60,11 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
         .as_deref()
         .map(crate::cobs::Profile::load)
         .transpose()?;
+    let _sources = options
+        .sources
+        .as_deref()
+        .map(crate::sources::Profile::load)
+        .transpose()?;
     let _tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)
 }
@@ -82,6 +88,13 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
             .cobs
             .as_deref()
             .map(crate::cobs::Profile::load)
+            .transpose()?,
+    )?;
+    let sources = crate::sources::Browser::new(
+        options
+            .sources
+            .as_deref()
+            .map(crate::sources::Profile::load)
             .transpose()?,
     )?;
     let tls = tls_config(&profile)?;
@@ -109,6 +122,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         credentials: &credentials,
         engine: &engine,
         cobs: &cobs,
+        sources: &sources,
     };
     notify::ready()?;
     std::thread::scope(|scope| -> Result<(), String> {
@@ -268,6 +282,7 @@ struct Context<'a> {
     credentials: &'a Credentials,
     engine: &'a Mutex<Engine>,
     cobs: &'a crate::cobs::Browser,
+    sources: &'a crate::sources::Browser,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -548,6 +563,23 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
+        if path == "/api/sources" || path.starts_with("/api/sources/") {
+            if principal.role == crate::engine::Role::Worker || request.method != "GET" {
+                return denied(
+                    &request,
+                    context,
+                    Some(&principal),
+                    403,
+                    "sources_read_only",
+                );
+            }
+            return context.sources.response(
+                &request.method,
+                &request.target,
+                &request.body,
+                principal.role,
+            );
+        }
         if path == "/api/cobs" || path.starts_with("/api/cobs/") {
             if principal.role == crate::engine::Role::Worker || request.method != "GET" {
                 return denied(&request, context, Some(&principal), 403, "cobs_read_only");

@@ -1,0 +1,22 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test guard_rejects_security_and_sibling_coupling ... ok
+test shared_source_excludes_product_and_security_authority ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+test lattice_encoding_has_a_fixed_positive_vector ... ok
+test invalid_domains_and_duplicate_keys_fail_closed ... ok
+test sorted_map_is_order_independent ... ok
+test metadata_names_the_exact_encoding ... ok
+test wrong_domain_and_order_change_the_digest ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

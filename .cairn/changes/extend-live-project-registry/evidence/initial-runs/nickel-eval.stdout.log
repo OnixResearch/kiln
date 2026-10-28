@@ -1,0 +1,155 @@
+
+running 29 tests
+test cohort::tests::exact_reviewed_cohort_is_admitted ... ok
+test diagnostics::tests::capture_accepts_exact_limit_and_rejects_overflow_without_retention ... ok
+test diagnostics::tests::policy_rejects_empty_and_multiline_vocabulary ... ok
+test cohort::tests::drifted_mixed_and_unsupported_cohorts_fail_closed ... ok
+test diagnostics::tests::exact_message_line_selects_only_static_hint ... ok
+test errors::tests::contract_violation_display ... ok
+test errors::tests::deserialization_display ... ok
+test diagnostics::tests::unrelated_fields_near_matches_and_malformed_input_select_nothing ... ok
+test errors::tests::diagnostic_context_merge_preserves_existing_and_overrides_explicit_fields ... ok
+test errors::tests::diagnostic_summary_includes_context_fields ... ok
+test errors::tests::diagnostic_summary_preserves_programmatic_categories ... ok
+test errors::tests::diagnostic_summary_redacts_secret_like_message_values ... ok
+test errors::tests::evaluation_error_display ... ok
+test errors::tests::io_error_display ... ok
+test errors::tests::nickel_error_inline_size_stays_bounded ... ok
+test errors::tests::serialization_display ... ok
+test errors::tests::serialization_display_no_context ... ok
+test errors::tests::stdlib_resolution_display ... ok
+test evaluator::tests::source_limit_must_be_positive ... ok
+test errors::tests::template_generation_display ... ok
+test syntax::tests::bare_identifier ... ok
+test syntax::tests::escape_string_basics ... ok
+test syntax::tests::field_name_escaping ... ok
+test syntax::tests::keywords_are_not_identifiers ... ok
+test syntax::tests::render_key_bare ... ok
+test syntax::tests::non_identifiers ... ok
+test syntax::tests::render_key_quoted ... ok
+test errors::tests::diagnostic_summary_bounds_long_messages ... ok
+test value::tests::value_budget_admits_exact_boundary_and_rejects_exhaustion ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test guard_rejects_product_and_sibling_dependencies ... ok
+test cargo_and_runtime_cohort_facts_are_exact ... ok
+test publication_guard_rejects_fallbacks_and_old_objects ... ok
+test shared_source_has_no_product_dependency ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 6 tests
+test empty_catalog_is_valid_and_source_is_not_rewritten ... ok
+test duplicate_identity_cannot_shadow_a_module ... ok
+test every_zero_budget_is_rejected ... ok
+test exact_limits_and_closed_lookup ... ok
+test oversized_inputs_fail_in_bytes_not_characters ... ok
+test host_and_ambiguous_identities_are_rejected ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test missing_worker_binary_fails_closed ... ok
+test bundled_evaluation_succeeds_through_the_worker ... ok
+test nonterminating_program_is_killed_at_the_deadline ... ok
+test unbounded_allocation_is_stopped_by_the_address_space_limit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+
+
+running 3 tests
+test module_depth_is_enforced_without_rewriting_identity ... ok
+test wire_requires_exact_fields ... ok
+test standalone_source_cannot_escape_composition ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+running 11 tests
+test absolute_host_canary_is_denied_without_disclosure ... ok
+test import_inside_string_interpolation_is_denied ... ok
+test computed_and_transitive_and_package_imports_are_denied ... ok
+test module_that_cannot_parse_standalone_is_rejected_before_composition ... ok
+test evaluation_failure_is_content_free ... ok
+test parse_failure_is_content_free ... ok
+test relative_import_of_real_local_file_is_denied ... ok
+test import_looking_text_is_preserved_not_executed ... ok
+test oversized_output_is_rejected ... ok
+test unused_modules_are_lazy ... ok
+test bundled_modules_and_selfcontained_source_succeed ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+
+running 7 tests
+test invalid_selector_is_rejected_before_runtime ... ok
+test invalid_value_selects_static_code_without_value_or_source ... ok
+test file_input_preserves_parent_imports_and_rejects_missing_files ... ok
+test product_context_preserves_the_selected_hint_code ... ok
+test arbitrary_and_near_match_messages_fall_back_to_generic_error ... ok
+test valid_evaluation_keeps_exact_numbers ... ok
+test forged_exact_message_can_only_select_public_hint_not_claim_origin ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+
+running 10 tests
+test empty_contract_identity_fails_before_runtime ... ok
+test empty_source_fails_before_runtime ... ok
+test contract_rejects_wrong_type ... ok
+test deserialization_mismatch_is_error ... ok
+test evaluate_file_resolves_sibling_import ... ok
+test evaluate_json_export_array ... ok
+test oversized_source_fails_before_runtime ... ok
+test missing_import_is_evaluation_error ... ok
+test malformed_source_is_evaluation_error ... ok
+test evaluate_literals_and_records ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+
+running 5 tests
+test contract_selector_cannot_escape_the_wrapper ... ok
+test file_adapter_accepts_regular_utf8_and_rejects_bad_inputs ... ok
+test public_formatting_and_context_do_not_expose_secret_like_content ... ok
+test exact_signed_unsigned_and_nested_numbers_survive ... ok
+test numeric_range_and_fractional_integer_targets_fail_without_rounding ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+
+running 7 tests
+test a_worker_still_open_for_writes_is_rejected ... ok
+test inherited_stdout_descendant_is_stopped_after_parent_exit ... ok
+test malformed_output_and_nonzero_exit_are_rejected ... ok
+test oversized_stdout_is_rejected_promptly ... ok
+test signal_death_does_not_claim_a_known_budget_cause ... ok
+test nonreading_stdin_cannot_escape_deadline ... ok
+test valid_output_and_explicit_environment_succeed ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+
+running 3 tests
+test tests::admits_default_and_rejects_invalid_iteration_counts ... ok
+test tests::reused_context_misses_preserved_timestamp_changes ... ok
+test tests::fixture_decoding_accepts_records_and_rejects_wrong_fields ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+
+running 1 test
+test tests::compound_fixture_preserves_elements_and_rejects_invalid_counts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

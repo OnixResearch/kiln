@@ -1,0 +1,78 @@
+{
+  "project_id": "schema-migration-core",
+  "expected_source_revision": "1e70648bcb06f3194eaf4eb5e7c30b130700a1c0",
+  "run": {
+    "id": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598",
+    "project_id": "schema-migration-core",
+    "source_revision": "1e70648bcb06f3194eaf4eb5e7c30b130700a1c0",
+    "canonical_tree": "09abbbdcc13bb30a043a3def5b69d702c4230519df55e310127e398e647101ed",
+    "repository": {
+      "contract_version": 1,
+      "provider_namespace": "git",
+      "native_kind": "repository",
+      "native_id": "5a8b5189f258fbc2aa73829212ec01f2de3da4d5ad52698b5527719888f65a71"
+    },
+    "revision": 2,
+    "attempt_id": "web-attempt-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598",
+    "outcome": "DomainFailure",
+    "phase": "terminal",
+    "execution": {
+      "contract_version": 1,
+      "provider_namespace": "lattice",
+      "native_kind": "execution",
+      "native_id": "b3:28b5fa0703ddf79a65321ba7855cda5221477ccabbf5168dfadc6e3e14331ea1"
+    },
+    "sequence": 2,
+    "nodes": [
+      {
+        "id": "test",
+        "state": "Failed",
+        "kind": "test",
+        "started_at_ms": null,
+        "completed_at_ms": 1793151380336,
+        "duration_ms": null
+      }
+    ],
+    "controls": {
+      "cancel": false,
+      "pause": false,
+      "resume": false
+    },
+    "error_code": null,
+    "log_bounds": {
+      "maximum_chunk_bytes": 65536,
+      "maximum_total_bytes": 16777216,
+      "maximum_chunks": 256
+    },
+    "ordinal": 466,
+    "parent_run_id": null,
+    "selected_nodes": [],
+    "edges": [],
+    "created_at_ms": 1793151376132,
+    "started_at_ms": 1793151376323,
+    "completed_at_ms": 1793151380336,
+    "duration_ms": 4013,
+    "report_summary": {
+      "coverage": null,
+      "tests": null
+    }
+  },
+  "logs": {
+    "stdout": {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "bytes": 0,
+      "download_path": "/api/runs/web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598/logs/download?node_id=test&stream=stdout",
+      "filename": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598-test-stdout-retained.log",
+      "retained": true,
+      "truncated": false
+    },
+    "stderr": {
+      "blake3": "dd7593cd56d61ec17b9677aa77ccb33189144d0db6065435cfde127da7e94452",
+      "bytes": 1618,
+      "download_path": "/api/runs/web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598/logs/download?node_id=test&stream=stderr",
+      "filename": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598-test-stderr-retained.log",
+      "retained": true,
+      "truncated": false
+    }
+  }
+}

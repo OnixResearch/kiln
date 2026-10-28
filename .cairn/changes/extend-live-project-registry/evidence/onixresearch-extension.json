@@ -1,0 +1,11 @@
+{
+  "previous_profile_identity": "4f1f1323466d10d013624d36a3b1ab799cbe45c99bdc8a96815043d53b99eb75",
+  "profile_identity": "029f969d9f8dd7a89e8536615a3adfda5d4ead6ecc639371381039827104960d",
+  "stored_state_blake3_before": "b4a9aa0e1026dd824919e26b459aa0f9dcda9f460b70a584d87ddedabcb87c73",
+  "stored_state_bytes_unchanged": true,
+  "backup": "/home/brittonr/git/.kiln-web-service/pre-onixresearch-projects",
+  "package": "/nix/store/d9sspgid16374bfw3ijwaminymrfq39w-kiln-web-service-0.1.0",
+  "profile_source": "/nix/store/nwkd3645gs1kqd58js5ygznrfsp2vq2k-source",
+  "original_worker_blake3": "c5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc",
+  "routes": 15
+}

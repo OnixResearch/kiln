@@ -1,0 +1,34 @@
+warning: unknown experimental feature 'wasm-builtin'
+warning: nix-grpc-store: no plugin build matching the loaded libnixstore in '/nix/store/flxfh4xym8i201q71p69xg684xm86a9h-nix-grpc-store-0.1.0-beta.4/lib/nix/nix-grpc-store-versions'. grpc:// stores are unavailable
+unpacking 'github:oxalica/rust-overlay/57a23bfaf4f7017267294b161175db1e32eb1c85?narHash=sha256-jfR6OhwurCKn1tREyfOcK/Omxf1Q/DzDDFbnEr1mBLs%3D' into the Git cache...
+building '/nix/store/5w8b4b7wb64vhdc804xmc4vw8ha9iv90-rust-std-1.85.0-wasm32-unknown-unknown.drv'...
+building '/nix/store/nhd5hxr7sy9qwymvabc59xi37gb8ar9v-cargo-1.85.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/nbrpx9y4ahyg4agw8phfllnhwindhjji-rust-std-1.85.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/pcjryibyqg160jh51hq33fhhpdbw6y6i-rustc-1.85.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/v5f4mz7w0ff3qfvdvklljn9dsfm2waz4-clippy-preview-1.85.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/s1fvqdg0gcncd517kb1icrf95cchjy6j-rustfmt-preview-1.85.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/l8impk1wd5jq1c9ppl0m5a2yknlz7xc7-rust-minimal-1.85.0.drv'...
+building '/nix/store/knqfj86g351y9sz67mv8lhq55932mnis-nix-shell-env.drv'...
+ Downloading crates ...
+  Downloaded cc v1.4.1
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling find-msvc-tools v0.1.10
+   Compiling shlex v2.0.1
+   Compiling cc v1.4.1
+   Compiling serde_core v1.0.229
+   Compiling syn v3.0.3
+   Compiling blake3 v1.8.6
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling arrayvec v0.7.8
+   Compiling cfg-if v1.0.4
+   Compiling arrayref v0.3.9
+   Compiling cpufeatures v0.3.0
+   Compiling constant_time_eq v0.4.2
+   Compiling content-identity-core v0.1.0 (/home/brittonr/git/.kiln-web-service/work/kiln-web-job-Bl3NR0/checkout)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.44s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-projects/content-identity-core/debug/deps/content_identity_core-63e0b0ab7f872185)
+     Running tests/boundary.rs (/home/brittonr/.cargo-target/kiln-projects/content-identity-core/debug/deps/boundary-3290e17cdb1b5c3c)
+     Running tests/identity.rs (/home/brittonr/.cargo-target/kiln-projects/content-identity-core/debug/deps/identity-0848c8563e6667a1)

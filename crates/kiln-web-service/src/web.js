@@ -11,6 +11,14 @@
   const MAX_DISPLAYED_LOG_CHARS = 256 * 1024;
   const LOG_FOLLOW_MS = 2000;
   const CONTROL_FRESHNESS_MS = 30000;
+  const localTimeFormat = new Intl.DateTimeFormat(undefined, {
+    year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", timeZoneName: "short",
+  });
+  const localTimeZone = localTimeFormat.resolvedOptions().timeZone;
+  const compactTimeFormat = new Intl.DateTimeFormat(undefined, {
+    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+  });
   const $ = (id) => document.getElementById(id);
   const state = {
     session: null, token: null, epoch: 0, requests: new Set(), urls: new Set(), urlTimers: new Set(),
@@ -613,6 +621,9 @@
     state.cobsNextCursor = null;
     for (const id of ["cob-list", "cob-detail", "cob-source-status", "cob-status", "cob-repository", "cob-type"]) $(id).replaceChildren();
     $("cob-search").value = "";
+    for (const id of ["source-browser-status", "source-log", "source-tree", "source-file"]) $(id).replaceChildren();
+    $("source-log-status").textContent = "";
+    $("source-log-next").disabled = true;
     // r[impl kiln.dashboard.workers.view.scenario.cleared]
     $("workers-content").replaceChildren();
     $("worker-search").value = "";
@@ -668,7 +679,7 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  const pages = ["overview", "projects", "workers", "runs", "cobs", "activity", "evidence", "automation", "operations", "settings"];
+  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "activity", "evidence", "automation", "operations", "settings"];
   const views = ["pipeline", "logs", "artifacts", "tests", "compare", "activity", "evidence"];
   const workerStatuses = { slots_available: "Slots available", busy: "Busy", unknown: "Unknown execution", not_enrolled: "Not enrolled" };
   function canOperate() { return !!state.session && state.permissions.operate === true; }
@@ -677,7 +688,18 @@
     state.principal = result.principal;
     state.permissions = result.permissions;
   }
-  function timestamp(ms) { return Number.isSafeInteger(ms) && !Number.isNaN(new Date(ms).valueOf()) ? new Date(ms).toISOString() : "Unavailable (not recorded)"; }
+  // r[impl kiln.dashboard.time.local]
+  function timestamp(ms) {
+    if (!Number.isSafeInteger(ms)) return "Unavailable (not recorded)";
+    const date = new Date(ms);
+    if (Number.isNaN(date.valueOf())) return "Unavailable (not recorded)";
+    return `${localTimeFormat.format(date)} (local · ${localTimeZone}) · ${date.toISOString()} (UTC)`;
+  }
+  function compactTimestamp(ms) {
+    if (!Number.isSafeInteger(ms)) return "Unavailable (not recorded)";
+    const date = new Date(ms);
+    return Number.isNaN(date.valueOf()) ? "Unavailable (not recorded)" : compactTimeFormat.format(date);
+  }
   function duration(ms) { return Number.isSafeInteger(ms) && ms >= 0 ? `${(ms / 1000).toFixed(3)} s` : "Unavailable (not recorded)"; }
   function readRoute() {
     const params = new URLSearchParams(location.search);
@@ -692,6 +714,7 @@
       cursor: params.get("cursor") || "", activity_cursor: params.get("activity_cursor") || "", order: params.get("order") === "asc" ? "asc" : "desc", other: params.get("other") || "",
       cob_repository: params.get("cob_repository") || "", cob_type: params.get("cob_type") || "", cob_q: params.get("cob_q") || "", cob_cursor: params.get("cob_cursor") || "",
       cob: params.get("cob") || "", cob_repo: params.get("cob_repo") || "", cob_kind: params.get("cob_kind") || "",
+      src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "",
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(workerStatuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       theme: ["system", "light", "dark"].includes(params.get("theme")) ? params.get("theme") : "system", density: params.get("density") === "compact" ? "compact" : "comfortable"
     };
@@ -716,7 +739,7 @@
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === route.page) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = node.dataset.runPanel !== route.view;
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = route.page === "cobs" ? "Onix COBs" : route.page[0].toUpperCase() + route.page.slice(1);
+    const title = route.page === "cobs" ? "COBs" : route.page === "source" ? "Source" : route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
@@ -809,6 +832,7 @@
     if (route.page === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
     if (route.page === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
     if (route.page === "cobs") await loadCobs();
+    if (route.page === "source") await loadSource();
     if (route.page === "runs") await loadRunView();
   }
   async function loadRunView() {
@@ -925,7 +949,7 @@
     $("cob-source-status").replaceChildren();
     $("cob-detail").replaceChildren();
     $("cob-search").value = route.cob_q;
-    for (const [id, selected, label] of [["cob-repository", route.cob_repository, "All configured repositories"], ["cob-type", route.cob_type, "All Onix types"]]) {
+    for (const [id, selected, label] of [["cob-repository", route.cob_repository, "All configured repositories"], ["cob-type", route.cob_type, "All types"]]) {
       const select = $(id);
       if (![...select.options].some((option) => option.value === selected)) { const option = element("option", selected ? `Unavailable selection: ${selected}` : label); option.value = selected; select.append(option); }
       select.value = selected;
@@ -936,7 +960,7 @@
     if (!state.session || state.route !== route) return;
     if (!loaded) $("cob-status").textContent = "COB inventory unavailable. Exact selection is inspected independently; no page was substituted.";
     if (!route.cob) {
-      $("cob-detail").append(element("h2", "Select an Onix COB"), element("p", "Choose an object to inspect its exact identity and recorded operation content. No object is selected automatically.", "small"));
+      $("cob-detail").append(element("h2", "Select a COB"), element("p", "Choose an object to inspect its exact identity and recorded operation content. No object is selected automatically.", "small"));
     } else if (!route.cob_repo || !route.cob_kind) {
       $("cob-detail").append(element("p", "The COB link needs its exact repository, type and object ID. No other object was substituted.", "warning"));
     } else {
@@ -944,9 +968,14 @@
       await renderEndpoint(`/api/cobs/object?${selection}`, "cob-detail", renderCobDetail);
     }
   }
+  let cobTypeLabels = new Map();
+  function cobTypeLabel(typeName) { return cobTypeLabels.get(typeName) || typeName; }
+  function shortOid(value) { return typeof value === "string" && value.length > 14 ? `${value.slice(0, 12)}…` : text(value); }
+  function shortAuthor(value) { const name = String(value ?? "").split(" <")[0]; return name || "Unavailable"; }
   function renderCobs(parent, result) {
     if (!Array.isArray(result.objects) || !Array.isArray(result.repositories) || !Array.isArray(result.types)) throw new Error("COB inventory response is invalid.");
-    for (const [id, rows, label, selected] of [["cob-repository", result.repositories, "All configured repositories", state.route.cob_repository], ["cob-type", result.types, "All Onix types", state.route.cob_type]]) {
+    for (const row of result.types) if (row && typeof row.id === "string") cobTypeLabels.set(row.id, text(row.label));
+    for (const [id, rows, label, selected] of [["cob-repository", result.repositories, "All configured repositories", state.route.cob_repository], ["cob-type", result.types, "All types", state.route.cob_type]]) {
       options($(id), rows, label, selected);
       if (selected && ![...$(id).options].some((option) => option.value === selected)) { const option = element("option", `Unavailable selection: ${selected}`); option.value = selected; $(id).append(option); $(id).value = selected; }
     }
@@ -955,17 +984,28 @@
     $("cob-status").textContent = `${result.objects.length} shown of ${text(result.total)} matching local objects · bounded snapshot${result.complete === false ? " · incomplete: some stores unavailable" : ""}`;
     const sources = $("cob-source-status");
     if (!result.configured) sources.append(element("p", "No COB stores are configured. The service operator must admit a separate --cobs repository policy. This is not proof that no Onix objects exist.", "warning"));
-    for (const source of result.sources || []) sources.append(element("p", source.status === "available" ? `${text(source.label)} · ${text(source.objects)} local Onix objects` : `${text(source.label)} · unavailable or outside read bounds. No absence is inferred.`, source.status === "available" ? "small" : "warning"));
+    for (const source of result.sources || []) sources.append(element("p", source.status === "available" ? `${text(source.label)} · ${text(source.objects)} local objects` : `${text(source.label)} · unavailable or outside read bounds. No absence is inferred.`, source.status === "available" ? "small" : "warning"));
     for (const object of result.objects) {
       const link = element("a", undefined, "run-choice cob-choice");
       const patch = { page: "cobs", cob: object.object_id, cob_repo: object.repository, cob_kind: object.type_name };
       link.href = `?${new URLSearchParams({ ...state.route, ...patch })}`;
+      link.title = `${object.type_name} · ${object.object_id}`;
       if (state.route.cob === object.object_id && state.route.cob_repo === object.repository && state.route.cob_kind === object.type_name) link.setAttribute("aria-current", "true");
-      link.append(element("strong", text(object.title)), element("span", `${text(object.repository_label)} · ${text(object.type_name)}`, "small"), element("span", text(object.object_id), "run-source"), element("span", `${object.ref_tips.length} observed ref tip(s) · signatures not verified`, "small"));
+      const head = element("div", undefined, "cob-head");
+      head.append(element("span", cobTypeLabel(object.type_name), "cob-type"), element("span", text(object.repository_label), "cob-repo"));
+      const footer = element("div", undefined, "cob-foot");
+      const oid = element("code", shortOid(object.object_id), "cob-oid");
+      oid.title = text(object.object_id);
+      const when = element("span", compactTimestamp(object.recorded_at_ms), "cob-when");
+      when.title = timestamp(object.recorded_at_ms);
+      footer.append(oid, when, element("span", `${shortAuthor(object.author)} · ${object.ref_tips.length} ref tip(s)`, "cob-when"));
+      link.append(head, element("strong", text(object.title), "cob-title"));
+      if (object.excerpt) link.append(element("span", text(object.excerpt), "cob-excerpt"));
+      link.append(footer);
       link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate(patch); } });
       parent.append(link);
     }
-    if (!result.objects.length) parent.append(element("p", result.complete === false ? "No matching objects were read from the available subset. Unavailable stores may contain objects." : "No matching Onix COBs in the configured local snapshot. Remote peers and unconfigured stores were not queried.", "small"));
+    if (!result.objects.length) parent.append(element("p", result.complete === false ? "No matching objects were read from the available subset. Unavailable stores may contain objects." : "No matching COBs in the configured local snapshot. Remote peers and unconfigured stores were not queried.", "small"));
   }
   function renderCobDetail(parent, result) {
     const object = result.object;
@@ -973,21 +1013,155 @@
     const identity = object.identity;
     parent.append(element("h2", text(identity.title)));
     const clear = element("button", "Clear selected COB"); clear.type = "button"; clear.addEventListener("click", () => navigate({ cob: "", cob_repo: "", cob_kind: "" })); parent.append(clear);
-    const facts = element("dl", undefined, "facts"); addFacts(facts, [["Repository", identity.repository_label], ["Native repository ID", identity.repository_id], ["Type", identity.type_name], ["Native object ID", identity.object_id], ["Kiln observation key", identity.id], ["Observed operations", object.operation_count], ["Retained action bytes", object.retained_action_bytes], ["Observation", object.observation], ["Signatures", "Not verified"], ["Reduced lifecycle state", "Not inferred by this raw view"]]); parent.append(facts);
+    const badges = element("div", undefined, "badges");
+    badges.append(element("span", cobTypeLabel(identity.type_name), "cob-type"), element("span", "Signatures not verified", "state-badge"), element("span", text(object.observation), "state-badge"));
+    parent.append(badges);
+    const facts = element("dl", undefined, "facts"); addFacts(facts, [["Repository", identity.repository_label], ["Native repository ID", identity.repository_id], ["Native object ID", identity.object_id], ["Kiln observation key", identity.id], ["Observed operations", object.operation_count], ["Retained action bytes", object.retained_action_bytes]]); parent.append(facts);
     const tips = section("Observed ref tips", parent, "record-card"); renderRecorded(tips, identity.ref_tips);
     parent.append(element("p", "Every operation below is recorded data, ordered by operation identity—not a chosen semantic winner. Git author fields are unverified claims. Embedded source text is inert; no links or scripts are executed.", "warning"));
     for (const operation of object.operations) {
       const card = section(`Operation ${text(operation.id)}`, parent, "record-card cob-operation");
       const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Recorded", timestamp(operation.recorded_at_ms)], ["Git author (unverified)", `${text(operation.author_name)} <${text(operation.author_email)}>`], ["Git parents", operation.git_parents], ["History parents", operation.history_parents], ["Commit message", operation.message]]); card.append(metadata);
-      for (const action of operation.actions || []) { const details = element("details"); details.open = true; details.append(element("summary", `Raw action ${text(action.index)} · ${text(action.bytes)} bytes · blob ${text(action.blob_id)}`), element("pre", JSON.stringify(action.value, null, 2), "identity cob-action")); card.append(details); }
+      for (const action of operation.actions || []) { const details = element("details"); details.open = Number.isSafeInteger(action.bytes) && action.bytes < 4096; details.append(element("summary", `Raw action ${text(action.index)} · ${text(action.bytes)} bytes · blob ${text(action.blob_id)}`), element("pre", JSON.stringify(action.value, null, 2), "identity cob-action")); card.append(details); }
     }
     for (const boundary of result.non_claims || []) parent.append(element("p", boundary, "small"));
+  }
+
+  // r[impl kiln.dashboard.source.view]
+  function sourceQuery(values) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(values)) if (value) query.set(key, value);
+    return query;
+  }
+  function sourceBreadcrumb(parent, route) {
+    const crumb = element("div", undefined, "source-breadcrumb");
+    const root = element("button", "root"); root.type = "button";
+    root.addEventListener("click", () => navigate({ spath: "", sfile: "" }));
+    crumb.append(root);
+    let prefix = "";
+    for (const part of route.spath.split("/").filter(Boolean)) {
+      prefix = prefix ? `${prefix}/${part}` : part;
+      const separator = element("span", "/", "source-separator");
+      const button = element("button", part); button.type = "button";
+      const target = prefix;
+      button.addEventListener("click", () => navigate({ spath: target, sfile: "" }));
+      crumb.append(separator, button);
+    }
+    parent.append(crumb);
+  }
+  function renderSourceEntries(parent, route, tree) {
+    const heading = element("p", `${text(tree.label)} · ${text(tree.kind)} · ${tree.revision_scope === "revision" ? `revision ${text(tree.revision)}` : `channel ${text(tree.channel)}`}`, "small");
+    parent.append(heading);
+    sourceBreadcrumb(parent, route);
+    parent.append(element("p", `${tree.entries.length} entr${tree.entries.length === 1 ? "y" : "ies"} at ${route.spath || "root"} · bounded listing`, "small"));
+    const list = element("div", undefined, "source-entries");
+    for (const entry of tree.entries) {
+      const button = element("button", undefined, "source-entry");
+      button.type = "button";
+      if (entry.path === route.sfile) button.setAttribute("aria-current", "true");
+      button.append(element("span", entry.kind === "directory" ? "dir" : entry.kind, "source-kind"), element("span", entry.name, "source-name"), element("span", entry.bytes === null || entry.bytes === undefined ? "" : text(entry.bytes), "source-size"));
+      const patch = entry.kind === "directory" ? { spath: entry.path, sfile: "" } : { sfile: entry.path };
+      button.addEventListener("click", () => navigate(patch));
+      list.append(button);
+    }
+    parent.append(list);
+    if (!tree.entries.length) parent.append(element("p", "This directory is empty in the selected revision.", "small"));
+  }
+  function renderSourceFile(parent, file) {
+    const heading = section(`${text(file.path)}`, parent, "record-card");
+    const facts = element("dl", undefined, "facts");
+    addFacts(facts, [["Repository", file.label], ["Kind", file.kind], ["Scope", file.revision_scope], ["Revision", file.revision], ["Object", file.oid], ["Bytes", file.bytes], ["Binary", file.binary ? "yes" : "no"]]);
+    heading.append(facts);
+    if (file.binary) heading.append(element("p", "This object is binary or not valid UTF-8. No text is rendered and nothing is decoded.", "small"));
+    else heading.append(element("pre", text(file.text), "source-content"));
+  }
+  async function loadSource() {
+    const route = state.route;
+    const status = $("source-log-status");
+    const log = $("source-log");
+    log.replaceChildren(); $("source-tree").replaceChildren(); $("source-file").replaceChildren();
+    $("source-log-next").disabled = true;
+    status.textContent = "Reading configured sources…";
+    $("source-browser-status").replaceChildren(element("p", "Loading admitted records…", "small"));
+    let inventory;
+    try { inventory = await api("/api/sources"); }
+    catch (error) { if (!isAborted(error) && state.route === route) { $("source-browser-status").replaceChildren(element("p", `Unavailable: ${explain(error)}`, "warning")); status.textContent = "Source inventory unavailable."; } return; }
+    if (state.route !== route || !state.session) return;
+    const sources = Array.isArray(inventory.sources) ? inventory.sources : [];
+    const parent = $("source-browser-status"); parent.replaceChildren();
+    if (!inventory.configured) parent.append(element("p", "No source repositories are configured. The service operator must admit a separate --sources policy. This is not proof that no repository is readable.", "warning"));
+    for (const row of sources) {
+      parent.append(element("p", row.status === "available"
+        ? `${text(row.label)} · ${text(row.kind)}${row.channel ? ` · channel ${text(row.channel)}` : ""} · head ${text(row.head)} · ${text(row.revision_scope)}`
+        : `${text(row.label)} · ${text(row.kind)} · unavailable: ${text(row.reason)}`, row.status === "available" ? "small" : "warning"));
+    }
+    options($("source-select"), sources.map((row) => ({ id: row.id, label: `${row.label} · ${row.kind}` })), "Select a configured source", route.src);
+    const selected = sources.find((row) => row.id === route.src);
+    if (!selected) { status.textContent = sources.length ? "Select a configured source. No repository is selected automatically." : "No source repository is configured."; return; }
+    if (route.src !== $("source-select").value) $("source-select").value = route.src;
+    status.textContent = "Reading revisions…";
+    let history;
+    try { history = await api(`/api/sources/${encodeURIComponent(selected.id)}/log?${sourceQuery({ limit: "30" })}`); }
+    catch (error) { if (!isAborted(error) && state.route === route) status.textContent = `Revisions unavailable: ${explain(error)}`; return; }
+    if (state.route !== route || !state.session) return;
+    renderSourceLog(log, route, selected, history);
+    const tree = $("source-tree");
+    let listing;
+    try { listing = await api(`/api/sources/${encodeURIComponent(selected.id)}/tree?${sourceQuery({ revision: route.rev, path: route.spath })}`); }
+    catch (error) { if (!isAborted(error) && state.route === route) tree.append(element("p", `Listing unavailable: ${explain(error)}`, "warning")); return; }
+    if (state.route !== route || !state.session) return;
+    renderSourceEntries(tree, route, listing);
+    if (!route.sfile) { $("source-file").append(element("p", "Select a file entry to read its exact content. No file is selected automatically.", "small")); return; }
+    let file;
+    try { file = await api(`/api/sources/${encodeURIComponent(selected.id)}/file?${sourceQuery({ revision: route.rev, path: route.sfile })}`); }
+    catch (error) { if (!isAborted(error) && state.route === route) $("source-file").append(element("p", `File unavailable: ${explain(error)}`, "warning")); return; }
+    if (state.route !== route || !state.session) return;
+    renderSourceFile($("source-file"), file);
+  }
+  function renderSourceLog(parent, route, selected, history) {
+    const entries = Array.isArray(history.entries) ? history.entries : [];
+    parent.replaceChildren();
+    const historical = selected.kind !== "pijul" && selected.revision_scope === "revision";
+    for (const entry of entries) {
+      const button = element("button", undefined, "run-choice source-revision");
+      button.type = "button";
+      if (historical && entry.id === route.rev) button.setAttribute("aria-current", "true");
+      button.append(element("strong", text(entry.summary || entry.id)), element("span", text(entry.author), "small"), compactTimestampSpan(entry.recorded_at_ms), element("span", historical ? `select revision ${shortOid(entry.id)}` : `change ${shortOid(entry.id)} · historical trees are not readable`, "small"));
+      button.addEventListener("click", () => { if (historical) navigate({ rev: entry.id, spath: "", sfile: "" }); });
+      if (!historical) button.disabled = true;
+      parent.append(button);
+    }
+    if (!entries.length) parent.append(element("p", "No recorded revision is readable for this source.", "small"));
+    $("source-log-status").textContent = `${entries.length} revision${entries.length === 1 ? "" : "s"} observed${history.next_cursor ? " · bounded page" : ""}${historical ? " · select one to pin the tree and file reads" : " · Pijul listings cover the current channel state only"}`;
+    const next = $("source-log-next");
+    next.disabled = !history.next_cursor;
+    next.onclick = async () => {
+      if (!history.next_cursor) return;
+      next.disabled = true;
+      let more;
+      try { more = await api(`/api/sources/${encodeURIComponent(selected.id)}/log?${sourceQuery({ limit: "30", cursor: history.next_cursor })}`); }
+      catch (error) { if (!isAborted(error)) $("source-log-status").textContent = explain(error); return; }
+      if (state.route !== route || !state.session) return;
+      history.next_cursor = more.next_cursor;
+      renderSourceLog(parent, state.route, selected, { ...history, entries: [...entries, ...(more.entries || [])], next_cursor: more.next_cursor });
+    };
+  }
+  function compactTimestampSpan(ms) {
+    const span = element("span", compactTimestamp(ms), "small");
+    span.title = timestamp(ms);
+    return span;
   }
   function renderOverview(parent, result) {
     const grid = element("div", undefined, "inventory-grid"); parent.append(grid);
     for (const [label, value] of Object.entries(result.totals || {})) { const card = element("article", undefined, "inventory-card"); card.append(element("span", label, "metric-label"), element("strong", text(value), "metric-value")); grid.append(card); }
     const health = section("Project health", parent);
-    for (const project of result.projects || []) { const card = section(`${text(project.label)} · ${text(project.health)}`, health, "record-card"); card.append(element("p", text(project.id), "small")); if (project.latest_run) card.append(runLink(project.latest_run.id, `Latest: ${project.latest_run.outcome} · ${duration(project.latest_run.duration_ms)}`)); else card.append(element("p", "No retained runs.", "small")); }
+    for (const project of result.projects || []) {
+      const card = section(`${text(project.label)} · ${text(project.health)}`, health, "record-card");
+      card.append(element("p", text(project.id), "small"));
+      if (project.latest_run) {
+        card.append(runLink(project.latest_run.id, `Latest: ${project.latest_run.outcome} · ${duration(project.latest_run.duration_ms)}`), element("p", `Last run completed: ${timestamp(project.latest_run.completed_at_ms)}`, "small"));
+      } else card.append(element("p", "No retained runs.", "small"));
+    }
     if (!result.projects?.length) health.append(element("p", "No enrolled project health is recorded.", "small"));
     const trend = section("Recorded duration trend", parent);
     trend.append(element("p", `${text(result.timing?.recorded)} / ${text(result.timing?.total)} retained runs have recorded timing. Historical unknowns are excluded, not treated as zero.`, "small"));
@@ -1261,6 +1435,9 @@
   $("evidence-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ page: "evidence", run: $("evidence-run").value.trim() }); });
   for (const name of ["activity", "automation", "operations"]) $("refresh-" + name).addEventListener("click", readAction(loadPage));
   $("refresh-cobs").addEventListener("click", readAction(loadPage));
+  $("refresh-sources").addEventListener("click", readAction(loadPage));
+  $("source-select").addEventListener("change", (event) => { if (state.session) navigate({ src: event.target.value, rev: "", spath: "", sfile: "" }); });
+  $("source-form").addEventListener("submit", (event) => { event.preventDefault(); if (state.session) navigate({ src: $("source-select").value, rev: "", spath: "", sfile: "" }); });
   $("refresh-workers").addEventListener("click", readAction(loadPage));
   $("worker-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ worker_q: $("worker-search").value.trim(), worker_status: $("worker-status").value }); });
   $("worker-reset").addEventListener("click", () => navigate({ worker_q: "", worker_status: "" }));

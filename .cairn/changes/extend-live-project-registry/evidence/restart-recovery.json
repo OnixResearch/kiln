@@ -1,0 +1,19 @@
+{
+  "service_restarted": true,
+  "dependent_proxy_restarted": true,
+  "project_views_identical": true,
+  "all_19_run_views_identical": true,
+  "worker_observations_and_capacity_identical": true,
+  "worker_snapshot_version_before": 1389,
+  "worker_snapshot_version_after": 1391,
+  "enrolled_projects": 15,
+  "retained_runs": 19,
+  "worker_summary": {
+    "targets": 15,
+    "configured_slots": 15,
+    "enrolled_slots": 15,
+    "active": 0,
+    "free_slots": 15,
+    "queued": 0
+  }
+}

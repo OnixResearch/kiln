@@ -1,0 +1,14 @@
+{
+  "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+  "cobs_configured_before": false,
+  "enrolled_projects": 15,
+  "retained_runs": 19,
+  "profile_blake3": {
+    "service.json": "3f0d2901378eb05ea8bc30a050fc2f3e06f3c1b1fad2621740a785d6e5a1764f",
+    "access.json": "9a3e70c5d5ad607475c1ebf78deddedc8a182ced7a5667756a1797e24cf921dc",
+    "automation.json": "1dd89b537d2ffa0b48c40149c0da28738c21cf253fb99658a6f2170586de173b",
+    "handler.json": "34a315f54d2e6202a1512f1dd6eadbbde879637f07113335a999b622ffcdc3fa",
+    "worker.json": "c5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc"
+  },
+  "native_refs_before": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx\n└── refs\n    ├── cobs\n    │   └── xyz.radicle.id\n    │       └── 7ce7e08059bc233ac12407a112e2dd9791d93190\n    ├── heads\n    │   ├── cairn-adapter-portfolio\n    │   ├── cairn\n    │   │   ├── add-git-source-adapter-20260820\n    │   │   ├── add-lattice-workflow-adapter-20260820\n    │   │   ├── add-mantle-build-adapter-20260821\n    │   │   ├── add-nix-eval-jobs-provider-adapter-20260821\n    │   │   ├── add-pijul-source-adapter-20260821\n    │   │   ├── align-provider-port-ownership-20260820\n    │   │   ├── close-duplicate-radicle-cob-20260820\n    │   │   ├── migrate-native-lifecycle-20260810\n    │   │   ├── mutate-radicle-cobs-single-writer-20260821\n    │   │   ├── operationalize-radicle-provider-shell-20260821\n    │   │   ├── publish-radicle-ci-status-20260821\n    │   │   ├── publish-radicle-source-contract-20260821\n    │   │   ├── record-radicle-transport-blocker-20260820\n    │   │   └── split-radicle-provider-changes-20260821\n    │   ├── candidate\n    │   ├── change\n    │   │   ├── add-aspen-host-bridge-20260827\n    │   │   ├── admit-radicle-broker-031-wire-20260829\n    │   │   ├── bind-aspen-extension-runtime-profile-20260828\n    │   │   ├── pace-aspen-lattice-observation-20260828\n    │   │   ├── plan-aspen-runtime-backend-20260826\n    │   │   └── productionize-aspen-radicle-host-20260828\n    │   ├── implement-kiln\n    │   ├── kiln-observability-drain\n    │   ├── main\n    │   ├── publication-candidate-2026-10-15\n    │   ├── publication-evidence-2026-10-15\n    │   ├── publication-evidence-2026-10-18\n    │   ├── qualify-live-github-iroh-ci\n    │   └── seaglass-kiln-executor\n    └── rad\n        ├── id\n        ├── root\n        └── sigrefs\n"
+}

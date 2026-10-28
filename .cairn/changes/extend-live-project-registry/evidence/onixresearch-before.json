@@ -1,0 +1,643 @@
+{
+  "projects": {
+    "available": [
+      {
+        "id": "kiln-self-ci",
+        "label": "Kiln \u2014 Rust workspace tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/kiln"
+      }
+    ],
+    "enrolled": [
+      {
+        "id": "kiln-self-ci",
+        "label": "Kiln \u2014 Rust workspace tests",
+        "pipeline_identity": "d7375d2d8ef273e548aa2f34835eb67824dc17ecd3e64e70edadd126a6f883fc",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/kiln"
+      }
+    ]
+  },
+  "runs": {
+    "bounded": true,
+    "next_cursor": null,
+    "runs": [
+      {
+        "attempt_id": "web-attempt-21d8cc4db8255d60cc823bf0ef6e69b5e4403a698fe57f827210e72518830bbf",
+        "canonical_tree": "59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05",
+        "completed_at_ms": 1793141603218,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793141329189,
+        "duration_ms": 273357,
+        "edges": [],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "b3:6a3718a8a97957806d041746efc64e218f46028c784f33bea480bfd96eb69443",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-21d8cc4db8255d60cc823bf0ef6e69b5e4403a698fe57f827210e72518830bbf",
+        "log_bounds": {
+          "maximum_chunk_bytes": 65536,
+          "maximum_chunks": 256,
+          "maximum_total_bytes": 16777216
+        },
+        "nodes": [
+          {
+            "completed_at_ms": 1793141603218,
+            "duration_ms": null,
+            "id": "test",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          }
+        ],
+        "ordinal": 38,
+        "outcome": "Success",
+        "parent_run_id": "web-run-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1",
+        "phase": "terminal",
+        "project_id": "kiln-self-ci",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 2,
+        "source_revision": "0c56456214196618bba512990ac479e69ebd7b63",
+        "started_at_ms": 1793141329861
+      },
+      {
+        "attempt_id": "web-attempt-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1",
+        "canonical_tree": "59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": null,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "b3:8185c3b2805d4cfb35853e6abd7f48c2721fc3d6fd81c5d39184a7ba36cd0e77",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1",
+        "log_bounds": {
+          "maximum_chunk_bytes": 65536,
+          "maximum_chunks": 256,
+          "maximum_total_bytes": 16777216
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "test",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          }
+        ],
+        "ordinal": 25,
+        "outcome": "Success",
+        "parent_run_id": null,
+        "phase": "terminal",
+        "project_id": "kiln-self-ci",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 2,
+        "source_revision": "0c56456214196618bba512990ac479e69ebd7b63",
+        "started_at_ms": null
+      },
+      {
+        "attempt_id": "web-attempt-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61",
+        "canonical_tree": "59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": null,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "b3:20e82cbbb05cdac3da1ea317e0154e6f0ef9bfa5027c358a8f243ca267b1d836",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61",
+        "log_bounds": {
+          "maximum_chunk_bytes": 65536,
+          "maximum_chunks": 256,
+          "maximum_total_bytes": 16777216
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "test",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          }
+        ],
+        "ordinal": 18,
+        "outcome": "Success",
+        "parent_run_id": null,
+        "phase": "terminal",
+        "project_id": "kiln-self-ci",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 2,
+        "source_revision": "0c56456214196618bba512990ac479e69ebd7b63",
+        "started_at_ms": null
+      },
+      {
+        "attempt_id": "web-attempt-5e36990d5ebbbcb3641102a925f58a570489493a9f316a085f231e20d81ce790",
+        "canonical_tree": "59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": null,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "b3:e1ff20cc090d2016dd1c44c551b9294bb8918bf80f6b7eac60dce782a3d5ba4a",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-5e36990d5ebbbcb3641102a925f58a570489493a9f316a085f231e20d81ce790",
+        "log_bounds": {
+          "maximum_chunk_bytes": 65536,
+          "maximum_chunks": 256,
+          "maximum_total_bytes": 16777216
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "test",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          }
+        ],
+        "ordinal": 9,
+        "outcome": "Success",
+        "parent_run_id": null,
+        "phase": "terminal",
+        "project_id": "kiln-self-ci",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 2,
+        "source_revision": "0c56456214196618bba512990ac479e69ebd7b63",
+        "started_at_ms": null
+      },
+      {
+        "attempt_id": "web-attempt-fc1098b34663c6f43ff65590ea8e530966d7c63999afaa26a3e84474b9500b21",
+        "canonical_tree": "59f723b6ec967119095e7a6115a635ab7554b048578f975f2550ff216c51ed05",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": null,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "b3:73244b0373f29f2c778d699fbaa4fcb0e1da294887227a9dbebf06aeeee24e96",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-fc1098b34663c6f43ff65590ea8e530966d7c63999afaa26a3e84474b9500b21",
+        "log_bounds": {
+          "maximum_chunk_bytes": 65536,
+          "maximum_chunks": 256,
+          "maximum_total_bytes": 16777216
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "test",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Failed"
+          }
+        ],
+        "ordinal": 2,
+        "outcome": "DomainFailure",
+        "parent_run_id": null,
+        "phase": "terminal",
+        "project_id": "kiln-self-ci",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 2,
+        "source_revision": "0c56456214196618bba512990ac479e69ebd7b63",
+        "started_at_ms": null
+      }
+    ],
+    "total": 5
+  },
+  "candidates": [
+    {
+      "id": "cap-root",
+      "label": "Cap Root - workspace tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/cap-root",
+      "revision": "545e77e5a49e4e1d34037aa9a82d924944ac0a1b",
+      "source_repository": "447894fe481baeeb576450cf5a509fba4555a491149248130cfe8a80698710b6"
+    },
+    {
+      "id": "bounded-exec",
+      "label": "Bounded Exec - workspace tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/bounded-exec",
+      "revision": "44eb74eb639194665ee820562d5b2ce2c3ff6a94",
+      "source_repository": "4729e25e1378a478df8b3dbaaf265d4588af42cc820fce40389b13b0281f6ada"
+    },
+    {
+      "id": "durable-file-publication",
+      "label": "Durable File Publication - all-target tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/durable-file-publication",
+      "revision": "527c7828fa10970d42064460cd7cd15c1c5a6cca",
+      "source_repository": "31c3f0b11e70eda65d6882f293ac584e4fd300c335cc87fc3570d4118e442af9"
+    },
+    {
+      "id": "content-identity-core",
+      "label": "Content Identity Core - all-target tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/content-identity-core",
+      "revision": "f4712fb23acfc8333d205f43c9086e8b9d5f2601",
+      "source_repository": "84236a59f2ca3c5589fa044d049f337d930b3d9985b27b6440a603ee36845663"
+    },
+    {
+      "id": "schema-identity-core",
+      "label": "Schema Identity Core - conformance and all features",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/schema-identity-core",
+      "revision": "dace0c70eef55baaaa1af2c9162a7f64d629299a",
+      "source_repository": "bfe0e47a9894c331a12cc1e06f8c0728e5819cccc0beda403c23cdeedd8d7901"
+    },
+    {
+      "id": "schema-migration-core",
+      "label": "Schema Migration Core - conformance and all features",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/schema-migration-core",
+      "revision": "1e70648bcb06f3194eaf4eb5e7c30b130700a1c0",
+      "source_repository": "5a8b5189f258fbc2aa73829212ec01f2de3da4d5ad52698b5527719888f65a71"
+    },
+    {
+      "id": "quantity-contracts",
+      "label": "Quantity Contracts - positive and negative matrix",
+      "nix_args": [
+        "flake",
+        "check",
+        "path:.",
+        "--no-write-lock-file",
+        "-L"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/quantity-contracts",
+      "revision": "8ef7a3bad91db4d735a021f91319f5fb89219315",
+      "source_repository": "5fac78caede2f793784b5f4a49419754c6c82430df83bfaf437fba619aad32c0"
+    },
+    {
+      "id": "valence",
+      "label": "Valence - workspace tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/valence",
+      "revision": "15e72b5a330b08139ac7c809ac31e7e87f825b22",
+      "source_repository": "7abce282209ff19d43e6997b47b3648ddf1369bd5a267c2194013d8a1179fa6a"
+    },
+    {
+      "id": "artifact",
+      "label": "Artifact - workspace tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/artifact",
+      "revision": "5f3962d7471d1547e044f57daeda72f56621fd52",
+      "source_repository": "6fdbb89faf86098325acd9bae0ce76171277841aa83ab8de12ee87e4a635703e"
+    },
+    {
+      "id": "bounded-http",
+      "label": "Bounded HTTP - all-feature conformance",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/bounded-http",
+      "revision": "db13eb8a0341719e54817ae34451cf310a41033f",
+      "source_repository": "acc81c29c50a2170c265dd01b3de39a59de29453474603386a33be9a630f63e1"
+    },
+    {
+      "id": "durable-authority-state",
+      "label": "Durable Authority State - all-feature conformance",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/durable-authority-state",
+      "revision": "c545e88e544b5db1739ad2d2286ca4d6effb5e33",
+      "source_repository": "9002f34b4f11df788b85a0f3ac191527d2b94581ef6085a1ccb3c712fdc97a48"
+    },
+    {
+      "id": "nickel-export",
+      "label": "Nickel Export - workspace tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/nickel-export",
+      "revision": "07ea21c0666f72994d69849cf22e0cfec3132cc5",
+      "source_repository": "5ae93d4bc8433381bf69fedee14d6af1a3a9a78221339056dde93ce591457807"
+    },
+    {
+      "id": "nickel-eval",
+      "label": "Nickel Eval - all-target tests",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/nickel-eval",
+      "revision": "89846a64db1246d4eeb45fc3f39e361db87ce69a",
+      "source_repository": "af7a050c2d00dafb50a6f1b7d53125e27688f7c747d358b5b989e5c8cb84da80"
+    },
+    {
+      "id": "transactional-reconciliation-core",
+      "label": "Transactional Reconciliation Core - all-feature conformance",
+      "nix_args": [
+        "develop",
+        "path:.",
+        "--no-write-lock-file",
+        "--command",
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "reference": "refs/heads/main",
+      "repository": "/home/brittonr/git/OnixResearch/transactional-reconciliation-core",
+      "revision": "a4ce8038956bc3daea04e0ae80a6b46ebb236524",
+      "source_repository": "d29b9b6d4493c9f4700b2d7d14a97f66db91ee1a015cb6305c80342864899b57"
+    }
+  ],
+  "workers": {
+    "cap-root": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-cap-root.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-cap-root.json",
+      "worker_blake3": "59328073de473ea878cdc9345421910815c10b2b2dae9f1273ddfc51ebbe82fa"
+    },
+    "bounded-exec": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-exec.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-exec.json",
+      "worker_blake3": "17f90b63d0d73d100299780c19fbcb989e69dbe9c6f7eba7eee54d1627d134bf"
+    },
+    "durable-file-publication": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-file-publication.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-file-publication.json",
+      "worker_blake3": "e54b473333b0eff8eb1016783bebee945eeb8631232443cf0f4949dc50ca4425"
+    },
+    "content-identity-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-content-identity-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-content-identity-core.json",
+      "worker_blake3": "a4d1589e25a97d56b7330acb1353b8845dbac3f29896512f147b04d546ce508b"
+    },
+    "schema-identity-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-identity-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-identity-core.json",
+      "worker_blake3": "bd6294f35392536cab1a8cce9395c17039a3a121fa94fb82aae4045e9ec73e10"
+    },
+    "schema-migration-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-migration-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-migration-core.json",
+      "worker_blake3": "8024ba773d765992b98c09d78b5f7ebac4d672143c2af81643eaaa7847d9fc0c"
+    },
+    "quantity-contracts": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-quantity-contracts.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-quantity-contracts.json",
+      "worker_blake3": "f5d7eeeeebb2125dff39ddbf0ed61165b1a40b224e2e153d7ba62109ecb5a23c"
+    },
+    "valence": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-valence.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-valence.json",
+      "worker_blake3": "bd747cdae0e28cb87563087aa0f9ad1f79b1521ddac25a552242483c7e90a81a"
+    },
+    "artifact": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-artifact.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-artifact.json",
+      "worker_blake3": "d796bcf0c23471c8982ce5c5c66a14a29d5342ca7b9289e4b6013edce0cb29ab"
+    },
+    "bounded-http": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-http.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-http.json",
+      "worker_blake3": "74671b329e26b2acd18c3321ec5b1d1bf5796b91fa2ac69272253ac58aa7f9b5"
+    },
+    "durable-authority-state": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-authority-state.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-authority-state.json",
+      "worker_blake3": "917d2589e72c643daed0425b99388f094a0ad25febc911dc5c3d9f54fcc0e301"
+    },
+    "nickel-export": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-export.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-export.json",
+      "worker_blake3": "f5f581847cca35bb3e43e8c064945645a94a0daf77171ebd119bd5548370b35d"
+    },
+    "nickel-eval": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-eval.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-eval.json",
+      "worker_blake3": "fb0203c902b5cfdd11e9d53568558b6f5153c996f422569271dc2e13c381668d"
+    },
+    "transactional-reconciliation-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-transactional-reconciliation-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-transactional-reconciliation-core.json",
+      "worker_blake3": "5ccc822b27cfa71a3a1a1610fe0d7e56eff6c8d5bb8d539559d944a825711656"
+    }
+  },
+  "original_worker_blake3": "c5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc",
+  "profile_source": "/nix/store/nwkd3645gs1kqd58js5ygznrfsp2vq2k-source"
+}

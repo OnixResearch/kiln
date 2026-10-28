@@ -18,6 +18,8 @@ const MAX_PARENTS: usize = 128;
 const MAX_TREE_ENTRIES: usize = 256;
 const MAX_ACTIONS: usize = 128;
 const MAX_TITLE_CHARS: usize = 256;
+const MAX_EXCERPT_CHARS: usize = 180;
+const MAX_EXCERPT_BYTES: usize = 8192;
 const BLOB_MODE: i32 = 0o100644;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -35,6 +37,9 @@ pub(super) struct Object {
     pub type_name: String,
     pub object_id: String,
     pub title: String,
+    pub excerpt: String,
+    pub author: String,
+    pub recorded_at_ms: i64,
     pub ref_tips: Vec<RefTip>,
 }
 
@@ -146,7 +151,7 @@ fn object_ref(name: &str) -> Result<Option<(&str, &str)>, ()> {
     let Some((type_name, object)) = rest.split_once('/') else {
         return Err(());
     };
-    if !kiln_core::cob::INITIAL_CAIRN_TYPES.contains(&type_name) {
+    if !super::supported_type(type_name) {
         return Ok(None);
     }
     if !is_oid(object) {
@@ -189,6 +194,43 @@ fn scan(repository: &Repository) -> Result<BTreeMap<(String, String), Vec<RefTip
     Ok(objects)
 }
 
+/// First recorded free-text field of action zero.
+///
+/// Radicle COBs carry generic commit summaries ("Create issue"), so the list
+/// shows the object's own recorded text instead of inventing a title. Absent or
+/// malformed payloads yield an empty excerpt; nothing is synthesized.
+fn excerpt(repository: &Repository, tree: &git2::Tree<'_>) -> String {
+    const FIELDS: [&str; 6] = ["title", "body", "description", "message", "summary", "name"];
+    let Some(entry) = tree.get_name("0") else {
+        return String::new();
+    };
+    let Ok(bytes) = blob(repository, &entry, MAX_EXCERPT_BYTES) else {
+        return String::new();
+    };
+    let Ok(value) = serde_json::from_slice::<Value>(bytes.content()) else {
+        return String::new();
+    };
+    let mut candidates = vec![&value];
+    for key in ["state", "payload", "object"] {
+        if let Some(nested) = value.get(key) {
+            candidates.push(nested);
+        }
+    }
+    for field in FIELDS {
+        for candidate in &candidates {
+            let Some(text) = candidate.get(field).and_then(Value::as_str) else {
+                continue;
+            };
+            let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
+            if normalized.is_empty() {
+                continue;
+            }
+            return normalized.chars().take(MAX_EXCERPT_CHARS).collect();
+        }
+    }
+    String::new()
+}
+
 fn row(
     repository: &Repository,
     policy: &RepositoryPolicy,
@@ -197,13 +239,25 @@ fn row(
     ref_tips: Vec<RefTip>,
 ) -> Result<Object, ()> {
     let root = commit(repository, Oid::from_str(&object_id).map_err(|_| ())?)?;
-    manifest(repository, &tree(repository, &root)?, &type_name)?;
+    let tree = tree(repository, &root)?;
+    manifest(repository, &tree, &type_name)?;
     let title = root
         .summary()
         .ok_or(())?
         .chars()
         .take(MAX_TITLE_CHARS)
         .collect();
+    let author = root.author();
+    let author = format!(
+        "{} <{}>",
+        author.name().unwrap_or(""),
+        author.email().unwrap_or("")
+    )
+    .chars()
+    .take(MAX_TITLE_CHARS)
+    .collect();
+    let recorded_at_ms = root.time().seconds().saturating_mul(1000);
+    let excerpt = excerpt(repository, &tree);
     let id = crate::engine::identity(&(
         "kiln.web-cob-object.v1",
         &policy.repository_id,
@@ -221,6 +275,9 @@ fn row(
         type_name,
         object_id,
         title,
+        excerpt,
+        author,
+        recorded_at_ms,
         ref_tips,
     })
 }

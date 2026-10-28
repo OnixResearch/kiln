@@ -22,6 +22,7 @@ fn main() {
             }
         }
         Some("reviewed-request") => reviewed_request(arguments),
+        Some("extend-projects") => extend_projects(arguments),
         Some("--help" | "-h") | None => {
             usage();
             0
@@ -33,7 +34,7 @@ fn main() {
 
 fn usage() -> i32 {
     eprintln!(
-        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]"
+        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>"
     );
     2
 }
@@ -57,6 +58,7 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             "--access" => &mut options.access,
             "--automation" => &mut options.automation,
             "--cobs" => &mut options.cobs,
+            "--sources" => &mut options.sources,
             _ => return usage(),
         };
         if slot.is_some() {
@@ -75,6 +77,40 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
     } else {
         kiln_web_service::server::run_with_options(&profile, &options)
     })
+}
+
+fn extend_projects(mut arguments: impl Iterator<Item = String>) -> i32 {
+    let mut previous = None;
+    let mut next = None;
+    while let Some(flag) = arguments.next() {
+        let slot = match flag.as_str() {
+            "--previous-profile" => &mut previous,
+            "--profile" => &mut next,
+            _ => return usage(),
+        };
+        if slot.is_some() {
+            return usage();
+        }
+        let Some(value) = arguments.next().filter(|value| !value.starts_with("--")) else {
+            return usage();
+        };
+        *slot = Some(value);
+    }
+    let (Some(previous), Some(next)) = (previous, next) else {
+        return usage();
+    };
+    status((|| {
+        let previous =
+            kiln_web_service::profile::ServiceProfile::load(std::path::Path::new(&previous))?;
+        let next = kiln_web_service::profile::ServiceProfile::load(std::path::Path::new(&next))?;
+        kiln_web_service::engine::extend_projects(&previous, &next)?;
+        println!(
+            "extended project registry: {} -> {} configured projects; enrollment unchanged",
+            previous.projects.len(),
+            next.projects.len()
+        );
+        Ok(())
+    })())
 }
 
 fn reviewed_request(mut arguments: impl Iterator<Item = String>) -> i32 {

@@ -1,0 +1,1094 @@
+[
+  {
+    "project_id": "cap-root",
+    "expected_source_revision": "545e77e5a49e4e1d34037aa9a82d924944ac0a1b",
+    "run": {
+      "id": "web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770",
+      "project_id": "cap-root",
+      "source_revision": "545e77e5a49e4e1d34037aa9a82d924944ac0a1b",
+      "canonical_tree": "c54050773b236da1faa42027513f4b7e09f1ef59fcd73c8606cb38e04f463728",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "447894fe481baeeb576450cf5a509fba4555a491149248130cfe8a80698710b6"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:6cb8ce6a16ca318517ecfe830bbaa4978820edea604a932b384897c2860f6e51"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151307132,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 115,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151264681,
+      "started_at_ms": 1793151264921,
+      "completed_at_ms": 1793151307132,
+      "duration_ms": 42211,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "c3af146d3f7059c498cbf21a31803806d58c48715341e376334079be054032e5",
+        "bytes": 839,
+        "download_path": "/api/runs/web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "b78233ce029eb4c6e6d69296913b92912f766cfd3382f274e747c069ddfdf531",
+        "bytes": 2439,
+        "download_path": "/api/runs/web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "bounded-exec",
+    "expected_source_revision": "44eb74eb639194665ee820562d5b2ce2c3ff6a94",
+    "run": {
+      "id": "web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a",
+      "project_id": "bounded-exec",
+      "source_revision": "44eb74eb639194665ee820562d5b2ce2c3ff6a94",
+      "canonical_tree": "f1030d2d1806905a8d67f3251bfcef07514009b200dec420547d0fb11a268a63",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "4729e25e1378a478df8b3dbaaf265d4588af42cc820fce40389b13b0281f6ada"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:9af7ba649b8664e1fd92644f6ebb8fabdb290c214cf7771c67a61c14450f830a"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151322168,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 190,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151309045,
+      "started_at_ms": 1793151309136,
+      "completed_at_ms": 1793151322168,
+      "duration_ms": 13032,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "7317757393029e0f65692b2aa1a58997d6dab73b8bca04f2173eeefd8445be45",
+        "bytes": 1840,
+        "download_path": "/api/runs/web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "a9849f532f528ff92439d2ddf1dfe5f117521871fb6bebc6cee23a01b5d920ee",
+        "bytes": 1756,
+        "download_path": "/api/runs/web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "durable-file-publication",
+    "expected_source_revision": "527c7828fa10970d42064460cd7cd15c1c5a6cca",
+    "run": {
+      "id": "web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb",
+      "project_id": "durable-file-publication",
+      "source_revision": "527c7828fa10970d42064460cd7cd15c1c5a6cca",
+      "canonical_tree": "bbc41f0f3a99dfd8f9b5aa66c9199f79de71006b3153f15261ce51f93f6ff751",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "31c3f0b11e70eda65d6882f293ac584e4fd300c335cc87fc3570d4118e442af9"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:d6964624c6499678d23a782df57b09cd2ab3dcbefcbebd06b1b58e46b40841cb"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151352257,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 262,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151323295,
+      "started_at_ms": 1793151323532,
+      "completed_at_ms": 1793151352257,
+      "duration_ms": 28725,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "99df456b0976c8525a97016a2892409d9d9ff6bd7f2872a050bd88a4b12758a9",
+        "bytes": 1549,
+        "download_path": "/api/runs/web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "050fcdbfdb31398545548a3e1e1ad8a1590c5f89ef74069a94d27f17bb55117d",
+        "bytes": 2748,
+        "download_path": "/api/runs/web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "content-identity-core",
+    "expected_source_revision": "f4712fb23acfc8333d205f43c9086e8b9d5f2601",
+    "run": {
+      "id": "web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055",
+      "project_id": "content-identity-core",
+      "source_revision": "f4712fb23acfc8333d205f43c9086e8b9d5f2601",
+      "canonical_tree": "1da2ce4f02d6bdac333b8490562f55c8dbf42fe30ed067c34d2431c3041f536f",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "84236a59f2ca3c5589fa044d049f337d930b3d9985b27b6440a603ee36845663"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:31bcecbec25fc161be802af7accb721fcc9648d2e58267f31108276738b3158c"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151371300,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 352,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151353690,
+      "started_at_ms": 1793151353912,
+      "completed_at_ms": 1793151371300,
+      "duration_ms": 17388,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "318c1cf0ac9278a46ab12d290357db9983b1772f2cce85c03b4978a65e03b551",
+        "bytes": 720,
+        "download_path": "/api/runs/web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "352b09b4bb0cf279697531d8c18330ff97de8ce8b708816382317d4eebe15625",
+        "bytes": 2352,
+        "download_path": "/api/runs/web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "schema-identity-core",
+    "expected_source_revision": "dace0c70eef55baaaa1af2c9162a7f64d629299a",
+    "run": {
+      "id": "web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5",
+      "project_id": "schema-identity-core",
+      "source_revision": "dace0c70eef55baaaa1af2c9162a7f64d629299a",
+      "canonical_tree": "a984feb66d351d89c1e8d80122263a00afe3f0824a9b79350c3859fd0255a64d",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "bfe0e47a9894c331a12cc1e06f8c0728e5819cccc0beda403c23cdeedd8d7901"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:de0d2c9f8480f6b59d09bb5317b130895043ed9e89630b83473b1722f9b6b235"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Failed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151374318,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 445,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151371952,
+      "started_at_ms": 1793151372186,
+      "completed_at_ms": 1793151374318,
+      "duration_ms": 2132,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+        "bytes": 0,
+        "download_path": "/api/runs/web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "dd7593cd56d61ec17b9677aa77ccb33189144d0db6065435cfde127da7e94452",
+        "bytes": 1618,
+        "download_path": "/api/runs/web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "schema-migration-core",
+    "expected_source_revision": "1e70648bcb06f3194eaf4eb5e7c30b130700a1c0",
+    "run": {
+      "id": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598",
+      "project_id": "schema-migration-core",
+      "source_revision": "1e70648bcb06f3194eaf4eb5e7c30b130700a1c0",
+      "canonical_tree": "09abbbdcc13bb30a043a3def5b69d702c4230519df55e310127e398e647101ed",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "5a8b5189f258fbc2aa73829212ec01f2de3da4d5ad52698b5527719888f65a71"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:28b5fa0703ddf79a65321ba7855cda5221477ccabbf5168dfadc6e3e14331ea1"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Failed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151380336,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 466,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151376132,
+      "started_at_ms": 1793151376323,
+      "completed_at_ms": 1793151380336,
+      "duration_ms": 4013,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+        "bytes": 0,
+        "download_path": "/api/runs/web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "dd7593cd56d61ec17b9677aa77ccb33189144d0db6065435cfde127da7e94452",
+        "bytes": 1618,
+        "download_path": "/api/runs/web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "quantity-contracts",
+    "expected_source_revision": "8ef7a3bad91db4d735a021f91319f5fb89219315",
+    "run": {
+      "id": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e",
+      "project_id": "quantity-contracts",
+      "source_revision": "8ef7a3bad91db4d735a021f91319f5fb89219315",
+      "canonical_tree": "5a7e5f70c01d9e15ae39e84518acac05d8c2ad9e4c523f603d68daedff2acff9",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "5fac78caede2f793784b5f4a49419754c6c82430df83bfaf437fba619aad32c0"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:31c111b7cc419912ae9f9c5ed468d6bdca9a6471d838bddaad167186e0ec9244"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151400420,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 487,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151382314,
+      "started_at_ms": 1793151382350,
+      "completed_at_ms": 1793151400420,
+      "duration_ms": 18070,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+        "bytes": 0,
+        "download_path": "/api/runs/web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "e129adfbc6d375eb8fcc64e259cdf28f284503b439c71c64eb0eeb1f6f6cbfc5",
+        "bytes": 1169,
+        "download_path": "/api/runs/web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "valence",
+    "expected_source_revision": "15e72b5a330b08139ac7c809ac31e7e87f825b22",
+    "run": {
+      "id": "web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af",
+      "project_id": "valence",
+      "source_revision": "15e72b5a330b08139ac7c809ac31e7e87f825b22",
+      "canonical_tree": "c74de21be583a4d326734d91a726fa6c2bc545c55eee9cb73af4e72c47732e10",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "7abce282209ff19d43e6997b47b3648ddf1369bd5a267c2194013d8a1179fa6a"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:2ed8def51006a91ba5775d7a03bc18da0c9a4da797e6a3e97ff67881c7e9c248"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Failed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151435526,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 529,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151400653,
+      "started_at_ms": 1793151400967,
+      "completed_at_ms": 1793151435526,
+      "duration_ms": 34559,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+        "bytes": 0,
+        "download_path": "/api/runs/web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "1d8592c3cf6babe9135975cc16b2a8b2f5c68e7a75dc53a74569fe7793eadae2",
+        "bytes": 3547,
+        "download_path": "/api/runs/web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "artifact",
+    "expected_source_revision": "5f3962d7471d1547e044f57daeda72f56621fd52",
+    "run": {
+      "id": "web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb",
+      "project_id": "artifact",
+      "source_revision": "5f3962d7471d1547e044f57daeda72f56621fd52",
+      "canonical_tree": "d1a53f6954afdb9a5c0f31d16839545d8df506cd1cd5fc30928feb014c37c091",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "6fdbb89faf86098325acd9bae0ce76171277841aa83ab8de12ee87e4a635703e"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:8a64a060b0d63bfa2382ea3317d247d193abee8a4ac8004ed68b30ec3ec80f93"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151459941,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 589,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151437118,
+      "started_at_ms": 1793151437418,
+      "completed_at_ms": 1793151459941,
+      "duration_ms": 22523,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "66cc9da383cf170b1a572bdeeb8680b374ab1284e9bdf41a6101e3386352c19f",
+        "bytes": 4403,
+        "download_path": "/api/runs/web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "53aca35029ce4794e1d971f14b97c14c56967f45bd1baff328c0d85ecf2e8b84",
+        "bytes": 4193,
+        "download_path": "/api/runs/web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "bounded-http",
+    "expected_source_revision": "db13eb8a0341719e54817ae34451cf310a41033f",
+    "run": {
+      "id": "web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d",
+      "project_id": "bounded-http",
+      "source_revision": "db13eb8a0341719e54817ae34451cf310a41033f",
+      "canonical_tree": "d04718d55672197d0a3f93ef1d08f9a9b22e13aa02ab7a13d38da39cb1e94d04",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "acc81c29c50a2170c265dd01b3de39a59de29453474603386a33be9a630f63e1"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:1bac7482c274a6841037c390876679fb98b7412dc32255bb6b63871f04ba21f8"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Failed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151461955,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 751,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151461427,
+      "started_at_ms": 1793151461689,
+      "completed_at_ms": 1793151461955,
+      "duration_ms": 266,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+        "bytes": 0,
+        "download_path": "/api/runs/web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "dd7593cd56d61ec17b9677aa77ccb33189144d0db6065435cfde127da7e94452",
+        "bytes": 1618,
+        "download_path": "/api/runs/web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "durable-authority-state",
+    "expected_source_revision": "c545e88e544b5db1739ad2d2286ca4d6effb5e33",
+    "run": {
+      "id": "web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797",
+      "project_id": "durable-authority-state",
+      "source_revision": "c545e88e544b5db1739ad2d2286ca4d6effb5e33",
+      "canonical_tree": "f2cd47ee2ccc944204603455d293ee1c821bd25112147b3de5659162ecb62f40",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "9002f34b4f11df788b85a0f3ac191527d2b94581ef6085a1ccb3c712fdc97a48"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:27160a5dcb7809f6ccab9ba3f4988185380c9a83f3ec0ce450e735d2cc561439"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Failed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151468974,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 769,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151463644,
+      "started_at_ms": 1793151463872,
+      "completed_at_ms": 1793151468974,
+      "duration_ms": 5102,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+        "bytes": 0,
+        "download_path": "/api/runs/web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "a31003ada732ab44a33bb86bb077caa7b92b97ca57feabd0a865556789aa639d",
+        "bytes": 1618,
+        "download_path": "/api/runs/web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "nickel-export",
+    "expected_source_revision": "07ea21c0666f72994d69849cf22e0cfec3132cc5",
+    "run": {
+      "id": "web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f",
+      "project_id": "nickel-export",
+      "source_revision": "07ea21c0666f72994d69849cf22e0cfec3132cc5",
+      "canonical_tree": "a2d0a553f4c5268eebe732ebc143caf8e6a123da998cdc176adbe9282a5ce977",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "5ae93d4bc8433381bf69fedee14d6af1a3a9a78221339056dde93ce591457807"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:7bfaa7ffc433c148556cb3d103db89212182daf5108c4a06c7bc59659c646992"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151492050,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 790,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151469838,
+      "started_at_ms": 1793151469988,
+      "completed_at_ms": 1793151492050,
+      "duration_ms": 22062,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "77474dfd357fa10328ecf47bbf00e67431bc8ab60501a11071dae29c8a7efa79",
+        "bytes": 4741,
+        "download_path": "/api/runs/web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "8b8fcf8a5e942dc677923987a89163c5e77ea196937f94babb3f72b005756803",
+        "bytes": 2857,
+        "download_path": "/api/runs/web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "nickel-eval",
+    "expected_source_revision": "89846a64db1246d4eeb45fc3f39e361db87ce69a",
+    "run": {
+      "id": "web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17",
+      "project_id": "nickel-eval",
+      "source_revision": "89846a64db1246d4eeb45fc3f39e361db87ce69a",
+      "canonical_tree": "a29369dd4cc1a736047fbf4bc399962fab4cfa4eb02d76ac7d84e03531360b74",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "af7a050c2d00dafb50a6f1b7d53125e27688f7c747d358b5b989e5c8cb84da80"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:5302aa8fc6f917ec2ff6a2fd322f92dbc7312d3c0c71a8ff374d4856d1c77a6c"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151576402,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 916,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151494111,
+      "started_at_ms": 1793151494366,
+      "completed_at_ms": 1793151576402,
+      "duration_ms": 82036,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "60353d04e88d2bd87bdd4713c2e516c86c69730d298c23c8ec26d9a30406004b",
+        "bytes": 6832,
+        "download_path": "/api/runs/web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "37893099ecd8a3687057602956148afdf4e332be016700b38b9aa5477e4009b1",
+        "bytes": 8874,
+        "download_path": "/api/runs/web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  },
+  {
+    "project_id": "transactional-reconciliation-core",
+    "expected_source_revision": "a4ce8038956bc3daea04e0ae80a6b46ebb236524",
+    "run": {
+      "id": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb",
+      "project_id": "transactional-reconciliation-core",
+      "source_revision": "a4ce8038956bc3daea04e0ae80a6b46ebb236524",
+      "canonical_tree": "c9c99456a04b98edd6f3c4c45df569532a43ba53d9b5991af0a76d5837d19dc0",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "d29b9b6d4493c9f4700b2d7d14a97f66db91ee1a015cb6305c80342864899b57"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb",
+      "outcome": "DomainFailure",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:386cf9c0beea4e4a835a0785721ff872f0c70465c5f8f413333efdf578719c97"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "test",
+          "state": "Failed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793151580437,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 65536,
+        "maximum_total_bytes": 16777216,
+        "maximum_chunks": 256
+      },
+      "ordinal": 1369,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [],
+      "created_at_ms": 1793151576909,
+      "started_at_ms": 1793151577153,
+      "completed_at_ms": 1793151580437,
+      "duration_ms": 3284,
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      }
+    },
+    "logs": {
+      "stdout": {
+        "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+        "bytes": 0,
+        "download_path": "/api/runs/web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb/logs/download?node_id=test&stream=stdout",
+        "filename": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb-test-stdout-retained.log",
+        "retained": true,
+        "truncated": false
+      },
+      "stderr": {
+        "blake3": "4090b9d6422bd0a97f473b0f6c897cb88bf45667ea66acc30d4f4cfa034778e3",
+        "bytes": 1764,
+        "download_path": "/api/runs/web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb/logs/download?node_id=test&stream=stderr",
+        "filename": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb-test-stderr-retained.log",
+        "retained": true,
+        "truncated": false
+      }
+    }
+  }
+]

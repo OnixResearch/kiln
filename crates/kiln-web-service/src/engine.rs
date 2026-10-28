@@ -16,6 +16,8 @@ mod dashboard;
 mod logs;
 pub(crate) mod model;
 mod queue;
+mod registry;
+pub use registry::extend_projects;
 mod reports;
 pub use automation::{NotificationCompletion, NotificationWork};
 mod storage;

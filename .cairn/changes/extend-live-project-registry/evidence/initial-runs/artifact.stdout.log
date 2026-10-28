@@ -1,0 +1,96 @@
+
+running 5 tests
+test tests::malformed_and_duplicate_references_are_rejected ... ok
+test tests::canonical_statement_is_parent_order_independent_and_domain_bound ... ok
+test tests::distinct_current_keys_satisfy_threshold ... ok
+test tests::duplicate_key_cannot_inflate_threshold ... ok
+test tests::revoked_stale_wrong_purpose_and_failed_crypto_fail_closed ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test legacy_statement_bytes_and_identities_are_frozen ... ok
+test positive_and_negative_conformance_corpus_is_stable ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test dropping_one_required_authority_is_rejected ... ok
+test typed_consumer_mappings_preserve_required_authority ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test tests::malformed_statement_fails_before_cryptographic_admission ... ok
+test tests::matching_signature_verifies_and_binds_full_key_identity ... ok
+test tests::composed_verification_cannot_promote_an_invalid_signature ... ok
+test tests::changed_statement_wrong_key_and_malformed_lengths_fail ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+
+running 18 tests
+test id::tests::revision_successor_is_checked ... ok
+test id::tests::typed_ids_preserve_exact_bounded_text ... ok
+test id::tests::typed_ids_reject_empty_oversized_and_ambiguous_text ... ok
+test reachability::tests::diagnostic_output_is_explicitly_bounded ... ok
+test reachability::tests::explicit_root_edge_node_and_path_bounds_fail_closed ... ok
+test reachability::tests::cycles_duplicates_and_input_permutations_are_deterministic ... ok
+test resolution::tests::pinned_and_late_bound_resolution_return_exact_facts ... ok
+test resolution::tests::missing_ambiguous_mixed_stale_and_oversized_resolution_fail_closed ... ok
+test retirement::tests::mixed_snapshot_facts_fail_closed ... ok
+test retirement::tests::complete_shared_artifact_does_not_keep_old_generation_live ... ok
+test retirement::tests::retirement_bounds_fail_before_classification ... ok
+test reachability::tests::bounded_rotation_exploration_preserves_canonical_trace ... ok
+test retirement::tests::incomplete_and_contradictory_inputs_never_classify_retired ... ok
+test transition::tests::compatibility_snapshot_and_reachability_fail_closed ... ok
+test retirement::tests::retirement_is_invariant_under_root_edge_and_attribution_order ... ok
+test transition::tests::exact_successor_and_rollback_as_successor_are_planned ... ok
+test retirement::tests::scoped_root_and_exclusive_artifact_keep_generation_live_with_paths ... ok
+test transition::tests::stale_skipped_reversed_and_overflowing_revisions_fail_separately ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test onixos_active_rollback_descriptor_mapping_preserves_successor_rules ... ok
+test molten_system_extension_mapping_supports_transition_resolution_and_retirement ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 8 tests
+test tests::empty_artifact_policy_is_explicit ... ok
+test tests::equal_digest_bytes_remain_distinct_across_algorithms_and_bad_lengths_fail ... ok
+test tests::external_ordered_parts_make_no_boundary_algorithm_claim ... ok
+test tests::fastcdc_geometry_allows_only_the_final_chunk_below_minimum ... ok
+test tests::fixed_geometry_derives_contiguous_ranges_and_short_final_chunk ... ok
+test tests::fixed_geometry_rejects_wrong_nonfinal_final_and_total_shapes ... ok
+test tests::limits_zero_lengths_absent_chunks_and_sum_overflow_fail_closed ... ok
+test tests::malformed_profiles_and_fastcdc_outputs_are_rejected ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

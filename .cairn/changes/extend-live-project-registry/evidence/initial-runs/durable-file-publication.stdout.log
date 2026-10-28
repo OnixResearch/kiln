@@ -1,0 +1,35 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 6 tests
+test impossible_phase_order_and_post_terminal_observations_are_rejected ... ok
+test consumer_pilots_retain_product_policy_outside_the_public_crate ... ok
+test malformed_requests_and_wrong_payload_length_mutate_nothing ... ok
+test parent_sync_failure_is_committed_and_cleanup_failure_stays_precommit ... ok
+test shell_orders_payload_sync_before_rename_and_parent_sync_after_rename ... ok
+test shared_corpus_preserves_commit_cleanup_and_preflight_state ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 6 tests
+test absent_and_unconfirmed_facts_preserve_unknown_durability ... ok
+test failed_synchronization_and_visibility_only_never_ack_durability ... ok
+test failed_rename_and_destination_race_stay_not_committed ... ok
+test non_claims_keep_caller_owned_authority_explicit ... ok
+test reached_intermediate_state_produces_the_only_affirmative_ack ... ok
+test shell_ack_surface_delegates_to_the_pure_decision ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+test durability_rejects_unsynchronizable_parent_before_stage_creation ... ok
+test replace_commits_new_bytes_and_non_directory_parent_is_rejected ... ok
+test open_directory_preserves_symlink_collision_permissions_and_no_replace ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

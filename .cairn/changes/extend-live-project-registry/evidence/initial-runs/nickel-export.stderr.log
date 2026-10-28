@@ -1,0 +1,52 @@
+warning: unknown experimental feature 'wasm-builtin'
+warning: nix-grpc-store: no plugin build matching the loaded libnixstore in '/nix/store/flxfh4xym8i201q71p69xg684xm86a9h-nix-grpc-store-0.1.0-beta.4/lib/nix/nix-grpc-store-versions'. grpc:// stores are unavailable
+copying path '/nix/store/xqn9dl7vvji4mmp8h57xc39p2dp752vx-source' from 'https://cache.nixos.org'...
+building '/nix/store/4fnvzxi2nydzi6a4ksg85ivpfspl3w7i-rust-minimal-1.88.0.drv'...
+building '/nix/store/15vc0gqqn3rfhh1y5x215hrgqpjiljma-nix-shell-env.drv'...
+    Updating git repository `https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git`
+From https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo
+ * [new branch]      main       -> origin/main
+ * [new ref]         HEAD       -> origin/HEAD
+ Downloading crates ...
+  Downloaded cc v1.2.67
+  Downloaded serde_derive v1.0.228
+  Downloaded serde_core v1.0.228
+  Downloaded quote v1.0.46
+  Downloaded serde_json v1.0.150
+  Downloaded proc-macro2 v1.0.106
+  Downloaded syn v2.0.118
+  Downloaded serde v1.0.228
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling serde_core v1.0.228
+   Compiling cc v1.2.67
+   Compiling zmij v1.0.23
+   Compiling cfg-if v1.0.4
+   Compiling syn v2.0.118
+   Compiling blake3 v1.8.5
+   Compiling serde_json v1.0.150
+   Compiling serde v1.0.228
+   Compiling serde_derive v1.0.228
+   Compiling arrayref v0.3.9
+   Compiling cfg_aliases v0.2.2
+   Compiling constant_time_eq v0.4.2
+   Compiling itoa v1.0.18
+   Compiling cpufeatures v0.3.0
+   Compiling arrayvec v0.7.8
+   Compiling memchr v2.8.3
+   Compiling libc v0.2.186
+   Compiling nix v0.30.1
+   Compiling bitflags v2.13.1
+   Compiling nickel-export-core v0.1.0 (/home/brittonr/git/.kiln-web-service/work/kiln-web-job-aXhyRA/checkout/crates/nickel-export-core)
+   Compiling bounded-exec-core v0.1.0 (https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88e)
+   Compiling bounded-exec v0.1.0 (https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88e)
+   Compiling nickel-export v0.1.0 (/home/brittonr/git/.kiln-web-service/work/kiln-web-job-aXhyRA/checkout/crates/nickel-export)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.73s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-projects/nickel-export/debug/deps/nickel_export-1e42f874498fc1c5)
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/kiln-projects/nickel-export/debug/deps/nickel_export-75c40eda59c96997)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-projects/nickel-export/debug/deps/nickel_export_core-564858e086217f9e)
+   Doc-tests nickel_export
+   Doc-tests nickel_export_core

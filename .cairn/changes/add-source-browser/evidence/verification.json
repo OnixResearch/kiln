@@ -1,0 +1,100 @@
+{
+  "schema": "kiln.source-browser.verification.v1",
+  "immediate_outcome": "The live workspace has a Source page that reads local Git, Jujutsu and Pijul repositories: bounded revision logs, directory trees and exact file content.",
+  "durable_capability": "Typed separate source policy plus bounded read-only source observation reused by the workspace.",
+  "maintenance_owner": {
+    "application": "Kiln web-service maintainers own the reader, bounds and view.",
+    "operation": "Local operator owns repository and executable selection, the --sources policy and activation."
+  },
+  "policy": {
+    "expression": "/home/brittonr/.config/kiln/web-service/sources.ncl",
+    "exported": "/home/brittonr/.config/kiln/web-service/sources.json",
+    "schema": "kiln.web-sources.v1",
+    "sources": [
+      {
+        "id": "kiln",
+        "kind": "git"
+      },
+      {
+        "id": "lattice",
+        "kind": "jj"
+      },
+      {
+        "id": "redox",
+        "kind": "pijul",
+        "channel": "main"
+      }
+    ]
+  },
+  "live": {
+    "kiln": {
+      "head": "278a24af95c328a13a1ee42c4154a6530c87f81f",
+      "revisions_page": 30,
+      "root_entries": 31,
+      "file": "README.md",
+      "file_bytes": 27939,
+      "file_oid": "14166f6b936848f58c1f856d6ccc21cc7675fb0d"
+    },
+    "lattice": {
+      "head": "85a38b6a4bceeae4bb2057cf157e21752100f1b5",
+      "revisions_page": 30,
+      "root_entries": 32,
+      "scope": "revision"
+    },
+    "redox": {
+      "head": "O6GPBDGEM54JOR5IFMVREUYIDHPOUFTV7F5CPGADLVJPKAT237TQC",
+      "revisions_page": 2,
+      "root_entries": 1,
+      "file": "shell.nix",
+      "file_bytes": 715,
+      "scope": "working_copy",
+      "executable": {
+        "path": "/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul",
+        "version": "pijul 1.0.0-beta.11"
+      }
+    }
+  },
+  "rejections": {
+    "anonymous": 401,
+    "worker": 403,
+    "pijul_revision": 400,
+    "traversal": 400,
+    "unknown_source": 404,
+    "oversized_limit": 400
+  },
+  "browser": [
+    "Three sources listed with kind, head and revision scope; unavailable states are distinguished from empty ones.",
+    "Selecting a repository navigates and loads revisions; a revision pins tree and file reads by URL.",
+    "Directory navigation shows a breadcrumb and exact entry kinds with byte sizes.",
+    "README.md rendered 27,939 bytes at revision 278a24af\u2026 with object id and scope facts; Pijul shell.nix rendered its 715-byte working-copy content.",
+    "Reloading a selected source, revision and file URL restored that exact selection.",
+    "390px viewport kept a 390px document width."
+  ],
+  "read_only_check": {
+    "kiln_git_refs_blake2b16": "3e49b6b12ad1c6aaacea55c98d37a3ea",
+    "lattice_git_refs_blake2b16": "6da936cb837fe3fe0444ba859eaad128",
+    "note": "Reads perform no fetch, checkout, ref write, signing or publication; Git/Jujutsu reads open the object store read-only and Pijul runs log/list only."
+  },
+  "verification": {
+    "cargo_test_locked_workspace": "exit 0; 110 test-result-ok groups, no failures",
+    "cargo_test_sources": "5 passed",
+    "cargo_test_cobs": "8 passed",
+    "cargo_clippy_workspace_all_targets_deny_warnings": "exit 0",
+    "cargo_fmt_check": "exit 0",
+    "nix_web_service_package": "/nix/store/a1j7n2nyry3w1wzra681fskbf82s2wl3-kiln-web-service-0.1.0",
+    "nickel": "web-sources typecheck and positive export pass; three negative fixtures rejected",
+    "cairn_gates": "proposal, design and tasks PASS"
+  },
+  "authority_limits": {
+    "mutation": false,
+    "fetch_or_checkout": false,
+    "signing_or_publication": false,
+    "new_linked_gpl_library": false,
+    "ci_or_release_authority": false
+  },
+  "non_claims": [
+    "Source views are bounded local reads, not a checkout, build, verification or provenance claim.",
+    "Jujutsu is read through its Git object store; Jujutsu-only metadata is not interpreted.",
+    "Pijul history is listed but not traversed, and Pijul file content is the tracked working copy, labelled as such."
+  ]
+}

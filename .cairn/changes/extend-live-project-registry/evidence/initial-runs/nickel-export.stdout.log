@@ -1,0 +1,79 @@
+
+running 27 tests
+test improvements_tests::measure_capture_and_replay ... ignored, explicit release-mode measurement, not a timing acceptance test
+test improvements_tests::capture_borrows_bytes_and_replay_keeps_the_original_reference ... ok
+test tests::cli_contract_files_must_be_safe_declared_dependencies ... ok
+test improvements_tests::aggregate_admission_checks_before_retaining_and_rejects_overflow ... ok
+test improvements_tests::streaming_hash_matches_exact_bytes_and_rejects_oversize ... ok
+test tests::evaluator_command_has_no_ambient_environment ... ok
+test tests::evaluator_artifact_change_fails_closed ... ok
+test tests::confined_path_check_accepts_direct_files_and_rejects_symlinks ... ok
+test tests::evaluator_failure_does_not_leak_raw_stdio ... ok
+test tests::failures_serialize_without_a_success_receipt ... ok
+test tests::evaluator_reads_from_null_stdin_and_reports_eof ... ok
+test tests::input_budget_rejects_declared_source_overflow ... ok
+test tests::parser_accepts_bounded_replay_and_rejects_invalid_counts ... ok
+test tests::parser_accepts_complete_check_request ... ok
+test tests::parser_rejects_conflicting_side_effect_modes ... ok
+test tests::parser_rejects_missing_mode_unknown_flags_and_unsafe_paths ... ok
+test tests::plan_keeps_external_evaluation_in_the_shell ... ok
+test tests::replay_agreement_is_deterministic_and_retains_exact_output ... ok
+test tests::replay_divergence_and_failures_withhold_agreed_output ... ok
+test tests::replay_failure_serializes_evidence_without_a_success_receipt ... ok
+test tests::materialization_lock_and_recovery_are_fail_closed_and_idempotent ... ok
+test tests::evaluator_timeout_tears_down_descendant_processes ... ok
+test tests::snapshot_uses_captured_bytes_and_cleans_up ... ok
+test tests::verify_parser_accepts_read_only_artifact_checks_and_rejects_mutation_flags ... ok
+test tests::sequential_external_evaluator_divergence_and_failure_are_recorded ... ok
+test tests::resource_profile_and_stream_bounds_fail_closed ... ok
+test improvements_tests::version_probe_is_bounded_and_does_not_disclose_output ... ok
+
+test result: ok. 26 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 27 tests
+test tests::checked_fuzz_corpus_has_positive_and_negative_neighbors ... ok
+test tests::compatibility_projections_preserve_exact_identities ... ok
+test tests::changing_source_dependency_or_output_bytes_changes_receipt_identity ... ok
+test tests::declared_input_identity_rejects_mismatched_material ... ok
+test tests::declared_input_identity_changes_with_semantic_inputs_and_policy ... ok
+test tests::duplicate_evaluator_options_fail_closed ... ok
+test tests::declared_input_identity_excludes_consumer_labels_destinations_and_output_bytes ... ok
+test tests::embedded_observations_cover_all_formats_selector_contract_and_multiple_dependencies ... ok
+test tests::measure_manifest_index ... ignored, explicit release-mode measurement, not a timing acceptance test
+test tests::exact_inputs_produce_stable_receipts_and_manifests ... ok
+test tests::normalizes_dependency_order_before_identity ... ok
+test tests::rejects_contract_error_diagnostics ... ok
+test tests::proof_correspondence_vectors_match_rust_primitives ... ok
+test tests::rejects_incomplete_observed_closure_and_empty_evaluator_identity ... ok
+test tests::rejects_mixed_evaluator_and_duplicate_output_manifests ... ok
+test tests::rejects_paths_and_options_beyond_named_bounds ... ok
+test tests::rejects_secret_like_material_without_opt_in ... ok
+test tests::rejects_undeclared_observed_dependency ... ok
+test tests::rejects_unsafe_paths_and_duplicate_dependencies ... ok
+test tests::generated_normalization_properties_are_idempotent_and_order_invariant ... ok
+test tests::secret_opt_in_and_consumer_owned_contract_metadata_are_explicit ... ok
+test tests::rejects_unsupported_serialized_format_malformed_manifest_and_weakened_nonclaim ... ok
+test tests::stale_manifest_is_rejected ... ok
+test tests::supplied_artifact_verification_accepts_exact_bytes_and_rejects_mismatch_or_unknown ... ok
+test tests::supplied_artifact_verification_rejects_conflicting_path_identity ... ok
+test tests::strict_wire_decoding_and_admission_reject_unknown_or_fabricated_evidence ... ok
+test tests::indexed_verification_matches_scan_for_large_positive_and_negative_manifests ... ok
+
+test result: ok. 26 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

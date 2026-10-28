@@ -1,0 +1,39 @@
+warning: unknown experimental feature 'wasm-builtin'
+warning: nix-grpc-store: no plugin build matching the loaded libnixstore in '/nix/store/flxfh4xym8i201q71p69xg684xm86a9h-nix-grpc-store-0.1.0-beta.4/lib/nix/nix-grpc-store-versions'. grpc:// stores are unavailable
+copying path '/nix/store/aiapnjc6w07cz0jxy8s3j8cg1vfh1k8b-source' from 'https://cache.nixos.org'...
+unpacking 'github:oxalica/rust-overlay/c67ce00525464a710971351c183ce67acb6ca827?narHash=sha256-VNbQv2P0zgaNh96mT4LrnX7hdXgiC5nBH%2BuvyrrVX7U%3D' into the Git cache...
+building '/nix/store/0dm91v4ggd4a6a31iviahwka4fa2xcab-cargo-1.88.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/van23wws74a1fxbb3vcmlfj0rj38wvw1-rust-std-1.88.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/v05dw6swhyliy1yr7sirhyf1f9ikfyv3-rust-std-1.88.0-wasm32-unknown-unknown.drv'...
+building '/nix/store/pw5r6lc0g0jy8zm208732214fhympng6-rustc-1.88.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/g46qrp9p19qmrhb5f5fhihvqaihjkr2v-clippy-preview-1.88.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/26a5nd262s48fya498lnl70qxhwl79sr-rustfmt-preview-1.88.0-x86_64-unknown-linux-gnu.drv'...
+building '/nix/store/378kqi950yhn9xny33ca4zmd4lcbxcrh-rust-minimal-1.88.0.drv'...
+building '/nix/store/3fymr6kkwmrmipw8pi6af9hy0in4z23f-nix-shell-env.drv'...
+ Downloading crates ...
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded cc v1.4.0
+  Downloaded blake3 v1.8.5
+   Compiling shlex v2.0.1
+   Compiling libc v0.2.189
+   Compiling rustix v1.1.4
+   Compiling find-msvc-tools v0.1.9
+   Compiling cc v1.4.0
+   Compiling bitflags v2.13.1
+   Compiling linux-raw-sys v0.12.1
+   Compiling getrandom v0.4.3
+   Compiling cfg-if v1.0.4
+   Compiling blake3 v1.8.5
+   Compiling constant_time_eq v0.4.2
+   Compiling fastrand v2.5.0
+   Compiling arrayref v0.3.9
+   Compiling once_cell v1.21.4
+   Compiling cpufeatures v0.3.0
+   Compiling arrayvec v0.7.8
+   Compiling tempfile v3.27.0
+   Compiling durable-file-publication v0.1.0 (/home/brittonr/git/.kiln-web-service/work/kiln-web-job-TfEzgz/checkout)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.87s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-projects/durable-file-publication/debug/deps/durable_file_publication-b45c13e1056047a7)
+     Running tests/conformance.rs (/home/brittonr/.cargo-target/kiln-projects/durable-file-publication/debug/deps/conformance-94dc7234e8af66a0)
+     Running tests/durability_acknowledgment.rs (/home/brittonr/.cargo-target/kiln-projects/durable-file-publication/debug/deps/durability_acknowledgment-4739b5cb8880030e)
+     Running tests/linux_capability.rs (/home/brittonr/.cargo-target/kiln-projects/durable-file-publication/debug/deps/linux_capability-967a821c1fe61578)

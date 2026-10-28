@@ -1,0 +1,29 @@
+warning: unknown experimental feature 'wasm-builtin'
+warning: nix-grpc-store: no plugin build matching the loaded libnixstore in '/nix/store/flxfh4xym8i201q71p69xg684xm86a9h-nix-grpc-store-0.1.0-beta.4/lib/nix/nix-grpc-store-versions'. grpc:// stores are unavailable
+building '/nix/store/fzhg20mynlyw2f7lv7zh46vvscp9kxfj-rust-std-1.85.0-wasm32-unknown-unknown.tar.xz.drv'...
+building '/nix/store/q4dv48kfdpdg8wnjnsnsm1drrypg9408-rust-std-1.85.0-wasm32-unknown-unknown.drv'...
+building '/nix/store/phd77sx1xs6fy70i0d8gcjadzp1593ab-rust-minimal-1.85.0.drv'...
+building '/nix/store/rl4yklgbqdcq995kxwrbns5sf2h46638-nix-shell-env.drv'...
+ Downloading crates ...
+  Downloaded blake3 v1.8.6
+  Downloaded libc v0.2.186
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.10
+   Compiling cc v1.4.2
+   Compiling cfg-if v1.0.4
+   Compiling arrayvec v0.7.8
+   Compiling cpufeatures v0.3.0
+   Compiling arrayref v0.3.9
+   Compiling constant_time_eq v0.4.2
+   Compiling cfg_aliases v0.2.2
+   Compiling libc v0.2.186
+   Compiling nix v0.30.1
+   Compiling blake3 v1.8.6
+   Compiling bounded-exec-core v0.1.0 (/home/brittonr/git/.kiln-web-service/work/kiln-web-job-v6K7re/checkout/crates/bounded-exec-core)
+   Compiling bitflags v2.13.1
+   Compiling bounded-exec v0.1.0 (/home/brittonr/git/.kiln-web-service/work/kiln-web-job-v6K7re/checkout/crates/bounded-exec)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.77s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-projects/bounded-exec/debug/deps/bounded_exec-60584d2994795bb8)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/kiln-projects/bounded-exec/debug/deps/bounded_exec_core-aa6d7be4d23bff2f)
+   Doc-tests bounded_exec
+   Doc-tests bounded_exec_core

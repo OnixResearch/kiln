@@ -131,6 +131,22 @@ pub(super) fn read_retained(
 }
 impl Store {
     pub fn open(profile: &ServiceProfile) -> Result<(Self, DurableState, File), String> {
+        Self::open_bound(profile, true)
+    }
+    pub(super) fn open_existing(
+        profile: &ServiceProfile,
+    ) -> Result<(Self, DurableState, File), String> {
+        Self::open_bound(profile, false)
+    }
+    fn open_bound(
+        profile: &ServiceProfile,
+        initialize: bool,
+    ) -> Result<(Self, DurableState, File), String> {
+        if !initialize
+            && std::fs::symlink_metadata(profile.state_directory.join("service.sqlite")).is_err()
+        {
+            return Err("project extension requires an existing service database".into());
+        }
         private_directory(&profile.state_directory)?;
         let lock = owned_file(&profile.state_directory.join("service.lock"))?;
         lock.try_lock_exclusive()
@@ -170,6 +186,9 @@ impl Store {
             .map_err(|_| "database version unavailable")?;
         let profile_id = super::identity(profile)?;
         if version == 0 {
+            if !initialize {
+                return Err("project extension requires versioned service state".into());
+            }
             let count:i64=connection.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",[],|r|r.get(0)).map_err(|_| "database schema unavailable")?;
             if count != 0 {
                 return Err("unversioned database cannot be adopted".into());
@@ -342,6 +361,23 @@ impl Store {
             super::reports::verify_retained(run, &profile.state_directory.join("artifacts"))?;
         }
         Ok((Self { connection }, state, lock))
+    }
+    pub(super) fn extend_binding(&mut self, previous: &str, next: &str) -> Result<(), String> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| "project extension transaction unavailable")?;
+        let changed = tx
+            .execute(
+                "UPDATE service_state SET profile=?1 WHERE id=1 AND profile=?2",
+                params![next, previous],
+            )
+            .map_err(|_| "project extension binding write failed")?;
+        if changed != 1 {
+            return Err("project extension previous binding changed".into());
+        }
+        tx.commit()
+            .map_err(|_| "project extension commit failed".to_owned())
     }
     pub fn save(&mut self, state: &DurableState, bounds: &ServiceBounds) -> Result<(), String> {
         validate(state, bounds)?;

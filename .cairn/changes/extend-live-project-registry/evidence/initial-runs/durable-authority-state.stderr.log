@@ -1,0 +1,28 @@
+warning: unknown experimental feature 'wasm-builtin'
+warning: nix-grpc-store: no plugin build matching the loaded libnixstore in '/nix/store/flxfh4xym8i201q71p69xg684xm86a9h-nix-grpc-store-0.1.0-beta.4/lib/nix/nix-grpc-store-versions'. grpc:// stores are unavailable
+Bad owner or permissions on /home/brittonr/.ssh/config
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+error:
+       … while calling the 'derivationStrict' builtin
+         at «nix-internal»/derivation-internal.nix:37:12:
+           36|
+           37|   strict = derivationStrict drvAttrs;
+             |            ^
+           38|
+
+       … while evaluating derivation 'nix-shell'
+         whose name attribute is located at «github:NixOS/nixpkgs/20535e48e12c86043b577b8518234ff5dbb26957?narHash=sha256-CdItYNdYUlm7NxqMVyQKqT2IxTwvapiPuRLWOyHTrbY%3D»/pkgs/stdenv/generic/make-derivation.nix:651:11
+
+       … while evaluating attribute 'nativeBuildInputs' of derivation 'nix-shell'
+         at «github:NixOS/nixpkgs/20535e48e12c86043b577b8518234ff5dbb26957?narHash=sha256-CdItYNdYUlm7NxqMVyQKqT2IxTwvapiPuRLWOyHTrbY%3D»/pkgs/stdenv/generic/make-derivation.nix:719:11:
+          718|           depsBuildBuild = buildBuildOutputs;
+          719|           nativeBuildInputs = buildHostOutputs;
+             |           ^
+          720|           depsBuildTarget = buildTargetOutputs;
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: Failed to fetch git repository 'ssh://git@github.com/OnixResearch/octet.git'

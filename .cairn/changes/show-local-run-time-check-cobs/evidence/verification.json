@@ -1,0 +1,409 @@
+{
+  "schema": "kiln.dashboard-local-time-cobs.verification.v1",
+  "immediate_outcome": "The live dashboard now shows browser-local last-run and other recorded times beside the exact UTC instant, and the installed Onix COB view reads the explicitly selected public Kiln store rather than reporting an unconfigured browser.",
+  "durable_capability": "Reusable timezone-labelled timestamp presentation in the shared web surface and an exercised, separately admitted read-only native COB path.",
+  "maintenance_owner": {
+    "application": "Kiln dashboard/service maintainers own presentation and COB read conformance.",
+    "operation": "Local operator owns public store selection, the separate --cobs policy and service activation."
+  },
+  "baseline": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "cobs_configured": false,
+    "enrolled_projects": 15,
+    "retained_runs": 19,
+    "public_kiln_store": "/home/brittonr/.radicle/storage/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "registered_onix_refs_in_public_store": 0
+  },
+  "local_time": {
+    "format": "Intl.DateTimeFormat(undefined,{year,month:\"short\",day,hour,minute,second,timeZoneName:\"short\"}) plus resolved IANA zone and ISO UTC",
+    "observations": [
+      "America/New_York: Oct 27, 2026, 06:53:23 PM EDT (local \u00b7 America/New_York) \u00b7 2026-10-27T22:53:23.218Z (UTC)",
+      "Pacific/Auckland: Oct 28, 2026, 11:53:23 AM GMT+13 (local \u00b7 Pacific/Auckland) \u00b7 2026-10-27T22:53:23.218Z (UTC) \u2014 same instant, next local calendar day"
+    ],
+    "unavailable_boundaries": [
+      null,
+      "1793151492050",
+      9007199254740992,
+      8640000000000001
+    ],
+    "unavailable_rendering": "All four observed as \"Unavailable (not recorded)\"; no epoch zero or current time substituted.",
+    "legacy_run_exercised": "web-run-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1 retained null created/started/completed and rendered unavailable in run facts.",
+    "mobile": "390px viewport, document width 390px on Overview and Onix COBs; the local+UTC timestamp wraps without overflow.",
+    "surfaces": "Overview project health (last run completed), duration trend, run facts, worker latest execution, COB operation times, activity tables (shared formatter)."
+  },
+  "cobs": {
+    "policy_expression_blake3": "bc65654a7dd4d562e16a6631f2b88399698f3e3f672e6835d57bcb9b40e4f696",
+    "policy_json_blake3": "2b20cc287d6ab64f5a1b84b1b86e71e8643ef6994e743d9045533787d48ac0ba",
+    "admitted_repositories": [
+      {
+        "id": "kiln",
+        "label": "Kiln (local public Radicle store)",
+        "repository_id": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"
+      }
+    ],
+    "native_conformance": "cargo tests/cobs.rs: 7 passed; six_type..., paging_search..., unconfigured_empty_missing_and_unavailable..., malformed_native_stores..., native_action_operation_and_tip_bounds..., authority_query..., policy_rejects...",
+    "live_reads": [
+      {
+        "request": "GET /api/cobs",
+        "status": 200,
+        "configured": true,
+        "complete": true,
+        "total": 0,
+        "source_status": "available",
+        "objects": 0
+      },
+      {
+        "request": "GET /api/cobs?repository=kiln&type=xyz.onixresearch.adr",
+        "status": 200,
+        "total": 0
+      },
+      {
+        "request": "GET /api/cobs/object?repository=kiln&type=xyz.onixresearch.adr&object=0123456789012345678901234567890123456789",
+        "status": 404,
+        "code": "cob_object_missing"
+      },
+      {
+        "request": "GET /api/cobs?path=/etc/passwd",
+        "status": 400,
+        "code": "query_invalid"
+      }
+    ],
+    "authentication": {
+      "anonymous": 401,
+      "worker_role": 403,
+      "operator": 200,
+      "origin": "https://localhost:9443",
+      "trusted_ca_validation": true
+    },
+    "browser": [
+      "Repository/type/search filters applied and URL-restored after reload.",
+      "Exact missing object rendered as an explicit unavailable cob_object_missing result.",
+      "Native ref listing unchanged before and after all reads."
+    ],
+    "non_claims": [
+      "The selected public Kiln store contains no registered Onix COB refs; this does not imply absence in unconfigured or remote stores.",
+      "Signatures, actor authority, synchronization and publication remain unverified and unperformed."
+    ]
+  },
+  "preservation": {
+    "cobs_configured_after_restart": true,
+    "project_views_identical": true,
+    "all_19_run_views_identical": true,
+    "retained_runs": 19,
+    "worker_observations_identical": true,
+    "worker_snapshot_version": 1395,
+    "native_refs_unchanged": true,
+    "authority_profiles_unchanged": true,
+    "profile_hashes": {
+      "service.json": "3f0d2901378eb05ea8bc30a050fc2f3e06f3c1b1fad2621740a785d6e5a1764f",
+      "access.json": "9a3e70c5d5ad607475c1ebf78deddedc8a182ced7a5667756a1797e24cf921dc",
+      "automation.json": "1dd89b537d2ffa0b48c40149c0da28738c21cf253fb99658a6f2170586de173b",
+      "handler.json": "34a315f54d2e6202a1512f1dd6eadbbde879637f07113335a999b622ffcdc3fa",
+      "worker.json": "c5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc"
+    }
+  },
+  "installed": {
+    "package": "/nix/store/j9k59q2rz9gv129pfab3gycsjg0yz7zm-kiln-web-service-0.1.0",
+    "previous_package": "/nix/store/zjrrhb3ydwawyc3gm751fq259d6ywbj1-kiln-web-service-0.1.0"
+  },
+  "verification": {
+    "cargo_test_locked_workspace": "exit 0; 109 test-result-ok groups, no failures",
+    "cargo_clippy_locked_workspace_all_targets_deny_warnings": "exit 0 after fixing needless borrow and test indexing lints",
+    "cargo_fmt_check": "exit 0",
+    "nix_web_service_package": "/nix/store/j9k59q2rz9gv129pfab3gycsjg0yz7zm-kiln-web-service-0.1.0",
+    "nix_flake_check": "44 of 45 checks passed. checks.x86_64-linux.nix-eval-fixture-process failed under the 45-derivation parallel run with `TimedOut { stdout: [], stderr: [] }` in kiln-adapter-nix-eval tests/fixture_process.rs:124 (deterministic_fixture_processes_preserve_process_classes). The identical derivation /nix/store/xar93kznim3zhcx431kg3qn2hslcpppa-kiln-nix-eval-fixture-process-0.1.0.drv passes when built alone (repeated 3 times) and the case passes in cargo test --workspace.",
+    "cairn_validate": "valid",
+    "cairn_gate_proposal_design_tasks": "PASS",
+    "cairn_traceability_coverage": "fail with the same 21 pre-existing dangling ids from earlier unarchived changes; neither kiln.dashboard.time.local nor kiln.dashboard.cobs.operated appears",
+    "cairn_release_readiness": "fail solely through that pre-existing traceability check; all other governed checks passed"
+  },
+  "authority_limits": {
+    "cobs_created_imported_signed_or_published": false,
+    "remote_peers_or_private_stores_enabled": false,
+    "ci_profiles_or_credentials_changed": false,
+    "jobs_started": false,
+    "lifecycle_accepted_or_archived": false,
+    "source_published": false
+  },
+  "non_claims": [
+    "Local timestamps are presentation over recorded instants, not canonical state.",
+    "A passing COB read rail proves bounded local Git observation over the selected store only, not signature verification, lifecycle reduction, remote completeness or release readiness."
+  ],
+  "cob_population": {
+    "authorization": "Explicit operator selection: create real Onix COBs using the existing published Radicle identity in the Kiln store.",
+    "actor": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+    "store": "/home/brittonr/.radicle/storage/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "command": "cairn cob import <change> --root . --git-repository <store> --keystore ~/.radicle/keys --workspace rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE --policy cairn-policy/generated/cairn-policy.json [--execute]",
+    "dry_run_first": true,
+    "dry_run_verdict": "PASS; actor, 5 artifacts, plan_hash c38f3be3b5bb6cf3aeac9ee472e2145598888039445575563a394e25bc0d1336, no blockers",
+    "imported": 14,
+    "duplicate_refused": {
+      "change": "show-local-run-time-check-cobs",
+      "verdict": "FAIL",
+      "blocker": "change already has COB object 79a5a3066cd80c2172a62d6f578cb7c11ba4a683"
+    },
+    "objects": {
+      "add-dashboard-workers-view": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "38e9488b7e1bb50b558904f18301baa290b516fb",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "0290140897b86657342c571a7bf27371878c20a9c6544501344fe640ed392026",
+        "stderr": ""
+      },
+      "add-onix-cob-dashboard": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "d1af21c4855a7427e4f1d6023681cea8dea93ae8",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "5ed37cd9513d6fa0263d2256c087ccd4523d40d5ad8d6101b16fb1ea65eb6e12",
+        "stderr": ""
+      },
+      "add-patchgate-review-adapter": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "c2a4935a5e58cde345e8f34abae773da2df2a745",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "bce50590009de052b3002004da4f4bbb6a57f15aacce8db096fa8fc8fee9c04b",
+        "stderr": ""
+      },
+      "allow-network-authenticated-web-access": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "0685a13162ce39869986fd5c90a7587c5d8a2394",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "42de6bc8af1d0bc8c2dec28f986e8acfdd43084dab140138dded8a95a9ac9de6",
+        "stderr": ""
+      },
+      "build-dashboard-product-interface": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "ddf5163274481f75aabd13edc56c2eb096a11fc8",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "621e0b9886e81f80211653e674dd63ab71ef5c757b8f5077febf2e678298a7c0",
+        "stderr": ""
+      },
+      "complete-live-dashboard": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "4c325084432e576c310f34e9a9a78bdfe79defef",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "838d14a07f5e07d0273e01b889807638e5ccb456748660213411e81673fb3e0c",
+        "stderr": ""
+      },
+      "enable-web-remote-lattice-workers": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "4a6f2ddcbec78ab1d91bdd15fa44263bb534249f",
+        "artifacts": 4,
+        "blockers": [],
+        "receipt_hash": "998b550519af5174d20dbf1f3ec9e9e4d74fb6b3eedf0b63bd6ee6d15df91af7",
+        "stderr": ""
+      },
+      "extend-live-project-registry": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "ae3dea0478454a6bf0b1aa3e0021a567943c5d1c",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "0539b6f604bbf8a0beb64b4c05ae58a78911cfdbf5961342b5c6ede3de4fb925",
+        "stderr": ""
+      },
+      "harden-audit-followup": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "fc0e24a6395757000815d8c49a6cbae3ebd0a4ad",
+        "artifacts": 6,
+        "blockers": [],
+        "receipt_hash": "9121d2eed15f03bc45351da55507784709317c27c618ebc0e5b8c4873ca1b17e",
+        "stderr": ""
+      },
+      "operate-dashboard-live": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "ce9a0130b32a4fb987b11c2560b28ca794a29268",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "c8e914ffa8ba811c578d69f153bf1a31da5cedb00a172aff66abf4bccbf95310",
+        "stderr": ""
+      },
+      "operate-single-tenant-web-service": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "d11917455999e01db8a56473df2c10c68232419a",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "6309cd3740a9637cf9b401a10c3392fd715a9f64dc6f008eb3b81e985662eed5",
+        "stderr": ""
+      },
+      "prepare-web-service-deployment": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "a577b5741c8b3f7cb0f109976230043adc81113c",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "19bf0b45eb024e12a6d3df9f907d23500e731b666832e924c7597e6a878e41a2",
+        "stderr": ""
+      },
+      "show-local-run-time-check-cobs": {
+        "exit": 0,
+        "verdict": "FAIL",
+        "object_id": null,
+        "artifacts": 5,
+        "blockers": [
+          "change already has COB object 79a5a3066cd80c2172a62d6f578cb7c11ba4a683"
+        ],
+        "receipt_hash": "d7fdb39b675e1412600c12377e74737c690cc773983a557b1aaa08f5c27c47f7",
+        "stderr": ""
+      },
+      "use-rats-browser-index": {
+        "exit": 0,
+        "verdict": "PASS",
+        "object_id": "e59e97631d248f503cb9eb582a4069adfef804ee",
+        "artifacts": 5,
+        "blockers": [],
+        "receipt_hash": "b695b2c7a6da8919dfd6cadefe162b0cfe1278a04611691068d0de38c0c32647",
+        "stderr": ""
+      }
+    },
+    "ref_delta": {
+      "added": 14,
+      "removed_or_changed": 0,
+      "namespace": "refs/namespaces/<actor>/refs/cobs/xyz.onixresearch.cairn-change/<oid>",
+      "head_unchanged": true,
+      "packed_refs_unchanged": true,
+      "store_config_unchanged": true
+    },
+    "live_inventory": {
+      "total": 14,
+      "complete": true,
+      "types_present": [
+        "xyz.onixresearch.cairn-change"
+      ],
+      "unpopulated_types": [
+        "xyz.onixresearch.rfd",
+        "xyz.onixresearch.adr",
+        "xyz.onixresearch.verification-obligation",
+        "xyz.onixresearch.release-decision",
+        "xyz.onixresearch.policy-exception"
+      ],
+      "adr_type_total": 0,
+      "search_patchgate_total": 1,
+      "search_dashboard_total": 5
+    },
+    "browser": [
+      "Fourteen objects listed with native operation IDs and one observed ref tip each.",
+      "Exact detail opened for 79a5a306...: 1 operation, 7019 retained action bytes, real design/proposal/tasks/spec text, signatures unverified, reduced state not inferred.",
+      "Selection restored from URL after reload.",
+      "Type, repository and metadata filters applied; the five unpopulated types correctly reported zero."
+    ],
+    "store_preflight_evidence": "The browser previously returned a true empty result for this store; all 69 local Radicle stores held only xyz.radicle.id/issue/patch and xyz.radworks.job refs, and no Cairn collaboration store existed.",
+    "non_claims": [
+      "Created objects are local Git COB refs; no publication, synchronization, announcement, delegate mutation or peer exchange occurred.",
+      "The commit signature binds the recorded author; the browser still does not verify signatures or reduce lifecycle state."
+    ]
+  },
+  "cob_registry": {
+    "types": [
+      {
+        "id": "xyz.onixresearch.cairn-change",
+        "label": "Cairn changes"
+      },
+      {
+        "id": "xyz.onixresearch.rfd",
+        "label": "RFDs"
+      },
+      {
+        "id": "xyz.onixresearch.adr",
+        "label": "ADRs"
+      },
+      {
+        "id": "xyz.onixresearch.verification-obligation",
+        "label": "Verification obligations"
+      },
+      {
+        "id": "xyz.onixresearch.release-decision",
+        "label": "Release decisions"
+      },
+      {
+        "id": "xyz.onixresearch.policy-exception",
+        "label": "Policy exceptions"
+      },
+      {
+        "id": "xyz.radicle.issue",
+        "label": "Radicle issues"
+      },
+      {
+        "id": "xyz.radicle.patch",
+        "label": "Radicle patches"
+      },
+      {
+        "id": "xyz.radworks.job",
+        "label": "Radicle CI jobs"
+      }
+    ],
+    "admitted_stores": [
+      {
+        "id": "kiln",
+        "status": "available",
+        "objects": 14
+      },
+      {
+        "id": "native-ci",
+        "status": "available",
+        "objects": 75
+      },
+      {
+        "id": "nix-adapter",
+        "status": "available",
+        "objects": 70
+      }
+    ],
+    "total_objects": 159,
+    "counts_by_type": {
+      "xyz.onixresearch.cairn-change": 14,
+      "xyz.radicle.issue": 35,
+      "xyz.radicle.patch": 56,
+      "xyz.radworks.job": 54,
+      "xyz.onixresearch.adr": 0
+    },
+    "unregistered_types_skipped": "xyz.radicle.id refs present in the Kiln store are skipped without failing inventory",
+    "authority": "No new mutation: reading three existing public stores. xyz.radicle.issue/patch and xyz.radworks.job were already present locally and are now observable.",
+    "non_claims": [
+      "Radicle objects are third-party collaboration records shown without translation, reduction, signature verification or Kiln authority."
+    ]
+  },
+  "cob_rendering": {
+    "list_card": "type badge + title (2-line clamp) + recorded excerpt (2-line clamp) + short OID + browser-local compact time + author/ref-tip count; full values remain in the detail and titles",
+    "detail": "type badge, signatures-not-verified badge, observation badge, exact identity facts, ref tips, per-operation recorded local+UTC time, author, parents, message; raw action JSON collapsed when 4096 bytes or larger",
+    "excerpt": "First recorded free-text field (title/body/description/message/summary/name, top level or state/payload/object) of action zero, whitespace-normalized and bounded to 180 characters; empty when absent, never synthesized",
+    "api_additions": [
+      "author",
+      "recorded_at_ms",
+      "excerpt"
+    ],
+    "observed": [
+      "159 objects across three admitted stores; 25-object bounded page with paging controls.",
+      "Real Radicle issues render their recorded body as the excerpt (e.g. \"I would like to use a bit of custom CSS...\").",
+      "Issue detail ea7a6f8b... showed 2 operations, 949 retained action bytes, local+UTC recorded time, unverified author.",
+      "Repository/type/search filters and URL restore unchanged; five Onix types without objects report an honest zero."
+    ],
+    "screenshots": [
+      "evidence/cobs-types-list.png",
+      "evidence/cobs-issues.png",
+      "evidence/cobs-issue-detail.png"
+    ],
+    "mobile": "Prior 390px check of the COB panel remained 390px document width; list card grid has no fixed widths."
+  },
+  "known_holds": [
+    "The nix-eval fixture-process check is load-sensitive: its signal fixture deadline expires only under full parallel flake evaluation. This is unrelated to the COB or timestamp work and no bound was widened.",
+    "cairn traceability coverage still reports the 21 pre-existing dangling ids from earlier unarchived changes; neither kiln.dashboard.time.local nor kiln.dashboard.cobs.* appears.",
+    "The five non-change Onix COB types (RFD, ADR, verification obligation, release decision, policy exception) still have no object in any admitted store: Cairn writes those documents as portable JSON and only `cairn cob import` writes Git COBs."
+  ]
+}

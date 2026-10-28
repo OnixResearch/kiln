@@ -1341,3 +1341,6 @@ mod reports;
 
 #[path = "engine/workers.rs"]
 mod workers;
+
+#[path = "engine/registry.rs"]
+mod registry;

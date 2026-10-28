@@ -1,0 +1,78 @@
+{
+  "project_id": "quantity-contracts",
+  "expected_source_revision": "8ef7a3bad91db4d735a021f91319f5fb89219315",
+  "run": {
+    "id": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e",
+    "project_id": "quantity-contracts",
+    "source_revision": "8ef7a3bad91db4d735a021f91319f5fb89219315",
+    "canonical_tree": "5a7e5f70c01d9e15ae39e84518acac05d8c2ad9e4c523f603d68daedff2acff9",
+    "repository": {
+      "contract_version": 1,
+      "provider_namespace": "git",
+      "native_kind": "repository",
+      "native_id": "5fac78caede2f793784b5f4a49419754c6c82430df83bfaf437fba619aad32c0"
+    },
+    "revision": 2,
+    "attempt_id": "web-attempt-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e",
+    "outcome": "Success",
+    "phase": "terminal",
+    "execution": {
+      "contract_version": 1,
+      "provider_namespace": "lattice",
+      "native_kind": "execution",
+      "native_id": "b3:31c111b7cc419912ae9f9c5ed468d6bdca9a6471d838bddaad167186e0ec9244"
+    },
+    "sequence": 2,
+    "nodes": [
+      {
+        "id": "test",
+        "state": "Completed",
+        "kind": "test",
+        "started_at_ms": null,
+        "completed_at_ms": 1793151400420,
+        "duration_ms": null
+      }
+    ],
+    "controls": {
+      "cancel": false,
+      "pause": false,
+      "resume": false
+    },
+    "error_code": null,
+    "log_bounds": {
+      "maximum_chunk_bytes": 65536,
+      "maximum_total_bytes": 16777216,
+      "maximum_chunks": 256
+    },
+    "ordinal": 487,
+    "parent_run_id": null,
+    "selected_nodes": [],
+    "edges": [],
+    "created_at_ms": 1793151382314,
+    "started_at_ms": 1793151382350,
+    "completed_at_ms": 1793151400420,
+    "duration_ms": 18070,
+    "report_summary": {
+      "coverage": null,
+      "tests": null
+    }
+  },
+  "logs": {
+    "stdout": {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "bytes": 0,
+      "download_path": "/api/runs/web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e/logs/download?node_id=test&stream=stdout",
+      "filename": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e-test-stdout-retained.log",
+      "retained": true,
+      "truncated": false
+    },
+    "stderr": {
+      "blake3": "e129adfbc6d375eb8fcc64e259cdf28f284503b439c71c64eb0eeb1f6f6cbfc5",
+      "bytes": 1169,
+      "download_path": "/api/runs/web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e/logs/download?node_id=test&stream=stderr",
+      "filename": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e-test-stderr-retained.log",
+      "retained": true,
+      "truncated": false
+    }
+  }
+}

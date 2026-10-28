@@ -40,7 +40,16 @@ pre { font-size: .77rem; }
 .run-choice { display: grid; gap: .25rem; text-align: left; width: 100%; padding: .75rem; min-width: 0; }
 .run-choice[aria-current="true"], .dag-node[aria-current="true"], .run-tabs [aria-current="page"] { background: var(--olive-soft); border-color: var(--olive); box-shadow: inset 3px 0 var(--olive); }
 .run-choice span { overflow-wrap: anywhere; }
-.cob-choice { border: 1px solid var(--border); border-radius: .45rem; color: var(--text); text-decoration: none; }
+.cob-choice { border: 1px solid var(--border); border-radius: .45rem; color: var(--text); text-decoration: none; display: grid; gap: .3rem; padding: .7rem .8rem; min-width: 0; }
+.cob-head { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; min-width: 0; }
+.cob-type { justify-self: start; font-size: .66rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--olive); background: var(--olive-soft); border: 1px solid var(--olive); border-radius: 2rem; padding: .1rem .5rem; white-space: nowrap; }
+.cob-repo { font-size: .7rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cob-title { font-size: .9rem; line-height: 1.32; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.cob-excerpt { font-size: .76rem; line-height: 1.35; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.cob-oid { font: .72rem ui-monospace, monospace; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cob-foot { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; min-width: 0; font-size: .7rem; color: var(--muted); }
+.cob-when { font-variant-numeric: tabular-nums; white-space: nowrap; }
+#cob-detail .badges { justify-content: flex-start; }
 .cob-choice:hover, .cob-choice[aria-current="true"] { background: var(--olive-soft); border-color: var(--olive); }
 .cob-choice strong, #cob-detail h2 { overflow-wrap: anywhere; }
 .cob-action { min-width: 0; }
@@ -113,3 +122,14 @@ dialog::backdrop { background: #10170dc0; }
 @media (max-width: 60rem) { .app-topbar { min-height: 4.2rem; } .session-tools .live-badge { max-width: 8rem; } #logout { font-size: .72rem; padding-inline: .5rem; } }
 @media (max-width: 40rem) { .session-tools { gap: .4rem; } .session-tools .live-badge { max-width: 8rem; } .login-panel { margin: 1.5rem auto; padding: 1.4rem; } .facts { grid-template-columns: minmax(0, 1fr); gap: .25rem; } .facts dd { margin-bottom: .55rem; } .artifact-card { grid-template-columns: minmax(0, 1fr); } .log-output { min-height: 12rem; } #run-search-form { grid-template-columns: minmax(0, 1fr); } .app-topbar { padding-inline: .75rem; } .topbar-workspace, .breadcrumb-divider { display: none; } .run-tabs button { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+.source-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; font-size: .78rem; }
+.source-breadcrumb button { padding: .1rem .45rem; font-size: .76rem; }
+.source-separator { color: var(--muted); }
+.source-entries { display: grid; gap: .25rem; margin-top: .6rem; }
+.source-entry { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr) auto; gap: .6rem; align-items: center; width: 100%; text-align: left; padding: .38rem .55rem; border: 1px solid var(--border); border-radius: .4rem; background: var(--surface); font: inherit; font-size: .8rem; cursor: pointer; }
+.source-entry:hover, .source-entry[aria-current="true"] { background: var(--olive-soft); border-color: var(--olive); }
+.source-kind { font: .66rem ui-monospace, monospace; text-transform: uppercase; color: var(--muted); }
+.source-name { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+.source-size { font-size: .7rem; color: var(--muted); }
+.source-content { margin: 0; padding: .8rem; background: var(--surface-soft); border: 1px solid var(--border); border-radius: .4rem; max-height: 34rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .76rem/1.55 ui-monospace, monospace; }
+.source-revision { display: grid; gap: .2rem; }

@@ -25,6 +25,30 @@ const NON_CLAIMS: [&str; 3] = [
     "Browsing neither mutates COBs nor grants CI, gate, acceptance or release authority.",
 ];
 
+/// Types this read-only browser can display.
+///
+/// The six `xyz.onixresearch.*` types are Cairn decision objects. The three
+/// Radicle types are native collaboration objects that Kiln observes without
+/// reduction, translation or acceptance meaning.
+pub(super) const COB_TYPES: [(&str, &str); 9] = [
+    ("xyz.onixresearch.cairn-change", "Cairn changes"),
+    ("xyz.onixresearch.rfd", "RFDs"),
+    ("xyz.onixresearch.adr", "ADRs"),
+    (
+        "xyz.onixresearch.verification-obligation",
+        "Verification obligations",
+    ),
+    ("xyz.onixresearch.release-decision", "Release decisions"),
+    ("xyz.onixresearch.policy-exception", "Policy exceptions"),
+    ("xyz.radicle.issue", "Radicle issues"),
+    ("xyz.radicle.patch", "Radicle patches"),
+    ("xyz.radworks.job", "Radicle CI jobs"),
+];
+
+pub(super) fn supported_type(type_name: &str) -> bool {
+    COB_TYPES.iter().any(|(name, _)| *name == type_name)
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RepositoryPolicy {
@@ -151,7 +175,7 @@ impl Browser {
         }
         let repository = values.get("repository").map_or("", String::as_str);
         let type_name = values.get("type").map_or("", String::as_str);
-        if !type_name.is_empty() && !kiln_core::cob::INITIAL_CAIRN_TYPES.contains(&type_name) {
+        if !type_name.is_empty() && !supported_type(type_name) {
             return error(400, "cob_type_invalid");
         }
         if !repository.is_empty() && !crate::profile::identifier(repository) {
@@ -250,6 +274,7 @@ impl Browser {
                             &row.repository_label,
                             &row.repository_id,
                             &row.type_name,
+                            &row.author,
                         ]
                         .iter()
                         .any(|value| value.to_lowercase().contains(&needle)))
@@ -281,19 +306,8 @@ impl Browser {
 }
 
 fn types() -> Vec<Value> {
-    kiln_core::cob::INITIAL_CAIRN_TYPES
+    COB_TYPES
         .iter()
-        .map(|type_name| {
-            let label = match *type_name {
-                "xyz.onixresearch.cairn-change" => "Cairn changes",
-                "xyz.onixresearch.rfd" => "RFDs",
-                "xyz.onixresearch.adr" => "ADRs",
-                "xyz.onixresearch.verification-obligation" => "Verification obligations",
-                "xyz.onixresearch.release-decision" => "Release decisions",
-                "xyz.onixresearch.policy-exception" => "Policy exceptions",
-                _ => unreachable!("registered Onix COB type"),
-            };
-            json!({"id":type_name,"label":label})
-        })
+        .map(|(type_name, label)| json!({"id":type_name,"label":label}))
         .collect()
 }

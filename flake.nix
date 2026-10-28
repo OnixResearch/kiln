@@ -976,13 +976,16 @@
               config/fixtures/dashboard-refresh-positive.ncl \
               config/web-service.ncl \
               config/web-worker.ncl \
+              config/onixresearch-projects.ncl \
               config/web-systemd.ncl \
               config/web-access.ncl \
               config/web-automation.ncl \
               config/web-cobs.ncl \
+              config/web-sources.ncl \
               config/fixtures/*web-access*.ncl \
               config/fixtures/*web-automation*.ncl \
               config/fixtures/*web-cobs*.ncl \
+              config/fixtures/*web-sources*.ncl \
               config/fixtures/*web-systemd*.ncl \
               deployment/*.ncl \
               deployment/fixtures/*.ncl \
@@ -1007,11 +1010,20 @@
             nickel typecheck config/patchgate-review.ncl
             nickel typecheck config/web-service.ncl
             nickel typecheck config/web-worker.ncl
+            nickel export config/onixresearch-projects.ncl >/dev/null
             nickel typecheck config/web-systemd.ncl
             nickel typecheck config/web-cobs.ncl
             nickel export config/fixtures/web-access-positive.ncl >/dev/null
             nickel export config/fixtures/web-automation-positive.ncl >/dev/null
             nickel export config/fixtures/web-cobs-positive.ncl >/dev/null
+            nickel typecheck config/web-sources.ncl
+            nickel export config/fixtures/web-sources-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-web-sources-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative source fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel export config/fixtures/web-systemd-positive.ncl >/dev/null
             nickel export deployment/fixtures/positive.ncl >/dev/null
             for fixture in deployment/fixtures/negative-*.ncl; do

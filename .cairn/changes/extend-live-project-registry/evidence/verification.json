@@ -1,0 +1,768 @@
+{
+  "schema": "kiln.live-project-registry.observation.v1",
+  "immediate_outcome": "Fourteen additional reviewed projects enrolled and each exercised through the live source-bound native workflow path. Eight checks passed and six failed on unavailable dependency prerequisites.",
+  "durable_capability": "Explicit offline append-only registry extension with exact previous-profile admission, retained-history preservation, paired rejection regressions and a typed reviewed CI command catalog.",
+  "maintenance_owner": {
+    "application": "Kiln application maintainers own admission, persistence and CLI behavior.",
+    "operation": "Local operator owns repository/command selection, credentials, immutable profiles, native route installation and state capacity."
+  },
+  "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+  "transition": {
+    "previous_profile_identity": "4f1f1323466d10d013624d36a3b1ab799cbe45c99bdc8a96815043d53b99eb75",
+    "profile_identity": "029f969d9f8dd7a89e8536615a3adfda5d4ead6ecc639371381039827104960d",
+    "stored_state_blake3_before": "b4a9aa0e1026dd824919e26b459aa0f9dcda9f460b70a584d87ddedabcb87c73",
+    "stored_state_bytes_unchanged": true,
+    "backup": "/home/brittonr/git/.kiln-web-service/pre-onixresearch-projects",
+    "package": "/nix/store/d9sspgid16374bfw3ijwaminymrfq39w-kiln-web-service-0.1.0",
+    "profile_source": "/nix/store/nwkd3645gs1kqd58js5ygznrfsp2vq2k-source",
+    "original_worker_blake3": "c5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc",
+    "routes": 15
+  },
+  "service_binary_blake3": "7e7e715f8eb7008426fe357b5a435953913c013385f897d8719ba020b5ced508",
+  "configured_projects": 15,
+  "enrolled_projects": 15,
+  "retained_runs": 19,
+  "original_run_ids": [
+    "web-run-21d8cc4db8255d60cc823bf0ef6e69b5e4403a698fe57f827210e72518830bbf",
+    "web-run-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1",
+    "web-run-cb20a48b1e697c98d1fc9a899582791b3d7fd8cf803ed526a965984828c70a61",
+    "web-run-5e36990d5ebbbcb3641102a925f58a570489493a9f316a085f231e20d81ce790",
+    "web-run-fc1098b34663c6f43ff65590ea8e530966d7c63999afaa26a3e84474b9500b21"
+  ],
+  "original_run_views_unchanged_after_all_jobs": true,
+  "original_retained_files_verified": 10,
+  "original_worker_and_route_preserved": true,
+  "initial_jobs": {
+    "total": 14,
+    "success": 8,
+    "prerequisite_failures": 6,
+    "exact_expected_revisions_observed": true,
+    "rows": [
+      {
+        "project_id": "cap-root",
+        "reference": "refs/heads/main",
+        "source_repository": "447894fe481baeeb576450cf5a509fba4555a491149248130cfe8a80698710b6",
+        "source_revision": "545e77e5a49e4e1d34037aa9a82d924944ac0a1b",
+        "run_id": "web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770",
+        "outcome": "Success",
+        "duration_ms": 42211,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace"
+        ],
+        "worker_blake3": "59328073de473ea878cdc9345421910815c10b2b2dae9f1273ddfc51ebbe82fa",
+        "workflow_revision": "6ef4e7022c67245a9c68c3d920869d3e80be4eaf59af430f34a64c75ebc68022",
+        "logs": {
+          "stdout": {
+            "blake3": "c3af146d3f7059c498cbf21a31803806d58c48715341e376334079be054032e5",
+            "bytes": 839,
+            "download_path": "/api/runs/web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "b78233ce029eb4c6e6d69296913b92912f766cfd3382f274e747c069ddfdf531",
+            "bytes": 2439,
+            "download_path": "/api/runs/web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-d6fda2389779033f8da40c50cbca653ebd5a2cca2be6e40e939780ab8e3df770-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "bounded-exec",
+        "reference": "refs/heads/main",
+        "source_repository": "4729e25e1378a478df8b3dbaaf265d4588af42cc820fce40389b13b0281f6ada",
+        "source_revision": "44eb74eb639194665ee820562d5b2ce2c3ff6a94",
+        "run_id": "web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a",
+        "outcome": "Success",
+        "duration_ms": 13032,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace"
+        ],
+        "worker_blake3": "17f90b63d0d73d100299780c19fbcb989e69dbe9c6f7eba7eee54d1627d134bf",
+        "workflow_revision": "7878e3445fc978ab201dfe37cf951b3c4ed915b9154e1bf0ef63b9bc2e5c21b0",
+        "logs": {
+          "stdout": {
+            "blake3": "7317757393029e0f65692b2aa1a58997d6dab73b8bca04f2173eeefd8445be45",
+            "bytes": 1840,
+            "download_path": "/api/runs/web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "a9849f532f528ff92439d2ddf1dfe5f117521871fb6bebc6cee23a01b5d920ee",
+            "bytes": 1756,
+            "download_path": "/api/runs/web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-cd7550bb7fba9b18d752eb99ea2b206e25b554cfd06300be2c90fbdd441ce93a-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "durable-file-publication",
+        "reference": "refs/heads/main",
+        "source_repository": "31c3f0b11e70eda65d6882f293ac584e4fd300c335cc87fc3570d4118e442af9",
+        "source_revision": "527c7828fa10970d42064460cd7cd15c1c5a6cca",
+        "run_id": "web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb",
+        "outcome": "Success",
+        "duration_ms": 28725,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--all-targets"
+        ],
+        "worker_blake3": "e54b473333b0eff8eb1016783bebee945eeb8631232443cf0f4949dc50ca4425",
+        "workflow_revision": "ce1a6e197faad5b7ac5980cc7432627140d5e1cd873fa2c339e897a89ea58c5f",
+        "logs": {
+          "stdout": {
+            "blake3": "99df456b0976c8525a97016a2892409d9d9ff6bd7f2872a050bd88a4b12758a9",
+            "bytes": 1549,
+            "download_path": "/api/runs/web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "050fcdbfdb31398545548a3e1e1ad8a1590c5f89ef74069a94d27f17bb55117d",
+            "bytes": 2748,
+            "download_path": "/api/runs/web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-68d5e84ca79c5efbb5abaadfa819303d44db0e205852052eca45b35720f4f9eb-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "content-identity-core",
+        "reference": "refs/heads/main",
+        "source_repository": "84236a59f2ca3c5589fa044d049f337d930b3d9985b27b6440a603ee36845663",
+        "source_revision": "f4712fb23acfc8333d205f43c9086e8b9d5f2601",
+        "run_id": "web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055",
+        "outcome": "Success",
+        "duration_ms": 17388,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--all-targets"
+        ],
+        "worker_blake3": "a4d1589e25a97d56b7330acb1353b8845dbac3f29896512f147b04d546ce508b",
+        "workflow_revision": "a325522cca2a413e5c3d7c35291fa41adb72401529231d2d50e45789da69e73a",
+        "logs": {
+          "stdout": {
+            "blake3": "318c1cf0ac9278a46ab12d290357db9983b1772f2cce85c03b4978a65e03b551",
+            "bytes": 720,
+            "download_path": "/api/runs/web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "352b09b4bb0cf279697531d8c18330ff97de8ce8b708816382317d4eebe15625",
+            "bytes": 2352,
+            "download_path": "/api/runs/web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-dd32cb8f153835209d6fcc194ca98966b0c6765bac3dfd69060456fa25818055-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "schema-identity-core",
+        "reference": "refs/heads/main",
+        "source_repository": "bfe0e47a9894c331a12cc1e06f8c0728e5819cccc0beda403c23cdeedd8d7901",
+        "source_revision": "dace0c70eef55baaaa1af2c9162a7f64d629299a",
+        "run_id": "web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5",
+        "outcome": "DomainFailure",
+        "duration_ms": 2132,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features"
+        ],
+        "worker_blake3": "bd6294f35392536cab1a8cce9395c17039a3a121fa94fb82aae4045e9ec73e10",
+        "workflow_revision": "a358f8cbfec58f331d7231093c18ede4198347e2bf7f615caa24920fcca9eaf1",
+        "logs": {
+          "stdout": {
+            "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            "bytes": 0,
+            "download_path": "/api/runs/web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "dd7593cd56d61ec17b9677aa77ccb33189144d0db6065435cfde127da7e94452",
+            "bytes": 1618,
+            "download_path": "/api/runs/web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": "Nix shell could not fetch ssh://git@github.com/OnixResearch/cairn.git: Bad owner or permissions on /home/brittonr/.ssh/config."
+      },
+      {
+        "project_id": "schema-migration-core",
+        "reference": "refs/heads/main",
+        "source_repository": "5a8b5189f258fbc2aa73829212ec01f2de3da4d5ad52698b5527719888f65a71",
+        "source_revision": "1e70648bcb06f3194eaf4eb5e7c30b130700a1c0",
+        "run_id": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598",
+        "outcome": "DomainFailure",
+        "duration_ms": 4013,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features"
+        ],
+        "worker_blake3": "8024ba773d765992b98c09d78b5f7ebac4d672143c2af81643eaaa7847d9fc0c",
+        "workflow_revision": "914bd741427da131ee6e62d04d8cead38892cda0db4ebf2c893c17f85146b06d",
+        "logs": {
+          "stdout": {
+            "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            "bytes": 0,
+            "download_path": "/api/runs/web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "dd7593cd56d61ec17b9677aa77ccb33189144d0db6065435cfde127da7e94452",
+            "bytes": 1618,
+            "download_path": "/api/runs/web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-a78ed08fc1f7967e802f16b2193a8ef84326a4e528973fc8f449deb19e9ff598-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": "Nix shell could not fetch ssh://git@github.com/OnixResearch/cairn.git: Bad owner or permissions on /home/brittonr/.ssh/config."
+      },
+      {
+        "project_id": "quantity-contracts",
+        "reference": "refs/heads/main",
+        "source_repository": "5fac78caede2f793784b5f4a49419754c6c82430df83bfaf437fba619aad32c0",
+        "source_revision": "8ef7a3bad91db4d735a021f91319f5fb89219315",
+        "run_id": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e",
+        "outcome": "Success",
+        "duration_ms": 18070,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "flake",
+          "check",
+          "path:.",
+          "--no-write-lock-file",
+          "-L"
+        ],
+        "worker_blake3": "f5d7eeeeebb2125dff39ddbf0ed61165b1a40b224e2e153d7ba62109ecb5a23c",
+        "workflow_revision": "381ffe40a11d1c7803d4ad2db0db7a6c5b0aeaa6d64bc79ffbcb02ad81dc4e1a",
+        "logs": {
+          "stdout": {
+            "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            "bytes": 0,
+            "download_path": "/api/runs/web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "e129adfbc6d375eb8fcc64e259cdf28f284503b439c71c64eb0eeb1f6f6cbfc5",
+            "bytes": 1169,
+            "download_path": "/api/runs/web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-7af95b6f53b62cfe6369dffb4e9e75a97ac1ebd683165ac15dd74e6e0d3a629e-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "valence",
+        "reference": "refs/heads/main",
+        "source_repository": "7abce282209ff19d43e6997b47b3648ddf1369bd5a267c2194013d8a1179fa6a",
+        "source_revision": "15e72b5a330b08139ac7c809ac31e7e87f825b22",
+        "run_id": "web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af",
+        "outcome": "DomainFailure",
+        "duration_ms": 34559,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace"
+        ],
+        "worker_blake3": "bd747cdae0e28cb87563087aa0f9ad1f79b1521ddac25a552242483c7e90a81a",
+        "workflow_revision": "5dd0889b951011dacca22f24116fb65b525af378a3bca668b7f52d005e30eae8",
+        "logs": {
+          "stdout": {
+            "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            "bytes": 0,
+            "download_path": "/api/runs/web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "1d8592c3cf6babe9135975cc16b2a8b2f5c68e7a75dc53a74569fe7793eadae2",
+            "bytes": 3547,
+            "download_path": "/api/runs/web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-504ac38329d4775a66cb0b7197d820dd4a0b8c6d95010823ab27e8884d49b2af-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": "Cargo could not fetch the pinned onix-artifact SSH dependency: Bad owner or permissions on /home/brittonr/.ssh/config."
+      },
+      {
+        "project_id": "artifact",
+        "reference": "refs/heads/main",
+        "source_repository": "6fdbb89faf86098325acd9bae0ce76171277841aa83ab8de12ee87e4a635703e",
+        "source_revision": "5f3962d7471d1547e044f57daeda72f56621fd52",
+        "run_id": "web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb",
+        "outcome": "Success",
+        "duration_ms": 22523,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace"
+        ],
+        "worker_blake3": "d796bcf0c23471c8982ce5c5c66a14a29d5342ca7b9289e4b6013edce0cb29ab",
+        "workflow_revision": "65ef211a83e6db38526050b30cf6f2265c1d2ca8b3ac31571f70a21e5351030d",
+        "logs": {
+          "stdout": {
+            "blake3": "66cc9da383cf170b1a572bdeeb8680b374ab1284e9bdf41a6101e3386352c19f",
+            "bytes": 4403,
+            "download_path": "/api/runs/web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "53aca35029ce4794e1d971f14b97c14c56967f45bd1baff328c0d85ecf2e8b84",
+            "bytes": 4193,
+            "download_path": "/api/runs/web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-e11539912ed2b7c3bebe0d1ac26aa39cbabf6d4cc31d9e838ef5ee6e919db9eb-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "bounded-http",
+        "reference": "refs/heads/main",
+        "source_repository": "acc81c29c50a2170c265dd01b3de39a59de29453474603386a33be9a630f63e1",
+        "source_revision": "db13eb8a0341719e54817ae34451cf310a41033f",
+        "run_id": "web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d",
+        "outcome": "DomainFailure",
+        "duration_ms": 266,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features"
+        ],
+        "worker_blake3": "74671b329e26b2acd18c3321ec5b1d1bf5796b91fa2ac69272253ac58aa7f9b5",
+        "workflow_revision": "34db28c8733eafbac72069d7e2f85a28b67507c331d334a6cb3d4967a32a20a6",
+        "logs": {
+          "stdout": {
+            "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            "bytes": 0,
+            "download_path": "/api/runs/web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "dd7593cd56d61ec17b9677aa77ccb33189144d0db6065435cfde127da7e94452",
+            "bytes": 1618,
+            "download_path": "/api/runs/web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-cd3e728a4fa399d23ef1f022e899b61b74fdf6eb0f88fb15fbaf14957fd9a62d-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": "Nix shell could not fetch ssh://git@github.com/OnixResearch/cairn.git: Bad owner or permissions on /home/brittonr/.ssh/config."
+      },
+      {
+        "project_id": "durable-authority-state",
+        "reference": "refs/heads/main",
+        "source_repository": "9002f34b4f11df788b85a0f3ac191527d2b94581ef6085a1ccb3c712fdc97a48",
+        "source_revision": "c545e88e544b5db1739ad2d2286ca4d6effb5e33",
+        "run_id": "web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797",
+        "outcome": "DomainFailure",
+        "duration_ms": 5102,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features"
+        ],
+        "worker_blake3": "917d2589e72c643daed0425b99388f094a0ad25febc911dc5c3d9f54fcc0e301",
+        "workflow_revision": "370702c049a5c121c1bda248a3b5eb61674142bab6b51cadde3c0d54e1eae581",
+        "logs": {
+          "stdout": {
+            "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            "bytes": 0,
+            "download_path": "/api/runs/web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "a31003ada732ab44a33bb86bb077caa7b92b97ca57feabd0a865556789aa639d",
+            "bytes": 1618,
+            "download_path": "/api/runs/web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-87c83897303bf0f7d8902ae8312da80f2135e9bf5f204f492be9a2b457a28797-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": "Nix shell could not fetch ssh://git@github.com/OnixResearch/octet.git: Bad owner or permissions on /home/brittonr/.ssh/config."
+      },
+      {
+        "project_id": "nickel-export",
+        "reference": "refs/heads/main",
+        "source_repository": "5ae93d4bc8433381bf69fedee14d6af1a3a9a78221339056dde93ce591457807",
+        "source_revision": "07ea21c0666f72994d69849cf22e0cfec3132cc5",
+        "run_id": "web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f",
+        "outcome": "Success",
+        "duration_ms": 22062,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace"
+        ],
+        "worker_blake3": "f5f581847cca35bb3e43e8c064945645a94a0daf77171ebd119bd5548370b35d",
+        "workflow_revision": "a5cf211c78d2736ba6983425e9f202967eaaf5c741b336690924d2f65d1e7e4c",
+        "logs": {
+          "stdout": {
+            "blake3": "77474dfd357fa10328ecf47bbf00e67431bc8ab60501a11071dae29c8a7efa79",
+            "bytes": 4741,
+            "download_path": "/api/runs/web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "8b8fcf8a5e942dc677923987a89163c5e77ea196937f94babb3f72b005756803",
+            "bytes": 2857,
+            "download_path": "/api/runs/web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-8e57c0f3cc7be56b0f5149e07b150156c97e57cbbe9c3a8c671188f5c351fc6f-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "nickel-eval",
+        "reference": "refs/heads/main",
+        "source_repository": "af7a050c2d00dafb50a6f1b7d53125e27688f7c747d358b5b989e5c8cb84da80",
+        "source_revision": "89846a64db1246d4eeb45fc3f39e361db87ce69a",
+        "run_id": "web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17",
+        "outcome": "Success",
+        "duration_ms": 82036,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--all-targets"
+        ],
+        "worker_blake3": "fb0203c902b5cfdd11e9d53568558b6f5153c996f422569271dc2e13c381668d",
+        "workflow_revision": "3eec1ad91733b087d02c8e060a1c325e373fdcf874421b1f032487464402128e",
+        "logs": {
+          "stdout": {
+            "blake3": "60353d04e88d2bd87bdd4713c2e516c86c69730d298c23c8ec26d9a30406004b",
+            "bytes": 6832,
+            "download_path": "/api/runs/web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "37893099ecd8a3687057602956148afdf4e332be016700b38b9aa5477e4009b1",
+            "bytes": 8874,
+            "download_path": "/api/runs/web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": null
+      },
+      {
+        "project_id": "transactional-reconciliation-core",
+        "reference": "refs/heads/main",
+        "source_repository": "d29b9b6d4493c9f4700b2d7d14a97f66db91ee1a015cb6305c80342864899b57",
+        "source_revision": "a4ce8038956bc3daea04e0ae80a6b46ebb236524",
+        "run_id": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb",
+        "outcome": "DomainFailure",
+        "duration_ms": 3284,
+        "program": "/home/brittonr/.local/state/nix/profiles/kiln-runtime/bin/nix",
+        "argv": [
+          "--option",
+          "builders",
+          "",
+          "--option",
+          "secret-key-files",
+          "",
+          "develop",
+          "path:.",
+          "--no-write-lock-file",
+          "--command",
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features"
+        ],
+        "worker_blake3": "5ccc822b27cfa71a3a1a1610fe0d7e56eff6c8d5bb8d539559d944a825711656",
+        "workflow_revision": "43fa03c93392e81cad688c66c943cb2acf712a84dccfef20275051b6d2028844",
+        "logs": {
+          "stdout": {
+            "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+            "bytes": 0,
+            "download_path": "/api/runs/web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb/logs/download?node_id=test&stream=stdout",
+            "filename": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb-test-stdout-retained.log",
+            "retained": true,
+            "truncated": false
+          },
+          "stderr": {
+            "blake3": "4090b9d6422bd0a97f473b0f6c897cb88bf45667ea66acc30d4f4cfa034778e3",
+            "bytes": 1764,
+            "download_path": "/api/runs/web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb/logs/download?node_id=test&stream=stderr",
+            "filename": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb-test-stderr-retained.log",
+            "retained": true,
+            "truncated": false
+          }
+        },
+        "prerequisite_failure": "Pinned Octet archive https://github.com/OnixResearch/octet/archive/731571fbfffd0b7db11ac0cc9d3939105ddc71e2.tar.gz returned HTTP 404."
+      }
+    ]
+  },
+  "final_worker_summary": {
+    "targets": 15,
+    "configured_slots": 15,
+    "enrolled_slots": 15,
+    "active": 0,
+    "free_slots": 15,
+    "queued": 0
+  },
+  "verification": {
+    "cargo_test_locked_workspace": "exit 0; full output retained in workspace-tests.log",
+    "cargo_clippy_locked_workspace_all_targets_deny_warnings": "exit 0; full output retained in workspace-clippy-lifecycle.log",
+    "nix_web_service_package": "/nix/store/d9sspgid16374bfw3ijwaminymrfq39w-kiln-web-service-0.1.0",
+    "nix_nickel_check": "/nix/store/zdc0lx6jlwzanyqxl2fa2smz1w5624vc-kiln-nickel",
+    "registry_engine_regressions": "4 passed; included in the 52 passing engine integration cases in both local workspace tests and packaged release checks",
+    "cairn_proposal_design_tasks_gates": "PASS; structural gates only, not acceptance",
+    "browser": [
+      "Actual authenticated Projects view showed all fifteen enrolled entries.",
+      "Actual Workers inventory showed fifteen targets; search selected the exact Cap Root binding and linked to its successful source-bound run.",
+      "The Cap Root retained stdout rendered eight real passing tests.",
+      "Original Kiln execution and retained stdout remained readable in the same browser.",
+      "Final Workers view showed fifteen free enrolled project slots, zero active and zero queued; physical liveness remained unknown.",
+      "Mobile Projects navigation and cards were observed at 390px with 390px document width."
+    ],
+    "browser_additional_observation": "The separately inspected mobile run-log view had document width 413px at viewport width 390px. No general mobile-layout qualification is claimed by this registry delivery."
+  },
+  "authority_limits": {
+    "sibling_sources_changed": false,
+    "ssh_permissions_or_credentials_changed": false,
+    "dependency_pins_overridden": false,
+    "automatic_triggers_added": false,
+    "source_published": false,
+    "lifecycle_accepted_or_archived": false,
+    "global_certificate_trust_changed": false
+  },
+  "non_claims": [
+    "Enrolled targets are configured workflow bindings, not fifteen discovered physical workers or guaranteed provider concurrency.",
+    "Command outcomes cover the selected exact committed Git refs, not dirty working copies, newer Jujutsu bookmarks or complete release gates.",
+    "Unavailable private/missing dependency prerequisites remain recorded failures; no fake passing rows or placeholder jobs were created.",
+    "Existing Kiln self-CI remains its original independently pinned worker/helper/workflow cohort, not requalification of that cohort.",
+    "Local same-account command execution is not hostile-code confinement, release readiness or publication authority."
+  ],
+  "restart_recovery": {
+    "service_restarted": true,
+    "dependent_proxy_restarted": true,
+    "project_views_identical": true,
+    "all_19_run_views_identical": true,
+    "worker_observations_and_capacity_identical": true,
+    "worker_snapshot_version_before": 1389,
+    "worker_snapshot_version_after": 1391,
+    "enrolled_projects": 15,
+    "retained_runs": 19,
+    "worker_summary": {
+      "targets": 15,
+      "configured_slots": 15,
+      "enrolled_slots": 15,
+      "active": 0,
+      "free_slots": 15,
+      "queued": 0
+    }
+  }
+}

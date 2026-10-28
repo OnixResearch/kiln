@@ -1,0 +1,50 @@
+warning: unknown experimental feature 'wasm-builtin'
+warning: nix-grpc-store: no plugin build matching the loaded libnixstore in '/nix/store/flxfh4xym8i201q71p69xg684xm86a9h-nix-grpc-store-0.1.0-beta.4/lib/nix/nix-grpc-store-versions'. grpc:// stores are unavailable
+copying path '/nix/store/cxx967kpb69s62f8xh97qq1r2lhj6i3s-rustup-1.29.0' from 'http://100.100.103.95:5000'...
+copying path '/nix/store/b7n7djcbwb88vfsg7nc1pwj0s3qd7yp6-clippy-1.95.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/ywjbx0pbnabhbscywxkmyrmwp0m2086q-rustfmt-1.95.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/rmp1s1rjs6id3hhyh1kf71f0dq6yc700-nickel-1.17.0' from 'https://cache.nixos.org'...
+building '/nix/store/30gaq1q51ym7icjq17p5iw5dw5aa9hgm-nix-shell-env.drv'...
+info: syncing channel updates for nightly-2026-03-21-x86_64-unknown-linux-gnu
+info: latest update on 2026-03-21 for version 1.96.0-nightly (ac7f9ec7d 2026-03-20)
+info: downloading 7 components
+    Updating git repository `ssh://git@github.com/OnixResearch/onix-artifact.git`
+Bad owner or permissions on /home/brittonr/.ssh/config
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: spurious network error (3 tries remaining): process didn't exit successfully: `git fetch --no-tags --force --update-head-ok 'ssh://git@github.com/OnixResearch/onix-artifact.git' '+5f3962d7471d1547e044f57daeda72f56621fd52:refs/commit/5f3962d7471d1547e044f57daeda72f56621fd52'` (exit status: 128)
+Bad owner or permissions on /home/brittonr/.ssh/config
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: spurious network error (2 tries remaining): process didn't exit successfully: `git fetch --no-tags --force --update-head-ok 'ssh://git@github.com/OnixResearch/onix-artifact.git' '+5f3962d7471d1547e044f57daeda72f56621fd52:refs/commit/5f3962d7471d1547e044f57daeda72f56621fd52'` (exit status: 128)
+Bad owner or permissions on /home/brittonr/.ssh/config
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+warning: spurious network error (1 try remaining): process didn't exit successfully: `git fetch --no-tags --force --update-head-ok 'ssh://git@github.com/OnixResearch/onix-artifact.git' '+5f3962d7471d1547e044f57daeda72f56621fd52:refs/commit/5f3962d7471d1547e044f57daeda72f56621fd52'` (exit status: 128)
+Bad owner or permissions on /home/brittonr/.ssh/config
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+error: failed to get `artifact-auth-core` as a dependency of package `valence-core v0.1.0 (/home/brittonr/git/.kiln-web-service/work/kiln-web-job-gKY4gK/checkout/crates/valence-core)`
+
+Caused by:
+  failed to load source for dependency `artifact-auth-core`
+
+Caused by:
+  unable to update ssh://git@github.com/OnixResearch/onix-artifact.git?rev=5f3962d7471d1547e044f57daeda72f56621fd52#5f3962d7
+
+Caused by:
+  failed to clone into: /home/brittonr/git/.kiln-web-service/job-home/.cargo/git/db/onix-artifact-f38ddc6e3c688294
+
+Caused by:
+  revision 5f3962d7471d1547e044f57daeda72f56621fd52 not found
+
+Caused by:
+  process didn't exit successfully: `git fetch --no-tags --force --update-head-ok 'ssh://git@github.com/OnixResearch/onix-artifact.git' '+5f3962d7471d1547e044f57daeda72f56621fd52:refs/commit/5f3962d7471d1547e044f57daeda72f56621fd52'` (exit status: 128)

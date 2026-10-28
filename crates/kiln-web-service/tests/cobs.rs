@@ -427,17 +427,38 @@ fn six_types_preserve_exact_multitip_history_actions_and_leave_git_unchanged() {
         (*member(&inventory, "sources")),
         json!([{"id":"onix","label":"Onix onix","repository_id":NATIVE_ID,"status":"available","objects":6}])
     );
-    let type_ids: Vec<_> = (*member(&inventory, "types"))
+    let type_rows: Vec<_> = (*member(&inventory, "types"))
         .as_array()
         .unwrap_or_else(|| unreachable!("fixture value absent"))
         .iter()
         .map(|row| {
-            (*member(row, "id"))
-                .as_str()
-                .unwrap_or_else(|| unreachable!("fixture value absent"))
+            (
+                (*member(row, "id"))
+                    .as_str()
+                    .unwrap_or_else(|| unreachable!("fixture value absent")),
+                (*member(row, "label"))
+                    .as_str()
+                    .unwrap_or_else(|| unreachable!("fixture value absent")),
+            )
         })
         .collect();
-    assert_eq!(type_ids, INITIAL_CAIRN_TYPES);
+    assert_eq!(
+        type_rows,
+        [
+            ("xyz.onixresearch.cairn-change", "Cairn changes"),
+            ("xyz.onixresearch.rfd", "RFDs"),
+            ("xyz.onixresearch.adr", "ADRs"),
+            (
+                "xyz.onixresearch.verification-obligation",
+                "Verification obligations"
+            ),
+            ("xyz.onixresearch.release-decision", "Release decisions"),
+            ("xyz.onixresearch.policy-exception", "Policy exceptions"),
+            ("xyz.radicle.issue", "Radicle issues"),
+            ("xyz.radicle.patch", "Radicle patches"),
+            ("xyz.radworks.job", "Radicle CI jobs"),
+        ]
+    );
     let rows = (*member(&inventory, "objects"))
         .as_array()
         .unwrap_or_else(|| unreachable!("fixture value absent"));
@@ -1141,4 +1162,91 @@ fn native_action_operation_and_tip_bounds_fail_closed_without_mutation() {
         assert_eq!(refs(&repository), before_refs, "{case}");
         assert_eq!(repository_files(repository.path()), before, "{case}");
     }
+}
+
+// r[verify kiln.dashboard.cobs.read.scenario.present]
+#[test]
+fn radicle_observation_types_render_with_author_and_ignore_unregistered_types() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let repository = Repository::init_bare(root.path().join("radicle-store.git"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let mut expected = Vec::new();
+    for type_name in ["xyz.radicle.issue", "xyz.radicle.patch", "xyz.radworks.job"] {
+        let message = format!("{type_name} example\n");
+        let id = cob_operation(
+            &repository,
+            type_name,
+            &message,
+            &[json!({"type":"create","title":"example"})],
+            &[],
+        );
+        repository
+            .reference(&format!("refs/cobs/{type_name}/{id}"), id, false, "fixture")
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+        expected.push((type_name, id));
+    }
+    // A native type outside the observation registry is skipped, never rejected.
+    let identity = cob_operation(
+        &repository,
+        "xyz.radicle.id",
+        "repository identity\n",
+        &[json!({"type":"init"})],
+        &[],
+    );
+    repository
+        .reference(
+            &format!("refs/cobs/xyz.radicle.id/{identity}"),
+            identity,
+            false,
+            "fixture",
+        )
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let before_refs = refs(&repository);
+    let browser = browser(vec![policy("radicle", "rad:zNative", repository.path())]);
+    let inventory = get(&browser, "/api/cobs");
+    assert_eq!((*member(&inventory, "complete")), true);
+    assert_eq!((*member(&inventory, "total")), 3);
+    let rows = (*member(&inventory, "objects"))
+        .as_array()
+        .unwrap_or_else(|| unreachable!("fixture value absent"));
+    for (type_name, id) in &expected {
+        let row = rows
+            .iter()
+            .find(|row| (*member(row, "object_id")) == id.to_string())
+            .unwrap_or_else(|| unreachable!("fixture value absent"));
+        assert_eq!((*member(row, "type_name")), *type_name);
+        assert_eq!((*member(row, "title")), format!("{type_name} example"));
+        assert_eq!(
+            (*member(row, "author")),
+            "COB fixture <cob@example.invalid>"
+        );
+        assert_eq!((*member(row, "recorded_at_ms")), RECORDED_AT_MS);
+        assert_eq!((*member(row, "excerpt")), "example");
+    }
+    assert!(
+        !rows
+            .iter()
+            .any(|row| (*member(row, "type_name")) == "xyz.radicle.id")
+    );
+    let (_, patch_object) = expected
+        .iter()
+        .find(|(type_name, _)| *type_name == "xyz.radicle.patch")
+        .unwrap_or_else(|| unreachable!("fixture value absent"));
+    let detail = get(
+        &browser,
+        &format!(
+            "/api/cobs/object?repository=radicle&type=xyz.radicle.patch&object={patch_object}"
+        ),
+    );
+    assert_eq!((*member(member(&detail, "object"), "operation_count")), 1);
+    rejects(
+        &browser,
+        "/api/cobs?type=xyz.radicle.id",
+        400,
+        "cob_type_invalid",
+    );
+    let searched = get(&browser, "/api/cobs?q=cob%40example.invalid");
+    assert_eq!((*member(&searched, "total")), 3);
+    assert_eq!(refs(&repository), before_refs);
 }

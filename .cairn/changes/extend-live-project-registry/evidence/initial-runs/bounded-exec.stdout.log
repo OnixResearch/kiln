@@ -1,0 +1,39 @@
+
+running 6 tests
+test tests::malformed_requests_fail_before_spawn ... ok
+test tests::capture_preparation_failure_precedes_spawn_for_each_stream ... ok
+test tests::explicit_environment_and_input_round_trip ... ok
+test tests::process_group_cleanup_closes_descendant_held_pipes ... ok
+test tests::truncation_is_bounded_and_policy_visible ... ok
+test tests::timeout_and_preexisting_cancellation_tear_down_owned_processes ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+
+running 13 tests
+test tests::capture_preparation_is_explicit_and_fails_without_a_fallback ... ok
+test tests::exact_limit_output_is_retained_without_growth_or_truncation ... ok
+test tests::capture_retains_a_prefix_without_growing_and_reports_overflow ... ok
+test tests::invalid_limits_and_policy_fail_closed ... ok
+test tests::strict_and_truncating_consumers_classify_the_same_capture_differently ... ok
+test tests::timeout_and_cancellation_take_precedence_over_output_policy ... ok
+test tests::valid_limits_and_accepted_exit_succeed ... ok
+test tests::unaccepted_or_missing_exit_code_fails ... ok
+test watermark::tests::claims_do_not_promote_admission_into_execution_authority ... ok
+test watermark::tests::deferred_gate_remains_closed_until_low_is_reached ... ok
+test watermark::tests::admitting_gate_admits_through_high_and_defers_above_high ... ok
+test watermark::tests::identities_are_stable_and_policy_scoped ... ok
+test watermark::tests::missing_or_non_increasing_values_fail_closed ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1270,6 +1270,65 @@ checkout rather than the mutable worktree. Follow the existing
 [workflow application contract](lattice-workflow.md) for native handler setup;
 profile generation does not install or start it.
 
+### Extend an existing project registry
+
+Ordinary startup remains bound to one exact service profile. Adding a project is
+an explicit offline authority extension, not an implicit migration or a database
+reset. Kiln application maintainers own admission and recovery behavior; the
+operator owns repository selection, command review, installed routes and activation.
+
+1. Preserve the original admitted service JSON. Export the next reviewed service
+   profile with a nonempty appended project suffix. Preserve every existing
+   project in order, including its label, source bounds, workflow and operation
+   identities. Preserve all credentials, TLS/service/state roots and resource
+   bounds. Only `bounds.max_projects` may increase; it may remain unchanged when
+   existing capacity suffices.
+2. Export and retain original new-worker JSON bytes and BLAKE3 identities. Prepare
+   the reviewed saved workflows and appended exact `route_exact` / `shell_environment`
+   graph/node mappings for the native handler. Preserve existing workers, saved
+   workflow revisions and routes; changing them is not project extension authority.
+   The typed [OnixResearch command catalog](../config/onixresearch-projects.ncl)
+   supplies reviewed committed-ref CI commands, not paths, credentials, source
+   identities, installed routes or automatic enrollment. Review those bindings
+   separately using the existing service and v2 worker builders.
+   Jobs select the declared Git ref, not a Jujutsu bookmark or dirty worktree;
+   retain each acquired commit even when those local names disagree.
+3. Wait until every existing execution is terminal. Stop the service and native
+   handler before importing workflows or extending the binding, and back up the
+   SQLite database, retained logs/artifacts, original profiles and Lattice store.
+   Import the reviewed saved workflows while quiescent. Keep the next profile
+   separate until its binding transition succeeds.
+
+```console
+kiln-web-service extend-projects \
+  --previous-profile "$KILN_PREVIOUS_SERVICE_PROFILE" \
+  --profile "$KILN_NEXT_SERVICE_PROFILE"
+```
+
+The command requires an existing versioned store, takes the existing owned-state
+lock, validates canonical replay and retained evidence, and transactionally
+compare-and-swaps only the exact profile binding. It does not rewrite canonical
+state bytes, call a provider, enroll projects or create missing service state.
+An active owner/run, changed existing authority, stale/replayed transition,
+invalid suffix, corrupt retained state or failed transaction rejects the change.
+The old profile cannot reopen the successfully extended store.
+
+Activate the matching next service profile and appended handler, then restart
+the handler, service and any dependent proxy stopped with the service. Enroll
+the new allowlisted projects through authenticated **Projects** intake. Exercise
+their real jobs and inspect **Projects**, **Workers**, exact source revisions,
+retained output and original histories. CI failures remain failures; enrollment
+and a passing bounded job are not whole-repository release qualification.
+
+The [recorded local registry exercise](../.cairn/changes/extend-live-project-registry/evidence/verification.json)
+added fourteen projects while preserving the original five Kiln run views and
+ten retained files. Eight initial checks passed. Five others could not fetch
+SSH dependencies because the host rejected its SSH configuration permissions;
+the remaining check received HTTP 404 for its pinned Octet archive. Those six
+real prerequisite failures remain visible and do not authorize permission,
+credential or dependency-pin changes. The receipt binds exact revisions,
+operations, retained logs, installed executable and observed UI surfaces.
+
 ### Remote Lattice workers
 
 The live service uses the existing [Iroh workflow bridge](#iroh-remote-workflow-execution).
@@ -1325,9 +1384,9 @@ establish WAN/relay availability or distinct-host deployment. `local`/`remote`
 adapter labels bind supported capabilities and exact routes; they do not select
 per-node placement or split a DAG across hosts.
 
-### Optional read-only Onix COB browser
+### Optional read-only COB browser
 
-The live workspace's **Onix COBs** view reads explicitly selected local Git
+The live workspace's **COBs** view reads explicitly selected local Git
 stores, independently of CI project enrollment. It does not search the current
 directory, `$RAD_HOME`, a Radicle node, sibling checkouts or remote peers. Omitting
 `--cobs` leaves the browser unconfigured; an admitted empty repository list is
@@ -1369,7 +1428,8 @@ CI journal, source enrollment or workflow authority. The packaged deployment
 does not implicitly enable it; a separately reviewed service invocation must
 pass `--cobs` and provision read access to the selected directories.
 
-The registry exposes exactly these six types, with no producer reducer:
+The registry exposes three groups of types, with no producer reducer. The six
+Cairn decision types are produced by Cairn:
 
 - `xyz.onixresearch.cairn-change`
 - `xyz.onixresearch.rfd`
@@ -1378,12 +1438,23 @@ The registry exposes exactly these six types, with no producer reducer:
 - `xyz.onixresearch.release-decision`
 - `xyz.onixresearch.policy-exception`
 
+The three Radicle collaboration types are observed as they exist in local
+stores, without translation, lifecycle reduction or Kiln meaning:
+
+- `xyz.radicle.issue`
+- `xyz.radicle.patch`
+- `xyz.radworks.job`
+
+Refs of any other type are skipped without failing the inventory; an explicit
+`type` filter outside this registry is rejected with `cob_type_invalid`.
+
 Authenticated viewers and operators may make bodyless GET requests:
 
 - `/api/cobs` accepts only optional `repository` (local key), `type` (exact
   registered name), `q`, `limit` and `cursor`. Search is case-insensitive substring
   matching over the root-commit summary, object ID, local key, label, native
-  repository ID and type, not full action content. Ordering is by local key,
+  repository ID, type and recorded author, not action content or the displayed
+  excerpt. Ordering is by local key,
   type and native object ID. The default page has 25 objects; `limit` is 1–100.
   Keep filters and limit unchanged when following the returned `next_cursor`.
   Cursor snapshots bind those selections and observed object/ref-tip identities;
@@ -1396,9 +1467,12 @@ Authenticated viewers and operators may make bodyless GET requests:
   browser paths, writes, anonymous readers and worker credentials are rejected.
 
 Inventory returns all admitted public repository keys/labels/native IDs in
-`repositories`, selected-store availability and counts in `sources`, all six
-`types`, paged `objects`, filtered `total`, `next_cursor`, `snapshot`, `complete`
-and `non_claims`. An unavailable selected store makes the inventory incomplete,
+`repositories`, selected-store availability and counts in `sources`, all
+registered `types`, paged `objects`, filtered `total`, `next_cursor`, `snapshot`,
+`complete` and `non_claims`. Each object row carries its exact type, title,
+native object ID and ref tips plus the root commit's recorded author and time;
+the browser renders that time in local time alongside UTC. An unavailable
+selected store makes the inventory incomplete,
 not falsely empty; detail reads fail explicitly on unavailable/malformed stores
 or exhausted bounds. Distinguish these from an available store containing no
 supported objects. The page restores repository/type/search/paging and the exact
@@ -1455,16 +1529,114 @@ nix build path:$PWD#checks.x86_64-linux.nickel --no-link -L
 
 The positive fixture and unknown-field/relative-path rejection fixtures are
 authoring checks, not installed-store or successful runtime evidence. For actual
-readback, open **Onix COBs** as an admitted viewer/operator, inspect inventory and
+readback, open **COBs** as an admitted viewer/operator, inspect inventory and
 one exact native object, follow a returned cursor, restore its URL and clear the
 session. Repeat with a deliberately unavailable selected store and verify an
 explicit incomplete/error state rather than an empty-success claim. Local
 fixtures and browser observations do not qualify deployment or release readiness.
 
+The browser shows nothing until the selected store holds `refs/cobs/<type>/<oid>`
+objects. To populate it from the repository's own reviewed lifecycle artifacts,
+import each active change once, as an explicit offline operator action:
+
+```console
+cairn cob import <change> --root . \
+  --git-repository "$KILN_COB_STORE" \
+  --keystore "$RAD_HOME/keys" \
+  --workspace "$KILN_RID" \
+  --policy "$PWD/cairn-policy/generated/cairn-policy.json"
+```
+
+Preview returns the actor, artifact identities and plan without mutation; add
+`--execute` only after reviewing it. Creation signs with that keystore, so the
+commit is bound to that Radicle identity. It writes only
+`refs/namespaces/<actor>/refs/cobs/xyz.onixresearch.cairn-change/<oid>`, refuses a
+change that already has a COB, and performs no publish, sync, announce, delegate
+or peer action. Nothing in the web service can create objects. Imported objects
+are raw recorded history: signatures, authority and lifecycle reduction stay
+unverified by the browser.
+
+
 Inspect the candidate-bound local outcomes in
 `.cairn/changes/add-onix-cob-dashboard/evidence/verification.json`; the commands
 and procedure above are repeatability instructions, not a claim that a new
 candidate has passed them.
+
+### Read-only source browser
+
+The live workspace's **Source** view reads explicitly admitted local
+repositories. It does not discover repositories beside the service, search the
+current directory, resolve a remote or check out a working tree.
+
+Apply [`config/web-sources.ncl`](../config/web-sources.ncl) to an
+operator-reviewed input record. The builder exports schema
+`kiln.web-sources.v1`; each entry has these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Stable public key used by `/api/sources/<id>/…`; lowercase ASCII letters, digits, `_`, `.` or `-`, excluding `.` and `..`. |
+| `label` | Public display label, 1–128 printable ASCII characters. |
+| `kind` | Exactly `git`, `jj` or `pijul`. |
+| `path` | Absolute server-owned repository path. For Git this is a worktree or bare repository; for Jujutsu a colocated worktree or a store with `.jj/repo/store/git`; for Pijul a checkout containing `.pijul`. |
+| `channel` | Pijul only: the channel whose current state is read. |
+| `executable` | Pijul only: absolute path to the `pijul` program. Omitting it makes reads report unavailability rather than silently failing. |
+
+Admission rejects unknown kinds, relative paths or executables, duplicate ids or
+paths, `channel`/`executable` on a Git or Jujutsu entry, and a Pijul entry
+without a channel. Paths, executables and object-store locations never appear in
+browser requests or responses.
+
+```console
+nickel typecheck config/web-sources.ncl
+nickel export --format json --output "$KILN_SOURCES_PROFILE" "$KILN_SOURCES_NCL"
+kiln-web-service check --profile "$KILN_SERVICE_PROFILE" --sources "$KILN_SOURCES_PROFILE"
+kiln-web-service serve --profile "$KILN_SERVICE_PROFILE" --sources "$KILN_SOURCES_PROFILE"
+```
+
+Retain any independently admitted `--access`, `--automation` and `--cobs`
+options on both commands. Omitting `--sources` leaves the view unconfigured; an
+admitted empty list is configured but empty.
+
+Authenticated viewers and operators may make bodyless GET requests:
+
+- `/api/sources` returns each configured key, label, kind, channel, availability,
+  observed head and revision scope.
+- `/api/sources/KEY/log?limit=&cursor=` returns at most 100 revisions per page,
+  newest first. `cursor` is a bounded offset, not a revision selector.
+- `/api/sources/KEY/tree?revision=&path=` lists one directory (`path` is a
+  relative directory path; traversal, backslashes and absolute forms are
+  rejected).
+- `/api/sources/KEY/file?revision=&path=` returns one file's text when it is
+  valid UTF-8 without NUL bytes, otherwise `binary: true` and no content.
+
+Git and Jujutsu reads resolve an exact 40-character commit id, or the current
+head when `revision` is empty, from the repository's Git object store; a
+symbolic revision is rejected. Pijul reads run the configured program under
+Bounded Exec with fixed argv (`log`, `list`), a cleared environment and a 15 s
+deadline. The Pijul CLI exposes no historical blob read, so Pijul trees describe
+the current channel state and Pijul files describe the tracked working copy;
+`revision` is rejected for a Pijul source and both scopes are labelled.
+
+Fixed implementation bounds: 64 sources per policy; 100 log entries per page;
+512 tree entries; 262,144 file bytes; 1 MiB retained program output; 4 MiB
+response. Reads never fetch, check out, write a ref, sign, publish or alter CI
+state, and they grant no CI, gate, acceptance or release authority. A Jujutsu
+store without a Git-visible head, an unavailable Pijul program and an unreadable
+repository are reported as unavailable, never as an empty repository.
+
+Repeat the checks from the development shell:
+
+```sh
+nickel typecheck config/web-sources.ncl
+nickel export config/fixtures/web-sources-positive.ncl >/dev/null
+for fixture in config/fixtures/negative-web-sources-*.ncl; do
+  if nickel export "$fixture" >/dev/null 2>&1; then
+    echo "negative source fixture unexpectedly passed: $fixture" >&2
+    exit 1
+  fi
+done
+cargo test --locked -p kiln-web-service --test sources
+```
 
 ### Supervised deployment
 
@@ -1708,10 +1880,13 @@ credential provisioning and worker isolation remain operator responsibilities.
 
 #### Workspace navigation and recorded evidence
 
-- **Overview:** retained totals, current project health and recorded run-duration
-  trends. Historical unknowns are excluded, not treated as zero. Node timing is
-  unknown when the first native observation is already terminal; no start time
-  or duration is fabricated.
+- **Overview:** retained totals, current project health, last-run completion time
+  and recorded run-duration trends. Timestamps show browser-local date/time with
+  its timezone alongside the exact ISO UTC instant. The same presentation is
+  used in run and worker inspectors; locale/timezone do not change stored facts.
+  Historical unknowns are excluded, not treated as zero. Missing/invalid times
+  stay unavailable. Node timing is unknown when the first native observation is
+  already terminal; no start time or duration is fabricated.
 - **Workers:** configured execution targets, assigned projects, occupied/free
   project slots, queued work and exact latest execution observations. Metadata
   search, slot-state filters and independent exact selection are URL-restored;

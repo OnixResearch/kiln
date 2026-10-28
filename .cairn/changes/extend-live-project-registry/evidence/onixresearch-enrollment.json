@@ -1,0 +1,333 @@
+{
+  "projects": {
+    "available": [
+      {
+        "id": "kiln-self-ci",
+        "label": "Kiln \u2014 Rust workspace tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/kiln"
+      },
+      {
+        "id": "cap-root",
+        "label": "Cap Root - workspace tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/cap-root"
+      },
+      {
+        "id": "bounded-exec",
+        "label": "Bounded Exec - workspace tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/bounded-exec"
+      },
+      {
+        "id": "durable-file-publication",
+        "label": "Durable File Publication - all-target tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/durable-file-publication"
+      },
+      {
+        "id": "content-identity-core",
+        "label": "Content Identity Core - all-target tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/content-identity-core"
+      },
+      {
+        "id": "schema-identity-core",
+        "label": "Schema Identity Core - conformance and all features",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/schema-identity-core"
+      },
+      {
+        "id": "schema-migration-core",
+        "label": "Schema Migration Core - conformance and all features",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/schema-migration-core"
+      },
+      {
+        "id": "quantity-contracts",
+        "label": "Quantity Contracts - positive and negative matrix",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/quantity-contracts"
+      },
+      {
+        "id": "valence",
+        "label": "Valence - workspace tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/valence"
+      },
+      {
+        "id": "artifact",
+        "label": "Artifact - workspace tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/artifact"
+      },
+      {
+        "id": "bounded-http",
+        "label": "Bounded HTTP - all-feature conformance",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/bounded-http"
+      },
+      {
+        "id": "durable-authority-state",
+        "label": "Durable Authority State - all-feature conformance",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/durable-authority-state"
+      },
+      {
+        "id": "nickel-export",
+        "label": "Nickel Export - workspace tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/nickel-export"
+      },
+      {
+        "id": "nickel-eval",
+        "label": "Nickel Eval - all-target tests",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/nickel-eval"
+      },
+      {
+        "id": "transactional-reconciliation-core",
+        "label": "Transactional Reconciliation Core - all-feature conformance",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/transactional-reconciliation-core"
+      }
+    ],
+    "enrolled": [
+      {
+        "id": "kiln-self-ci",
+        "label": "Kiln \u2014 Rust workspace tests",
+        "pipeline_identity": "d7375d2d8ef273e548aa2f34835eb67824dc17ecd3e64e70edadd126a6f883fc",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/kiln"
+      },
+      {
+        "id": "cap-root",
+        "label": "Cap Root - workspace tests",
+        "pipeline_identity": "c739807972cafa4ab401d8e1bdf49349411cd5546fa20ae1123130a8d48a58fd",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/cap-root"
+      },
+      {
+        "id": "bounded-exec",
+        "label": "Bounded Exec - workspace tests",
+        "pipeline_identity": "38b37698800aca618673d1f78160a06b5d85c23db3924cb0e6a3395aca5b90be",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/bounded-exec"
+      },
+      {
+        "id": "durable-file-publication",
+        "label": "Durable File Publication - all-target tests",
+        "pipeline_identity": "24b7d5115909f8e59c73fca202cc166e8dd17f20b86e85d205d6ade02bf16860",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/durable-file-publication"
+      },
+      {
+        "id": "content-identity-core",
+        "label": "Content Identity Core - all-target tests",
+        "pipeline_identity": "40e57c85d301d10987aa2a821942c1c3121c2eaf31f2633d64223ba538fab810",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/content-identity-core"
+      },
+      {
+        "id": "schema-identity-core",
+        "label": "Schema Identity Core - conformance and all features",
+        "pipeline_identity": "a1e15634d896f3a1fba23acf79995ba91e8cc043133a0e8843fe6ede60cce610",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/schema-identity-core"
+      },
+      {
+        "id": "schema-migration-core",
+        "label": "Schema Migration Core - conformance and all features",
+        "pipeline_identity": "542af57e7c695e0555bd698082ebba3bd097d7e84bff8ec00f397164a05e605c",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/schema-migration-core"
+      },
+      {
+        "id": "quantity-contracts",
+        "label": "Quantity Contracts - positive and negative matrix",
+        "pipeline_identity": "c992be06a9ec2944cab8bf38e71f918c9f32bc24f20e9d06289bef8a8ea2838e",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/quantity-contracts"
+      },
+      {
+        "id": "valence",
+        "label": "Valence - workspace tests",
+        "pipeline_identity": "04dc81c2849aa9afad2c6f98a748047c79f2fae2a1e7f40297dde884ed285089",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/valence"
+      },
+      {
+        "id": "artifact",
+        "label": "Artifact - workspace tests",
+        "pipeline_identity": "f2ef99d2b7b7ceefe9983ce0a76cd047dd56cce929bcaa3268415bacfd42b112",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/artifact"
+      },
+      {
+        "id": "bounded-http",
+        "label": "Bounded HTTP - all-feature conformance",
+        "pipeline_identity": "ebca512c1090c9d734396a8eb41dc191d08c95f419622da86ce81f1743717f7f",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/bounded-http"
+      },
+      {
+        "id": "durable-authority-state",
+        "label": "Durable Authority State - all-feature conformance",
+        "pipeline_identity": "252153ad857f2f1bdfa3e043eacc5819a954ba0bcd47e2fe6a0618fb6c64c23c",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/durable-authority-state"
+      },
+      {
+        "id": "nickel-export",
+        "label": "Nickel Export - workspace tests",
+        "pipeline_identity": "c3fdc62ff1c69a6bdd04a045ca558630fb7512d1150d4cbac5c86973a70b4514",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/nickel-export"
+      },
+      {
+        "id": "nickel-eval",
+        "label": "Nickel Eval - all-target tests",
+        "pipeline_identity": "f8e54febeab57b0f95e4ee85a3ceaf1b415fd39cd1114c0728e95b845101990a",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/nickel-eval"
+      },
+      {
+        "id": "transactional-reconciliation-core",
+        "label": "Transactional Reconciliation Core - all-feature conformance",
+        "pipeline_identity": "ef928c470086cdd2ce3b1ede4b3c43a772138da27636bfcccfb423e189c600c5",
+        "reference": "refs/heads/main",
+        "repository": "/home/brittonr/git/OnixResearch/transactional-reconciliation-core"
+      }
+    ]
+  },
+  "original_runs_unchanged": true,
+  "retained_files_verified": 10,
+  "workers": {
+    "cap-root": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-cap-root.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-cap-root.json",
+      "worker_blake3": "59328073de473ea878cdc9345421910815c10b2b2dae9f1273ddfc51ebbe82fa",
+      "workflow_name": "kiln-onixresearch-cap-root",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-cap-root.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-cap-root.json",
+      "workflow_revision": "6ef4e7022c67245a9c68c3d920869d3e80be4eaf59af430f34a64c75ebc68022"
+    },
+    "bounded-exec": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-exec.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-exec.json",
+      "worker_blake3": "17f90b63d0d73d100299780c19fbcb989e69dbe9c6f7eba7eee54d1627d134bf",
+      "workflow_name": "kiln-onixresearch-bounded-exec",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-bounded-exec.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-bounded-exec.json",
+      "workflow_revision": "7878e3445fc978ab201dfe37cf951b3c4ed915b9154e1bf0ef63b9bc2e5c21b0"
+    },
+    "durable-file-publication": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-file-publication.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-file-publication.json",
+      "worker_blake3": "e54b473333b0eff8eb1016783bebee945eeb8631232443cf0f4949dc50ca4425",
+      "workflow_name": "kiln-onixresearch-durable-file-publication",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-durable-file-publication.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-durable-file-publication.json",
+      "workflow_revision": "ce1a6e197faad5b7ac5980cc7432627140d5e1cd873fa2c339e897a89ea58c5f"
+    },
+    "content-identity-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-content-identity-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-content-identity-core.json",
+      "worker_blake3": "a4d1589e25a97d56b7330acb1353b8845dbac3f29896512f147b04d546ce508b",
+      "workflow_name": "kiln-onixresearch-content-identity-core",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-content-identity-core.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-content-identity-core.json",
+      "workflow_revision": "a325522cca2a413e5c3d7c35291fa41adb72401529231d2d50e45789da69e73a"
+    },
+    "schema-identity-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-identity-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-identity-core.json",
+      "worker_blake3": "bd6294f35392536cab1a8cce9395c17039a3a121fa94fb82aae4045e9ec73e10",
+      "workflow_name": "kiln-onixresearch-schema-identity-core",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-schema-identity-core.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-schema-identity-core.json",
+      "workflow_revision": "a358f8cbfec58f331d7231093c18ede4198347e2bf7f615caa24920fcca9eaf1"
+    },
+    "schema-migration-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-migration-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-schema-migration-core.json",
+      "worker_blake3": "8024ba773d765992b98c09d78b5f7ebac4d672143c2af81643eaaa7847d9fc0c",
+      "workflow_name": "kiln-onixresearch-schema-migration-core",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-schema-migration-core.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-schema-migration-core.json",
+      "workflow_revision": "914bd741427da131ee6e62d04d8cead38892cda0db4ebf2c893c17f85146b06d"
+    },
+    "quantity-contracts": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-quantity-contracts.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-quantity-contracts.json",
+      "worker_blake3": "f5d7eeeeebb2125dff39ddbf0ed61165b1a40b224e2e153d7ba62109ecb5a23c",
+      "workflow_name": "kiln-onixresearch-quantity-contracts",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-quantity-contracts.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-quantity-contracts.json",
+      "workflow_revision": "381ffe40a11d1c7803d4ad2db0db7a6c5b0aeaa6d64bc79ffbcb02ad81dc4e1a"
+    },
+    "valence": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-valence.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-valence.json",
+      "worker_blake3": "bd747cdae0e28cb87563087aa0f9ad1f79b1521ddac25a552242483c7e90a81a",
+      "workflow_name": "kiln-onixresearch-valence",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-valence.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-valence.json",
+      "workflow_revision": "5dd0889b951011dacca22f24116fb65b525af378a3bca668b7f52d005e30eae8"
+    },
+    "artifact": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-artifact.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-artifact.json",
+      "worker_blake3": "d796bcf0c23471c8982ce5c5c66a14a29d5342ca7b9289e4b6013edce0cb29ab",
+      "workflow_name": "kiln-onixresearch-artifact",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-artifact.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-artifact.json",
+      "workflow_revision": "65ef211a83e6db38526050b30cf6f2265c1d2ca8b3ac31571f70a21e5351030d"
+    },
+    "bounded-http": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-http.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-bounded-http.json",
+      "worker_blake3": "74671b329e26b2acd18c3321ec5b1d1bf5796b91fa2ac69272253ac58aa7f9b5",
+      "workflow_name": "kiln-onixresearch-bounded-http",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-bounded-http.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-bounded-http.json",
+      "workflow_revision": "34db28c8733eafbac72069d7e2f85a28b67507c331d334a6cb3d4967a32a20a6"
+    },
+    "durable-authority-state": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-authority-state.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-durable-authority-state.json",
+      "worker_blake3": "917d2589e72c643daed0425b99388f094a0ad25febc911dc5c3d9f54fcc0e301",
+      "workflow_name": "kiln-onixresearch-durable-authority-state",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-durable-authority-state.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-durable-authority-state.json",
+      "workflow_revision": "370702c049a5c121c1bda248a3b5eb61674142bab6b51cadde3c0d54e1eae581"
+    },
+    "nickel-export": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-export.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-export.json",
+      "worker_blake3": "f5f581847cca35bb3e43e8c064945645a94a0daf77171ebd119bd5548370b35d",
+      "workflow_name": "kiln-onixresearch-nickel-export",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-nickel-export.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-nickel-export.json",
+      "workflow_revision": "a5cf211c78d2736ba6983425e9f202967eaaf5c741b336690924d2f65d1e7e4c"
+    },
+    "nickel-eval": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-eval.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-nickel-eval.json",
+      "worker_blake3": "fb0203c902b5cfdd11e9d53568558b6f5153c996f422569271dc2e13c381668d",
+      "workflow_name": "kiln-onixresearch-nickel-eval",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-nickel-eval.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-nickel-eval.json",
+      "workflow_revision": "3eec1ad91733b087d02c8e060a1c325e373fdcf874421b1f032487464402128e"
+    },
+    "transactional-reconciliation-core": {
+      "worker_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-transactional-reconciliation-core.ncl",
+      "worker_json": "/home/brittonr/.config/kiln/web-service/onixresearch/worker-transactional-reconciliation-core.json",
+      "worker_blake3": "5ccc822b27cfa71a3a1a1610fe0d7e56eff6c8d5bb8d539559d944a825711656",
+      "workflow_name": "kiln-onixresearch-transactional-reconciliation-core",
+      "workflow_ncl": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-transactional-reconciliation-core.ncl",
+      "workflow_json": "/home/brittonr/.config/kiln/web-service/onixresearch/workflow-transactional-reconciliation-core.json",
+      "workflow_revision": "43fa03c93392e81cad688c66c943cb2acf712a84dccfef20275051b6d2028844"
+    }
+  }
+}

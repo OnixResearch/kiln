@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub const PROFILE_SCHEMA: &str = "kiln.web-service.v1";
 pub const MAX_PROFILE_BYTES: usize = 1_048_576;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServiceBounds {
     pub max_request_bytes: usize,
