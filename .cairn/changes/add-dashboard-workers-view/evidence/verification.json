@@ -1,0 +1,84 @@
+{
+  "schema": "kiln.dashboard.workers.verification.v1",
+  "outcome": "Worker-target inventory and interactive Workers page implemented; no physical worker-liveness assertion.",
+  "owner": "Kiln web-service/dashboard maintainers",
+  "repeatability": {
+    "behavioral": "cargo test --locked -p kiln-web-service --test engine workers::",
+    "nativeFixture": "scripts/web-service-smoke.py Exercise fixture with declared isolated Git source, reviewed native Lattice routes, private TLS and real retained state",
+    "operatorProcedure": "docs/operator.md#worker-target-inventory"
+  },
+  "checks": {
+    "workspace": {
+      "command": "env CARGO_TARGET_DIR=/home/brittonr/.cargo-target/kiln-web-service CARGO_BUILD_JOBS=8 nix develop path:. --no-write-lock-file -c env RUSTC_WRAPPER= RUSTC_WORKSPACE_WRAPPER= cargo test --locked --workspace",
+      "exit_code": 0,
+      "suites": 109,
+      "passed": 684,
+      "failed": 0,
+      "ignored": 4
+    },
+    "workers": {
+      "command": "cargo test --locked -p kiln-web-service --test engine workers::",
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0
+    },
+    "clippy": {
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    "format": {
+      "command": "cargo fmt --check",
+      "exit_code": 0
+    },
+    "dedicatedNix": {
+      "command": "nix build path:.#checks.x86_64-linux.octet path:.#checks.x86_64-linux.web-service-deployment path:.#checks.x86_64-linux.nickel path:.#checks.x86_64-linux.format --builders '' --no-write-lock-file --no-link -L",
+      "exit_code": 0,
+      "package": "/nix/store/r8v60l6g646ds4cynzn72ci0gbf7i3fj-kiln-web-service-0.1.0",
+      "deployment_vm_test_seconds": 25.63
+    },
+    "native": "native/verification.json",
+    "browser": "browser.json",
+    "lifecycle": "lifecycle.json"
+  },
+  "resolvedDuringIntegration": [
+    "Converted the array helper result to a slice before returning it.",
+    "Used only the pinned supported platform in admitted positive grouping fixtures; explicitly rejected linux-aarch64 before effects.",
+    "Replaced unchecked window indexing with slice-pattern comparison for strict Clippy.",
+    "Made wrapped worker run links block-level click targets; rebuilt and followed the exact retained run."
+  ],
+  "holds": {
+    "traceability": {
+      "exit_code": 1,
+      "missing": [],
+      "dangling": [
+        "kiln.dashboard.product.shell",
+        "kiln.dashboard.rats.provenance",
+        "kiln.dashboard.rats.provenance.scenario.drift",
+        "kiln.dashboard.workers.capacity",
+        "kiln.dashboard.workers.capacity.scenario.transitions",
+        "kiln.dashboard.workers.capacity.scenario.unknown",
+        "kiln.dashboard.workers.inventory",
+        "kiln.dashboard.workers.inventory.scenario.denied",
+        "kiln.dashboard.workers.inventory.scenario.grouping",
+        "kiln.patchgate.conformance",
+        "kiln.patchgate.execution",
+        "kiln.patchgate.nonclaims",
+        "kiln.patchgate.profile",
+        "kiln.patchgate.request",
+        "kiln.patchgate.result"
+      ],
+      "note": "Nine existing dangling IDs plus six Rust worker IDs in the active, unaccepted change. JavaScript browser observations are recorded separately, not promoted to Rust traceability coverage."
+    },
+    "fullFlake": {
+      "status": "not_rerun",
+      "retained_failure": "checks.x86_64-linux.radicle-mutation-native-fixtures / accepted_write_times_out_to_unknown_then_reconciles: TimedOut rather than Unknown",
+      "prior_evidence": ".cairn/changes/complete-live-dashboard/evidence/verification.json",
+      "note": "Unchanged Radicle failure remains a release hold; dedicated affected checks passed."
+    }
+  },
+  "non_claims": [
+    "No production activation, source publication, lifecycle acceptance or release eligibility.",
+    "Admission slots are not physical worker counts, heartbeat, online status, provider placement or guaranteed dispatch.",
+    "The native exercise is scoped to worker inventory and transitions, not the complete generic web-service smoke suite."
+  ]
+}

@@ -3,6 +3,7 @@
 
 No remote publication, production activation, lifecycle completion or sandbox claim.
 Requires the maintained shell-success Lattice cohort and user namespaces.
+Select --iroh explicitly for the enrolled loopback bridge and independent clone.
 """
 import argparse
 import base64
@@ -39,6 +40,7 @@ LOG_CHUNK_BYTES = 32
 MAX_LOG_CHUNKS = 64
 # Native serve counts lifetime exchanges, not concurrent clients.
 NATIVE_MAX_EXCHANGES = 4096
+MAXIMUM_CONCURRENT_EXCHANGES = 64
 
 
 def put(path, value):
@@ -46,6 +48,8 @@ def put(path, value):
     path.chmod(0o600)
 
 
+# r[impl kiln.web.remote_workers.transport] r[verify kiln.web.remote_workers.transport]
+# r[impl kiln.web.remote_workers.transport.scenario.native] r[verify kiln.web.remote_workers.transport.scenario.native]
 class Exercise:
     def __init__(self, args):
         self.args = args
@@ -56,6 +60,8 @@ class Exercise:
         self.evidence.mkdir(parents=True, exist_ok=True)
         self.exe = {name: str(Path(shutil.which(name)).resolve(strict=True)) for name in ("nickel", "b3sum", "openssl", "jj", "python3", "bwrap", "bash")}
         self.exe.update(service=str(Path(args.service).resolve(strict=True)), lattice=str(Path(args.lattice).resolve(strict=True)))
+        if args.iroh:
+            self.exe["iroh"] = str(Path(args.iroh).resolve(strict=True))
         self.exe["bubblewrap"] = self.exe["bwrap"]
         self.source = str(Path(args.lattice_source).resolve(strict=True))
         self.root.mkdir(mode=0o700)
@@ -63,7 +69,7 @@ class Exercise:
             (self.root / name).mkdir(mode=0o700)
         self.env = {"HOME": str(self.root / "home"), "XDG_CONFIG_HOME": str(self.root / "home/config"), "XDG_CACHE_HOME": str(self.root / "home/cache"), "LANG": "C.UTF-8", "PATH": os.environ["PATH"], "TMPDIR": str(self.root / "lattice-tmp")}
         self.processes = []
-        self.report = {"schema": "kiln.web-service.native-exercise.v1", "checks": {}, "non_claims": ["isolated local evidence is not production deployment", "bounds are not hostile code confinement", "worker artifacts are declarations, not semantic product proofs", "no source trust, release eligibility or lifecycle acceptance"]}
+        self.report = {"schema": "kiln.web-service.native-exercise.v1", "transport": "iroh" if args.iroh else "local", "checks": {}, "non_claims": ["isolated local evidence is not production deployment", "loopback Iroh does not prove WAN or relay availability or distinct-host deployment", "adapter labels do not implement per-node placement or mixed-host scheduling", "bounds are not hostile code confinement", "worker artifacts are declarations, not semantic product proofs", "no source trust, release eligibility or lifecycle acceptance"]}
         self.operator = os.urandom(32).hex()
         self.worker = os.urandom(32).hex()
         self.viewer = os.urandom(32).hex()
@@ -81,6 +87,8 @@ class Exercise:
             self.port = listener.getsockname()[1]
         self.origin = f"https://127.0.0.1:{self.port}"
         self.repo = self.root / "source"
+        self.worker_repo = self.root / "worker-source" if args.iroh else self.repo
+        self.bridge_generation = 0
         self.context = None
 
     def command(self, argv, allowed=(0,), **kwargs):
@@ -198,26 +206,38 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         for args in (["config", "set", "--repo", "user.name", "Kiln isolated exercise"], ["config", "set", "--repo", "user.email", "kiln@example.invalid"], ["file", "track", "root:ci.py", "root:source-value.txt"], ["describe", "-m", "Exact source for isolated web workflow"], ["bookmark", "create", "main", "-r", "@"]):
             self.command([self.exe["jj"], "-R", self.repo, *args])
         self.revision = self.command([self.exe["jj"], "-R", self.repo, "log", "--no-graph", "-r", "main", "-T", "commit_id"]).decode().strip()
+        self.source_repository = self.command([self.exe["b3sum"]], input=os.fsencode(self.repo.resolve(strict=True))).decode().split()[0]
+        if self.args.iroh:
+            self.command([self.exe["jj"], "git", "clone", "--colocate", self.repo, self.worker_repo])
+            self.sync_worker_source(self.revision)
+        worker_repository = self.command([self.exe["b3sum"]], input=os.fsencode(self.worker_repo.resolve(strict=True))).decode().split()[0]
+        assert (worker_repository != self.source_repository) == bool(self.args.iroh)
+        self.report["source"] = {"controller_checkout": str(self.repo.resolve()), "worker_checkout": str(self.worker_repo.resolve()), "distinct_checkout": self.worker_repo.resolve() != self.repo.resolve(), "source_repository": self.source_repository, "worker_local_repository": worker_repository}
         limits = {"max_entries": 128, "max_path_bytes": 1024, "max_file_bytes": 65536, "max_total_bytes": 1048576}
         transport = {"maximum_frame_bytes": 1048576, "maximum_log_bytes": 1048576, "maximum_connections": NATIVE_MAX_EXCHANGES, "read_deadline_milliseconds": 10000, "write_deadline_milliseconds": 10000}
+        service_transport = {**transport, "maximum_connections": MAXIMUM_CONCURRENT_EXCHANGES} if self.args.iroh else transport
+        adapter_kind = "remote" if self.args.iroh else "local"
+        service_socket = self.root / ("proxy.sock" if self.args.iroh else "lattice.sock")
         projects = []
         for mode in ("success", "slow", "fail"):
             steps = [{"node_id": "build", "program": self.exe["python3"], "argv": ["ci.py", mode, str(self.root / ("command-" + mode + ".started")), self.exe["b3sum"]], "environment": {"PYTHONNOUSERSITE": "1"}, "artifacts": [] if mode == "fail" else ["artifact.txt"]}]
             if mode == "success":
                 steps[0]["reports"] = [{"kind": kind, "path": path} for kind, path in (("junit", "junit.xml"), ("cobertura", "coverage.xml"), ("lcov", "lcov.info"), ("gate", "gate.json"), ("review", "review.json"), ("provenance", "provenance.json"))]
                 steps.append({"node_id": "build", "program": self.exe["python3"], "argv": ["-c", "print('second reviewed step', flush=True)"], "environment": {"PYTHONNOUSERSITE": "1"}, "artifacts": []})
-            worker = self.export("web-worker.ncl", {"project_id": mode, "repository_path": str(self.repo), "service_origin": self.origin, "token_file": str(self.root / "worker.token"), "tls_ca_path": str(self.root / "ca.pem"), "work_root": str(self.root / "work"), "snapshot_limits": limits, "command_timeout_ms": 60000, "maximum_output_bytes": 65536, "http_timeout_ms": 5000, "lookup_timeout_ms": 15000, "maximum_artifact_bytes": 65536, "maximum_total_artifact_bytes": 65536, "maximum_artifacts": 1, "steps": steps}, "worker-" + mode)
+            worker = self.export("web-worker.ncl", {"project_id": mode, "source_repository": self.source_repository, "repository_path": str(self.worker_repo), "service_origin": self.origin, "token_file": str(self.root / "worker.token"), "tls_ca_path": str(self.root / "ca.pem"), "work_root": str(self.root / "work"), "snapshot_limits": limits, "command_timeout_ms": 60000, "maximum_output_bytes": 65536, "http_timeout_ms": 5000, "lookup_timeout_ms": 15000, "maximum_artifact_bytes": 65536, "maximum_total_artifact_bytes": 65536, "maximum_artifacts": 1, "steps": steps}, "worker-" + mode)
+            assert worker["schema"] == "kiln.web-worker.v2" and worker["source_repository"] == self.source_repository and worker["repository_path"] == str(self.worker_repo), worker
             identity = self.digest(self.root / ("worker-" + mode + ".json"))
-            workflow = {"socket_path": str(self.root / "lattice.sock"), "allowed_user_ids": [os.getuid()], "transport_limits": transport, "adapter_limits": {"maximum_request_bytes": 1048576, "maximum_response_bytes": 1048576}, "policy_id": "web-native-" + mode, "provider_profile_id": "lattice-web-native-" + mode, "platform": "linux-x86_64", "nodes": [{"id": "build", "kind": "build", "effect_class": "build", "adapter_kind": "local", "operation_identity": identity}], "edges": [], "controls": {"cancel": True, "pause": False, "resume": False}, "bounds": {"max_nodes": 8, "max_edges": 8, "max_log_references": MAX_LOG_CHUNKS, "max_log_read_bytes": LOG_CHUNK_BYTES, "max_total_log_bytes": 1048576}}
+            workflow = {"socket_path": str(service_socket), "allowed_user_ids": [os.getuid()], "transport_limits": service_transport, "adapter_limits": {"maximum_request_bytes": 1048576, "maximum_response_bytes": 1048576}, "policy_id": "web-native-" + mode, "provider_profile_id": "lattice-web-native-" + mode, "platform": "linux-x86_64", "nodes": [{"id": "build", "kind": "build", "effect_class": "build", "adapter_kind": adapter_kind, "operation_identity": identity}], "edges": [], "controls": {"cancel": True, "pause": False, "resume": False}, "bounds": {"max_nodes": 8, "max_edges": 8, "max_log_references": MAX_LOG_CHUNKS, "max_log_read_bytes": LOG_CHUNK_BYTES, "max_total_log_bytes": 1048576}}
             if mode == "success":
                 verify = {key: copy.deepcopy(value) for key, value in worker.items() if key != "schema"}
                 verify["steps"] = [{"node_id": "verify", "program": self.exe["python3"], "argv": ["-c", "print('actual dependent verification', flush=True)"], "environment": {"PYTHONNOUSERSITE": "1"}, "artifacts": []}]
-                self.export("web-worker.ncl", verify, "worker-success-verify")
-                workflow["nodes"].append({"id": "verify", "kind": "test", "effect_class": "test", "adapter_kind": "local", "operation_identity": self.digest(self.root / "worker-success-verify.json")})
+                verified = self.export("web-worker.ncl", verify, "worker-success-verify")
+                assert verified["source_repository"] == self.source_repository and verified["repository_path"] == worker["repository_path"], verified
+                workflow["nodes"].append({"id": "verify", "kind": "test", "effect_class": "test", "adapter_kind": adapter_kind, "operation_identity": self.digest(self.root / "worker-success-verify.json")})
                 workflow["edges"] = [{"source": "build", "target": "verify"}]
             projects.append({"id": mode, "label": "Native <img src=x onerror=alert(1)> " + mode, "repository_path": str(self.repo), "reference": "refs/heads/main", "source_limits": limits, "workflow": workflow})
         profile = {"service_id": "isolated-web-exercise", "listen_address": "127.0.0.1:" + str(self.port), "origin": self.origin, "tls": {"certificate_path": str(self.root / "certificate.pem"), "private_key_path": str(self.root / "key.pem"), "min_version": "TLS1.3"}, "operator_token_file": str(self.root / "operator.token"), "worker_token_file": str(self.root / "worker.token"), "state_directory": str(self.root / "state"), "projects": projects, "bounds": {"max_request_bytes": 1048576, "max_header_bytes": 16384, "max_connections": 16, "timeout_seconds": 10, "poll_interval_ms": 100, "max_projects": 8, "max_runs": 32, "max_artifact_bytes": 65536, "max_artifacts": 16, "max_run_artifact_bytes": 262144, "max_total_artifact_bytes": 1048576, "max_log_read_bytes": 65536, "max_requests": 256, "max_events_per_run": 128, "max_state_bytes": 8388608, "max_response_bytes": 4194304}}
-        self.export("web-service.ncl", profile, "service")
+        admitted = self.export("web-service.ncl", profile, "service")
         put(self.root / "lattice.ncl", pilot.ncl({"data_dir": str(self.root / "lattice-store"), "shell": self.exe["bash"], "default_timeout_secs": 90, "max_parallelism": 1}).encode())
         prefix = pilot.lattice_command(self.exe, self.root, "--config", str(self.root / "lattice.ncl"))
         routes = []
@@ -257,13 +277,76 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         handler = {"schema": "lattice.workflow-exchange-handler-profile.v1", "socket_path": str(self.root / "lattice.sock"), "transport": {"schema": "lattice.workflow-transport-profile.v1", "limits": transport, "peers": {"allowed_user_ids": [os.getuid()]}, "non_claims": ["transport admission does not prove workflow correctness", "transport peer identity does not prove peer intent", "transport acceptance does not prove an operation executed", "transport response does not prove an external effect succeeded", "transport checks do not establish production deployment"]}, "maximum_active_executions": 8, "routes": sorted(routes, key=lambda route: (route["profile_identity"], route["graph_identity"])), "non_claims": ["handler admission does not prove workflow correctness", "route authority does not prove host confinement", "execution observation does not prove an external effect succeeded", "peer identity does not prove peer intent", "handler checks do not establish release readiness"]}
         expression = "let Contract = import " + json.dumps(self.source + "/contracts/workflow-exchange-handler-profile.ncl") + " in (" + pilot.ncl(handler) + ") | Contract.HandlerProfile"
         put(self.root / "handler.ncl", expression.encode())
-        self.command([self.exe["nickel"], "export", "--format", "json", self.root / "handler.ncl"])
+        put(self.root / "handler.json", self.command([self.exe["nickel"], "export", "--format", "json", self.root / "handler.ncl"]))
         self.lattice = self.spawn("lattice", [*prefix, "workflow-exchange", "serve", "--profile", self.root / "handler.ncl"])
         self.wait(lambda: (self.root / "lattice.sock").exists(), "Lattice socket")
+        self.report["profiles"] = {"projects": {project["id"]: {"provider_profile_id": project["workflow"]["provider_profile_id"], "profile_identity": route["profile_identity"], "graph_identity": route["graph_identity"], "nodes": route["nodes"]} for project, route in zip(projects, routes)}, "worker_blake3": {path.name: self.digest(path) for path in self.root.glob("worker-*.json") if not path.name.endswith("-inputs.json")}}
+        self.report["profiles"]["handler_profile_blake3"] = self.digest(self.root / "handler.json")
+        if self.args.iroh:
+            self.prepare_bridge(admitted, routes)
+            self.start_bridge()
         self.prepare_policies()
         self.start_service()
         self.report.update(origin=self.origin, source_revision=self.revision, service_profile_blake3=self.digest(self.root / "service.json"), executables={name: {"path": path, "blake3": self.digest(path)} for name, path in self.exe.items()}, lattice_source=self.source)
         print(json.dumps({"ready": True, "origin": self.origin, "root": str(self.root)}), flush=True)
+
+    def sync_worker_source(self, revision):
+        if not self.args.iroh:
+            return
+        self.command([self.exe["jj"], "-R", self.worker_repo, "git", "fetch", "--remote", "origin"])
+        observed = self.command([self.exe["jj"], "-R", self.worker_repo, "log", "--no-graph", "-r", "main@origin", "-T", "commit_id"]).decode().strip()
+        assert observed == revision, (observed, revision)
+        self.report.setdefault("worker_source_fetches", []).append({"remote": str(self.repo), "reference": "main@origin", "revision": observed})
+
+    def prepare_bridge(self, admitted, routes):
+        # Match LatticeProfile::pinned, not the narrower requested node controls.
+        fixture = REPO / "fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/producer-fixtures-v1.json"
+        contract = copy.deepcopy(json.loads(fixture.read_bytes())["profile"])
+        workflow = admitted["projects"][0]["workflow"]
+        bounds = workflow["bounds"]
+        assert all(project["workflow"]["bounds"] == bounds for project in admitted["projects"])
+        assert len({route["profile_identity"] for route in routes}) == 1
+        contract["limits"] = {"maximum_nodes": bounds["max_nodes"], "maximum_edges": bounds["max_edges"], "maximum_log_references": bounds["max_log_references"], "maximum_log_read_bytes": bounds["max_log_read_bytes"], "maximum_total_log_bytes": bounds["max_total_log_bytes"]}
+        # Identity is observed from the admitted service; Iroh validates every
+        # request's exact profile hash against this provider-function contract.
+        peers = {role: self.command([self.exe["iroh"], "keygen", "--key", self.root / ("iroh-" + role + ".key")]).decode().strip() for role in ("worker", "proxy")}
+        assert peers["worker"] != peers["proxy"]
+        settings = {"schema": "kiln.iroh-workflow-profile.v1", "iroh_version": "0.95.1", "alpn": "kiln.workflow.v1", "bind_address": "127.0.0.1:0", "allowed_user_ids": workflow["allowed_user_ids"], "relay_urls": [], "transport_limits": {**workflow["transport_limits"], "maximum_connections": MAXIMUM_CONCURRENT_EXCHANGES}, "contract": contract, "exchange_timeout_ms": 10000}
+        for role, other, socket_name in (("worker", "proxy", "lattice.sock"), ("proxy", "worker", "proxy.sock")):
+            self.export("iroh-workflow.ncl", {**settings, "socket_path": str(self.root / socket_name), "allowed_peers": [peers[other]]}, "iroh-" + role)
+            self.command([self.exe["iroh"], "validate", "--profile", self.root / ("iroh-" + role + ".json")])
+        self.report["iroh"] = {"peers": peers, "bind_address": settings["bind_address"], "relay_urls": [], "contract_identity": routes[0]["profile_identity"], "contract_source": "LatticeProfile::pinned with admitted service workflow bounds and pinned producer profile template", "contract": contract, "profiles": {role: {"path": "iroh-" + role + ".json", "blake3": self.digest(self.root / ("iroh-" + role + ".json"))} for role in peers}, "endpoints": []}
+
+    def start_bridge(self):
+        generation = self.bridge_generation
+        self.bridge_generation += 1
+        worker_log = self.root / f"iroh-worker-{generation}.log"
+        self.iroh_worker = self.spawn(f"iroh-worker-{generation}", [self.exe["iroh"], "worker", "--profile", self.root / "iroh-worker.json", "--key", self.root / "iroh-worker.key"])
+        def endpoint():
+            if self.iroh_worker.poll() is not None:
+                raise RuntimeError("Iroh worker failed: " + worker_log.read_text()[-2048:])
+            raw = worker_log.read_bytes()
+            if b"\n" not in raw:
+                return False
+            line = raw.splitlines()[0]
+            json.loads(line)
+            return line
+        line = self.wait(endpoint, "Iroh worker EndpointAddr")
+        put(self.root / "iroh-remote.json", line + b"\n")
+        self.report["iroh"]["endpoints"].append({"generation": generation, "worker": json.loads(line)})
+        self.iroh_proxy = self.spawn(f"iroh-proxy-{generation}", [self.exe["iroh"], "proxy", "--profile", self.root / "iroh-proxy.json", "--key", self.root / "iroh-proxy.key", "--remote", self.root / "iroh-remote.json"])
+        def proxy_ready():
+            if self.iroh_proxy.poll() is not None:
+                raise RuntimeError("Iroh proxy failed: " + (self.root / f"iroh-proxy-{generation}.log").read_text()[-2048:])
+            return (self.root / "proxy.sock").is_socket()
+        self.wait(proxy_ready, "Iroh controller proxy socket")
+
+    def restart_bridge(self):
+        for process in (self.iroh_proxy, self.iroh_worker):
+            process.terminate()
+            process.wait(timeout=15)
+        assert not (self.root / "proxy.sock").exists(), "Iroh proxy did not retire owned socket"
+        self.start_bridge()
 
     def prepare_policies(self):
         self.export("web-access.ncl", {"viewers": [{"id": "native-reader", "label": "Native read-only observer", "token_file": str(self.root / "viewer.token")}]}, "access")
@@ -413,6 +496,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         put(self.repo / "source-value.txt", b"exact-source-artifact-v2\n")
         self.command([self.exe["jj"], "-R", self.repo, "bookmark", "set", "main", "-r", "@"])
         revision = self.command([self.exe["jj"], "-R", self.repo, "log", "--no-graph", "-r", "main", "-T", "commit_id"]).decode().strip()
+        self.sync_worker_source(revision)
         latest = self.terminal(self.api("POST", f'/api/runs/{success["id"]}/rerun', {"request_id": "run-latest-source", "mode": "latest"}))
         assert latest["source_revision"] == revision and revision != self.revision and latest["outcome"] == "DomainFailure", latest
         marker = self.root / "command-success.unstable"
@@ -572,14 +656,21 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         queue = self.api("GET", "/api/operations")["queue"]
         assert any(row["run_id"] == queued["id"] and row["position"] == 1 for row in queue), queue
         invocation_count = len((self.root / "invocations.log").read_text().splitlines())
+        # Stop observation before planned transport maintenance. A live lost
+        # exchange correctly retains canonical Unknown, not a fresh Pending run.
         self.service.terminate()
         self.service.wait(timeout=15)
+        if self.args.iroh:
+            self.restart_bridge()
         self.start_service()
         restored = self.api("GET", "/api/runs/" + slow["id"])
         assert restored["execution"] == active_run["execution"] and restored["attempt_id"] == active_run["attempt_id"]
         restored_queue = self.api("GET", "/api/runs/" + queued["id"])
         assert restored_queue["phase"] == "queued" and restored_queue["attempt_id"] == queued["attempt_id"], restored_queue
         assert len((self.root / "invocations.log").read_text().splitlines()) == invocation_count
+        if self.args.iroh:
+            assert restored["phase"] == "active" and restored["outcome"] == "Pending" and restored["controls"]["cancel"], restored
+            self.report["checks"]["bridge_restart"] = {"run": restored, "invocations_before": invocation_count, "invocations_after": invocation_count, "worker_and_proxy_restarted": True, "controller_stopped_during_restart": True}
         control = {"request_id": "cancel-exact", "attempt_id": restored["attempt_id"], "expected_revision": restored["revision"], "expected_sequence": restored["sequence"], "execution": restored["execution"], "action": "cancel"}
         self.api("POST", f'/api/runs/{slow["id"]}/control', {**control, "request_id": "stale", "expected_revision": restored["revision"] + 1}, expected=(409,))
         self.api("POST", f'/api/runs/{slow["id"]}/control', {**control, "request_id": "unsupported", "action": "pause"}, expected=(409,))
@@ -622,11 +713,11 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait(timeout=5)
                     failures.append("forced process termination")
-        secrets = ("operator.token", "worker.token", "viewer.token", "trigger.token", "notification.token", "key.pem", "ca-key.pem")
+        secrets = ("operator.token", "worker.token", "viewer.token", "trigger.token", "notification.token", "key.pem", "ca-key.pem", "iroh-worker.key", "iroh-proxy.key")
         for name in secrets:
             (self.root / name).unlink(missing_ok=True)
         self.report["retirement"] = {"all_processes_exited": all(process.poll() is not None for process in self.processes), "credentials_removed": all(not (self.root / name).exists() for name in secrets), "failures": failures}
-        for pattern in ("service.json", "worker-*.json", "native-*.json", "service.log", "lattice.log", "worker-*.stdout.log", "worker-*.stderr.log", "downloaded.bin", "certificate.pem", "ca.pem"):
+        for pattern in ("service.json", "worker-*.json", "native-*.json", "handler.json", "iroh-*.json", "iroh-*.log", "service.log", "lattice.log", "worker-*.stdout.log", "worker-*.stderr.log", "downloaded.bin", "certificate.pem", "ca.pem"):
             for path in self.root.glob(pattern):
                 shutil.copyfile(path, self.evidence / path.name)
         shutil.rmtree(self.root)
@@ -640,6 +731,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--service", required=True)
     parser.add_argument("--lattice", required=True)
+    parser.add_argument("--iroh", help="Explicit kiln-adapter-iroh binary; use enrolled loopback bridge and independent worker clone")
     parser.add_argument("--lattice-source", required=True)
     parser.add_argument("--root", required=True, help="New private scratch directory outside /tmp")
     parser.add_argument("--evidence", required=True)

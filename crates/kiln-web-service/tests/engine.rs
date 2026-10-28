@@ -1338,3 +1338,6 @@ mod automation;
 mod dashboard;
 #[path = "engine/reports.rs"]
 mod reports;
+
+#[path = "engine/workers.rs"]
+mod workers;

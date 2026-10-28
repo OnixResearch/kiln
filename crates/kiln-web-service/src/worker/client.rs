@@ -338,21 +338,35 @@ impl ServiceClient {
     }
 }
 
+// r[impl kiln.web.remote_workers.source]
+// r[impl kiln.web.remote_workers.source.scenario.denied]
 pub fn admit_binding(
     profile: &WorkerProfile,
     source: &SourceResolution,
     run: &RunBinding,
 ) -> Result<(), String> {
-    let repository = serde_json::to_value(&source.repository)
-        .map_err(|_| "worker repository encoding failed")?;
-    let execution: kiln_core::types::ExternalRef = serde_json::from_value(run.execution.clone())
+    if run
+        .repository
+        .as_object()
+        .is_none_or(|fields| fields.len() != 4)
+    {
+        return Err("worker repository reference invalid".into());
+    }
+    let repository = kiln_core::types::ExternalRef::deserialize(&run.repository)
+        .map_err(|_| "worker repository reference invalid")?;
+    repository
+        .validate()
+        .map_err(|_| "worker repository reference invalid")?;
+    let execution = kiln_core::types::ExternalRef::deserialize(&run.execution)
         .map_err(|_| "worker execution reference invalid")?;
     execution
         .validate()
         .map_err(|_| "worker execution reference invalid")?;
     if !super::profile::component(&run.id)
         || run.project_id != profile.project_id
-        || run.repository != repository
+        || repository.provider_namespace.as_str() != "git"
+        || repository.native_kind.as_str() != "repository"
+        || repository.native_id.as_str() != profile.source_repository
         || run.source_revision != source.exact_revision.native_id.as_str()
         || run.canonical_tree != source.canonical_tree.as_str()
         || run.attempt_id.is_empty()

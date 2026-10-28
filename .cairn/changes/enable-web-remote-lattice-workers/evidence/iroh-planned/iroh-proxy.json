@@ -1,0 +1,72 @@
+{
+  "allowed_peers": [
+    "22ca938b7f878297c296e461d580ad42aaba685368603089868f17a321d161dd"
+  ],
+  "alpn": "kiln.workflow.v1",
+  "bind_address": "127.0.0.1:0",
+  "contract": {
+    "adapter_kinds": [
+      "local",
+      "remote"
+    ],
+    "controls": {
+      "cancel": true,
+      "pause": true,
+      "resume": true
+    },
+    "effect_classes": [
+      "build",
+      "test"
+    ],
+    "graph_schema": "lattice.workflow-graph.v1",
+    "limits": {
+      "maximum_edges": 8,
+      "maximum_log_read_bytes": 32,
+      "maximum_log_references": 64,
+      "maximum_nodes": 8,
+      "maximum_total_log_bytes": 1048576
+    },
+    "node_kinds": [
+      "build",
+      "test"
+    ],
+    "non_claims": [
+      "workflow admission does not prove workflow correctness",
+      "workflow admission does not prove host confinement",
+      "workflow observation does not prove an external effect succeeded",
+      "workflow observation does not prove credential freshness",
+      "workflow observation does not establish release readiness"
+    ],
+    "platforms": [
+      "linux-x86_64"
+    ],
+    "schema": "lattice.workflow-profile.v1"
+  },
+  "exchange_timeout_ms": 10000,
+  "iroh_version": "0.95.1",
+  "relay_urls": [],
+  "schema": "kiln.iroh-workflow-profile.v1",
+  "socket_path": "/var/tmp/kwn-iroh/proxy.sock",
+  "transport": {
+    "limits": {
+      "maximum_connections": 64,
+      "maximum_frame_bytes": 1048576,
+      "maximum_log_bytes": 1048576,
+      "read_deadline_milliseconds": 10000,
+      "write_deadline_milliseconds": 10000
+    },
+    "non_claims": [
+      "transport admission does not prove workflow correctness",
+      "transport peer identity does not prove peer intent",
+      "transport acceptance does not prove an operation executed",
+      "transport response does not prove an external effect succeeded",
+      "transport checks do not establish production deployment"
+    ],
+    "peers": {
+      "allowed_user_ids": [
+        1555
+      ]
+    },
+    "schema": "lattice.workflow-transport-profile.v1"
+  }
+}

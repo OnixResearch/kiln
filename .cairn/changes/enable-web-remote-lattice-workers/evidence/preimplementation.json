@@ -1,0 +1,10 @@
+{
+  "schema": "kiln.web-remote-workers.preimplementation.v1",
+  "worker_binary_blake3": "4604021b44785a55dcf456f75e2f39357a123b6b0cad0207270086e23c6156b0",
+  "exit_code": 1,
+  "stderr": "kiln worker: worker source binding mismatch\n",
+  "different_checkout": true,
+  "exact_revision": "76b2aa0ff833167d3c758eb5530ac5797a84a322",
+  "expected_controller_repository": "7f88d09ba35c4c9d6346bc93cc67cd099747d3057720ba28166a5d2c1e059687",
+  "worker_binary": "/home/brittonr/.cargo-target/kiln-web-service/debug/kiln-web-service"
+}

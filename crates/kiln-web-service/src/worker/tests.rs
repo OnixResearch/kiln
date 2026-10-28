@@ -53,9 +53,10 @@ fn fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "work directory", error));
     fs::set_permissions(&work_root, fs::Permissions::from_mode(0o700))
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "private work directory", error));
-    let profile = WorkerProfile {
-        schema: "kiln.web-worker.v1".into(),
+    let mut profile = WorkerProfile {
+        schema: "kiln.web-worker.v2".into(),
         project_id: "fixture".into(),
+        source_repository: String::new(),
         repository_path,
         service_origin: "https://localhost:9443".into(),
         token_file: root.path().join("worker.token"),
@@ -96,12 +97,173 @@ fn fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
     .unwrap_or_else(|error| unreachable!("{}: {:?}", "adapter", error));
     let resolution = resolve_and_acquire(&adapter, id)
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "source resolution", error));
+    profile.source_repository = resolution.repository.native_id.as_str().into();
     let context = source::SourceContext {
         provider: "git".into(),
         repository: resolution.repository.native_id.as_str().into(),
         revision: oid.to_string(),
     };
     (root, profile, context)
+}
+
+fn independent_clone_fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
+    let (root, mut profile, context) = fixture();
+    let clone = root.path().join("worker-clone");
+    Repository::clone(
+        profile
+            .repository_path
+            .to_str()
+            .unwrap_or_else(|| unreachable!()),
+        &clone,
+    )
+    .unwrap_or_else(|error| unreachable!("independent clone: {error:?}"));
+    profile.repository_path = clone;
+    (root, profile, context)
+}
+
+fn binding_fixture(
+    profile: &WorkerProfile,
+    source: &kiln_core::source::SourceResolution,
+) -> client::RunBinding {
+    let repository = ExternalRef::new("git", "repository", &profile.source_repository)
+        .unwrap_or_else(|error| unreachable!("repository: {error:?}"));
+    let execution = ExternalRef::new("lattice", "execution", "native-1")
+        .unwrap_or_else(|error| unreachable!("execution: {error:?}"));
+    client::RunBinding {
+        id: "run-fixture".into(),
+        project_id: profile.project_id.clone(),
+        repository: serde_json::to_value(repository)
+            .unwrap_or_else(|error| unreachable!("repository DTO: {error:?}")),
+        source_revision: source.exact_revision.native_id.as_str().into(),
+        canonical_tree: source.canonical_tree.as_str().into(),
+        attempt_id: "attempt-1".into(),
+        execution: serde_json::to_value(execution)
+            .unwrap_or_else(|error| unreachable!("execution DTO: {error:?}")),
+        outcome: "Pending".into(),
+        nodes: vec![client::Node { id: "build".into() }],
+        log_bounds: client::LogBounds {
+            maximum_chunk_bytes: 4,
+            maximum_total_bytes: 4096,
+            maximum_chunks: 128,
+        },
+    }
+}
+
+// r[verify kiln.web.remote_workers.source]
+// r[verify kiln.web.remote_workers.source.scenario.clone]
+#[test]
+fn independent_clone_executes_declared_source_without_relabeling_local_acquisition() {
+    let (_root, profile, context) = independent_clone_fixture();
+    fs::write(
+        profile.repository_path.join("input.txt"),
+        b"worker-local mutation",
+    )
+    .unwrap_or_else(|error| unreachable!("dirty clone: {error:?}"));
+    fs::write(profile.repository_path.join("reviewed.sh"), b"exit 99")
+        .unwrap_or_else(|error| unreachable!("dirty clone command: {error:?}"));
+    let prepared = source::prepare(&profile, &context)
+        .unwrap_or_else(|error| unreachable!("clone checkout: {error:?}"));
+    let canonical = profile
+        .repository_path
+        .canonicalize()
+        .unwrap_or_else(|error| unreachable!("clone canonical path: {error:?}"));
+    let local_identity = kiln_codec::identity_from_bytes(
+        canonical
+            .to_str()
+            .unwrap_or_else(|| unreachable!())
+            .as_bytes(),
+    )
+    .unwrap_or_else(|error| unreachable!("clone identity: {error:?}"));
+    assert_eq!(
+        prepared.resolution.repository.native_id.as_str(),
+        local_identity.as_str()
+    );
+    assert_ne!(local_identity.as_str(), profile.source_repository);
+    assert_eq!(
+        prepared.resolution.exact_revision.native_id.as_str(),
+        context.revision
+    );
+    let binding = binding_fixture(&profile, &prepared.resolution);
+    assert_eq!(
+        client::admit_binding(&profile, &prepared.resolution, &binding),
+        Ok(())
+    );
+    let mut local_callback = binding.clone();
+    local_callback.repository = serde_json::to_value(&prepared.resolution.repository)
+        .unwrap_or_else(|error| unreachable!("local repository DTO: {error:?}"));
+    assert!(client::admit_binding(&profile, &prepared.resolution, &local_callback).is_err());
+    let output = process::execute(
+        &profile,
+        profile.steps.first().unwrap_or_else(|| unreachable!()),
+        &prepared.checkout,
+        &AtomicBool::new(false),
+    )
+    .unwrap_or_else(|error| unreachable!("clone execution: {error:?}"));
+    assert_eq!(output.code, 0);
+    assert_eq!(output.stdout.bytes, b"actual stdout\n");
+    assert_eq!(output.stderr.bytes, b"actual stderr\n");
+    assert_eq!(
+        files::artifact(
+            &prepared.checkout,
+            std::path::Path::new("product.txt"),
+            8192
+        )
+        .unwrap_or_else(|error| unreachable!("clone artifact: {error:?}")),
+        b"committed source\n"
+    );
+    assert!(!profile.repository_path.join("product.txt").exists());
+}
+
+// r[verify kiln.web.remote_workers.source]
+// r[verify kiln.web.remote_workers.source.scenario.denied]
+#[test]
+fn old_missing_and_malformed_profiles_are_rejected_before_source_effects() {
+    let (root, profile, context) = fixture();
+    let original = serde_json::to_value(&profile)
+        .unwrap_or_else(|error| unreachable!("profile DTO: {error:?}"));
+    let path = root.path().join("profile.json");
+    let mut rejected = Vec::new();
+    let mut old = original.clone();
+    *old.get_mut("schema").unwrap_or_else(|| unreachable!()) = "kiln.web-worker.v1".into();
+    rejected.push(old);
+    let mut missing = original.clone();
+    missing
+        .as_object_mut()
+        .unwrap_or_else(|| unreachable!())
+        .remove("source_repository");
+    rejected.push(missing);
+    for identity in [
+        String::new(),
+        "a".repeat(63),
+        "a".repeat(65),
+        "A".repeat(64),
+        "g".repeat(64),
+        format!("b3:{}", "a".repeat(64)),
+        "/controller/repository".into(),
+    ] {
+        let mut malformed = original.clone();
+        *malformed
+            .get_mut("source_repository")
+            .unwrap_or_else(|| unreachable!()) = identity.into();
+        rejected.push(malformed);
+    }
+    for value in rejected {
+        let bytes = serde_json::to_vec(&value)
+            .unwrap_or_else(|error| unreachable!("profile encoding: {error:?}"));
+        fs::write(&path, &bytes).unwrap_or_else(|error| unreachable!("profile file: {error:?}"));
+        let identity = blake3::hash(&bytes).to_hex().to_string();
+        assert!(super::load_profile(&path, &identity).is_err());
+        if let Ok(invalid) = serde_json::from_value::<WorkerProfile>(value) {
+            assert!(source::prepare(&invalid, &context).is_err());
+        }
+        assert_eq!(
+            fs::read_dir(&profile.work_root)
+                .unwrap_or_else(|error| unreachable!("work directory: {error:?}"))
+                .count(),
+            0
+        );
+        assert!(!profile.repository_path.join("product.txt").exists());
+    }
 }
 
 #[test]
@@ -147,10 +309,11 @@ fn exact_commit_runs_reviewed_command_and_produces_actual_artifact_not_mutable_w
     assert!(!profile.repository_path.join("product.txt").exists());
 }
 
+// r[verify kiln.web.remote_workers.source.scenario.denied]
 #[test]
 fn wrong_source_context_and_snapshot_overflow_never_materialize() {
     let (_root, mut profile, mut context) = fixture();
-    context.repository = "different-repository".into();
+    context.repository = "f".repeat(64);
     assert!(source::prepare(&profile, &context).is_err());
     assert_eq!(
         fs::read_dir(&profile.work_root)
@@ -158,8 +321,20 @@ fn wrong_source_context_and_snapshot_overflow_never_materialize() {
             .count(),
         0
     );
+    context.repository = profile.source_repository.clone();
     context.provider = "github".into();
     assert!(source::prepare(&profile, &context).is_err());
+    context.provider = "git".into();
+    for revision in [String::new(), "0".repeat(40), "f".repeat(40)] {
+        context.revision = revision;
+        assert!(source::prepare(&profile, &context).is_err());
+        assert_eq!(
+            fs::read_dir(&profile.work_root)
+                .unwrap_or_else(|error| unreachable!("work directory: {error:?}"))
+                .count(),
+            0
+        );
+    }
     let (_second_root, original, original_context) = fixture();
     profile = original;
     profile.snapshot_limits.max_total_bytes = 1;
@@ -348,26 +523,7 @@ fn source_attempt_execution_and_node_bindings_are_all_required() {
     let prepared = source::prepare(&profile, &context)
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "checkout", error));
     let source = &prepared.resolution;
-    let execution = ExternalRef::new("lattice", "execution", "native-1")
-        .unwrap_or_else(|error| unreachable!("execution: {error:?}"));
-    let binding = client::RunBinding {
-        id: "run-fixture".into(),
-        project_id: profile.project_id.clone(),
-        repository: serde_json::to_value(&source.repository)
-            .unwrap_or_else(|error| unreachable!("{}: {:?}", "repository DTO", error)),
-        source_revision: context.revision,
-        canonical_tree: source.canonical_tree.as_str().into(),
-        attempt_id: "attempt-1".into(),
-        execution: serde_json::to_value(execution)
-            .unwrap_or_else(|error| unreachable!("{}: {:?}", "execution DTO", error)),
-        outcome: "Pending".into(),
-        nodes: vec![client::Node { id: "build".into() }],
-        log_bounds: client::LogBounds {
-            maximum_chunk_bytes: 4,
-            maximum_total_bytes: 4096,
-            maximum_chunks: 128,
-        },
-    };
+    let binding = binding_fixture(&profile, source);
     let mut unselected = profile
         .steps
         .first()

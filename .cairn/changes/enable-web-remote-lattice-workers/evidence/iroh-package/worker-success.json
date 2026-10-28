@@ -1,0 +1,82 @@
+{
+  "command_timeout_ms": 60000,
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "success",
+  "repository_path": "/var/tmp/kwn-release/worker-source",
+  "schema": "kiln.web-worker.v2",
+  "service_origin": "https://127.0.0.1:59801",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "source_repository": "862f2593806ba5de0231aaee0881455b62f51a4285617d1e46bbfa96ed133eaa",
+  "steps": [
+    {
+      "argv": [
+        "ci.py",
+        "success",
+        "/var/tmp/kwn-release/command-success.started",
+        "/nix/store/lp2fcmbwq2g4yxmb91kmsrb1a09s5rf5-b3sum-1.8.7/bin/b3sum"
+      ],
+      "artifacts": [
+        "artifact.txt"
+      ],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "build",
+      "program": "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14",
+      "reports": [
+        {
+          "kind": "junit",
+          "path": "junit.xml"
+        },
+        {
+          "kind": "cobertura",
+          "path": "coverage.xml"
+        },
+        {
+          "kind": "lcov",
+          "path": "lcov.info"
+        },
+        {
+          "kind": "gate",
+          "path": "gate.json"
+        },
+        {
+          "kind": "review",
+          "path": "review.json"
+        },
+        {
+          "kind": "provenance",
+          "path": "provenance.json"
+        }
+      ]
+    },
+    {
+      "argv": [
+        "-c",
+        "print('second reviewed step', flush=True)"
+      ],
+      "artifacts": [],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "build",
+      "program": "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14"
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/var/tmp/kwn-release/ca.pem",
+  "token_file": "/var/tmp/kwn-release/worker.token",
+  "work_root": "/var/tmp/kwn-release/work"
+}

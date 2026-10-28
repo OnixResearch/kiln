@@ -19,6 +19,7 @@ mod queue;
 mod reports;
 pub use automation::{NotificationCompletion, NotificationWork};
 mod storage;
+mod workers;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]

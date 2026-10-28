@@ -1,0 +1,42 @@
+{
+  "command_timeout_ms": 60000,
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "fail",
+  "repository_path": "/var/tmp/kwn-local/source",
+  "schema": "kiln.web-worker.v2",
+  "service_origin": "https://127.0.0.1:48351",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "source_repository": "23b488553c14ca2c7767c3ffdf676c1ceac8a9aa1c8044e2f369e2bb6fa294dc",
+  "steps": [
+    {
+      "argv": [
+        "ci.py",
+        "fail",
+        "/var/tmp/kwn-local/command-fail.started",
+        "/nix/store/lp2fcmbwq2g4yxmb91kmsrb1a09s5rf5-b3sum-1.8.7/bin/b3sum"
+      ],
+      "artifacts": [],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "build",
+      "program": "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14"
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/var/tmp/kwn-local/ca.pem",
+  "token_file": "/var/tmp/kwn-local/worker.token",
+  "work_root": "/var/tmp/kwn-local/work"
+}

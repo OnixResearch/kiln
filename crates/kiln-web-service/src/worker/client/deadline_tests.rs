@@ -54,6 +54,7 @@ fn fixture() -> (
         GitSourceProfile::pinned_local(provider.clone(), profile.snapshot_limits.clone()),
     ));
     let source = checked(resolve_and_acquire(&adapter, provider));
+    profile.source_repository = source.repository.native_id.as_str().into();
     let binding = RunBinding {
         id: "deadline-run".into(),
         project_id: profile.project_id.clone(),
@@ -158,6 +159,82 @@ fn receiver(
         requests
     });
     (origin, stop, thread)
+}
+
+// r[verify kiln.web.remote_workers.source]
+// r[verify kiln.web.remote_workers.source.scenario.denied]
+#[test]
+fn independent_clone_rejects_wrong_callback_source_before_commands_or_uploads() {
+    for (field, replacement) in [
+        ("native_id", json!("f".repeat(64))),
+        ("provider_namespace", json!("pijul")),
+        ("native_kind", json!("commit")),
+        ("contract_version", json!(2)),
+        ("extra_repository_field", json!(true)),
+        ("repository", Value::Null),
+        ("source_revision", json!("f".repeat(40))),
+        ("canonical_tree", json!("f".repeat(64))),
+    ] {
+        let (root, mut profile, source, binding) = fixture();
+        let clone = root.path().join("worker-clone");
+        checked(git2::Repository::clone(
+            profile
+                .repository_path
+                .to_str()
+                .unwrap_or_else(|| unreachable!()),
+            &clone,
+        ));
+        profile.repository_path = clone;
+        checked(std::fs::create_dir(&profile.work_root));
+        checked(std::fs::set_permissions(
+            &profile.work_root,
+            std::fs::Permissions::from_mode(0o700),
+        ));
+        let marker = root.path().join("command-executed");
+        let step = profile.steps.first_mut().unwrap_or_else(|| unreachable!());
+        step.program = "/bin/sh".into();
+        step.argv = vec![
+            "-c".into(),
+            ": > \"$1\"".into(),
+            "denial-probe".into(),
+            marker.to_str().unwrap_or_else(|| unreachable!()).into(),
+        ];
+        let context = crate::worker::SourceContext {
+            provider: "git".into(),
+            repository: profile.source_repository.clone(),
+            revision: source.exact_revision.native_id.as_str().into(),
+        };
+        let mut wrong = checked(serde_json::to_value(binding));
+        if [
+            "native_id",
+            "provider_namespace",
+            "native_kind",
+            "contract_version",
+            "extra_repository_field",
+        ]
+        .contains(&field)
+        {
+            wrong
+                .get_mut("repository")
+                .and_then(Value::as_object_mut)
+                .unwrap_or_else(|| unreachable!())
+                .insert(field.into(), replacement);
+        } else {
+            *wrong.get_mut(field).unwrap_or_else(|| unreachable!()) = replacement;
+        }
+        let (origin, stop, server) = receiver(vec![(Duration::ZERO, json!({"runs": [wrong]}))]);
+        profile.service_origin = origin;
+        let result = crate::worker::run_job(&profile, &context, &AtomicBool::new(false));
+        stop.store(true, Ordering::SeqCst);
+        assert_eq!(
+            checked(server.join()),
+            1,
+            "unexpected callback/upload request for {field}"
+        );
+        assert!(result.is_err(), "wrong callback {field} was admitted");
+        assert!(!marker.exists(), "command executed for rejected {field}");
+        assert_eq!(checked(std::fs::read_dir(&profile.work_root)).count(), 0);
+    }
 }
 
 #[test]

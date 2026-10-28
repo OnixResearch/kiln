@@ -45,6 +45,17 @@ pre { font-size: .77rem; }
 .cob-choice strong, #cob-detail h2 { overflow-wrap: anywhere; }
 .cob-action { min-width: 0; }
 .cob-operation + .cob-operation { margin-top: 1rem; }
+.worker-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .75rem; }
+.worker-metrics .inventory-card { min-width: 0; }
+.worker-metrics .metric-label { overflow-wrap: anywhere; }
+.worker-choice { min-height: 2.75rem; }
+.worker-choice strong, .worker-detail h3, .worker-identity, .worker-run-links a { overflow-wrap: anywhere; }
+.worker-choice .state-badge { justify-self: start; }
+.worker-detail { min-width: 0; }
+.worker-detail a { display: block; overflow-wrap: anywhere; }
+.worker-identity { font: .75rem ui-monospace, monospace; }
+.worker-run-links { font-size: .78rem; }
+.worker-list { scroll-margin-top: 1rem; }
 .run-source { font-family: ui-monospace, monospace; font-size: .7rem; color: var(--muted); }
 .run-summary { font-size: .73rem; color: var(--muted); }
 .empty-state { min-height: 18rem; display: flex; justify-content: center; align-items: flex-start; flex-direction: column; background: var(--hero); }
@@ -97,6 +108,8 @@ dialog::backdrop { background: #10170dc0; }
 :root[data-density="compact"] .record-card { padding: .75rem; }
 @media (max-width: 80rem) { .workspace-grid { grid-template-columns: minmax(14rem, 16rem) minmax(0, 1fr); gap: 1rem; } .log-tools { grid-template-columns: 1fr 1fr; } .panel { padding: 1rem; } }
 @media (max-width: 65rem) { .workspace-grid, .project-forms { grid-template-columns: minmax(0, 1fr); } .run-list { max-height: 22rem; } #run-search-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .page-heading { flex-direction: column; } }
+@media (max-width: 65rem) { .worker-list { max-height: 24rem; } #worker-search-form > div { min-width: min(100%, 12rem); } }
+@media (max-width: 40rem) { #worker-search-form > div { flex-basis: 100%; } #worker-search-form > button { flex: 1; } .worker-detail > .section-heading { align-items: flex-start; } }
 @media (max-width: 60rem) { .app-topbar { min-height: 4.2rem; } .session-tools .live-badge { max-width: 8rem; } #logout { font-size: .72rem; padding-inline: .5rem; } }
 @media (max-width: 40rem) { .session-tools { gap: .4rem; } .session-tools .live-badge { max-width: 8rem; } .login-panel { margin: 1.5rem auto; padding: 1.4rem; } .facts { grid-template-columns: minmax(0, 1fr); gap: .25rem; } .facts dd { margin-bottom: .55rem; } .artifact-card { grid-template-columns: minmax(0, 1fr); } .log-output { min-height: 12rem; } #run-search-form { grid-template-columns: minmax(0, 1fr); } .app-topbar { padding-inline: .75rem; } .topbar-workspace, .breadcrumb-divider { display: none; } .run-tabs button { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }

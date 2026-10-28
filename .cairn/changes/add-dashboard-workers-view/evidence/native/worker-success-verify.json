@@ -1,0 +1,39 @@
+{
+  "command_timeout_ms": 60000,
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "success",
+  "repository_path": "/home/brittonr/.kiln-worker-view-smoke-7279243f-4354-4b74-9009-e85ece563b75/source",
+  "schema": "kiln.web-worker.v1",
+  "service_origin": "https://127.0.0.1:52257",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "steps": [
+    {
+      "argv": [
+        "-c",
+        "print('actual dependent verification', flush=True)"
+      ],
+      "artifacts": [],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "verify",
+      "program": "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14"
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/home/brittonr/.kiln-worker-view-smoke-7279243f-4354-4b74-9009-e85ece563b75/ca.pem",
+  "token_file": "/home/brittonr/.kiln-worker-view-smoke-7279243f-4354-4b74-9009-e85ece563b75/worker.token",
+  "work_root": "/home/brittonr/.kiln-worker-view-smoke-7279243f-4354-4b74-9009-e85ece563b75/work"
+}

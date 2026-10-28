@@ -39,15 +39,18 @@ pub struct PreparedSource {
     pub resolution: SourceResolution,
 }
 
+// r[impl kiln.web.remote_workers.source]
+// r[impl kiln.web.remote_workers.source.scenario.clone]
 pub fn prepare(profile: &WorkerProfile, context: &SourceContext) -> Result<PreparedSource, String> {
     profile.admit()?;
     if context.provider != "git"
+        || context.repository != profile.source_repository
         || !hex(&context.revision, 20)
         || context.revision.bytes().all(|b| b == b'0')
     {
         return Err("worker source context invalid".into());
     }
-    // Reject aliased repository paths before binding to LocalGitAdapter's canonical reference.
+    // Reject aliased backing paths without equating their local identity to the controller.
     files::directory(&profile.repository_path)?;
     files::owned_directory(&profile.work_root)?;
     let provider =
@@ -60,9 +63,7 @@ pub fn prepare(profile: &WorkerProfile, context: &SourceContext) -> Result<Prepa
     .map_err(|_| "worker source admission failed")?;
     let resolution =
         resolve_and_acquire(&adapter, provider).map_err(|_| "worker snapshot admission failed")?;
-    if resolution.repository.native_id.as_str() != context.repository
-        || resolution.exact_revision.native_id.as_str() != context.revision
-    {
+    if resolution.exact_revision.native_id.as_str() != context.revision {
         return Err("worker source binding mismatch".into());
     }
     let repository =

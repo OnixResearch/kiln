@@ -1,6 +1,8 @@
 # Export this reviewed profile to JSON once. --identity pins BLAKE3 of those
 # original JSON bytes, including whitespace; never hash a reserialized profile.
 # Commands run in the exact admitted Git commit, not the mutable worktree.
+# source_repository is the controller's canonical Git native identity (64 lowercase
+# hex characters); repository_path is independent worker-local backing storage.
 # Several steps may use the same native Lattice job node_id. Their real retained
 # stdout/stderr are uploaded during execution with separate worker-owned byte
 # cursors. Bounded Exec owns the process while private bounded transports retain
@@ -62,6 +64,10 @@ fun input =>
     input
       | {
         project_id | Component,
+        source_repository
+          | std.contract.from_predicate (fun value =>
+            std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
+          ),
         repository_path | AbsolutePath,
         service_origin
           | std.contract.from_predicate (fun value =>
@@ -93,8 +99,9 @@ fun input =>
       }
   in
   {
-    schema = "kiln.web-worker.v1",
+    schema = "kiln.web-worker.v2",
     project_id = settings.project_id,
+    source_repository = settings.source_repository,
     repository_path = settings.repository_path,
     service_origin = settings.service_origin,
     token_file = settings.token_file,

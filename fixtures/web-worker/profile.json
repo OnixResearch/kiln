@@ -1,6 +1,7 @@
 {
-  "schema": "kiln.web-worker.v1",
+  "schema": "kiln.web-worker.v2",
   "project_id": "reviewed-example",
+  "source_repository": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "repository_path": "/srv/kiln/repositories/reviewed-example",
   "service_origin": "https://kiln.example.invalid:9443",
   "token_file": "/run/kiln-worker/worker.token",

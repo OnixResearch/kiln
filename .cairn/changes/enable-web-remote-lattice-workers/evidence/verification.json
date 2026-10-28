@@ -1,0 +1,60 @@
+{
+  "schema": "kiln.web-remote-workers.verification.v1",
+  "outcome": "Reviewed v2 web-worker source binding permits an independent Git checkout through the existing Iroh whole-workflow transport.",
+  "owner": "Kiln web-service maintainers",
+  "consumer": "The live web workspace operator selecting a reviewed remote Lattice target",
+  "durable_capability": "Exact controller-source binding independent of worker-local backing checkout, with repeatable native execution and recovery evidence",
+  "preimplementation": "preimplementation.json",
+  "profile_contract": {
+    "schema": "kiln.web-worker.v2",
+    "required_field": "source_repository",
+    "identity": "64 lowercase hexadecimal characters: canonical controller Git repository native identity",
+    "backing_checkout": "repository_path remains worker-local; SourceResolution is not relabeled",
+    "migration": "No v1 or missing-field fallback; re-export reviewed JSON and review new operation, graph and native route identities"
+  },
+  "checks": {
+    "workspace_tests": {
+      "command": "env CARGO_TARGET_DIR=/home/brittonr/.cargo-target/kiln-web-service CARGO_BUILD_JOBS=8 nix develop path:. --no-write-lock-file -c env RUSTC_WRAPPER= RUSTC_WORKSPACE_WRAPPER= cargo test --locked --workspace",
+      "result": "passed before test-only checked-index repairs"
+    },
+    "final_worker_tests": {
+      "command": "cargo test --locked -p kiln-web-service",
+      "result": "passed after checked-index repairs",
+      "passed": 97,
+      "ignored": 1,
+      "coverage": "Independent-clone immutable command/product execution; wrong producer and callback identity, revision/tree and envelope rejection before commands/uploads; old/missing/malformed profiles; existing live service/worker behavior"
+    },
+    "strict_workspace_clippy": {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "result": "passed"},
+    "rust_format": {"command": "cargo fmt --check", "result": "passed"},
+    "nickel_format": {"command": "nickel format --check config/web-worker.ncl", "result": "passed"},
+    "native_local": {"result": "passed", "evidence": "local/verification.json"},
+    "native_iroh": {
+      "result": "passed",
+      "evidence": "iroh-planned/verification.json",
+      "independent_checkout": true,
+      "actual_observations": ["exact committed source", "dependent native job", "captured stdout/stderr", "downloaded artifact bytes and BLAKE3", "genuine source-command failure", "planned controller and both-bridge restart preserving execution/attempt without redispatch", "exact cancellation", "durable queue", "stale/unsupported control rejection", "provider unavailable", "source ref update and independent fetch", "retired processes, keys, credentials and scratch"]
+    },
+    "native_packaged_iroh": {"result": "passed", "evidence": "iroh-package/verification.json", "service": "/nix/store/aqwv640zkm3dayqr04rx4kkzrid17jqn-kiln-web-service-0.1.0/bin/kiln-web-service"},
+    "affected_nix_checks": {
+      "result": "passed",
+      "source_snapshot": "/nix/store/y6qsdhka88il1rfkaw99sin7ljn081dx-source",
+      "selection": ["checks.x86_64-linux.octet", "checks.x86_64-linux.web-service-deployment", "checks.x86_64-linux.nickel", "checks.x86_64-linux.format"],
+      "outputs": ["/nix/store/nijyd78i7yipaqngpl0jn05r5ki4731q-kiln-octet", "/nix/store/z8kgg8lpc4yjrw0p0s4cjq8j48b8cr7w-vm-test-run-kiln-web-service-deployment", "/nix/store/is8dr2rrmsdkv56baw61ra9y1i1p28g0-kiln-nickel", "/nix/store/di78idkmcvlry6nh17a28x1xry407gkd-kiln-format"],
+      "vm_script_seconds": 26.62,
+      "release_package_worker_tests": "97 passed, 1 ignored"
+    },
+    "final_tasks_gate_summary": {"verdict": "PASS", "task_done": 3, "task_todo": 0, "input_hash": "efe940b5946ae5d8e31eea12bdbde81f9a14cd2b7936de0c47b973b78b21b6f4", "receipt_hash": "bd7eab2ca27888e2c24e04d844c1d6faa4933cb62fd2694cb349871cb7bfb67e"},
+    "lifecycle": {"evidence": "lifecycle.json", "proposal_design_tasks_gates": "PASS", "validate": "passed", "traceability": "failed: missing=[]; dangling existing and active unaccepted change IDs", "release_readiness": "command exit 0 but verdict=fail, valid=false, onix_release_ready=false"}
+  },
+  "resolved_during_integration": [
+    "Applied required Rust formatting to new regressions.",
+    "Replaced five unchecked JSON indexes rejected by strict Clippy with checked access/object insertion.",
+    "Froze Nix inputs at /nix/store/y6qsdhka88il1rfkaw99sin7ljn081dx-source after a mutable-path evaluation detected changing files."
+  ],
+  "retained_limits": {
+    "live_bridge_outage": {"evidence": "iroh/verification.json", "result": "Initial live-bridge restart reached control_unsupported; retained failure is not promoted to a pass. Canonical Unknown is not reset to Pending. Passing recovery stops the controller during bridge maintenance."},
+    "full_flake": {"status": "not_rerun", "retained_failure": "checks.x86_64-linux.radicle-mutation-native-fixtures / accepted_write_times_out_to_unknown_then_reconciles: TimedOut rather than Unknown", "prior_evidence": ".cairn/changes/complete-live-dashboard/evidence/verification.json"}
+  },
+  "repeatability": {"native": "scripts/web-service-smoke.py with reviewed --service, --lattice, --lattice-source and optional --iroh", "procedure": "docs/operator.md#remote-lattice-workers"},
+  "non_claims": ["No production activation, publication, lifecycle acceptance or release eligibility", "No per-node mixed-host placement or new executor/transport", "Loopback and independent clones do not establish distinct-host or WAN/relay availability", "Reviewed source binding is not repository ownership, source trust or hostile-code confinement", "No automatic retry or restoration of pending controls after an unresolved live transport outage"]
+}

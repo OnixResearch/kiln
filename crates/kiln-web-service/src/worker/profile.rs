@@ -18,6 +18,7 @@ const MAX_TIMEOUT_MS: u64 = 86_400_000;
 pub struct WorkerProfile {
     pub schema: String,
     pub project_id: String,
+    pub source_repository: String,
     pub repository_path: PathBuf,
     pub service_origin: String,
     pub token_file: PathBuf,
@@ -92,6 +93,8 @@ fn environment_name(name: &str) -> bool {
 }
 
 impl WorkerProfile {
+    // r[impl kiln.web.remote_workers.source]
+    // r[impl kiln.web.remote_workers.source.scenario.denied]
     pub fn admit(&self) -> Result<(), String> {
         let url = reqwest::Url::parse(&self.service_origin).map_err(|_| "worker origin invalid")?;
         let limits = &self.snapshot_limits;
@@ -101,8 +104,9 @@ impl WorkerProfile {
             &self.tls_ca_path,
             &self.work_root,
         ];
-        if self.schema != "kiln.web-worker.v1"
+        if self.schema != "kiln.web-worker.v2"
             || !component(&self.project_id)
+            || !hex(&self.source_repository, 32)
             || absolute.iter().any(|p| {
                 !p.is_absolute()
                     || p.components()

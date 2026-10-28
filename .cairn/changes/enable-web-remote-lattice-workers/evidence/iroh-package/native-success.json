@@ -1,0 +1,51 @@
+{
+  "controls": {
+    "cancel": true,
+    "pause": false,
+    "resume": false
+  },
+  "graph": {
+    "edges": [
+      {
+        "source": "build",
+        "target": "verify"
+      }
+    ],
+    "identity": "b3:beda6241bf6df06f9eea5d89268357bebbec7a84099bdf4815313d9a7609ba8c",
+    "nodes": [
+      {
+        "adapter_kind": "remote",
+        "effect_class": "build",
+        "id": "build",
+        "kind": "build",
+        "operation_identity": "b3:1eee5cfd01588dc1d689e91ffb448f4f3be7df06b0c276a6cbb300a22eb95160"
+      },
+      {
+        "adapter_kind": "remote",
+        "effect_class": "test",
+        "id": "verify",
+        "kind": "test",
+        "operation_identity": "b3:8a52e345fc4f9995cfc2556c1c3b6af3b158852a41900cbf53f56ab3bb1a1557"
+      }
+    ],
+    "schema": "lattice.workflow-graph.v1"
+  },
+  "idempotency_key": "b3:63f715f53fd02664195335dbd9d05f6a741e4e654cae73ad20c324c04f1eeddc",
+  "identity": "b3:0ced59f987c5168114e9975db012464d1e9beb8adb0e1e500cfd3e62178b0345",
+  "kiln": {
+    "attempt_identity": "b3:66179dc5613fd7b89a701ba0f6f988cbcb03fcf6a4f76b74eb316a8536cd1c46",
+    "candidate_identity": "b3:486cf39125c15f2c59f72cdb571e5610b40728db868c7b6ebcd5543b057ec6fc",
+    "effect_identity": "b3:a85db118963f21f9e4eb3ab0589cdaf32dd738008e5f1d957a374c040f21dc4b",
+    "pipeline_revision_identity": "b3:bba616c1a7e53bcda6eee7863270741c4d3b210cbee8b51ef255300c70d99a4f",
+    "workflow_policy_identity": "b3:e53c49bfdd2b6060956f986c5286ead776f4f4958103397b08ee5b8e5ce41fc0"
+  },
+  "observation": {
+    "maximum_log_read_bytes": 32,
+    "maximum_log_references": 64,
+    "maximum_total_log_bytes": 1048576
+  },
+  "platform": "linux-x86_64",
+  "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+  "schema": "lattice.workflow-request.v2",
+  "source": null
+}

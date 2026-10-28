@@ -1,0 +1,86 @@
+{
+  "maximum_active_executions": 8,
+  "non_claims": [
+    "handler admission does not prove workflow correctness",
+    "route authority does not prove host confinement",
+    "execution observation does not prove an external effect succeeded",
+    "peer identity does not prove peer intent",
+    "handler checks do not establish release readiness"
+  ],
+  "routes": [
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:147f84500b6665601b2c8d4e45ed82af98ed78002818af1237ee879350378823",
+      "nodes": [
+        {
+          "operation_identity": "b3:56814b851ae1218a766bfbe2153808844ab22665ca456fc303e2acae2446d117",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        },
+        {
+          "operation_identity": "b3:85b8c3c30a1a75f2d1c1c8761141c4b04df9cc1d2bf8a013e4041e93638593eb",
+          "request_node_id": "verify",
+          "workflow_node_id": 1
+        }
+      ],
+      "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+      "source_binding": "shell_environment",
+      "workflow_name": "web-success",
+      "workflow_revision": "b3:c467c47cb5268bbd50f98237bd4269a9b9d7bcb7a75ddf1598ac28fef914263c"
+    },
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:77e944ed058364ea93ef363b1428085a47d3f093eede02b91331cf84e46147c1",
+      "nodes": [
+        {
+          "operation_identity": "b3:6710ab1a4a867d85ea53fe46a21a015daf379df7d6d9437d7794192bed587959",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        }
+      ],
+      "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+      "source_binding": "shell_environment",
+      "workflow_name": "web-slow",
+      "workflow_revision": "b3:b2709967f46ebbd853fbaa6bddef97cb8c9d54137727f429d7ccce92408f6195"
+    },
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:dac10ac29f0d0f9dbb1cf47979e372472e3308fb7c1b100319b56a3546ecd497",
+      "nodes": [
+        {
+          "operation_identity": "b3:31054ef9e8e12b90f6c10097f5c11a03a53ab6a431a89004d2f8e9dbaed327b7",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        }
+      ],
+      "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+      "source_binding": "shell_environment",
+      "workflow_name": "web-fail",
+      "workflow_revision": "b3:1359e20e6f279de2308671eff2b603e253f80ee2817bd38a681fe0d1a14b89bc"
+    }
+  ],
+  "schema": "lattice.workflow-exchange-handler-profile.v1",
+  "socket_path": "/var/tmp/kwn-iroh/lattice.sock",
+  "transport": {
+    "limits": {
+      "maximum_connections": 4096,
+      "maximum_frame_bytes": 1048576,
+      "maximum_log_bytes": 1048576,
+      "read_deadline_milliseconds": 10000,
+      "write_deadline_milliseconds": 10000
+    },
+    "non_claims": [
+      "transport admission does not prove workflow correctness",
+      "transport peer identity does not prove peer intent",
+      "transport acceptance does not prove an operation executed",
+      "transport response does not prove an external effect succeeded",
+      "transport checks do not establish production deployment"
+    ],
+    "peers": {
+      "allowed_user_ids": [
+        1555
+      ]
+    },
+    "schema": "lattice.workflow-transport-profile.v1"
+  }
+}

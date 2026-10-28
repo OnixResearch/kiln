@@ -1232,11 +1232,12 @@ The default workspace package also contains the binary.
   outside source and worker checkout roots. The HTTPS key is likewise private. Install a
   valid server certificate chain and an explicit worker CA; do not bypass TLS
   validation in a deployed worker.
-- The worker profile binds the service origin, project, CA/token-file references,
-  source snapshot bounds, an owned checkout root, explicit executable/argv and
-  environment for each step, and declared relative regular-file artifacts.
-  Commands receive no ambient environment or service credential. Reviewed
-  commands still retain their worker account's authority: this is not a sandbox.
+- The `kiln.web-worker.v2` profile binds the service origin, project, CA/token-file
+  references, canonical Git `source_repository` identity, worker-local
+  `repository_path`, source snapshot bounds, an owned checkout root, explicit
+  executable/argv and environment for each step, and declared relative regular-file
+  artifacts. Commands receive no ambient environment or service credential.
+  Reviewed commands still retain their worker account's authority: this is not a sandbox.
 - Workflow, HTTP, state, log and artifact bounds are positive and explicit.
   Lattice's native serve connection limit counts lifetime exchanges, not just
   concurrent clients; provision a finite budget for polling and worker uploads.
@@ -1268,6 +1269,61 @@ source context, admits the exact Git snapshot, and executes in an owned temporar
 checkout rather than the mutable worktree. Follow the existing
 [workflow application contract](lattice-workflow.md) for native handler setup;
 profile generation does not install or start it.
+
+### Remote Lattice workers
+
+The live service uses the existing [Iroh workflow bridge](#iroh-remote-workflow-execution).
+Set the project's workflow socket to the controller-local proxy socket. On the
+worker, point the enrolled Iroh worker at its native Lattice handler socket and
+register the exact reviewed graph, saved workflow revision and node mappings.
+The worker must reach the service's registered HTTPS origin and trust its CA;
+Iroh transports workflow exchanges, not source objects or worker callbacks.
+
+The v2 worker profile separates two identities:
+
+- `source_repository`: the controller's canonical Git repository native identity,
+  exactly 64 lowercase hexadecimal characters, without a `b3:` prefix. For this
+  local Git source provider it is BLAKE3 of the UTF-8 canonical controller
+  repository path bytes, without a trailing newline. It must match the run's
+  `repository.native_id` and Lattice's `LATTICE_SOURCE_REPOSITORY`.
+- `repository_path`: an explicitly provisioned worker-local Git checkout containing
+  the requested commit and bounded source tree. It may have a different absolute
+  path and local repository identity. Provision/fetch source separately; the job
+  does not fetch or substitute a moving branch. Dirty worktree bytes are not inputs.
+
+Worker admission checks the declared repository against the producer context
+before materialization. Callback admission still requires the exact acquired
+commit and canonical tree, project, attempt, execution and selected nodes. The
+local Git acquisition keeps its own identity; it is not relabeled as the controller
+repository. This is an operator-reviewed binding, not repository ownership or
+source-trust verification.
+
+**Migration:** v1 profiles and missing bindings are rejected. Re-export reviewed
+Nickel inputs with `source_repository`, retain the new original JSON bytes and
+BLAKE3, and regenerate/review worker operation identities, graphs and exact native
+routes before use. Historical receipts and deployed profiles are not migrated or
+requalified implicitly.
+
+Repeat the disposable native exercise with the selected current executables and
+the maintained native Lattice source cohort:
+
+```console
+python3 scripts/web-service-smoke.py \
+  --service "$KILN_WEB_SERVICE" --lattice "$LATTICE" \
+  --lattice-source "$LATTICE_SOURCE" --iroh "$KILN_ADAPTER_IROH" \
+  --root "$NEW_PRIVATE_SCRATCH_OUTSIDE_TMP" --evidence "$EVIDENCE_DIRECTORY"
+```
+
+Omit `--iroh` for direct local execution. The remote mode uses enrolled ephemeral
+loopback peers and an independent worker clone; it exercises actual source
+commands, dependencies, logs, artifact bytes, failures, planned restart recovery
+and cancellation. For restart, it stops the controller before restarting both
+bridges, then reconciles the original execution without redispatch. A live lost
+exchange retains canonical `Unknown`; this check does not add an automatic
+retry or restore a pending control surface after such an outage. It does not
+establish WAN/relay availability or distinct-host deployment. `local`/`remote`
+adapter labels bind supported capabilities and exact routes; they do not select
+per-node placement or split a DAG across hosts.
 
 ### Optional read-only Onix COB browser
 
@@ -1656,6 +1712,10 @@ credential provisioning and worker isolation remain operator responsibilities.
   trends. Historical unknowns are excluded, not treated as zero. Node timing is
   unknown when the first native observation is already terminal; no start time
   or duration is fabricated.
+- **Workers:** configured execution targets, assigned projects, occupied/free
+  project slots, queued work and exact latest execution observations. Metadata
+  search, slot-state filters and independent exact selection are URL-restored;
+  refresh and live snapshots retain selection. See [worker target inventory](#worker-target-inventory).
 - **Runs:** metadata search, project/outcome/exact-source filters, oldest/newest
   ordering and stable bounded pagination. Cursors bind the filter/order and
   exclude later arrivals. A missing or filtered selection is not silently
@@ -1688,6 +1748,42 @@ credential provisioning and worker isolation remain operator responsibilities.
   capacity and retained usage. A near-limit warning precedes intake exhaustion;
   it does not prune state, promise placement or convert unknown provider state
   into healthy capacity.
+
+#### Worker target inventory
+
+Authenticated viewers and operators can read `GET /api/workers`; worker-scoped
+credentials cannot enumerate the control plane. The endpoint accepts no query
+or body. Successful reads are immutable projections bounded by the existing
+project/run limits; they do not contact providers or add persistence.
+
+Targets group the exact provider-profile, workflow endpoint and platform binding.
+Kiln-owned versioned BLAKE3 IDs remain stable across project ordering and public
+label changes. Endpoint paths, repository paths, credentials, UID policy and
+executable arguments never enter the response. The pinned Lattice adapter still
+admits only `linux-x86_64`; this view grants no additional provider capability.
+
+Each enrolled project supplies one admission slot, not a physical worker or CPU.
+A nonterminal run outside the queue occupies its slot, including ambiguous
+executions. A shared target with a free enrolled slot reports **Slots available**;
+without free slots it reports **Unknown execution** for ambiguous work or **Busy**
+otherwise. Unenrolled targets report **Not enrolled**. Physical liveness always
+remains unknown. Failed durable storage returns unavailable (503), never usable
+capacity. A queued or cancelled-before-dispatch request does not replace the
+latest execution observation; missing recorded sequence or timing stays unknown.
+
+The Workers inspector follows exact retained run IDs. List filters never replace
+or clear the selected target, and a missing target remains missing. Clearing the
+session erases private inventory and invalidates pending responses. Free slots
+do not establish online status, provider placement or guaranteed dispatch.
+
+Kiln web-service/dashboard maintainers own this view. Repeat its behavioral rail
+with `cargo test --locked -p kiln-web-service --test engine workers::` in the
+development shell. For runtime evidence, enroll an isolated project, observe a
+real active and queued run, then terminal release; inspect Workers on desktop
+and mobile, restore its URL, follow the exact run and clear the session.
+Candidate-local observations are retained under
+`.cairn/changes/add-dashboard-workers-view/evidence/`; they grant no deployment,
+release or lifecycle acceptance authority.
 
 #### Registered automation
 

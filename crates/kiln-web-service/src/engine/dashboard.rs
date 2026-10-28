@@ -210,6 +210,14 @@ impl Engine {
         path: &str,
         params: &BTreeMap<&str, &str>,
     ) -> Result<Option<ApiResponse>, String> {
+        // r[impl kiln.dashboard.workers.inventory.scenario.denied]
+        // Role, method and GET-body admission remain in the existing API layer.
+        if path == "/api/workers" {
+            if !params.is_empty() {
+                return error(400, "query_invalid").map(Some);
+            }
+            return self.workers().map(Some);
+        }
         if path == "/api/activity" {
             return self.activity(None, params).map(Some);
         }

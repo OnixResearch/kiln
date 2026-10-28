@@ -1,0 +1,860 @@
+{
+  "schema": "kiln.dashboard.workers.native-exercise.v1",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "workers_initial": {
+      "schema": "kiln.web-workers.v1",
+      "version": 4,
+      "bounded": true,
+      "storage_failed": false,
+      "summary": {
+        "targets": 3,
+        "configured_slots": 3,
+        "enrolled_slots": 0,
+        "active": 0,
+        "free_slots": 0,
+        "queued": 0
+      },
+      "workers": [
+        {
+          "id": "3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f",
+          "provider_profile_id": "lattice-web-native-fail",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "fail",
+              "label": "Native <img src=x onerror=alert(1)> fail",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "9ada2bc16dc25d7b1b5c5ab94f57d8977201ecfa9452031727db6d349312b6bc",
+          "provider_profile_id": "lattice-web-native-success",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "success",
+              "label": "Native <img src=x onerror=alert(1)> success",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "cd91d22ec81a978e05540719d340783c01d08d49a15376285ecacd71ae94a866",
+          "provider_profile_id": "lattice-web-native-slow",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "slow",
+              "label": "Native <img src=x onerror=alert(1)> slow",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        }
+      ]
+    },
+    "workers_authentication": {
+      "viewer": "allowed",
+      "worker": "denied",
+      "anonymous": "denied",
+      "query": "rejected",
+      "body": "TLS connection reset (fail closed)",
+      "mutation": "rejected",
+      "read_only": "same exact snapshot",
+      "redaction": "no endpoint, repository, credentials or executable argv"
+    },
+    "workers_enrolled": {
+      "schema": "kiln.web-workers.v1",
+      "version": 12,
+      "bounded": true,
+      "storage_failed": false,
+      "summary": {
+        "targets": 3,
+        "configured_slots": 3,
+        "enrolled_slots": 1,
+        "active": 0,
+        "free_slots": 1,
+        "queued": 0
+      },
+      "workers": [
+        {
+          "id": "3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f",
+          "provider_profile_id": "lattice-web-native-fail",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "fail",
+              "label": "Native <img src=x onerror=alert(1)> fail",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "9ada2bc16dc25d7b1b5c5ab94f57d8977201ecfa9452031727db6d349312b6bc",
+          "provider_profile_id": "lattice-web-native-success",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "success",
+              "label": "Native <img src=x onerror=alert(1)> success",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "cd91d22ec81a978e05540719d340783c01d08d49a15376285ecacd71ae94a866",
+          "provider_profile_id": "lattice-web-native-slow",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "slots_available",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 1,
+            "active": 0,
+            "free_slots": 1,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "slow",
+              "label": "Native <img src=x onerror=alert(1)> slow",
+              "enrolled": true,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        }
+      ]
+    },
+    "workers_busy_queued": {
+      "schema": "kiln.web-workers.v1",
+      "version": 28,
+      "bounded": true,
+      "storage_failed": false,
+      "summary": {
+        "targets": 3,
+        "configured_slots": 3,
+        "enrolled_slots": 1,
+        "active": 1,
+        "free_slots": 0,
+        "queued": 1
+      },
+      "workers": [
+        {
+          "id": "3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f",
+          "provider_profile_id": "lattice-web-native-fail",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "fail",
+              "label": "Native <img src=x onerror=alert(1)> fail",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "9ada2bc16dc25d7b1b5c5ab94f57d8977201ecfa9452031727db6d349312b6bc",
+          "provider_profile_id": "lattice-web-native-success",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "success",
+              "label": "Native <img src=x onerror=alert(1)> success",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "cd91d22ec81a978e05540719d340783c01d08d49a15376285ecacd71ae94a866",
+          "provider_profile_id": "lattice-web-native-slow",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "busy",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 1,
+            "active": 1,
+            "free_slots": 0,
+            "queued": 1
+          },
+          "projects": [
+            {
+              "id": "slow",
+              "label": "Native <img src=x onerror=alert(1)> slow",
+              "enrolled": true,
+              "active_run_ids": [
+                "web-run-503fbf28e0d5331d37be7ceae4090df1d4bff6baa3cf5986353491bfb66b557c"
+              ],
+              "queued": 1
+            }
+          ],
+          "latest_run": {
+            "id": "web-run-503fbf28e0d5331d37be7ceae4090df1d4bff6baa3cf5986353491bfb66b557c",
+            "project_id": "slow",
+            "phase": "active",
+            "outcome": "Pending",
+            "sequence": 1,
+            "error_code": null,
+            "created_at_ms": 1793145415863,
+            "started_at_ms": 1793145415923,
+            "completed_at_ms": null
+          }
+        }
+      ]
+    },
+    "workers_terminal_runs": [
+      {
+        "id": "web-run-a81a0e87b973bb5dfc86e3ac88a1661c692189c5d812c155ad251675078406f7",
+        "project_id": "slow",
+        "source_revision": "d1ade81128555478b9349ff45f2e5ccf0c579f53",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "7da2f2fd56bc7d0db02794a6e62df30f5166fb035ec8615be7f8a68aa41297ee"
+        },
+        "revision": 3,
+        "attempt_id": "web-attempt-a81a0e87b973bb5dfc86e3ac88a1661c692189c5d812c155ad251675078406f7",
+        "outcome": "Cancelled",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:4998e5b50e4c891319541ec724dc5a351e543231d8520ed6baab8e336049c5ea"
+        },
+        "sequence": 3,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Cancelled",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793145481957,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 21,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [],
+        "created_at_ms": 1793145416139,
+        "started_at_ms": 1793145456475,
+        "completed_at_ms": 1793145481957,
+        "duration_ms": 25482,
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        }
+      },
+      {
+        "id": "web-run-503fbf28e0d5331d37be7ceae4090df1d4bff6baa3cf5986353491bfb66b557c",
+        "project_id": "slow",
+        "source_revision": "d1ade81128555478b9349ff45f2e5ccf0c579f53",
+        "canonical_tree": "f675d7dbe3791e88aeec1efb4cc6dd9c7d0e6835b833c960208526b038d398f0",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "7da2f2fd56bc7d0db02794a6e62df30f5166fb035ec8615be7f8a68aa41297ee"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-503fbf28e0d5331d37be7ceae4090df1d4bff6baa3cf5986353491bfb66b557c",
+        "outcome": "Success",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:6dfcbe48472df83cc6252bc14cda9c1d2e6e78302de8a591f4efd5bf04a1cb18"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Completed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793145456349,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 13,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [],
+        "created_at_ms": 1793145415863,
+        "started_at_ms": 1793145415923,
+        "completed_at_ms": 1793145456349,
+        "duration_ms": 40426,
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        }
+      }
+    ],
+    "workers_released": {
+      "schema": "kiln.web-workers.v1",
+      "version": 57,
+      "bounded": true,
+      "storage_failed": false,
+      "summary": {
+        "targets": 3,
+        "configured_slots": 3,
+        "enrolled_slots": 1,
+        "active": 0,
+        "free_slots": 1,
+        "queued": 0
+      },
+      "workers": [
+        {
+          "id": "3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f",
+          "provider_profile_id": "lattice-web-native-fail",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "fail",
+              "label": "Native <img src=x onerror=alert(1)> fail",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "9ada2bc16dc25d7b1b5c5ab94f57d8977201ecfa9452031727db6d349312b6bc",
+          "provider_profile_id": "lattice-web-native-success",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "success",
+              "label": "Native <img src=x onerror=alert(1)> success",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "cd91d22ec81a978e05540719d340783c01d08d49a15376285ecacd71ae94a866",
+          "provider_profile_id": "lattice-web-native-slow",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "slots_available",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 1,
+            "active": 0,
+            "free_slots": 1,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "slow",
+              "label": "Native <img src=x onerror=alert(1)> slow",
+              "enrolled": true,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": {
+            "id": "web-run-a81a0e87b973bb5dfc86e3ac88a1661c692189c5d812c155ad251675078406f7",
+            "project_id": "slow",
+            "phase": "terminal",
+            "outcome": "Cancelled",
+            "sequence": 3,
+            "error_code": null,
+            "created_at_ms": 1793145416139,
+            "started_at_ms": 1793145456475,
+            "completed_at_ms": 1793145481957
+          }
+        }
+      ]
+    },
+    "workers_restart_preserves_identity_and_capacity": true,
+    "workers_live_enrollment": {
+      "schema": "kiln.web-workers.v1",
+      "version": 65,
+      "bounded": true,
+      "storage_failed": false,
+      "summary": {
+        "targets": 3,
+        "configured_slots": 3,
+        "enrolled_slots": 2,
+        "active": 0,
+        "free_slots": 2,
+        "queued": 0
+      },
+      "workers": [
+        {
+          "id": "3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f",
+          "provider_profile_id": "lattice-web-native-fail",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "slots_available",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 1,
+            "active": 0,
+            "free_slots": 1,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "fail",
+              "label": "Native <img src=x onerror=alert(1)> fail",
+              "enrolled": true,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "9ada2bc16dc25d7b1b5c5ab94f57d8977201ecfa9452031727db6d349312b6bc",
+          "provider_profile_id": "lattice-web-native-success",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "success",
+              "label": "Native <img src=x onerror=alert(1)> success",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "cd91d22ec81a978e05540719d340783c01d08d49a15376285ecacd71ae94a866",
+          "provider_profile_id": "lattice-web-native-slow",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "slots_available",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 1,
+            "active": 0,
+            "free_slots": 1,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "slow",
+              "label": "Native <img src=x onerror=alert(1)> slow",
+              "enrolled": true,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": {
+            "id": "web-run-a81a0e87b973bb5dfc86e3ac88a1661c692189c5d812c155ad251675078406f7",
+            "project_id": "slow",
+            "phase": "terminal",
+            "outcome": "Cancelled",
+            "sequence": 3,
+            "error_code": null,
+            "created_at_ms": 1793145416139,
+            "started_at_ms": 1793145456475,
+            "completed_at_ms": 1793145481957
+          }
+        }
+      ]
+    },
+    "workers_baseline": {
+      "status": 404,
+      "code": "route_missing"
+    },
+    "workers_final_package": {
+      "schema": "kiln.web-workers.v1",
+      "version": 67,
+      "bounded": true,
+      "storage_failed": false,
+      "summary": {
+        "targets": 3,
+        "configured_slots": 3,
+        "enrolled_slots": 2,
+        "active": 0,
+        "free_slots": 2,
+        "queued": 0
+      },
+      "workers": [
+        {
+          "id": "3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f",
+          "provider_profile_id": "lattice-web-native-fail",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "slots_available",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 1,
+            "active": 0,
+            "free_slots": 1,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "fail",
+              "label": "Native <img src=x onerror=alert(1)> fail",
+              "enrolled": true,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "9ada2bc16dc25d7b1b5c5ab94f57d8977201ecfa9452031727db6d349312b6bc",
+          "provider_profile_id": "lattice-web-native-success",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "not_enrolled",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 0,
+            "active": 0,
+            "free_slots": 0,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "success",
+              "label": "Native <img src=x onerror=alert(1)> success",
+              "enrolled": false,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": null
+        },
+        {
+          "id": "cd91d22ec81a978e05540719d340783c01d08d49a15376285ecacd71ae94a866",
+          "provider_profile_id": "lattice-web-native-slow",
+          "platform": "linux-x86_64",
+          "liveness": "unknown",
+          "status": "slots_available",
+          "capacity": {
+            "configured_slots": 1,
+            "enrolled_slots": 1,
+            "active": 0,
+            "free_slots": 1,
+            "queued": 0
+          },
+          "projects": [
+            {
+              "id": "slow",
+              "label": "Native <img src=x onerror=alert(1)> slow",
+              "enrolled": true,
+              "active_run_ids": [],
+              "queued": 0
+            }
+          ],
+          "latest_run": {
+            "id": "web-run-a81a0e87b973bb5dfc86e3ac88a1661c692189c5d812c155ad251675078406f7",
+            "project_id": "slow",
+            "phase": "terminal",
+            "outcome": "Cancelled",
+            "sequence": 3,
+            "error_code": null,
+            "created_at_ms": 1793145416139,
+            "started_at_ms": 1793145456475,
+            "completed_at_ms": 1793145481957
+          }
+        }
+      ]
+    },
+    "workers_failed_storage": {
+      "write": {
+        "code": "service_unavailable",
+        "message": "Request could not be admitted"
+      },
+      "inventory": {
+        "code": "durable_state_unavailable",
+        "message": "Provider operation is unavailable or ambiguous"
+      },
+      "inventory_status": 503,
+      "no_worker_dispatched": true,
+      "no_capacity_returned": true
+    }
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance",
+    "Configured admission slots do not establish physical worker count, heartbeat, online health, placement or guaranteed dispatch.",
+    "The lifecycle change remains active; no acceptance, publication or production activation is authorized."
+  ],
+  "origin": "https://127.0.0.1:52257",
+  "source_revision": "d1ade81128555478b9349ff45f2e5ccf0c579f53",
+  "service_profile_blake3": "a66dc010330287d7a2d10445b50e3ea2fdfec322044ba24e2abe5d78f73c868e",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/lp2fcmbwq2g4yxmb91kmsrb1a09s5rf5-b3sum-1.8.7/bin/b3sum",
+      "blake3": "b5378c4f72773015e1cc11a9096a45715371cd6f8af0115028e75eb35ddb3157"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14",
+      "blake3": "42bd94105d205eb80f3599889947003f3ba415bbf09860b4ecd6ee72f2a34bbc"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "service": {
+      "path": "/nix/store/r8v60l6g646ds4cynzn72ci0gbf7i3fj-kiln-web-service-0.1.0/bin/kiln-web-service",
+      "blake3": "963149c833039069daf057109aee3eb2506a15840c61908909ba302f61ca434c"
+    },
+    "lattice": {
+      "path": "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "native_worker_job": {
+      "path": "/home/brittonr/.cargo-target/kiln-web-service/debug/kiln-web-service",
+      "blake3": "4604021b44785a55dcf456f75e2f39357a123b6b0cad0207270086e23c6156b0"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "baseline_service": {
+    "path": "/home/brittonr/.cargo-target/kiln-web-service/debug/kiln-web-service",
+    "blake3": "db3e7ee7e53c0d8872e448047f379f3ec967110c10b3933da0c5bb42263ef49c"
+  },
+  "browser": {
+    "schema": "kiln.dashboard.workers.browser.v1",
+    "origin": "https://127.0.0.1:52257",
+    "role": "viewer",
+    "passed": true,
+    "checks": {
+      "authenticatedInventory": true,
+      "metadataSearch": true,
+      "slotStatusFilter": true,
+      "filterIndependentExactSelection": true,
+      "noMatchExplicit": true,
+      "missingTargetNotSubstituted": true,
+      "urlReloadRestored": true,
+      "historyRestored": true,
+      "refreshPreservedSelection": true,
+      "clearFilters": {
+        "filtersCleared": true,
+        "exactSelectionPreserved": true
+      },
+      "exactRunLink": "web-run-a81a0e87b973bb5dfc86e3ac88a1661c692189c5d812c155ad251675078406f7",
+      "literalUntrustedProjectLabel": true,
+      "noInjectedImageElements": true,
+      "mobile": {
+        "width": 390,
+        "scrollWidth": 390,
+        "selected": "3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f",
+        "status": "not_enrolled",
+        "query": "fail",
+        "menuExpanded": "false"
+      },
+      "liveRefresh": {
+        "actualEnrollmentRefreshed": true,
+        "filtersAndSelectionPreserved": true,
+        "url": "https://127.0.0.1:52257/?page=workers&view=pipeline&stream=stdout&order=desc&worker_q=fail&worker_status=not_enrolled&worker=3d377dc9f925d2bf02f1c62522bc9cb6b08f197b92987dd0cf006b09577d0c7f&theme=system&density=comfortable"
+      },
+      "delayedActualResponse": {
+        "mainFetch": "function fetch() { [native code] }",
+        "supersededResponseDidNotPopulateWorkers": true,
+        "workspaceHidden": true,
+        "workersErased": true,
+        "searchErased": true,
+        "tokenErased": true
+      },
+      "actualFailedStorage": {
+        "message": "Unavailable: The service could not be reached. Its current state is unavailable. No presence, absence or success is inferred.",
+        "noTargetRows": true,
+        "noCapacityCards": true,
+        "noOldInspector": true
+      },
+      "finalSessionCleared": true
+    },
+    "screenshots": [
+      "browser-workers-desktop.png",
+      "browser-workers-mobile.png",
+      "browser-workers-unavailable.png"
+    ],
+    "executionNotes": [
+      "Real isolated HTTPS service and native Lattice observations; final inventory and unavailable state read from the immutable Nix package.",
+      "Late-response checks paused actual fetched responses in the application execution world, then released them after navigation or session clearing; no inventory response body was fabricated.",
+      "Isolated CA validation was explicitly bypassed only in the managed smoke browser.",
+      "Wrapped exact-run links were corrected to block-level click targets and exercised after rebuilding."
+    ],
+    "non_claims": [
+      "No physical-worker discovery, heartbeat, online-health or guaranteed-dispatch proof.",
+      "No production deployment, release eligibility, lifecycle acceptance or source publication."
+    ]
+  },
+  "scope": "Worker-target inventory, admission-slot transitions, read authorization/redaction, native execution observations, packaged readback and failed-storage denial; not the complete generic web-service smoke suite.",
+  "passed": true,
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

@@ -37,6 +37,13 @@ Review `config/lattice-workflow-profile.ncl`. The composition root can construct
 
 The profile fixes platform, graph schema, node kinds, effect classes, adapter kinds, controls, byte limits, concurrency, and non-claims.
 
+The `local` and `remote` adapter labels admit capabilities and bind the exact
+reviewed graph; a label does not select placement. Remote whole-workflow execution
+uses the existing enrolled Iroh proxy/worker bridge, with the same exact native
+Lattice route. The live web worker can use a separately provisioned Git clone via
+its explicit v2 source binding; see [remote Lattice workers](operator.md#remote-lattice-workers).
+No per-node mixed-host placement is implied.
+
 The adapter receives no ambient endpoint, credential, clock, filesystem, or process authority. It never starts a Lattice process.
 
 ## Dispatch flow
