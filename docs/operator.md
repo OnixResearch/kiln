@@ -1906,6 +1906,43 @@ the exact profile and recovers original operations without blind redispatch.
 Restore the same profile, UID and state after a crash. Changed profiles require
 explicit operator review; this helper provides no automatic state migration.
 
+#### Maintained desktop user-service updates
+
+The operated desktop workspace uses the **user** `kiln-web-service.service`,
+not the system unit above. Its executable comes from the `kiln-web-service`
+element in the operator's Nix profile. Updating it requires explicit operator
+authority; do not change profiles, credentials, worker routes or durable state
+to make a package start.
+
+Freeze the source revision and build its dedicated `web-service` output. Retain
+the current package path, a consistent SQLite backup, private configuration and
+retained-file backups, and the exact API run snapshot before activation. Run the
+new executable's `check` with every argument from the installed unit's
+`ExecStartPre`. Set `new_package` to the built output and `previous_package` to
+the recorded installed output. For the current Nix profile CLI:
+
+```sh
+nix profile remove kiln-web-service
+nix profile add "$new_package"
+systemctl --user restart kiln-web-service.service
+```
+
+`nix profile add` derives the element name from this package; it has no `--name`
+option. The old process remains running during profile replacement. If adding
+the new output fails, add `"$previous_package"` before restarting. If activation
+fails after replacement, remove the new element, add the previous output and
+restart the same user unit. Do not roll an old database snapshot over live state
+as part of an executable rollback.
+
+Existing `Requires=` dependencies can restart the identity resolver and tailnet
+proxy with the web service. Verify all three units, the unchanged Lattice PID,
+CA-verified HTTPS health, exact served asset identities, unchanged unrelated
+profile elements, and preservation of the original runs and retained files.
+Exercise the served browser without asset overrides. The
+[2026-10-28 deployment receipt](../.cairn/changes/improve-lattice-rendering/evidence/deployment.json)
+binds the published code, package, source acquisitions, rollback and live checks;
+it does not waive lifecycle or release holds.
+
 #### Non-mutating evaluation and isolated proof
 
 Run these after integration, not while sibling changes are in flight:

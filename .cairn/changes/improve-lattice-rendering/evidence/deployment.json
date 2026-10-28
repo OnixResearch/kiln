@@ -1,0 +1,322 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "operator_request": "push and deploy",
+  "observed_at": "2026-10-28T16:01:00.559Z",
+  "outcome": "Published and deployed the COB-content, retained-log and Lattice-workflow dashboard repairs on the maintained desktop user-service cohort.",
+  "maintenance_owner": "Kiln application/dashboard maintainers; operator owns activation, profiles, credentials and worker authority.",
+  "source": {
+    "revision": "9225d5dc7a204fb58bc02a1edc56bea72045a1c3",
+    "rollback_revision": "d39c38e97ebb3aeb6a10871bbb14883ad4c3ef0e",
+    "frozen_nix_source": "/nix/store/5si4n3m7hya1p8m99zjrxlqagvf3gyh3-source",
+    "archive": {
+      "name": "local",
+      "revision": "9225d5dc7a204fb58bc02a1edc56bea72045a1c3",
+      "members": 5465,
+      "archive_blake3": "1a97c0d46d817d7def9ccb8c6df2ef2453e37c7900b60350eba098a57f0038fc",
+      "bytes": 88524800,
+      "anonymous": false
+    },
+    "normalization": "Sorted tracked paths; POSIX PAX; uid/gid/mtime zero; regular 0644 / executable 0755; canonical PAX path; no access/change times; independent hardlinked regular contents; preserved symbolic links. GNU tar --mode=a=rX,u+w normalizes Git executable semantics.",
+    "receipt_is_later_evidence_only": true
+  },
+  "publication": {
+    "branch": "main",
+    "remotes": [
+      {
+        "name": "rad",
+        "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "result": "fast-forward push succeeded; synchronized with two seeds"
+      },
+      {
+        "name": "github",
+        "url": "git@github.com:OnixResearch/kiln.git",
+        "result": "fast-forward push succeeded"
+      }
+    ],
+    "acquisitions": [
+      {
+        "name": "local",
+        "revision": "9225d5dc7a204fb58bc02a1edc56bea72045a1c3",
+        "members": 5465,
+        "archive_blake3": "1a97c0d46d817d7def9ccb8c6df2ef2453e37c7900b60350eba098a57f0038fc",
+        "bytes": 88524800,
+        "anonymous": false
+      },
+      {
+        "name": "native",
+        "revision": "9225d5dc7a204fb58bc02a1edc56bea72045a1c3",
+        "members": 5465,
+        "archive_blake3": "1a97c0d46d817d7def9ccb8c6df2ef2453e37c7900b60350eba098a57f0038fc",
+        "bytes": 88524800,
+        "anonymous": false
+      },
+      {
+        "name": "https",
+        "revision": "9225d5dc7a204fb58bc02a1edc56bea72045a1c3",
+        "members": 5465,
+        "archive_blake3": "1a97c0d46d817d7def9ccb8c6df2ef2453e37c7900b60350eba098a57f0038fc",
+        "bytes": 88524800,
+        "anonymous": false
+      },
+      {
+        "name": "github_anonymous",
+        "revision": "9225d5dc7a204fb58bc02a1edc56bea72045a1c3",
+        "members": 5465,
+        "archive_blake3": "1a97c0d46d817d7def9ccb8c6df2ef2453e37c7900b60350eba098a57f0038fc",
+        "bytes": 88524800,
+        "anonymous": true
+      },
+      {
+        "name": "garden_anonymous",
+        "revision": "9225d5dc7a204fb58bc02a1edc56bea72045a1c3",
+        "members": 5465,
+        "archive_blake3": "1a97c0d46d817d7def9ccb8c6df2ef2453e37c7900b60350eba098a57f0038fc",
+        "bytes": 88524800,
+        "anonymous": true
+      }
+    ],
+    "anonymous_acquisition_environment": "New private HOME and XDG_CONFIG_HOME; global/system Git configuration and prompts disabled; no credential helper or operator HOME. Garden uses protocol v0.",
+    "governance": {
+      "identity": {
+        "payload": {
+          "xyz.radicle.project": {
+            "defaultBranch": "main",
+            "description": "Provider-neutral CI control plane",
+            "name": "Kiln"
+          }
+        },
+        "delegates": [
+          "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+        ],
+        "threshold": 1
+      },
+      "signed_refs": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 83e2b87074adb8494f23e23ccc5f2a41411586f7 parent",
+      "visibility": "public",
+      "mutations": false
+    }
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "package": "/nix/store/fz3cy402bzn9ihj5apafvqkcfzydp66j-kiln-web-service-0.1.0",
+    "actual_running_executable": "/nix/store/fz3cy402bzn9ihj5apafvqkcfzydp66j-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "bed9a339eb9b39a25d9a38620a0e31c89051d33c6ae737fe0bdcb3e6e4f0d21f",
+    "previous_package": "/nix/store/ynvcqp0k0n6gdkbp29ci53hsjbg3azxp-kiln-web-service-0.1.0",
+    "private_rollback_backup": "/home/brittonr/.local/state/kiln/redeploy-20261028-9225d5dc",
+    "sqlite_backup_integrity": "ok",
+    "configuration_and_credentials_preserved": "tar --compare against private pre-rollout configuration.tar succeeded",
+    "retained_files_preserved": "tar --compare against private pre-rollout retained-files.tar succeeded for original logs/artifacts",
+    "retained_runs_all_fields_preserved": 19,
+    "unrelated_profile_packages_unchanged": true,
+    "activation": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/fz3cy402bzn9ihj5apafvqkcfzydp66j-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service"
+    ],
+    "rollback": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/ynvcqp0k0n6gdkbp29ci53hsjbg3azxp-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service"
+    ],
+    "supervision": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=1388188\nResult=success\n\nId=kiln-web-lattice.service\nActiveState=active\nSubState=running\nMainPID=1145552\nResult=success\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=1388219\nResult=success\n\nId=kiln-tailnet-proxy.service\nActiveState=active\nSubState=running\nMainPID=1388240\nResult=success\n",
+    "lattice_pid_unchanged": 1145552,
+    "dependent_proxy_restart": "Existing Requires relationships restarted proxy-auth and tailnet-proxy; no unit definitions or runtime configuration were changed."
+  },
+  "verification": {
+    "package_build": {
+      "command": "nix build path:/nix/store/5si4n3m7hya1p8m99zjrxlqagvf3gyh3-source#web-service --no-link --print-out-paths --no-write-lock-file --builders '' --option secret-key-files '' -L",
+      "result": "passed",
+      "release_service_tests_passed": 116,
+      "intentionally_ignored_child_entry": 1
+    },
+    "candidate_runtime_preflight": "passed with the exact installed service/access/automation/cobs/sources/reviews arguments",
+    "tls": "curl health and all served assets verified with installed private CA and hostname; no bearer token sent",
+    "health": {
+      "status": "ok"
+    },
+    "served_assets_blake3": {
+      "/": "367bd6260d767184feb426232f3389035e17b529c5803e4797fac1fa30ffa5f5",
+      "/web.js": "4a8ad08fe1d3cff1a47af108c899ba51289ed05f776fb380d4be733fa155b5f9",
+      "/web.css": "a624bdb6ba6a873264ce7e121d01c1e90a9ab3059a6e46cbc6935d32de260cc7"
+    },
+    "browser": {
+      "no_asset_or_api_overrides": true,
+      "workflow": {
+        "retainedRunsPreserved": 19,
+        "title": "Lattice workflow",
+        "caption": "1 admitted node(s) · 0 dependency edge(s) · 1 stage(s)",
+        "state": "Failed · 1",
+        "selectedNode": "test",
+        "zoom": "100%",
+        "unknownTiming": true,
+        "graphCards": 1
+      },
+      "refresh": {
+        "status": 200,
+        "zoom": "115%",
+        "node": "test"
+      },
+      "mobile": {
+        "width": 390,
+        "documentWidth": 390,
+        "zoom": "115%",
+        "node": "test"
+      },
+      "logs": {
+        "lengths": [
+          16384,
+          32768,
+          49152,
+          58036,
+          58036
+        ],
+        "prefixRetained": true,
+        "emptyEofPreserved": true
+      },
+      "cob": {
+        "object": "0039f5e03ae929573986088320d7c52ca54c0244",
+        "title": "Kiln · COBs",
+        "readableComment": true,
+        "rawCommentBodyExact": true,
+        "rawActions": 4,
+        "horizontalOverflow": false
+      },
+      "javascript_page_errors": 0,
+      "request_failures": [
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/?page=runs&run=web-run-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1&view=logs&node=test&stream=stdout: net::ERR_CERT_AUTHORITY_INVALID"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        },
+        {
+          "type": "requestfailed",
+          "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1428: net::ERR_ABORTED"
+        }
+      ],
+      "closed": true
+    }
+  },
+  "observations_and_recoveries": [
+    "Initial package add used unsupported --name; both attempted adds failed before any restart. The old process remained active. The documented current nix profile add <store-path> interface then installed and activated the candidate. Rollback instructions now use that verified syntax.",
+    "Managed Chromium did not trust the installed private CA; navigation needed a per-navigation CDP certificate exception in the isolated test tab. TLS and hostname were independently verified with the installed CA through curl. No operator browser trust or server TLS configuration was changed.",
+    "An initial archive comparison differed only in one historical executable mode (local 0744 versus clone 0755), with every member byte-identical. Explicit 0755/0644 Git-mode normalization produced identical local/native/anonymous GitHub/Garden archives.",
+    "One refresh smoke waited for DOM replacement and timed out on unchanged data. Corrected verification observed HTTP 200, retained 115% zoom and exact selected node without requiring implementation-specific DOM replacement.",
+    "Mobile hidden-navigation and guessed text/disclosure selectors caused harness timeouts; the actual menu, exact issue anchor and observed Raw action disclosures were exercised successfully."
+  ],
+  "non_claims": [
+    "Existing traceability hold remains: 906 accepted requirements referenced, no missing accepted requirements, 33 dangling references. No acceptance, sync, archive or release waiver.",
+    "This operated update is not a new qualification of Lattice execution, source trust, arbitrary workload confinement, CI success, or global production readiness.",
+    "No CI work was manually dispatched. Existing runtime profiles, credential bytes, provider routes and canonical state were not replaced.",
+    "The follow-on receipt/documentation commit does not change or requalify the deployed executable; code and served bytes remain bound to source revision 9225d5dc7a204fb58bc02a1edc56bea72045a1c3."
+  ]
+}
