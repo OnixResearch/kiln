@@ -15,3 +15,4 @@
 - [x] [serial] Exercise real installed Patchgate/Pijul accepted, rejected and escalated reviews and prove unchanged source channels/audit state. r[kiln.patchgate.conformance] r[kiln.patchgate.nonclaims]
 - [x] [serial] Run focused and repository validation, record exact outcomes and document setup and claim limits. r[kiln.patchgate.conformance] r[kiln.patchgate.nonclaims]
 - [x] [serial] Add a Reviews run view over retained `kiln.patchgate.review.v1` receipts with distinct decisions, identities and the verbatim native report. r[kiln.dashboard.reviews.view]
+- [x] [serial] Add the Reviews page over an operator-declared receipt directory with explicit skip reasons, and render retained receipts without granting authority. r[kiln.dashboard.reviews.view]

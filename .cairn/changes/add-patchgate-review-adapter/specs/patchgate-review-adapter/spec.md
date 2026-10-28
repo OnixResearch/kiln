@@ -83,7 +83,7 @@ r[kiln.patchgate.nonclaims.scenario.authority]
 
 ### Requirement: Retained review receipts in the live workspace
 r[kiln.dashboard.reviews.view]
-The live workspace MUST provide a Reviews view over a run's retained reports that selects only `kiln.patchgate.review.v1` receipts and renders the preserved request, candidate, policy, binding, report and effect identities, the normalized per-change decisions with their distinct states, the producer's isolation and acceptance-authority claims, and the verbatim native report, without granting review, merge, gate or release authority.
+The live workspace MUST provide a Reviews page over an operator-declared receipt directory and a Reviews tab over a run's retained reports, each selecting only `kiln.patchgate.review.v1` receipts and renders the preserved request, candidate, policy, binding, report and effect identities, the normalized per-change decisions with their distinct states, the producer's isolation and acceptance-authority claims, and the verbatim native report, without granting review, merge, gate or release authority.
 
 #### Scenario: A retained receipt is inspected
 r[kiln.dashboard.reviews.view.scenario.retained]
@@ -93,6 +93,6 @@ r[kiln.dashboard.reviews.view.scenario.retained]
 
 #### Scenario: No receipt is retained
 r[kiln.dashboard.reviews.view.scenario.absent]
-- GIVEN a run with no retained Patchgate receipt
-- WHEN an admitted reader opens the Reviews view
-- THEN the view MUST report the absence explicitly rather than implying a clean review, and unrelated reports MUST remain under the existing structured-report view
+- GIVEN no configured receipt directory, a run with no retained Patchgate receipt, or a directory entry that is not a valid receipt
+- WHEN an admitted reader opens the Reviews page or tab
+- THEN the view MUST report the absence or skip reason explicitly rather than implying a clean review, and unrelated reports MUST remain under the existing structured-report view

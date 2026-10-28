@@ -34,7 +34,7 @@ fn main() {
 
 fn usage() -> i32 {
     eprintln!(
-        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>"
+        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--reviews <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>"
     );
     2
 }
@@ -59,6 +59,7 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             "--automation" => &mut options.automation,
             "--cobs" => &mut options.cobs,
             "--sources" => &mut options.sources,
+            "--reviews" => &mut options.reviews,
             _ => return usage(),
         };
         if slot.is_some() {

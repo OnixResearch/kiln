@@ -6,6 +6,7 @@ pub mod cobs;
 pub mod engine;
 pub mod profile;
 pub mod reports;
+pub mod reviews;
 pub mod sources;
 pub mod worker;
 

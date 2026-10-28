@@ -1,0 +1,58 @@
+{
+  "schema": "kiln.patchgate.reviews-page.verification.v1",
+  "surface": "Workspace page REVIEWS over GET /api/reviews and GET /api/reviews/NAME, plus the existing run-detail Reviews tab.",
+  "policy": {
+    "expression": "/home/brittonr/.config/kiln/web-service/reviews.ncl",
+    "exported": "/home/brittonr/.config/kiln/web-service/reviews.json",
+    "label": "Pijul review target receipts",
+    "directory": "/home/brittonr/git/.kiln-web-service/patchgate-receipts"
+  },
+  "live": {
+    "inventory": {
+      "configured": true,
+      "total": 1,
+      "skipped": [],
+      "receipt": "review-target-inbox.json",
+      "bytes": 4385,
+      "blake3": "606b793d74cfea2b728acb1ec6886b2bd77e44787bf04b176baea7fb0c0d9b7b",
+      "effect_id": "review-C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPS",
+      "candidate_id": "candidate-C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPS",
+      "decision_counts": {
+        "accepted": 1
+      },
+      "authorizes_acceptance": false,
+      "isolated": true,
+      "native_report_bytes": 2822
+    },
+    "rendered": [
+      "Page reported \"1 retained receipt in Pijul review target receipts\".",
+      "Detail showed retained bytes, BLAKE3, effect, candidate, report identity, acceptance authority none, isolated yes.",
+      "Decision table listed pijul/change/B4RTGPI77UF4\u2026 as accepted.",
+      "The verbatim 2822-byte native report is retained in a collapsed block."
+    ]
+  },
+  "rejections_covered_by_tests": [
+    "worker 403",
+    "POST 405",
+    "body 400",
+    "traversal name 400",
+    "non-.json name 400",
+    "missing 404",
+    "query 400",
+    "unconfigured configured=false",
+    "missing directory 503",
+    "symlinked / foreign-schema / text entries reported under skipped with reasons"
+  ],
+  "limits": [
+    "No Lattice route or project was added; the page reads retained files and does not create runs.",
+    "Receipts remain producer claims: Kiln lists and shows bytes, never acceptance."
+  ],
+  "deployment": {
+    "package": "/nix/store/y2rh5h7h2zqk3mnsv1yamcivmq1m38qz-kiln-web-service-0.1.0",
+    "units": [
+      "kiln-web-service.service",
+      "kiln-tailnet-proxy.service"
+    ],
+    "state": "active"
+  }
+}

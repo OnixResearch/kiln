@@ -245,6 +245,28 @@ The view is read-only, never dispatches Patchgate, and grants no review, merge,
 gate or release authority. Upload the receipt JSON as a `review` report to
 retain it for the run.
 
+### Retained receipt directory
+
+The workspace's **Reviews** page lists `kiln.patchgate.review.v1` receipts from
+one explicitly admitted directory; it never scans elsewhere. Apply
+[`config/web-reviews.ncl`](../config/web-reviews.ncl) to an operator-reviewed
+`{ label, directory }` record and pass the exported JSON with `--reviews` on
+both `check` and `serve`.
+
+```console
+nickel typecheck config/web-reviews.ncl
+nickel export --format json --output "$KILN_REVIEWS_PROFILE" "$KILN_REVIEWS_NCL"
+kiln-web-service check --profile "$KILN_SERVICE_PROFILE" --reviews "$KILN_REVIEWS_PROFILE"
+```
+
+`/api/reviews` returns the label, each receipt's name, byte count, BLAKE3,
+effect/candidate/report identities, per-decision counts and the producer's
+`isolated` and `authorizes_acceptance` claims; `/api/reviews/NAME` returns the
+verbatim document. Non-receipt entries, symlinks, oversized files and documents
+with another schema are listed under `skipped` with a reason, never as empty
+success. The directory is server-owned; names are bounded and traversal is
+rejected. Readers are authenticated viewers/operators; workers are denied.
+
 ### Produce one receipt outside a run
 
 `scripts/patchgate-review-job.py` builds the profile and intent from live native

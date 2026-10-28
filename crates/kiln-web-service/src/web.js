@@ -624,6 +624,9 @@
     for (const id of ["source-browser-status", "source-log", "source-tree", "source-file", "source-diff"]) $(id).replaceChildren();
     $("source-log-status").textContent = "";
     $("source-log-next").disabled = true;
+    $("reviews-list").replaceChildren();
+    $("reviews-detail").replaceChildren();
+    $("reviews-status").textContent = "";
     $("source-filter").value = "";
     // r[impl kiln.dashboard.workers.view.scenario.cleared]
     $("workers-content").replaceChildren();
@@ -680,7 +683,7 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "activity", "evidence", "automation", "operations", "settings"];
+  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "reviews", "activity", "evidence", "automation", "operations", "settings"];
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   const workerStatuses = { slots_available: "Slots available", busy: "Busy", unknown: "Unknown execution", not_enrolled: "Not enrolled" };
   function canOperate() { return !!state.session && state.permissions.operate === true; }
@@ -716,6 +719,7 @@
       cob_repository: params.get("cob_repository") || "", cob_type: params.get("cob_type") || "", cob_q: params.get("cob_q") || "", cob_cursor: params.get("cob_cursor") || "",
       cob: params.get("cob") || "", cob_repo: params.get("cob_repo") || "", cob_kind: params.get("cob_kind") || "",
       src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "", sq: (params.get("sq") || "").slice(0, 256),
+      receipt: (params.get("receipt") || "").slice(0, 128),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(workerStatuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       theme: ["system", "light", "dark"].includes(params.get("theme")) ? params.get("theme") : "system", density: params.get("density") === "compact" ? "compact" : "comfortable"
     };
@@ -740,7 +744,7 @@
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === route.page) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = node.dataset.runPanel !== route.view;
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = route.page === "cobs" ? "COBs" : route.page === "source" ? "Source" : route.page[0].toUpperCase() + route.page.slice(1);
+    const title = route.page === "cobs" ? "COBs" : route.page === "source" ? "Source" : route.page === "reviews" ? "Reviews" : route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
@@ -834,6 +838,7 @@
     if (route.page === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
     if (route.page === "cobs") await loadCobs();
     if (route.page === "source") await loadSource();
+    if (route.page === "reviews") await loadReviewsPage();
     if (route.page === "runs") await loadRunView();
   }
   async function loadRunView() {
@@ -1160,6 +1165,9 @@
     const log = $("source-log");
     log.replaceChildren(); $("source-tree").replaceChildren(); $("source-file").replaceChildren();
     $("source-log-next").disabled = true;
+    $("reviews-list").replaceChildren();
+    $("reviews-detail").replaceChildren();
+    $("reviews-status").textContent = "";
     status.textContent = "Reading configured sources…";
     $("source-browser-status").replaceChildren(element("p", "Loading admitted records…", "small"));
     let inventory;
@@ -1240,6 +1248,78 @@
     const span = element("span", compactTimestamp(ms), "small");
     span.title = timestamp(ms);
     return span;
+  }
+  // r[impl kiln.dashboard.reviews.view]
+  function reviewDecisionBadges(parent, counts) {
+    const badges = element("div", undefined, "badges");
+    for (const [decision, count] of Object.entries(counts || {}).sort()) {
+      const badge = element("span", `${decision} · ${count}`, "state-badge");
+      badge.dataset.tone = reviewDecisionTone(decision);
+      badges.append(badge);
+    }
+    if (!badges.childElementCount) badges.append(element("span", "No review rows recorded", "state-badge"));
+    parent.append(badges);
+  }
+  async function loadReviewsPage() {
+    const route = state.route;
+    $("reviews-list").replaceChildren();
+    $("reviews-detail").replaceChildren();
+    $("reviews-status").textContent = "Reading retained receipts…";
+    let inventory;
+    try { inventory = await api("/api/reviews"); }
+    catch (error) { if (!isAborted(error) && state.route === route) $("reviews-status").textContent = `Receipt inventory unavailable: ${explain(error)}`; return; }
+    if (state.route !== route || !state.session) return;
+    const list = $("reviews-list");
+    const receipts = Array.isArray(inventory.receipts) ? inventory.receipts : [];
+    $("reviews-status").textContent = inventory.configured
+      ? `${receipts.length} retained receipt${receipts.length === 1 ? "" : "s"} in ${text(inventory.label)}${(inventory.skipped || []).length ? ` · ${inventory.skipped.length} entry(ies) skipped` : ""}`
+      : "No receipt directory is configured. The operator must admit a separate --reviews policy; this is not proof that no receipt exists.";
+    for (const receipt of receipts) {
+      const link = element("a", undefined, "run-choice cob-choice");
+      link.href = `?${new URLSearchParams({ ...state.route, page: "reviews", receipt: receipt.name })}`;
+      if (receipt.name === route.receipt) link.setAttribute("aria-current", "true");
+      const head = element("div", undefined, "cob-head");
+      head.append(element("span", text(receipt.provider_profile || "patchgate"), "cob-type"), element("span", `${text(receipt.bytes)} bytes`, "cob-repo"));
+      link.append(head, element("strong", text(receipt.name), "cob-title"));
+      const summary = element("span", `${Object.entries(receipt.decision_counts || {}).map(([d, c]) => `${d} ${c}`).join(" · ") || "no decisions"} · acceptance authority ${receipt.authorizes_acceptance === true ? "claimed" : "none"}`, "small");
+      link.append(summary);
+      link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate({ page: "reviews", receipt: receipt.name }); } });
+      list.append(link);
+    }
+    if (!receipts.length) list.append(element("p", inventory.configured ? "No receipts are retained in the configured directory." : "No receipt directory is configured.", "small"));
+    const detail = $("reviews-detail");
+    if (!route.receipt) { detail.append(element("h2", "Select a receipt"), element("p", "Choose a retained receipt. No receipt is selected automatically.", "small")); return; }
+    let record;
+    try { record = await api(`/api/reviews/${encodeURIComponent(route.receipt)}`); }
+    catch (error) { if (!isAborted(error) && state.route === route) detail.append(element("p", `Receipt unavailable: ${explain(error)}`, "warning")); return; }
+    if (state.route !== route || !state.session) return;
+    const document = record.document;
+    const heading = section(text(record.name), detail, "record-card");
+    const facts = element("dl", undefined, "facts");
+    const observation = document.observation || {};
+    addFacts(facts, [["Retained bytes", record.bytes], ["BLAKE3", record.blake3], ["Effect", observation.effect_id], ["Candidate", observation.candidate_id], ["Report identity", observation.report_identity], ["Acceptance authority", observation.authorizes_acceptance === true ? "producer claims authority (not granted)" : "none"], ["Isolated", observation.isolated === true ? "yes" : "no"]]);
+    heading.append(facts);
+    const reviews = Array.isArray(observation.reviews) ? observation.reviews : [];
+    reviewDecisionBadges(heading, reviews.reduce((counts, row) => { counts[row.decision] = (counts[row.decision] || 0) + 1; return counts; }, {}));
+    if (reviews.length) {
+      const table = element("table", undefined, "review-table");
+      const head = element("tr");
+      for (const label of ["Change", "Decision"]) head.append(element("th", label));
+      const thead = element("thead"); thead.append(head); table.append(thead);
+      const body = element("tbody");
+      for (const row of reviews) {
+        const line = element("tr");
+        const decision = element("td");
+        const badge = element("span", text(row.decision), "state-badge");
+        badge.dataset.tone = reviewDecisionTone(row.decision);
+        decision.append(badge);
+        line.append(element("td", renderChangeRef(row.change), "review-change"), decision);
+        body.append(line);
+      }
+      table.append(body); heading.append(table);
+    }
+    if (typeof document.native_report === "string") { const details = element("details"); details.append(element("summary", `Retained native report · ${document.native_report.length} bytes · verbatim`), element("pre", document.native_report, "identity")); heading.append(details); }
+    for (const boundary of record.non_claims || []) detail.append(element("p", boundary, "small"));
   }
   function renderOverview(parent, result) {
     const grid = element("div", undefined, "inventory-grid"); parent.append(grid);
@@ -1620,6 +1700,7 @@
   for (const name of ["activity", "automation", "operations"]) $("refresh-" + name).addEventListener("click", readAction(loadPage));
   $("refresh-cobs").addEventListener("click", readAction(loadPage));
   $("refresh-sources").addEventListener("click", readAction(loadPage));
+  $("refresh-reviews").addEventListener("click", readAction(loadPage));
   $("source-select").addEventListener("change", (event) => { if (state.session) navigate({ src: event.target.value, rev: "", spath: "", sfile: "", sq: "" }); });
   $("source-filter").addEventListener("input", (event) => { if (state.session) navigate({ sq: event.target.value }); });
   $("source-up").addEventListener("click", () => { if (state.session && state.route.spath) navigate({ spath: state.route.spath.split("/").slice(0, -1).join("/"), sfile: "" }); });
