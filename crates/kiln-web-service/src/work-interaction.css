@@ -49,7 +49,7 @@
   background: var(--panel);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  box-shadow: var(--shadow), inset 3px 0 var(--signal);
+  box-shadow: inset 3px 0 var(--signal);
 }
 .work-selection-toolbar[hidden], .work-selection-fields[hidden] { display: none; }
 .work-selection-fields { display: flex; align-items: end; flex-wrap: wrap; gap: 0.55rem; margin: 0.65rem 0; }

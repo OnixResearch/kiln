@@ -1,0 +1,39 @@
+{
+  "schema": "kiln.hosted.verification.v1",
+  "date": "2026-10-28",
+  "maintenance_owner": "Kiln maintainers",
+  "scope": "Optional authenticated hosted-CI composition, bounded local engineering qualification only",
+  "passed": [
+    {"command": "nix develop path:. --command cargo test --locked --workspace", "observed": "Complete workspace unit, integration and doc-test run exited zero; kiln-hosted 44 unit tests and 6 journey tests passed. Existing live-provider tests remain explicitly ignored."},
+    {"command": "nix develop path:. --command cargo clippy --locked --workspace --all-targets --all-features -- -D warnings", "observed": "Exited zero. Final private cache fixture adjustment was subsequently checked with kiln-hosted all-targets Clippy, also zero."},
+    {"command": "nix develop path:. --command cargo fmt -- --check", "observed": "Exited zero after final source edits."},
+    {"command": "nix develop path:. --command cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e", "observed": "17 tests passed: real packaged adapter subprocesses against isolated source/status fixtures, success/failure, signature/framing denial, replay, restart without redispatch, ambiguous status reconciliation and overload."},
+    {"command": "nix build path:.#checks.x86_64-linux.nickel --no-link -L --builders '' --option substituters https://cache.nixos.org", "observed": "Repository Nickel gate realized successfully after formatting hosted-execution.ncl."},
+    {"command": "nix build path:.#checks.x86_64-linux.octet --no-link -L --builders '' --option substituters https://cache.nixos.org", "observed": "Maintained Octet aggregate realized; consumer summaries clean, zero findings/warnings/errors. Its scope is the configured producer/consumer rail, not independent whole-hosted security review."},
+    {"command": "nix flake check path:. --no-build", "observed": "x86_64-linux outputs evaluated successfully; no aarch64-linux qualification. This command did not build the checks."},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "observed": "No lifecycle issues or findings; validation also passed inside release-readiness."},
+    {"command": "nix develop path:. --command cargo run --locked -p kiln-cli -- demo", "observed": "Real CLI printed canonical revision 1 with demo-run/demo-attempt Pending."},
+    {"command": "node --check crates/kiln-hosted/src/web.js", "observed": "Final deep-link identity bootstrap script parsed successfully."},
+    {"scenario": "Actual local Iroh/browser and namespace execution", "evidence": "local-runtime.json", "observed": "Actual customer CLI, browser compiler/navigation/deep-link role, denied cross-origin request, real trusted namespace success/failure/cancellation with cleanup, fresh-workspace cache miss/hit/changed-source miss and durable financial reconciliation. Owned smoke services stopped, browser closed and throwaway private keys/workspaces removed."}
+  ],
+  "repository_holds": [
+    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "observed": "Failed: 906 accepted requirements referenced, no missing requirements, but dangling references from other active dashboard, review, developer-loop, project, remote-worker, work and Patchgate changes. No hosted requirement IDs appeared in the dangling list. Those lifecycle packages were intentionally not archived or rewritten by this change."},
+    {"command": "cairn release-readiness --root .", "observed": "valid=false, onix_release_ready=false because traceability coverage failed; other reported local subchecks passed or were explicitly skipped. This is not release authorization."}
+  ],
+  "full_nix_rail": {"command": "nix flake check path:. --no-write-lock-file -L --builders '' --option substituters https://cache.nixos.org", "status": "passed", "observed": "All x86_64-linux checks passed, including packaged workspace, Clippy, VM service deployment, protocol fixtures, Nickel, Octet and Bombadil rails. aarch64-linux omitted. Candidate package derivation srcc1a5idzr7lcw548zv1ggazqhhdbgn-kiln-0.1.0.drv realized k05vid82m3pczpg0gf36wxsphbv8f2gq-kiln-0.1.0. The final deep-link role JavaScript fix was subsequently built and verified in the real browser; its syntax and runtime evidence are separately retained. Later evidence/docs edits do not imply this Nix source snapshot includes them."},
+  "environment_observations": [
+    "Default remote Nix builder failed with a too-long grpc lock filename after private substituter timeouts; local builder and the public Nix cache were selected for subsequent gates without changing repository configuration.",
+    "kache reported an index disk-I/O error and disabled compilation caching; Cargo build/test/lint commands still completed.",
+    "git.onix.computer source HEAD lookup reported HTTP 530 during flake evaluation; Nix retained the pinned evaluation and warned that it used master for HEAD discovery. This warning is not live-provider availability evidence.",
+    "Two new cache test fixture roots initially violated the maintained private-directory contract; fixtures now explicitly create mode-0700 owned roots and the complete workspace rerun passed.",
+    "New journey assertions initially compared borrowed JSON values to owned strings; typed string extraction fixed the comparisons before the passing workspace run."
+  ],
+  "activation_blockers": [
+    "Approved production source credentials, exact Lattice route admission, public webhook/relay/TLS/network policy and external dependency recovery are operator prerequisites.",
+    "Native source dispatch reservations remain unknown until independently trusted exact-attempt usage metering is provided; source completion cannot fabricate settlement.",
+    "Namespace execution is trusted-only. Independent hostile-isolation qualification is absent; unqualified hostile namespace jobs fail before dispatch.",
+    "No live fleet driver/provider capacity, cloud trust registration, merchant approval, legal/tax/terms approval, payment transmission, purchase, publication or deployment was authorized or performed."
+  ],
+  "release_claim": false,
+  "production_claim": false
+}

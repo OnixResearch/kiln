@@ -6,6 +6,7 @@ members = [
   "crates/kiln-observe-core",
   "crates/kiln-dashboard",
   "crates/kiln-web-service",
+  "crates/kiln-hosted",
   "crates/kiln-adapter-http-observe",
   "crates/kiln-adapter-iroh-observe",
   "crates/kiln-standalone",

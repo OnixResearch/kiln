@@ -452,6 +452,11 @@
           program = "${packageFor system}/bin/kiln-dashboard";
           meta.description = "Render the local operator dashboard over a canonical Kiln journal";
         };
+        kiln-hosted = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-hosted";
+          meta.description = "Run the explicitly admitted Iroh-connected hosted CI composition";
+        };
         kiln-web-service = {
           type = "app";
           program = "${webServicePackageFor system}/bin/kiln-web-service";
@@ -990,6 +995,8 @@
               config/web-cobs.ncl \
               config/web-work.ncl \
               config/fixtures/*web-work-*.ncl \
+              config/web-code-review.ncl \
+              config/fixtures/*web-code-review-*.ncl \
               config/web-sources.ncl \
               config/fixtures/*web-access*.ncl \
               config/fixtures/*web-automation*.ncl \
@@ -1017,6 +1024,13 @@
             nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel typecheck config/patchgate-review.ncl
+            nickel format --check config/hosted-*.ncl config/fixtures/*hosted*.ncl
+            for profile in config/hosted-*.ncl; do
+              nickel typecheck "$profile"
+            done
+            nickel export config/hosted-pipeline-example.ncl >/dev/null
+            nickel export config/fixtures/hosted-service-positive.ncl >/dev/null
+            nickel export config/fixtures/hosted-client-positive.ncl >/dev/null
             nickel typecheck config/web-service.ncl
             nickel typecheck config/web-worker.ncl
             nickel typecheck config/web-cache.ncl
@@ -1042,6 +1056,14 @@
             for fixture in config/fixtures/negative-web-work-*.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then
                 echo "negative work fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
+            nickel typecheck config/web-code-review.ncl
+            nickel export config/fixtures/web-code-review-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-web-code-review-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative code review fixture passed: $fixture" >&2
                 exit 1
               fi
             done

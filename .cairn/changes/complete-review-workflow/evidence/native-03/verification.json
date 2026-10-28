@@ -1,0 +1,128 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "transport": "local",
+  "checks": {},
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "loopback Iroh does not prove WAN or relay availability or distinct-host deployment",
+    "adapter labels do not implement per-node placement or mixed-host scheduling",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "source": {
+    "controller_checkout": "/home/brittonr/.local/state/kiln-review-parity-03/source",
+    "worker_checkout": "/home/brittonr/.local/state/kiln-review-parity-03/source",
+    "distinct_checkout": false,
+    "source_repository": "9888136d3cd839c518f06c700cdd96293a67e0a3feec6824fdb3dd65676a3e1f",
+    "worker_local_repository": "9888136d3cd839c518f06c700cdd96293a67e0a3feec6824fdb3dd65676a3e1f"
+  },
+  "profiles": {
+    "projects": {
+      "success": {
+        "provider_profile_id": "lattice-web-native-success",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:79ac7c0be08427bcdaa3ccfb1d75e8bbe73b3c23de0d39073f30c21eda39dea0",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:7c37e0d22c03ccdb5d403924f600174c3422ab656ca54e6a7f5da90a5effdf08",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:679ff36bc2c5e51684ab8d2eb0fa0215e40443671694656a3399b6b80b83e795",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:ac1e97aa64f4b769498f1ccb4d26326ad5de658aee88dd66be46f327c75f8b10",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:575be144f31eda1d493e91beeae40ca1eac8dd50acc904df0f55b30cbc180a22",
+            "workflow_node_id": 1
+          }
+        ]
+      },
+      "slow": {
+        "provider_profile_id": "lattice-web-native-slow",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:5d0ba7d033bf0269c3813231654383083a219f7bce3c322cfe6dcba618b086b1",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:8d7c109adb574b6697a8a264c880dbea3786c9b2c006a777acf9bc2df662f07e",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "fail": {
+        "provider_profile_id": "lattice-web-native-fail",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:1526cc412e3e4b1cdd289d2a9a5525f45495232c692f4e547523fb1f9e02800f",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:440c27f78a9897c5027b4c12e66984c609e68c3746eda264466167d9bdd363dd",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "partial": {
+        "provider_profile_id": "lattice-web-native-partial",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:84d487d189323a9e4b3211ff1cce73c3b1ac4b7b1b04725a3556c161cd4a4393",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:346694eede8f63b65ea54bd5463408b89aeb95852bd23ab08cb2214bd01fa7a2",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:b4dae8192b224a4775e862c703a6b37e7812e63448dfbe4b2739963d6bf3fa4c",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:2458052db7cd49d071f7bf36c198086c59338421170d78d9cb787b70c0913353",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:eec0627c4469c86a2a36daa534f0a3a8218fa4b7c8c2c6e6c9c02115633af5ff",
+            "workflow_node_id": 1
+          }
+        ]
+      }
+    },
+    "worker_blake3": {
+      "worker-success.json": "d4313c54b4b325640eb4113efb2f2099a4757823817d554fc004ac9bcd027e2a",
+      "worker-partial-lint.json": "2458052db7cd49d071f7bf36c198086c59338421170d78d9cb787b70c0913353",
+      "worker-success-verify.json": "575be144f31eda1d493e91beeae40ca1eac8dd50acc904df0f55b30cbc180a22",
+      "worker-partial.json": "346694eede8f63b65ea54bd5463408b89aeb95852bd23ab08cb2214bd01fa7a2",
+      "worker-slow.json": "8d7c109adb574b6697a8a264c880dbea3786c9b2c006a777acf9bc2df662f07e",
+      "worker-success-lint.json": "ac1e97aa64f4b769498f1ccb4d26326ad5de658aee88dd66be46f327c75f8b10",
+      "worker-success-join.json": "679ff36bc2c5e51684ab8d2eb0fa0215e40443671694656a3399b6b80b83e795",
+      "worker-partial-join.json": "b4dae8192b224a4775e862c703a6b37e7812e63448dfbe4b2739963d6bf3fa4c",
+      "worker-fail.json": "440c27f78a9897c5027b4c12e66984c609e68c3746eda264466167d9bdd363dd",
+      "worker-success-compatible.json": "41f17979fe0e95c258c003cf6b478f58f7fdf4e3c76711a213a8f099115163c3",
+      "worker-partial-verify.json": "eec0627c4469c86a2a36daa534f0a3a8218fa4b7c8c2c6e6c9c02115633af5ff",
+      "worker-success-pool.json": "7c37e0d22c03ccdb5d403924f600174c3422ab656ca54e6a7f5da90a5effdf08"
+    },
+    "handler_profile_blake3": "e91ba2dd4833126a1658dc264e98b0570333e08b812406f286816ea235fcf97b"
+  },
+  "failure": {
+    "kind": "RuntimeError",
+    "diagnostic": "command /nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel exited 1: error: contract broken by a value\n       extra field `schema`\n    \u250c\u2500 /home/brittonr/git/OnixResearch/kiln/config/web-service.ncl:41:5\n    \u2502  \n 41 \u2502       input\n    \u2502       ^^^^^ applied to this expression\n 42 \u2502         | {\n    \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500'\n 43 \u2502 \u2502         service_id | Identifier,\n 44 \u2502 \u2502         listen_address | c.NonEmpty,\n 45 \u2502 \u2502         origin | std.contract.from_predicate (fun value => std.is_string value && std.string.is_match \"^https://[^/?#@ ]+$\" value),\n    \u00b7 \u2502\n 78 \u2502 \u2502           },\n 79 \u2502 \u2502       }\n    \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500' expected type\n    \u2502  \n    \u250c\u2500 /home/brittonr/.local/state/kiln-review-parity-03/service-inputs.json:1:1\n    \u2502  \n  1 \u2502 \u256d {\n  2 \u2502 \u2502   \"bounds\": {\n  3 \u2502 \u2502     \"max_artifact_bytes\": 65536,\n  4 \u2502 \u2502     \"max_artifacts\": 16,\n    \u00b7 \u2502\n329 \u2502 \u2502   \"worker_token_file\": \"/home/brittonr/.local/state/kiln-review-parity-03/worker.token\"\n330 \u2502 \u2502 }\n    \u2502 \u2570\u2500' evaluated to this expression\n    \u2502  \n    = Have you misspelled a field?\n    = The record contract might also be too strict. By default, record contracts exclude any field which is not listed.\n      Append `, ..` at the end of the record contract, as in `{some_field | SomeContract, ..}`, to make it accept extra fields.\n\n"
+  },
+  "failure_diagnostics_unavailable": "URLError",
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

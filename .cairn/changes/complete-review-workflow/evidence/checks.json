@@ -1,0 +1,37 @@
+{
+  "schema": "kiln.review-parity.check-evidence.v1",
+  "scope": "Implemented review workflow qualification; no deployment, publication, specification sync, archive or release approval",
+  "passed": [
+    {"command":"nix develop path:$PWD -c cargo test --locked --workspace","result":"passed; subsequent changes exercised again through the focused core, Git adapter and web-service suites"},
+    {"command":"nix develop path:$PWD -c cargo test --locked -p kiln-core -p kiln-adapter-git -p kiln-web-service","result":"passed on final behavioral source; includes 18 review API tests, 6 intake tests and 7 exact-candidate queue tests"},
+    {"command":"nix develop path:$PWD -c cargo clippy --locked --workspace --all-targets -- -D warnings","result":"passed without new lint suppression"},
+    {"command":"nix develop path:$PWD -c cargo fmt -- --check","result":"passed; --all is deliberately not used because partial vendored producer workspaces have absent members"},
+    {"command":"node --check crates/kiln-web-service/src/code-review.js","result":"passed"},
+    {"command":"nickel export config/fixtures/web-code-review-positive.ncl and all seven negative-web-code-review fixtures","result":"positive accepted; all seven negative inputs rejected"},
+    {"command":"nickel format --check on touched review contract, input fixtures and development coverage policy","result":"passed after formatting the actual Nickel sources"},
+    {"command":"nix build path:$PWD#checks.x86_64-linux.octet --no-link --builders '' -L","result":"passed; Octet summaries clean with zero findings, warnings and errors","derivation":"/nix/store/cv61rh9lpkz0ba5r4f19a7f09zsc16pa-kiln-octet.drv"},
+    {"command":"nix flake check path:$PWD --no-write-lock-file --builders '' -L","result":"all checks passed for x86_64-linux, including packaged tests, deployment VM, Nickel, Octet and Bombadil; aarch64-linux omitted as incompatible","package_derivation":"/nix/store/a7a0bw33jj62rm79ka48rmdvi5dprsnf-kiln-0.1.0.drv","deployment_derivation":"/nix/store/z1jd5dawfldpf3pi1gig0v4q79plypba-vm-test-run-kiln-web-service-deployment.drv"},
+    {"command":"cairn validate --root . --policy cairn-policy/generated/cairn-policy.json","result":"valid; no issues"},
+    {"command":"cairn gate proposal/design/tasks complete-review-workflow --root . --policy cairn-policy/generated/cairn-policy.json","result":"all three passed; separate native receipts retained"},
+    {"command":"scripts/review-workflow-smoke.py with exact maintained Lattice cohort","result":"native-06/verification.json passed required-CI success, independent target readback, genuine CI failure, external notification delivery and durable-candidate restart recovery"},
+    {"command":"authenticated Chromium desktop/mobile interaction on the native-05 HTTPS service","result":"browser.json and desktop/mobile screenshots retain actual branch intake, Markdown safety, filtered anchors, suggestion application, approval invalidation and subscription observations"}
+  ],
+  "qualification_holds": {
+    "accepted_spec_traceability":"fails with no missing accepted requirements; active changes are not synchronized into accepted specs",
+    "active_development_traceability":"no missing requirements and no dangling review-parity IDs; only kiln.web.minimal_console, kiln.web.visual_design and kiln.work.usability remain dangling",
+    "release_readiness":"valid=false because accepted traceability coverage fails; its command exit status is 0 and is not treated as readiness approval",
+    "active_worker_transport":"forced HTTPS death can fail active ingress; this failure remains CI failure and blocks submission"
+  },
+  "corrected_integration_findings": [
+    "Unachievable approval policies are rejected at profile admission; the policy-change regression now uses a valid two-reviewer policy",
+    "Queue test GET requests now have empty bodies rather than serialized null",
+    "Delivery rows render notification metadata instead of an object string",
+    "Browser suggestion selection accepts the same complete prose-embedded fence as server extraction",
+    "Fallible bounds and borrowed transition facts replace indexing and avoidable fact-copy allocation",
+    "Native restart exercise uses the durable candidate boundary, not an unsupported promise of uninterrupted worker uploads"
+  ],
+  "environment_observations": [
+    "Host kache index I/O errors disable caching but do not prevent successful local compilation",
+    "Nix checks use --builders '' as in the existing repository qualification procedure"
+  ]
+}

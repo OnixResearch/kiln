@@ -1,0 +1,35 @@
+{
+  "schema": "kiln.change-review.check-evidence.v1",
+  "scope": "Interactive local-Git change review; no deployment or release qualification",
+  "passed": [
+    {"command": "nix develop path:$PWD -c cargo test --locked --workspace", "result": "passed; includes inherited-descriptor lock regression, provider conformance and durable review API scenarios"},
+    {"command": "nix develop path:$PWD -c cargo test --locked -p kiln-core change_review", "result": "16 passed after final optional-CI checklist wording"},
+    {"command": "nix develop path:$PWD -c cargo clippy --locked --workspace --all-targets -- -D warnings", "result": "passed"},
+    {"command": "nix develop path:$PWD -c cargo fmt -- --check", "result": "passed"},
+    {"command": "nix flake check path:$PWD --no-write-lock-file --builders '' -L", "result": "all x86_64-linux checks passed, including Octet, Nickel, packaged workspace tests, formatting, Clippy and browser/property/deployment rails; aarch64-linux omitted by host selection", "package_derivation": "/nix/store/zikjg90rb415pxz8i21i0xf27c69w3vs-kiln-0.1.0.drv", "package_output": "/nix/store/3awrpb1dmwjh9nzbrk1rid6j3a2xxfsv-kiln-0.1.0"},
+    {"command": "node --check crates/kiln-web-service/src/code-review.js", "result": "passed"},
+    {"command": "cairn gate proposal add-change-review-workflow --root . --policy cairn-policy/generated/cairn-policy.json", "result": "PASS"},
+    {"command": "cairn gate design add-change-review-workflow --root . --policy cairn-policy/generated/cairn-policy.json", "result": "PASS"},
+    {"command": "cairn gate tasks add-change-review-workflow --root . --policy cairn-policy/generated/cairn-policy.json", "result": "PASS; exact receipt retained in tasks-gate.json"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "result": "valid"}
+  ],
+  "corrected_failures": [
+    "Completion serialization tag conflicted with the maintenance kind field; the tag and crash fixture now use type.",
+    "Serde fieldless unit actions ignored extra fields; empty struct variants now enforce closed command schemas, including caller-supplied CI refusal.",
+    "Closing a store descriptor retained flock through a concurrent fork/dup copy. A deterministic regression failed before explicit guard unlock; workspace and Nix tests passed after the fix.",
+    "Long argument lists were replaced with borrowed request/provider contexts; final Clippy passed without lint suppression.",
+    "The typed review builder needed Nickel formatting; the full Nix Nickel rail subsequently passed."
+  ],
+  "environment_observations": [
+    "The configured remote Nix builder failed with an overlong lock filename. Checks completed with --builders '' rather than changing repository configuration.",
+    "The host kache index reported disk I/O errors and disabled caching; compilation and checks still completed.",
+    "cargo fmt --all recursed into partial vendored producer workspaces; the maintained cargo fmt -- --check rail passed without modifying vendored snapshots."
+  ],
+  "qualification_holds": {
+    "accepted_spec_traceability": "fail: 59 dangling identifiers, including the three Rust review requirement IDs held in the active change; no missing accepted requirements",
+    "active_development_traceability": "fail: no missing requirements; only kiln.web.minimal_console, kiln.web.visual_design and kiln.work.usability remain dangling; new review requirements resolve",
+    "release_readiness": "valid=false; traceability_coverage failed despite command exit status 0",
+    "acceptance_boundary": "No automatic spec sync, archive, release approval, publication or deployment"
+  },
+  "retirement": "Exercise browser and services closed; owned temporary repository, SQLite database, TLS private key, credentials and throwaway scripts removed."
+}

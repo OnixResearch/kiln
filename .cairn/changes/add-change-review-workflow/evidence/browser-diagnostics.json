@@ -1,0 +1,9 @@
+{
+  "pageExceptions": [],
+  "requestFailures": {
+    "initial_self_signed_fixture_certificate": 1,
+    "client_abort": 53,
+    "deliberate_restart_connection_refused": 5
+  },
+  "non_claim": "No empty network-error log is claimed. Initial self-signed certificate setup, deliberate service restarts and client-cancelled live observations are retained."
+}

@@ -1,0 +1,313 @@
+{
+  "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+  "assetOrApiOverrides": false,
+  "tlsBoundary": "Browser-only CDP trust exception after independent CA/hostname verified TLS for health and all nine assets. The open-option trust exception failed and was not used.",
+  "overview": {
+    "width": 1440,
+    "documentWidth": 1440,
+    "visibleRows": 13,
+    "rows": 15,
+    "totals": [
+      {
+        "key": "failed",
+        "value": "7"
+      },
+      {
+        "key": "active",
+        "value": "0"
+      },
+      {
+        "key": "queued",
+        "value": "0"
+      },
+      {
+        "key": "unknown",
+        "value": "0"
+      },
+      {
+        "key": "succeeded",
+        "value": "12"
+      },
+      {
+        "key": "cancelled",
+        "value": "0"
+      },
+      {
+        "key": "runs",
+        "value": "19"
+      }
+    ],
+    "healthOrder": [
+      "failing",
+      "failing",
+      "failing",
+      "failing",
+      "failing",
+      "failing",
+      "healthy",
+      "healthy",
+      "healthy",
+      "healthy",
+      "healthy",
+      "healthy",
+      "healthy",
+      "healthy",
+      "healthy"
+    ],
+    "secondaryNavigation": [
+      {
+        "label": "More work",
+        "open": false
+      },
+      {
+        "label": "Inspect",
+        "open": false
+      },
+      {
+        "label": "Administration",
+        "open": false
+      }
+    ],
+    "timingOpen": false
+  },
+  "failedFilter": "7 shown of 7 matching retained runs · bounded page",
+  "expectedLogsHref": "?page=runs&view=logs&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&order=desc&theme=light&density=comfortable",
+  "directLogs": {
+    "route": "?page=runs&view=logs&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&order=desc&theme=light&density=comfortable",
+    "stream": "stderr",
+    "characters": 1606,
+    "status": "Worker-captured output · byte cursor. Actual retained bytes loaded; text is displayed inertly."
+  },
+  "restoredSettings": {
+    "theme": "dark",
+    "administrationOpen": true
+  },
+  "mobile": {
+    "viewport": 320,
+    "documentWidth": 320,
+    "theme": "dark",
+    "targets": [
+      {
+        "label": "7Failed",
+        "height": 44
+      },
+      {
+        "label": "0Active",
+        "height": 44
+      },
+      {
+        "label": "0Queued",
+        "height": 44
+      },
+      {
+        "label": "0Unknown",
+        "height": 44
+      },
+      {
+        "label": "12Succeeded",
+        "height": 44
+      },
+      {
+        "label": "0Cancelled",
+        "height": 44
+      },
+      {
+        "label": "19Retained",
+        "height": 44
+      },
+      {
+        "label": "Schema Identity Core - conformance and all features",
+        "height": 61.03125
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Schema Migration Core - conformance and all features",
+        "height": 61.03125
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Valence - workspace tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Bounded HTTP - all-feature conformance",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Durable Authority State - all-feature conformance",
+        "height": 61.03125
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Transactional Reconciliation Core - all-feature conformance",
+        "height": 81.375
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Kiln — Rust workspace tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Cap Root - workspace tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Bounded Exec - workspace tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Durable File Publication - all-target tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Content Identity Core - all-target tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Quantity Contracts - positive and negative matrix",
+        "height": 61.03125
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Artifact - workspace tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Nickel Export - workspace tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      },
+      {
+        "label": "Nickel Eval - all-target tests",
+        "height": 44
+      },
+      {
+        "label": "Pipeline",
+        "height": 44
+      },
+      {
+        "label": "Logs",
+        "height": 44
+      }
+    ]
+  },
+  "activeCounter": {
+    "status": "busy",
+    "route": "https://britton-desktop.bison-tailor.ts.net:8443/?page=workers&view=pipeline&stream=stdout&order=desc&worker_status=busy&theme=dark&density=compact"
+  },
+  "issueCapture": {
+    "viewport": 320,
+    "width": 308.796875,
+    "submitted": false
+  },
+  "keyboard": {
+    "paletteOpened": true,
+    "escapeClosed": true
+  }
+}

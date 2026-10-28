@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.change-review.runtime-evidence.v1",
+  "scope": "Disposable local Git repository and private SQLite database; loopback HTTPS only",
+  "service_executable_blake3": "adae2427834d467c40c00b55837bc7f8691f740ffd572c2d3fc1bf1aa4c20416",
+  "immediate_consumer": "Kiln dashboard users reviewing exact local source revisions",
+  "maintenance_owner": "Kiln maintainers; deployment and real target authorization remain operator-owned",
+  "repeatability": "Provider conformance, pure review transition tests, durable service integration tests, typed policy fixtures and documented isolated operation",
+  "disposable_target": {
+    "reference": "refs/heads/main",
+    "initial": "47b80a93a812acc327df5a2358e7ce73a5252b3c",
+    "prerequisite": "93f7fb58fb7c02808b056dd5538630ed17c90b78",
+    "submitted_and_independently_observed": "a407402ac9af62d31a5729eb5332a239308b7540"
+  },
+  "completed_observations": [
+    "Authenticated HTTPS review workflow, private actor projections, CSRF and Worker refusal",
+    "Immutable revision upload, historical drafts, atomic publication and vote invalidation",
+    "Missing required canonical CI blocks submission",
+    "Real local rebase and cherry-pick create review revisions without advancing target refs",
+    "Desktop browser side-by-side diff, exact line permalink and anchored draft publication",
+    "Mobile 390px document width remains 390px; wide diff scrolls within its own container",
+    "Real browser prerequisite submission with exact principal/source/target confirmation, followed by fresh child candidate evaluation",
+    "HTTPS child submission, independent target-ref readback, durable request replay and real revert registration as a separate WIP review",
+    "Restart retains published discussions, approval history and submitted dependency states",
+    "Escape dismisses the review dialog and returns keyboard focus to its opener",
+    "Explicit optional-CI explanation infers no successful run; no browser page exceptions observed"
+  ],
+  "submission_smoke_policy": "Required CI was tested fail-closed. Submission was separately exercised with require_ci=false in the disposable profile, not fabricated passing CI.",
+  "authority": "No real repository target, remote provider, deployed service or deployed policy was changed."
+}

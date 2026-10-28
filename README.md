@@ -27,6 +27,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - an explicit offline [append-only project-registry extension](docs/operator.md#extend-an-existing-project-registry) that preserves existing history and authority, plus a typed catalog of reviewed OnixResearch committed-ref CI commands;
 - an optional separately admitted [read-only COB browser](docs/operator.md#optional-read-only-cob-browser) in the live workspace, with explicit local Git stores, six Cairn decision types plus three native Radicle observation types, typed list metadata, bounded inventory and exact raw-history inspection, without signature verification, lifecycle reduction or Radicle mutation;
 - an optional [signed COB work workspace](docs/operator.md#optional-signed-cob-workspace) with issues, planning, discussion, triage, principal-owned attention, durable private/shared views, keyboard search/preview/bulk interaction and exact source/CI evidence joins; application collaboration is separately admitted and grants no CI operator or release authority;
+- an optional [interactive change-review workspace](docs/operator.md#optional-interactive-change-review) with stable branch contribution intake, patch sets, syntax-highlighted exact diffs, safe Markdown, whitespace comparisons, private atomic publication, immutable anchored suggestions, path/team ownership, revision-bound approvals, personal attention and bounded external HTTPS delivery; exact-candidate required-CI merge automation uses durable provider journals and target CAS, independently of retained Patchgate receipts and deployment-level branch protection;
 - an exact Aspen/Molten runtime profile, atomic event-store mapping, bounded content and callback contracts, and fail-closed ingress;
 - a standalone `kiln-aspen-host` composition shell that runs the real Aspen native service and concrete Lattice effect adapter;
 - exact-cohort host qualification receipt admission, retained-artifact identity checks, and stronger-claim rejection;
@@ -36,6 +37,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - a fixed-profile Radicle source-event composition with verified materialization, real Nix discovery/build, canonical recovery and exact-revision status reconciliation;
 - authenticated GitHub push/PR intake, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;
+- an optional [Iroh-connected hosted CI composition](docs/hosted-ci.md) with scoped accounts, upstream repository connections, financial admission, reviewed pipelines, explicit execution/fleet backends, workload identity and local recovery; this is not production or hostile-isolation qualification;
 - typed Nickel configuration and Nix checks.
 
 Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. Use its signed Radicle refs for current branch identities. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. The later source-only cutover to `f748acd0cc239f48bf3565ccb89d46ce88cbee2f` and its candidate-bound checks, including the optional runtime attributes that were not exercised, are recorded in [`.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/`](.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/publication.json). See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
@@ -228,6 +230,15 @@ not WAN, hostile-node isolation or production qualification. See the
 ## Licensing
 
 Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.
+
+## Hosted compute direction
+
+The commercial plan keeps Kiln free/open source and proposes paid hosted CI
+connected to customers' existing remote repositories, plus separately enabled
+inference. It does not propose source hosting, repository migration, or a software
+license/seat paywall. This is planning, not an available paid service. See the
+[hosted compute launch plan](docs/commercial-launch.md) for remote-source onboarding,
+accounting/payment architecture, company prerequisites and launch gates.
 
 ## Owned boundary
 

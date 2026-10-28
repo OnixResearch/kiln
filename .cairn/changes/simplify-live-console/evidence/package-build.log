@@ -1,0 +1,562 @@
+Running phase: unpackPhase
+@nix { "action": "setPhase", "phase": "unpackPhase" }
+unpacking source archive /nix/store/kwrv2x52vap5j61hynfglb17krmrdp1v-source
+source root is source
+Executing cargoSetupPostUnpackHook
+Finished cargoSetupPostUnpackHook
+Running phase: patchPhase
+@nix { "action": "setPhase", "phase": "patchPhase" }
+Executing cargoSetupPostPatchHook
+Validating consistency between /build/source/Cargo.lock and /build/cargo-vendor-dir/Cargo.lock
+Finished cargoSetupPostPatchHook
+Running phase: updateAutotoolsGnuConfigScriptsPhase
+@nix { "action": "setPhase", "phase": "updateAutotoolsGnuConfigScriptsPhase" }
+Running phase: configurePhase
+@nix { "action": "setPhase", "phase": "configurePhase" }
+Running phase: buildPhase
+@nix { "action": "setPhase", "phase": "buildPhase" }
+Executing cargoBuildHook
+cargoBuildHook flags: -j 4 --target x86_64-unknown-linux-gnu --offline --profile release -p kiln-web-service --bin kiln-web-service
+[1m[32m   Compiling[0m proc-macro2 v1.0.107
+[1m[32m   Compiling[0m quote v1.0.47
+[1m[32m   Compiling[0m unicode-ident v1.0.24
+[1m[32m   Compiling[0m zeroize v1.8.2
+[1m[32m   Compiling[0m libc v0.2.189
+[1m[32m   Compiling[0m cfg-if v1.0.4
+[1m[32m   Compiling[0m version_check v0.9.5
+[1m[32m   Compiling[0m generic-array v0.14.7
+[1m[32m   Compiling[0m typenum v1.20.1
+[1m[32m   Compiling[0m syn v3.0.3
+[1m[32m   Compiling[0m jobserver v0.1.35
+[1m[32m   Compiling[0m find-msvc-tools v0.1.10
+[1m[32m   Compiling[0m shlex v2.0.1
+[1m[32m   Compiling[0m subtle v2.6.1
+[1m[32m   Compiling[0m cc v1.4.2
+[1m[32m   Compiling[0m syn v2.0.119
+[1m[32m   Compiling[0m crypto-common v0.1.7
+[1m[32m   Compiling[0m getrandom v0.2.17
+[1m[32m   Compiling[0m const-oid v0.9.6
+[1m[32m   Compiling[0m autocfg v1.5.1
+[1m[32m   Compiling[0m block-buffer v0.10.4
+[1m[32m   Compiling[0m digest v0.10.7
+[1m[32m   Compiling[0m serde_core v1.0.229
+[1m[32m   Compiling[0m cpufeatures v0.2.17
+[1m[32m   Compiling[0m rand_core v0.6.4
+[1m[32m   Compiling[0m memchr v2.8.3
+[1m[32m   Compiling[0m serde v1.0.229
+[1m[32m   Compiling[0m serde_derive v1.0.229
+[1m[32m   Compiling[0m itoa v1.0.18
+[1m[32m   Compiling[0m smallvec v1.15.2
+[1m[32m   Compiling[0m synstructure v0.13.2
+[1m[32m   Compiling[0m pkg-config v0.3.34
+[1m[32m   Compiling[0m vcpkg v0.2.15
+[1m[32m   Compiling[0m libm v0.2.16
+[1m[32m   Compiling[0m stable_deref_trait v1.2.1
+[1m[32m   Compiling[0m num-traits v0.2.19
+[1m[32m   Compiling[0m zerovec-derive v0.11.5
+[1m[32m   Compiling[0m zerofrom-derive v0.1.7
+[1m[32m   Compiling[0m yoke-derive v0.8.2
+[1m[32m   Compiling[0m sha2 v0.10.9
+[1m[32m   Compiling[0m zerofrom v0.1.8
+[1m[32m   Compiling[0m bitflags v2.13.1
+[1m[32m   Compiling[0m displaydoc v0.2.7
+[1m[32m   Compiling[0m blake3 v1.8.4
+[1m[32m   Compiling[0m yoke v0.8.3
+[1m[32m   Compiling[0m der v0.7.10
+[1m[32m   Compiling[0m zerovec v0.11.8
+[1m[32m   Compiling[0m zmij v1.0.23
+[1m[32m   Compiling[0m num-integer v0.1.46
+[1m[32m   Compiling[0m signature v2.2.0
+[1m[32m   Compiling[0m block-padding v0.3.3
+[1m[32m   Compiling[0m arrayref v0.3.9
+[1m[32m   Compiling[0m cpufeatures v0.3.0
+[1m[32m   Compiling[0m arrayvec v0.7.8
+[1m[32m   Compiling[0m serde_json v1.0.149
+[1m[32m   Compiling[0m constant_time_eq v0.4.2
+[1m[32m   Compiling[0m log v0.4.33
+[1m[32m   Compiling[0m inout v0.1.4
+[1m[32m   Compiling[0m spin v0.9.9
+[1m[32m   Compiling[0m lazy_static v1.5.0
+[1m[32m   Compiling[0m cipher v0.4.4
+[1m[32m   Compiling[0m tinystr v0.8.4
+[1m[32m   Compiling[0m semver v1.0.28
+[1m[32m   Compiling[0m litemap v0.8.3
+[1m[32m   Compiling[0m writeable v0.6.4
+[1m[32m   Compiling[0m icu_locale_core v2.3.0
+[1m[32m   Compiling[0m rustc_version v0.4.1
+[1m[32m   Compiling[0m spki v0.7.3
+[1m[32m   Compiling[0m potential_utf v0.1.6
+[1m[32m   Compiling[0m zerotrie v0.2.5
+[1m[32m   Compiling[0m ff v0.13.1
+[1m[32m   Compiling[0m utf8_iter v1.0.4
+[1m[32m   Compiling[0m icu_normalizer_data v2.3.0
+[1m[32m   Compiling[0m icu_properties_data v2.3.0
+[1m[32m   Compiling[0m zerocopy v0.8.56
+[1m[32m   Compiling[0m base16ct v0.2.0
+[1m[32m   Compiling[0m icu_provider v2.3.0
+[1m[32m   Compiling[0m sec1 v0.7.3
+[1m[32m   Compiling[0m icu_collections v2.3.0
+[1m[32m   Compiling[0m group v0.13.0
+[1m[32m   Compiling[0m curve25519-dalek v4.1.3
+[1m[32m   Compiling[0m openssl-sys v0.9.117
+[1m[32m   Compiling[0m libz-sys v1.1.29
+[1m[32m   Compiling[0m aho-corasick v1.1.5
+[1m[32m   Compiling[0m crypto-bigint v0.5.5
+[1m[32m   Compiling[0m ring v0.17.14
+[1m[32m   Compiling[0m hmac v0.12.1
+[1m[32m   Compiling[0m rustls-pki-types v1.15.1
+[1m[32m   Compiling[0m regex-syntax v0.8.11
+[1m[32m   Compiling[0m bytes v1.12.1
+[1m[32m   Compiling[0m pin-project-lite v0.2.17
+[1m[32m   Compiling[0m percent-encoding v2.3.2
+[1m[32m   Compiling[0m once_cell v1.21.4
+[1m[32m   Compiling[0m elliptic-curve v0.13.8
+[1m[32m   Compiling[0m regex-automata v0.4.18
+[1m[32m   Compiling[0m curve25519-dalek-derive v0.1.1
+[1m[32m   Compiling[0m universal-hash v0.5.1
+[1m[32m   Compiling[0m cfg_aliases v0.2.2
+[1m[32m   Compiling[0m opaque-debug v0.3.1
+[1m[32m   Compiling[0m futures-core v0.3.34
+[1m[32m   Compiling[0m ppv-lite86 v0.2.21
+[1m[32m   Compiling[0m icu_properties v2.3.0
+[1m[32m   Compiling[0m icu_normalizer v2.3.0
+[1m[32m   Compiling[0m regex v1.13.1
+[1m[32m   Compiling[0m rfc6979 v0.4.0
+[1m[32m   Compiling[0m ed25519 v2.2.3
+[1m[32m   Compiling[0m libgit2-sys v0.18.7+1.9.6
+[1m[32m   Compiling[0m untrusted v0.9.0
+[1m[32m   Compiling[0m ed25519-dalek v2.2.0
+[1m[32m   Compiling[0m ecdsa v0.16.9
+[1m[32m   Compiling[0m idna_adapter v1.2.2
+[1m[32m   Compiling[0m rand_chacha v0.3.1
+[1m[32m   Compiling[0m polyval v0.6.2
+[1m[32m   Compiling[0m primeorder v0.13.6
+[1m[32m   Compiling[0m form_urlencoded v1.2.2
+[1m[32m   Compiling[0m kiln-core v0.1.0 (/build/source/crates/kiln-core)
+[1m[32m   Compiling[0m socket2 v0.6.5
+[1m[32m   Compiling[0m mio v1.2.4
+[1m[32m   Compiling[0m rustls v0.23.46
+[1m[32m   Compiling[0m base64ct v1.8.3
+[1m[32m   Compiling[0m thiserror v2.0.20
+[1m[32m   Compiling[0m num-bigint-dig v0.8.6
+[1m[32m   Compiling[0m pem-rfc7468 v0.7.0
+[1m[32m   Compiling[0m tokio v1.53.3
+[1m[32m   Compiling[0m rustls-webpki v0.103.16
+[1m[32m   Compiling[0m ghash v0.5.1
+[1m[32m   Compiling[0m rand v0.8.7
+[1m[32m   Compiling[0m idna v1.1.0
+[1m[32m   Compiling[0m http v1.5.0
+[1m[32m   Compiling[0m pkcs8 v0.10.2
+[1m[32m   Compiling[0m ctr v0.9.2
+[1m[32m   Compiling[0m aes v0.8.4
+[1m[32m   Compiling[0m num-iter v0.1.46
+[1m[32m   Compiling[0m thiserror-impl v2.0.20
+[1m[32m   Compiling[0m indexmap v1.9.3
+[1m[32m   Compiling[0m aead v0.5.2
+[1m[32m   Compiling[0m verus_syn v0.0.0-2026-01-25-0057
+[1m[32m   Compiling[0m futures-sink v0.3.34
+[1m[32m   Compiling[0m byteorder v1.5.0
+[1m[32m   Compiling[0m verus_prettyplease v0.0.0-2026-01-25-0057
+[1m[32m   Compiling[0m base64 v0.22.1
+[1m[32m   Compiling[0m blowfish v0.9.1
+[1m[32m   Compiling[0m aes-gcm v0.10.3
+[1m[32m   Compiling[0m pkcs1 v0.7.5
+[1m[32m   Compiling[0m http-body v1.1.0
+[1m[32m   Compiling[0m url v2.5.8
+[1m[32m   Compiling[0m ssh-encoding v0.2.0
+[1m[32m   Compiling[0m poly1305 v0.8.0
+[1m[32m   Compiling[0m cbc v0.1.2
+[1m[32m   Compiling[0m chacha20 v0.9.1
+[1m[32m   Compiling[0m num-bigint v0.4.8
+[1m[32m   Compiling[0m serde_bytes v0.11.19
+[1m[32m   Compiling[0m pbkdf2 v0.12.2
+[1m[32m   Compiling[0m memoffset v0.9.1
+[1m[32m   Compiling[0m httparse v1.10.1
+[1m[32m   Compiling[0m futures-task v0.3.34
+[1m[32m   Compiling[0m dtoa v0.4.8
+[1m[32m   Compiling[0m base64 v0.13.1
+[1m[32m   Compiling[0m futures-io v0.3.34
+[1m[32m   Compiling[0m slab v0.4.12
+[1m[32m   Compiling[0m data-encoding v2.11.1
+[1m[32m   Compiling[0m bytemuck v1.25.2
+[1m[32m   Compiling[0m hashbrown v0.12.3
+[1m[32m   Compiling[0m preserves v5.0.0-rc.7
+[1m[32m   Compiling[0m data-encoding-macro-internal v0.1.19
+[1m[32m   Compiling[0m futures-util v0.3.34
+[1m[32m   Compiling[0m bcrypt-pbkdf v0.10.0
+[1m[32m   Compiling[0m ssh-cipher v0.2.0
+[1m[32m   Compiling[0m rsa v0.9.10
+[1m[32m   Compiling[0m p384 v0.13.1
+[1m[32m   Compiling[0m p521 v0.13.3
+[1m[32m   Compiling[0m p256 v0.13.2
+[1m[32m   Compiling[0m nix v0.31.3
+[1m[32m   Compiling[0m webpki-roots v1.0.10
+[1m[32m   Compiling[0m match-lookup v0.1.2
+[1m[32m   Compiling[0m anyhow v1.0.104
+[1m[32m   Compiling[0m vstd v0.0.0-2026-01-25-0057
+[1m[32m   Compiling[0m tower-service v0.3.3
+[1m[32m   Compiling[0m const-str v0.4.3
+[1m[32m   Compiling[0m try-lock v0.2.5
+[1m[32m   Compiling[0m fastrand v2.5.0
+[1m[32m   Compiling[0m redb v2.6.4
+[1m[32m   Compiling[0m want v0.3.2
+[1m[32m   Compiling[0m base256emoji v1.0.2
+[1m[32m   Compiling[0m data-encoding-macro v0.1.21
+[1m[32m   Compiling[0m ssh-key v0.6.7
+[1m[32m   Compiling[0m verus_builtin_macros v0.0.0-2026-01-25-0057
+[1m[32m   Compiling[0m kiln-codec v0.1.0 (/build/source/crates/kiln-codec)
+[1m[32m   Compiling[0m verus_state_machines_macros v0.0.0-2026-01-25-0057
+[1m[32m   Compiling[0m kiln-provider-api v0.1.0 (/build/source/crates/kiln-provider-api)
+[1m[32m   Compiling[0m nix v0.30.1
+[1m[32m   Compiling[0m tracing-core v0.1.36
+[1m[32m   Compiling[0m libsqlite3-sys v0.38.2
+[1m[32m   Compiling[0m errno v0.3.14
+[1m[32m   Compiling[0m secrecy v0.10.3
+[1m[32m   Compiling[0m verus_builtin v0.0.0-2026-01-25-0057
+[1m[32m   Compiling[0m rustix v1.1.4
+[1m[32m   Compiling[0m atomic-waker v1.1.2
+[1m[32m   Compiling[0m signal-hook v0.3.18
+[1m[32m   Compiling[0m base45 v3.2.0
+[1m[32m   Compiling[0m base-x v0.2.11
+[1m[32m   Compiling[0m heck v0.5.0
+[1m[32m   Compiling[0m getrandom v0.4.3
+[1m[32m   Compiling[0m snafu-derive v0.8.9
+[1m[32m   Compiling[0m multibase v0.9.3
+[1m[32m   Compiling[0m hyper v1.12.0
+[1m[32m   Compiling[0m ssh-agent-lib v0.6.0
+[1m[32m   Compiling[0m signal-hook-registry v1.4.8
+[1m[32m   Compiling[0m tracing v0.1.44
+[1m[32m   Compiling[0m futures-channel v0.3.34
+[1m[32m   Compiling[0m sync_wrapper v1.0.2
+[1m[32m   Compiling[0m lattice-workflow-contract v0.1.0 (/build/source/vendor/lattice/crates/lattice-workflow-contract)
+[1m[32m   Compiling[0m tower-layer v0.3.3
+[1m[32m   Compiling[0m linux-raw-sys v0.12.1
+[1m[32m   Compiling[0m base64 v0.23.1
+[1m[32m   Compiling[0m bs58 v0.5.1
+[1m[32m   Compiling[0m ipnet v2.12.2
+[1m[32m   Compiling[0m openssl-probe v0.1.6
+[1m[32m   Compiling[0m hyper-util v0.1.21
+[1m[32m   Compiling[0m tower v0.5.3
+[1m[32m   Compiling[0m lattice-workflow-transport v0.1.0 (/build/source/vendor/lattice/crates/lattice-workflow-contract/transport)
+[1m[32m   Compiling[0m verified-logic v0.2.0 (/build/source/vendor/ucan/vendor/verified-logic)
+[1m[32m   Compiling[0m radicle-crypto v0.19.0
+[1m[32m   Compiling[0m snafu v0.8.9
+[1m[32m   Compiling[0m radicle-dag v0.10.0
+[1m[32m   Compiling[0m webpki-roots v0.26.11
+[1m[32m   Compiling[0m tokio-rustls v0.26.6
+[1m[32m   Compiling[0m radicle-git-metadata v0.2.1
+[1m[32m   Compiling[0m radicle-git-ref-format v0.2.0
+[1m[32m   Compiling[0m ucan-core v0.1.0 (/build/source/vendor/ucan/crates/ucan-core)
+[1m[32m   Compiling[0m nonempty v0.9.0
+[1m[32m   Compiling[0m fallible-streaming-iterator v0.1.9
+[1m[32m   Compiling[0m bounded-exec-core v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec-core)
+[1m[32m   Compiling[0m fallible-iterator v0.3.0
+[1m[32m   Compiling[0m ryu v1.0.23
+[1m[32m   Compiling[0m serde_urlencoded v0.7.1
+[1m[32m   Compiling[0m bounded-exec v0.1.0 (/build/source/vendor/bounded-exec/crates/bounded-exec)
+[1m[32m   Compiling[0m ucan v0.1.0 (/build/source/vendor/ucan)
+[1m[32m   Compiling[0m hyper-rustls v0.27.10
+[1m[32m   Compiling[0m ureq v2.12.1
+[1m[32m   Compiling[0m tempfile v3.27.0
+[1m[32m   Compiling[0m kiln-adapter-lattice v0.1.0 (/build/source/crates/kiln-adapter-lattice)
+[1m[32m   Compiling[0m tower-http v0.6.11
+[1m[32m   Compiling[0m http-body-util v0.1.5
+[1m[32m   Compiling[0m kiln-observe-core v0.1.0 (/build/source/crates/kiln-observe-core)
+[1m[32m   Compiling[0m rustls-pemfile v2.2.0
+[1m[32m   Compiling[0m git2 v0.21.0
+[1m[32m   Compiling[0m git2 v0.20.4
+[1m[32m   Compiling[0m kiln-adapter-http-observe v0.1.0 (/build/source/crates/kiln-adapter-http-observe)
+[1m[32m   Compiling[0m radicle-oid v0.2.2
+[1m[32m   Compiling[0m radicle-cob v0.21.1
+[1m[32m   Compiling[0m kiln-adapter-git v0.1.0 (/build/source/crates/kiln-adapter-git)
+[1m[32m   Compiling[0m rusqlite v0.40.2
+[1m[32m   Compiling[0m onix-radicle-cob-git-store v0.2.0 (/build/source/vendor/radicle-cob-git-store)
+[1m[32m   Compiling[0m kiln-adapter-github v0.1.0 (/build/source/crates/kiln-adapter-github)
+[1m[32m   Compiling[0m reqwest v0.12.28
+[1m[32m   Compiling[0m kiln-adapter-webhook v0.1.0 (/build/source/crates/kiln-adapter-webhook)
+[1m[32m   Compiling[0m serde_ignored v0.1.14
+[1m[32m   Compiling[0m fs2 v0.4.3
+[1m[32m   Compiling[0m roxmltree v0.20.0
+[1m[32m   Compiling[0m kiln-web-service v0.1.0 (/build/source/crates/kiln-web-service)
+[1m[32m    Finished[0m `release` profile [optimized] target(s) in 4m 55s
+Executing cargoInstallPostBuildHook
+Finished cargoInstallPostBuildHook
+Finished cargoBuildHook
+buildPhase completed in 4 minutes 57 seconds
+Running phase: checkPhase
+@nix { "action": "setPhase", "phase": "checkPhase" }
+Executing cargoCheckHook
+cargoCheckHook flags: -j 4 --profile release --target x86_64-unknown-linux-gnu --offline -p kiln-web-service --
+[1m[32m   Compiling[0m parking_lot_core v0.9.12
+[1m[32m   Compiling[0m scopeguard v1.2.0
+[1m[32m   Compiling[0m lock_api v0.4.14
+[1m[32m   Compiling[0m parking_lot v0.12.5
+[1m[32m   Compiling[0m kiln-web-service v0.1.0 (/build/source/crates/kiln-web-service)
+[1m[32m    Finished[0m `release` profile [optimized] target(s) in 46.22s
+[1m[32m     Running[0m unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_web_service-baf1635164f6099b)
+
+running 78 tests
+test access::tests::map_never_admits_wildcard_or_public_resolver ... ok
+test access::tests::whois_requires_exact_registered_user_and_untagged_node ... ok
+test auth::tests::bearer_roles_cannot_be_substituted_or_partially_matched ... ok
+test auth::tests::proxy_identity_requires_distinct_credential_and_explicit_binding ... ok
+test access::tests::localapi_resolver_preserves_large_user_ids_and_rejects_non_tailnet_peers ... ok
+test cache::tests::cold_publish_warm_restore_is_immutable_and_survives_store_reopen ... ok
+test cache::tests::count_and_age_retention_only_remove_verified_cache_entries ... ok
+test cache::tests::unknown_retained_data_and_nonprivate_directory_are_preserved_and_rejected ... ok
+test engine::storage::tests::state_ownership_releases_before_inherited_description_closes ... ok
+test engine::worker_status::tests::admitted_duplicate_does_not_renew_expiry_and_replay_cannot_resurrect ... ok
+test engine::worker_status::tests::compatible_workers_share_a_target_but_cannot_share_worker_identity ... ok
+test engine::worker_status::tests::future_wrong_target_regressing_sequence_and_live_session_replacement_denied ... ok
+test engine::worker_status::tests::lost_observations_allow_sequence_gaps_but_not_regression_or_changed_replay ... ok
+test cache::tests::input_producer_toolchain_platform_and_output_declarations_change_cache_identity ... ok
+test engine::worker_status::tests::retained_liveness_respects_current_principal_and_shorter_ttl_after_restart ... ok
+test execution::tests::reviewed_runtime_authority_is_admitted_without_unrelated_host_paths ... ok
+test execution::tests::unrelated_mounts_and_unavailable_backend_fail_closed ... ok
+test server::notify::tests::readiness_supports_systemd_abstract_socket_names ... ok
+test server::tests::framing_accepts_one_bounded_json_request_and_rejects_ambiguous_bodies ... ok
+test server::notify::tests::readiness_reaches_supervisor_and_missing_supervisor_fails_closed ... ok
+test server::tests::only_exact_registered_trigger_path_can_enter_signed_ingress ... ok
+test server::tests::viewer_reads_but_never_mutates_and_writes_require_exact_origin ... ok
+test sources::tests::path_components_reject_traversal_and_absolute_forms ... ok
+test telemetry::tests::measurements_deny_unbounded_duration_and_failed_cache_publication ... ok
+test telemetry::tests::measurements_keep_unknown_resources_and_clock_adjustments_explicit ... ok
+test work::model::tests::blocker_diamonds_are_not_cycles_but_a_back_edge_is_rejected ... ok
+test work::model::tests::command_identity_head_and_timestamp_admission_preserve_native_identity ... ok
+test sources::tests::rfc3339_conversion_rejects_non_utc_and_malformed_values ... ok
+test work::model::tests::discussion_body_and_stream_limits_accept_the_boundary_and_reject_overflow ... ok
+test work::model::tests::discussion_preserves_authorship_mentions_and_bounded_reaction_sets ... ok
+test work::model::tests::every_entity_has_a_real_typed_create_and_invalid_payload_is_rejected ... ok
+test work::model::tests::full_field_edit_preserves_discussion_and_update_messages_support_authorship ... ok
+test work::model::tests::history_reduction_is_deterministic_and_shell_controls_real_head ... ok
+test work::model::tests::parent_blocker_and_duplicate_graphs_accept_dags_and_reject_cycles ... ok
+test work::model::tests::inert_identity_links_accept_supported_kinds_without_granting_authority ... ok
+test work::model::tests::personal_collections_and_reaction_actors_enforce_their_independent_bounds ... ok
+test work::model::tests::personal_references_cannot_cross_principal_privacy ... ok
+test work::model::tests::personal_state_is_owner_scoped_and_read_markers_bind_observed_heads ... ok
+test work::model::tests::private_ownership_cannot_be_erased_transferred_or_published_by_full_field_edit ... ok
+test work::model::tests::planning_references_are_typed_and_scope_changes_cannot_break_consumers ... ok
+test work::model::tests::requests_retain_customer_source_and_require_real_snooze_and_duplicate_targets ... ok
+test work::model::tests::text_and_collection_boundaries_are_byte_bounded_and_unique ... ok
+test work::model::tests::view_filters_layout_sort_and_grouping_are_validated_as_a_whole ... ok
+test work::model::tests::wire_rejects_unknown_fields_actions_and_invalid_numeric_ranges ... ok
+test work::model::tests::workflow_extensions_are_explicit_and_cannot_be_removed_while_used ... ok
+test work::model::tests::saved_view_workflow_dependency_prevents_invalidating_a_custom_status_filter ... ok
+test worker::cache::tests::compatible_workers_share_keys_but_changed_input_bytes_do_not ... ok
+test worker::cache::tests::preflight_rejects_later_symlink_or_conflict_before_any_restore_write ... ok
+test worker::cache::tests::two_independent_checkouts_exchange_verified_data_without_source_or_credential_copy ... ok
+test cache::tests::content_key_scope_path_and_bounds_are_admitted_before_storage ... ok
+test worker::cache::tests::unsafe_publish_paths_links_and_total_size_are_rejected ... ok
+test cache::tests::corrupted_retained_content_and_symlinks_never_restore ... ok
+test worker::client::deadline_tests::binding_lookup_admits_exact_source_within_budget_after_pending_dispatch ... ok
+test worker::client::deadline_tests::independent_clone_rejects_wrong_callback_source_before_commands_or_uploads ... ok
+test worker::files::tests::private_acl_grants_only_root_and_the_exact_service_identity ... ok
+test worker::heartbeat::tests::ttl_requires_multiple_heartbeat_intervals ... ok
+test worker::client::deadline_tests::binding_lookup_does_not_start_request_after_poll_sleep_exhausts_budget ... ok
+test worker::process::tests::explicit_unavailable_isolation_never_executes_command ... ok
+test worker::reports::tests::declared_reports_read_exact_regular_bytes_and_deny_missing_links_escapes_and_oversize ... ok
+test worker::streaming::tests::stream_child_entry ... ignored, exec adapter launched only by worker process tests
+test worker::process::tests::child_cpu_and_memory_are_observed_for_success_and_failure ... ok
+test worker::tests::exact_commit_runs_reviewed_command_and_produces_actual_artifact_not_mutable_worktree ... ok
+test worker::tests::child_environment_is_explicit_and_failure_deadline_and_cancellation_are_not_success ... ok
+test worker::tests::in_flight_cancellation_stops_owned_command_and_preserves_cancelled_exit ... ok
+test worker::tests::live_log_budget_accounts_each_ingress_chunk_and_rejected_reservations_are_atomic ... ok
+test worker::tests::old_missing_and_malformed_profiles_are_rejected_before_source_effects ... ok
+test worker::tests::independent_clone_executes_declared_source_without_relabeling_local_acquisition ... ok
+test worker::tests::output_is_ingressed_before_exit_and_each_retained_byte_is_uploaded_once ... ok
+test worker::tests::overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_exit ... ok
+test worker::tests::real_artifacts_admit_regular_bytes_and_reject_escape_symlink_hardlink_fifo_and_bounds ... ok
+test worker::tests::source_attempt_execution_and_node_bindings_are_all_required ... ok
+test worker::tests::symlink_source_is_rejected_instead_of_following_outside_checkout ... ok
+test worker::tests::worker_credential_reads_owned_private_regular_file_only ... ok
+test worker::tests::worker_profile_denies_secret_environment_and_untrusted_artifact_declarations ... ok
+test worker::tests::wrong_source_context_and_snapshot_overflow_never_materialize ... ok
+test worker::tests::streaming_cancellation_and_deadline_terminate_owned_descendants ... ok
+test worker::client::deadline_tests::binding_lookup_budget_bounds_slow_valid_https_response ... ok
+test worker::client::deadline_tests::binding_lookup_keeps_shorter_http_timeout_and_never_retries_failure ... ok
+
+test result: ok. 77 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.72s
+
+[1m[32m     Running[0m unittests src/main.rs (target/x86_64-unknown-linux-gnu/release/deps/kiln_web_service-2ebd42bf4a98fa82)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[32m     Running[0m tests/cobs.rs (target/x86_64-unknown-linux-gnu/release/deps/cobs-03636ac4e8070695)
+
+running 10 tests
+test nested_root_titles_and_metadata_fallback_remain_bounded ... ok
+test authority_query_and_exact_selection_rejections_do_not_expose_paths_or_write ... ok
+test policy_rejects_ambiguous_identity_paths_unknown_fields_and_excess_repositories ... ok
+test radicle_observation_types_render_with_author_and_ignore_unregistered_types ... ok
+test root_action_titles_are_searchable_without_reducing_later_edits ... ok
+test malformed_native_stores_are_explicit_not_false_empty_or_substituted_objects ... ok
+test unconfigured_empty_missing_and_unavailable_stores_are_distinct ... ok
+test paging_search_and_cursor_identity_follow_filters_and_observed_ref_tips ... ok
+test six_types_preserve_exact_multitip_history_actions_and_leave_git_unchanged ... ok
+test native_action_operation_and_tip_bounds_fail_closed_without_mutation ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+[1m[32m     Running[0m tests/developer.rs (target/x86_64-unknown-linux-gnu/release/deps/developer-1e5b86ad52164463)
+
+running 3 tests
+test developer_transport_rejects_credentials_in_origin_insecure_schemes_and_unbounded_waits ... ok
+test run_outcomes_preserve_failure_cancel_and_unknown_exit_semantics ... ok
+test reviewed_client_identity_admits_only_exact_original_profile_bytes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m     Running[0m tests/engine.rs (target/x86_64-unknown-linux-gnu/release/deps/engine-eba6baa4832e5c40)
+
+running 59 tests
+test automation::definitely_rejected_source_never_dispatches_after_enrollment_or_polling ... ok
+test allowlist_exact_source_and_request_replay_survive_restart ... ok
+test automation::notification_authority_rejects_url_confusion_and_unadmitted_networks ... ok
+test artifacts_are_real_bounded_identity_checked_retained_bytes_and_worker_is_narrow ... ok
+test accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution ... ok
+test automation::due_schedule_reserves_once_and_operator_configuration_cannot_add_authority ... ok
+test automation::signed_pull_request_and_stale_or_unregistered_sources_have_opposite_effects ... ok
+test automation::restart_never_resends_reserved_notification_and_rejects_stale_completion ... ok
+test automation::receiver_blocked_notification_does_not_block_worker_or_api_ingress ... ok
+test automation::signed_push_is_exact_once_across_restart_and_bad_signature_never_dispatches ... ok
+test cache::authenticated_exact_worker_cache_is_cold_then_warm_and_rejects_stale_or_failed_producers ... ok
+test captured_logs_round_trip_empty_chunks_byte_cursors_and_restart_without_native_reads ... ok
+test controls_reject_stale_and_unsupported_before_mutation_and_replay_exact_result ... ok
+test dashboard::durable_queue_dispatches_once_in_order_and_cancellation_has_no_provider_effect ... ok
+test dashboard::exact_and_latest_reruns_bind_new_candidates_to_selected_revisions ... ok
+test automation::real_https_acceptance_and_disconnect_are_durable_and_never_blindly_retried ... ok
+test dashboard::failed_retry_executes_only_failed_downstream_graph_and_restore_rejects_tampering ... ok
+test dashboard::historical_runs_restore_without_invented_timing_and_profile_serialization_is_unchanged ... ok
+test dashboard::missing_subset_provider_route_is_not_a_full_graph_fallback_or_success ... ok
+test dashboard::logs_search_across_chunk_boundary_and_download_exact_bytes_with_metadata ... ok
+test dashboard::viewer_denials_are_attributable_and_before_effects ... ok
+test dashboard::overview_records_observed_timing_and_operations_warns_before_admission_exhaustion ... ok
+test failed_durable_reservation_prevents_provider_effects_and_further_authority ... ok
+test dashboard::stable_search_cursor_excludes_new_runs_and_rejects_changed_filters ... ok
+test log_ingress_rejects_private_roles_stale_identity_conflicts_and_open_json ... ok
+test log_chunk_count_total_bytes_and_chunk_bytes_are_actual_run_bounds ... ok
+test native_log_cursor_gap_and_bounds_are_preserved ... ok
+test missing_reply_after_durable_start_returns_original_resource_without_redispatch ... ok
+test private_state_ownership_and_unknown_profile_authority_fail_closed ... ok
+test profile_load_accepts_reviewed_nested_fields_and_rejects_unknown_native_bounds ... ok
+test registry::project_extension_preserves_binding_on_corruption_and_transaction_failure ... ok
+test registry::project_extension_preserves_history_logs_replay_and_explicit_enrollment ... ok
+test log_bytes_and_metadata_tampering_fail_on_read_and_recovery ... ok
+test registry::project_extension_rejects_existing_authority_changes_and_invalid_suffix_without_rebinding ... ok
+test registry::project_extension_rejects_live_owner_active_work_and_missing_state ... ok
+test restart_discards_unadmitted_artifact_bytes_without_inventing_metadata ... ok
+test reports::unavailable_reports_and_recorded_review_never_invent_test_results_or_gate_authority ... ok
+test restart_removes_only_owned_unadmitted_log_files_and_recovers_publication_pairs ... ok
+test reports::reports_preserve_raw_bytes_bind_exact_attempt_and_compare_real_test_coverage_history ... ok
+test runtime::preflight_accepts_readonly_credentials_without_binding_creating_or_reconciling ... ok
+test runtime::configured_notification_failure_prevents_running_service_claim ... ok
+test automation::single_effect_budget_cannot_starve_later_schedule_or_pending_notification ... ok
+test snapshots::dirty_candidates_download_and_exact_retry_preserve_provenance_and_survive_restart ... ok
+test runtime::preflight_rejects_unsafe_secrets_tls_and_filesystem_inputs_without_state ... ok
+test snapshots::snapshot_api_rejects_unauthorized_unsafe_and_mismatched_inputs ... ok
+test snapshots::durable_snapshot_tampering_rejects_restart_without_rewriting_retained_state ... ok
+test telemetry::malformed_and_unbounded_telemetry_never_become_measurements ... ok
+test telemetry::measured_steps_survive_recovery_and_reject_stale_binding_replay_and_gaps ... ok
+test timed_out_dispatch_remains_unknown_and_control_disconnect_never_replays_mutation ... ok
+test workers::ambiguous_attempts_hold_slots_without_fabricating_observations ... ok
+test workers::failed_storage_denies_inventory_without_reporting_usable_capacity ... ok
+test workers::enrollment_execution_queue_cancellation_and_completion_preserve_capacity_and_latest ... ok
+test workers::legacy_missing_timestamps_remain_null_in_latest_execution ... ok
+test telemetry::durable_replay_rejects_changed_measurements_and_stale_exact_bindings ... ok
+test workers::inventory_groups_exact_bindings_with_stable_redacted_target_identity ... ok
+test workers::shared_target_free_enrolled_slot_precedes_ambiguous_status ... ok
+test workers::successful_reads_neither_persist_nor_refresh_provider_observations ... ok
+test workers::worker_role_queries_bodies_and_nonread_methods_fail_closed ... ok
+test runtime::initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart ... ok
+
+test result: ok. 59 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.11s
+
+[1m[32m     Running[0m tests/reports.rs (target/x86_64-unknown-linux-gnu/release/deps/reports-692a37d2d65999ff)
+
+running 8 tests
+test junit_preserves_real_outcomes_failure_text_skips_and_source_identity ... ok
+test coverage_rejects_false_totals_duplicate_lines_nonfinite_and_traversal ... ok
+test cobertura_and_lcov_preserve_equivalent_real_line_and_branch_counts ... ok
+test declaration_paths_reject_escapes_and_empty_reports_leave_old_step_serialization_unchanged ... ok
+test junit_rejects_malformed_entities_ambiguous_cases_and_invalid_metrics ... ok
+test upload_checks_all_binding_dimensions_hash_and_absence_without_inventing_tests ... ok
+test native_gate_review_provenance_retain_verdicts_identities_nonclaims_without_acceptance ... ok
+test report_bounds_reject_bytes_depth_fields_and_case_count ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+[1m[32m     Running[0m tests/reviews.rs (target/x86_64-unknown-linux-gnu/release/deps/reviews-3c6652f137249927)
+
+running 2 tests
+test unconfigured_and_unsafe_receipt_requests_stay_explicit ... ok
+test retained_receipts_are_listed_with_exact_identities_and_decisions ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m     Running[0m tests/snapshot.rs (target/x86_64-unknown-linux-gnu/release/deps/snapshot-2137714153fbc5dc)
+
+running 2 tests
+test stale_link_ignored_duplicate_and_oversized_inputs_fail_closed ... ok
+test explicit_snapshot_reconstructs_identically_on_independent_backing_without_changing_user_git ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+[1m[32m     Running[0m tests/sources.rs (target/x86_64-unknown-linux-gnu/release/deps/sources-fbbd82c0bf928c78)
+
+running 8 tests
+test jj_source_reads_a_colocated_or_backend_git_store_without_mutation ... ok
+test commit_lookup_reports_only_sources_that_contain_the_object ... ok
+test git_source_log_tree_and_file_preserve_exact_revision_content ... ok
+test source_policy_rejects_relative_paths_kind_drift_and_duplicates ... ok
+test pijul_source_reports_explicit_unavailability_instead_of_empty_success ... ok
+test source_routes_reject_writes_workers_and_unconfigured_policies ... ok
+test source_diff_reports_exact_parent_changes_and_rejects_pijul_history ... ok
+test oversized_revision_changes_report_truncation_instead_of_failure ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+[1m[32m     Running[0m tests/work.rs (target/x86_64-unknown-linux-gnu/release/deps/work-a232c1dc34bc1c6e)
+
+running 9 tests
+test explicit_profile_and_owned_private_raw_seed_are_required ... ok
+test competing_workspaces_never_overwrite_an_exact_head ... ok
+test foreign_heads_unsigned_history_and_unavailable_store_fail_closed ... ok
+test native_signed_history_survives_restart_and_replay_returns_original_result ... ok
+test private_objects_hide_existence_and_work_authority_is_independently_admitted ... ok
+test revoking_a_writer_preserves_signed_history_and_denies_new_commands ... ok
+test native_bounds_and_message_authorship_reject_without_changing_accepted_state ... ok
+test same_millisecond_cross_object_dependencies_replay_in_signed_causal_order ... ok
+test all_work_kinds_use_distinct_native_types_and_editing_preserves_discussion ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+[1m[32m     Running[0m tests/worker.rs (target/x86_64-unknown-linux-gnu/release/deps/worker-42436cd79461a424)
+
+running 2 tests
+test pinned_profiles_reject_unknown_authority_fields_and_secret_forwarding ... ok
+test original_profile_bytes_are_authority_not_equivalent_reserialized_json ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[32m   Doc-tests[0m kiln_web_service
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+Finished cargoCheckHook
+checkPhase completed in 58 seconds
+Running phase: installPhase
+@nix { "action": "setPhase", "phase": "installPhase" }
+Executing cargoInstallHook
+Finished cargoInstallHook
+Running phase: fixupPhase
+@nix { "action": "setPhase", "phase": "fixupPhase" }
+shrinking RPATHs of ELF executables and libraries in /nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0
+shrinking /nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0/bin/kiln-web-service
+checking for references to /build/ in /nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0...
+patching script interpreter paths in /nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0
+stripping (with command strip and flags -S -p) in  /nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0/lib /nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0/bin
+got build log for '/nix/store/kywnijxjq7xcjbwsffxjik2gfcl8f7p2-kiln-web-service-0.1.0.drv' from 'daemon'

@@ -1,0 +1,275 @@
+{
+  "command": "traceability coverage",
+  "dangling": [
+    "kiln.web.minimal_console",
+    "kiln.web.visual_design",
+    "kiln.work.usability"
+  ],
+  "input_hash": "5cd5d6f7b31a08d4fe67ff985ffd79cdc7d63ec40472b562c48df234fb192cf0",
+  "missing": [],
+  "policy": "kiln-default",
+  "policy_hash": "70d531cad02f38541ba522e65e95d3c9f1818fc8086aa7f422fceb57f96f6a6a",
+  "profile": {
+    "anchor_kind": "exact_marker_bytes",
+    "assurance_level": "declared",
+    "evidence_sources": [
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "crates",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "ncl"
+        ],
+        "root": "crates",
+        "source_kind": "nickel_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-aspen-host",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-radicle-nix-provider",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/hosting-and-recovery.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "rs",
+          "ncl"
+        ],
+        "root": "tools",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs"
+        ],
+        "root": "src",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs",
+          "sh"
+        ],
+        "root": "tests",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "py"
+        ],
+        "root": "scripts",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "ts"
+        ],
+        "root": "checks/bombadil",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "nix"
+        ],
+        "root": "flake.nix",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "js",
+          "css",
+          "html"
+        ],
+        "root": "crates",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "web/dashboard-index/src",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "py"
+        ],
+        "root": "scripts/review-workflow-smoke.py",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/observation-dashboard.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/operator.md",
+        "source_kind": "tool_source"
+      }
+    ],
+    "id": "kiln-active-development",
+    "marker_verbs": [
+      "impl",
+      "verify",
+      "depends",
+      "related"
+    ],
+    "requirement_sources": [
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/specs",
+        "source_kind": "accepted_specs"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/add-change-review-workflow/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/complete-review-workflow/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/add-dashboard-workers-view/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/add-patchgate-review-adapter/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/add-source-browser/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/build-dashboard-product-interface/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/complete-internal-developer-loop/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/enable-web-remote-lattice-workers/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/extend-live-project-registry/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/fix-cob-rendering/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/use-rats-browser-index/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/fix-log-viewing/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/improve-lattice-rendering/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/repair-workspace-usability/specs",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/show-local-run-time-check-cobs/specs/dashboard-local-time",
+        "source_kind": "requirements_doc"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/changes/add-cob-workspace/specs",
+        "source_kind": "requirements_doc"
+      }
+    ]
+  },
+  "profile_id": "kiln-active-development",
+  "receipt_hash": "3dfac2d788705ab79e871fe76b67263c69bbc6ab87c9d9d3a8f308fe0bf67724",
+  "referenced": 1003,
+  "requirements": 1003,
+  "root": ".",
+  "source_summary": {
+    "evidence_files": 485,
+    "evidence_manifest_hash": "df20794d33553c696e867d8a0d384f201ca12e5543ff83aa3e2fc76048a20235",
+    "requirement_files": 67,
+    "requirement_manifest_hash": "21653bdae3e5d4150b44d1467d82f98f5f28e017435034041af03884817505a6"
+  },
+  "valid": false,
+  "verdict": "fail"
+}

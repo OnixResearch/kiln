@@ -1,0 +1,281 @@
+{
+  "schema": "kiln.minimal-console.checks.v1",
+  "frozen_source": "/nix/store/kwrv2x52vap5j61hynfglb17krmrdp1v-source",
+  "package": "/nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0",
+  "package_derivation": "/nix/store/kywnijxjq7xcjbwsffxjik2gfcl8f7p2-kiln-web-service-0.1.0.drv",
+  "package_build": {
+    "passed": true,
+    "log": "package-build.log",
+    "original_job_output": "artifact://3139"
+  },
+  "nix_flake_check": {
+    "passed": true,
+    "systems_exercised": [
+      "x86_64-linux"
+    ],
+    "incompatible_systems_not_exercised": [
+      "aarch64-linux"
+    ],
+    "includes": [
+      "workspace tests",
+      "all-target/all-feature Clippy",
+      "Rust formatting",
+      "Octet",
+      "Nickel",
+      "deployment VM",
+      "dashboard property rails"
+    ],
+    "log": "nix-check.log",
+    "original_job_output": "artifact://3140"
+  },
+  "javascript_syntax": {
+    "passed": true,
+    "command": "node --check /nix/store/kwrv2x52vap5j61hynfglb17krmrdp1v-source/crates/kiln-web-service/src/web.js"
+  },
+  "candidate_browser": "candidate-browser.json",
+  "deployed_browser": "deployed-browser.json",
+  "installed_profile_preflight": {
+    "argv": [
+      "/nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0/bin/kiln-web-service",
+      "check",
+      "--profile",
+      "/home/brittonr/.config/kiln/web-service/service.json",
+      "--access",
+      "/home/brittonr/.config/kiln/web-service/access.json",
+      "--automation",
+      "/home/brittonr/.config/kiln/web-service/automation.json",
+      "--cobs",
+      "/home/brittonr/.config/kiln/web-service/cobs.json",
+      "--sources",
+      "/home/brittonr/.config/kiln/web-service/sources.json",
+      "--reviews",
+      "/home/brittonr/.config/kiln/web-service/reviews.json",
+      "--work",
+      "/home/brittonr/.config/kiln/web-service/work.json"
+    ],
+    "stdout": "",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "lifecycle_validation": {
+    "valid": true,
+    "receipt_hash": "08b7dfff57fe206424e4c46d38a12cdb25e0a7682d823c5db43958b501068f78"
+  },
+  "final_tasks_gate": {
+    "acceptance_ids": [],
+    "change": "simplify-live-console",
+    "evidence_summary": {
+      "docs_only": 0,
+      "fixture": 0,
+      "formal": 0,
+      "mode": "advisory",
+      "model": 0,
+      "probe": 0,
+      "property": 0
+    },
+    "input_hash": "d8d0b8b974b885b5c2982e3ac00b83f999f34eea428df588f1692cfe941eec24",
+    "issues": [],
+    "layout": "cairn",
+    "non_claims": [
+      "workflow state proves only the selected policy graph and observed structural artifact facts",
+      "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+      "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+      "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+    ],
+    "policy": "kiln-default",
+    "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+    "policy_selection": {
+      "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+      "installation_receipt": false,
+      "locator": "cairn-policy/generated/cairn-policy.json",
+      "source": "explicit"
+    },
+    "probe_evidence": {
+      "declarations_present": false,
+      "probes": []
+    },
+    "profile_identity_hash": "d137e16ee3bf37fd0e6cba746a79a75b3bb3ba1ea1bbd75f584f7e8f485865f4",
+    "receipt_hash": "7e768b2afca55df84d2cd9b29fd60d9a1d8b9654813c18e0c9a909515df531a1",
+    "review_receipt_hashes": [],
+    "spec_effect": "delta",
+    "stage": "tasks",
+    "substance": [
+      {
+        "checkbox_tasks": 0,
+        "kind": "design",
+        "malformed_dependency_markers": 0,
+        "path": "./.cairn/changes/simplify-live-console/design.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 7,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "proposal",
+        "malformed_dependency_markers": 0,
+        "path": "./.cairn/changes/simplify-live-console/proposal.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 6,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "delta_spec",
+        "malformed_dependency_markers": 0,
+        "path": "./.cairn/changes/simplify-live-console/specs/minimal-console/spec.md",
+        "requirement_blocks": 1,
+        "scenario_blocks": 3,
+        "substantive_lines": 10,
+        "substantive_requirement_blocks": 1,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 3,
+        "kind": "tasks",
+        "malformed_dependency_markers": 0,
+        "path": "./.cairn/changes/simplify-live-console/tasks.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 3,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 3,
+        "task_done": 3,
+        "task_in_progress": 0,
+        "task_todo": 0
+      }
+    ],
+    "task_ordering": {
+      "active": false,
+      "edges": [],
+      "issues": [],
+      "nodes": [],
+      "order": [],
+      "ready_tasks": [],
+      "valid": true
+    },
+    "valid": true,
+    "verdict": "PASS",
+    "workflow_profile": "spec-driven",
+    "workflow_profile_compatibility_fallback": false,
+    "workflow_profile_source": "change_create",
+    "workflow_profile_version": 1
+  },
+  "design_gate": {
+    "acceptance_ids": [],
+    "change": "simplify-live-console",
+    "evidence_summary": {
+      "docs_only": 0,
+      "fixture": 0,
+      "formal": 0,
+      "mode": "advisory",
+      "model": 0,
+      "probe": 0,
+      "property": 0
+    },
+    "input_hash": "5d56907fd773f0e3e2c2ec91775ee42d396778cc417331c04e16469c59e78a48",
+    "issues": [],
+    "layout": "cairn",
+    "non_claims": [
+      "workflow state proves only the selected policy graph and observed structural artifact facts",
+      "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+      "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+      "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+    ],
+    "policy": "kiln-default",
+    "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+    "policy_selection": {
+      "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+      "installation_receipt": false,
+      "locator": "cairn-policy/generated/cairn-policy.json",
+      "source": "explicit"
+    },
+    "probe_evidence": null,
+    "profile_identity_hash": "0e9b577c43988035992a2489a0ffdf8e05436f3b0170e515da12cd7663435b31",
+    "receipt_hash": "801ab2f9c565c62827035449ad2c50d03be2014402bd78874cbcfd471ce053ae",
+    "review_receipt_hashes": [],
+    "spec_effect": "delta",
+    "stage": "design",
+    "substance": [
+      {
+        "checkbox_tasks": 0,
+        "kind": "design",
+        "malformed_dependency_markers": 0,
+        "path": "./.cairn/changes/simplify-live-console/design.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 7,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "proposal",
+        "malformed_dependency_markers": 0,
+        "path": "./.cairn/changes/simplify-live-console/proposal.md",
+        "requirement_blocks": 0,
+        "scenario_blocks": 0,
+        "substantive_lines": 6,
+        "substantive_requirement_blocks": 0,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      },
+      {
+        "checkbox_tasks": 0,
+        "kind": "delta_spec",
+        "malformed_dependency_markers": 0,
+        "path": "./.cairn/changes/simplify-live-console/specs/minimal-console/spec.md",
+        "requirement_blocks": 1,
+        "scenario_blocks": 3,
+        "substantive_lines": 10,
+        "substantive_requirement_blocks": 1,
+        "substantive_tasks": 0,
+        "task_done": 0,
+        "task_in_progress": 0,
+        "task_todo": 0
+      }
+    ],
+    "task_ordering": null,
+    "valid": true,
+    "verdict": "PASS",
+    "workflow_profile": "spec-driven",
+    "workflow_profile_compatibility_fallback": false,
+    "workflow_profile_source": "change_create",
+    "workflow_profile_version": 1
+  },
+  "retained_holds": {
+    "traceability": {
+      "valid": false,
+      "receipt_hash": "138e3aebcf187d20ff360c7d6e26d6ef4b92d2ea7f19ceff6320da473fd4f2b6",
+      "missing": [],
+      "cause": "Existing dangling markers outside the accepted specification set"
+    },
+    "release_readiness": {
+      "valid": false,
+      "receipt_hash": "46b8271527e025c87838cdd8c8ce10f4cd134db69ffc67aefd3d51f270e63e84",
+      "onix_release_ready": false
+    }
+  },
+  "non_claims": [
+    "No lifecycle acceptance, spec synchronization, archive, release eligibility or source publication.",
+    "Browser qualification covers the actual retained failed/successful cohort and tested empty filters; no production executions were created to synthesize other outcomes.",
+    "Superseded Nix jobs were cancelled after the unsupported Active outcome was found. The final source was separately materialized and checked."
+  ]
+}

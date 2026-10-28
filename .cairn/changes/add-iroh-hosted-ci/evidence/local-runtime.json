@@ -1,0 +1,327 @@
+{
+  "final_finance": {"kind":"post-execution-finance","account":{"available_minor":9983,"cap_minor":10000,"credits_minor":0,"currency":"usd","max_concurrent":4,"request_max_minor":1000,"reserved_minor":0,"revision":1,"spent_minor":17},"reservation":{"attempt_id":"actual-cache-b","binding":{"job":"766cae911cee9a842e6edbe911fc39f93fda1b8f247d343504bdfb686155b04f","pipeline":"fbfaa347878c55e8542d63154d0b215b20083ada759adb2f2f4af60fafe6ea3d","project":"demo"},"class":"namespace-smoke","max_units":28,"maximum_minor":28,"price_id":"5313d21871ddf2accedb2469b68fea8f80fa9500094fc5116219fb94c028784b","reservation_id":"2dd99099159f22b77eaf0f0f816e4c4f50e12e49ed4756b14846e5806287f286","state":"settled"},"reconciliation":{"account":{"available_minor":9983,"cap_minor":10000,"credits_minor":0,"currency":"usd","max_concurrent":4,"request_max_minor":1000,"reserved_minor":0,"revision":1,"spent_minor":17},"collection":"not_implied","state":"matched","unknown_obligations":0}},
+  "schema": "kiln.hosted.local-observations.v1",
+  "date": "2026-10-28",
+  "scope": "Local authenticated Iroh/browser plus real trusted namespace execution, not production qualification",
+  "maintenance_owner": "Kiln maintainers",
+  "server_binary_blake3": "1a1296cdb684543b9233b11ba09aa5fd1a31f1efb8f54360ef28b78e973f6aa0",
+  "final_browser_bridge_binary_blake3": "a8998319d3fcd8bb0a994d64ac9ae70b67ab4ce77073896240ce8f3cd0af2eb5",
+  "server_profile_blake3": "a2a3645c82cab579c5de4ae52a8b6e9b5d1b4e0d62489c1ec3fe8aab0acfbb09",
+  "binary_difference": "Final bridge includes subsequent deep-link role bootstrap JavaScript fix. Server execution/cache/core sources were unchanged between these binaries.",
+  "runtime": {
+    "memory_max_bytes": 268435456,
+    "tasks_max": 64,
+    "cpu_quota_percent": 100,
+    "maximum_timeout_ms": 10000,
+    "maximum_output_bytes": 16384,
+    "backend": "Linux namespaces; trusted-only",
+    "relay_urls": [],
+    "upstream_credentials_used": false,
+    "payment_network_effects": false,
+    "fleet_provider_effects": false
+  },
+  "source_blake3": {
+    "crates/kiln-hosted/src/service.rs": "f0ffa00d0805f9c8a9e5e13958081022f434a08c18ef0c318b386696631640b5",
+    "crates/kiln-hosted/src/transport.rs": "34c16f0e995ff6fb803d08d221201b1b1accc04cc4d19acf56d715aa20a48e5d",
+    "crates/kiln-hosted/src/execution.rs": "90bec555d3210b522c522cf7e97afbf21b612427c40760c0df6a17f106f09146",
+    "crates/kiln-hosted/src/cache.rs": "4dfac6629edc3f7b984dfdf1654d25b1d3fa6a18fb81514cb6b3ec0ae8eacd19",
+    "crates/kiln-hosted/src/web.js": "17071b7242650d27c8cdd491c30a91910ba6324c4b8e55ee846182245566f415",
+    "crates/kiln-web-service/src/worker/cache.rs": "5485386beb9452cfea81aa8c43a466c246139d318bf490081e8830429ab3f938",
+    "Cargo.lock": "2e50e2dddae77f0cef25e7f322fe5e22b824606c2056c1bc551730d1c815b4c4"
+  },
+  "observations": [
+    {
+      "kind": "namespace-execution",
+      "response": {
+        "schema": "kiln.hosted.v1",
+        "request_id": "actual-namespace-run-1",
+        "result": {
+          "attempt_id": "actual-namespace-1",
+          "cleaned": true,
+          "elapsed_ms": 697,
+          "evidence": "c6b8a9fba9d0d9c832e8c1108dd77f6af8a8e10924770da2a3dd8c838da6208b",
+          "hostile_isolation_claim": false,
+          "jobs": [
+            {
+              "job": "check[0]",
+              "state": "failed",
+              "steps": [
+                {
+                  "cleaned": true,
+                  "elapsed_ms": 136,
+                  "exit_code": 1,
+                  "guest": null,
+                  "name": "",
+                  "signal": null,
+                  "state": "failed",
+                  "stderr": "Running as unit: kiln-hosted-ab221032399e7007ce8805118950ce04.service\n/nix/store/7a60q5dgnv6z96c279rc1nalyiw4mgqn-bash-interactive-5.3p15/bin/bash: line 1: /sys/fs/cgroup/memory.max: No such file or directory\n          Finished with result: exit-code\nMain processes terminated with: code=exited, status=1/FAILURE\n               Service runtime: 54ms\n             CPU time consumed: 35ms\n                   Memory peak: 9.8M (swap: 0B)\n",
+                  "stderr_truncated": false,
+                  "stdout": "namespace-ok\nsource:immutable local customer source\nmemory:",
+                  "stdout_truncated": false
+                }
+              ]
+            }
+          ],
+          "operator_qualification_references": [],
+          "pipeline": "6483a0e340feb54f4dc6c56b4755371f6b9f4dec01fdeea09218e569c5245adb",
+          "qualification_evidence": "external independent evidence required",
+          "requested_trust": "trusted",
+          "state": "failed"
+        },
+        "error": null
+      }
+    },
+    {
+      "kind": "namespace-success",
+      "response": {
+        "schema": "kiln.hosted.v1",
+        "request_id": "actual-namespace-run-2",
+        "result": {
+          "attempt_id": "actual-namespace-2",
+          "cleaned": true,
+          "elapsed_ms": 1283,
+          "evidence": "07aa86e46242edf2ede418aa14dd2bef5969ed5a04c26e02a2257792ef79b0e2",
+          "hostile_isolation_claim": false,
+          "jobs": [
+            {
+              "job": "check[0]",
+              "state": "succeeded",
+              "steps": [
+                {
+                  "cleaned": true,
+                  "elapsed_ms": 416,
+                  "exit_code": 0,
+                  "guest": null,
+                  "name": "",
+                  "signal": null,
+                  "state": "succeeded",
+                  "stderr": "Running as unit: kiln-hosted-96f765b1d776f140af76798cbf6bba01.service; invocation ID: 75ce2ccd601c443f84243f94bb09aedd\n          Finished with result: success\nMain processes terminated with: code=exited, status=0/SUCCESS\n               Service runtime: 138ms\n             CPU time consumed: 62ms\n                   Memory peak: 9.1M (swap: 0B)\n",
+                  "stderr_truncated": false,
+                  "stdout": "namespace-ok\nsource:immutable local customer source\n",
+                  "stdout_truncated": false
+                }
+              ]
+            }
+          ],
+          "operator_qualification_references": [],
+          "pipeline": "4f3263ac00d90af44b66132a50101d3969fb3ba13339afb4a4786e532b8b5abd",
+          "qualification_evidence": "external independent evidence required",
+          "requested_trust": "trusted",
+          "state": "succeeded"
+        },
+        "error": null
+      }
+    },
+    {
+      "kind": "hostile-namespace-denied",
+      "reason": "independently qualified VM required"
+    },
+    {
+      "kind": "actual-cache-miss-hit-source-miss",
+      "first": {
+        "attempt_id": "actual-cache-a",
+        "cleaned": true,
+        "elapsed_ms": 917,
+        "evidence": "0fc1926818c7cc586fc9985f6a013826a9fab6b9ec9733f4e84740effe11adc4",
+        "hostile_isolation_claim": false,
+        "jobs": [
+          {
+            "cache": {
+              "publish": {
+                "duration_ms": 1,
+                "key": "ef593075abc4566e195c9dd32974765e97448f86ada0b91cdb5d18e6bb62c1ce",
+                "outcome": "published",
+                "transferred_bytes": 23
+              },
+              "restore": {
+                "duration_ms": 0,
+                "key": "ef593075abc4566e195c9dd32974765e97448f86ada0b91cdb5d18e6bb62c1ce",
+                "outcome": "miss",
+                "transferred_bytes": 0
+              }
+            },
+            "job": "check[0]",
+            "state": "succeeded",
+            "steps": [
+              {
+                "cleaned": true,
+                "elapsed_ms": 178,
+                "exit_code": 0,
+                "guest": null,
+                "name": "",
+                "signal": null,
+                "state": "succeeded",
+                "stderr": "Running as unit: kiln-hosted-4939827836525e0ef1a3c092f79e3296.service\n          Finished with result: success\nMain processes terminated with: code=exited, status=0/SUCCESS\n               Service runtime: 85ms\n             CPU time consumed: 66ms\n                   Memory peak: 9.5M (swap: 0B)\n",
+                "stderr_truncated": false,
+                "stdout": "cache-generated:compiled:stable source\n",
+                "stdout_truncated": false
+              }
+            ]
+          }
+        ],
+        "operator_qualification_references": [],
+        "pipeline": "fbfaa347878c55e8542d63154d0b215b20083ada759adb2f2f4af60fafe6ea3d",
+        "qualification_evidence": "external independent evidence required",
+        "requested_trust": "trusted",
+        "state": "succeeded"
+      },
+      "second": {
+        "attempt_id": "actual-cache-b",
+        "cleaned": true,
+        "elapsed_ms": 788,
+        "evidence": "5a25c430eadbf238c130ee8a1a0ae5b372531c8bf14e6c047cb0adf33fc1e0f6",
+        "hostile_isolation_claim": false,
+        "jobs": [
+          {
+            "cache": {
+              "publish": {
+                "duration_ms": 1,
+                "key": "ef593075abc4566e195c9dd32974765e97448f86ada0b91cdb5d18e6bb62c1ce",
+                "outcome": "retained",
+                "transferred_bytes": 23
+              },
+              "restore": {
+                "duration_ms": 1,
+                "key": "ef593075abc4566e195c9dd32974765e97448f86ada0b91cdb5d18e6bb62c1ce",
+                "outcome": "hit",
+                "transferred_bytes": 23
+              }
+            },
+            "job": "check[0]",
+            "state": "succeeded",
+            "steps": [
+              {
+                "cleaned": true,
+                "elapsed_ms": 189,
+                "exit_code": 0,
+                "guest": null,
+                "name": "",
+                "signal": null,
+                "state": "succeeded",
+                "stderr": "Running as unit: kiln-hosted-766cae911cee9a842e6edbe911fc39f9.service; invocation ID: aaa8a6278a3f457ea17f83d2f5f740cd\n          Finished with result: success\nMain processes terminated with: code=exited, status=0/SUCCESS\n               Service runtime: 108ms\n             CPU time consumed: 46ms\n                   Memory peak: 9.3M (swap: 0B)\n",
+                "stderr_truncated": false,
+                "stdout": "cache-reused:compiled:stable source\n",
+                "stdout_truncated": false
+              }
+            ]
+          }
+        ],
+        "operator_qualification_references": [],
+        "pipeline": "fbfaa347878c55e8542d63154d0b215b20083ada759adb2f2f4af60fafe6ea3d",
+        "qualification_evidence": "external independent evidence required",
+        "requested_trust": "trusted",
+        "state": "succeeded"
+      },
+      "changedSource": {
+        "attempt_id": "actual-cache-c",
+        "cleaned": true,
+        "elapsed_ms": 923,
+        "evidence": "2254cb0771dfffac50c22d58398d52ca48fb42c0489092e735e3141d9daeeaf2",
+        "hostile_isolation_claim": false,
+        "jobs": [
+          {
+            "cache": {
+              "publish": {
+                "duration_ms": 1,
+                "key": "d800207e252d3b8fa0b24bca2a7e8e3ef5c0981b92affd69293632b08c515063",
+                "outcome": "published",
+                "transferred_bytes": 24
+              },
+              "restore": {
+                "duration_ms": 0,
+                "key": "d800207e252d3b8fa0b24bca2a7e8e3ef5c0981b92affd69293632b08c515063",
+                "outcome": "miss",
+                "transferred_bytes": 0
+              }
+            },
+            "job": "check[0]",
+            "state": "succeeded",
+            "steps": [
+              {
+                "cleaned": true,
+                "elapsed_ms": 133,
+                "exit_code": 0,
+                "guest": null,
+                "name": "",
+                "signal": null,
+                "state": "succeeded",
+                "stderr": "Running as unit: kiln-hosted-c0e2417731b68222dd748c140d709ae9.service\n          Finished with result: success\nMain processes terminated with: code=exited, status=0/SUCCESS\n               Service runtime: 61ms\n             CPU time consumed: 51ms\n                   Memory peak: 10.5M (swap: 0B)\n",
+                "stderr_truncated": false,
+                "stdout": "cache-generated:compiled:changed source\n",
+                "stdout_truncated": false
+              }
+            ]
+          }
+        ],
+        "operator_qualification_references": [],
+        "pipeline": "fbfaa347878c55e8542d63154d0b215b20083ada759adb2f2f4af60fafe6ea3d",
+        "qualification_evidence": "external independent evidence required",
+        "requested_trust": "trusted",
+        "state": "succeeded"
+      }
+    },
+    {
+      "kind": "actual-cancellation-after-fix",
+      "response": {
+        "attempt_id": "actual-cancel-final",
+        "cleaned": true,
+        "elapsed_ms": 5081,
+        "evidence": "18a59e182d1e0e64538d69d77c30203453cef254239d9e1e471e7ade101427e8",
+        "hostile_isolation_claim": false,
+        "jobs": [
+          {
+            "cache": {
+              "restore": {
+                "duration_ms": 0,
+                "key": "7cdc4d6f79de7f969a58f973694cf785de305104fe95e4c3cf0d116defd2cdfc",
+                "outcome": "miss",
+                "transferred_bytes": 0
+              }
+            },
+            "job": "check[0]",
+            "state": "cancelled",
+            "steps": [
+              {
+                "cleaned": true,
+                "elapsed_ms": 4430,
+                "name": "",
+                "reason": "Stdout worker teardown timed out",
+                "state": "cancelled"
+              }
+            ]
+          }
+        ],
+        "operator_qualification_references": [],
+        "pipeline": "b40a7551d225fbb9c5465a2d0e9e2cc4d32d996aa98cdbda83f7e5b5b53c1463",
+        "qualification_evidence": "external independent evidence required",
+        "requested_trust": "trusted",
+        "state": "cancelled"
+      }
+    },
+    {
+      "kind": "final-browser-deeplink-role",
+      "hash": "runs",
+      "role": "owner",
+      "indicator": "Iroh connected",
+      "cacheHitDisplayed": true,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "consoleErrors": 0
+    }
+  ],
+  "repeatability": [
+    "nix develop path:. --command cargo test --locked --workspace",
+    "nix develop path:. --command cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e",
+    "docs/hosted-ci.md uses typed operator inputs for new local runtime cohorts"
+  ],
+  "limitations": [
+    "Loopback/direct Iroh only, no remote relay availability evidence.",
+    "Namespace execution is trusted-only, not independently qualified hostile isolation.",
+    "Cancellation kept its stdout-worker teardown timeout reason and was classified cancelled only after owned unit cleanup was confirmed.",
+    "Real cache hit restored 23 exact bytes in a fresh source workspace; changed source produced a different key and miss.",
+    "No live upstream hosting mutation, fleet purchase, cloud trust registration, merchant request, charge, publication or deployment.",
+    "Native source attempts require independently trusted exact-attempt metering before unknown financial reservations can settle."
+  ]
+}

@@ -320,7 +320,7 @@ fn print_json(value: &Value) -> Result<(), String> {
 pub fn cli_main(args: &[String]) -> Result<i32, String> {
     if args == ["--help"] || args == ["-h"] {
         println!(
-            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; retry always creates a new exact-input candidate."
+            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
         );
         return Ok(0);
     }
@@ -336,7 +336,7 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             (profile_path, identity, command.as_str(), arguments)
         }
         _ => return Err(
-            "usage: ci --profile PATH --identity BLAKE3 submit|watch|logs|cancel|retry [options]"
+            "usage: ci --profile PATH --identity BLAKE3 submit|review-submit|watch|logs|cancel|retry [options]"
                 .into(),
         ),
     };
@@ -356,6 +356,15 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                     | "--include"
                     | "--delete"
             ),
+            "review-submit" => matches!(
+                key,
+                "--request-id"
+                    | "--source-ref"
+                    | "--title"
+                    | "--description"
+                    | "--expected-commit"
+                    | "--wip"
+            ),
             "watch" => key == "--run",
             "logs" => matches!(key, "--run" | "--follow"),
             "cancel" | "retry" => matches!(key, "--run" | "--request-id"),
@@ -367,7 +376,7 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
         if options.contains_key(key) && !matches!(key, "--include" | "--delete") {
             return Err("developer duplicate option".into());
         }
-        let value = if key == "--follow" {
+        let value = if matches!(key, "--follow" | "--wip") {
             "true".to_owned()
         } else {
             let value = arguments.next().ok_or("developer option value missing")?;
@@ -386,6 +395,38 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             .ok_or_else(|| format!("developer required option {key} missing"))
     };
     let client = Client::new(profile)?;
+    if command == "review-submit" {
+        let request_id = required("--request-id")?;
+        let source_ref = required("--source-ref")?;
+        let title = required("--title")?;
+        let expected_commit = options
+            .get("--expected-commit")
+            .and_then(|values| values.first());
+        if !crate::profile::identifier(request_id)
+            || !source_ref.starts_with("refs/heads/")
+            || !git2::Reference::is_valid_name(source_ref)
+            || expected_commit.is_some_and(|commit| !crate::snapshot::hex(commit, 20))
+        {
+            return Err("developer review source or request identity invalid".into());
+        }
+        let description = options
+            .get("--description")
+            .and_then(|values| values.first())
+            .map(String::as_str)
+            .unwrap_or("");
+        let body = json!({
+            "request_id":request_id,"change_id":null,"expected_version":null,
+            "action":{"type":"contribute","source_ref":source_ref,
+                "expected_commit":expected_commit,"title":title,"description":description,
+                "wip":options.contains_key("--wip")}
+        });
+        print_json(&client.request(
+            reqwest::Method::POST,
+            "/api/code-review/commands",
+            Some(&body),
+        )?)?;
+        return Ok(0);
+    }
     if command == "submit" {
         let project = required("--project")?;
         let request = required("--request-id")?;

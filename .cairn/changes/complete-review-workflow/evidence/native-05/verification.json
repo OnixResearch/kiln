@@ -1,0 +1,1181 @@
+{
+  "schema": "kiln.review-parity.native-exercise.v1",
+  "transport": "local",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "heartbeat_restarts": [
+      {
+        "before": {
+          "native": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "native",
+              "project_id": "success",
+              "target_id": "5e0569447390568352d47b3a0893e96498eb0d30ccb4aed3d88f875a7e34bb09",
+              "session_id": "914422acb704fdc6450fe98c117ab860ef09d787f05195a521d954113e3577f7",
+              "session_started_at_ms": 1793236300373,
+              "sequence": 6,
+              "sent_at_ms": 1793236302043,
+              "ttl_ms": 3000,
+              "observed_slots": 2,
+              "active_slots": 0
+            },
+            "received_at_ms": 1793236302172,
+            "principal": "local:worker"
+          },
+          "compatible": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "compatible",
+              "project_id": "success",
+              "target_id": "5e0569447390568352d47b3a0893e96498eb0d30ccb4aed3d88f875a7e34bb09",
+              "session_id": "7e381b75492ba6cb39e2dfc329cd61643a379c676b751e8011c8a529b4ca3546",
+              "session_started_at_ms": 1793236300373,
+              "sequence": 6,
+              "sent_at_ms": 1793236302069,
+              "ttl_ms": 3000,
+              "observed_slots": 1,
+              "active_slots": 0
+            },
+            "received_at_ms": 1793236302125,
+            "principal": "local:worker"
+          }
+        },
+        "after": {
+          "native": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "native",
+              "project_id": "success",
+              "target_id": "5e0569447390568352d47b3a0893e96498eb0d30ccb4aed3d88f875a7e34bb09",
+              "session_id": "914422acb704fdc6450fe98c117ab860ef09d787f05195a521d954113e3577f7",
+              "session_started_at_ms": 1793236300373,
+              "sequence": 8,
+              "sent_at_ms": 1793236302754,
+              "ttl_ms": 3000,
+              "observed_slots": 2,
+              "active_slots": 0
+            },
+            "received_at_ms": 1793236302872,
+            "principal": "local:worker"
+          },
+          "compatible": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "compatible",
+              "project_id": "success",
+              "target_id": "5e0569447390568352d47b3a0893e96498eb0d30ccb4aed3d88f875a7e34bb09",
+              "session_id": "7e381b75492ba6cb39e2dfc329cd61643a379c676b751e8011c8a529b4ca3546",
+              "session_started_at_ms": 1793236300373,
+              "sequence": 8,
+              "sent_at_ms": 1793236302754,
+              "ttl_ms": 3000,
+              "observed_slots": 1,
+              "active_slots": 0
+            },
+            "received_at_ms": 1793236302898,
+            "principal": "local:worker"
+          }
+        },
+        "same_daemon_pids": {
+          "native": 3577142,
+          "compatible": 3577143
+        }
+      }
+    ],
+    "required_ci_submission": {
+      "original_target": "c1300d0871da9be45586e4d0c0649d4e0b617243",
+      "original_source": "95855ff19260db02b4c7f20add562ceddc47879d",
+      "reviewed_source": "e0a4ad9df6e522eef53b6f68aa07998d41ce4af9",
+      "target": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+      "queue": {
+        "actor": "local:operator",
+        "candidate_commit": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+        "change": "d6f80d03b3e35e5ae5a8853454ff9762aac0929ff4448ea5de84dadfbb91236b",
+        "ci_run": "web-run-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+        "created_ms": 1793236301393,
+        "detail": "Exact integration candidate submitted and independently read back",
+        "generation": 1,
+        "id": "1397d87ea5f3d6024c2aad7d13752b1cf51e4c44c280c968590fa1a01143a84c",
+        "policy_id": "a23bcc0225958c62b8e8a14680e21d3a55f29790b9d019a990cf9a378f0482af",
+        "revision": "0e53c0669fe7a93952423b901a95238ff49a3c5c38c351b9706097029ed5b953",
+        "source_commit": "e0a4ad9df6e522eef53b6f68aa07998d41ce4af9",
+        "status": "submitted",
+        "target_commit": "c1300d0871da9be45586e4d0c0649d4e0b617243",
+        "target_ref": "refs/heads/main"
+      },
+      "run": {
+        "id": "web-run-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+        "project_id": "success",
+        "source_revision": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+        "canonical_tree": "688532e72fecd23e229bf7312df3d3fcd691c1e0e67ef3027f7a2d4e141b5dda",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "8a199319fd999ea5d15979e7075a7c05dda535abc858a3785e6ef87eed88094d"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+        "outcome": "Success",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:07433653894508d40a89651cda65ad064bc84988ed0eb5a06e402aad5b3dfc51"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Completed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236306961,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236306961,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236306961,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236306961,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 36,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793236302818,
+        "started_at_ms": 1793236303136,
+        "completed_at_ms": 1793236306961,
+        "duration_ms": 3825,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "a5fc33701ed194d9c8b3e5e800801df50a8d0b125c443f1bf749457b485ce0ca"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "16e1213bbffef291349a9475b91839fc821e2aaeabdb79d4dffd9777fecc99a8"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "step_telemetry": [
+          {
+            "id": "fe0b0581e0528728937958a085b109f644e44bdf0d06a550458acf6bb8c7b0bb",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "source_revision": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+                "attempt_id": "web-attempt-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:07433653894508d40a89651cda65ad064bc84988ed0eb5a06e402aad5b3dfc51",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793236303183,
+                "completed_at_ms": 1793236304262,
+                "duration_ms": 1078,
+                "exit_code": 0,
+                "cpu_time_us": 191645,
+                "peak_memory_bytes": 22003712,
+                "cache": [
+                  {
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "miss",
+                    "transferred_bytes": 718,
+                    "duration_ms": 99
+                  },
+                  {
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "published",
+                    "transferred_bytes": 1548,
+                    "duration_ms": 45
+                  }
+                ]
+              }
+            },
+            "recorded_at_ms": 1793236304923
+          },
+          {
+            "id": "a55a4c9d57e1eb8e183ff8ac57947c19e8559b3a12586ff5933507872101099e",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "source_revision": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+                "attempt_id": "web-attempt-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:07433653894508d40a89651cda65ad064bc84988ed0eb5a06e402aad5b3dfc51",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 2,
+              "step": {
+                "step_index": 1,
+                "started_at_ms": 1793236304934,
+                "completed_at_ms": 1793236305982,
+                "duration_ms": 1048,
+                "exit_code": 0,
+                "cpu_time_us": 19892,
+                "peak_memory_bytes": 12648448
+              }
+            },
+            "recorded_at_ms": 1793236305997
+          },
+          {
+            "id": "8a613a459ea3f27ed895b7ed10b0342c47fc99ae95200278dcf55b3487b293e9",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "source_revision": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+                "attempt_id": "web-attempt-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:07433653894508d40a89651cda65ad064bc84988ed0eb5a06e402aad5b3dfc51",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "verify"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793236306044,
+                "completed_at_ms": 1793236306218,
+                "duration_ms": 174,
+                "exit_code": 0,
+                "cpu_time_us": 25826,
+                "peak_memory_bytes": 14708736
+              }
+            },
+            "recorded_at_ms": 1793236306248
+          },
+          {
+            "id": "be143e35b9d39ca421d1471d81c0443989463343d2633d1232a552b1dc3469d0",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "source_revision": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+                "attempt_id": "web-attempt-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:07433653894508d40a89651cda65ad064bc84988ed0eb5a06e402aad5b3dfc51",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "lint"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793236306311,
+                "completed_at_ms": 1793236306497,
+                "duration_ms": 186,
+                "exit_code": 0,
+                "cpu_time_us": 33988,
+                "peak_memory_bytes": 17063936
+              }
+            },
+            "recorded_at_ms": 1793236306525
+          },
+          {
+            "id": "f00d6d603d10ac53910ca9b44ac271050a0d9924ee9d5e34792f57584f8353db",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "source_revision": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+                "attempt_id": "web-attempt-96139af4c47dfb6b8e94b38204ffd30e59aba2c03987465cbd7cf1c03161623e",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:07433653894508d40a89651cda65ad064bc84988ed0eb5a06e402aad5b3dfc51",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "join"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793236306598,
+                "completed_at_ms": 1793236306870,
+                "duration_ms": 271,
+                "exit_code": 0,
+                "cpu_time_us": 27705,
+                "peak_memory_bytes": 16076800
+              }
+            },
+            "recorded_at_ms": 1793236306900
+          }
+        ]
+      },
+      "restart": "service killed after durable candidate construction; same exact candidate recovered before canonical CI dispatch"
+    },
+    "failed_ci_refusal": {
+      "change": "e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614",
+      "queue": {
+        "actor": "local:operator",
+        "candidate_commit": "e814c91ea72c659eccbf65457d20de19c29864b9",
+        "change": "e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614",
+        "ci_run": "web-run-5c3bf59f7b15e622af7b4d4d072f76577e3b95e2ee163328954ff7f360cfeabd",
+        "created_ms": 1793236307421,
+        "detail": "review_queue_ci_failed",
+        "generation": 1,
+        "id": "6bfe594b0db4769c05d4ea611bdac06f82dfc1c4daca6e94982080a5f6426036",
+        "policy_id": "a23bcc0225958c62b8e8a14680e21d3a55f29790b9d019a990cf9a378f0482af",
+        "revision": "824047be60aefd7c0f42c2f98f2bf1bd80ef3f80283dec397a251242ba24ac89",
+        "source_commit": "a549f318824a747c7f719adca0715728957cb889",
+        "status": "blocked",
+        "target_commit": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231",
+        "target_ref": "refs/heads/main"
+      },
+      "run": {
+        "id": "web-run-5c3bf59f7b15e622af7b4d4d072f76577e3b95e2ee163328954ff7f360cfeabd",
+        "project_id": "success",
+        "source_revision": "e814c91ea72c659eccbf65457d20de19c29864b9",
+        "canonical_tree": "86071726c47a14cbc968caa5d133ac3bd9c175fa494f9717d5c81d8bf1c97a0d",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "8a199319fd999ea5d15979e7075a7c05dda535abc858a3785e6ef87eed88094d"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-5c3bf59f7b15e622af7b4d4d072f76577e3b95e2ee163328954ff7f360cfeabd",
+        "outcome": "DomainFailure",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:5793773cc1488070ac583d1efbfb78ba59cdd7c4f779c2a5202a7a3f7b0b8b9e"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Failed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236313729,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236313729,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236313729,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793236313729,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 221,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793236309149,
+        "started_at_ms": 1793236309245,
+        "completed_at_ms": 1793236313729,
+        "duration_ms": 4484,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "a376a54451b7b07d31f64574a515198f7100cfac195a2dd6db9f20ebc9322549"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "86e8b13c82079e37f423d83d96a9e50da67fa40bd79286236df64c4a2073c8d7"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 1,
+            "passed": 0,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "step_telemetry": [
+          {
+            "id": "16fd1f372117f895d63bd5a78cd47bf38c2ee90e47a8a9a40f510bf98cbd7c05",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-5c3bf59f7b15e622af7b4d4d072f76577e3b95e2ee163328954ff7f360cfeabd",
+                "source_revision": "e814c91ea72c659eccbf65457d20de19c29864b9",
+                "attempt_id": "web-attempt-5c3bf59f7b15e622af7b4d4d072f76577e3b95e2ee163328954ff7f360cfeabd",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:5793773cc1488070ac583d1efbfb78ba59cdd7c4f779c2a5202a7a3f7b0b8b9e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793236309260,
+                "completed_at_ms": 1793236310779,
+                "duration_ms": 1519,
+                "exit_code": 1,
+                "cpu_time_us": 174601,
+                "peak_memory_bytes": 22421504,
+                "cache": [
+                  {
+                    "key": "eff6b780a51ffabfe0d2fdb2f0ffa8eaae28cdff1a747273dd30418589c318ec",
+                    "outcome": "miss",
+                    "transferred_bytes": 718,
+                    "duration_ms": 37
+                  }
+                ]
+              }
+            },
+            "recorded_at_ms": 1793236313098
+          }
+        ]
+      },
+      "target_unchanged": "7cdaddc49da5a3ce8a7c5eb0d3b60c54505b8231"
+    },
+    "review_delivery": [
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "ecb19502ea4e65f82d9fd581631603d99ca6b494559c1354e72c4c130f6fbe10",
+          "notification": {
+            "actor": "local:operator",
+            "change": "d6f80d03b3e35e5ae5a8853454ff9762aac0929ff4448ea5de84dadfbb91236b",
+            "created_ms": 1793236300615,
+            "id": "454b120bbc2281b4cb70c3d8485ab313a6fb90cbf2dcc384a1933b4ff153451b",
+            "kind": "review_requested",
+            "read": false,
+            "revision": "bef5514a225da4cfb8a25752d5ae2d48787c794e3e1bfd945476f1c6a6cee5be"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-owner",
+          "channel": "webhook",
+          "id": "6d051cfa915468914cca9c23a7b5ccfa55c7b36e8347fb16dbc3eddd8afd05c9",
+          "notification": {
+            "actor": "viewer:native-reader",
+            "change": "d6f80d03b3e35e5ae5a8853454ff9762aac0929ff4448ea5de84dadfbb91236b",
+            "created_ms": 1793236301343,
+            "id": "f0abf677f8182f0b6ea43672554d137651d3d92c2c81d1fa9e760beb654f61bf",
+            "kind": "vote",
+            "read": false,
+            "revision": "0e53c0669fe7a93952423b901a95238ff49a3c5c38c351b9706097029ed5b953"
+          },
+          "principal": "local:operator",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "7d0e5b6cd56ce2066512d1e39c6eb6fa4f1b41f32fb8f9a7e85cf2e83a29dfe7",
+          "notification": {
+            "actor": "local:operator",
+            "change": "d6f80d03b3e35e5ae5a8853454ff9762aac0929ff4448ea5de84dadfbb91236b",
+            "created_ms": 1793236301267,
+            "id": "bf0c0ee9bb7ab0f32614b47fb631bea5cfdad35e91ba95fa6d866796b4fd1117",
+            "kind": "revision_uploaded",
+            "read": false,
+            "revision": "0e53c0669fe7a93952423b901a95238ff49a3c5c38c351b9706097029ed5b953"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-owner",
+          "channel": "webhook",
+          "id": "a13b7b763923e6a5e9bc15389820fdf8984fb223f3d6f0f983c5e2d4b5751a73",
+          "notification": {
+            "actor": "viewer:native-reader",
+            "change": "d6f80d03b3e35e5ae5a8853454ff9762aac0929ff4448ea5de84dadfbb91236b",
+            "created_ms": 1793236301167,
+            "id": "06851392932a0bea870eadb76778960a10dd92ea28724f6a54368a2cf94c7608",
+            "kind": "review_published",
+            "read": false,
+            "revision": "bef5514a225da4cfb8a25752d5ae2d48787c794e3e1bfd945476f1c6a6cee5be"
+          },
+          "principal": "local:operator",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "36a83f37c0da2602bd30743b0913ba92082534cf86304c56681c2aac6ea36fac",
+          "notification": {
+            "actor": "local:operator",
+            "change": "d6f80d03b3e35e5ae5a8853454ff9762aac0929ff4448ea5de84dadfbb91236b",
+            "created_ms": 1793236306954,
+            "id": "d4f38175ac1e201b84767bdf086922401a1543fdf4eb0ad88f043cda064c5459",
+            "kind": "submitted",
+            "read": false,
+            "revision": "0e53c0669fe7a93952423b901a95238ff49a3c5c38c351b9706097029ed5b953"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "de9ed1351d9c8f773669e733c6bcf1d259e3a302d0de711da00254c089a773ec",
+          "notification": {
+            "actor": "local:operator",
+            "change": "d6f80d03b3e35e5ae5a8853454ff9762aac0929ff4448ea5de84dadfbb91236b",
+            "created_ms": 1793236306954,
+            "id": "5fe40c05c4350e60f3e6b68cb2ac207eb08c90525ffeaa504896af6157d59f01",
+            "kind": "subscribed_update",
+            "read": false,
+            "revision": "0e53c0669fe7a93952423b901a95238ff49a3c5c38c351b9706097029ed5b953"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-owner",
+          "channel": "webhook",
+          "id": "5122875b78314c2e772a5f17314be460f220e667d39de4f19891aa8723a05a02",
+          "notification": {
+            "actor": "viewer:native-reader",
+            "change": "e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614",
+            "created_ms": 1793236307372,
+            "id": "1149059ccb01bdcdccc1068c083ce8834e47deb5a3ab5d1673b2c0367f2494ce",
+            "kind": "vote",
+            "read": false,
+            "revision": "824047be60aefd7c0f42c2f98f2bf1bd80ef3f80283dec397a251242ba24ac89"
+          },
+          "principal": "local:operator",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "57c579f33fc5b26be24e29ed2206209cc53b957dcabf84c6401274eccfbd0ae8",
+          "notification": {
+            "actor": "local:operator",
+            "change": "e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614",
+            "created_ms": 1793236307296,
+            "id": "fdb633e96ac47c391d1bc8cfe90b3c00a795b2667e817291d88f1798af60bdb6",
+            "kind": "review_requested",
+            "read": false,
+            "revision": "824047be60aefd7c0f42c2f98f2bf1bd80ef3f80283dec397a251242ba24ac89"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      }
+    ]
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "loopback Iroh does not prove WAN or relay availability or distinct-host deployment",
+    "adapter labels do not implement per-node placement or mixed-host scheduling",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "source": {
+    "controller_checkout": "/home/brittonr/.local/state/kiln-review-parity-05/source",
+    "worker_checkout": "/home/brittonr/.local/state/kiln-review-parity-05/source",
+    "distinct_checkout": false,
+    "source_repository": "8a199319fd999ea5d15979e7075a7c05dda535abc858a3785e6ef87eed88094d",
+    "worker_local_repository": "8a199319fd999ea5d15979e7075a7c05dda535abc858a3785e6ef87eed88094d"
+  },
+  "profiles": {
+    "projects": {
+      "success": {
+        "provider_profile_id": "lattice-web-native-success",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:b6773f90e170dfb7fc51f1832aaebd2ed3f1308c99302d066c038e39ee363578",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:be54f0a6ed8a17b61993468748cce3ff2ad12ce78b9400f08b840dece680cfee",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:42e65eb84d35da193622a7ab7e7d5bb20592c9e6836d6cce10bb726e78ae057f",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:8f05b157440b055b64ee6b50c66d7d3ebb01afa988f3520cdcdf978c9b9ebb02",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:add9fa6c2fdb14190b30db9e23ca1ccd3327ce98d3647814f716825e7af491d2",
+            "workflow_node_id": 1
+          }
+        ]
+      },
+      "slow": {
+        "provider_profile_id": "lattice-web-native-slow",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:18ed9f2ca111d0f89d8e4a7f2e53529d38fc84e6cf4740526b499890cccb5ea5",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:45863514ec64b5e8867b29b2deffa82cc8c5c065335333d48dd8702f0d72afec",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "fail": {
+        "provider_profile_id": "lattice-web-native-fail",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:b6832f5a64245efc78b221406738dec5d4c2e2499609b8293f65218c1688a8ff",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:b08c89f6de84e2feba67ba406ff1834f8baa2e160187ce7467827564aa58d66d",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "partial": {
+        "provider_profile_id": "lattice-web-native-partial",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:569a415d4c97dc1d9c775df8766c9439097aeadff8b7d5c811815e88159f5f6a",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:6459b2217a8d976ab6047726eac48f5235fbefca4b32ae707a9fe9bd0e103726",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:f8d0f292226f75878d0e562db46b1e1654059b61a96deb925b06526b7f171a6f",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:760fef082b495187642202613656dc10c961d066c070eb429d65aeeccd60e20e",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:185848e0e594f911e815dd9a1b5c0fcd66e890d0b9a630790059ca4e93810183",
+            "workflow_node_id": 1
+          }
+        ]
+      }
+    },
+    "worker_blake3": {
+      "worker-success.json": "64321501de7bcc09534029df2af037eced3a35200a5da6847562fd38b5423016",
+      "worker-partial-lint.json": "760fef082b495187642202613656dc10c961d066c070eb429d65aeeccd60e20e",
+      "worker-success-verify.json": "add9fa6c2fdb14190b30db9e23ca1ccd3327ce98d3647814f716825e7af491d2",
+      "worker-partial.json": "6459b2217a8d976ab6047726eac48f5235fbefca4b32ae707a9fe9bd0e103726",
+      "worker-slow.json": "45863514ec64b5e8867b29b2deffa82cc8c5c065335333d48dd8702f0d72afec",
+      "worker-success-lint.json": "8f05b157440b055b64ee6b50c66d7d3ebb01afa988f3520cdcdf978c9b9ebb02",
+      "worker-success-join.json": "42e65eb84d35da193622a7ab7e7d5bb20592c9e6836d6cce10bb726e78ae057f",
+      "worker-partial-join.json": "f8d0f292226f75878d0e562db46b1e1654059b61a96deb925b06526b7f171a6f",
+      "worker-fail.json": "b08c89f6de84e2feba67ba406ff1834f8baa2e160187ce7467827564aa58d66d",
+      "worker-success-compatible.json": "2fab373710ed8b49d40b2a6af47105822497c00a6a12ddc8e7851ea5fa5c0e1c",
+      "worker-partial-verify.json": "185848e0e594f911e815dd9a1b5c0fcd66e890d0b9a630790059ca4e93810183",
+      "worker-success-pool.json": "be54f0a6ed8a17b61993468748cce3ff2ad12ce78b9400f08b840dece680cfee"
+    },
+    "handler_profile_blake3": "fda2e9908ae4e68722b477f1c77934e589bb2d8025f3a87379f579a4677c6f1c"
+  },
+  "origin": "https://127.0.0.1:41531",
+  "source_revision": "c1300d0871da9be45586e4d0c0649d4e0b617243",
+  "service_profile_blake3": "cf5120bae1f3fd363d84f6f21f9ffb8b2223b7e02d56559bd7a86a5ee563d3cc",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "true": {
+      "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+      "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471"
+    },
+    "service": {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-web-service",
+      "blake3": "a751e789414b5705469ce1f8b7c668240dd00f5e60a22e116751afb021c22dca"
+    },
+    "lattice": {
+      "path": "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "browser": {
+    "schema": "kiln.review-parity.browser.v1",
+    "passed": true,
+    "origin": "https://127.0.0.1:41531",
+    "checks": {
+      "intake": "branch picker resolved exact source and replay opened same one-revision change",
+      "markdown": "bold preview rendered; HTML remained literal with zero image elements",
+      "syntax": "Rust fn keyword highlighted in actual diff",
+      "whitespace": "ignore_all URL restored; exact example.rs revision-side line 2 seeded both draft coordinates",
+      "suggestions": "saved and published prose-plus-fence comment; owner confirmation created revision 2 with previous approval blocked",
+      "delivery": "outcomes rendered metadata without [object Object]",
+      "subscriptions": "desktop subscribe and mobile unsubscribe changed authenticated control state",
+      "mobile": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "internalTableScrolling": true
+      }
+    },
+    "diagnostics": [
+      {
+        "seq": 1,
+        "ts": 1793236336026,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/session: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/session"
+      },
+      {
+        "seq": 2,
+        "ts": 1793236336751,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/overview: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/overview"
+      },
+      {
+        "seq": 3,
+        "ts": 1793236343024,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=647: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=647"
+      },
+      {
+        "seq": 4,
+        "ts": 1793236347911,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=701: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=701"
+      },
+      {
+        "seq": 5,
+        "ts": 1793236349520,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=719: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=719"
+      },
+      {
+        "seq": 6,
+        "ts": 1793236351952,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+      },
+      {
+        "seq": 7,
+        "ts": 1793236352029,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+      },
+      {
+        "seq": 8,
+        "ts": 1793236352194,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614"
+      },
+      {
+        "seq": 9,
+        "ts": 1793236352626,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=745: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=745"
+      },
+      {
+        "seq": 10,
+        "ts": 1793236354181,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=761: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=761"
+      },
+      {
+        "seq": 11,
+        "ts": 1793236364429,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=871: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=871"
+      },
+      {
+        "seq": 12,
+        "ts": 1793236366496,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=885: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=885"
+      },
+      {
+        "seq": 13,
+        "ts": 1793236369090,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614"
+      },
+      {
+        "seq": 14,
+        "ts": 1793236369238,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614/diff?revision=824047be60aefd7c0f42c2f98f2bf1bd80ef3f80283dec397a251242ba24ac89&base=base&whitespace=ignore_all: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614/diff?revision=824047be60aefd7c0f42c2f98f2bf1bd80ef3f80283dec397a251242ba24ac89&base=base&whitespace=ignore_all"
+      },
+      {
+        "seq": 15,
+        "ts": 1793236369988,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=907: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=907"
+      },
+      {
+        "seq": 16,
+        "ts": 1793236375498,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+      },
+      {
+        "seq": 17,
+        "ts": 1793236376182,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=977: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=977"
+      },
+      {
+        "seq": 18,
+        "ts": 1793236382458,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1053: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1053"
+      },
+      {
+        "seq": 19,
+        "ts": 1793236384031,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1069: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1069"
+      },
+      {
+        "seq": 20,
+        "ts": 1793236387319,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1099: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1099"
+      },
+      {
+        "seq": 21,
+        "ts": 1793236388915,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1115: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1115"
+      },
+      {
+        "seq": 22,
+        "ts": 1793236396959,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1201: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1201"
+      },
+      {
+        "seq": 23,
+        "ts": 1793236401880,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1249: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1249"
+      },
+      {
+        "seq": 24,
+        "ts": 1793236406735,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1297: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1297"
+      },
+      {
+        "seq": 25,
+        "ts": 1793236408273,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1311: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1311"
+      },
+      {
+        "seq": 26,
+        "ts": 1793236409899,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1327: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1327"
+      },
+      {
+        "seq": 27,
+        "ts": 1793236412425,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "POST https://127.0.0.1:41531/api/code-review/commands: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review/commands"
+      },
+      {
+        "seq": 28,
+        "ts": 1793236412523,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+      },
+      {
+        "seq": 29,
+        "ts": 1793236417671,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/live?after=1417: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/live?after=1417"
+      },
+      {
+        "seq": 30,
+        "ts": 1793236475856,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+      }
+    ],
+    "non_claims": [
+      "ERR_ABORTED requests occur during route/live refresh cancellation; retained rather than treated as JavaScript exceptions",
+      "Native restart proof is at durable candidate construction before CI dispatch, not uninterrupted active worker HTTPS uploads"
+    ]
+  },
+  "passed": true,
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

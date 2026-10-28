@@ -5,7 +5,7 @@
 //! The per-step helper observes its sole child's resources; private bounded
 //! transports publish command output before completion.
 
-mod cache;
+pub mod cache;
 mod client;
 pub(crate) mod files;
 mod heartbeat;

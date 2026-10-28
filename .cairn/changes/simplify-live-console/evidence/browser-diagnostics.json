@@ -1,0 +1,190 @@
+{
+  "entries": [
+    {
+      "seq": 1,
+      "ts": 1793226988062,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/overview: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/overview"
+    },
+    {
+      "seq": 2,
+      "ts": 1793226988888,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/overview: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/overview"
+    },
+    {
+      "seq": 3,
+      "ts": 1793226989079,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/runs?limit=25&order=desc&project_id=schema-identity-core: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/runs?limit=25&order=desc&project_id=schema-identity-core"
+    },
+    {
+      "seq": 4,
+      "ts": 1793226992668,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 5,
+      "ts": 1793226994253,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 6,
+      "ts": 1793226997354,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 7,
+      "ts": 1793226998894,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 8,
+      "ts": 1793227002024,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 9,
+      "ts": 1793227005151,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 10,
+      "ts": 1793227006689,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 11,
+      "ts": 1793227008225,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 12,
+      "ts": 1793227011299,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 13,
+      "ts": 1793227012090,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/workers: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/workers"
+    },
+    {
+      "seq": 14,
+      "ts": 1793227014701,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 15,
+      "ts": 1793227017817,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 16,
+      "ts": 1793227019358,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 17,
+      "ts": 1793227022412,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 18,
+      "ts": 1793227023964,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 19,
+      "ts": 1793227025511,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 20,
+      "ts": 1793227028645,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 21,
+      "ts": 1793227034869,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 22,
+      "ts": 1793227037982,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    },
+    {
+      "seq": 23,
+      "ts": 1793227039528,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+      "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+    }
+  ],
+  "nextSeq": 23,
+  "dropped": 0
+}

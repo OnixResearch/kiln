@@ -1,0 +1,916 @@
+{
+  "schema": "kiln.review-parity.native-exercise.v1",
+  "transport": "local",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "heartbeat_restarts": [
+      {
+        "before": {
+          "native": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "native",
+              "project_id": "success",
+              "target_id": "6523eef328be0cba16bf2061213db7a396fe0b07c198e6e1da5122c4cb23d2e0",
+              "session_id": "3b5dcdd713ff66ee1ffc17ce4dd9167d284dfb3d9f7db92586ebe89f86c80f9f",
+              "session_started_at_ms": 1793237041071,
+              "sequence": 7,
+              "sent_at_ms": 1793237043075,
+              "ttl_ms": 3000,
+              "observed_slots": 2,
+              "active_slots": 0
+            },
+            "received_at_ms": 1793237043122,
+            "principal": "local:worker"
+          },
+          "compatible": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "compatible",
+              "project_id": "success",
+              "target_id": "6523eef328be0cba16bf2061213db7a396fe0b07c198e6e1da5122c4cb23d2e0",
+              "session_id": "0d90a127ce3e206b37732489bcfecfd9777835ffae95d704117f41dbcef32b97",
+              "session_started_at_ms": 1793237041071,
+              "sequence": 7,
+              "sent_at_ms": 1793237043091,
+              "ttl_ms": 3000,
+              "observed_slots": 1,
+              "active_slots": 0
+            },
+            "received_at_ms": 1793237043105,
+            "principal": "local:worker"
+          }
+        },
+        "after": {
+          "native": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "native",
+              "project_id": "success",
+              "target_id": "6523eef328be0cba16bf2061213db7a396fe0b07c198e6e1da5122c4cb23d2e0",
+              "session_id": "3b5dcdd713ff66ee1ffc17ce4dd9167d284dfb3d9f7db92586ebe89f86c80f9f",
+              "session_started_at_ms": 1793237041071,
+              "sequence": 9,
+              "sent_at_ms": 1793237043644,
+              "ttl_ms": 3000,
+              "observed_slots": 2,
+              "active_slots": 1
+            },
+            "received_at_ms": 1793237043655,
+            "principal": "local:worker"
+          },
+          "compatible": {
+            "heartbeat": {
+              "schema": "kiln.worker-heartbeat.v1",
+              "worker_id": "compatible",
+              "project_id": "success",
+              "target_id": "6523eef328be0cba16bf2061213db7a396fe0b07c198e6e1da5122c4cb23d2e0",
+              "session_id": "0d90a127ce3e206b37732489bcfecfd9777835ffae95d704117f41dbcef32b97",
+              "session_started_at_ms": 1793237041071,
+              "sequence": 9,
+              "sent_at_ms": 1793237043645,
+              "ttl_ms": 3000,
+              "observed_slots": 1,
+              "active_slots": 0
+            },
+            "received_at_ms": 1793237043697,
+            "principal": "local:worker"
+          }
+        },
+        "same_daemon_pids": {
+          "native": 872942,
+          "compatible": 872943
+        }
+      }
+    ],
+    "required_ci_submission": {
+      "original_target": "1c434b852c9baea1589961cd84024f63a43bb4f6",
+      "original_source": "6267327bf61a30423ea5469091e3cce2309157ad",
+      "reviewed_source": "2956c60798f622fcdbc46af3a72bc40cbda77462",
+      "target": "922980902f93556c0e27df18f7bc5e1821988dbb",
+      "queue": {
+        "actor": "local:operator",
+        "candidate_commit": "922980902f93556c0e27df18f7bc5e1821988dbb",
+        "change": "0714e2d91b25f287c023ab83aecc110c86dba37d805a4c39541adab0fbd9c099",
+        "ci_run": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+        "created_ms": 1793237042498,
+        "detail": "Exact integration candidate submitted and independently read back",
+        "generation": 1,
+        "id": "bc1929c00cc8105f9a3724831c1be4ef65f7304507261b937d09165727d44b6a",
+        "policy_id": "a23bcc0225958c62b8e8a14680e21d3a55f29790b9d019a990cf9a378f0482af",
+        "revision": "b4cabdc910033ef3275e35b13267b12d908b2e70c93cca97cee859139558f1af",
+        "source_commit": "2956c60798f622fcdbc46af3a72bc40cbda77462",
+        "status": "submitted",
+        "target_commit": "1c434b852c9baea1589961cd84024f63a43bb4f6",
+        "target_ref": "refs/heads/main"
+      },
+      "run": {
+        "id": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+        "project_id": "success",
+        "source_revision": "922980902f93556c0e27df18f7bc5e1821988dbb",
+        "canonical_tree": "688532e72fecd23e229bf7312df3d3fcd691c1e0e67ef3027f7a2d4e141b5dda",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "4c171fc11c1c5ba265d545b4ee5b1f58d0ebbbffeffea4d6ef3ad33700c35e29"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+        "outcome": "Success",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:9a255bf2577ba40a6a190cd6beee4228d73d2a3bd0a4f9c8ab11790279232727"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Completed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237048614,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237048614,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237048614,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237048614,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 41,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793237043477,
+        "started_at_ms": 1793237043585,
+        "completed_at_ms": 1793237048614,
+        "duration_ms": 5029,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "b2836ae66cd32e15a4b8863f0c77323a128edcc3c29ecebbb371b76e08a4fecf"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "c4872fcc7e07029ba09b3118197c9fa82bb5dd01051df0fd25e79c3032f048c8"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "step_telemetry": [
+          {
+            "id": "ac0c63cf19d6215c1d0c9d09829d349c6ec447b0110fa5d8bf9b4923003474c5",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "source_revision": "922980902f93556c0e27df18f7bc5e1821988dbb",
+                "attempt_id": "web-attempt-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:9a255bf2577ba40a6a190cd6beee4228d73d2a3bd0a4f9c8ab11790279232727",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793237043593,
+                "completed_at_ms": 1793237044438,
+                "duration_ms": 844,
+                "exit_code": 0,
+                "cpu_time_us": 281576,
+                "peak_memory_bytes": 20922368,
+                "cache": [
+                  {
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "miss",
+                    "transferred_bytes": 718,
+                    "duration_ms": 42
+                  },
+                  {
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "published",
+                    "transferred_bytes": 1548,
+                    "duration_ms": 40
+                  }
+                ]
+              }
+            },
+            "recorded_at_ms": 1793237045038
+          },
+          {
+            "id": "8a742e5d4daa89726ed516a03e55a6ee8ed4d59dded39420c51dcfa21480967c",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "source_revision": "922980902f93556c0e27df18f7bc5e1821988dbb",
+                "attempt_id": "web-attempt-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:9a255bf2577ba40a6a190cd6beee4228d73d2a3bd0a4f9c8ab11790279232727",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 2,
+              "step": {
+                "step_index": 1,
+                "started_at_ms": 1793237045055,
+                "completed_at_ms": 1793237046104,
+                "duration_ms": 1049,
+                "exit_code": 0,
+                "cpu_time_us": 22184,
+                "peak_memory_bytes": 12963840
+              }
+            },
+            "recorded_at_ms": 1793237046120
+          },
+          {
+            "id": "ef9689245facaced41f40aba256289c1738702558789d2fc3a995354cc1fac01",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "source_revision": "922980902f93556c0e27df18f7bc5e1821988dbb",
+                "attempt_id": "web-attempt-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:9a255bf2577ba40a6a190cd6beee4228d73d2a3bd0a4f9c8ab11790279232727",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "verify"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793237046191,
+                "completed_at_ms": 1793237046426,
+                "duration_ms": 235,
+                "exit_code": 0,
+                "cpu_time_us": 28036,
+                "peak_memory_bytes": 16064512
+              }
+            },
+            "recorded_at_ms": 1793237046449
+          },
+          {
+            "id": "e68195ac398d2bd88c98e84d82846530c9c6e9812f18544d9d3bfd0689bbc2fd",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "source_revision": "922980902f93556c0e27df18f7bc5e1821988dbb",
+                "attempt_id": "web-attempt-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:9a255bf2577ba40a6a190cd6beee4228d73d2a3bd0a4f9c8ab11790279232727",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "lint"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793237046546,
+                "completed_at_ms": 1793237046814,
+                "duration_ms": 267,
+                "exit_code": 0,
+                "cpu_time_us": 40082,
+                "peak_memory_bytes": 17113088
+              }
+            },
+            "recorded_at_ms": 1793237046834
+          },
+          {
+            "id": "7b0d55045415e560a999727431a280ce69ccb5881b7fde971619e5ffe63538e3",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "source_revision": "922980902f93556c0e27df18f7bc5e1821988dbb",
+                "attempt_id": "web-attempt-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:9a255bf2577ba40a6a190cd6beee4228d73d2a3bd0a4f9c8ab11790279232727",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "join"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793237046972,
+                "completed_at_ms": 1793237047497,
+                "duration_ms": 524,
+                "exit_code": 0,
+                "cpu_time_us": 35663,
+                "peak_memory_bytes": 16064512
+              }
+            },
+            "recorded_at_ms": 1793237047571
+          }
+        ]
+      },
+      "restart": "service killed after durable candidate construction; same exact candidate recovered before canonical CI dispatch"
+    },
+    "failed_ci_refusal": {
+      "change": "c11540b1af1d38cd8a77e608aeaf7f8770aae318daaa6c1421e5350a5f79822b",
+      "queue": {
+        "actor": "local:operator",
+        "candidate_commit": "3c6fc896efe8cdde232e6d9067e57ee655d21afa",
+        "change": "c11540b1af1d38cd8a77e608aeaf7f8770aae318daaa6c1421e5350a5f79822b",
+        "ci_run": "web-run-3508ca6bb79c7196a2310f50296c96ea7068c6caa57d823de1fd67a72fbf123d",
+        "created_ms": 1793237049200,
+        "detail": "review_queue_ci_failed",
+        "generation": 1,
+        "id": "5cf4241395080fc5a3fa2932032a174aff59aafdc3168c111008f488579739dd",
+        "policy_id": "a23bcc0225958c62b8e8a14680e21d3a55f29790b9d019a990cf9a378f0482af",
+        "revision": "568cbccff1c36b3591597854cd97bfedf1b06ef11cef03529538ef3bde1ae6be",
+        "source_commit": "18eb4e458a49ae3cb8f3794e4c5ca09445c30522",
+        "status": "blocked",
+        "target_commit": "922980902f93556c0e27df18f7bc5e1821988dbb",
+        "target_ref": "refs/heads/main"
+      },
+      "run": {
+        "id": "web-run-3508ca6bb79c7196a2310f50296c96ea7068c6caa57d823de1fd67a72fbf123d",
+        "project_id": "success",
+        "source_revision": "3c6fc896efe8cdde232e6d9067e57ee655d21afa",
+        "canonical_tree": "86071726c47a14cbc968caa5d133ac3bd9c175fa494f9717d5c81d8bf1c97a0d",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "4c171fc11c1c5ba265d545b4ee5b1f58d0ebbbffeffea4d6ef3ad33700c35e29"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-3508ca6bb79c7196a2310f50296c96ea7068c6caa57d823de1fd67a72fbf123d",
+        "outcome": "DomainFailure",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:5455369274dc399600b701131b91ba05292fee80a07a5d29e743ba836d89d4b0"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Failed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237053050,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237053050,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237053050,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793237053050,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 242,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793237050964,
+        "started_at_ms": 1793237051074,
+        "completed_at_ms": 1793237053050,
+        "duration_ms": 1976,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "85cb733efac17d1341d1886255cb526e4daf3c49d7cbcfa35cf99f720f0dc1d5"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "bc8eadff91dde37bd82871ca0ac26723ee5c2d733d222a76cd02a88f4e529638"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 1,
+            "passed": 0,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "step_telemetry": [
+          {
+            "id": "22f55a2e7878602f5f306e509551e51cfb0326784e897e6deaf5c54ae42935e1",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-3508ca6bb79c7196a2310f50296c96ea7068c6caa57d823de1fd67a72fbf123d",
+                "source_revision": "3c6fc896efe8cdde232e6d9067e57ee655d21afa",
+                "attempt_id": "web-attempt-3508ca6bb79c7196a2310f50296c96ea7068c6caa57d823de1fd67a72fbf123d",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:5455369274dc399600b701131b91ba05292fee80a07a5d29e743ba836d89d4b0",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793237051091,
+                "completed_at_ms": 1793237051907,
+                "duration_ms": 815,
+                "exit_code": 1,
+                "cpu_time_us": 172130,
+                "peak_memory_bytes": 21643264,
+                "cache": [
+                  {
+                    "key": "eff6b780a51ffabfe0d2fdb2f0ffa8eaae28cdff1a747273dd30418589c318ec",
+                    "outcome": "miss",
+                    "transferred_bytes": 718,
+                    "duration_ms": 54
+                  }
+                ]
+              }
+            },
+            "recorded_at_ms": 1793237052452
+          }
+        ]
+      },
+      "target_unchanged": "922980902f93556c0e27df18f7bc5e1821988dbb"
+    },
+    "review_delivery": [
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-owner",
+          "channel": "webhook",
+          "id": "9c35db4f4983a5022faa47305c7f50d9ef2681fc618fc3af96437f5fe3188d5a",
+          "notification": {
+            "actor": "viewer:native-reader",
+            "change": "0714e2d91b25f287c023ab83aecc110c86dba37d805a4c39541adab0fbd9c099",
+            "created_ms": 1793237041920,
+            "id": "2582acd4359aef55c5fccf52432bcf5976d27c4d66f81e4cfd3107cbfb3dd32d",
+            "kind": "review_published",
+            "read": false,
+            "revision": "bef5514a225da4cfb8a25752d5ae2d48787c794e3e1bfd945476f1c6a6cee5be"
+          },
+          "principal": "local:operator",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "c1d4fa0a7a4cda5e1c1f4b87de9934c4d8432298e653ccf2d3eb3811e7d54db9",
+          "notification": {
+            "actor": "local:operator",
+            "change": "0714e2d91b25f287c023ab83aecc110c86dba37d805a4c39541adab0fbd9c099",
+            "created_ms": 1793237041368,
+            "id": "454b120bbc2281b4cb70c3d8485ab313a6fb90cbf2dcc384a1933b4ff153451b",
+            "kind": "review_requested",
+            "read": false,
+            "revision": "bef5514a225da4cfb8a25752d5ae2d48787c794e3e1bfd945476f1c6a6cee5be"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "0908ec04e0b442581a59bd76d69d9c1165b9aa82a6d7c4ea05b4ac1c8b76e77b",
+          "notification": {
+            "actor": "local:operator",
+            "change": "0714e2d91b25f287c023ab83aecc110c86dba37d805a4c39541adab0fbd9c099",
+            "created_ms": 1793237042347,
+            "id": "d8d91deed579513b112142641c4b7816e63a8dde82afe154c39f9eb323ec77ce",
+            "kind": "revision_uploaded",
+            "read": false,
+            "revision": "b4cabdc910033ef3275e35b13267b12d908b2e70c93cca97cee859139558f1af"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-owner",
+          "channel": "webhook",
+          "id": "ec737cf4890ec3096aa049b7fcb8064660a0d27eba1deec195223b0cfd47904d",
+          "notification": {
+            "actor": "viewer:native-reader",
+            "change": "0714e2d91b25f287c023ab83aecc110c86dba37d805a4c39541adab0fbd9c099",
+            "created_ms": 1793237042448,
+            "id": "a1329f8aea3d91383a27d059d687c165153209f221a5418bd78aae19700aeb4c",
+            "kind": "vote",
+            "read": false,
+            "revision": "b4cabdc910033ef3275e35b13267b12d908b2e70c93cca97cee859139558f1af"
+          },
+          "principal": "local:operator",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "065159f123b559114838334eef4a0a05424cfd087280306353fa528292cbcde0",
+          "notification": {
+            "actor": "local:operator",
+            "change": "0714e2d91b25f287c023ab83aecc110c86dba37d805a4c39541adab0fbd9c099",
+            "created_ms": 1793237048605,
+            "id": "71486e131ba221eb18a6872eceb23c08fc6aa71c4b5edb55851153bcde601343",
+            "kind": "subscribed_update",
+            "read": false,
+            "revision": "b4cabdc910033ef3275e35b13267b12d908b2e70c93cca97cee859139558f1af"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "3e63d6806cd7b04ed49374b91628a85d082cfc3bd73c28cec74d0fffc7647a2c",
+          "notification": {
+            "actor": "local:operator",
+            "change": "0714e2d91b25f287c023ab83aecc110c86dba37d805a4c39541adab0fbd9c099",
+            "created_ms": 1793237048605,
+            "id": "b3cd140dab67a843aa613fb09c7d96e565d1b2079f123bad470eb1d506a384d7",
+            "kind": "submitted",
+            "read": false,
+            "revision": "b4cabdc910033ef3275e35b13267b12d908b2e70c93cca97cee859139558f1af"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-owner",
+          "channel": "webhook",
+          "id": "1f2bf4f8a48008a5d05f54b0a944b8e0a42cdcdcf89f7ef5cb763a60476785fc",
+          "notification": {
+            "actor": "viewer:native-reader",
+            "change": "c11540b1af1d38cd8a77e608aeaf7f8770aae318daaa6c1421e5350a5f79822b",
+            "created_ms": 1793237049122,
+            "id": "f4b046ca35a7a662cb6ee850272de7fd2e46fe7bb886679313bdd377989110f3",
+            "kind": "vote",
+            "read": false,
+            "revision": "568cbccff1c36b3591597854cd97bfedf1b06ef11cef03529538ef3bde1ae6be"
+          },
+          "principal": "local:operator",
+          "schema": "kiln.review-notification.v1"
+        }
+      },
+      {
+        "path": "/review",
+        "body": {
+          "address": "isolated-reviewer",
+          "channel": "email_adapter",
+          "id": "2b392b32bc120733c7458b357f0cd1fdf79ad2326b8bcbaf49b4bb0850cbfe76",
+          "notification": {
+            "actor": "local:operator",
+            "change": "c11540b1af1d38cd8a77e608aeaf7f8770aae318daaa6c1421e5350a5f79822b",
+            "created_ms": 1793237049022,
+            "id": "8a92ba5ab25e83fe776f1ea9f244b1157d0ed86e2aaaa7022dd1fe410dfb4c8e",
+            "kind": "review_requested",
+            "read": false,
+            "revision": "568cbccff1c36b3591597854cd97bfedf1b06ef11cef03529538ef3bde1ae6be"
+          },
+          "principal": "viewer:native-reader",
+          "schema": "kiln.review-notification.v1"
+        }
+      }
+    ]
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "loopback Iroh does not prove WAN or relay availability or distinct-host deployment",
+    "adapter labels do not implement per-node placement or mixed-host scheduling",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "source": {
+    "controller_checkout": "/home/brittonr/.local/state/kiln-review-parity-06/source",
+    "worker_checkout": "/home/brittonr/.local/state/kiln-review-parity-06/source",
+    "distinct_checkout": false,
+    "source_repository": "4c171fc11c1c5ba265d545b4ee5b1f58d0ebbbffeffea4d6ef3ad33700c35e29",
+    "worker_local_repository": "4c171fc11c1c5ba265d545b4ee5b1f58d0ebbbffeffea4d6ef3ad33700c35e29"
+  },
+  "profiles": {
+    "projects": {
+      "success": {
+        "provider_profile_id": "lattice-web-native-success",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:a40816466db7cc7b66e64996935108d510c3f0c3208bfc0e870ad5fd90664d4b",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:cb53c8a5a3f136ec13db1b7a5acfd32ab78619a60d044b88d3f796d133ad74fa",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:ba99d36b35f52edff5b66674ae526e8f54cc6b116659366b685df501205cf9f6",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:9ce216aa05596897a36ba6451d2a7eb1b1435b7f2da9e606b8cc10e7bf1a01fb",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:9c2a71cf8819f1629d8bba11f6ff1e8c822f8d960df1d89b43382073edd35a6a",
+            "workflow_node_id": 1
+          }
+        ]
+      },
+      "slow": {
+        "provider_profile_id": "lattice-web-native-slow",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:dcd8eda31e83360a240672186b22f77b7cc6f5ca7da6e5ec3cef2cc932257ca3",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:300fe05749e643398f78a66dcde809543fbbfd278335a1f7481dfc57fc14d961",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "fail": {
+        "provider_profile_id": "lattice-web-native-fail",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:53ce4b3ebf4e71478fdfec7fad70d1c7953019ab749d1b5a4518dcdca0d62e82",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:582d74f3a9df93186b7510968d40c2ed92af4b0dfb30eee8a0e6d365185d1960",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "partial": {
+        "provider_profile_id": "lattice-web-native-partial",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:fec37ae2f57094fbc98b3a9b969588f8fb5416a72cebde682e30f0d89912ab6b",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:a52e543a782cdb9fa03c29caf5989fc4fe41ad91e46fec0b6aeb191bfef2414f",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:a36c04409523a46e9863a4b8f2fd6ca3deedd137bda1960e5899f48b90da2ccb",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:c536e46878b4d8f7f5af495915c43e1cc2129c69b61b51ce68d6412d4f13b558",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:3c9280da4f6bdd6b82fdb0ea5e892105eef1c2f40c5c45d77046c41721b69cfe",
+            "workflow_node_id": 1
+          }
+        ]
+      }
+    },
+    "worker_blake3": {
+      "worker-success.json": "09c63742849522512385d58b5b1b084715749b4ca06457cdf3d65089d3af55d9",
+      "worker-partial-lint.json": "c536e46878b4d8f7f5af495915c43e1cc2129c69b61b51ce68d6412d4f13b558",
+      "worker-success-verify.json": "9c2a71cf8819f1629d8bba11f6ff1e8c822f8d960df1d89b43382073edd35a6a",
+      "worker-partial.json": "a52e543a782cdb9fa03c29caf5989fc4fe41ad91e46fec0b6aeb191bfef2414f",
+      "worker-slow.json": "300fe05749e643398f78a66dcde809543fbbfd278335a1f7481dfc57fc14d961",
+      "worker-success-lint.json": "9ce216aa05596897a36ba6451d2a7eb1b1435b7f2da9e606b8cc10e7bf1a01fb",
+      "worker-success-join.json": "ba99d36b35f52edff5b66674ae526e8f54cc6b116659366b685df501205cf9f6",
+      "worker-partial-join.json": "a36c04409523a46e9863a4b8f2fd6ca3deedd137bda1960e5899f48b90da2ccb",
+      "worker-fail.json": "582d74f3a9df93186b7510968d40c2ed92af4b0dfb30eee8a0e6d365185d1960",
+      "worker-success-compatible.json": "7eac47c054cca62ea4ed979c5eb178e7b2ce269e4bebe74b8c3daed891613d0c",
+      "worker-partial-verify.json": "3c9280da4f6bdd6b82fdb0ea5e892105eef1c2f40c5c45d77046c41721b69cfe",
+      "worker-success-pool.json": "cb53c8a5a3f136ec13db1b7a5acfd32ab78619a60d044b88d3f796d133ad74fa"
+    },
+    "handler_profile_blake3": "ae049eb4e25bfefb742100a253ad7e0da909fef2bdeaae58fc747466e1207971"
+  },
+  "origin": "https://127.0.0.1:45265",
+  "source_revision": "1c434b852c9baea1589961cd84024f63a43bb4f6",
+  "service_profile_blake3": "116e217c4a7412d22baf3b8beacf27db11d2a468d6202ab08b3ed6bf8be67958",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "true": {
+      "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+      "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471"
+    },
+    "service": {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-web-service",
+      "blake3": "665d10e8a07f69c4ccd42297d5a50e92802045eac79a7febe2f0cc2c1fd254f0"
+    },
+    "lattice": {
+      "path": "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "passed": true,
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

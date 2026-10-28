@@ -1,0 +1,148 @@
+{
+  "schema": "kiln.hosted-compute-launch.planning-evidence.v1",
+  "scope": "Launch planning only; hosted CI connects to existing external source; no runtime or financial implementation",
+  "owner": "Kiln maintainers; operator retains commercial, source-host and activation authority",
+  "subjects": [
+    {
+      "path": "README.md",
+      "blake3": "7cd4a25f11df638052960ed0e83b529c8618e56bdfccee7c4c6453ed413bc8de"
+    },
+    {
+      "path": "docs/commercial-launch.md",
+      "blake3": "8180ade9510ee24a66e0a1973ad4e451e37b83840676b4ac00abb015303036c4"
+    },
+    {
+      "path": ".cairn/changes/plan-hosted-compute-launch/proposal.md",
+      "blake3": "372a8b592292f97595ee628dd013b30ca42b14665472e2ec7e19a726f5df91ed"
+    },
+    {
+      "path": ".cairn/changes/plan-hosted-compute-launch/design.md",
+      "blake3": "770a6759a72ef9af740535171e39686473baa32cfddcfc7ffc9b721b7bf89d14"
+    },
+    {
+      "path": ".cairn/changes/plan-hosted-compute-launch/acceptance.md",
+      "blake3": "32634cbf3858cef110a5c64a59e4a74d5ac7457f8e39b631327862429cbb90e3"
+    },
+    {
+      "path": ".cairn/changes/plan-hosted-compute-launch/tasks.md",
+      "blake3": "0ffaf72f6e511b4b9d4da4d695390bd1c272aa429ad7d778b2346c7eb2eb0e7c"
+    },
+    {
+      "path": ".cairn/changes/plan-hosted-compute-launch/metadata.json",
+      "blake3": "72d0b739ac0d44d7a7fbcc71a4a03243e0bf6bdf630a2a9f2f1daf4b72be0941"
+    },
+    {
+      "path": ".cairn/changes/plan-hosted-compute-launch/reviews/no-spec-classification.json",
+      "blake3": "1d45b7b2c3fb72ae95592da18d8b12b2cd8a0894539f4748d4ad58640cbe2280"
+    }
+  ],
+  "document_checks": {
+    "local_links": [
+      {
+        "reference": "operator.md#github-ci-adapter",
+        "target_exists": true,
+        "anchor_matches": true
+      },
+      {
+        "reference": "../.cairn/archive/1970-01-01-qualify-live-github-iroh-ci/evidence/verification.json",
+        "target_exists": true,
+        "anchor_matches": null
+      },
+      {
+        "reference": "operator.md#native-radicle-peer-and-broker-canary",
+        "target_exists": true,
+        "anchor_matches": true
+      },
+      {
+        "reference": "operator.md#single-tenant-live-web-service",
+        "target_exists": true,
+        "anchor_matches": true
+      },
+      {
+        "reference": "operator.md#github-ci-adapter",
+        "target_exists": true,
+        "anchor_matches": true
+      },
+      {
+        "reference": "../.cairn/archive/1970-01-01-qualify-live-github-iroh-ci/evidence/verification.json",
+        "target_exists": true,
+        "anchor_matches": null
+      },
+      {
+        "reference": "operator.md#native-radicle-peer-and-broker-canary",
+        "target_exists": true,
+        "anchor_matches": true
+      },
+      {
+        "reference": "operator.md#pipeline-measurements-and-worker-capacity",
+        "target_exists": true,
+        "anchor_matches": true
+      },
+      {
+        "reference": "../.cairn/changes/complete-review-workflow/evidence/qualification.json",
+        "target_exists": true,
+        "anchor_matches": null
+      },
+      {
+        "reference": "../.cairn/changes/complete-review-workflow/evidence/checks.json",
+        "target_exists": true,
+        "anchor_matches": null
+      },
+      {
+        "reference": "../LICENSES.md",
+        "target_exists": true,
+        "anchor_matches": null
+      },
+      {
+        "reference": "../.cairn/changes/plan-hosted-compute-launch/proposal.md",
+        "target_exists": true,
+        "anchor_matches": null
+      }
+    ],
+    "readme_navigation": true
+  },
+  "scenario_review": {
+    "method": "Agentic document-coverage review, not executable runtime tests or independent approval",
+    "positive": [
+      "Existing repository enrollment without source migration; exact remote commit -> reviewed execution -> Kiln results and upstream status",
+      "Successful and failing customer jobs; verified usage under exact class/price",
+      "Separate inference request/model/usage and independent activation"
+    ],
+    "negative": [
+      "Wrong organization or native repository ID, forged signature and unauthorized connection changes",
+      "Repository rename/transfer and connection generation drift",
+      "Revoked/reconnected credentials, stale deliveries and pending dispatch",
+      "Duplicate event and restart recovery without redispatch; retained old replay records",
+      "Moved branch, unavailable source and failed/ambiguous status publication never imply substitute source or success",
+      "Concurrent cap exhaustion, unknown usage and uncertain dispatch/invoice acceptance retain obligations",
+      "Missing model rights, non-overlapping token dimensions, partial streams and cancellation uncertainty",
+      "Forged/replayed/unordered payment events and cross-organization content/invoice access"
+    ],
+    "result": "Document specifies required outcomes and future executable acceptance; no new onboarding or billing behavior claimed"
+  },
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "classification": "../reviews/no-spec-classification.json",
+    "all_exercised_checks_passed": true,
+    "profile": "no-spec-delta",
+    "review_is_independent": false
+  },
+  "source_review": [
+    "docs/operator.md: GitHub credentials, reviewed workflow/source acquisition, durable replay, status and recovery",
+    "crates/kiln-web-service/src/profile.rs: ProjectProfile.repository_path",
+    "crates/kiln-web-service/src/server/admission.rs: local Git repository preflight",
+    "crates/kiln-web-service/src/engine/api.rs: project request replay",
+    "Historical combined live GitHub/Iroh verification receipt: recorded cohort only"
+  ],
+  "verification_notes": [
+    "Initial full operator-document read was truncated; anchor check corrected to bounded heading retrieval and passed",
+    "cairn subcommand --help attempts did not provide schemas; exact commands recovered from existing retained lifecycle receipts and passed"
+  ],
+  "not_exercised": [
+    "New runtime tests/builds: prose-only change",
+    "New remote webhook, source acquisition, worker job, status write, onboarding or revoke/reconnect exercise",
+    "Payment sandbox/live integration, charges, company/legal actions or deployment",
+    "Customer-hostile isolation, customer demand, current hardware inference or economics",
+    "Independent legal/security approval, lifecycle sync/archive or publication"
+  ]
+}

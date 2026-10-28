@@ -652,6 +652,8 @@
     state.workCanWrite = false;
     window.KilnWorkUI?.clear();
     window.KilnWorkInteraction?.clear();
+    window.KilnCodeReview?.clear();
+    $("code-review-content").replaceChildren();
     for (const id of ["work-content", "planning-content", "inbox-content", "triage-content", "workviews-content"]) $(id).replaceChildren();
     window.dispatchEvent(new Event("kiln-session-changed"));
     for (const controller of state.requests) controller.abort();
@@ -754,7 +756,7 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "reviews", "activity", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
+  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   const workerStatuses = { slots_available: "Slots available", busy: "Busy", unknown: "Unknown execution", not_enrolled: "Not enrolled" };
   function canOperate() { return !!state.session && state.permissions.operate === true; }
@@ -799,6 +801,13 @@
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 128),
       work_view: (params.get("work_view") || "").slice(0, 128), work_layout: ["board", "list"].includes(params.get("work_layout")) ? params.get("work_layout") : "", work_group: (params.get("work_group") || "").slice(0, 32), work_sort: (params.get("work_sort") || "").slice(0, 32),
+      review_change: (params.get("review_change") || "").slice(0, 128), review_revision: (params.get("review_revision") || "").slice(0, 128), review_base: (params.get("review_base") || "").slice(0, 128),
+      review_file: (params.get("review_file") || "").slice(0, 1024), review_side: ["base", "revision"].includes(params.get("review_side")) ? params.get("review_side") : "", review_line: (params.get("review_line") || "").slice(0, 16),
+      review_whitespace: ["exact", "ignore_all", "ignore_change", "ignore_eol"].includes(params.get("review_whitespace")) ? params.get("review_whitespace") : "",
+      review_q: (params.get("review_q") || "").slice(0, 256), review_view: ["all", "awaiting_review", "owned_needs_revision", "unresolved"].includes(params.get("review_view")) ? params.get("review_view") : "", review_status: ["open", "abandoned", "submitted"].includes(params.get("review_status")) ? params.get("review_status") : "",
+      review_offset: /^[0-9]{1,8}$/.test(params.get("review_offset") || "") ? params.get("review_offset") : "",
+      review_notification_offset: /^[0-9]{1,8}$/.test(params.get("review_notification_offset") || "") ? params.get("review_notification_offset") : "",
+      review_operation_offset: /^[0-9]{1,8}$/.test(params.get("review_operation_offset") || "") ? params.get("review_operation_offset") : "",
       theme: ["system", "light", "dark"].includes(params.get("theme")) ? params.get("theme") : "system", density: params.get("density") === "compact" ? "compact" : "comfortable"
     };
   }
@@ -813,6 +822,7 @@
   async function restoreRoute() {
     const previous = state.route;
     state.route = readRoute();
+    if (previous?.page === "code-review" && state.route.page !== "code-review") window.KilnCodeReview?.clear();
     const route = state.route;
     document.documentElement.dataset.theme = route.theme;
     document.documentElement.dataset.density = route.density;
@@ -820,22 +830,24 @@
     $("app-density").value = route.density;
     for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === route.page) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const administration = document.querySelector(".nav-administration");
-    if (administration?.querySelector('[aria-current="page"]')) administration.open = true;
+    for (const group of document.querySelectorAll(".app-navigation details")) {
+      if (group.querySelector('[aria-current="page"]')) group.open = true;
+    }
     for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = node.dataset.runPanel !== route.view;
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", cobs: "Raw collaboration history", overview: "CI overview" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
+    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", cobs: "Raw collaboration history", overview: "CI overview", "code-review": "Code review", reviews: "Patchgate receipts" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
     $("observation-note").textContent = {
-      overview: "Start with failing projects or browse recent runs. Counts cover retained history, not every execution.",
+      overview: "Latest per project, failures first. Counts cover retained runs only.",
       projects: "Choose a project to start a source-bound run, or browse its retained history.",
       workers: "Inspect configured execution targets and admission slots. Availability is not a health check.",
       runs: "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence.",
       cobs: "Browse local collaboration records. Raw operation history is not verified lifecycle state.",
       source: "Choose a repository and revision to browse files and changes without modifying source.",
       reviews: "Inspect retained review decisions. Producer verdicts do not grant acceptance authority.",
+      "code-review": "Review exact revisions, publish discussions and approvals, and inspect every submit requirement. CI evidence alone is not merge authority.",
       activity: "Browse retained canonical events and attributable audit decisions.",
       evidence: "Choose a retained run to inspect its source, execution and recorded evidence.",
       automation: "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable.",
@@ -854,6 +866,7 @@
       window.scrollTo(0, 0);
     }
     for (const [id, key] of [["run-search", "q"], ["run-filter", "project"], ["run-outcome", "outcome"], ["run-source", "source"], ["run-order", "order"], ["compare-other", "other"], ["evidence-run", "run"], ["log-stream", "stream"]]) $(id).value = route[key];
+    if (route.source || route.order !== "desc") $("run-more-filters").open = true;
     $("worker-search").value = route.worker_q;
     $("worker-status").value = route.worker_status;
     for (const [id, value] of [["run-filter", route.project], ["run-outcome", route.outcome]]) {
@@ -961,6 +974,17 @@
   }
   async function loadPage() {
     const route = state.route;
+    if (route.page === "code-review") {
+      await window.KilnCodeReview.load($("code-review-content"), {
+        api,
+        navigate: (patch) => navigate({ ...patch, page: "code-review" }),
+        toast: (message) => notice(message, "info"),
+        principal: state.principal?.id || "",
+        role: state.principal?.role || "",
+        route: new URLSearchParams(Object.entries(route)),
+      });
+      return;
+    }
     if (["work", "planning", "inbox", "triage", "workviews"].includes(route.page)) {
       const parent = $(route.page + "-content");
       if (!window.KilnWorkUI) { parent.replaceChildren(element("p", "Work interface is loading.", "small")); return; }
@@ -1634,28 +1658,54 @@
     const raw = element("details"); raw.append(element("summary", "Complete retained receipt fields"), element("pre", JSON.stringify(document, null, 2), "identity")); heading.append(raw);
     for (const boundary of record.non_claims || []) detail.append(element("p", boundary, "small"));
   }
+  // r[impl kiln.web.minimal_console]
   function renderOverview(parent, result) {
-    const grid = element("div", undefined, "inventory-grid"); parent.append(grid);
-    const outcomes = { runs: "", failed: "failed", queued: "queued", succeeded: "Success", cancelled: "Cancelled", unknown: "Unknown" };
-    for (const key of ["runs", "failed", "active", "queued", "succeeded", "cancelled", "unknown"]) {
+    const grid = element("div", undefined, "overview-totals");
+    grid.setAttribute("aria-label", "Retained run counts");
+    parent.append(grid);
+    const outcomes = { runs: "", failed: "failed", active: "", queued: "queued", succeeded: "Success", cancelled: "Cancelled", unknown: "Unknown" };
+    const labels = { runs: "Retained", failed: "Failed", active: "Active", queued: "Queued", succeeded: "Succeeded", cancelled: "Cancelled", unknown: "Unknown" };
+    for (const key of ["failed", "active", "queued", "unknown", "succeeded", "cancelled", "runs"]) {
       if (!Object.hasOwn(result.totals || {}, key)) continue;
-      const patch = key === "active" ? { page: "operations" } : { page: "runs", outcome: outcomes[key], project: "", q: "", source: "", cursor: "", run: "", node: "" };
-      const card = workspaceLink(patch, undefined, "inventory-card metric-link");
-      card.append(element("span", key === "runs" ? "Total runs" : key[0].toUpperCase() + key.slice(1), "metric-label"), element("strong", text(result.totals[key]), "metric-value"), element("span", key === "active" ? "View capacity →" : "Browse runs →", "small"));
-      grid.append(card);
+      const patch = { page: "runs", outcome: outcomes[key], project: "", q: "", source: "", cursor: "", run: "", node: "" };
+      if (key === "active") Object.assign(patch, { page: "workers", worker_status: "busy", worker_q: "", worker: "" });
+      const link = workspaceLink(patch, undefined, "overview-total");
+      link.dataset.outcome = key;
+      if (key === "active") link.title = "Inspect execution targets with active runs";
+      link.append(element("strong", text(result.totals[key]), "metric-value"), element("span", labels[key], "metric-label"));
+      grid.append(link);
     }
-    const health = section("Project health", parent);
+    const health = section("Latest project runs", parent);
     health.classList.add("project-health");
     const priority = { failing: 0, unknown: 1, active: 2, queued: 3, unavailable: 4, cancelled: 5, healthy: 6 };
     for (const project of [...(result.projects || [])].sort((a, b) => (priority[a.health] ?? 4) - (priority[b.health] ?? 4))) {
-      const card = section(`${text(project.label)} · ${text(project.health)}`, health, "record-card");
-      card.dataset.health = project.health;
-      if (project.latest_run) {
-        card.append(runLink(project.latest_run.id, `Latest: ${project.latest_run.outcome} · ${duration(project.latest_run.duration_ms)}`), element("p", `Completed: ${compactTimestamp(project.latest_run.completed_at_ms)}`, "small"));
-      } else card.append(element("p", "No retained runs.", "small"));
+      const row = element("article", undefined, "project-row");
+      row.dataset.health = project.health;
+      const name = element("div", undefined, "project-row-name");
+      const latest = project.latest_run;
+      const history = { page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" };
+      name.append(workspaceLink(history, text(project.label)));
+      if (latest) {
+        const badge = element("span", text(latest.outcome), "state-badge");
+        badge.dataset.tone = project.health === "failing" ? "warning" : project.health === "healthy" ? "good" : "neutral";
+        name.append(badge);
+        row.append(name, element("span", duration(latest.duration_ms), "project-row-duration"), element("span", compactTimestamp(latest.completed_at_ms), "project-row-time"));
+        const actions = element("div", undefined, "project-row-actions");
+        const selection = { ...history, run: latest.id, stream: project.health === "failing" ? "stderr" : "stdout" };
+        const pipeline = workspaceLink({ ...selection, view: "pipeline" }, "Pipeline");
+        const logs = workspaceLink({ ...selection, view: "logs" }, "Logs");
+        pipeline.setAttribute("aria-label", `Pipeline for ${text(project.label)}`);
+        logs.setAttribute("aria-label", `Logs for ${text(project.label)}`);
+        actions.append(pipeline, logs); row.append(actions);
+      } else {
+        row.append(name, element("span", "No retained runs", "small"));
+      }
+      health.append(row);
     }
     if (!result.projects?.length) health.append(element("p", "No enrolled project health is recorded.", "small"));
-    const trend = section("Recorded duration trend", parent);
+    const trend = element("details", undefined, "panel overview-timing");
+    trend.append(element("summary", "Recorded duration trend"));
+    parent.append(trend);
     trend.append(element("p", `${text(result.timing?.recorded)} / ${text(result.timing?.total)} retained runs have recorded timing. Historical unknowns are excluded, not treated as zero.`, "small"));
     const rows = result.duration_trend || [];
     const max = Math.max(1, ...rows.map((row) => Number.isSafeInteger(row.duration_ms) ? row.duration_ms : 0));

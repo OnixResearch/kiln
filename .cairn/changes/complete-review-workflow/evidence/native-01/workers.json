@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.worker-status.v1",
+  "maximum_ttl_ms": 3000,
+  "maximum_clock_skew_ms": 1000,
+  "workers": [
+    {
+      "worker_id": "native",
+      "principal": "local:worker",
+      "project_id": "success",
+      "target_id": "6ba5b317ad311181ae1dd6970f14c1e7db9dc73af9f9719981cace60332db9ea",
+      "maximum_slots": 2
+    },
+    {
+      "worker_id": "compatible",
+      "principal": "local:worker",
+      "project_id": "success",
+      "target_id": "6ba5b317ad311181ae1dd6970f14c1e7db9dc73af9f9719981cace60332db9ea",
+      "maximum_slots": 1
+    }
+  ]
+}

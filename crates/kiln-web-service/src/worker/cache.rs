@@ -29,12 +29,21 @@ fn wire_bound(config: &WorkerCacheProfile) -> usize {
         .saturating_add(config.maximum_files.saturating_mul(2048))
         .saturating_add(crate::cache::MAX_POLICY_BYTES)
 }
-fn key(
-    profile: &WorkerProfile,
+/// Build an exact local transfer key without transport or execution authority.
+pub fn local_key(
+    project_id: &str,
     node_id: &str,
     config: &WorkerCacheProfile,
     checkout: &Path,
 ) -> Result<CacheKey, String> {
+    if config.inputs.iter().any(|input| {
+        config
+            .paths
+            .iter()
+            .any(|output| input.starts_with(output) || output.starts_with(input))
+    }) {
+        return Err("cache outputs overlap source inputs".into());
+    }
     config.admit()?;
     let mut inputs = BTreeMap::new();
     let mut total = 0usize;
@@ -49,7 +58,7 @@ fn key(
         inputs.insert(input.clone(), blake3::hash(&bytes).to_hex().to_string());
     }
     let key = CacheKey {
-        project_id: profile.project_id.clone(),
+        project_id: project_id.into(),
         node_id: node_id.into(),
         producer: config.producer.clone(),
         toolchain: config.toolchain.clone(),
@@ -59,6 +68,86 @@ fn key(
     };
     key.admit()?;
     Ok(key)
+}
+
+/// Collect only declared bounded regular files through anchored descriptors.
+pub fn collect_local(
+    root: &Path,
+    key: &CacheKey,
+    config: &WorkerCacheProfile,
+) -> Result<CacheEnvelope, String> {
+    config.admit()?;
+    if local_key(&key.project_id, &key.node_id, config, root)? != *key {
+        return Err("cache source or policy changed before publication".into());
+    }
+    let mut files = Vec::new();
+    let mut total = 0usize;
+    let mut visited = 0usize;
+    for path in &config.paths {
+        collect(root, path, config, &mut files, &mut total, &mut visited)?;
+    }
+    files.sort_by(|a, b| a.path.cmp(&b.path));
+    let entry = CacheEntry {
+        key: key.clone(),
+        files,
+    };
+    entry.verify(config.maximum_entry_bytes, config.maximum_files)?;
+    CacheEnvelope::new(entry)
+}
+
+/// Fully verify source, policy and envelope before descriptor-relative writes.
+pub fn restore_local(
+    root: &Path,
+    envelope: &CacheEnvelope,
+    config: &WorkerCacheProfile,
+) -> Result<(), String> {
+    config.admit()?;
+    if local_key(
+        &envelope.entry.key.project_id,
+        &envelope.entry.key.node_id,
+        config,
+        root,
+    )? != envelope.entry.key
+    {
+        return Err("cache restore source or policy mismatch".into());
+    }
+    envelope.verify(config.maximum_entry_bytes, config.maximum_files)?;
+    restore_entry(root, &envelope.entry)
+}
+
+/// Require absent output roots without following even intermediate symlinks.
+/// Hosted source snapshots use this before restore to exclude source files.
+pub fn require_absent_outputs(root: &Path, config: &WorkerCacheProfile) -> Result<(), String> {
+    config.admit()?;
+    for output in &config.paths {
+        let mut directory = super::files::directory(root)?;
+        let mut parts = output.components().peekable();
+        while let Some(part) = parts.next() {
+            let Component::Normal(name) = part else {
+                return Err("cache output path denied".into());
+            };
+            let metadata = match fstatat(&directory, Path::new(name), AtFlags::AT_SYMLINK_NOFOLLOW)
+            {
+                Err(nix::errno::Errno::ENOENT) => break,
+                Err(_) => return Err("cache output root inspection denied".into()),
+                Ok(metadata) => metadata,
+            };
+            if parts.peek().is_none() {
+                return Err("cache output root already exists in source workspace".into());
+            }
+            if SFlag::from_bits_truncate(metadata.st_mode) & SFlag::S_IFMT != SFlag::S_IFDIR {
+                return Err("cache output parent is not a regular directory".into());
+            }
+            directory = openat(
+                &directory,
+                Path::new(name),
+                OFlag::O_RDONLY | OFlag::O_DIRECTORY | OFlag::O_NOFOLLOW | OFlag::O_CLOEXEC,
+                Mode::empty(),
+            )
+            .map_err(|_| "cache output traversal denied")?;
+        }
+    }
+    Ok(())
 }
 fn request(
     binding: &RunBinding,
@@ -132,7 +221,7 @@ pub(super) fn restore(
     checkout: &Path,
 ) -> Result<(CacheKey, CacheObservation), String> {
     let started = Instant::now();
-    let key = key(profile, node_id, config, checkout)?;
+    let key = local_key(&profile.project_id, node_id, config, checkout)?;
     let (response, transferred_bytes) = send(
         service,
         binding,
@@ -151,8 +240,7 @@ pub(super) fn restore(
         if envelope.entry.key != key {
             return Err("cache restored key conflict".into());
         }
-        envelope.verify(config.maximum_entry_bytes, config.maximum_files)?;
-        restore_entry(checkout, &envelope.entry)?;
+        restore_local(checkout, &envelope, config)?;
         "hit"
     } else {
         "miss"
@@ -183,19 +271,7 @@ pub(super) fn publish(
     if !observed_success || key.node_id != node_id {
         return Err("cache publication requires successful admitted step".into());
     }
-    let mut files = Vec::new();
-    let mut total = 0usize;
-    let mut visited = 0usize;
-    for path in &config.paths {
-        collect(checkout, path, config, &mut files, &mut total, &mut visited)?;
-    }
-    files.sort_by(|a, b| a.path.cmp(&b.path));
-    let entry = CacheEntry {
-        key: key.clone(),
-        files,
-    };
-    entry.verify(config.maximum_entry_bytes, config.maximum_files)?;
-    let envelope = CacheEnvelope::new(entry)?;
+    let envelope = collect_local(checkout, key, config)?;
     let (response, transferred_bytes) = send(
         service,
         binding,
@@ -415,6 +491,20 @@ fn restore_entry(root: &Path, entry: &CacheEntry) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fresh_output_inspection_rejects_symlink_ancestors_even_when_leaf_is_absent() {
+        let root =
+            tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture root: {error:?}"));
+        let outside =
+            tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture root: {error:?}"));
+        let mut policy = config();
+        policy.paths = vec!["parent/output".into()];
+        assert!(require_absent_outputs(root.path(), &policy).is_ok());
+        std::os::unix::fs::symlink(outside.path(), root.path().join("parent"))
+            .unwrap_or_else(|error| unreachable!("fixture symlink: {error:?}"));
+        assert!(require_absent_outputs(root.path(), &policy).is_err());
+        assert!(!outside.path().join("output").exists());
+    }
     fn config() -> WorkerCacheProfile {
         WorkerCacheProfile {
             producer: "compiler-v1".into(),
@@ -451,6 +541,42 @@ mod tests {
         }
     }
     #[test]
+    fn local_transfers_bind_current_source_and_verify_before_writes() {
+        let producer =
+            tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture root: {error:?}"));
+        let consumer =
+            tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture root: {error:?}"));
+        for root in [producer.path(), consumer.path()] {
+            std::fs::write(root.join("input"), b"source")
+                .unwrap_or_else(|error| unreachable!("fixture input: {error:?}"));
+        }
+        std::fs::create_dir(producer.path().join("cache-output"))
+            .unwrap_or_else(|error| unreachable!("fixture output: {error:?}"));
+        std::fs::write(producer.path().join("cache-output/product"), b"product")
+            .unwrap_or_else(|error| unreachable!("fixture product: {error:?}"));
+        let key = local_key("project", "job", &config(), producer.path())
+            .unwrap_or_else(|error| unreachable!("fixture key: {error:?}"));
+        let envelope = collect_local(producer.path(), &key, &config())
+            .unwrap_or_else(|error| unreachable!("fixture envelope: {error:?}"));
+        std::fs::write(consumer.path().join("input"), b"changed")
+            .unwrap_or_else(|error| unreachable!("fixture input: {error:?}"));
+        assert!(restore_local(consumer.path(), &envelope, &config()).is_err());
+        assert!(!consumer.path().join("cache-output").exists());
+        std::fs::write(consumer.path().join("input"), b"source")
+            .unwrap_or_else(|error| unreachable!("fixture input: {error:?}"));
+        let mut corrupt = envelope.clone();
+        corrupt.blake3 = "0".repeat(64);
+        assert!(restore_local(consumer.path(), &corrupt, &config()).is_err());
+        assert!(!consumer.path().join("cache-output").exists());
+        restore_local(consumer.path(), &envelope, &config())
+            .unwrap_or_else(|error| unreachable!("verified restoration: {error:?}"));
+        assert_eq!(
+            std::fs::read(consumer.path().join("cache-output/product"))
+                .unwrap_or_else(|error| unreachable!("restored product: {error:?}")),
+            b"product"
+        );
+    }
+    #[test]
     fn compatible_workers_share_keys_but_changed_input_bytes_do_not() {
         let first = tempfile::tempdir()
             .unwrap_or_else(|error| unreachable!("{}: {:?}", "first worker checkout", error));
@@ -469,16 +595,16 @@ mod tests {
         consumer.work_root = second.path().join("jobs");
         consumer.repository_path = second.path().join("repository");
         consumer.token_file = second.path().join("worker.token");
-        let producer_key = key(&producer, "build", &config(), first.path())
+        let producer_key = local_key(&producer.project_id, "build", &config(), first.path())
             .unwrap_or_else(|error| unreachable!("{}: {:?}", "producer key", error));
-        let consumer_key = key(&consumer, "build", &config(), second.path())
+        let consumer_key = local_key(&consumer.project_id, "build", &config(), second.path())
             .unwrap_or_else(|error| unreachable!("{}: {:?}", "consumer key", error));
         assert_eq!(producer_key, consumer_key);
         std::fs::write(second.path().join("input"), b"changed input")
             .unwrap_or_else(|error| unreachable!("{}: {:?}", "changed input", error));
         assert_ne!(
             producer_key,
-            key(&consumer, "build", &config(), second.path())
+            local_key(&consumer.project_id, "build", &config(), second.path())
                 .unwrap_or_else(|error| unreachable!("changed input key: {error}")),
         );
     }

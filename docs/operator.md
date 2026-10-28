@@ -1351,14 +1351,14 @@ profile generation does not install or start it.
 ### Navigate the live workspace
 <!-- r[related kiln.work.usability] -->
 
-The sidebar separates **Work**, **Continuous integration** and a collapsed
-**Administration** group. **Issues** opens the existing `page=work` route;
-existing page URLs remain valid. Administration opens automatically for a selected
-administrative page. The Kiln brand returns to Issues.
+The sidebar keeps **Issues**, **My inbox**, **Planning** and the main CI destinations
+visible. **More work**, **Inspect** and **Administration** disclose secondary
+destinations and open automatically for a selected deep link. Existing page URLs
+remain valid; the Kiln brand returns to Issues.
 
 <!-- r[impl kiln.web.visual_design] -->
-The live console uses Blacksmith-inspired off-white/charcoal surfaces, acid-yellow
-action emphasis, crisp frames, icon-labelled navigation and monospaced metadata.
+The live console uses quiet off-white/charcoal surfaces, restrained borders,
+icon-labelled navigation and acid-yellow action emphasis without decorative shadows.
 Yellow marks actions and emphasis, not successful execution; success and errors
 retain their distinct semantic colors and text. **Settings → Appearance** keeps
 Light, Dark and System modes; **Density** changes spacing without shrinking mobile
@@ -1370,6 +1370,23 @@ The operator-authorized [visual-design deployment receipt](../.cairn/changes/ali
 binds the published source, committed executable, unchanged profiles/state and
 actual deployed desktop/mobile checks. It does not clear the separately retained
 repository-wide traceability or release-readiness holds.
+
+<!-- r[impl kiln.web.minimal_console] -->
+Overview keeps all retained-run counts in a compact clickable strip. **Active**
+opens busy execution targets; other counts filter retained runs. **Latest
+project runs** puts failures first, with recorded timing and direct **Pipeline**
+and **Logs** links. Logs opens the exact latest execution, defaults to stderr for
+a failing project and clears stale run filters; another stream remains selectable.
+**Recorded duration trend** opens the detailed observations without crowding the
+default overview. In Runs, **More filters** holds exact-source and sort order and
+opens automatically when a URL restores non-default values. These views remain
+bounded retained observations, not complete history or release authority.
+
+The [minimal-console deployment receipt](../.cairn/changes/simplify-live-console/evidence/deployment.json)
+binds the frozen source, installed executable, served assets and actual desktop/320px
+workflows. All 19 retained run projections and 546 original configuration, work
+and retained files were preserved; no source publication or lifecycle acceptance
+was performed. Kiln's web-service/dashboard maintainers own these interactions.
 
 Start with **New issue**. Title, description, status and priority are visible;
 ownership/labels, relationships, dates and CI/source links open in labelled
@@ -2556,4 +2573,196 @@ Neither that exercise nor the local activation establishes hostile-code
 confinement, source trust, arbitrary provider correctness, lifecycle acceptance
 or release eligibility. Qualification does not transfer to changed executables
 or profiles.
+
+### Optional interactive change review
+
+The **Code review** page owns human change reviews, not retained Patchgate
+receipts or generic work COBs. Existing work, source and receipt routes remain
+available. The initial concrete collaboration provider is separately admitted
+local Git; source-browser configuration remains read-only and grants no writes.
+No remote hosting, publication, signing or Radicle mutation is implied.
+
+#### Configuration and startup
+
+Author a Nickel input using `config/web-code-review.ncl`; the paired positive
+and negative inputs are under `config/fixtures/*web-code-review-*.ncl`.
+The exported `kiln.code-review-profile.v1` declares:
+
+- `database`: an absolute SQLite path in an already existing, service-owned
+  private directory. Database, journal and lock files must be owned regular
+  mode-0600 files; symbolic links and replaceable ancestor directories fail closed.
+- `project` and `provider.repository_path`: one existing service project and its
+  same canonical local Git repository. `repository_id` is BLAKE3 over that
+  canonical absolute UTF-8 path, with no trailing newline. Git commit identities
+  retain Git's native algorithm.
+- `provider.target_refs`: explicitly admitted `refs/heads/` targets, also present
+  in the service project's admitted references. `capabilities` separately enables
+  inspect, compare, register, submit, rebase, revert, cherry-pick,
+  `apply_suggestions` and `build_integration`. Unsupported operations fail before
+  provider effects.
+- `read_principals` and `write_principals`: exact authenticated IDs, such as
+  `local:operator` and `viewer:reviewer`, not wildcard grants or display names.
+  Application-review writes do not grant access to CI operator routes; Worker
+  credentials never grant review access.
+- `policy`: named eligible reviewers and submitters, nonzero required approvals
+  and explicit `require_ci`. Owner approval, ineligible votes, stale votes,
+  unresolved blocking threads, WIP and unmet dependencies cannot authorize submit.
+- `signature_name` and `signature_email`: the service's identity for provider-created
+  maintenance commits, not an attestation of the original author's signature.
+- `policy.ownership`: `teams` maps names to exact eligible review principals;
+  `rules` declares IDs, path patterns, owners, teams and optional target-ref
+  scopes. Every matching rule needs a current requested non-author owner vote.
+  Changed paths come from the provider comparison, including renamed old paths;
+  incomplete observations cannot silently satisfy ownership. Registration and
+  upload automatically request eligible owners. An empty rules list disables
+  this additional requirement, not the ordinary approval policy.
+- `intake`: explicitly enable the default `refs/heads/review/` contribution
+  namespace with an admitted `default_target_ref`. Optional exact `mappings`
+  bind other source refs to a target and authenticated principal. A protected
+  target can never also be an intake source. Set `null` to disable intake.
+- `delivery`: explicitly register HTTPS destinations and exact principal-to-
+  recipient bindings, request/response bounds and retained-record/attempt limits.
+  Set `null` for local inboxes only. See the delivery contract below.
+- `queue`: `kiln.review-queue.v1` with `max_entries` (1–1000) and
+  `max_candidate_builds` (1–128). Requires `require_ci=true` and both
+  `build_integration` and `submit` capabilities. Set `null` to disable automation.
+
+Export the reviewed input to a private JSON file and supply it explicitly:
+
+```console
+kiln-web-service check --profile "$SERVICE_PROFILE" --access "$ACCESS_PROFILE" \
+  --code-review "$REVIEW_PROFILE"
+kiln-web-service serve --profile "$SERVICE_PROFILE" --access "$ACCESS_PROFILE" \
+  --code-review "$REVIEW_PROFILE"
+```
+
+Review-profile preflight does not initialize a repository, create the review
+database or mutate Git refs. Without this profile the page reports unconfigured
+review access rather than inventing a writable provider. Changing provider/project
+binding cannot silently reinterpret an existing store. Keep backups private:
+drafts, personal queries and notification state are durable service data.
+
+#### Review and submission
+
+Create a change from an exact locally available commit and admitted target.
+Upload later exact commits on that same stable change. Revision and comparison
+selectors preserve exact identities; file navigation, line permalinks and unified
+or side-by-side diffs use provider observations. Binary/truncated content is
+explicit and cannot pretend to supply reviewable line anchors. Reviewed-file
+markers are private, revision-bound preferences, not approval evidence.
+
+Line selection seeds a private draft with the revision, comparison-base commit,
+side, file and range. Save drafts before selecting them for atomic publication
+with an optional current-revision vote. Historical drafts retain their original
+anchors after upload; they are never silently retargeted. Replies, resolution,
+reviewer/CC requests and attention create attributable local inbox events.
+Published mentions and subscriptions additionally use explicitly configured
+external delivery; private drafts never do. Search offers awaiting-review,
+owned-needs-revision and unresolved views; saved queries and drafts are private
+to the authenticated principal.
+
+The checklist exposes each unmet submit requirement. Canonical exact-source CI
+facts link to the run, preserving full/partial and clean/dirty distinctions.
+Only the server's current exact winner evaluation can satisfy required CI;
+browser assertions and retained Patchgate verdicts never grant merge authority.
+Prepare a candidate, then confirm the exact principal, change, source and target
+before submit. Ordered-stack submission evaluates and confirms each dependency
+separately and rechecks each next target; it is not unchecked batch mutation.
+
+Abandon/restore changes review state. Rebase registers a new revision; revert and
+cherry-pick register separate WIP reviews. These operations do not bypass review
+by directly advancing a target. Submission alone uses the provider's exact target
+compare-and-swap after current policy, source and CI admission.
+
+#### Contribution intake and review rendering
+
+The branch picker observes exact local commits and binds its contribution to
+the authenticated principal. The same branch updates one stable change; replay
+does not append a duplicate patch set. Moved expected commits, reassigned
+branches, protected targets and symbolic or non-commit refs fail closed. The
+HTTPS developer CLI uses the same admission, without Git ref write authority:
+
+```console
+kiln-web-service ci --profile "$DEVELOPER_PROFILE" --identity "$DEVELOPER_IDENTITY" \
+  review-submit --request-id "$REQUEST_ID" --source-ref refs/heads/review/my-change \
+  --title 'Review this contribution' --description 'Exact committed branch'
+```
+
+Markdown uses DOM text nodes, safe inline formatting and fenced code; supplied
+HTML does not execute. Local bounded syntax highlighting needs no CDN or remote
+grammar. The whitespace selector changes the provider comparison while retaining
+exact original line coordinates and URL-restored selection.
+
+A published comment may contain one complete `suggestion` fence, with optional
+surrounding prose. Its exact inclusive revision-side path/range supplies the
+replacement. Select suggestions and confirm their exact identities as the change
+owner. The provider rechecks blob bytes, modes, ranges and non-overlap; a stale,
+ambiguous, binary or unsafe-path replacement fails closed. Applying creates a
+new immutable revision, leaves the target untouched and invalidates old approval
+authority. Empty fences intentionally delete the anchored range.
+
+#### Published attention and external delivery
+
+`@principal` and `@{principal}` in newly published comments route attention only
+to admitted identities. Subscribe/unsubscribe and read state are principal-owned;
+private drafts are neither external payloads nor another principal's inbox.
+
+Delivery reuses the bounded HTTPS adapter: exact destination authority, resolved
+IP restrictions, TLS/CA policy, credential-file checks, timeouts and byte bounds.
+`webhook` sends `kiln.review-notification.v1`; `email_adapter` sends the same
+registered envelope to an operator-provided email gateway, not directly to SMTP.
+Recipients never come from comment text or browser-entered URLs. Payloads carry
+notification metadata, not comment or draft bodies. Durable reservation precedes
+transport; success, rejection, safe retry and uncertain outcomes remain distinct.
+A reserved delivery interrupted by restart is uncertain and is not blindly
+resent. Delivery identity is not an exactly-once recipient-effect guarantee.
+
+#### Required-CI merge automation and target protection
+
+Authorize the exact source revision, target ref and automatic recomputation scope
+in the merge-queue confirmation. Per-target FIFO automation constructs an exact
+merge commit, runs the ordinary canonical workflow on that candidate, then
+rechecks current source approval, path owners, policy, dependencies, full/clean
+CI and target before exact-target CAS. It does not transfer source approvals to
+the candidate or manufacture a browser CI verdict. Dependencies must land first.
+Target movement clears candidate and run identities and requires a new candidate
+and fresh CI; revision or policy changes revoke the queued authorization.
+
+The queue and provider operation journals persist through service restart.
+An ambiguous provider operation is reconciled, not dispatched again. An owner
+or the authorizing submitter can cancel pending automation, not undo a completed
+target update. Active worker HTTPS ingress can fail when the service is killed;
+such CI failure blocks submission and is not silently retried or relabeled success.
+
+All Kiln target mutations pass current policy and exact CAS. This is **not OS or
+forge branch protection**: unmanaged repository writers can bypass the service.
+Deployments must restrict write access to protected refs externally. The browser
+cannot install that access control, and local qualification does not prove it.
+
+
+SQLite reserves requests durably before provider effects. Request replay binds
+principal, payload and expected version. Restart reconciles exact observations
+without redispatching effects; pending/uncertain operations remain visible and
+reserve their affected changes while unrelated history stays usable. After a
+timeout or ambiguous result, refresh and inspect the durable operation; do not
+blindly repeat the action under another request identity.
+
+Admission is bounded: 1000 changes, 128 revisions per change, 128 private drafts,
+64 personal views, 4000 provider operations, 20000 request-journal entries,
+16 MiB state and 4 MiB responses. Lists page changes by 25, notifications by 200
+and outstanding operations by 100. Bounds reject excess admission; no automatic
+pruning or unlimited history is claimed.
+
+Kiln maintainers own the reusable core, provider conformance and service/browser
+integration. Repeat the isolated behavioral rail with `cargo test --locked -p
+kiln-core -p kiln-adapter-git -p kiln-web-service` from the development shell.
+Repeat real required-CI qualification with `scripts/review-workflow-smoke.py`
+using explicit service, Lattice binary/source, private scratch and evidence paths.
+It drives branch intake, owner requests, private publication, external HTTPS
+delivery, suggestions, reapproval, candidate construction, restart and canonical
+CI through independent disposable target readback, plus genuine CI failure.
+`--browser-hold` keeps that same service available for desktop/mobile interaction.
+Evidence under `complete-review-workflow/evidence/` distinguishes native checks,
+browser observations and unsuccessful crash experiments; none grants deployment,
+publication, lifecycle acceptance or release authority.
 

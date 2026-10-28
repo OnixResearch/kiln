@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Planning-only documentation and README navigation; no runtime code, configuration, accepted specifications, licenses, provider accounts, deployments or financial state change. Recommendations require separately authorized implementation and launch evidence.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

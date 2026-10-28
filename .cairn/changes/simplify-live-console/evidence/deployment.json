@@ -1,0 +1,139 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "observed_at": "2026-10-28T22:38:45.431Z",
+  "outcome": "Activated the compact, scan-first live console on the existing desktop user-service and verified actual desktop/mobile workflows.",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers; operator owns activation, profiles, credentials and permissions.",
+  "durable_capability": "Compact retained-count navigation, attention-first latest execution rows, exact pipeline/log inspection and progressive disclosure over existing bounded APIs.",
+  "source": {
+    "frozen_nix_source": "/nix/store/kwrv2x52vap5j61hynfglb17krmrdp1v-source",
+    "source_publication_performed": false,
+    "receipt_and_later_documentation_are_evidence_only": true
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "package": "/nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0",
+    "actual_running_executable": "/nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "874ae0649d474a5e3426a977cd23231334467c2c07e56d68207a67b16116542b",
+    "previous_package": "/nix/store/8xd5pp2402r57bh2jsx0qk33adgl5frm-kiln-web-service-0.1.0",
+    "private_rollback_backup": "/home/brittonr/.local/state/kiln/redeploy-20261028-minimal-s262f83c",
+    "sqlite_backup_integrity": "ok",
+    "preservation": {
+      "preserved_file_contents_modes_owners_groups": 546,
+      "live_sqlite_integrity": "ok",
+      "exact_run_projections": 19,
+      "work_objects_before": 0,
+      "work_objects_after": 0,
+      "unrelated_profile_elements_unchanged": true,
+      "lattice_pid_unchanged": "1145552"
+    },
+    "units": {
+      "kiln-web-service.service": {
+        "ActiveState": "active",
+        "MainPID": "85990",
+        "Result": "success"
+      },
+      "kiln-web-proxy-auth.service": {
+        "ActiveState": "active",
+        "MainPID": "86046",
+        "Result": "success"
+      },
+      "kiln-tailnet-proxy.service": {
+        "ActiveState": "active",
+        "MainPID": "86108",
+        "Result": "success"
+      },
+      "kiln-web-lattice.service": {
+        "ActiveState": "active",
+        "MainPID": "1145552",
+        "Result": "success"
+      }
+    },
+    "activation": [
+      {
+        "argv": [
+          "nix",
+          "profile",
+          "remove",
+          "kiln-web-service"
+        ],
+        "stdout": "",
+        "stderr": "removing 'kiln-web-service'\nremoved 1 packages, kept 6 packages\n",
+        "exitCode": 0
+      },
+      {
+        "argv": [
+          "nix",
+          "profile",
+          "add",
+          "/nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0"
+        ],
+        "stdout": "",
+        "stderr": "",
+        "exitCode": 0
+      },
+      {
+        "argv": [
+          "systemctl",
+          "--user",
+          "restart",
+          "kiln-web-service.service"
+        ],
+        "stdout": "",
+        "stderr": "",
+        "exitCode": 0
+      }
+    ],
+    "rollback": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/8xd5pp2402r57bh2jsx0qk33adgl5frm-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service",
+      "Keep installed profiles, credentials and signed-work storage. Do not overwrite live SQLite or rewind work state from the backup."
+    ]
+  },
+  "verification": {
+    "checks": "checks.json",
+    "candidate_browser": "candidate-browser.json",
+    "deployed_browser": "deployed-browser.json",
+    "browser_diagnostics": "browser-diagnostics.json",
+    "tls": "CA chain and hostname verified, TLS >= 1.3, no authorization sent to asset or health endpoints",
+    "health": {
+      "status": "ok"
+    },
+    "served_assets_blake3": {
+      "/": "0dd4f19327863e7a59b6a8fe8c047434e314eccb76966634aa4f5bec482a6871",
+      "/web.js": "6fe1b8d689d8ed134235b4d0813373409df84ebf7ed1b7ff6e8fa3175fd4a860",
+      "/web.css": "1389c5d1e1000c07f8f5df6afde62412ce5dc2aa55dc615bb11cb45e0ebb7c7f",
+      "/work.js": "f18a2dc03126fb581682926b92917b7454f7112e50338a304335777fac314e7f",
+      "/work.css": "d8b3933fda0416d63ea2f9d300932ccf468653e1734092e7d1db0628225160c1",
+      "/work-interaction.js": "bf19725151336855c4bfccbdaad62447157bd4dd71d7496cc4e2f6dfe8a1ce97",
+      "/work-interaction.css": "49e1113103986eaa3a5a4e4b5a623253cd4ec54f41658dcaf9a2f1767430467f",
+      "/work-evidence.js": "11947114c9965be167194e71e8495f31a25be40ad52da516c5133c41b9899918",
+      "/catalog.css": "0127201fc841e022ed50e428e765d64b2b8da5b5b150121c146f521b19c25a92"
+    },
+    "desktop_screenshot": "deployed-desktop.png",
+    "mobile_screenshot": "deployed-mobile.png",
+    "browser_tls_boundary": "Browser-only CDP trust exception after independent CA/hostname verified TLS for health and all nine assets. The open-option trust exception failed and was not used.",
+    "browser_diagnostics_boundary": "Read-request ERR_ABORTED entries are retained verbatim; no JavaScript exceptions were reported. No claim is made that every network request completed.",
+    "state_preservation_verified_after_browser": true
+  },
+  "retained_holds": {
+    "traceability": {
+      "valid": false,
+      "receipt_hash": "138e3aebcf187d20ff360c7d6e26d6ef4b92d2ea7f19ceff6320da473fd4f2b6",
+      "missing": [],
+      "cause": "Existing dangling markers outside the accepted specification set"
+    },
+    "release_readiness": {
+      "valid": false,
+      "receipt_hash": "46b8271527e025c87838cdd8c8ce10f4cd134db69ffc67aefd3d51f270e63e84",
+      "onix_release_ready": false
+    }
+  },
+  "non_claims": [
+    "No source push, signing or remote publication was performed.",
+    "No CI run was created, retried, cancelled or otherwise controlled. Issue capture was cancelled without submission.",
+    "The work inventory was empty before and after this activation; preservation includes all original store files, not newly created work objects.",
+    "No API/backend authority, offline catalog, installed configuration, credentials or worker executable was changed.",
+    "Nix checks cover x86_64-linux only. This activation does not clear existing lifecycle or release-readiness holds."
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "kiln.review-parity.qualification.v1",
+  "scope": "Disposable local Git, SQLite, authenticated loopback HTTPS and maintained native Lattice; no deployment, publication, lifecycle acceptance or release authority",
+  "owner": "Kiln maintainers",
+  "consumer": "Kiln single-tenant review workspace and canonical CI engine",
+  "durable_capability": "Repeatable source-bound review intake, owner approval, suggestion publication and candidate-CI integration queue with durable effect reconciliation",
+  "native_receipt": "native-06/verification.json",
+  "browser_receipt": "browser.json",
+  "screenshots": ["desktop-review.png", "mobile-review.png"],
+  "required_ci": {
+    "policy": "require_ci=true throughout the successful and failing native review paths",
+    "reviewed_source": "2956c60798f622fcdbc46af3a72bc40cbda77462",
+    "constructed_tested_submitted_target": "922980902f93556c0e27df18f7bc5e1821988dbb",
+    "canonical_run": "web-run-6caa41ee129c12444386b82456a5059984208f0f7a8e04cd8b723538a18ae1de",
+    "result": "Success, exact run source matched constructed candidate and independently observed target",
+    "failure": "A genuinely failing source assertion produced DomainFailure and blocked submission without changing that target"
+  },
+  "restart": {
+    "native": "Forced service exit after durable candidate construction; exact same queue entry and candidate recovered before actual canonical CI dispatch",
+    "deterministic_queue_regression": "Restarting both Workspace and Engine with an existing candidate/run retained those identities and one dispatch; moved targets required distinct candidates and runs",
+    "limit": "Killing HTTPS during active worker ingress can fail cache or log upload. Failure blocks submission; uninterrupted in-flight transport and automatic retries are not claimed.",
+    "unsuccessful_experiments": ["native-01/verification.json", "native-02/verification.json"],
+    "fixture_correction": "native-03 records a typed-builder export mismatch, corrected by reusing service-inputs.json rather than re-importing the runtime export",
+    "browser_correction": "native-04/verification.json retains initial delivery-object formatting and prose-suggestion selector findings; both corrected before native-05 browser qualification"
+  },
+  "boundaries": [
+    "Source approvals remain bound to the immutable reviewed revision; exact candidate CI is separate",
+    "No browser assertion can satisfy CI or merge authority",
+    "Provider effects reserve durable identities before execution and reconcile uncertain outcomes",
+    "Only admitted HTTPS destinations and recipients receive notification metadata; private drafts and comment bodies are excluded",
+    "Email delivery is an explicitly configured HTTPS email-adapter envelope, not a built-in SMTP service",
+    "External repository writers require OS or forge enforcement outside Kiln",
+    "Final native and browser fixtures exited all owned processes and removed credentials and scratch state"
+  ]
+}

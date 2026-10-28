@@ -1,0 +1,117 @@
+{
+  "command_timeout_ms": 60000,
+  "execution": {
+    "address_space_bytes": 1073741824,
+    "bubblewrap": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "cpu_seconds": 60,
+    "maximum_file_bytes": 67108864,
+    "maximum_open_files": 256,
+    "network": "deny",
+    "probe_program": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+    "read_only_mounts": [
+      "/nix/store"
+    ]
+  },
+  "heartbeat": {
+    "interval_ms": 250,
+    "slots": 1,
+    "target_id": "6523eef328be0cba16bf2061213db7a396fe0b07c198e6e1da5122c4cb23d2e0",
+    "ttl_ms": 3000,
+    "worker_id": "compatible"
+  },
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "success",
+  "repository_path": "/home/brittonr/.local/state/kiln-review-parity-06/source",
+  "schema": "kiln.web-worker.v2",
+  "service_origin": "https://127.0.0.1:45265",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "source_repository": "4c171fc11c1c5ba265d545b4ee5b1f58d0ebbbffeffea4d6ef3ad33700c35e29",
+  "steps": [
+    {
+      "argv": [
+        "ci.py",
+        "success",
+        "command.started",
+        "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum"
+      ],
+      "artifacts": [
+        "artifact.txt"
+      ],
+      "cache": {
+        "inputs": [
+          "source-value.txt",
+          "ci.py"
+        ],
+        "maximum_entry_bytes": 65536,
+        "maximum_files": 16,
+        "paths": [
+          "cache-output"
+        ],
+        "platform": "linux-x86_64",
+        "producer": "fixture-v1",
+        "toolchain": "python-v1"
+      },
+      "environment": {
+        "ISOLATION_PROBE_PATH": "/home/brittonr/.local/state/kiln-review-parity-06/operator.token",
+        "ISOLATION_SERVICE_PORT": "45265",
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "build",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "reports": [
+        {
+          "kind": "junit",
+          "path": "junit.xml"
+        },
+        {
+          "kind": "cobertura",
+          "path": "coverage.xml"
+        },
+        {
+          "kind": "lcov",
+          "path": "lcov.info"
+        },
+        {
+          "kind": "gate",
+          "path": "gate.json"
+        },
+        {
+          "kind": "review",
+          "path": "review.json"
+        },
+        {
+          "kind": "provenance",
+          "path": "provenance.json"
+        }
+      ]
+    },
+    {
+      "argv": [
+        "-c",
+        "import time; print('second reviewed step', flush=True); time.sleep(1)"
+      ],
+      "artifacts": [],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "build",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14"
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/home/brittonr/.local/state/kiln-review-parity-06/ca.pem",
+  "token_file": "/home/brittonr/.local/state/kiln-review-parity-06/worker.token",
+  "work_root": "/home/brittonr/.local/state/kiln-review-parity-06/work-compatible"
+}

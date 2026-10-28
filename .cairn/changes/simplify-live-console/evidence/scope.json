@@ -1,0 +1,30 @@
+{
+  "prerequisite_gates": [
+    {
+      "stage": "proposal",
+      "valid": true,
+      "receipt_hash": "b725aef13a00113b6f22841899c3d6efbde31a3c98aee9b4e2a60e8d2201637f"
+    },
+    {
+      "stage": "design",
+      "valid": true,
+      "receipt_hash": "f5c8004b6cd2f5a705bc81da4814314255a687b5793d1d5a6bc9684322f0f2b5"
+    },
+    {
+      "stage": "tasks",
+      "valid": true,
+      "receipt_hash": "fb27d2cb0d0994556528bebe1d5f819089dba1878b044673d7c89dd2609acabf"
+    }
+  ],
+  "baseline_totals": {
+    "active": 0,
+    "cancelled": 0,
+    "failed": 7,
+    "queued": 0,
+    "runs": 19,
+    "succeeded": 12,
+    "unknown": 0
+  },
+  "baseline_source_revision": "dba7b02f2344aa52d948be48177a89321679c168",
+  "authority": "User requests minimal/useful UI and existing service deployment; no remote source publication requested."
+}

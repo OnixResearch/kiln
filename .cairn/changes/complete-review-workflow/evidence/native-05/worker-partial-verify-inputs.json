@@ -1,0 +1,57 @@
+{
+  "command_timeout_ms": 60000,
+  "execution": {
+    "address_space_bytes": 1073741824,
+    "bubblewrap": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "cpu_seconds": 60,
+    "maximum_file_bytes": 67108864,
+    "maximum_open_files": 256,
+    "network": "deny",
+    "probe_program": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+    "read_only_mounts": [
+      "/nix/store"
+    ]
+  },
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "partial",
+  "repository_path": "/home/brittonr/.local/state/kiln-review-parity-05/source",
+  "service_origin": "https://127.0.0.1:41531",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "source_repository": "8a199319fd999ea5d15979e7075a7c05dda535abc858a3785e6ef87eed88094d",
+  "steps": [
+    {
+      "node_id": "verify",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "argv": [
+        "-c",
+        "import hashlib,pathlib,sys,xml.etree.ElementTree as ET; payload=pathlib.Path('source-value.txt').read_bytes(); assert payload==b'exact-source-artifact-v1\\n'; suite=ET.Element('testsuite',name='branch',tests='1',failures='1'); case=ET.SubElement(suite,'testcase',name='intentional_branch_failure'); ET.SubElement(case,'failure',message='actual branch failed').text='Controlled native partial failure'; ET.ElementTree(suite).write('branch-junit.xml'); print('actual intentional branch failure',file=sys.stderr,flush=True); sys.exit(7)"
+      ],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "artifacts": [],
+      "reports": [
+        {
+          "kind": "junit",
+          "path": "branch-junit.xml"
+        }
+      ]
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/home/brittonr/.local/state/kiln-review-parity-05/ca.pem",
+  "token_file": "/home/brittonr/.local/state/kiln-review-parity-05/worker.token",
+  "work_root": "/home/brittonr/.local/state/kiln-review-parity-05/work"
+}

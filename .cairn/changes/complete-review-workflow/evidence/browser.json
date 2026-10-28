@@ -1,0 +1,265 @@
+{
+  "schema": "kiln.review-parity.browser.v1",
+  "passed": true,
+  "origin": "https://127.0.0.1:41531",
+  "checks": {
+    "intake": "branch picker resolved exact source and replay opened same one-revision change",
+    "markdown": "bold preview rendered; HTML remained literal with zero image elements",
+    "syntax": "Rust fn keyword highlighted in actual diff",
+    "whitespace": "ignore_all URL restored; exact example.rs revision-side line 2 seeded both draft coordinates",
+    "suggestions": "saved and published prose-plus-fence comment; owner confirmation created revision 2 with previous approval blocked",
+    "delivery": "outcomes rendered metadata without [object Object]",
+    "subscriptions": "desktop subscribe and mobile unsubscribe changed authenticated control state",
+    "mobile": {
+      "viewport": 390,
+      "pageWidth": 390,
+      "internalTableScrolling": true
+    }
+  },
+  "diagnostics": [
+    {
+      "seq": 1,
+      "ts": 1793236336026,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/session: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/session"
+    },
+    {
+      "seq": 2,
+      "ts": 1793236336751,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/overview: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/overview"
+    },
+    {
+      "seq": 3,
+      "ts": 1793236343024,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=647: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=647"
+    },
+    {
+      "seq": 4,
+      "ts": 1793236347911,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=701: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=701"
+    },
+    {
+      "seq": 5,
+      "ts": 1793236349520,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=719: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=719"
+    },
+    {
+      "seq": 6,
+      "ts": 1793236351952,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+    },
+    {
+      "seq": 7,
+      "ts": 1793236352029,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+    },
+    {
+      "seq": 8,
+      "ts": 1793236352194,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614"
+    },
+    {
+      "seq": 9,
+      "ts": 1793236352626,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=745: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=745"
+    },
+    {
+      "seq": 10,
+      "ts": 1793236354181,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=761: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=761"
+    },
+    {
+      "seq": 11,
+      "ts": 1793236364429,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=871: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=871"
+    },
+    {
+      "seq": 12,
+      "ts": 1793236366496,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=885: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=885"
+    },
+    {
+      "seq": 13,
+      "ts": 1793236369090,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614"
+    },
+    {
+      "seq": 14,
+      "ts": 1793236369238,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614/diff?revision=824047be60aefd7c0f42c2f98f2bf1bd80ef3f80283dec397a251242ba24ac89&base=base&whitespace=ignore_all: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review/changes/e80ee709c09257b259788b26b6ba345a2dfc37245a5753d720aa86cebe9ce614/diff?revision=824047be60aefd7c0f42c2f98f2bf1bd80ef3f80283dec397a251242ba24ac89&base=base&whitespace=ignore_all"
+    },
+    {
+      "seq": 15,
+      "ts": 1793236369988,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=907: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=907"
+    },
+    {
+      "seq": 16,
+      "ts": 1793236375498,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+    },
+    {
+      "seq": 17,
+      "ts": 1793236376182,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=977: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=977"
+    },
+    {
+      "seq": 18,
+      "ts": 1793236382458,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1053: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1053"
+    },
+    {
+      "seq": 19,
+      "ts": 1793236384031,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1069: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1069"
+    },
+    {
+      "seq": 20,
+      "ts": 1793236387319,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1099: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1099"
+    },
+    {
+      "seq": 21,
+      "ts": 1793236388915,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1115: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1115"
+    },
+    {
+      "seq": 22,
+      "ts": 1793236396959,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1201: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1201"
+    },
+    {
+      "seq": 23,
+      "ts": 1793236401880,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1249: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1249"
+    },
+    {
+      "seq": 24,
+      "ts": 1793236406735,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1297: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1297"
+    },
+    {
+      "seq": 25,
+      "ts": 1793236408273,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1311: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1311"
+    },
+    {
+      "seq": 26,
+      "ts": 1793236409899,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1327: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1327"
+    },
+    {
+      "seq": 27,
+      "ts": 1793236412425,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "POST https://127.0.0.1:41531/api/code-review/commands: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review/commands"
+    },
+    {
+      "seq": 28,
+      "ts": 1793236412523,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+    },
+    {
+      "seq": 29,
+      "ts": 1793236417671,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/live?after=1417: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/live?after=1417"
+    },
+    {
+      "seq": 30,
+      "ts": 1793236475856,
+      "type": "requestfailed",
+      "level": "error",
+      "text": "GET https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0: net::ERR_ABORTED",
+      "location": "https://127.0.0.1:41531/api/code-review?q=&view=all&offset=0&notification_offset=0&operation_offset=0"
+    }
+  ],
+  "non_claims": [
+    "ERR_ABORTED requests occur during route/live refresh cancellation; retained rather than treated as JavaScript exceptions",
+    "Native restart proof is at durable candidate construction before CI dispatch, not uninterrupted active worker HTTPS uploads"
+  ]
+}

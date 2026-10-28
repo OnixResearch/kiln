@@ -81,6 +81,67 @@ pub(super) fn resolve_source(
 }
 
 impl Engine {
+    /// Internal review queue admission: candidate came from a durable, admitted
+    /// integration-provider effect, not an arbitrary browser source selection.
+    pub(crate) fn start_review_candidate(
+        &mut self,
+        project_id: &str,
+        commit: &str,
+        request_id: &str,
+    ) -> Result<ApiResponse, String> {
+        if self.storage_failed {
+            return error(503, "durable_state_unavailable");
+        }
+        let project = self
+            .profile
+            .projects
+            .iter()
+            .find(|project| project.id == project_id)
+            .cloned()
+            .ok_or("review CI project missing")?;
+        if !self.state.enrolled.contains(project_id) {
+            return error(409, "project_not_enrolled");
+        }
+        if !crate::profile::identifier(request_id)
+            || commit.len() != 40
+            || !commit
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return error(400, "review_candidate_invalid");
+        }
+        let fingerprint = identity(&(
+            "kiln.review.candidate-ci.v1",
+            project_id,
+            commit,
+            request_id,
+        ))?;
+        if let Some(response) = self.request_replay(request_id, &fingerprint)? {
+            return Ok(response);
+        }
+        let provider = ProviderProfileId::new(format!("web-git-{}", project.id))
+            .map_err(|_| "source profile invalid")?;
+        let adapter = LocalGitAdapter::new(
+            project.repository_path.clone(),
+            commit.to_owned(),
+            GitSourceProfile::pinned_local(provider.clone(), project.source_limits.clone()),
+        )
+        .map_err(|_| "candidate source unavailable")?;
+        let resolution =
+            resolve_and_acquire(&adapter, provider).map_err(|_| "candidate source unavailable")?;
+        self.enqueue(
+            &project,
+            request_id,
+            fingerprint,
+            CandidateSource {
+                resolution,
+                dirty_snapshot: None,
+            },
+            None,
+            Vec::new(),
+        )
+    }
+
     pub(super) fn start_run(&mut self, body: &[u8]) -> Result<ApiResponse, String> {
         let req: StartRequest = match serde_json::from_slice(body) {
             Ok(v) => v,

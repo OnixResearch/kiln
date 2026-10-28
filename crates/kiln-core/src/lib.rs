@@ -3,6 +3,7 @@
 extern crate alloc;
 
 pub mod build;
+pub mod change_review;
 pub mod cob;
 pub mod discovery;
 pub mod domain;

@@ -1,0 +1,517 @@
+{
+  "scope": "Candidate frontend overrides only; unchanged real retained APIs. No signed work or CI mutations performed.",
+  "apiOverrides": false,
+  "observations": [
+    {
+      "label": "Desktop compact overview, exact live counts and failure-first rows",
+      "route": "?page=overview&theme=light",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "shadow": "none",
+      "metrics": [
+        {
+          "kind": "failed",
+          "value": "7"
+        },
+        {
+          "kind": "active",
+          "value": "0"
+        },
+        {
+          "kind": "queued",
+          "value": "0"
+        },
+        {
+          "kind": "unknown",
+          "value": "0"
+        },
+        {
+          "kind": "succeeded",
+          "value": "12"
+        },
+        {
+          "kind": "cancelled",
+          "value": "0"
+        },
+        {
+          "kind": "runs",
+          "value": "19"
+        }
+      ],
+      "rows": [
+        {
+          "health": "failing",
+          "label": "Schema Identity Core - conformance and all features"
+        },
+        {
+          "health": "failing",
+          "label": "Schema Migration Core - conformance and all features"
+        },
+        {
+          "health": "failing",
+          "label": "Valence - workspace tests"
+        },
+        {
+          "health": "failing",
+          "label": "Bounded HTTP - all-feature conformance"
+        },
+        {
+          "health": "failing",
+          "label": "Durable Authority State - all-feature conformance"
+        },
+        {
+          "health": "failing",
+          "label": "Transactional Reconciliation Core - all-feature conformance"
+        },
+        {
+          "health": "healthy",
+          "label": "Kiln — Rust workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Cap Root - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Bounded Exec - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Durable File Publication - all-target tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Content Identity Core - all-target tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Quantity Contracts - positive and negative matrix"
+        },
+        {
+          "health": "healthy",
+          "label": "Artifact - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Nickel Export - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Nickel Eval - all-target tests"
+        }
+      ],
+      "overviewHeight": 1002,
+      "visibleProjectRows": 13
+    },
+    {
+      "label": "Desktop dark and compact",
+      "route": "?page=overview&view=logs&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&order=asc&theme=dark&density=compact",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#161714",
+      "shadow": "none",
+      "metrics": [
+        {
+          "kind": "failed",
+          "value": "7"
+        },
+        {
+          "kind": "active",
+          "value": "0"
+        },
+        {
+          "kind": "queued",
+          "value": "0"
+        },
+        {
+          "kind": "unknown",
+          "value": "0"
+        },
+        {
+          "kind": "succeeded",
+          "value": "12"
+        },
+        {
+          "kind": "cancelled",
+          "value": "0"
+        },
+        {
+          "kind": "runs",
+          "value": "19"
+        }
+      ],
+      "rows": [
+        {
+          "health": "failing",
+          "label": "Schema Identity Core - conformance and all features"
+        },
+        {
+          "health": "failing",
+          "label": "Schema Migration Core - conformance and all features"
+        },
+        {
+          "health": "failing",
+          "label": "Valence - workspace tests"
+        },
+        {
+          "health": "failing",
+          "label": "Bounded HTTP - all-feature conformance"
+        },
+        {
+          "health": "failing",
+          "label": "Durable Authority State - all-feature conformance"
+        },
+        {
+          "health": "failing",
+          "label": "Transactional Reconciliation Core - all-feature conformance"
+        },
+        {
+          "health": "healthy",
+          "label": "Kiln — Rust workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Cap Root - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Bounded Exec - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Durable File Publication - all-target tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Content Identity Core - all-target tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Quantity Contracts - positive and negative matrix"
+        },
+        {
+          "health": "healthy",
+          "label": "Artifact - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Nickel Export - workspace tests"
+        },
+        {
+          "health": "healthy",
+          "label": "Nickel Eval - all-target tests"
+        }
+      ],
+      "overviewHeight": 1025.96875,
+      "visibleProjectRows": 13
+    }
+  ],
+  "failedFilter": {
+    "route": "?page=runs&view=pipeline&stream=stdout&outcome=failed&order=desc&theme=light&density=comfortable",
+    "runs": 7,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "directLogs": {
+    "expected": "?page=runs&view=logs&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&order=desc&theme=light&density=comfortable",
+    "route": "?page=runs&view=logs&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&order=desc&theme=light&density=comfortable",
+    "stream": "stderr",
+    "logCharacters": 1606,
+    "logStatus": "Worker-captured output · byte cursor. Actual retained bytes loaded; text is displayed inertly.",
+    "advancedFiltersOpen": true
+  },
+  "restoredAdvancedFilters": {
+    "open": true,
+    "order": "asc"
+  },
+  "timingDisclosure": {
+    "open": true,
+    "text": "Recorded duration trend15 / 19 retained runs have recorded timing. Historical unknowns are excluded, not treated as zero.transactional-reconciliation-core · DomainFailure3.284 s · Oct 27, 2026, 09:39:40 PM EDT (local · America/New_York) · 2"
+  },
+  "deepNavigation": {
+    "page": "source",
+    "open": true
+  },
+  "mobile": {
+    "width": 320,
+    "scrollWidth": 320,
+    "targets": [
+      {
+        "height": 44,
+        "label": "7Failed"
+      },
+      {
+        "height": 44,
+        "label": "0Active"
+      },
+      {
+        "height": 44,
+        "label": "0Queued"
+      },
+      {
+        "height": 44,
+        "label": "0Unknown"
+      },
+      {
+        "height": 44,
+        "label": "12Succeeded"
+      },
+      {
+        "height": 44,
+        "label": "0Cancelled"
+      },
+      {
+        "height": 44,
+        "label": "19Retained"
+      },
+      {
+        "height": 61.03125,
+        "label": "Schema Identity Core - conformance and all features"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 61.03125,
+        "label": "Schema Migration Core - conformance and all features"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Valence - workspace tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Bounded HTTP - all-feature conformance"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 61.03125,
+        "label": "Durable Authority State - all-feature conformance"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 81.375,
+        "label": "Transactional Reconciliation Core - all-feature conformance"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Kiln — Rust workspace tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Cap Root - workspace tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Bounded Exec - workspace tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Durable File Publication - all-target tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Content Identity Core - all-target tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 61.03125,
+        "label": "Quantity Contracts - positive and negative matrix"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Artifact - workspace tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Nickel Export - workspace tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      },
+      {
+        "height": 44,
+        "label": "Nickel Eval - all-target tests"
+      },
+      {
+        "height": 44,
+        "label": "Pipeline"
+      },
+      {
+        "height": 44,
+        "label": "Logs"
+      }
+    ]
+  },
+  "issueCapture": {
+    "documentWidth": 320,
+    "viewport": 320,
+    "dialogWidth": 308.796875,
+    "titleFocused": null,
+    "submitted": false
+  },
+  "keyboard": {
+    "commandOpened": true,
+    "escapeClosed": true
+  },
+  "activeCounter": {
+    "route": "?page=workers&view=pipeline&stream=stdout&order=desc&worker_status=busy&theme=light&density=comfortable",
+    "status": "busy",
+    "notice": null,
+    "text": "Bounded target snapshotSnapshot 1434 · complete configured target inventory within service limits · liveness unknownConfigured targets15Configured project slots15Enrolled project slots15Active / occupied slots0Free project slots15Queued runs0Target inventory0 of 15 configured targets match · filters do not change exact selectionNo targets match the"
+  },
+  "countLinks": [
+    {
+      "key": "failed",
+      "status": "7 shown of 7 matching retained runs · bounded page"
+    },
+    {
+      "key": "queued",
+      "status": "0 shown of 0 matching retained runs · bounded page"
+    },
+    {
+      "key": "unknown",
+      "status": "0 shown of 0 matching retained runs · bounded page"
+    },
+    {
+      "key": "succeeded",
+      "status": "12 shown of 12 matching retained runs · bounded page"
+    },
+    {
+      "key": "cancelled",
+      "status": "0 shown of 0 matching retained runs · bounded page"
+    },
+    {
+      "key": "runs",
+      "status": "19 shown of 19 matching retained runs · bounded page"
+    }
+  ],
+  "exactPipeline": {
+    "href": "?page=runs&view=pipeline&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&order=desc&worker_status=busy&theme=light&density=comfortable",
+    "route": "https://britton-desktop.bison-tailor.ts.net:8443/?page=runs&view=pipeline&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&order=desc&worker_status=busy&theme=light&density=comfortable",
+    "title": "Schema Identity Core - conformance and all features"
+  },
+  "exactSourceRestore": {
+    "expected": "dace0c70eef55baaaa1af2c9162a7f64d629299a",
+    "value": "dace0c70eef55baaaa1af2c9162a7f64d629299a",
+    "open": true,
+    "route": "?page=runs&view=pipeline&run=web-run-495e00ad17d2be5de937943e7650f960b43cc1f9dd0a3fbf374b21539f68cda5&stream=stderr&project=schema-identity-core&source=dace0c70eef55baaaa1af2c9162a7f64d629299a&order=desc&worker_status=busy&theme=light&density=comfortable"
+  },
+  "healthyLogs": {
+    "stream": "stdout",
+    "status": "Worker-captured output · byte cursor. Actual retained bytes loaded; text is displayed inertly.",
+    "characters": 16383
+  },
+  "frozenSource": "/nix/store/kwrv2x52vap5j61hynfglb17krmrdp1v-source"
+}

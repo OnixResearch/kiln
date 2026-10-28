@@ -1,0 +1,187 @@
+{
+  "command": "traceability coverage",
+  "dangling": [
+    "kiln.dashboard.cobs.operated",
+    "kiln.dashboard.cobs.operated.scenario.empty",
+    "kiln.dashboard.cobs.presentation",
+    "kiln.dashboard.product.shell",
+    "kiln.dashboard.product.shell.scenario.inventory",
+    "kiln.dashboard.rats.provenance",
+    "kiln.dashboard.rats.provenance.scenario.drift",
+    "kiln.dashboard.reviews.view",
+    "kiln.dashboard.reviews.view.scenario.absent",
+    "kiln.dashboard.reviews.view.scenario.retained",
+    "kiln.dashboard.source.authority",
+    "kiln.dashboard.source.authority.scenario.policy",
+    "kiln.dashboard.source.read",
+    "kiln.dashboard.source.read.scenario.diff",
+    "kiln.dashboard.source.read.scenario.git",
+    "kiln.dashboard.source.read.scenario.pijul",
+    "kiln.dashboard.workers.capacity",
+    "kiln.dashboard.workers.capacity.scenario.transitions",
+    "kiln.dashboard.workers.capacity.scenario.unknown",
+    "kiln.dashboard.workers.inventory",
+    "kiln.dashboard.workers.inventory.scenario.denied",
+    "kiln.dashboard.workers.inventory.scenario.grouping",
+    "kiln.patchgate.conformance",
+    "kiln.patchgate.conformance.scenario.native",
+    "kiln.patchgate.execution",
+    "kiln.patchgate.execution.scenario.reconcile",
+    "kiln.patchgate.execution.scenario.stop",
+    "kiln.patchgate.nonclaims",
+    "kiln.patchgate.nonclaims.scenario.authority",
+    "kiln.patchgate.profile",
+    "kiln.patchgate.profile.scenario.drift",
+    "kiln.patchgate.profile.scenario.match",
+    "kiln.patchgate.request",
+    "kiln.patchgate.request.scenario.exact",
+    "kiln.patchgate.request.scenario.stale",
+    "kiln.patchgate.result",
+    "kiln.patchgate.result.scenario.complete",
+    "kiln.patchgate.result.scenario.invalid",
+    "kiln.review.authority",
+    "kiln.review.parity.ergonomics",
+    "kiln.review.parity.intake",
+    "kiln.review.parity.ownership",
+    "kiln.review.parity.qualification",
+    "kiln.review.parity.queue",
+    "kiln.review.provider",
+    "kiln.review.workflow",
+    "kiln.web.developer_loop.cache",
+    "kiln.web.developer_loop.cli",
+    "kiln.web.developer_loop.pipeline",
+    "kiln.web.developer_loop.workers",
+    "kiln.web.projects.extension",
+    "kiln.web.remote_workers.source",
+    "kiln.web.remote_workers.source.scenario.clone",
+    "kiln.web.remote_workers.source.scenario.denied",
+    "kiln.web.remote_workers.transport",
+    "kiln.web.remote_workers.transport.scenario.native",
+    "kiln.work.authority",
+    "kiln.work.change",
+    "kiln.work.discussion",
+    "kiln.work.issues",
+    "kiln.work.personal",
+    "kiln.work.planning",
+    "kiln.work.triage",
+    "kiln.work.views"
+  ],
+  "input_hash": "9a2801cdc8c9a26be1da3278536aebd1a55bf9a0333c16b58c1f0c06aacc725b",
+  "missing": [],
+  "policy": "kiln-default",
+  "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+  "profile": {
+    "anchor_kind": "exact_marker_bytes",
+    "assurance_level": "declared",
+    "evidence_sources": [
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "crates",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "ncl"
+        ],
+        "root": "crates",
+        "source_kind": "nickel_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-aspen-host",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-radicle-nix-provider",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/hosting-and-recovery.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "rs",
+          "ncl"
+        ],
+        "root": "tools",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs"
+        ],
+        "root": "src",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs",
+          "sh"
+        ],
+        "root": "tests",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "py"
+        ],
+        "root": "scripts",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "ts"
+        ],
+        "root": "checks/bombadil",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "nix"
+        ],
+        "root": "flake.nix",
+        "source_kind": "tool_source"
+      }
+    ],
+    "id": "cairn-default",
+    "marker_verbs": [
+      "impl",
+      "verify",
+      "depends",
+      "related"
+    ],
+    "requirement_sources": [
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/specs",
+        "source_kind": "accepted_specs"
+      }
+    ]
+  },
+  "profile_id": "cairn-default",
+  "receipt_hash": "29c95c640f64851875e108dc4ef2a6f9a79002c8ad94c49bc89d8b563a4d2f28",
+  "referenced": 906,
+  "requirements": 906,
+  "root": ".",
+  "source_summary": {
+    "evidence_files": 465,
+    "evidence_manifest_hash": "e3a13863a4024d028dc4d65d0c9ec760c1d6e98f7220963f0d11e9378ec79338",
+    "requirement_files": 51,
+    "requirement_manifest_hash": "e8a1c3abff14a636a56bde28af9491576c20d9dbaa2f79955eb6b2323c589493"
+  },
+  "valid": false,
+  "verdict": "fail"
+}

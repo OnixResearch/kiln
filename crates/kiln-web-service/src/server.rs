@@ -28,6 +28,7 @@ pub struct Options {
     pub cache: Option<PathBuf>,
     pub workers: Option<PathBuf>,
     pub work: Option<PathBuf>,
+    pub code_review: Option<PathBuf>,
 }
 
 impl Options {
@@ -91,6 +92,15 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
             .map(crate::work::Profile::load)
             .transpose()?,
     )?;
+    let review_profile = options
+        .code_review
+        .as_deref()
+        .map(crate::code_review::Profile::load)
+        .transpose()?;
+    if let Some(review_profile) = &review_profile {
+        review_profile.admit_service(&profile)?;
+    }
+    let _code_review = crate::code_review::Workspace::new(review_profile)?;
     if let Some(cache) = &_cache {
         cache.preflight_for(&profile)?;
     }
@@ -153,6 +163,15 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
             .map(crate::work::Profile::load)
             .transpose()?,
     )?;
+    let review_profile = options
+        .code_review
+        .as_deref()
+        .map(crate::code_review::Profile::load)
+        .transpose()?;
+    if let Some(review_profile) = &review_profile {
+        review_profile.admit_service(&profile)?;
+    }
+    let code_review = crate::code_review::Workspace::new(review_profile)?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;
     let listener = TcpListener::bind(profile.listen_address)
@@ -187,17 +206,26 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         sources: &sources,
         reviews: &reviews,
         work: &work,
+        code_review: &code_review,
     };
     notify::ready()?;
     std::thread::scope(|scope| -> Result<(), String> {
         let stop_ref = &stop;
         let failed_ref = &poll_failed;
         let engine_ref = &engine;
+        let review_ref = &code_review;
         let polling = scope.spawn(move || {
             while !stop_ref.load(Ordering::Acquire) {
                 let result = (|| -> Result<(), ()> {
-                    let notifications =
-                        engine_ref.lock().map_err(|_| ())?.poll().map_err(|_| ())?;
+                    let now = crate::engine::host_time_ms().map_err(|_| ())?;
+                    let now = i64::try_from(now).map_err(|_| ())?;
+                    let notifications = {
+                        let mut engine = engine_ref.lock().map_err(|_| ())?;
+                        let notifications = engine.poll().map_err(|_| ())?;
+                        review_ref.advance_queue(&mut engine, now).map_err(|_| ())?;
+                        notifications
+                    };
+                    review_ref.deliver_notifications(now).map_err(|_| ())?;
                     // One bounded serial executor: no HTTPS runs under Engine's
                     // mutex and no detached deliveries accumulate across polls.
                     for notification in notifications {
@@ -349,6 +377,7 @@ struct Context<'a> {
     sources: &'a crate::sources::Browser,
     reviews: &'a crate::reviews::Browser,
     work: &'a crate::work::Workspace,
+    code_review: &'a crate::code_review::Workspace,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -629,6 +658,33 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
+        // r[impl kiln.review.authority]
+        if path == "/api/code-review" || path.starts_with("/api/code-review/") {
+            let now = match crate::engine::host_time_ms().and_then(|value| {
+                i64::try_from(value).map_err(|_| "review clock exceeds bound".to_owned())
+            }) {
+                Ok(value) => value,
+                Err(_) => return error_response(503, "clock_unavailable"),
+            };
+            // Hold canonical CI state stable through admission and the provider CAS.
+            // The review workspace never locks Engine, so this lock order is one-way.
+            let engine = match context.engine.lock() {
+                Ok(engine) => engine,
+                Err(_) => return error_response(503, "service_unavailable"),
+            };
+            let ci = engine.code_review_ci();
+            return context.code_review.response(
+                &request.method,
+                &request.target,
+                &request.body,
+                crate::code_review::RequestContext {
+                    role: principal.role,
+                    principal: &principal.id,
+                    now_ms: now,
+                    ci: &ci,
+                },
+            );
+        }
         // r[impl kiln.work.authority]
         if path == "/api/work" || path.starts_with("/api/work/") {
             let now = match crate::engine::host_time_ms().and_then(|value| {
@@ -712,6 +768,11 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             "/web.css" => ("text/css; charset=utf-8", include_bytes!("web.css")),
             "/work.js" => ("text/javascript; charset=utf-8", include_bytes!("work.js")),
             "/work.css" => ("text/css; charset=utf-8", include_bytes!("work.css")),
+            "/code-review.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("code-review.js"),
+            ),
+            "/code-review.css" => ("text/css; charset=utf-8", include_bytes!("code-review.css")),
             "/work-interaction.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-interaction.js"),
@@ -792,6 +853,7 @@ fn api_admission(
         }
         if principal.is_some_and(|principal| principal.role == crate::engine::Role::Viewer)
             && request.target != "/api/work/commands"
+            && request.target != "/api/code-review/commands"
         {
             return Err((403, "operator_required"));
         }
@@ -955,6 +1017,45 @@ mod tests {
         assert_eq!(
             api_admission(&write, "https://localhost", Some(&operator)),
             Err((403, "origin_required"))
+        );
+    }
+
+    #[test]
+    fn review_collaboration_does_not_grant_ci_operator_or_cross_origin_access() {
+        let reviewer = Principal {
+            id: "viewer:reviewer".into(),
+            label: "Reviewer".into(),
+            role: crate::engine::Role::Viewer,
+        };
+        let mut request = parse(b"POST /api/code-review/commands HTTP/1.1\r\nHost: localhost\r\nOrigin: https://localhost\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}")
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            api_admission(&request, "https://localhost", Some(&reviewer)),
+            Ok(())
+        );
+        for target in [
+            "/api/runs",
+            "/api/projects",
+            "/api/code-review/commands?bypass=1",
+            "/api/code-review/commands/extra",
+        ] {
+            request.target = target.into();
+            assert_eq!(
+                api_admission(&request, "https://localhost", Some(&reviewer)),
+                Err((403, "operator_required"))
+            );
+        }
+        request.target = "/api/code-review/commands".into();
+        request
+            .headers
+            .insert("origin".into(), "https://foreign.example".into());
+        assert_eq!(
+            api_admission(&request, "https://localhost", Some(&reviewer)),
+            Err((403, "origin_required"))
+        );
+        assert_eq!(
+            api_admission(&request, "https://localhost", None),
+            Err((401, "unauthorized"))
         );
     }
 

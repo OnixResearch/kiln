@@ -43,7 +43,7 @@ fn main() {
 
 fn usage() -> i32 {
     eprintln!(
-        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service heartbeat --profile <path> --identity <blake3>\n       kiln-web-service ci --profile <path> --identity <blake3> <submit|watch|logs|cancel|retry> [arguments]\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>"
+        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service heartbeat --profile <path> --identity <blake3>\n       kiln-web-service ci --profile <path> --identity <blake3> <submit|watch|logs|cancel|retry> [arguments]\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>"
     );
     eprintln!(
         "       kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>"
@@ -116,6 +116,7 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             "--cache" => &mut options.cache,
             "--workers" => &mut options.workers,
             "--work" => &mut options.work,
+            "--code-review" => &mut options.code_review,
             _ => return usage(),
         };
         if slot.is_some() {
