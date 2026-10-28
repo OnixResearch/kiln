@@ -621,9 +621,10 @@
     state.cobsNextCursor = null;
     for (const id of ["cob-list", "cob-detail", "cob-source-status", "cob-status", "cob-repository", "cob-type"]) $(id).replaceChildren();
     $("cob-search").value = "";
-    for (const id of ["source-browser-status", "source-log", "source-tree", "source-file"]) $(id).replaceChildren();
+    for (const id of ["source-browser-status", "source-log", "source-tree", "source-file", "source-diff"]) $(id).replaceChildren();
     $("source-log-status").textContent = "";
     $("source-log-next").disabled = true;
+    $("source-filter").value = "";
     // r[impl kiln.dashboard.workers.view.scenario.cleared]
     $("workers-content").replaceChildren();
     $("worker-search").value = "";
@@ -714,7 +715,7 @@
       cursor: params.get("cursor") || "", activity_cursor: params.get("activity_cursor") || "", order: params.get("order") === "asc" ? "asc" : "desc", other: params.get("other") || "",
       cob_repository: params.get("cob_repository") || "", cob_type: params.get("cob_type") || "", cob_q: params.get("cob_q") || "", cob_cursor: params.get("cob_cursor") || "",
       cob: params.get("cob") || "", cob_repo: params.get("cob_repo") || "", cob_kind: params.get("cob_kind") || "",
-      src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "",
+      src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "", sq: (params.get("sq") || "").slice(0, 256),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(workerStatuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       theme: ["system", "light", "dark"].includes(params.get("theme")) ? params.get("theme") : "system", density: params.get("density") === "compact" ? "compact" : "comfortable"
     };
@@ -1035,6 +1036,11 @@
   }
   function sourceBreadcrumb(parent, route) {
     const crumb = element("div", undefined, "source-breadcrumb");
+    if (route.spath) {
+      const up = element("button", "↑ up"); up.type = "button";
+      up.addEventListener("click", () => navigate({ spath: route.spath.split("/").slice(0, -1).join("/"), sfile: "" }));
+      crumb.append(up);
+    }
     const root = element("button", "root"); root.type = "button";
     root.addEventListener("click", () => navigate({ spath: "", sfile: "" }));
     crumb.append(root);
@@ -1053,9 +1059,11 @@
     const heading = element("p", `${text(tree.label)} · ${text(tree.kind)} · ${tree.revision_scope === "revision" ? `revision ${text(tree.revision)}` : `channel ${text(tree.channel)}`}`, "small");
     parent.append(heading);
     sourceBreadcrumb(parent, route);
-    parent.append(element("p", `${tree.entries.length} entr${tree.entries.length === 1 ? "y" : "ies"} at ${route.spath || "root"} · bounded listing`, "small"));
+    const needle = route.sq.toLowerCase();
+    const entries = needle ? tree.entries.filter((entry) => entry.path.toLowerCase().includes(needle)) : tree.entries;
+    parent.append(element("p", `${entries.length} of ${tree.entries.length} entr${tree.entries.length === 1 ? "y" : "ies"} at ${route.spath || "root"}${needle ? ` matching “${route.sq}”` : ""} · bounded listing`, "small"));
     const list = element("div", undefined, "source-entries");
-    for (const entry of tree.entries) {
+    for (const entry of entries) {
       const button = element("button", undefined, "source-entry");
       button.type = "button";
       if (entry.path === route.sfile) button.setAttribute("aria-current", "true");
@@ -1073,7 +1081,36 @@
     addFacts(facts, [["Repository", file.label], ["Kind", file.kind], ["Scope", file.revision_scope], ["Revision", file.revision], ["Object", file.oid], ["Bytes", file.bytes], ["Binary", file.binary ? "yes" : "no"]]);
     heading.append(facts);
     if (file.binary) heading.append(element("p", "This object is binary or not valid UTF-8. No text is rendered and nothing is decoded.", "small"));
-    else heading.append(element("pre", text(file.text), "source-content"));
+    else heading.append(sourceLines(file.text, "source-content"));
+  }
+  function sourceLines(textValue, className) {
+    const pre = element("pre", undefined, className);
+    const lines = String(textValue ?? "").split("\n");
+    if (lines.length && lines[lines.length - 1] === "") lines.pop();
+    for (const line of lines) pre.append(element("span", line, "line"), document.createTextNode("\n"));
+    return pre;
+  }
+  function renderSourceDiff(parent, diff) {
+    const card = section(`${text(diff.files_changed)} file(s) changed · +${text(diff.insertions)} −${text(diff.deletions)}`, parent, "record-card");
+    card.append(element("p", `Revision ${text(diff.revision)} against ${text(diff.parent)} · ${diff.truncated ? "bounded preview, not the complete diff" : "complete diff within bounds"}`, "small"));
+    const pre = element("pre", undefined, "source-content diff");
+    for (const line of text(diff.diff).split("\n")) {
+      const kind = line.startsWith("+++") || line.startsWith("---") ? "meta" : line.startsWith("@@") ? "hunk" : line.startsWith("+") ? "add" : line.startsWith("-") ? "del" : line.startsWith("diff --git") ? "file" : "context";
+      pre.append(element("span", line || " ", `diff-${kind}`), document.createTextNode("\n"));
+    }
+    card.append(pre);
+  }
+  async function loadSourceDiff(selected, route) {
+    const parent = $("source-diff");
+    if (!route.rev || selected.revision_scope !== "revision") {
+      parent.append(element("p", selected.kind === "pijul" ? "Pijul changes are listed from the current channel; historical diffs are not readable." : "Select a revision to see its changes against its first parent.", "small"));
+      return;
+    }
+    let diff;
+    try { diff = await api(`/api/sources/${encodeURIComponent(selected.id)}/diff?${sourceQuery({ revision: route.rev })}`); }
+    catch (error) { if (!isAborted(error) && state.route === route) parent.append(element("p", `Changes unavailable: ${explain(error)}`, "warning")); return; }
+    if (state.route !== route || !state.session) return;
+    renderSourceDiff(parent, diff);
   }
   async function loadSource() {
     const route = state.route;
@@ -1111,6 +1148,8 @@
     catch (error) { if (!isAborted(error) && state.route === route) tree.append(element("p", `Listing unavailable: ${explain(error)}`, "warning")); return; }
     if (state.route !== route || !state.session) return;
     renderSourceEntries(tree, route, listing);
+    await loadSourceDiff(selected, route);
+    if (state.route !== route || !state.session) return;
     if (!route.sfile) { $("source-file").append(element("p", "Select a file entry to read its exact content. No file is selected automatically.", "small")); return; }
     let file;
     try { file = await api(`/api/sources/${encodeURIComponent(selected.id)}/file?${sourceQuery({ revision: route.rev, path: route.sfile })}`); }
@@ -1133,6 +1172,15 @@
     }
     if (!entries.length) parent.append(element("p", "No recorded revision is readable for this source.", "small"));
     $("source-log-status").textContent = `${entries.length} revision${entries.length === 1 ? "" : "s"} observed${history.next_cursor ? " · bounded page" : ""}${historical ? " · select one to pin the tree and file reads" : " · Pijul listings cover the current channel state only"}`;
+    const index = entries.findIndex((entry) => entry.id === route.rev);
+    const steps = element("div", undefined, "source-steps");
+    for (const [label, target] of [["← newer", index > 0 ? entries[index - 1] : null], ["older →", index >= 0 ? entries[index + 1] : null]]) {
+      const button = element("button", label); button.type = "button";
+      button.disabled = !historical || !target;
+      if (target) button.addEventListener("click", () => navigate({ rev: target.id, spath: "", sfile: "" }));
+      steps.append(button);
+    }
+    parent.append(steps);
     const next = $("source-log-next");
     next.disabled = !history.next_cursor;
     next.onclick = async () => {
@@ -1436,7 +1484,9 @@
   for (const name of ["activity", "automation", "operations"]) $("refresh-" + name).addEventListener("click", readAction(loadPage));
   $("refresh-cobs").addEventListener("click", readAction(loadPage));
   $("refresh-sources").addEventListener("click", readAction(loadPage));
-  $("source-select").addEventListener("change", (event) => { if (state.session) navigate({ src: event.target.value, rev: "", spath: "", sfile: "" }); });
+  $("source-select").addEventListener("change", (event) => { if (state.session) navigate({ src: event.target.value, rev: "", spath: "", sfile: "", sq: "" }); });
+  $("source-filter").addEventListener("input", (event) => { if (state.session) navigate({ sq: event.target.value }); });
+  $("source-up").addEventListener("click", () => { if (state.session && state.route.spath) navigate({ spath: state.route.spath.split("/").slice(0, -1).join("/"), sfile: "" }); });
   $("source-form").addEventListener("submit", (event) => { event.preventDefault(); if (state.session) navigate({ src: $("source-select").value, rev: "", spath: "", sfile: "" }); });
   $("refresh-workers").addEventListener("click", readAction(loadPage));
   $("worker-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ worker_q: $("worker-search").value.trim(), worker_status: $("worker-status").value }); });

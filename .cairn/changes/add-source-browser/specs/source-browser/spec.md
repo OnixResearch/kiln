@@ -11,6 +11,13 @@ r[kiln.dashboard.source.read.scenario.git]
 - THEN each read MUST reflect that commit, not the head, and MUST preserve exact object ids, byte counts and text
 - AND a missing path, invalid revision, traversal attempt or unadmitted source MUST be rejected explicitly
 
+#### Scenario: Exact revision changes
+r[kiln.dashboard.source.read.scenario.diff]
+- GIVEN an admitted Git or Jujutsu source and an exact commit
+- WHEN an admitted reader requests that revision's changes
+- THEN the response MUST be the unified diff against its first parent, or an empty parent for a root commit, with file, insertion and deletion counts and explicit truncation
+- AND a symbolic revision MUST be rejected and a Pijul request MUST be refused rather than approximated
+
 #### Scenario: Pijul scope
 r[kiln.dashboard.source.read.scenario.pijul]
 - GIVEN an admitted Pijul source with a configured channel and executable
@@ -29,7 +36,7 @@ r[kiln.dashboard.source.authority.scenario.policy]
 
 ### Requirement: Integrated source view
 r[kiln.dashboard.source.view]
-The live workspace MUST provide a Source view with source selection, bounded revision paging, a breadcrumb directory browser, bounded file rendering and URL-restored selection.
+The live workspace MUST provide a Source view with source selection, bounded revision paging, a breadcrumb directory browser, bounded file rendering, line-numbered text, revision changes with addition and deletion highlighting, client-side entry filtering, up-level and newer/older revision navigation, and URL-restored selection.
 
 #### Scenario: Source selection is restored
 r[kiln.dashboard.source.view.scenario.restore]

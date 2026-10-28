@@ -96,5 +96,39 @@
     "Source views are bounded local reads, not a checkout, build, verification or provenance claim.",
     "Jujutsu is read through its Git object store; Jujutsu-only metadata is not interpreted.",
     "Pijul history is listed but not traversed, and Pijul file content is the tracked working copy, labelled as such."
-  ]
+  ],
+  "diff_and_navigation": {
+    "endpoint": "/api/sources/KEY/diff?revision=",
+    "live": {
+      "kiln_head": {
+        "revision": "beea6845ecf1668706511ce858c42590d9a35733",
+        "parent": "278a24af95c328a13a1ee42c4154a6530c87f81f",
+        "files_changed": 111,
+        "insertions": 12443,
+        "deletions": 53,
+        "truncated": true,
+        "reported_bytes": 262084
+      },
+      "lattice_head": {
+        "files_changed": 1,
+        "truncated": false
+      },
+      "redox": "400 source_diff_unsupported",
+      "older_step": "older \u2192 moved the URL from beea6845 to 278a24af and reloaded the tree, file and diff for that revision"
+    },
+    "truncation_semantics": "Hitting the 262,144-byte cap stops the print and reports truncated=true with a 200 response; before the fix that partial stop was misreported as source_unavailable (503).",
+    "rendering": {
+      "file": "line-numbered monospace block (README.md rendered 339 lines)",
+      "diff": "per-line add/del/hunk/file/meta classes with counts and a bounded-preview note"
+    },
+    "navigation": {
+      "filter": "client-side entry filter carried in the URL as sq (Cargo \u2192 Cargo.lock, Cargo.toml)",
+      "up_level": "breadcrumb and explicit Up one level control",
+      "steps": "newer/older buttons over the loaded revision page"
+    },
+    "tests": [
+      "source_diff_reports_exact_parent_changes_and_rejects_pijul_history",
+      "oversized_revision_changes_report_truncation_instead_of_failure"
+    ]
+  }
 }

@@ -133,3 +133,16 @@ dialog::backdrop { background: #10170dc0; }
 .source-size { font-size: .7rem; color: var(--muted); }
 .source-content { margin: 0; padding: .8rem; background: var(--surface-soft); border: 1px solid var(--border); border-radius: .4rem; max-height: 34rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .76rem/1.55 ui-monospace, monospace; }
 .source-revision { display: grid; gap: .2rem; }
+.source-tools { align-items: end; margin-bottom: .4rem; }
+.source-tools > div { flex: 1; min-width: min(100%, 12rem); }
+.source-steps { display: flex; gap: .4rem; margin-top: .6rem; }
+.source-content .line { display: block; counter-increment: line; padding-left: 3.2rem; position: relative; }
+.source-content .line::before { content: counter(line); position: absolute; left: 0; width: 2.6rem; text-align: right; color: var(--muted); opacity: .7; }
+.source-content { counter-reset: line; }
+.source-content.diff { counter-reset: none; }
+.source-content.diff span { display: block; padding-left: .4rem; border-left: 2px solid transparent; }
+.diff-add { background: #1d3b24; border-left-color: #4f9f68 !important; }
+.diff-del { background: #432222; border-left-color: #b25a5a !important; }
+.diff-hunk { color: #9fc6e8; }
+.diff-file { color: var(--muted); font-weight: 600; }
+.diff-meta { color: var(--muted); }

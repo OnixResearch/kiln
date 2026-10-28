@@ -501,6 +501,96 @@ fn pijul_source_reports_explicit_unavailability_instead_of_empty_success() {
     );
 }
 
+// r[verify kiln.dashboard.source.read.scenario.diff]
+#[test]
+fn source_diff_reports_exact_parent_changes_and_rejects_pijul_history() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let (_repository, first, second) = git_fixture(root.path());
+    let source = policy("kiln", "git", &root.path().join("work"));
+    let git_browser = browser(vec![source]);
+
+    let diff = get(
+        &git_browser,
+        &format!("/api/sources/kiln/diff?revision={second}"),
+    );
+    assert_eq!(
+        diff.get("parent").and_then(Value::as_str),
+        Some(first.to_string().as_str())
+    );
+    assert_eq!(diff.get("files_changed").and_then(Value::as_u64), Some(2));
+    assert_eq!(diff.get("truncated").and_then(Value::as_bool), Some(false));
+    let text = diff.get("diff").and_then(Value::as_str).unwrap_or_default();
+    assert!(text.contains("+++ b/README.md"), "{text}");
+    assert!(text.contains("+# fixture v2"), "{text}");
+    assert!(text.contains("-# fixture"), "{text}");
+
+    let head_diff = get(&git_browser, "/api/sources/kiln/diff");
+    assert_eq!(
+        head_diff.get("revision").and_then(Value::as_str),
+        Some(second.to_string().as_str()),
+        "an empty revision selects the current head commit"
+    );
+
+    let root_commit = get(
+        &git_browser,
+        &format!("/api/sources/kiln/diff?revision={first}"),
+    );
+    assert_eq!(root_commit.get("parent"), Some(&Value::Null));
+    assert_eq!(
+        root_commit.get("files_changed").and_then(Value::as_u64),
+        Some(2)
+    );
+
+    rejects(
+        &git_browser,
+        "/api/sources/kiln/diff?revision=HEAD",
+        400,
+        "source_revision_invalid",
+    );
+
+    let mut pijul_source = policy("kiln", "pijul", &root.path().join("work"));
+    pijul_source.channel = Some("main".into());
+    pijul_source.executable = Some(root.path().join("missing-pijul"));
+    let pijul_browser = browser(vec![pijul_source]);
+    rejects(
+        &pijul_browser,
+        "/api/sources/kiln/diff",
+        400,
+        "source_diff_unsupported",
+    );
+}
+
+// r[verify kiln.dashboard.source.read.scenario.diff]
+#[test]
+fn oversized_revision_changes_report_truncation_instead_of_failure() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let repository = Repository::init(root.path().join("work"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let first = commit(&repository, &[("bulk.txt", "")], "Empty bulk", None);
+    let bulk: String = (0..40_000).map(|index| format!("line {index}\n")).collect();
+    let second = commit(
+        &repository,
+        &[("bulk.txt", &bulk)],
+        "Bulk lines",
+        Some(first),
+    );
+    repository
+        .reference("refs/heads/main", second, true, "fixture")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    repository
+        .set_head("refs/heads/main")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+
+    let browser = browser(vec![policy("bulk", "git", &root.path().join("work"))]);
+    let diff = get(&browser, "/api/sources/bulk/diff");
+    assert_eq!(diff.get("truncated").and_then(Value::as_bool), Some(true));
+    let text = diff.get("diff").and_then(Value::as_str).unwrap_or_default();
+    assert!(text.len() <= 262_144, "{}", text.len());
+    assert!(!text.is_empty());
+}
+
 #[test]
 fn source_routes_reject_writes_workers_and_unconfigured_policies() {
     let unconfigured = Browser::new(None).unwrap_or_else(|error| unreachable!("{error}"));

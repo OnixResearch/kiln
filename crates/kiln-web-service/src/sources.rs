@@ -30,6 +30,7 @@ const MAX_SUMMARY_CHARS: usize = 256;
 const MAX_AUTHOR_CHARS: usize = 256;
 const MAX_COMMIT_BYTES: usize = 65_536;
 const MAX_TREE_BYTES: usize = 65_536;
+const MAX_DIFF_BYTES: usize = 262_144;
 const PIJUL_TIMEOUT_MS: u64 = 15_000;
 const PIJUL_POLL_MS: u64 = 25;
 const PIJUL_TEARDOWN_MS: u64 = 2_000;
@@ -190,6 +191,7 @@ impl Browser {
         let allowed: &[&str] = match leaf {
             "log" => &["limit", "cursor"],
             "tree" | "file" => &["revision", "path"],
+            "diff" => &["revision"],
             _ => return error(404, "route_missing"),
         };
         if values.keys().any(|key| !allowed.contains(&key.as_str())) {
@@ -204,6 +206,7 @@ impl Browser {
         match leaf {
             "log" => self.log(policy, &values),
             "tree" => self.tree(policy, &values),
+            "diff" => self.diff(policy, &values),
             _ => self.file(policy, &values),
         }
     }
@@ -277,6 +280,18 @@ impl Browser {
         match policy.kind.as_str() {
             "pijul" => pijul_tree(policy, revision, &components),
             _ => git_tree(policy, revision, &components),
+        }
+    }
+
+    fn diff(
+        &self,
+        policy: &SourcePolicy,
+        values: &BTreeMap<String, String>,
+    ) -> Result<ApiResponse, String> {
+        let revision = values.get("revision").map_or("", String::as_str);
+        match policy.kind.as_str() {
+            "pijul" => error(400, "source_diff_unsupported"),
+            _ => git_diff(policy, revision),
         }
     }
 
@@ -668,6 +683,83 @@ fn git_file(
 
 struct PijulRun {
     stdout: Vec<u8>,
+}
+
+fn git_diff(policy: &SourcePolicy, revision: &str) -> Result<ApiResponse, String> {
+    let repository = match open_git(policy) {
+        Ok(repository) => repository,
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let commit = match commit(&repository, revision) {
+        Ok(commit) => commit,
+        Err(_) if !revision.is_empty() => return error(400, "source_revision_invalid"),
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let head = match tree(&repository, &commit) {
+        Ok(tree) => tree,
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let parent = commit.parent(0).ok().map(|parent| parent.id().to_string());
+    let parent_tree = match commit.parent(0) {
+        Ok(parent) => match tree(&repository, &parent) {
+            Ok(tree) => Some(tree),
+            Err(_) => return error(503, "source_unavailable"),
+        },
+        Err(_) => None,
+    };
+    let mut options = git2::DiffOptions::new();
+    options.context_lines(3).interhunk_lines(0);
+    let diff =
+        match repository.diff_tree_to_tree(parent_tree.as_ref(), Some(&head), Some(&mut options)) {
+            Ok(diff) => diff,
+            Err(_) => return error(503, "source_unavailable"),
+        };
+    let stats = match diff.stats() {
+        Ok(stats) => stats,
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let mut buffer: Vec<u8> = Vec::new();
+    let mut truncated = false;
+    let printed = diff.print(git2::DiffFormat::Patch, |_, _, line| {
+        let line_bytes = match line.origin() {
+            '+' | '-' | ' ' => {
+                let mut bytes = Vec::with_capacity(line.content().len() + 1);
+                bytes.push(line.origin() as u8);
+                bytes.extend_from_slice(line.content());
+                bytes
+            }
+            _ => line.content().to_vec(),
+        };
+        if buffer.len().saturating_add(line_bytes.len()) > MAX_DIFF_BYTES {
+            truncated = true;
+            return false;
+        }
+        buffer.extend_from_slice(&line_bytes);
+        true
+    });
+    // Stopping at the byte cap surfaces as a print error; that partial result is
+    // the reported truncation, not a read failure.
+    if printed.is_err() && !truncated {
+        return error(503, "source_unavailable");
+    }
+    let text = String::from_utf8_lossy(&buffer).into_owned();
+    json_response(
+        200,
+        json!({
+            "source": policy.id,
+            "kind": policy.kind,
+            "label": policy.label,
+            "revision": commit.id().to_string(),
+            "parent": parent,
+            "revision_scope": "revision",
+            "files_changed": stats.files_changed(),
+            "insertions": stats.insertions(),
+            "deletions": stats.deletions(),
+            "truncated": truncated,
+            "diff": text,
+            "non_claims": NON_CLAIMS,
+        }),
+    )
 }
 
 fn pijul_run(policy: &SourcePolicy, args: Vec<String>) -> Result<PijulRun, &'static str> {

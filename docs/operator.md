@@ -1608,6 +1608,10 @@ Authenticated viewers and operators may make bodyless GET requests:
   rejected).
 - `/api/sources/KEY/file?revision=&path=` returns one file's text when it is
   valid UTF-8 without NUL bytes, otherwise `binary: true` and no content.
+- `/api/sources/KEY/diff?revision=` returns the exact commit's unified diff
+  against its first parent (an empty parent for a root commit) with file,
+  insertion and deletion counts. Truncation is reported, never silent. Pijul
+  rejects this route: its CLI exposes no historical diff.
 
 Git and Jujutsu reads resolve an exact 40-character commit id, or the current
 head when `revision` is empty, from the repository's Git object store; a
@@ -1617,9 +1621,13 @@ deadline. The Pijul CLI exposes no historical blob read, so Pijul trees describe
 the current channel state and Pijul files describe the tracked working copy;
 `revision` is rejected for a Pijul source and both scopes are labelled.
 
+The view adds client-side entry filtering, an explicit up-one-level control and
+newer/older revision steps over the loaded page; all of them change only the URL
+selection, never the repository.
+
 Fixed implementation bounds: 64 sources per policy; 100 log entries per page;
-512 tree entries; 262,144 file bytes; 1 MiB retained program output; 4 MiB
-response. Reads never fetch, check out, write a ref, sign, publish or alter CI
+512 tree entries; 262,144 file bytes; 262,144 diff bytes; 1 MiB retained program
+output; 4 MiB response. Reads never fetch, check out, write a ref, sign, publish or alter CI
 state, and they grant no CI, gate, acceptance or release authority. A Jujutsu
 store without a Git-visible head, an unavailable Pijul program and an unreadable
 repository are reported as unavailable, never as an empty repository.
