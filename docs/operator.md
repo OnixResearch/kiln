@@ -210,6 +210,23 @@ moved target, changed configuration/profile/policy, different effect, or altered
 report needs new evidence. This is applicability checking, not a signature or
 authenticity claim. Review never grants acceptance or release authority.
 
+### Inspect retained receipts in the workspace
+
+The run inspector's **Reviews** tab reads the run's retained reports and selects
+only documents whose schema is `kiln.patchgate.review.v1`. For each receipt it
+shows the preserved effect, candidate, candidate-root, pipeline-revision,
+policy, provider-profile, native-binding and report identities, the request
+identity, the recorded time and source revision, one row per change with its
+normalized decision, the producer's `isolated` and `authorizes_acceptance`
+claims, and the verbatim native report.
+
+Decisions stay distinct: rejected, escalated, blocked, waiting, pending,
+removed, reverted and unknown are never folded into "passed". A run with no
+receipt says so explicitly; unrelated reports remain under **Tests & coverage**.
+The view is read-only, never dispatches Patchgate, and grants no review, merge,
+gate or release authority. Upload the receipt JSON as a `review` report to
+retain it for the run.
+
 ### Real producer repeatability
 
 In the development shell, with `PATCHGATE` naming the pinned installed program,

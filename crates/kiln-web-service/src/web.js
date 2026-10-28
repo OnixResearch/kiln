@@ -681,7 +681,7 @@
     }
   }
   const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "activity", "evidence", "automation", "operations", "settings"];
-  const views = ["pipeline", "logs", "artifacts", "tests", "compare", "activity", "evidence"];
+  const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   const workerStatuses = { slots_available: "Slots available", busy: "Busy", unknown: "Unknown execution", not_enrolled: "Not enrolled" };
   function canOperate() { return !!state.session && state.permissions.operate === true; }
   function adoptSession(result) {
@@ -840,6 +840,7 @@
     const route = state.route;
     if (!route.run || route.page !== "runs") return;
     if (route.view === "tests") await renderEndpoint(`${pathFor(route.run)}/reports`, "reports-content", renderReports);
+    if (route.view === "reviews") await renderEndpoint(`${pathFor(route.run)}/reports`, "reviews-content", renderReviews);
     if (route.view === "compare") {
       if (route.other) await renderEndpoint(`${pathFor(route.run)}/compare?${new URLSearchParams({ other: route.other })}`, "compare-content", renderComparison);
       else $("compare-content").replaceChildren(element("p", "Choose another retained run. Missing reports or historical durations remain unavailable, not zero.", "small"));
@@ -1366,6 +1367,100 @@
       }
       if (report.evidence) renderEvidence(card, report.evidence);
     }
+  }
+  // r[impl kiln.dashboard.reviews.view]
+  function patchgateReceipts(result) {
+    const records = Array.isArray(result.reports) ? result.reports : [];
+    return records.filter((record) => {
+      const report = record.report || record;
+      return report?.kind === "review" && report?.evidence?.document?.schema === "kiln.patchgate.review.v1";
+    });
+  }
+  function reviewDecisionTone(decision) {
+    if (decision === "accepted") return "good";
+    if (decision === "rejected" || decision === "escalated" || decision === "blocked") return "warning";
+    return "";
+  }
+  function renderChangeRef(change) {
+    if (!change || typeof change !== "object") return text(change);
+    return `${text(change.provider_namespace)}/${text(change.native_kind)}/${text(change.native_id)}`;
+  }
+  function renderPatchgateReceipt(parent, runId, record, report, document) {
+    const observation = document.observation || {};
+    const reviews = Array.isArray(observation.reviews) ? observation.reviews : [];
+    const counts = new Map();
+    for (const row of reviews) counts.set(row.decision, (counts.get(row.decision) || 0) + 1);
+    const card = section(`Patchgate review · ${reviews.length} change${reviews.length === 1 ? "" : "s"}`, parent, "record-card");
+    const badges = element("div", undefined, "badges");
+    for (const [decision, count] of [...counts.entries()].sort()) {
+      const badge = element("span", `${decision} · ${count}`, "state-badge");
+      badge.dataset.tone = reviewDecisionTone(decision);
+      badges.append(badge);
+    }
+    if (!counts.size) badges.append(element("span", "No review rows recorded", "state-badge"));
+    badges.append(element("span", observation.authorizes_acceptance === true ? "Producer claims acceptance authority (not granted)" : "Acceptance authority: none", "state-badge"));
+    badges.append(element("span", observation.isolated === true ? "Isolated execution recorded" : "Isolation not recorded", "state-badge"));
+    card.append(badges);
+    const facts = element("dl", undefined, "facts");
+    addFacts(facts, [
+      ["Effect", observation.effect_id],
+      ["Candidate", observation.candidate_id],
+      ["Candidate root", observation.candidate_root],
+      ["Pipeline revision", observation.pipeline_revision],
+      ["Policy identity", observation.policy_identity],
+      ["Provider profile", observation.provider_profile],
+      ["Native binding", observation.native_binding_identity],
+      ["Report identity", observation.report_identity],
+      ["Request identity", document.request_identity],
+      ["Retained native report bytes", typeof document.native_report === "string" ? document.native_report.length : null],
+      ["Recorded", timestamp(record.recorded_at_ms)],
+      ["Source revision", record.source_revision],
+      ["Report record", record.id]
+    ]);
+    card.append(facts);
+    if (reviews.length) {
+      const table = element("table", undefined, "review-table");
+      const head = element("tr");
+      for (const heading of ["Change", "Decision"]) head.append(element("th", heading));
+      const thead = element("thead");
+      thead.append(head);
+      table.append(thead);
+      const body = element("tbody");
+      for (const row of reviews) {
+        const line = element("tr");
+        const decision = element("td");
+        const badge = element("span", text(row.decision), "state-badge");
+        badge.dataset.tone = reviewDecisionTone(row.decision);
+        decision.append(badge);
+        line.append(element("td", renderChangeRef(row.change), "review-change"), decision);
+        body.append(line);
+      }
+      table.append(body);
+      card.append(table);
+    }
+    if (typeof document.native_report === "string") {
+      const details = element("details");
+      details.append(element("summary", `Retained native Patchgate report · ${document.native_report.length} bytes · preserved verbatim`));
+      details.append(element("pre", document.native_report, "identity"));
+      card.append(details);
+    }
+    if (report.evidence?.claim_boundary) card.append(element("p", report.evidence.claim_boundary, "small"));
+    if (runId) card.append(runLink(runId, "Inspect this exact run", "pipeline"));
+  }
+  function renderReviews(parent, result) {
+    parent.append(element("p", "A retained receipt proves only that Kiln admitted and preserved that review evidence for this run. Rejected, escalated, blocked, waiting, pending, removed, reverted and unknown decisions stay distinct; absence of a receipt is not a clean review.", "warning"));
+    const receipts = patchgateReceipts(result);
+    if (!receipts.length) {
+      parent.append(element("p", "No retained Patchgate review receipt for this run. Upload a kiln.patchgate.review.v1 document as a review report to retain one.", "small"));
+      return;
+    }
+    const runId = result.run_id || state.route.run;
+    for (const record of receipts) {
+      const report = record.report || record;
+      renderPatchgateReceipt(parent, runId, record, report, report.evidence.document);
+    }
+    const other = (result.reports || []).filter((record) => !receipts.includes(record));
+    if (other.length) parent.append(element("p", `${other.length} other retained report(s) are shown under Tests & coverage.`, "small"));
   }
   function renderEvidence(parent, result) {
     parent.append(element("p", "Recorded evidence only. A reported verdict, review, provenance link or retained artifact does not establish accepted gate authority or product correctness.", "warning"));

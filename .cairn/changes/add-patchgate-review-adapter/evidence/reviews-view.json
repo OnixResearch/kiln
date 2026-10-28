@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.patchgate.reviews-view.verification.v1",
+  "immediate_outcome": "The run inspector has a Reviews tab that renders retained kiln.patchgate.review.v1 receipts with distinct decisions, preserved identities and the verbatim native report.",
+  "surface": "Run detail tab Reviews (data-view=reviews) over GET /api/runs/{id}/reports; no new endpoint, no dispatch, no mutation.",
+  "rendering_verified_with": "The receipt retained by .cairn/changes/add-patchgate-review-adapter/evidence/native-smoke.json (case accepted), whose schema is kiln.patchgate.review.v1 and whose observation carries one pijul change decision.",
+  "observations": [
+    "Tab set became Pipeline, Logs, Artifacts, Tests & coverage, Reviews, Compare & flaky, Activity, Evidence.",
+    "Receipt card showed effect review-accepted, candidate candidate-accepted, candidate root, pipeline revision, policy identity, provider profile, native binding, report identity, request identity, 2768 retained native-report bytes, the recorded local+UTC time and the source revision.",
+    "Decision badges showed \"accepted \u00b7 1\", \"Acceptance authority: none\" and \"Isolated execution recorded\"; the change table listed pijul/change/5QDXQLXYVM6L2GMM7QUOQW4DDABEZWAG6MBTON5Q45VSE6DKNO7AC as accepted.",
+    "The native report is available verbatim in a collapsed details block and is never re-serialized.",
+    "A real retained run without a patchgate receipt reported \"No retained Patchgate review receipt for this run\" instead of implying a clean review."
+  ],
+  "limits": [
+    "No Patchgate executable is installed on this host and https://github.com/brittonr/patchgate returned HTTP 404, so no new live review was produced; the rendered receipt comes from the adapter pinned-producer smoke already retained in this change.",
+    "The view never dispatches Patchgate and cannot create, accept or reject a review."
+  ],
+  "non_claims": [
+    "A displayed receipt proves only that Kiln admitted and preserved that evidence for the run. It is not review acceptance, merge authority, gate acceptance, source trust or release readiness."
+  ]
+}

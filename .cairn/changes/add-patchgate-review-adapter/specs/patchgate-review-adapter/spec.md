@@ -80,3 +80,19 @@ r[kiln.patchgate.nonclaims.scenario.authority]
 - GIVEN a native isolated acceptance
 - WHEN Kiln emits the observation
 - THEN it MUST declare no acceptance authority and retain the original evidence limitations.
+
+### Requirement: Retained review receipts in the live workspace
+r[kiln.dashboard.reviews.view]
+The live workspace MUST provide a Reviews view over a run's retained reports that selects only `kiln.patchgate.review.v1` receipts and renders the preserved request, candidate, policy, binding, report and effect identities, the normalized per-change decisions with their distinct states, the producer's isolation and acceptance-authority claims, and the verbatim native report, without granting review, merge, gate or release authority.
+
+#### Scenario: A retained receipt is inspected
+r[kiln.dashboard.reviews.view.scenario.retained]
+- GIVEN a run with one retained review report whose document schema is `kiln.patchgate.review.v1`
+- WHEN an admitted reader opens the Reviews view
+- THEN every recorded decision MUST remain distinct and inspectable, acceptance authority MUST read as none unless the producer claimed otherwise, and the native report MUST be shown verbatim
+
+#### Scenario: No receipt is retained
+r[kiln.dashboard.reviews.view.scenario.absent]
+- GIVEN a run with no retained Patchgate receipt
+- WHEN an admitted reader opens the Reviews view
+- THEN the view MUST report the absence explicitly rather than implying a clean review, and unrelated reports MUST remain under the existing structured-report view

@@ -146,3 +146,7 @@ dialog::backdrop { background: #10170dc0; }
 .diff-hunk { color: #9fc6e8; }
 .diff-file { color: var(--muted); font-weight: 600; }
 .diff-meta { color: var(--muted); }
+.review-table { width: 100%; border-collapse: collapse; font-size: .78rem; margin-top: .6rem; }
+.review-table th { text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--border-strong); padding: .35rem .5rem; }
+.review-table td { padding: .35rem .5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.review-change { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
