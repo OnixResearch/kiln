@@ -1,6 +1,6 @@
 use super::api::json_response;
 use super::model::{DurableState, RunRecord};
-use super::{ApiResponse, Engine, identity};
+use super::{ApiResponse, Engine};
 use crate::profile::ServiceProfile;
 use kiln_core::domain::Outcome;
 use serde::Serialize;
@@ -47,6 +47,16 @@ struct Worker<'a> {
     capacity: Capacity,
     projects: Vec<Project<'a>>,
     latest_run: Option<LatestRun<'a>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    observed_capacity: Option<ObservedCapacity>,
+}
+
+#[derive(Serialize)]
+struct ObservedCapacity {
+    observed_slots: usize,
+    active_slots: usize,
+    free_slots: usize,
+    last_seen_at_ms: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -192,12 +202,11 @@ fn project_workers<'a>(
         summary.capacity.free_slots += capacity.free_slots;
         summary.capacity.queued += capacity.queued;
         workers.push(Worker {
-            id: identity(&(
-                "kiln.web-worker-target.v1",
+            id: crate::profile::worker_target_identity(
                 provider_profile_id,
-                socket_path,
+                std::path::Path::new(socket_path),
                 platform,
-            ))?
+            )?
             .as_str()
             .to_owned(),
             provider_profile_id,
@@ -217,6 +226,7 @@ fn project_workers<'a>(
                 started_at_ms: run.started_at_ms,
                 completed_at_ms: run.completed_at_ms,
             }),
+            observed_capacity: None,
         });
     }
     workers.sort_unstable_by(|a, b| a.id.cmp(&b.id));
@@ -232,6 +242,33 @@ fn project_workers<'a>(
 
 impl Engine {
     pub(super) fn workers(&self) -> Result<ApiResponse, String> {
-        json_response(200, project_workers(&self.profile, &self.state)?)
+        let mut inventory = project_workers(&self.profile, &self.state)?;
+        if let Some(store) = &self.worker_status {
+            let now = super::host_time_ms()?;
+            for worker in &mut inventory.workers {
+                if let Some(observation) = store.observe_target(&worker.id, now)? {
+                    worker.liveness = if observation.online {
+                        "online"
+                    } else {
+                        "offline"
+                    };
+                    let free_slots = observation
+                        .observed_slots
+                        .saturating_sub(observation.active_slots);
+                    if !observation.online {
+                        worker.status = "offline";
+                    } else if free_slots == 0 {
+                        worker.status = "busy";
+                    }
+                    worker.observed_capacity = Some(ObservedCapacity {
+                        observed_slots: observation.observed_slots,
+                        active_slots: observation.active_slots,
+                        free_slots,
+                        last_seen_at_ms: observation.last_seen_at_ms,
+                    });
+                }
+            }
+        }
+        json_response(200, inventory)
     }
 }

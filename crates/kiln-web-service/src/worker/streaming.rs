@@ -1,8 +1,9 @@
 use std::ffi::OsString;
 use std::io::{self, Read};
 use std::os::fd::OwnedFd;
+use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
-use std::os::unix::process::CommandExt;
+use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -40,10 +41,12 @@ pub struct Chunk {
 pub struct Endpoints {
     // Private directory owns both listeners until all readers have joined.
     _root: tempfile::TempDir,
+    _metrics: tempfile::TempDir,
     pub stdout: UnixListener,
     pub stderr: UnixListener,
     pub stdout_path: PathBuf,
     pub stderr_path: PathBuf,
+    pub usage_path: PathBuf,
 }
 
 impl Endpoints {
@@ -56,6 +59,11 @@ impl Endpoints {
             .map_err(|_| "worker stream directory failed")?;
         let stdout_path = root.path().join("out");
         let stderr_path = root.path().join("err");
+        let metrics = tempfile::Builder::new()
+            .prefix("kiln-metrics-")
+            .tempdir_in("/tmp")
+            .map_err(|_| "worker metrics directory failed")?;
+        let usage_path = metrics.path().join("usage");
         let stdout =
             UnixListener::bind(&stdout_path).map_err(|_| "worker stdout endpoint failed")?;
         let stderr =
@@ -67,19 +75,28 @@ impl Endpoints {
         }
         Ok(Self {
             _root: root,
+            _metrics: metrics,
             stdout,
             stderr,
             stdout_path,
             stderr_path,
+            usage_path,
         })
     }
 }
 
-/// This is an exec adapter, not a supervisor. Bounded Exec owns this PID and
-/// process group before the exact reviewed command replaces the adapter.
+/// Bounded Exec owns this adapter and its child process group. Each newly exec'd
+/// adapter spawns exactly one child; its child rusage cannot include other jobs.
 pub fn child_main(mut arguments: impl Iterator<Item = OsString>) -> i32 {
+    let selector = arguments.next();
+    if selector.as_deref() == Some(std::ffi::OsStr::new("--limit-child")) {
+        return limit_child_main(arguments);
+    }
+    if selector.as_deref() == Some(std::ffi::OsStr::new("--measure-child")) {
+        return measure_child_main(arguments);
+    }
     let parsed = (|| {
-        if arguments.next().as_deref() != Some(std::ffi::OsStr::new("--stdout")) {
+        if selector.as_deref() != Some(std::ffi::OsStr::new("--stdout")) {
             return None;
         }
         let stdout = PathBuf::from(arguments.next()?);
@@ -87,16 +104,29 @@ pub fn child_main(mut arguments: impl Iterator<Item = OsString>) -> i32 {
             return None;
         }
         let stderr = PathBuf::from(arguments.next()?);
+        if arguments.next().as_deref() != Some(std::ffi::OsStr::new("--usage")) {
+            return None;
+        }
+        let usage = PathBuf::from(arguments.next()?);
+        if arguments.next().as_deref() != Some(std::ffi::OsStr::new("--limits")) {
+            return None;
+        }
+        let limits = arguments.next()?.into_string().ok()?;
+        let limits: Option<crate::execution::IsolationPolicy> =
+            serde_json::from_str(&limits).ok()?;
         if arguments.next().as_deref() != Some(std::ffi::OsStr::new("--")) {
             return None;
         }
         let program = PathBuf::from(arguments.next()?);
-        if !stdout.is_absolute() || !stderr.is_absolute() || !program.is_absolute() {
+        if [&stdout, &stderr, &program, &usage]
+            .iter()
+            .any(|p| !p.is_absolute())
+        {
             return None;
         }
-        Some((stdout, stderr, program))
+        Some((stdout, stderr, program, usage, limits))
     })();
-    let Some((stdout, stderr, program)) = parsed else {
+    let Some((stdout, stderr, program, usage, limits)) = parsed else {
         return 2;
     };
     let connected = UnixStream::connect(stdout)
@@ -106,13 +136,158 @@ pub fn child_main(mut arguments: impl Iterator<Item = OsString>) -> i32 {
     };
     let stdout: OwnedFd = stdout.into();
     let stderr: OwnedFd = stderr.into();
-    let _error = Command::new(program)
+    if limits
+        .as_ref()
+        .is_some_and(|policy| policy.admit().is_err())
+    {
+        return 126;
+    }
+    let mut command = Command::new(program);
+    command
         .args(arguments)
         .stdout(Stdio::from(stdout))
-        .stderr(Stdio::from(stderr))
-        .exec();
-    // Do not expose executable names, arguments, or OS diagnostics.
+        .stderr(Stdio::from(stderr));
+    observe(command, limits.is_none().then_some(usage.as_path()))
+}
+
+/// Called inside the namespace for isolated jobs, outside it for legacy jobs.
+/// A single child is waited here, so kernel accounting includes actual job CPU.
+fn observe(mut command: Command, usage: Option<&Path>) -> i32 {
+    let Ok(mut child) = command.spawn() else {
+        return 126;
+    };
+    let status = loop {
+        match child.wait() {
+            Ok(status) => break status,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => (),
+            Err(_) => return 126,
+        }
+    };
+    let code = status
+        .code()
+        .unwrap_or_else(|| status.signal().map_or(126, |signal| 128 + signal));
+    let Some(usage) = usage else {
+        return code;
+    };
+    // There are no prior child processes in this freshly exec'd adapter. Unlike
+    // RUSAGE_CHILDREN in a worker daemon, this is one step's exact child cohort.
+    use nix::sys::resource::{UsageWho, getrusage};
+    use nix::sys::time::TimeValLike;
+    let Ok(resources) = getrusage(UsageWho::RUSAGE_CHILDREN) else {
+        return 126;
+    };
+    let record = ResourceRecord {
+        exit_code: code,
+        cpu_time_us: (resources.user_time().num_microseconds() as u64)
+            .saturating_add(resources.system_time().num_microseconds() as u64),
+        peak_memory_bytes: (resources.max_rss() as u64).saturating_mul(1024),
+    };
+    let written = (|| {
+        use std::io::Write;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(usage)?;
+        let bytes = serde_json::to_vec(&record).map_err(io::Error::other)?;
+        file.write_all(&bytes)
+    })();
+    if written.is_err() {
+        return 126;
+    }
+    code
+}
+
+fn measure_child_main(mut arguments: impl Iterator<Item = OsString>) -> i32 {
+    let Some(usage) = arguments.next().map(PathBuf::from) else {
+        return 2;
+    };
+    let Some(encoded) = arguments.next() else {
+        return 2;
+    };
+    if !usage.is_absolute() || arguments.next().as_deref() != Some(std::ffi::OsStr::new("--")) {
+        return 2;
+    }
+    let Some(program) = arguments.next().map(PathBuf::from) else {
+        return 2;
+    };
+    if !program.is_absolute() {
+        return 2;
+    }
+    let Ok((executable, mut args)) = entry_command() else {
+        return 126;
+    };
+    args.extend([
+        OsString::from("--limit-child"),
+        encoded,
+        OsString::from("--"),
+        program.into_os_string(),
+    ]);
+    let mut command = Command::new(executable);
+    command.args(args).args(arguments);
+    observe(command, Some(&usage))
+}
+
+/// Resource limits belong to the command, not to the process which must retain
+/// its resource report. exec preserves the owned PID and Bounded Exec group.
+fn limit_child_main(mut arguments: impl Iterator<Item = OsString>) -> i32 {
+    use nix::sys::resource::{Resource, setrlimit};
+    use std::os::unix::process::CommandExt;
+    let Some(encoded) = arguments.next().and_then(|v| v.into_string().ok()) else {
+        return 2;
+    };
+    let Ok(policy) = serde_json::from_str::<crate::execution::IsolationPolicy>(&encoded) else {
+        return 2;
+    };
+    if policy.admit().is_err() || arguments.next().as_deref() != Some(std::ffi::OsStr::new("--")) {
+        return 2;
+    }
+    let Some(program) = arguments.next().map(PathBuf::from) else {
+        return 2;
+    };
+    if !program.is_absolute() {
+        return 2;
+    }
+    let mut command = Command::new(program);
+    command.args(arguments);
+    for (resource, bound) in [
+        (Resource::RLIMIT_CPU, policy.cpu_seconds),
+        (Resource::RLIMIT_AS, policy.address_space_bytes),
+        (Resource::RLIMIT_FSIZE, policy.maximum_file_bytes),
+        (Resource::RLIMIT_NOFILE, policy.maximum_open_files),
+    ] {
+        if setrlimit(resource, bound, bound).is_err() {
+            return 126;
+        }
+    }
+    let _error = command.exec();
     126
+}
+
+pub(super) fn entry_command() -> Result<(PathBuf, Vec<OsString>), String> {
+    let executable = std::env::current_exe().map_err(|_| "worker executable unavailable")?;
+    #[cfg(not(test))]
+    let args = vec![OsString::from("stream-child")];
+    // Unit-test executables are libtest, not the deployed CLI. Both accounting
+    // and quota launchers use this same real helper entry, never a fake runner.
+    #[cfg(test)]
+    let args = vec![
+        OsString::from("--exact"),
+        OsString::from("worker::streaming::tests::stream_child_entry"),
+        OsString::from("--ignored"),
+        OsString::from("--nocapture"),
+        OsString::from("--"),
+    ];
+    Ok((executable, args))
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceRecord {
+    pub exit_code: i32,
+    pub cpu_time_us: u64,
+    pub peak_memory_bytes: u64,
 }
 
 pub fn helper_command(
@@ -120,25 +295,21 @@ pub fn helper_command(
     stderr: &Path,
     program: &Path,
     argv: &[String],
+    usage: &Path,
+    limits: Option<&crate::execution::IsolationPolicy>,
 ) -> Result<(PathBuf, Vec<OsString>), String> {
-    let executable = std::env::current_exe().map_err(|_| "worker executable unavailable")?;
-    #[cfg(not(test))]
-    let mut args = vec![OsString::from("stream-child")];
-    // A unit-test executable is libtest, not the deployed CLI. Invoke one real
-    // helper test, with payload after libtest's `--`; no alternate supervisor.
-    #[cfg(test)]
-    let mut args = vec![
-        OsString::from("--exact"),
-        OsString::from("worker::streaming::tests::stream_child_entry"),
-        OsString::from("--ignored"),
-        OsString::from("--nocapture"),
-        OsString::from("--"),
-    ];
+    let (executable, mut args) = entry_command()?;
     args.extend([
         OsString::from("--stdout"),
         stdout.as_os_str().to_owned(),
         OsString::from("--stderr"),
         stderr.as_os_str().to_owned(),
+        OsString::from("--usage"),
+        usage.as_os_str().to_owned(),
+        OsString::from("--limits"),
+        OsString::from(
+            serde_json::to_string(&limits).map_err(|_| "worker resource policy encoding failed")?,
+        ),
         OsString::from("--"),
         program.as_os_str().to_owned(),
     ]);

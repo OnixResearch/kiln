@@ -1,0 +1,54 @@
+{
+  "project_id": "slow",
+  "source_repository": "af5ca3cfe71f23a4124afd74802b7b8c0bf60fbf09d4fbb23c9c88e72fc0332a",
+  "repository_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/source",
+  "service_origin": "https://127.0.0.1:60063",
+  "token_file": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/worker.token",
+  "tls_ca_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/ca.pem",
+  "work_root": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/work",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_path_bytes": 1024,
+    "max_file_bytes": 65536,
+    "max_total_bytes": 1048576
+  },
+  "command_timeout_ms": 60000,
+  "maximum_output_bytes": 65536,
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_total_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "steps": [
+    {
+      "node_id": "build",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "argv": [
+        "ci.py",
+        "slow",
+        "command.started",
+        "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum"
+      ],
+      "environment": {
+        "PYTHONNOUSERSITE": "1",
+        "ISOLATION_PROBE_PATH": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/operator.token",
+        "ISOLATION_SERVICE_PORT": "60063"
+      },
+      "artifacts": [
+        "artifact.txt"
+      ]
+    }
+  ],
+  "execution": {
+    "bubblewrap": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "probe_program": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+    "read_only_mounts": [
+      "/nix/store"
+    ],
+    "network": "deny",
+    "cpu_seconds": 60,
+    "address_space_bytes": 1073741824,
+    "maximum_file_bytes": 67108864,
+    "maximum_open_files": 256
+  }
+}

@@ -1,0 +1,489 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "transport": "local",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "tls": "TLS1.3 succeeded; TLS1.2 rejected"
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "loopback Iroh does not prove WAN or relay availability or distinct-host deployment",
+    "adapter labels do not implement per-node placement or mixed-host scheduling",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "source": {
+    "controller_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-d/source",
+    "worker_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-d/source",
+    "distinct_checkout": false,
+    "source_repository": "63cfcb507b9166908b55d55bf06b6d15f6f82bc533a074036564ce6df8f88ac6",
+    "worker_local_repository": "63cfcb507b9166908b55d55bf06b6d15f6f82bc533a074036564ce6df8f88ac6"
+  },
+  "profiles": {
+    "projects": {
+      "success": {
+        "provider_profile_id": "lattice-web-native-success",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:a84db5a6b892e81ab435f0c64e6de4799a139351463c7561f8f9b9e3522f6764",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:93cbbc5a5f9d3db752298bcd265387a94f3120044681024ee2cf326a871f53f3",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:aadcbe72b33b4f10f348eab947a037c83d3ffbb0201d8ee69aee642bd5dc4c7e",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:fa047f898cbffb2fa480f7a5792ff04b0ad9cd3415867a4881d5ca9ab5fda549",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:22e65dcfefffda97d56f0ff2f27a8d49d1973d3a50792f6fb340ecd6a704ed4e",
+            "workflow_node_id": 1
+          }
+        ]
+      },
+      "slow": {
+        "provider_profile_id": "lattice-web-native-slow",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:58abeadf5086518cb1c1fc89648c68cdf64ab2c065ca969be50022be0666eb59",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:33330fe6ab545f347814a27c0fa074003e4efbecfd3458411cfac05f74d7e348",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "fail": {
+        "provider_profile_id": "lattice-web-native-fail",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:4a4d7278aeaadc690cae7a13599872d3d840101db2158f477b9919a5e53a431e",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:ac8da767577ec59c7507b2cc6df9d54e1e408ffbc684c87e71f5cdd5c744a440",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "partial": {
+        "provider_profile_id": "lattice-web-native-partial",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:3ad472759aa9ae4a02c8e5889b10260b2786eeda1cc7d17e8a7fe91861990841",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:19b133d829780b2993ad40aa1b10a41b9e2d2966c2aa98a7839997e8025eecf1",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:c4cb32d59c6fd4e67581874a4e6a1fce4143ec05c7a27428ad0b135c829512bd",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:6b8bf685a3b357b78f2d5248cbdb99f72983e074406548a315c1895d66333d76",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:bedfd7f1a9e5ca827655d037ba39ae38119d6604d2171fae3019618fb1a7be8f",
+            "workflow_node_id": 1
+          }
+        ]
+      }
+    },
+    "worker_blake3": {
+      "worker-success.json": "6062f5b8a139ce8e54258b0b6868ed75cf3726243d55119e04f1c477246bac27",
+      "worker-partial-lint.json": "6b8bf685a3b357b78f2d5248cbdb99f72983e074406548a315c1895d66333d76",
+      "worker-success-verify.json": "22e65dcfefffda97d56f0ff2f27a8d49d1973d3a50792f6fb340ecd6a704ed4e",
+      "worker-partial.json": "19b133d829780b2993ad40aa1b10a41b9e2d2966c2aa98a7839997e8025eecf1",
+      "worker-slow.json": "33330fe6ab545f347814a27c0fa074003e4efbecfd3458411cfac05f74d7e348",
+      "worker-success-lint.json": "fa047f898cbffb2fa480f7a5792ff04b0ad9cd3415867a4881d5ca9ab5fda549",
+      "worker-success-join.json": "aadcbe72b33b4f10f348eab947a037c83d3ffbb0201d8ee69aee642bd5dc4c7e",
+      "worker-partial-join.json": "c4cb32d59c6fd4e67581874a4e6a1fce4143ec05c7a27428ad0b135c829512bd",
+      "worker-fail.json": "ac8da767577ec59c7507b2cc6df9d54e1e408ffbc684c87e71f5cdd5c744a440",
+      "worker-success-compatible.json": "3a83c2f337c1d2eba92329de25eec389122ec10aff40aea2c2bb1e8a3475f4ac",
+      "worker-partial-verify.json": "bedfd7f1a9e5ca827655d037ba39ae38119d6604d2171fae3019618fb1a7be8f",
+      "worker-success-pool.json": "93cbbc5a5f9d3db752298bcd265387a94f3120044681024ee2cf326a871f53f3"
+    },
+    "handler_profile_blake3": "371e03d9c50bffb079e01e6df120019b64dcb171b72b187f386e10207f56713f"
+  },
+  "origin": "https://127.0.0.1:41381",
+  "source_revision": "50acd2ced3d6206c453082d97abf7461e291edf6",
+  "service_profile_blake3": "a66af7107bc2ea36b9f1a9538e77a90f55939c6ecd51b3746975e847c9158d08",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "true": {
+      "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+      "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471"
+    },
+    "service": {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-web-service",
+      "blake3": "dd0b7102a3df9b6e1cf59bf5cae630283a041a3db62e50fb8ac88b354409be8c"
+    },
+    "lattice": {
+      "path": "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "terminal_diagnostics": {
+    "web-run-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901": {
+      "run": {
+        "id": "web-run-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901",
+        "project_id": "success",
+        "source_revision": "50acd2ced3d6206c453082d97abf7461e291edf6",
+        "canonical_tree": "46729e573852f6212a8447f016bdd812206c32233e644a60bd693d3efb01edf7",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "63cfcb507b9166908b55d55bf06b6d15f6f82bc533a074036564ce6df8f88ac6"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901",
+        "outcome": "DomainFailure",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:e36e937505daa00051c6bf8204c45f2b615e1228d153a39da6d5b0f929459dbf"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Failed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793212923592,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793212923592,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793212923592,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793212923592,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 18,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793212919410,
+        "started_at_ms": 1793212919504,
+        "completed_at_ms": 1793212923592,
+        "duration_ms": 4088,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "4bec842e6df383af02a99e4b7d81ff058f9e34c139e8e98639f8e14625bfc276"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "b16186315f3e7febf1db221e4bad2adcbc7614959d97192b7480c15543b82634"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "step_telemetry": [
+          {
+            "id": "40809b8f27b0c4942773548ba79267ad1706772662a67377fa737f3717dcd6b0",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901",
+                "source_revision": "50acd2ced3d6206c453082d97abf7461e291edf6",
+                "attempt_id": "web-attempt-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e36e937505daa00051c6bf8204c45f2b615e1228d153a39da6d5b0f929459dbf",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793212919519,
+                "completed_at_ms": 1793212922966,
+                "duration_ms": 3446,
+                "exit_code": 1,
+                "cpu_time_us": 150783,
+                "peak_memory_bytes": 22310912,
+                "cache": [
+                  {
+                    "key": "ab0472d81b5e7792d8123b478232a15eb4857e4ae4b35485e81b76333482dd31",
+                    "outcome": "miss",
+                    "transferred_bytes": 718,
+                    "duration_ms": 32
+                  }
+                ]
+              }
+            },
+            "recorded_at_ms": 1793212923504
+          }
+        ]
+      },
+      "logs": {
+        "build/stdout": {
+          "text": "actual command started\nactual isolated host credential and service network denied\nactual source input: exact-source-artifact-v1\nactual direct CPU microseconds: 28770\nactual cold derived computation\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 198,
+            "gap": false,
+            "next_cursor": 198,
+            "node_id": "build",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "build/stderr": {
+          "text": "Error: Resource temporarily unavailable (os error 11)\n\nCaused by:\n    Resource temporarily unavailable (os error 11)\nTraceback (most recent call last):\n  File \"/home/brittonr/.cache/kiln-internal-loop-20261028-d/work/kiln-web-job-KLhSIE/checkout/ci.py\", line 62, in <module>\n    digest = subprocess.check_output([sys.argv[3], \"source-value.txt\"], text=True).split()[0]\n             ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/lib/python3.14/subprocess.py\", line 473, in check_output\n    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,\n           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n               **kwargs).stdout\n               ^^^^^^^^^\n  File \"/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/lib/python3.14/subprocess.py\", line 578, in run\n    raise CalledProcessError(retcode, process.args,\n                             output=stdout, stderr=stderr)\nsubprocess.CalledProcessError: Command '['/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum', 'source-value.txt']' returned non-zero exit status 1.\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 1161,
+            "gap": false,
+            "next_cursor": 1161,
+            "node_id": "build",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stdout": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "join",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "join",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stdout": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "lint",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "lint",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stdout": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "verify",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "verify",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        }
+      }
+    }
+  },
+  "failure": {
+    "kind": "AssertionError",
+    "diagnostic": "{'id': 'web-run-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901', 'project_id': 'success', 'source_revision': '50acd2ced3d6206c453082d97abf7461e291edf6', 'canonical_tree': '46729e573852f6212a8447f016bdd812206c32233e644a60bd693d3efb01edf7', 'repository': {'contract_version': 1, 'provider_namespace': 'git', 'native_kind': 'repository', 'native_id': '63cfcb507b9166908b55d55bf06b6d15f6f82bc533a074036564ce6df8f88ac6'}, 'revision': 2, 'attempt_id': 'web-attempt-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901', 'outcome': 'DomainFailure', 'phase': 'terminal', 'execution': {'contract_version': 1, 'provider_namespace': 'lattice', 'native_kind': 'execution', 'native_id': 'b3:e36e937505daa00051c6bf8204c45f2b615e1228d153a39da6d5b0f929459dbf'}, 'sequence': 2, 'nodes': [{'id': 'build', 'state': 'Failed', 'kind': 'build', 'started_at_ms': None, 'completed_at_ms': 1793212923592, 'duration_ms': None}, {'id': 'join', 'state': 'Skipped', 'kind': 'test', 'started_at_ms': None, 'completed_at_ms': 1793212923592, 'duration_ms': None}, {'id': 'lint', 'state': 'Skipped', 'kind': 'test', 'started_at_ms': None, 'completed_at_ms': 1793212923592, 'duration_ms': None}, {'id': 'verify', 'state': 'Skipped', 'kind': 'test', 'started_at_ms': None, 'completed_at_ms': 1793212923592, 'duration_ms': None}], 'controls': {'cancel': False, 'pause': False, 'resume': False}, 'error_code': None, 'log_bounds': {'maximum_chunk_bytes': 32, 'maximum_total_bytes': 1048576, 'maximum_chunks': 64}, 'ordinal': 18, 'parent_run_id': None, 'selected_nodes': [], 'edges': [{'source': 'build', 'target': 'lint'}, {'source': 'build', 'target': 'verify'}, {'source': 'lint', 'target': 'join'}, {'source': 'verify', 'target': 'join'}], 'created_at_ms': 1793212919410, 'started_at_ms': 1793212919504, 'completed_at_ms': 1793212923592, 'duration_ms': 4088, 'report_summary': {'coverage': [{'coverage': {'branch_rate': None, 'branches_found': None, 'branches_hit': None, 'format': 'cobertura', 'line_rate': 0.6666666666666666, 'lines_found': 3, 'lines_hit': 2}, 'name': 'coverage.xml', 'node_id': 'build', 'report_id': '4bec842e6df383af02a99e4b7d81ff058f9e34c139e8e98639f8e14625bfc276'}, {'coverage': {'branch_rate': None, 'branches_found': None, 'branches_hit': None, 'format': 'lcov', 'line_rate': 0.6666666666666666, 'lines_found': 3, 'lines_hit': 2}, 'name': 'lcov.info', 'node_id': 'build', 'report_id': 'b16186315f3e7febf1db221e4bad2adcbc7614959d97192b7480c15543b82634'}], 'tests': {'errors': 0, 'failed': 0, 'passed': 1, 'skipped': 0, 'total': 1}}, 'step_telemetry': [{'id': '40809b8f27b0c4942773548ba79267ad1706772662a67377fa737f3717dcd6b0', 'observation': {'binding': {'run_id': 'web-run-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901', 'source_revision': '50acd2ced3d6206c453082d97abf7461e291edf6', 'attempt_id': 'web-attempt-96f76df3475e94c3a881ba17f7119c0b42d301ffb5c19b6a3a6a74037f2ce901', 'execution': {'contract_version': 1, 'native_id': 'b3:e36e937505daa00051c6bf8204c45f2b615e1228d153a39da6d5b0f929459dbf', 'native_kind': 'execution', 'provider_namespace': 'lattice'}, 'node_id': 'build'}, 'sequence': 1, 'step': {'step_index': 0, 'started_at_ms': 1793212919519, 'completed_at_ms': 1793212922966, 'duration_ms': 3446, 'exit_code': 1, 'cpu_time_us': 150783, 'peak_memory_bytes': 22310912, 'cache': [{'key': 'ab0472d81b5e7792d8123b478232a15eb4857e4ae4b35485e81b76333482dd31', 'outcome': 'miss', 'transferred_bytes': 718, 'duration_ms': 32}]}}, 'recorded_at_ms': 1793212923504}]}"
+  },
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

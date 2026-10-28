@@ -976,11 +976,20 @@
               config/fixtures/dashboard-refresh-positive.ncl \
               config/web-service.ncl \
               config/web-worker.ncl \
+              config/web-cache.ncl \
+              config/web-workers.ncl \
+              config/web-developer.ncl \
+              config/fixtures/*web-cache*.ncl \
+              config/fixtures/*web-workers*.ncl \
+              config/fixtures/*web-worker-*.ncl \
+              config/fixtures/*web-developer*.ncl \
               config/onixresearch-projects.ncl \
               config/web-systemd.ncl \
               config/web-access.ncl \
               config/web-automation.ncl \
               config/web-cobs.ncl \
+              config/web-work.ncl \
+              config/fixtures/*web-work-*.ncl \
               config/web-sources.ncl \
               config/fixtures/*web-access*.ncl \
               config/fixtures/*web-automation*.ncl \
@@ -1010,12 +1019,32 @@
             nickel typecheck config/patchgate-review.ncl
             nickel typecheck config/web-service.ncl
             nickel typecheck config/web-worker.ncl
+            nickel typecheck config/web-cache.ncl
+            nickel typecheck config/web-workers.ncl
+            nickel typecheck config/web-developer.ncl
+            for fixture in config/fixtures/web-cache-*.ncl config/fixtures/web-workers-*.ncl config/fixtures/web-worker-*.ncl config/fixtures/web-developer-*.ncl; do
+              nickel export "$fixture" >/dev/null
+            done
+            for fixture in config/fixtures/negative-web-cache-*.ncl config/fixtures/negative-web-workers-*.ncl config/fixtures/negative-web-worker-*.ncl config/fixtures/negative-web-developer-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative developer-loop fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel export config/onixresearch-projects.ncl >/dev/null
             nickel typecheck config/web-systemd.ncl
             nickel typecheck config/web-cobs.ncl
             nickel export config/fixtures/web-access-positive.ncl >/dev/null
             nickel export config/fixtures/web-automation-positive.ncl >/dev/null
             nickel export config/fixtures/web-cobs-positive.ncl >/dev/null
+            nickel typecheck config/web-work.ncl
+            nickel export config/fixtures/web-work-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-web-work-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative work fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel typecheck config/web-sources.ncl
             nickel export config/fixtures/web-sources-positive.ncl >/dev/null
             for fixture in config/fixtures/negative-web-sources-*.ncl; do
@@ -1526,6 +1555,7 @@
             packages = [
               toolchain
               pkgs.b3sum
+              pkgs.bubblewrap
               pkgs.cmake
               pkgs.nickel
               pkgs.nixfmt

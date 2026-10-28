@@ -1,0 +1,487 @@
+{
+  "schema": "kiln.work.lifecycle-observations.v1",
+  "preImplementation": [
+    {
+      "stage": "proposal",
+      "valid": true,
+      "verdict": "PASS",
+      "receipt_hash": "6dbe46341bae87f2d0ccd5248dd2f19777fabab832af8dd5b453bb77b1e78476"
+    },
+    {
+      "stage": "design",
+      "valid": true,
+      "verdict": "PASS",
+      "receipt_hash": "31003ff252b83991fff65c695df30758569a9b8f76be3bfd642a83145ef5adef"
+    },
+    {
+      "stage": "tasks",
+      "valid": true,
+      "verdict": "PASS",
+      "receipt_hash": "d05205fe54b1ceec8343a8f5168b914fa0c75776b3fea70e6c3ac3300de36b4a"
+    }
+  ],
+  "policyFresh": true,
+  "activeCoverage": {
+    "command": "traceability coverage",
+    "dangling": [],
+    "input_hash": "41deabd40a1a782425ecbada8119b0467d898968296f11063e76226f5cc3efe5",
+    "missing": [],
+    "policy": "kiln-default",
+    "policy_hash": "cd42c1a8c5f862aae6d6cbd72670ae5d897b6ed61e56b5eff341afe66114c649",
+    "profile": {
+      "anchor_kind": "exact_marker_bytes",
+      "assurance_level": "declared",
+      "evidence_sources": [
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "crates",
+          "source_kind": "rust_source"
+        },
+        {
+          "extensions": [
+            "ncl"
+          ],
+          "root": "crates",
+          "source_kind": "nickel_source"
+        },
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "runtime/kiln-aspen-host",
+          "source_kind": "rust_source"
+        },
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "runtime/kiln-radicle-nix-provider",
+          "source_kind": "rust_source"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": "docs/hosting-and-recovery.md",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "rs",
+            "ncl"
+          ],
+          "root": "tools",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "mjs"
+          ],
+          "root": "src",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "mjs",
+            "sh"
+          ],
+          "root": "tests",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "py"
+          ],
+          "root": "scripts",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "ts"
+          ],
+          "root": "checks/bombadil",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "nix"
+          ],
+          "root": "flake.nix",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "js",
+            "css",
+            "html"
+          ],
+          "root": "crates",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "web/dashboard-index/src",
+          "source_kind": "rust_source"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": "docs/observation-dashboard.md",
+          "source_kind": "tool_source"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": "docs/operator.md",
+          "source_kind": "tool_source"
+        }
+      ],
+      "id": "kiln-active-development",
+      "marker_verbs": [
+        "impl",
+        "verify",
+        "depends",
+        "related"
+      ],
+      "requirement_sources": [
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/specs",
+          "source_kind": "accepted_specs"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/add-dashboard-workers-view/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/add-patchgate-review-adapter/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/add-source-browser/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/build-dashboard-product-interface/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/complete-internal-developer-loop/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/enable-web-remote-lattice-workers/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/extend-live-project-registry/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/fix-cob-rendering/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/use-rats-browser-index/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/fix-log-viewing/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/improve-lattice-rendering/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/repair-workspace-usability/specs",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/show-local-run-time-check-cobs/specs/dashboard-local-time",
+          "source_kind": "requirements_doc"
+        },
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": ".cairn/changes/add-cob-workspace/specs",
+          "source_kind": "requirements_doc"
+        }
+      ]
+    },
+    "profile_id": "kiln-active-development",
+    "receipt_hash": "38bece4ba1b1c7b62a6f624fed42a9c590c2d318f49c76f822dfbd1fcf8cbf7e",
+    "referenced": 993,
+    "requirements": 993,
+    "root": ".",
+    "source_summary": {
+      "evidence_files": 465,
+      "evidence_manifest_hash": "e672b87b06fd834929dfb98af201f0710849e103ac47c459344dfb922faa9ee3",
+      "requirement_files": 65,
+      "requirement_manifest_hash": "c2a9410846dc5275e5b981c762ba2589c794259547c4d91e7c30148f1adb50c6"
+    },
+    "valid": true,
+    "verdict": "pass"
+  },
+  "releaseReadiness": {
+    "authenticated_release_gate": {
+      "boundary": "Authenticated readiness proves measured-byte linkage, configured producer authorization, and lifecycle-policy conformance only; it does not prove source correctness, verifier soundness, build correctness, semantic equivalence, runtime authority, or universal release fitness",
+      "issues": [],
+      "passed": true,
+      "required": false
+    },
+    "cairn_validation_hash": "f655d8fd74e6a565ea257e67bb794072489599c858a74aa650ee9d5189b4df03",
+    "checks": [
+      {
+        "name": "cairn_validate",
+        "passed": true,
+        "receipt_hash": "f655d8fd74e6a565ea257e67bb794072489599c858a74aa650ee9d5189b4df03",
+        "source": "cairn validate --root <root>"
+      },
+      {
+        "name": "traceability_coverage",
+        "passed": false,
+        "receipt_hash": "138e3aebcf187d20ff360c7d6e26d6ef4b92d2ea7f19ceff6320da473fd4f2b6",
+        "source": "cairn traceability coverage --root <root>"
+      },
+      {
+        "name": "mcp_agent_smoke",
+        "passed": true,
+        "receipt_hash": "c70ce3c96d7da811e000e086d8b1eed2ca280ed1d060bfc43dd117325fec40dd",
+        "source": "cairn agent-receipt smoke-mcp --root <root>"
+      },
+      {
+        "name": "determinism_coverage_audit",
+        "passed": true,
+        "receipt_hash": "819e2c8e5475404778d3114fb9552ea57ef76284281adcea65c23acd6d3432a6",
+        "source": "cairn determinism coverage-audit --root <root>"
+      },
+      {
+        "name": "release_evidence_index_freshness",
+        "passed": true,
+        "receipt_hash": "52878cd62bf8458a68c3ec89dd1497977de491d9a1c075e5e3a69e24fc489d94",
+        "skipped": true,
+        "source": "cairn release-evidence check-index --root <root> --index docs/release-evidence-current-head.md"
+      },
+      {
+        "name": "preserves_corpus_freshness",
+        "passed": true,
+        "receipt_hash": "719092abbd3e86d54677d35c4ab336b88b1874852c07f89defec9d5825082199",
+        "source": "cairn preserves-corpus update --path fixtures/preserves-canonicalization/corpus.json"
+      },
+      {
+        "name": "semantic_review_ledger",
+        "passed": true,
+        "receipt_hash": "257a82dfa9cca553c40dcfc39e00c22b27e66debf2d36ca4eccf688c9e0f80bf",
+        "skipped": true,
+        "source": "cairn release-readiness --root <root> --review-ledger <review-ledger.json>"
+      },
+      {
+        "disposition": "absent",
+        "name": "stack_provenance",
+        "passed": true,
+        "receipt_hash": "eecb0fe04069e8e597684fe29014da551f9bf2d5d9b3ae789d653703755f7caa",
+        "skipped": true,
+        "source": "cairn release-readiness --root <root> --stack-provenance <valence-receipt.json> --stack-provenance-graph <graph-summary.json>"
+      },
+      {
+        "disposition": "absent",
+        "name": "function_address",
+        "passed": true,
+        "receipt_hash": "351e24f284980bdd3a25a78b4ced95b67becc3bb9214da2115713a98edd82bef",
+        "skipped": true,
+        "source": "cairn release-readiness --root <root> --function-address-valence <valence-receipt.json> --function-address-mantle <mantle-binding.json> --function-address-kamacite <kamacite-receipt.json> --function-address-graph <graph-summary.json>"
+      },
+      {
+        "name": "stack-provenance_authentication",
+        "passed": true,
+        "skipped": true,
+        "source": "authentication manifest not supplied"
+      },
+      {
+        "name": "function-address_authentication",
+        "passed": true,
+        "skipped": true,
+        "source": "authentication manifest not supplied"
+      },
+      {
+        "name": "authenticated_evidence_release_profile",
+        "passed": true,
+        "required": false,
+        "source": "cairn authenticated evidence policy"
+      },
+      {
+        "disposition": "disabled",
+        "name": "workspace_contract_matrix",
+        "passed": true,
+        "receipt_hash": "c54edfa6882b1bcc2a324dacb362b73251844af7a934b580a3c755bceb99b81b",
+        "skipped": true,
+        "source": "cairn release-readiness --root <root> --workspace-contract-matrix-receipt <receipt.json>"
+      },
+      {
+        "evidence_hash": "a05819db1d511374ca6805efd36120dba707e2ceac7bc03c8c61d76b9daf360b",
+        "name": "repository_gate_policy_listed",
+        "passed": true,
+        "required_external_commands": [
+          "cargo fmt --check",
+          "cargo test --workspace",
+          "cargo clippy --workspace --all-targets -- -D warnings",
+          "nix build .#checks.x86_64-linux.octet --no-link -L",
+          "nix flake check path:$PWD -L"
+        ],
+        "source": "maintained local policy"
+      }
+    ],
+    "command": "release-readiness",
+    "coverage_audit_receipt_hash": "819e2c8e5475404778d3114fb9552ea57ef76284281adcea65c23acd6d3432a6",
+    "coverage_audit_valid": true,
+    "cross_repo_dependencies": [],
+    "cross_repo_evidence_issues": [],
+    "determinism_replay": {
+      "command": "determinism replay --root <root>",
+      "included": false,
+      "reason": "workspace replay may copy fixtures and is an explicit operator/CI preflight",
+      "required": true
+    },
+    "function_address": {
+      "boundary": "Cairn consumed Valence, Mantle, and Kamacite function-address evidence for lifecycle/release policy conformance only; it did not prove Rust semantic correctness, compiler correctness, whole-program safety, verifier soundness, or release eligibility",
+      "canonical_preserves_receipt_hash": null,
+      "claim_scope": null,
+      "disposition": "absent",
+      "evidence_chain_hash": null,
+      "graph_summary": null,
+      "issues": [],
+      "json_projection_authority": null,
+      "kamacite_receipt_hash": null,
+      "mantle_binding_hash": null,
+      "mode": "optional",
+      "name": "function_address_evidence",
+      "passed": true,
+      "required": false,
+      "skipped": true,
+      "valence_receipt_hash": null
+    },
+    "function_address_authentication": {
+      "evidence_kind": "function-address",
+      "passed": true,
+      "skipped": true
+    },
+    "function_address_hash": "351e24f284980bdd3a25a78b4ced95b67becc3bb9214da2115713a98edd82bef",
+    "mcp": {
+      "destructive": false,
+      "read_only": true
+    },
+    "mcp_smoke_receipt_hash": "c70ce3c96d7da811e000e086d8b1eed2ca280ed1d060bfc43dd117325fec40dd",
+    "onix_release_ready": false,
+    "preserves_content_hash": "b34569b70382e9280d8afd1ba9e3e25ecad450c8013ced90e163b1d62e289890",
+    "preserves_corpus_freshness_hash": "719092abbd3e86d54677d35c4ab336b88b1874852c07f89defec9d5825082199",
+    "receipt_hash": "e892195cfee9155c78ec44ceaef3085c13a5cd6afd20d853cd213a6bfb4acd8f",
+    "release_evidence_index_check_hash": "52878cd62bf8458a68c3ec89dd1497977de491d9a1c075e5e3a69e24fc489d94",
+    "repository_gate_summary": {
+      "note": "The bundle records the maintained release gate policy; operators still run heavyweight repository gates outside this local receipt command. The maintained traceability gate is Cairn-owned and does not require the external Tracey binary.",
+      "policy": "maintained-local-gates",
+      "required_commands": [
+        "cargo fmt --check",
+        "cargo test --workspace",
+        "cargo clippy --workspace --all-targets -- -D warnings",
+        "nix build .#checks.x86_64-linux.octet --no-link -L",
+        "nix flake check path:$PWD -L"
+      ]
+    },
+    "root": ".",
+    "semantic_review_ledger_hash": "257a82dfa9cca553c40dcfc39e00c22b27e66debf2d36ca4eccf688c9e0f80bf",
+    "stack_provenance": {
+      "boundary": "Cairn consumed Valence and Mantle stack provenance receipts for lifecycle/release policy conformance only; it did not prove source-code correctness, Valence verifier soundness, Mantle build correctness, or Trellis/Octet proof validity",
+      "claim_scope": null,
+      "disposition": "absent",
+      "graph_summary": null,
+      "issues": [],
+      "mode": "optional",
+      "name": "stack_provenance",
+      "passed": true,
+      "required": false,
+      "skipped": true,
+      "valence_receipt_hash": null
+    },
+    "stack_provenance_authentication": {
+      "evidence_kind": "stack-provenance",
+      "passed": true,
+      "skipped": true
+    },
+    "stack_provenance_hash": "eecb0fe04069e8e597684fe29014da551f9bf2d5d9b3ae789d653703755f7caa",
+    "traceability_coverage_hash": "138e3aebcf187d20ff360c7d6e26d6ef4b92d2ea7f19ceff6320da473fd4f2b6",
+    "valid": false,
+    "verdict": "fail",
+    "verification_role_boundary": "verification_role_summary counts only property artifacts as verified; recorded_only and boundary artifacts prove nothing",
+    "workspace_contract_matrix": {
+      "boundary": "workspace contract matrix validation proves declared edge health only; it does not prove provider correctness, does not prove consumer behavioral correctness, does not prove verifier soundness, or does not prove release eligibility",
+      "disposition": "disabled",
+      "issues": [],
+      "mode": "disabled",
+      "passed": true,
+      "receipt_hash": null,
+      "required": false,
+      "skipped": true
+    },
+    "workspace_contract_matrix_hash": "c54edfa6882b1bcc2a324dacb362b73251844af7a934b580a3c755bceb99b81b"
+  },
+  "non_claims": [
+    "Development traceability is declared linkage, not lifecycle acceptance.",
+    "Accepted-only release readiness remains failed; no pending delta was accepted or archived to make it pass.",
+    "No publication, synchronization or installed-service activation was requested or performed."
+  ],
+  "validation": {
+    "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+    "passed": true,
+    "receipt_hash": "a6b9cfde6c9c36e2caf07aebfa4f016072bda904338a7dcb83eaf05aa2a4b968",
+    "source_excerpt": "{\n  \"change_issues\": [],\n  \"changes\": 21,\n  \"cross_repo_dependencies\": [],\n  \"cross_repo_evidence_issues\": [],\n  \"findings\": [],\n  \"issues\": [],\n  \"layout\": \"cairn\",\n  \"policy\": \"kiln-default\",\n  \"policy_selection\": {\n    \"blake3\": \"a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe\",\n    \"installation_receipt\": false,\n    \"locator\": \"cairn-policy/generated/cairn-policy.json\",\n    \"source\": \"explicit\"\n  },\n  \"profile_issues\": [],\n  \"receipt_hash\": \"a6b9cfde6c9c36e2caf07aebfa4f016072bda904338a7dcb83eaf05aa2a4b968\",\n  \"resolution\": {\n    \"diagnostics\": [],\n    \"locator_consulted\": false,\n    \"registry_lookup\": \"local_locator_only\",\n    \"selected\": {\n      \"project_identity\": null,\n      \"root\": \".\",\n      \"source\": \"explicit_root\",\n      \"store_id\": null,\n      \"store_identity\": null\n    },\n    \"valid\": true\n  },\n  \"spec_findings\": [],\n  \"spec_issues\": [],\n  \"spec_substance\": [\n    {\n      \"path\": \"./.cairn/changes/add-cob-workspace/specs/cob-workspace/spec.md\",\n      \"requ"
+  }
+}

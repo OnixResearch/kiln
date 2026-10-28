@@ -37,6 +37,7 @@
     runsError: "",
     cobsNextCursor: null,
     graphRun: null, graphZoom: 1,
+    workCanWrite: false,
   };
 
   function text(value) {
@@ -326,6 +327,7 @@
     $("execution-identity").textContent = text(run.execution);
     const nodes = Array.isArray(run.nodes) ? run.nodes : [];
     renderGraph(run);
+    renderStepTelemetry(run);
     const previousNode = $("log-node").value;
     options($("log-node"), nodes, nodes.length ? null : "No admitted nodes", state.route.node || previousNode);
     if (state.route.node && !nodes.some((node) => node.id === state.route.node)) {
@@ -340,6 +342,24 @@
     $("follow-logs").disabled = !$("log-node").value;
     $("download-log").disabled = !$("log-node").value;
     updateControlButtons();
+  }
+  function renderStepTelemetry(run) {
+    const target = $("step-telemetry");
+    target.replaceChildren();
+    const records = Array.isArray(run.step_telemetry) ? run.step_telemetry : [];
+    if (!records.length) { target.append(element("p", "Unknown: no worker step measurements were recorded for this execution.", "small")); return; }
+    const observed = (value, unit) => Number.isSafeInteger(value) && value >= 0 ? `${value.toLocaleString()} ${unit}` : "Unknown (not recorded)";
+    for (const record of records) {
+      const observation = record.observation || {};
+      const step = observation.step || {};
+      const panel = element("article", undefined, "telemetry-step");
+      panel.append(element("h4", `${text(observation.binding?.node_id)} · reviewed step ${text(step.step_index)} · sequence ${text(observation.sequence)}`));
+      const facts = element("dl", undefined, "facts");
+      addFacts(facts, [["Started", timestamp(step.started_at_ms)], ["Completed", timestamp(step.completed_at_ms)], ["Measured elapsed", duration(step.duration_ms)], ["Exit code", step.exit_code], ["Observed CPU", observed(step.cpu_time_us, "µs")], ["Observed peak memory", observed(step.peak_memory_bytes, "bytes")]]);
+      panel.append(facts);
+      for (const cache of step.cache || []) panel.append(element("p", `Shared cache ${text(cache.outcome)} · ${observed(cache.transferred_bytes, "bytes transferred")} · ${duration(cache.duration_ms)} · key ${text(cache.key)}`, "small identity"));
+      target.append(panel);
+    }
   }
   function exactIdentity(run) {
     return run && run.attempt_id && Number.isSafeInteger(run.revision) && run.revision >= 0 && run.execution && Number.isSafeInteger(run.sequence) && run.sequence >= 0;
@@ -629,6 +649,11 @@
     state.epoch++;
     state.session = null;
     state.token = null;
+    state.workCanWrite = false;
+    window.KilnWorkUI?.clear();
+    window.KilnWorkInteraction?.clear();
+    for (const id of ["work-content", "planning-content", "inbox-content", "triage-content", "workviews-content"]) $(id).replaceChildren();
+    window.dispatchEvent(new Event("kiln-session-changed"));
     for (const controller of state.requests) controller.abort();
     state.requests.clear();
     clearTimeout(state.liveTimer);
@@ -651,7 +676,7 @@
     state.detailGeneration++;
     state.artifactsGeneration++;
     resetLogs();
-    for (const id of ["run-list", "run-title", "run-facts", "run-exact-facts", "retained-run-options", "run-badges", "run-warning", "execution-identity", "node-list", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
+    for (const id of ["run-list", "run-title", "run-facts", "run-exact-facts", "retained-run-options", "run-badges", "run-warning", "execution-identity", "node-list", "step-telemetry", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
     for (const id of ["available-project", "enrolled-project", "run-filter", "log-node"]) $(id).replaceChildren();
     state.principal = null;
     state.permissions = {};
@@ -729,7 +754,7 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "reviews", "activity", "evidence", "automation", "operations", "settings"];
+  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "reviews", "activity", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   const workerStatuses = { slots_available: "Slots available", busy: "Busy", unknown: "Unknown execution", not_enrolled: "Not enrolled" };
   function canOperate() { return !!state.session && state.permissions.operate === true; }
@@ -737,8 +762,11 @@
     if (!result?.principal || result.permissions?.read !== true) throw new Error("No admitted readable principal was returned.");
     state.principal = result.principal;
     state.permissions = result.permissions;
+    window.dispatchEvent(new Event("kiln-session-changed"));
   }
   // r[impl kiln.dashboard.time.local]
+  // r[impl kiln.dashboard.time.local.scenario.zone]
+  // r[impl kiln.dashboard.time.local.scenario.unknown]
   function timestamp(ms) {
     if (!Number.isSafeInteger(ms)) return "Unavailable (not recorded)";
     const date = new Date(ms);
@@ -751,6 +779,7 @@
     return Number.isNaN(date.valueOf()) ? "Unavailable (not recorded)" : compactTimeFormat.format(date);
   }
   function duration(ms) { return Number.isSafeInteger(ms) && ms >= 0 ? `${(ms / 1000).toFixed(3)} s` : "Unavailable (not recorded)"; }
+  // r[impl kiln.dashboard.source.view.scenario.restore]
   function readRoute() {
     const params = new URLSearchParams(location.search);
     // Accept catalog-style fragment links as well, but never read credentials from either location.
@@ -767,6 +796,9 @@
       src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "", sq: (params.get("sq") || "").slice(0, 256),
       receipt: (params.get("receipt") || "").slice(0, 128),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(workerStatuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
+      work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
+      work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 128),
+      work_view: (params.get("work_view") || "").slice(0, 128), work_layout: ["board", "list"].includes(params.get("work_layout")) ? params.get("work_layout") : "", work_group: (params.get("work_group") || "").slice(0, 32), work_sort: (params.get("work_sort") || "").slice(0, 32),
       theme: ["system", "light", "dark"].includes(params.get("theme")) ? params.get("theme") : "system", density: params.get("density") === "compact" ? "compact" : "comfortable"
     };
   }
@@ -806,6 +838,11 @@
       evidence: "Choose a retained run to inspect its source, execution and recorded evidence.",
       automation: "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable.",
       operations: "Inspect capacity, queued work and retention limits. No automatic pruning is performed.",
+      work: "Capture and coordinate native COB work. CI and lifecycle evidence remain independently authoritative.",
+      planning: "Plan outcomes, milestones, cycles and initiatives. Work completion does not grant release acceptance.",
+      inbox: "Your assignments, mentions, watched updates and reminders from the bounded admitted work store.",
+      triage: "Review incoming requests, preserve their source, assign ownership and record explicit triage decisions.",
+      workviews: "Native COB-backed saved views and favorites. Private records are scoped to your admitted principal.",
       settings: "Review your access and adjust appearance. Credentials are never saved by this page."
     }[route.page];
     if (previous?.page !== route.page) {
@@ -922,6 +959,12 @@
   }
   async function loadPage() {
     const route = state.route;
+    if (["work", "planning", "inbox", "triage", "workviews"].includes(route.page)) {
+      const parent = $(route.page + "-content");
+      if (!window.KilnWorkUI) { parent.replaceChildren(element("p", "Work interface is loading.", "small")); return; }
+      await window.KilnWorkUI.render(parent, route);
+      return;
+    }
     if (route.page === "overview") await renderEndpoint("/api/overview", "overview-content", renderOverview);
     if (route.page === "projects") { renderProjects(); await loadRefs(); }
     if (route.page === "workers") await renderEndpoint("/api/workers", "workers-content", renderWorkers);
@@ -992,7 +1035,7 @@
       const patch = { page: "workers", worker: worker.id };
       choice.href = `?${new URLSearchParams({ ...route, ...patch })}`;
       if (route.worker === worker.id) choice.setAttribute("aria-current", "true");
-      choice.append(element("strong", text(worker.provider_profile_id)), element("span", text(worker.platform), "small"), element("span", text(worker.id), "run-source"), workerStatusBadge(worker.status), element("span", `${text(worker.capacity.free_slots)} free project slots · ${text(worker.capacity.active)} occupied · ${text(worker.capacity.queued)} queued`, "small"), element("span", `${worker.projects.length} assigned projects · physical liveness unknown`, "small"));
+      choice.append(element("strong", text(worker.provider_profile_id)), element("span", text(worker.platform), "small"), element("span", text(worker.id), "run-source"), workerStatusBadge(worker.status), element("span", `${text(worker.capacity.free_slots)} configured project slots free · ${text(worker.capacity.active)} occupied · ${text(worker.capacity.queued)} queued`, "small"), element("span", `${worker.projects.length} assigned projects · heartbeat ${text(worker.liveness || "unknown")}`, "small"));
       choice.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate(patch); } });
       list.append(choice);
     }
@@ -1015,13 +1058,18 @@
   }
   function renderWorkerDetail(parent, worker) {
     const badges = element("div", undefined, "badges");
-    badges.append(workerStatusBadge(worker.status), element("span", "Physical liveness: unknown", "state-badge"));
+    badges.append(workerStatusBadge(worker.status), element("span", `Heartbeat liveness: ${text(worker.liveness || "unknown")}`, "state-badge"));
     parent.append(badges);
     const facts = element("dl", undefined, "facts");
     addFacts(facts, [["Kiln target ID", worker.id], ["Provider profile", worker.provider_profile_id], ["Platform", worker.platform], ["Assigned projects", worker.projects.length], ["Enrolled projects", worker.projects.filter((project) => project.enrolled).length]]);
     parent.append(facts);
     workerMetrics(parent, worker.capacity);
     parent.append(element("p", "Each enrolled project contributes one admission slot. Ambiguous nonterminal executions retain their occupied slots. Availability is not a heartbeat or a provider concurrency guarantee.", "small"));
+    if (worker.observed_capacity) {
+      const observed = element("dl", undefined, "facts");
+      addFacts(observed, [["Heartbeat observed slots", worker.observed_capacity.observed_slots], ["Heartbeat active slots", worker.observed_capacity.active_slots], ["Heartbeat free slots", worker.observed_capacity.free_slots], ["Last heartbeat", timestamp(worker.observed_capacity.last_seen_at_ms)]]);
+      parent.append(observed, element("p", "Expired observations contribute no free slots. Heartbeats observe availability, not physical capacity guarantees.", "small"));
+    }
     const projects = section("Assigned projects & current runs", parent, "view-stack");
     for (const project of worker.projects) {
       const card = section(text(project.label || project.id), projects, "record-card");
@@ -2230,6 +2278,33 @@
     if ($("follow-logs").checked) { $("log-output").scrollTop = $("log-output").scrollHeight; void readLog(state.logKey !== ""); }
   });
   $("clear-log").addEventListener("click", resetLogs);
+  // r[impl kiln.work.authority] r[impl kiln.work.change]
+  window.KilnWork = Object.freeze({
+    navigate, element, notice, runLink,
+    api: async (target, options) => {
+      if (target === "/api/work") state.workCanWrite = false;
+      const result = await api(target, options);
+      if (target === "/api/work") state.workCanWrite = result?.can_write === true;
+      return result;
+    },
+    route: () => state.route,
+    session: () => state.session ? { principal: state.principal?.id || "", can_write: state.workCanWrite } : null,
+    changeEvidence: (record) => window.KilnWorkEvidence.read(record),
+    command: async (command) => {
+      if (!state.session || !state.workCanWrite) throw new Error("This principal has no admitted work-write capability. Nothing was sent.");
+      if (state.mutation) throw new Error("Another admitted mutation is in progress. Nothing was sent.");
+      const epoch = state.epoch;
+      setMutation(true);
+      try { return await api("/api/work/commands", { method: "POST", body: command }); }
+      catch (error) {
+        if (!isAborted(error) && epoch === state.epoch) notice(`${explain(error)} Request ${command.request_id}. No retry was sent; a timeout may still have applied. Refresh exact native state before another action.`);
+        throw error;
+      } finally { if (epoch === state.epoch) setMutation(false); }
+    },
+  });
+  window.addEventListener("kiln-work-ready", () => {
+    if (state.session && ["work", "planning", "inbox", "triage", "workviews"].includes(state.route?.page)) void readAction(loadPage)();
+  });
   // Restoration rechecks network authorization; a cleared bearer is never restored.
   window.addEventListener("pagehide", () => logout("Disconnected when leaving the live page."));
   window.addEventListener("pageshow", (event) => { if (event.persisted) void discoverNetworkAccess(); });

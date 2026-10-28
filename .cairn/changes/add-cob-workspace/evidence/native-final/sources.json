@@ -1,0 +1,11 @@
+{
+  "schema": "kiln.web-sources.v1",
+  "sources": [
+    {
+      "id": "native",
+      "kind": "git",
+      "label": "Disposable native source",
+      "path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-final/source"
+    }
+  ]
+}

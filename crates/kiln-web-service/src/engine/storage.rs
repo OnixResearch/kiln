@@ -10,6 +10,26 @@ use std::path::Path;
 pub struct Store {
     connection: Connection,
 }
+
+/// Release ownership when the shell closes, not when the last inherited file
+/// description closes. CLOEXEC alone leaves a fork-to-exec retention window.
+pub(super) struct StateLock(File);
+
+impl StateLock {
+    fn acquire(path: &Path) -> Result<Self, String> {
+        let file = owned_file(path)?;
+        file.try_lock_exclusive()
+            .map_err(|_| "service state already has an owner")?;
+        Ok(Self(file))
+    }
+}
+
+impl Drop for StateLock {
+    fn drop(&mut self) {
+        let _ = FileExt::unlock(&self.0);
+    }
+}
+
 pub fn private_directory(path: &Path) -> Result<(), String> {
     match std::fs::symlink_metadata(path) {
         Ok(meta) => {
@@ -130,27 +150,25 @@ pub(super) fn read_retained(
     Ok(bytes)
 }
 impl Store {
-    pub fn open(profile: &ServiceProfile) -> Result<(Self, DurableState, File), String> {
+    pub fn open(profile: &ServiceProfile) -> Result<(Self, DurableState, StateLock), String> {
         Self::open_bound(profile, true)
     }
     pub(super) fn open_existing(
         profile: &ServiceProfile,
-    ) -> Result<(Self, DurableState, File), String> {
+    ) -> Result<(Self, DurableState, StateLock), String> {
         Self::open_bound(profile, false)
     }
     fn open_bound(
         profile: &ServiceProfile,
         initialize: bool,
-    ) -> Result<(Self, DurableState, File), String> {
+    ) -> Result<(Self, DurableState, StateLock), String> {
         if !initialize
             && std::fs::symlink_metadata(profile.state_directory.join("service.sqlite")).is_err()
         {
             return Err("project extension requires an existing service database".into());
         }
         private_directory(&profile.state_directory)?;
-        let lock = owned_file(&profile.state_directory.join("service.lock"))?;
-        lock.try_lock_exclusive()
-            .map_err(|_| "service state already has an owner")?;
+        let lock = StateLock::acquire(&profile.state_directory.join("service.lock"))?;
         private_directory(&profile.state_directory.join("artifacts"))?;
         private_directory(&profile.state_directory.join("logs"))?;
         let path = profile.state_directory.join("service.sqlite");
@@ -399,6 +417,7 @@ impl Store {
     }
 }
 fn validate(state: &DurableState, b: &ServiceBounds) -> Result<(), String> {
+    super::snapshots::validate(state, b.max_runs)?;
     if state.runs.len() > b.max_runs
         || state.enrolled.len() > b.max_projects
         || state.requests.len() > b.max_requests
@@ -564,4 +583,45 @@ fn reconcile_retained_storage(
             .map_err(|_| "artifact recovery synchronization failed")?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn state_ownership_releases_before_inherited_description_closes() {
+        let checked = |result: Result<File, String>| {
+            result.unwrap_or_else(|error| unreachable!("fixture failed: {error}"))
+        };
+        let root =
+            tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error}"));
+        let path = root.path().join("service.lock");
+        let owner = StateLock::acquire(&path)
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error}"));
+        // dup and fork retain the same open file description. Keep that
+        // description alive without racing an actual child process.
+        let inherited = owner
+            .0
+            .try_clone()
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error}"));
+        let contender = checked(owned_file(&path));
+        assert_eq!(
+            contender
+                .try_lock_exclusive()
+                .err()
+                .map(|error| error.kind()),
+            Some(std::io::ErrorKind::WouldBlock)
+        );
+        drop(owner);
+        contender
+            .try_lock_exclusive()
+            .unwrap_or_else(|error| unreachable!("ownership was not released: {error}"));
+        drop(inherited);
+        let third = checked(owned_file(&path));
+        assert_eq!(
+            third.try_lock_exclusive().err().map(|error| error.kind()),
+            Some(std::io::ErrorKind::WouldBlock)
+        );
+    }
 }

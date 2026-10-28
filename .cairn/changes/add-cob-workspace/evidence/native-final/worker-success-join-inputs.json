@@ -1,0 +1,58 @@
+{
+  "command_timeout_ms": 60000,
+  "execution": {
+    "address_space_bytes": 1073741824,
+    "bubblewrap": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "cpu_seconds": 60,
+    "maximum_file_bytes": 67108864,
+    "maximum_open_files": 256,
+    "network": "deny",
+    "probe_program": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+    "read_only_mounts": [
+      "/nix/store"
+    ]
+  },
+  "heartbeat": {
+    "interval_ms": 250,
+    "slots": 2,
+    "target_id": "39d756d16d3010987ced4b6831855e333ee3d54e1a04328e1a8c2a89e2cffaf9",
+    "ttl_ms": 3000,
+    "worker_id": "native"
+  },
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "success",
+  "repository_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-final/source",
+  "service_origin": "https://127.0.0.1:55509",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "source_repository": "963bb7382b634f5020add9e70c7dcbbd758a0637d8a71b76a4fbfec9f973e478",
+  "steps": [
+    {
+      "node_id": "join",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "argv": [
+        "-c",
+        "import hashlib,pathlib,sys,xml.etree.ElementTree as ET; payload=pathlib.Path('source-value.txt').read_bytes(); assert payload==b'exact-source-artifact-v1\\n'; assert len(payload.splitlines())==1; print('actual fan-in joined both branches',flush=True)"
+      ],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "artifacts": []
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-final/ca.pem",
+  "token_file": "/home/brittonr/.cache/kiln-cob-workspace-20261028-final/worker.token",
+  "work_root": "/home/brittonr/.cache/kiln-cob-workspace-20261028-final/work"
+}

@@ -78,6 +78,8 @@ fn fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
         maximum_artifact_bytes: 8192,
         maximum_total_artifact_bytes: 16384,
         maximum_artifacts: 4,
+        execution: None,
+        heartbeat: None,
         steps: vec![Step {
             node_id: "build".into(),
             program: "/bin/sh".into(),
@@ -85,6 +87,7 @@ fn fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
             environment: BTreeMap::new(),
             artifacts: vec!["product.txt".into()],
             reports: vec![],
+            cache: None,
         }],
     };
     let id = ProviderProfileId::new("fixture-git")

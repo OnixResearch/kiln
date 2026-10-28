@@ -53,10 +53,53 @@ pub fn prepare(profile: &WorkerProfile, context: &SourceContext) -> Result<Prepa
     // Reject aliased backing paths without equating their local identity to the controller.
     files::directory(&profile.repository_path)?;
     files::owned_directory(&profile.work_root)?;
+    let local =
+        Repository::open(&profile.repository_path).map_err(|_| "worker repository unavailable")?;
+    let oid = Oid::from_str(&context.revision).map_err(|_| "worker commit invalid")?;
+    let synthetic = if local.find_commit(oid).is_ok() {
+        None
+    } else {
+        let service = super::client::ServiceClient::new(profile)?;
+        let response = service
+            .client
+            .get(format!(
+                "{}/api/snapshots/{}/{}",
+                service.origin, profile.project_id, context.revision
+            ))
+            .header(
+                reqwest::header::AUTHORIZATION,
+                service.authorization.clone(),
+            )
+            .send()
+            .map_err(|_| "worker snapshot download failed")?;
+        let record: crate::snapshot::SnapshotRecord =
+            serde_json::from_value(service.response(response)?)
+                .map_err(|_| "worker snapshot response invalid")?;
+        if record.manifest.project_id != profile.project_id
+            || record.manifest.identity()? != record.provenance.manifest_id
+            || record.manifest.base_revision != record.provenance.base_revision
+            || record.provenance.synthetic_revision != context.revision
+        {
+            return Err("worker snapshot provenance mismatch".into());
+        }
+        let synthetic = crate::snapshot::reconstruct(
+            &profile.repository_path,
+            &record.manifest,
+            &profile.snapshot_limits,
+        )?;
+        if synthetic.revision != context.revision {
+            return Err("worker snapshot revision mismatch".into());
+        }
+        Some(synthetic)
+    };
+    let backing = synthetic
+        .as_ref()
+        .map(|s| s.repository_path.clone())
+        .unwrap_or_else(|| profile.repository_path.clone());
     let provider =
         ProviderProfileId::new("web-worker-git-v1").map_err(|_| "worker source profile invalid")?;
     let adapter = LocalGitAdapter::new(
-        profile.repository_path.clone(),
+        backing.clone(),
         context.revision.clone(),
         GitSourceProfile::pinned_local(provider.clone(), profile.snapshot_limits.clone()),
     )
@@ -66,8 +109,7 @@ pub fn prepare(profile: &WorkerProfile, context: &SourceContext) -> Result<Prepa
     if resolution.exact_revision.native_id.as_str() != context.revision {
         return Err("worker source binding mismatch".into());
     }
-    let repository =
-        Repository::open(&profile.repository_path).map_err(|_| "worker repository unavailable")?;
+    let repository = Repository::open(&backing).map_err(|_| "worker repository unavailable")?;
     let commit = repository
         .find_commit(Oid::from_str(&context.revision).map_err(|_| "worker commit invalid")?)
         .map_err(|_| "worker commit unavailable")?;

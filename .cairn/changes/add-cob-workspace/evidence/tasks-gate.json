@@ -1,0 +1,112 @@
+{
+  "acceptance_ids": [],
+  "change": "add-cob-workspace",
+  "evidence_summary": {
+    "docs_only": 0,
+    "fixture": 0,
+    "formal": 0,
+    "mode": "advisory",
+    "model": 0,
+    "probe": 0,
+    "property": 0
+  },
+  "input_hash": "bac51219c45b4b5ee96efd4376ab6186318b049ab8fe42e6baffef95a5e0d229",
+  "issues": [],
+  "layout": "cairn",
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "policy": "kiln-default",
+  "policy_hash": "66b80a30e7dd154d9ac9133fa46bb0c590052affcf4ab6b2a05f7de2c19a983f",
+  "policy_selection": {
+    "blake3": "a239de99057c2d6b1cf58656485b7dd4828f0c99b412206882cec82d11ed90fe",
+    "installation_receipt": false,
+    "locator": "cairn-policy/generated/cairn-policy.json",
+    "source": "explicit"
+  },
+  "probe_evidence": {
+    "declarations_present": false,
+    "probes": []
+  },
+  "profile_identity_hash": "77499e8cca843fe0d704db87844206bb5e896649a1d75d5a77fea600655b80c2",
+  "receipt_hash": "28c5e3f1af51b254810a21f6a9276a091158d3d243dd7e2409dd684c3769fe3e",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "stage": "tasks",
+  "substance": [
+    {
+      "checkbox_tasks": 0,
+      "kind": "design",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/add-cob-workspace/design.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 7,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 0,
+      "kind": "proposal",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/add-cob-workspace/proposal.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 4,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 0,
+      "kind": "delta_spec",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/add-cob-workspace/specs/cob-workspace/spec.md",
+      "requirement_blocks": 9,
+      "scenario_blocks": 18,
+      "substantive_lines": 63,
+      "substantive_requirement_blocks": 9,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 10,
+      "kind": "tasks",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/add-cob-workspace/tasks.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 10,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 10,
+      "task_done": 10,
+      "task_in_progress": 0,
+      "task_todo": 0
+    }
+  ],
+  "task_ordering": {
+    "active": false,
+    "edges": [],
+    "issues": [],
+    "nodes": [],
+    "order": [],
+    "ready_tasks": [],
+    "valid": true
+  },
+  "valid": true,
+  "verdict": "PASS",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}

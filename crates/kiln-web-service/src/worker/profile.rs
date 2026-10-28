@@ -36,6 +36,10 @@ pub struct WorkerProfile {
     pub maximum_artifact_bytes: usize,
     pub maximum_total_artifact_bytes: usize,
     pub maximum_artifacts: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution: Option<crate::execution::IsolationPolicy>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heartbeat: Option<super::heartbeat::HeartbeatProfile>,
     pub steps: Vec<Step>,
 }
 
@@ -49,6 +53,8 @@ pub struct Step {
     pub artifacts: Vec<PathBuf>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reports: Vec<crate::reports::ReportDeclaration>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache: Option<crate::cache::WorkerCacheProfile>,
 }
 
 pub fn component(value: &str) -> bool {
@@ -155,11 +161,20 @@ impl WorkerProfile {
         {
             return Err("worker profile outside admitted bounds".into());
         }
+        if let Some(policy) = &self.execution {
+            policy.admit()?;
+        }
+        if let Some(heartbeat) = &self.heartbeat {
+            heartbeat.admit()?;
+        }
         let mut artifacts = 0usize;
         let mut artifact_names = std::collections::BTreeSet::new();
         let mut reports = 0usize;
         let mut report_names = std::collections::BTreeSet::new();
         for step in &self.steps {
+            if let Some(cache) = &step.cache {
+                cache.admit()?;
+            }
             reports = reports
                 .checked_add(step.reports.len())
                 .ok_or("report count overflow")?;

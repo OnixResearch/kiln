@@ -1,0 +1,126 @@
+{
+  "maximum_active_executions": 8,
+  "non_claims": [
+    "handler admission does not prove workflow correctness",
+    "route authority does not prove host confinement",
+    "execution observation does not prove an external effect succeeded",
+    "peer identity does not prove peer intent",
+    "handler checks do not establish release readiness"
+  ],
+  "routes": [
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:072057795c14fa2f4352159f62d095fef9a75d9fd0f5a8b4b22b8a206791eb37",
+      "nodes": [
+        {
+          "operation_identity": "b3:64326ff8a9ed4aca849851982fd3c6855a56c34d0094af7395599fdd8bc1fced",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        }
+      ],
+      "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+      "source_binding": "shell_environment",
+      "workflow_name": "web-slow",
+      "workflow_revision": "b3:d917521e8699fc363c4afb544642889562b7385f5595d8dd827eed5e6a416753"
+    },
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:1c93c68a384ad3d3d9c3ec5ac241e89ab1662f9c657b70d335a550aff9c8e5b5",
+      "nodes": [
+        {
+          "operation_identity": "b3:0b718f9d56d2d43294a4e0da80912a736db47287074b6d4faa7931f263beed9e",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        },
+        {
+          "operation_identity": "b3:d1859d2fd03e7b00a7db929ad2944eee151c078bdb0fd4d7234a608783e299b3",
+          "request_node_id": "join",
+          "workflow_node_id": 3
+        },
+        {
+          "operation_identity": "b3:969b66c5efc4c196c74a75fef137b2c820a741ebd94882b1e129e7f23c4e9938",
+          "request_node_id": "lint",
+          "workflow_node_id": 2
+        },
+        {
+          "operation_identity": "b3:7d6afafd81346c111df3e2443ab29061fc9c9329e7aeecb2f8e1fbf36659bb7f",
+          "request_node_id": "verify",
+          "workflow_node_id": 1
+        }
+      ],
+      "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+      "source_binding": "shell_environment",
+      "workflow_name": "web-success",
+      "workflow_revision": "b3:b3128d909f7fa6c51e2fada8e857d7b6a6d0d5117f99b473fd9a8789e786588d"
+    },
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:445355a87cceb5ba2c9d8ff730a48446aab83afe64435fe2082608e67b194728",
+      "nodes": [
+        {
+          "operation_identity": "b3:9a94a6f4de0d22df3de69ad2e8601026a9cdfc160aed439008cdb4dbdd78a69d",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        },
+        {
+          "operation_identity": "b3:d8f4ac1db01e83b11811a044e418d617a43b258f28141d757196c2e2ae1e49fc",
+          "request_node_id": "join",
+          "workflow_node_id": 3
+        },
+        {
+          "operation_identity": "b3:fa6386ade97d8977e71965d41346d3df24ff67abc80118c71acf74528910b839",
+          "request_node_id": "lint",
+          "workflow_node_id": 2
+        },
+        {
+          "operation_identity": "b3:6033ad063de096644b5b920a2795d2ff6eb8f03f72b44c31f27cf276238c5ca0",
+          "request_node_id": "verify",
+          "workflow_node_id": 1
+        }
+      ],
+      "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+      "source_binding": "shell_environment",
+      "workflow_name": "web-partial",
+      "workflow_revision": "b3:97698cb037d14b6784c3c3890579dccd545c5198297a4ff721943e16e81031df"
+    },
+    {
+      "effect_authority": "route_exact",
+      "graph_identity": "b3:d43be5a50e6471dc896cfbe70e6dcbbafd8d6e6d8f2a9d008798158a20b52417",
+      "nodes": [
+        {
+          "operation_identity": "b3:47605589894365556f5bb3120dd3b71138cf98df325b0db0f7c0f79e902efcf1",
+          "request_node_id": "build",
+          "workflow_node_id": 0
+        }
+      ],
+      "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+      "source_binding": "shell_environment",
+      "workflow_name": "web-fail",
+      "workflow_revision": "b3:96ce6b840041da20693e6569eeaeb426cd8fb075870c67e7d441d10641ec0430"
+    }
+  ],
+  "schema": "lattice.workflow-exchange-handler-profile.v1",
+  "socket_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-final/lattice.sock",
+  "transport": {
+    "limits": {
+      "maximum_connections": 4096,
+      "maximum_frame_bytes": 1048576,
+      "maximum_log_bytes": 1048576,
+      "read_deadline_milliseconds": 10000,
+      "write_deadline_milliseconds": 10000
+    },
+    "non_claims": [
+      "transport admission does not prove workflow correctness",
+      "transport peer identity does not prove peer intent",
+      "transport acceptance does not prove an operation executed",
+      "transport response does not prove an external effect succeeded",
+      "transport checks do not establish production deployment"
+    ],
+    "peers": {
+      "allowed_user_ids": [
+        1555
+      ]
+    },
+    "schema": "lattice.workflow-transport-profile.v1"
+  }
+}

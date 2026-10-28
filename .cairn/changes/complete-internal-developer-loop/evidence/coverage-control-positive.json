@@ -1,0 +1,66 @@
+{
+  "argv": [
+    "cairn",
+    "traceability",
+    "coverage",
+    "--root",
+    "/tmp/kiln-coverage-control-xj_lhxvr",
+    "--policy",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/complete-internal-developer-loop/evidence/development-coverage-policy.json",
+    "--profile",
+    "kiln-coverage-negative-control",
+    "--json"
+  ],
+  "exit_code": 0,
+  "report": {
+    "command": "traceability coverage",
+    "dangling": [],
+    "input_hash": "27347f3f73981bbb7d9f98f885826709550dbc9776ff67adb92a00547202272c",
+    "missing": [],
+    "policy": "kiln-default",
+    "policy_hash": "22efa516d900a6fc14684fa114c034e26c9a1558e3a09ecade05cc4c97b304df",
+    "profile": {
+      "anchor_kind": "exact_marker_bytes",
+      "assurance_level": "declared",
+      "evidence_sources": [
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "evidence.rs",
+          "source_kind": "rust_source"
+        }
+      ],
+      "id": "kiln-coverage-negative-control",
+      "marker_verbs": [
+        "impl",
+        "verify",
+        "depends",
+        "related"
+      ],
+      "requirement_sources": [
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": "requirements.md",
+          "source_kind": "requirements_doc"
+        }
+      ]
+    },
+    "profile_id": "kiln-coverage-negative-control",
+    "receipt_hash": "d97246fbe3c3d3bfa457a7180b32c3869f897c77bdeeb81d94d587409ff4c3e0",
+    "referenced": 1,
+    "requirements": 1,
+    "root": "/tmp/kiln-coverage-control-xj_lhxvr",
+    "source_summary": {
+      "evidence_files": 1,
+      "evidence_manifest_hash": "0cef9beefbbc42cc4b29c8c64eb150cb64b03f96c3993a24b5e07e19d3daa6a7",
+      "requirement_files": 1,
+      "requirement_manifest_hash": "85f49a33795264cc5b8a186f5c4ca9d2439a807975cbffefebbb5a9a7045f089"
+    },
+    "valid": true,
+    "verdict": "pass"
+  },
+  "stderr": ""
+}

@@ -21,6 +21,7 @@ import shutil
 import signal
 import socket
 import ssl
+import sqlite3
 import subprocess
 import sys
 import time
@@ -49,6 +50,10 @@ def put(path, value):
 
 
 # r[impl kiln.web.remote_workers.transport] r[verify kiln.web.remote_workers.transport]
+# r[verify kiln.web.developer_loop.pipeline]
+# r[verify kiln.web.developer_loop.workers]
+# r[verify kiln.web.developer_loop.cache]
+# r[verify kiln.web.developer_loop.cli]
 # r[impl kiln.web.remote_workers.transport.scenario.native] r[verify kiln.web.remote_workers.transport.scenario.native]
 class Exercise:
     def __init__(self, args):
@@ -58,14 +63,16 @@ class Exercise:
             raise ValueError("scratch must be outside the producer's private /tmp")
         self.evidence = Path(args.evidence).absolute()
         self.evidence.mkdir(parents=True, exist_ok=True)
-        self.exe = {name: str(Path(shutil.which(name)).resolve(strict=True)) for name in ("nickel", "b3sum", "openssl", "jj", "python3", "bwrap", "bash")}
+        self.exe = {name: str(Path(shutil.which(name)).resolve(strict=True)) for name in ("nickel", "b3sum", "openssl", "jj", "python3", "bwrap", "bash", "true")}
+        # Preserve argv[0] for the coreutils multicall true executable.
+        self.exe["true"] = str(Path(shutil.which("true")).parent.resolve(strict=True) / "true")
         self.exe.update(service=str(Path(args.service).resolve(strict=True)), lattice=str(Path(args.lattice).resolve(strict=True)))
         if args.iroh:
             self.exe["iroh"] = str(Path(args.iroh).resolve(strict=True))
         self.exe["bubblewrap"] = self.exe["bwrap"]
         self.source = str(Path(args.lattice_source).resolve(strict=True))
         self.root.mkdir(mode=0o700)
-        for name in ("lattice-tmp", "work", "state", "home"):
+        for name in ("lattice-tmp", "work", "state", "home", "shared-cache"):
             (self.root / name).mkdir(mode=0o700)
         self.env = {"HOME": str(self.root / "home"), "XDG_CONFIG_HOME": str(self.root / "home/config"), "XDG_CACHE_HOME": str(self.root / "home/cache"), "LANG": "C.UTF-8", "PATH": os.environ["PATH"], "TMPDIR": str(self.root / "lattice-tmp")}
         self.processes = []
@@ -158,17 +165,44 @@ class Exercise:
         self.context = ssl.create_default_context(cafile=str(self.root / "ca.pem"))
         self.command([self.exe["jj"], "git", "init", "--colocate", self.repo])
         put(self.repo / "source-value.txt", b"exact-source-artifact-v1\n")
-        put(self.repo / "ci.py", '''import ast,inspect,json,os,pathlib,subprocess,sys,time,trace,unittest,xml.etree.ElementTree as ET
+        put(self.repo / "ci.py", '''import ast,hashlib,inspect,json,os,pathlib,socket,subprocess,sys,time,trace,unittest,xml.etree.ElementTree as ET
 print("actual command started", flush=True)
 pathlib.Path(sys.argv[2]).write_text(str(os.getpid()))
+assert not pathlib.Path(os.environ["ISOLATION_PROBE_PATH"]).exists(), "host credential visible inside isolation"
+try:
+    connection = socket.create_connection(("127.0.0.1", int(os.environ["ISOLATION_SERVICE_PORT"])), timeout=0.2)
+except OSError:
+    print("actual isolated host credential and service network denied", flush=True)
+else:
+    connection.close()
+    raise AssertionError("host service reachable through denied network")
 if sys.argv[1] == "slow":
     print("actual stderr before exit", file=sys.stderr, flush=True)
     time.sleep(40)
 payload = pathlib.Path("source-value.txt").read_bytes()
+print("actual source input:", payload.decode().strip(), flush=True)
+assert not pathlib.Path("unselected-private.txt").exists(), "unselected dirty bytes leaked"
+cpu_started = time.process_time_ns()
+cpu_value = payload
+for _ in range(100000): cpu_value = hashlib.sha256(cpu_value).digest()
+direct_cpu_us = (time.process_time_ns() - cpu_started) // 1000
+print("actual direct CPU microseconds:", direct_cpu_us, flush=True)
+if sys.argv[1] == "success":
+    cached = pathlib.Path("cache-output/derived.json")
+    input_digest = hashlib.sha256(payload).hexdigest()
+    if cached.exists():
+        assert json.loads(cached.read_text())["input"] == input_digest
+        print("actual restored derived output", flush=True)
+    else:
+        value = payload
+        for _ in range(200000): value = hashlib.sha256(value).digest()
+        cached.parent.mkdir(exist_ok=True)
+        cached.write_text(json.dumps({"input":input_digest,"derived":value.hex()}))
+        print("actual cold derived computation", flush=True)
 class SourceTest(unittest.TestCase):
     def test_source(self):
         self.assertEqual(payload, b"exact-source-artifact-v1\\n")
-        self.assertFalse(pathlib.Path(sys.argv[2]).with_suffix(".unstable").exists(), "Controlled repeated-observation failure")
+        self.assertTrue(pathlib.Path("ci.py").is_file())
 result = unittest.TestResult()
 unittest.defaultTestLoader.loadTestsFromTestCase(SourceTest).run(result)
 suite = ET.Element("testsuite", name="source", tests=str(result.testsRun), failures=str(len(result.failures)), errors=str(len(result.errors)))
@@ -192,20 +226,23 @@ package = ET.SubElement(ET.SubElement(coverage, "packages"), "package", name="so
 covered = ET.SubElement(ET.SubElement(ET.SubElement(package, "classes"), "class", name="SourceTest", filename="ci.py"), "lines")
 for line in lines: ET.SubElement(covered, "line", number=str(line), hits=str(observed.get(line, 0)))
 ET.ElementTree(coverage).write("coverage.xml", encoding="utf-8")
-digest = subprocess.check_output([sys.argv[3], "source-value.txt"], text=True).split()[0]
+digest = subprocess.check_output([sys.argv[3], "--num-threads", "1", "source-value.txt"], text=True).split()[0]
 for kind in ("gate", "review", "provenance"):
-    document = {"schema":"kiln.native-exercise." + kind + ".v1", "candidate_file_blake3":digest, "verdict":"PASS" if result.wasSuccessful() else "FAIL", "tests_observed":result.testsRun, "non_claims":["Disposable command evidence; not Cairn acceptance or release authority"]}
+    document = {"schema":"kiln.native-exercise." + kind + ".v1", "candidate_file_blake3":digest, "verdict":"PASS" if result.wasSuccessful() else "FAIL", "tests_observed":result.testsRun, "direct_cpu_lower_bound_us":direct_cpu_us,"non_claims":["Disposable command evidence; not Cairn acceptance or release authority"]}
     pathlib.Path(kind + ".json").write_text(json.dumps(document))
 if sys.argv[1] == "fail":
     print("actual intentional failure", file=sys.stderr, flush=True)
     sys.exit(7)
 if not result.wasSuccessful(): sys.exit(1)
 pathlib.Path("artifact.txt").write_bytes(payload)
+pathlib.Path(sys.argv[2]).with_suffix(".done").write_text(str(os.getpid()))
 print("actual artifact bytes:", payload.decode().strip(), flush=True)
 '''.encode())
         for args in (["config", "set", "--repo", "user.name", "Kiln isolated exercise"], ["config", "set", "--repo", "user.email", "kiln@example.invalid"], ["file", "track", "root:ci.py", "root:source-value.txt"], ["describe", "-m", "Exact source for isolated web workflow"], ["bookmark", "create", "main", "-r", "@"]):
             self.command([self.exe["jj"], "-R", self.repo, *args])
+        self.command([self.exe["jj"], "-R", self.repo, "new", "main", "-m", "Disposable worktree above exact source"])
         self.revision = self.command([self.exe["jj"], "-R", self.repo, "log", "--no-graph", "-r", "main", "-T", "commit_id"]).decode().strip()
+        assert self.command(["git", "-C", self.repo, "rev-parse", "HEAD"]).decode().strip() == self.revision
         self.source_repository = self.command([self.exe["b3sum"]], input=os.fsencode(self.repo.resolve(strict=True))).decode().split()[0]
         if self.args.iroh:
             self.command([self.exe["jj"], "git", "clone", "--colocate", self.repo, self.worker_repo])
@@ -218,23 +255,52 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         service_transport = {**transport, "maximum_connections": MAXIMUM_CONCURRENT_EXCHANGES} if self.args.iroh else transport
         adapter_kind = "remote" if self.args.iroh else "local"
         service_socket = self.root / ("proxy.sock" if self.args.iroh else "lattice.sock")
+        self.success_target = self.command([self.exe["service"], "worker-target", "--provider-profile", "lattice-web-native-success", "--socket", str(service_socket), "--platform", "linux-x86_64"]).decode().strip()
+        assert len(self.success_target) == 64 and all(c in "0123456789abcdef" for c in self.success_target)
+        isolation = {"bubblewrap":self.exe["bwrap"],"probe_program":self.exe["true"],"read_only_mounts":["/nix/store"],"network":"deny","cpu_seconds":60,"address_space_bytes":1073741824,"maximum_file_bytes":67108864,"maximum_open_files":256}
+        heartbeat = {"worker_id":"native","target_id":self.success_target,"interval_ms":250,"ttl_ms":3000,"slots":2}
         projects = []
-        for mode in ("success", "slow", "fail"):
-            steps = [{"node_id": "build", "program": self.exe["python3"], "argv": ["ci.py", mode, str(self.root / ("command-" + mode + ".started")), self.exe["b3sum"]], "environment": {"PYTHONNOUSERSITE": "1"}, "artifacts": [] if mode == "fail" else ["artifact.txt"]}]
+        for mode in ("success", "slow", "fail", "partial"):
+            steps = [{"node_id": "build", "program": self.exe["python3"], "argv": ["ci.py", "success" if mode == "partial" else mode, "command.started", self.exe["b3sum"]], "environment": {"PYTHONNOUSERSITE": "1","ISOLATION_PROBE_PATH":str(self.root / "operator.token"),"ISOLATION_SERVICE_PORT":str(self.port)}, "artifacts": [] if mode in ("fail", "partial") else ["artifact.txt"]}]
             if mode == "success":
                 steps[0]["reports"] = [{"kind": kind, "path": path} for kind, path in (("junit", "junit.xml"), ("cobertura", "coverage.xml"), ("lcov", "lcov.info"), ("gate", "gate.json"), ("review", "review.json"), ("provenance", "provenance.json"))]
-                steps.append({"node_id": "build", "program": self.exe["python3"], "argv": ["-c", "print('second reviewed step', flush=True)"], "environment": {"PYTHONNOUSERSITE": "1"}, "artifacts": []})
-            worker = self.export("web-worker.ncl", {"project_id": mode, "source_repository": self.source_repository, "repository_path": str(self.worker_repo), "service_origin": self.origin, "token_file": str(self.root / "worker.token"), "tls_ca_path": str(self.root / "ca.pem"), "work_root": str(self.root / "work"), "snapshot_limits": limits, "command_timeout_ms": 60000, "maximum_output_bytes": 65536, "http_timeout_ms": 5000, "lookup_timeout_ms": 15000, "maximum_artifact_bytes": 65536, "maximum_total_artifact_bytes": 65536, "maximum_artifacts": 1, "steps": steps}, "worker-" + mode)
+                steps[0]["cache"] = {"producer":"fixture-v1","toolchain":"python-v1","platform":"linux-x86_64","inputs":["source-value.txt","ci.py"],"paths":["cache-output"],"maximum_entry_bytes":65536,"maximum_files":16}
+                steps.append({"node_id": "build", "program": self.exe["python3"], "argv": ["-c", "import time; print('second reviewed step', flush=True); time.sleep(1)"], "environment": {"PYTHONNOUSERSITE": "1"}, "artifacts": []})
+            worker_inputs = {"project_id": mode, "source_repository": self.source_repository, "repository_path": str(self.worker_repo), "service_origin": self.origin, "token_file": str(self.root / "worker.token"), "tls_ca_path": str(self.root / "ca.pem"), "work_root": str(self.root / "work"), "snapshot_limits": limits, "command_timeout_ms": 60000, "maximum_output_bytes": 65536, "http_timeout_ms": 5000, "lookup_timeout_ms": 15000, "maximum_artifact_bytes": 65536, "maximum_total_artifact_bytes": 65536, "maximum_artifacts": 1, "steps": steps,"execution":isolation}
+            if mode == "success": worker_inputs["heartbeat"] = heartbeat
+            worker = self.export("web-worker.ncl", worker_inputs, "worker-" + mode)
             assert worker["schema"] == "kiln.web-worker.v2" and worker["source_repository"] == self.source_repository and worker["repository_path"] == str(self.worker_repo), worker
             identity = self.digest(self.root / ("worker-" + mode + ".json"))
-            workflow = {"socket_path": str(service_socket), "allowed_user_ids": [os.getuid()], "transport_limits": service_transport, "adapter_limits": {"maximum_request_bytes": 1048576, "maximum_response_bytes": 1048576}, "policy_id": "web-native-" + mode, "provider_profile_id": "lattice-web-native-" + mode, "platform": "linux-x86_64", "nodes": [{"id": "build", "kind": "build", "effect_class": "build", "adapter_kind": adapter_kind, "operation_identity": identity}], "edges": [], "controls": {"cancel": True, "pause": False, "resume": False}, "bounds": {"max_nodes": 8, "max_edges": 8, "max_log_references": MAX_LOG_CHUNKS, "max_log_read_bytes": LOG_CHUNK_BYTES, "max_total_log_bytes": 1048576}}
             if mode == "success":
-                verify = {key: copy.deepcopy(value) for key, value in worker.items() if key != "schema"}
-                verify["steps"] = [{"node_id": "verify", "program": self.exe["python3"], "argv": ["-c", "print('actual dependent verification', flush=True)"], "environment": {"PYTHONNOUSERSITE": "1"}, "artifacts": []}]
-                verified = self.export("web-worker.ncl", verify, "worker-success-verify")
-                assert verified["source_repository"] == self.source_repository and verified["repository_path"] == worker["repository_path"], verified
-                workflow["nodes"].append({"id": "verify", "kind": "test", "effect_class": "test", "adapter_kind": adapter_kind, "operation_identity": self.digest(self.root / "worker-success-verify.json")})
-                workflow["edges"] = [{"source": "build", "target": "verify"}]
+                compatible = copy.deepcopy(worker_inputs)
+                compatible["work_root"] = str(self.root / "work-compatible")
+                (self.root / "work-compatible").mkdir(mode=0o700)
+                compatible["heartbeat"].update(worker_id="compatible", slots=1)
+                self.export("web-worker.ncl", compatible, "worker-success-compatible")
+                self.pool = {"schema":"kiln.native-reviewed-worker-pool.v1","selection":"first-native-then-compatible","selector_path":str(self.root / "pool-cold.dispatched"),"producer":"fixture-v1","workers":[{"worker_id":name,"profile":str(self.root / filename),"original_blake3":self.digest(self.root / filename),"work_root":config["work_root"]} for name, filename, config in (("native","worker-success.json",worker_inputs),("compatible","worker-success-compatible.json",compatible))]}
+                put(self.root / "worker-success-pool.json", self.pool)
+                identity = self.digest(self.root / "worker-success-pool.json")
+            workflow = {"socket_path": str(service_socket), "allowed_user_ids": [os.getuid()], "transport_limits": service_transport, "adapter_limits": {"maximum_request_bytes": 1048576, "maximum_response_bytes": 1048576}, "policy_id": "web-native-" + mode, "provider_profile_id": "lattice-web-native-" + mode, "platform": "linux-x86_64", "nodes": [{"id": "build", "kind": "build", "effect_class": "build", "adapter_kind": adapter_kind, "operation_identity": identity}], "edges": [], "controls": {"cancel": True, "pause": False, "resume": False}, "bounds": {"max_nodes": 8, "max_edges": 8, "max_log_references": MAX_LOG_CHUNKS, "max_log_read_bytes": LOG_CHUNK_BYTES, "max_total_log_bytes": 1048576}}
+            if mode in ("success", "partial"):
+                for node_id in ("verify", "lint", "join"):
+                    branch = {key: copy.deepcopy(value) for key, value in worker.items() if key != "schema"}
+                    code = "import hashlib,pathlib,sys,xml.etree.ElementTree as ET; payload=pathlib.Path('source-value.txt').read_bytes(); assert payload==b'exact-source-artifact-v1\\n'; "
+                    if mode == "partial" and node_id == "verify":
+                        code += "suite=ET.Element('testsuite',name='branch',tests='1',failures='1'); case=ET.SubElement(suite,'testcase',name='intentional_branch_failure'); ET.SubElement(case,'failure',message='actual branch failed').text='Controlled native partial failure'; ET.ElementTree(suite).write('branch-junit.xml'); print('actual intentional branch failure',file=sys.stderr,flush=True); sys.exit(7)"
+                    elif node_id == "lint":
+                        code += "compile(pathlib.Path('ci.py').read_text(),'ci.py','exec'); print('actual dependent lint',flush=True)"
+                    elif node_id == "verify":
+                        code += "assert hashlib.sha256(payload).hexdigest()==hashlib.sha256(b'exact-source-artifact-v1\\n').hexdigest(); print('actual dependent verify',flush=True)"
+                    else:
+                        code += "assert len(payload.splitlines())==1; print('actual fan-in joined both branches',flush=True)"
+                    step = {"node_id":node_id,"program":self.exe["python3"],"argv":["-c",code],"environment":{"PYTHONNOUSERSITE":"1"},"artifacts":[]}
+                    if mode == "partial" and node_id == "verify": step["reports"] = [{"kind":"junit","path":"branch-junit.xml"}]
+                    branch["steps"] = [step]
+                    self.export("web-worker.ncl", branch, "worker-" + mode + "-" + node_id)
+                    workflow["nodes"].append({"id":node_id,"kind":"test","effect_class":"test","adapter_kind":adapter_kind,"operation_identity":self.digest(self.root / ("worker-" + mode + "-" + node_id + ".json"))})
+                workflow["edges"] = [{"source":"build","target":"verify"},{"source":"build","target":"lint"},{"source":"verify","target":"join"},{"source":"lint","target":"join"}]
+            workflow["nodes"].sort(key=lambda node: node["id"])
+            workflow["edges"].sort(key=lambda edge: (edge["source"], edge["target"]))
             projects.append({"id": mode, "label": "Native <img src=x onerror=alert(1)> " + mode, "repository_path": str(self.repo), "reference": "refs/heads/main", "source_limits": limits, "workflow": workflow})
         profile = {"service_id": "isolated-web-exercise", "listen_address": "127.0.0.1:" + str(self.port), "origin": self.origin, "tls": {"certificate_path": str(self.root / "certificate.pem"), "private_key_path": str(self.root / "key.pem"), "min_version": "TLS1.3"}, "operator_token_file": str(self.root / "operator.token"), "worker_token_file": str(self.root / "worker.token"), "state_directory": str(self.root / "state"), "projects": projects, "bounds": {"max_request_bytes": 1048576, "max_header_bytes": 16384, "max_connections": 16, "timeout_seconds": 10, "poll_interval_ms": 100, "max_projects": 8, "max_runs": 32, "max_artifact_bytes": 65536, "max_artifacts": 16, "max_run_artifact_bytes": 262144, "max_total_artifact_bytes": 1048576, "max_log_read_bytes": 65536, "max_requests": 256, "max_events_per_run": 128, "max_state_bytes": 8388608, "max_response_bytes": 4194304}}
         admitted = self.export("web-service.ncl", profile, "service")
@@ -246,21 +312,30 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
             worker_path = self.root / ("worker-" + mode + ".json")
             identity = self.digest(worker_path)
             command = "printf '%s\\n' \"$LATTICE_SOURCE_REVISION\" >> " + shlex.quote(str(self.root / "invocations.log")) + "; exec " + shlex.join([self.exe["service"], "job", "--profile", str(worker_path), "--identity", identity]) + " > " + shlex.quote(str(self.root / ("worker-" + mode + ".stdout.log"))) + " 2> " + shlex.quote(str(self.root / ("worker-" + mode + ".stderr.log")))
+            if mode == "success":
+                cold, warm = self.pool["workers"]
+                def selected_job(entry):
+                    return "printf '%s\\n' " + shlex.quote(entry["worker_id"]) + " >> " + shlex.quote(str(self.root / "worker-selection.log")) + "; exec " + shlex.join([self.exe["service"],"job","--profile",entry["profile"],"--identity",entry["original_blake3"]])
+                selector = shlex.quote(self.pool["selector_path"])
+                select = "{ if test -e " + selector + "; then " + selected_job(warm) + "; else : > " + selector + "; " + selected_job(cold) + "; fi; }"
+                command = "printf '%s\\n' \"$LATTICE_SOURCE_REVISION\" >> " + shlex.quote(str(self.root / "invocations.log")) + "; " + select + " > " + shlex.quote(str(self.root / "worker-success.stdout.log")) + " 2> " + shlex.quote(str(self.root / "worker-success.stderr.log"))
+                identity = self.digest(self.root / "worker-success-pool.json")
             workflow = {"name": "web-" + mode, "command": command, "timeout_seconds": 90, "created": "2026-10-27T00:00:00Z"}
             portable = self.export("live-ci-workflow.ncl", workflow, "workflow-" + mode)
-            if mode == "success":
-                verify_path = self.root / "worker-success-verify.json"
-                verify_identity = self.digest(verify_path)
-                verify_command = shlex.join([self.exe["service"], "job", "--profile", str(verify_path), "--identity", verify_identity])
-                node = copy.deepcopy(portable["nodes"][0])
-                node.update(id=1, label="dependent-verification", x=1)
-                for port in node["input_ports"] + node["output_ports"]:
-                    port["id"] += 4
-                config = copy.deepcopy(portable["configs"][0])
-                config.update(node_id=1, command=verify_command)
-                portable["nodes"].append(node)
-                portable["configs"].append(config)
-                portable["edges"] = [{"source": 1, "target": 4}]
+            if mode in ("success", "partial"):
+                template_node, template_config = copy.deepcopy(portable["nodes"][0]), copy.deepcopy(portable["configs"][0])
+                for index, node_id in enumerate(("verify", "lint", "join"), 1):
+                    branch_path = self.root / ("worker-" + mode + "-" + node_id + ".json")
+                    branch_command = shlex.join([self.exe["service"], "job", "--profile", str(branch_path), "--identity", self.digest(branch_path)])
+                    node = copy.deepcopy(template_node)
+                    node.update(id=index, label=node_id, x=index)
+                    for port in node["input_ports"] + node["output_ports"]: port["id"] += 4 * index
+                    if node_id == "join": node["input_ports"].append({"id":16,"label":"other-branch","type_tag":"string"})
+                    config = copy.deepcopy(template_config)
+                    config.update(node_id=index, command=branch_command)
+                    portable["nodes"].append(node)
+                    portable["configs"].append(config)
+                portable["edges"] = [{"source":1,"target":4},{"source":1,"target":8},{"source":5,"target":12},{"source":9,"target":16}]
                 put(self.root / ("workflow-" + mode + ".json"), portable)
             put(self.root / ("workflow-" + mode + ".ncl"), ("import " + json.dumps(str(self.root / ("workflow-" + mode + ".json")))).encode())
             self.command([*prefix, "import", self.root / ("workflow-" + mode + ".ncl")])
@@ -273,7 +348,8 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
             self.command([*prefix, "orchestration", "validate", observe, "--output", "json"])
             native = json.loads(self.command([self.exe["service"], "reviewed-request", "--profile", self.root / "service.json", "--project", mode]))
             put(self.root / ("native-" + mode + ".json"), native)
-            routes.append({"profile_identity": native["profile_identity"], "graph_identity": native["graph"]["identity"], "workflow_name": "web-" + mode, "workflow_revision": "b3:" + revision, "effect_authority": "route_exact", "source_binding": "shell_environment", "nodes": [{"request_node_id": node["id"], "operation_identity": node["operation_identity"], "workflow_node_id": index} for index, node in enumerate(native["graph"]["nodes"])]})
+            native_indices = {"build":0,"verify":1,"lint":2,"join":3}
+            routes.append({"profile_identity": native["profile_identity"], "graph_identity": native["graph"]["identity"], "workflow_name": "web-" + mode, "workflow_revision": "b3:" + revision, "effect_authority": "route_exact", "source_binding": "shell_environment", "nodes": [{"request_node_id": node["id"], "operation_identity": node["operation_identity"], "workflow_node_id": native_indices[node["id"]]} for node in native["graph"]["nodes"]]})
         handler = {"schema": "lattice.workflow-exchange-handler-profile.v1", "socket_path": str(self.root / "lattice.sock"), "transport": {"schema": "lattice.workflow-transport-profile.v1", "limits": transport, "peers": {"allowed_user_ids": [os.getuid()]}, "non_claims": ["transport admission does not prove workflow correctness", "transport peer identity does not prove peer intent", "transport acceptance does not prove an operation executed", "transport response does not prove an external effect succeeded", "transport checks do not establish production deployment"]}, "maximum_active_executions": 8, "routes": sorted(routes, key=lambda route: (route["profile_identity"], route["graph_identity"])), "non_claims": ["handler admission does not prove workflow correctness", "route authority does not prove host confinement", "execution observation does not prove an external effect succeeded", "peer identity does not prove peer intent", "handler checks do not establish release readiness"]}
         expression = "let Contract = import " + json.dumps(self.source + "/contracts/workflow-exchange-handler-profile.ncl") + " in (" + pilot.ncl(handler) + ") | Contract.HandlerProfile"
         put(self.root / "handler.ncl", expression.encode())
@@ -286,6 +362,11 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
             self.prepare_bridge(admitted, routes)
             self.start_bridge()
         self.prepare_policies()
+        if self.args.work:
+            work_spec = importlib.util.spec_from_file_location("kiln_workspace_smoke", REPO / "scripts/workspace-smoke.py")
+            self.work_exercise = importlib.util.module_from_spec(work_spec)
+            work_spec.loader.exec_module(self.work_exercise)
+            self.work_exercise.prepare(self, put)
         self.start_service()
         self.report.update(origin=self.origin, source_revision=self.revision, service_profile_blake3=self.digest(self.root / "service.json"), executables={name: {"path": path, "blake3": self.digest(path)} for name, path in self.exe.items()}, lattice_source=self.source)
         print(json.dumps({"ready": True, "origin": self.origin, "root": str(self.root)}), flush=True)
@@ -350,6 +431,9 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
 
     def prepare_policies(self):
         self.export("web-access.ncl", {"viewers": [{"id": "native-reader", "label": "Native read-only observer", "token_file": str(self.root / "viewer.token")}]}, "access")
+        put(self.root / "cache.json", {"schema":"kiln.web-cache.v1","directory":str(self.root / "shared-cache"),"maximum_entry_bytes":65536,"maximum_total_bytes":1048576,"maximum_entries":16,"maximum_age_seconds":3600,"maximum_files":16,"projects":[{"project_id":"success","producers":["fixture-v1"],"toolchains":["python-v1"],"platforms":["linux-x86_64"],"paths":["cache-output"]}]})
+        put(self.root / "workers.json", {"schema":"kiln.worker-status.v1","maximum_ttl_ms":3000,"maximum_clock_skew_ms":1000,"workers":[{"worker_id":name,"principal":"local:worker","project_id":"success","target_id":self.success_target,"maximum_slots":slots} for name, slots in (("native",2),("compatible",1))]})
+        self.export("web-developer.ncl", {"service_origin":self.origin,"token_file":str(self.root / "operator.token"),"tls_ca_path":str(self.root / "ca.pem"),"http_timeout_ms":10000,"poll_interval_ms":100,"watch_timeout_ms":120000,"maximum_request_bytes":1048576,"maximum_response_bytes":1048576}, "developer")
         exercise = self
         class Receiver(http.server.BaseHTTPRequestHandler):
             def log_message(self, *_):
@@ -384,8 +468,11 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         self.export("web-automation.ncl", {"triggers": [{"id": "source-event", "project_id": "success", "reference": "refs/heads/main", "repository": {"owner": "native-exercise", "repository": "source", "repository_id": 4242, "allow_fork_pull_requests": False}, "secret_file": str(self.root / "trigger.token"), "enabled": True, "push": True, "pull_request": True, "pull_request_base": "main"}], "schedules": [{"id": "periodic", "project_id": "success", "reference": "refs/heads/main", "enabled": False, "interval_ms": 3600000, "min_interval_ms": 1000, "max_interval_ms": 31536000000, "next_due_ms": None}], "notifications": notifications, "max_records": 1000, "status_limit": 100, "max_event_bytes": 1048576, "max_tick_effects": 4}, "automation")
 
     def start_service(self):
+        previous_heartbeats = self.retained_heartbeats() if hasattr(self, "heartbeats") else {}
         before = {path.name: (path.stat().st_size, path.stat().st_mtime_ns) for path in (self.root / "state").iterdir()}
-        policy = ["--profile", self.root / "service.json", "--access", self.root / "access.json", "--automation", self.root / "automation.json"]
+        policy = ["--profile", self.root / "service.json", "--access", self.root / "access.json", "--automation", self.root / "automation.json", "--cache", self.root / "cache.json", "--workers", self.root / "workers.json"]
+        if self.args.work:
+            policy.extend(["--work", self.root / "work.json", "--sources", self.root / "sources.json"])
         preflight = self.command([self.exe["service"], "check", *policy])
         assert self.operator.encode() not in preflight and self.worker.encode() not in preflight
         assert before == {path.name: (path.stat().st_size, path.stat().st_mtime_ns) for path in (self.root / "state").iterdir()}, "preflight modified persistent state"
@@ -398,6 +485,15 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
                     raise RuntimeError("service failed: " + (self.root / "service.log").read_text()[-2048:])
                 return False
         self.wait(ready, "HTTPS service")
+        if previous_heartbeats:
+            assert all(process.poll() is None for process in self.heartbeats.values()), "retained heartbeat daemon exited during service restart"
+            def refreshed():
+                current = self.retained_heartbeats()
+                return current if all(name in current and current[name]["heartbeat"]["sequence"] > previous["heartbeat"]["sequence"] for name, previous in previous_heartbeats.items()) else False
+            current = self.wait(refreshed, "same heartbeat sessions advance after service restart")
+            for name, previous in previous_heartbeats.items():
+                assert current[name]["heartbeat"]["session_id"] == previous["heartbeat"]["session_id"] and current[name]["heartbeat"]["session_started_at_ms"] == previous["heartbeat"]["session_started_at_ms"], current
+            self.report["checks"].setdefault("heartbeat_restarts", []).append({"before":previous_heartbeats,"after":current,"same_daemon_pids":{name:process.pid for name, process in self.heartbeats.items()}})
         health = self.api("GET", "/healthz")
         assert health == {"status": "ok"}, health
         self.report["checks"]["startup"] = {"preflight_state_unchanged": True, "health": health}
@@ -409,12 +505,39 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         def observed():
             view = self.api("GET", "/api/runs/" + run["id"])
             return view if view["outcome"] not in ("Pending", "Unknown") else False
-        return self.wait(observed, "terminal native run")
+        result = self.wait(observed, "terminal native run")
+        if result["outcome"] != "Success": self.record_run_diagnostics(result)
+        return result
 
-    def captured_log(self, run_id, stream):
+    def record_run_diagnostics(self, run):
+        retained = {"run":run,"logs":{}}
+        self.report.setdefault("terminal_diagnostics", {})[run["id"]] = retained
+        for node in run.get("nodes", []):
+            for stream in ("stdout", "stderr"):
+                cursor, output, last = 0, "", None
+                key = node["id"] + "/" + stream
+                try:
+                    for _ in range(MAX_LOG_CHUNKS + 1):
+                        page = self.api("GET", f'/api/runs/{run["id"]}/logs?node_id={node["id"]}&stream={stream}&cursor={cursor}&max_bytes={LOG_CHUNK_BYTES}')
+                        output += page["text"]
+                        last = page
+                        if page["next_cursor"] == cursor: break
+                        cursor = page["next_cursor"]
+                    retained["logs"][key] = {"text":output,"last_page":last,"bounded_maximum_pages":MAX_LOG_CHUNKS + 1}
+                except Exception as error:
+                    retained["logs"][key] = {"text":output,"last_page":last,"unavailable":type(error).__name__}
+
+    def record_failure_diagnostics(self):
+        try:
+            for run in self.api("GET", "/api/runs?limit=32")["runs"]:
+                if run["id"] not in self.report.get("terminal_diagnostics", {}): self.record_run_diagnostics(run)
+        except Exception as error:
+            self.report["failure_diagnostics_unavailable"] = type(error).__name__
+
+    def captured_log(self, run_id, stream, node_id="build"):
         cursor, output, reads = 0, "", 0
         for _ in range(MAX_LOG_CHUNKS + 1):
-            view = self.api("GET", f'/api/runs/{run_id}/logs?node_id=build&stream={stream}&cursor={cursor}&max_bytes={LOG_CHUNK_BYTES}')
+            view = self.api("GET", f'/api/runs/{run_id}/logs?node_id={node_id}&stream={stream}&cursor={cursor}&max_bytes={LOG_CHUNK_BYTES}')
             assert view["source"] == "worker-capture" and view["gap"] is False, view
             assert view["cursor"] == cursor and view["next_cursor"] >= cursor, view
             reads += 1
@@ -424,10 +547,124 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
             cursor = view["next_cursor"]
         raise AssertionError("captured log pagination exceeded declared chunk bound")
 
+    def cli(self, *arguments, allowed=(0,)):
+        return self.command([self.exe["service"], "ci", "--profile", self.root / "developer.json", "--identity", self.digest(self.root / "developer.json"), *arguments], allowed=allowed)
+    def worker_capacity(self, liveness, active=None, busy=False):
+        worker = next(row for row in self.api("GET", "/api/workers")["workers"] if row["id"] == self.success_target)
+        observed = worker.get("observed_capacity")
+        if worker.get("liveness") != liveness or observed is None: return False
+        if active is not None and observed["active_slots"] != active: return False
+        if busy and observed["active_slots"] <= 0: return False
+        assert observed["free_slots"] == observed["observed_slots"] - observed["active_slots"], worker
+        return worker
+
+    def start_heartbeat(self):
+        generation = getattr(self, "heartbeat_generation", 0)
+        self.heartbeat_generation = generation + 1
+        previous = self.retained_heartbeats()
+        self.heartbeats = {}
+        for entry in self.pool["workers"]:
+            name = entry["worker_id"]
+            self.heartbeats[name] = self.spawn(f"heartbeat-{name}-{generation}", [self.exe["service"], "heartbeat", "--profile", entry["profile"], "--identity", entry["original_blake3"]])
+        def admitted():
+            current = self.retained_heartbeats()
+            return all(name in current and (name not in previous or current[name]["heartbeat"]["session_id"] != previous[name]["heartbeat"]["session_id"]) for name in self.heartbeats)
+        self.wait(admitted, "both real worker daemon sessions admitted")
+
+    def retained_heartbeats(self):
+        database = "file:" + str(self.root / "state" / "worker-status.sqlite") + "?mode=ro"
+        with sqlite3.connect(database, uri=True) as connection:
+            rows = connection.execute("SELECT worker_id,observation FROM worker_status").fetchall()
+        return {name:json.loads(raw) for name, raw in rows}
+
+    def exercise_stale_worker(self):
+        previous = self.retained_heartbeats()
+        for process in self.heartbeats.values(): process.terminate()
+        for process in self.heartbeats.values(): process.wait(timeout=15)
+        stale = self.wait(lambda: self.worker_capacity("offline", active=0), "expired worker heartbeat stops contributing capacity")
+        assert stale["observed_capacity"]["observed_slots"] == 0 and stale["observed_capacity"]["free_slots"] == 0, stale
+        before = len((self.root / "invocations.log").read_text().splitlines())
+        queued = self.api("POST", "/api/runs", {"project_id":"success","request_id":"offline-worker-deferred"})
+        assert queued["phase"] == "queued" and queued["execution"] is None, queued
+        time.sleep(0.5)
+        retained = self.api("GET", "/api/runs/" + queued["id"])
+        assert retained["phase"] == "queued" and len((self.root / "invocations.log").read_text().splitlines()) == before, retained
+        self.start_heartbeat()
+        self.wait(lambda: self.worker_capacity("online"), "new session admitted only after old heartbeat expired")
+        completed = self.terminal(queued)
+        assert completed["outcome"] == "Success" and completed["attempt_id"] == queued["attempt_id"], completed
+        current = self.retained_heartbeats()
+        assert all(current[name]["heartbeat"]["session_id"] != record["heartbeat"]["session_id"] for name, record in previous.items())
+        self.report["checks"]["worker_staleness"] = {"offline":stale,"queued":retained,"resumed":completed,"replacement_after_expiry":True}
+
+
+    def measured_steps(self, run):
+        result = self.api("GET", f'/api/runs/{run["id"]}/telemetry')
+        assert result["steps"] == run["step_telemetry"], result
+        by_node = {}
+        for record in result["steps"]:
+            observation, step = record["observation"], record["observation"]["step"]
+            binding = observation["binding"]
+            assert all(binding[key] == run[key] for key in ("source_revision","attempt_id","execution")), record
+            assert binding["run_id"] == run["id"] and step["duration_ms"] >= 0 and step["started_at_ms"] > 0 and step["completed_at_ms"] > 0, record
+            assert step["cpu_time_us"] is not None and step["cpu_time_us"] >= 0 and step["peak_memory_bytes"] > 0, record
+            records = by_node.setdefault(binding["node_id"], [])
+            assert observation["sequence"] == len(records) + 1, observation
+            records.append(step)
+        return result, by_node
+
+    def exercise_developer_cache(self, cold):
+        cold_result, cold_nodes = self.measured_steps(cold)
+        cold_step = cold_nodes["build"][0]
+        assert [fact["outcome"] for fact in cold_step["cache"]] == ["miss","published"], cold_step
+        first_invocations = len((self.root / "invocations.log").read_text().splitlines())
+        warm = json.loads(self.cli("submit", "--project", "success", "--request-id", "cli-clean-warm", "--reference", "refs/heads/main", "--revision", self.revision))
+        watched = self.cli("watch", "--run", warm["id"])
+        warm = json.loads(watched.splitlines()[-1])
+        assert warm["outcome"] == "Success" and warm["source_revision"] == self.revision and warm["attempt_id"] != cold["attempt_id"], warm
+        assert len((self.root / "invocations.log").read_text().splitlines()) == first_invocations + 1
+        warm_result, warm_nodes = self.measured_steps(warm)
+        warm_step = warm_nodes["build"][0]
+        assert warm_step["cache"][0]["outcome"] == "hit" and warm_step["cache"][0]["transferred_bytes"] > 0 and warm_step["cache"][0]["key"] == cold_step["cache"][0]["key"], warm_step
+        cli_logs = self.cli("logs", "--run", warm["id"], "--follow")
+        assert b"actual restored derived output" in cli_logs and b"actual fan-in joined both branches" in cli_logs, cli_logs
+        retained_path = self.root / "shared-cache" / "kiln-cache-v1" / warm_step["cache"][0]["key"]
+        retained_bytes = retained_path.read_bytes()
+        try:
+            put(retained_path, b"corrupt retained cache envelope")
+            corrupt = self.terminal(self.api("POST", "/api/runs", {"project_id":"success","request_id":"cache-corruption-denied"}))
+            assert corrupt["outcome"] == "DomainFailure", corrupt
+            stdout = self.api("GET", f'/api/runs/{corrupt["id"]}/logs?node_id=build&stream=stdout&cursor=0&max_bytes={LOG_CHUNK_BYTES}')
+            assert "actual command started" not in stdout["text"], stdout
+        finally:
+            put(retained_path, retained_bytes)
+        self.report["checks"]["cache_corruption"] = {"run":corrupt,"command_not_started":True}
+        selected = self.repo / "source-value.txt"
+        original = selected.read_bytes()
+        put(selected, b"dirty-selected-input\n")
+        put(self.repo / "unselected-private.txt", b"must never enter worker source")
+        try:
+            dirty = json.loads(self.cli("submit", "--project", "success", "--request-id", "cli-exact-dirty", "--reference", "refs/heads/main", "--revision", self.revision, "--dirty-repository", str(self.repo), "--include", "source-value.txt"))
+        finally:
+            put(selected, original)
+            (self.repo / "unselected-private.txt").unlink()
+        dirty_watch = self.cli("watch", "--run", dirty["id"], allowed=(1,))
+        dirty = json.loads(dirty_watch.splitlines()[-1])
+        assert dirty["outcome"] == "DomainFailure" and dirty["source_revision"] != self.revision and dirty["dirty_snapshot"]["base_revision"] == self.revision, dirty
+        dirty_logs = self.cli("logs", "--run", dirty["id"])
+        assert b"actual source input: dirty-selected-input" in dirty_logs, dirty_logs
+        retry = json.loads(self.cli("retry", "--run", dirty["id"], "--request-id", "cli-dirty-retry"))
+        retried = self.terminal(retry)
+        assert retried["source_revision"] == dirty["source_revision"] and retried["attempt_id"] != dirty["attempt_id"] and retried["outcome"] == "DomainFailure", retried
+        self.report["checks"]["developer_loop"] = {"clean":warm,"dirty":dirty,"retry":retried,"explicit_selection_only":True}
+        selected_workers = (self.root / "worker-selection.log").read_text().splitlines()
+        assert selected_workers[:2] == ["native","compatible"], selected_workers
+        self.report["checks"]["shared_cache"] = {"cold":cold_result,"warm":warm_result,"cold_elapsed_ms":cold_step["duration_ms"],"warm_elapsed_ms":warm_step["duration_ms"],"pool":self.pool,"cold_worker":"native","warm_worker":"compatible","distinct_worker_processes":True,"distinct_work_roots":True,"distinct_physical_hosts":False,"speedup_claim":False}
+
     def inspect_success(self, run, logs):
-        assert run["edges"] == [{"source": "build", "target": "verify"}], run
+        assert {(edge["source"],edge["target"]) for edge in run["edges"]} == {("build","verify"),("build","lint"),("verify","join"),("lint","join")}, run
         nodes = {node["id"]: node for node in run["nodes"]}
-        assert set(nodes) == {"build", "verify"}, nodes
+        assert set(nodes) == {"build", "verify", "lint", "join"}, nodes
         for node in nodes.values():
             assert node["state"] == "Completed" and node["completed_at_ms"] is not None, node
             if node["started_at_ms"] is None:
@@ -435,6 +672,14 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
             else:
                 assert node["duration_ms"] == node["completed_at_ms"] - node["started_at_ms"], node
         assert run["created_at_ms"] <= run["started_at_ms"] <= run["completed_at_ms"] and run["duration_ms"] >= 0, run
+        measured, steps = self.measured_steps(run)
+        assert set(steps) == {"build","verify","lint","join"} and len(steps["build"]) == 2, measured
+        direct_cpu_us = int(next(line.removeprefix("actual direct CPU microseconds: ") for line in logs["text"].splitlines() if line.startswith("actual direct CPU microseconds: ")))
+        assert direct_cpu_us > 1000 and steps["build"][0]["cpu_time_us"] + 1000 >= direct_cpu_us, {"direct_cpu_us":direct_cpu_us,"telemetry":steps["build"][0]}
+        self.report["checks"]["resource_scope"] = {"direct_child_cpu_lower_bound_us":direct_cpu_us,"admitted_cpu_time_us":steps["build"][0]["cpu_time_us"],"quantization_allowance_us":1000}
+        for source, target in (("build","verify"),("build","lint"),("verify","join"),("lint","join")):
+            assert steps[source][-1]["completed_at_ms"] <= steps[target][0]["started_at_ms"], measured
+        self.report["checks"]["measured_pipeline"] = measured
         reports = self.api("GET", f'/api/runs/{run["id"]}/reports')
         normalized = {record["kind"]: record for record in reports["reports"]}
         assert normalized["junit"]["report"]["tests"]["cases"][0]["status"] == "passed", reports
@@ -499,20 +744,12 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         self.sync_worker_source(revision)
         latest = self.terminal(self.api("POST", f'/api/runs/{success["id"]}/rerun', {"request_id": "run-latest-source", "mode": "latest"}))
         assert latest["source_revision"] == revision and revision != self.revision and latest["outcome"] == "DomainFailure", latest
-        marker = self.root / "command-success.unstable"
-        put(marker, b"controlled native repeated-observation failure")
-        unstable = self.terminal(self.api("POST", f'/api/runs/{success["id"]}/rerun', {"request_id": "same-source-observation-failure", "mode": "exact"}))
-        marker.unlink()
-        assert unstable["source_revision"] == self.revision and unstable["outcome"] == "DomainFailure", unstable
         exact = self.terminal(self.api("POST", f'/api/runs/{success["id"]}/rerun', {"request_id": "rerun-exact-source", "mode": "exact"}))
         assert exact["source_revision"] == self.revision and exact["outcome"] == "Success" and exact["attempt_id"] != success["attempt_id"], exact
         comparison = self.api("GET", f'/api/runs/{latest["id"]}/compare?other={success["id"]}')
         changed = next(case for case in comparison["test_changes"] if case["name"] == "test_source")
         assert changed["current"] == "failed" and changed["other"] == "passed", comparison
         assert comparison["flaky_history"] == [], comparison
-        instability = self.api("GET", f'/api/runs/{exact["id"]}/compare?other={unstable["id"]}')
-        assert any(case["name"] == "test_source" and case["source_revision"] == self.revision and case["passed"] >= 1 and case["failed"] >= 1 for case in instability["flaky_history"]), instability
-        self.report["checks"]["instability"] = instability
         self.api("GET", f'/api/runs/{success["id"]}/compare?other={failure["id"]}', expected=(409,))
         first = self.api("GET", "/api/runs?project_id=success&limit=1&order=asc")
         assert first["runs"][0]["id"] == success["id"] and first["next_cursor"], first
@@ -612,14 +849,21 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
             self.report["checks"]["tls"] = "TLS1.3 succeeded; TLS1.2 rejected"
         self.api("POST", "/api/runs", {"project_id": "not-installed", "request_id": "unknown-project"}, expected=(400, 404))
         self.enroll("success")
+        self.start_heartbeat()
+        initial_capacity = self.wait(lambda: self.worker_capacity("online", active=0), "fresh observed worker capacity")
         request = {"project_id": "success", "request_id": "native-success"}
         run = self.api("POST", "/api/runs", request)
         assert self.api("POST", "/api/runs", request)["id"] == run["id"]
         self.api("POST", "/api/runs", {**request, "project_id": "slow"}, expected=(409,))
+        busy_capacity = self.wait(lambda: self.worker_capacity("online", busy=True), "real worker ledger busy observation")
         success = self.terminal(run)
         assert success["outcome"] == "Success" and success["source_revision"] == self.revision, success
+        free_capacity = self.wait(lambda: self.worker_capacity("online", active=0), "real worker ledger releases job slots")
+        self.report["checks"]["worker_capacity"] = {"available":initial_capacity,"busy":busy_capacity,"released":free_capacity}
         logs = self.captured_log(run["id"], "stdout")
         assert "actual artifact bytes: exact-source-artifact-v1" in logs["text"], logs
+        assert "actual isolated host credential and service network denied" in logs["text"], logs
+        self.report["checks"]["isolation"] = {"host_credential_denied":True,"host_loopback_service_denied":True,"all_job_profiles_isolated":True}
         assert logs["source"] == "worker-capture" and logs["gap"] is False
         assert "second reviewed step" in logs["text"] and logs["reads"] > 2, logs
         empty = self.captured_log(run["id"], "stderr")
@@ -634,12 +878,22 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         assert self.digest(self.root / "downloaded.bin") == artifact["blake3"].removeprefix("b3:")
         self.report["checks"]["success"] = {"run": success, "logs": logs, "artifact": artifact}
         self.inspect_success(success, logs)
+        self.exercise_developer_cache(success)
         self.enroll("fail")
         failure = self.terminal(self.api("POST", "/api/runs", {"project_id": "fail", "request_id": "native-failure"}))
         assert failure["outcome"] == "DomainFailure", failure
         assert self.api("GET", f'/api/runs/{failure["id"]}/artifacts')["artifacts"] == []
         failure_log = self.captured_log(failure["id"], "stderr")
         assert failure_log["source"] == "worker-capture" and "actual intentional failure" in failure_log["text"], failure_log
+        self.enroll("partial")
+        partial = self.terminal(self.api("POST", "/api/runs", {"project_id":"partial","request_id":"native-partial-failure"}))
+        failure_nodes = {node["id"]:node for node in partial["nodes"]}
+        assert partial["outcome"] == "DomainFailure" and failure_nodes["build"]["state"] == "Completed" and failure_nodes["verify"]["state"] == "Failed" and failure_nodes["join"]["state"] == "Skipped", failure_nodes
+        failure_reports = self.api("GET", f'/api/runs/{partial["id"]}/reports')
+        assert failure_reports["summary"]["tests"]["failed"] == 1, failure_reports
+        branch_log = self.captured_log(partial["id"], "stderr", "verify")
+        assert "actual intentional branch failure" in branch_log["text"], branch_log
+        self.report["checks"]["partial_failure"] = {"run":partial,"nodes":failure_nodes,"reports":failure_reports,"log":branch_log}
         self.report["checks"]["failure_log"] = failure_log
         self.report["checks"]["failure"] = failure
         self.enroll("slow")
@@ -648,9 +902,8 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
             view = self.api("GET", "/api/runs/" + slow["id"])
             return view if view["execution"] and view["controls"]["cancel"] else False
         active_run = self.wait(active, "cancellable native execution")
-        self.wait(lambda: (self.root / "command-slow.started").exists(), "actual source command start before cancellation")
+        self.wait(lambda: "actual command started" in self.api("GET", f'/api/runs/{slow["id"]}/logs?node_id=build&stream=stdout&cursor=0&max_bytes={LOG_CHUNK_BYTES}')["text"], "actual isolated source command start before cancellation")
         self.inspect_active(active_run)
-        first_pid = (self.root / "command-slow.started").read_text()
         queued = self.api("POST", "/api/runs", {"project_id": "slow", "request_id": "durably-queued"})
         assert queued["phase"] == "queued" and queued["execution"] is None, queued
         queue = self.api("GET", "/api/operations")["queue"]
@@ -667,7 +920,12 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         assert restored["execution"] == active_run["execution"] and restored["attempt_id"] == active_run["attempt_id"]
         restored_queue = self.api("GET", "/api/runs/" + queued["id"])
         assert restored_queue["phase"] == "queued" and restored_queue["attempt_id"] == queued["attempt_id"], restored_queue
+        assert all(process.poll() is None for process in self.heartbeats.values()), "heartbeat daemon did not survive service restart"
+        self.wait(lambda: self.worker_capacity("online", active=0), "same daemon refreshes retained service sequence")
         assert len((self.root / "invocations.log").read_text().splitlines()) == invocation_count
+        recovered_steps = self.api("GET", f'/api/runs/{success["id"]}/telemetry')
+        assert recovered_steps == self.report["checks"]["measured_pipeline"], recovered_steps
+        self.report["checks"]["telemetry_recovery"] = recovered_steps
         if self.args.iroh:
             assert restored["phase"] == "active" and restored["outcome"] == "Pending" and restored["controls"]["cancel"], restored
             self.report["checks"]["bridge_restart"] = {"run": restored, "invocations_before": invocation_count, "invocations_after": invocation_count, "worker_and_proxy_restarted": True, "controller_stopped_during_restart": True}
@@ -684,13 +942,18 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         assert self.api("GET", f'/api/runs/{slow["id"]}/artifacts')["artifacts"] == [], "cancelled work published an artifact"
         def advanced():
             view = self.api("GET", "/api/runs/" + queued["id"])
-            return view if view["execution"] and view["phase"] == "active" and (self.root / "command-slow.started").read_text() != first_pid else False
+            if not view["execution"] or view["phase"] != "active": return False
+            output = self.api("GET", f'/api/runs/{queued["id"]}/logs?node_id=build&stream=stdout&cursor=0&max_bytes={LOG_CHUNK_BYTES}')
+            return view if "actual command started" in output["text"] else False
         advanced_run = self.wait(advanced, "queued command starts exactly after prior cancellation")
         advanced_run = self.api("GET", "/api/runs/" + queued["id"])
-        self.api("POST", f'/api/runs/{queued["id"]}/control', {"request_id": "cancel-advanced", "attempt_id": advanced_run["attempt_id"], "expected_revision": advanced_run["revision"], "expected_sequence": advanced_run["sequence"], "execution": advanced_run["execution"], "action": "cancel"})
+        self.cli("cancel", "--run", queued["id"], "--request-id", "cli-cancel-advanced")
         assert self.terminal(queued)["outcome"] == "Cancelled"
         self.report["checks"]["queue"] = {"queued": queued, "restored": restored_queue, "advanced": advanced_run}
+        self.exercise_stale_worker()
         self.complete_dashboard_checks(success, failure)
+        if self.args.work:
+            self.work_exercise.execute(self, success)
         if self.args.browser_hold:
             put(self.root / "browser-ready.json", {"origin": self.origin, "success_run": success["id"], "latest_run": self.report["checks"]["latest"]["id"]})
             print(json.dumps({"browser_ready": True, "origin": self.origin, "root": str(self.root)}), flush=True)
@@ -713,11 +976,11 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait(timeout=5)
                     failures.append("forced process termination")
-        secrets = ("operator.token", "worker.token", "viewer.token", "trigger.token", "notification.token", "key.pem", "ca-key.pem", "iroh-worker.key", "iroh-proxy.key")
+        secrets = ("operator.token", "worker.token", "viewer.token", "trigger.token", "notification.token", "work.seed", "key.pem", "ca-key.pem", "iroh-worker.key", "iroh-proxy.key")
         for name in secrets:
             (self.root / name).unlink(missing_ok=True)
         self.report["retirement"] = {"all_processes_exited": all(process.poll() is not None for process in self.processes), "credentials_removed": all(not (self.root / name).exists() for name in secrets), "failures": failures}
-        for pattern in ("service.json", "worker-*.json", "native-*.json", "handler.json", "iroh-*.json", "iroh-*.log", "service.log", "lattice.log", "worker-*.stdout.log", "worker-*.stderr.log", "downloaded.bin", "certificate.pem", "ca.pem"):
+        for pattern in ("service.json", "worker-*.json", "workers.json", "cache.json", "developer.json", "work.json", "sources.json", "native-*.json", "handler.json", "iroh-*.json", "iroh-*.log", "heartbeat-*.log", "service.log", "lattice.log", "worker-*.stdout.log", "worker-*.stderr.log", "downloaded.bin", "certificate.pem", "ca.pem"):
             for path in self.root.glob(pattern):
                 shutil.copyfile(path, self.evidence / path.name)
         shutil.rmtree(self.root)
@@ -736,6 +999,7 @@ def main():
     parser.add_argument("--root", required=True, help="New private scratch directory outside /tmp")
     parser.add_argument("--evidence", required=True)
     parser.add_argument("--browser-hold", action="store_true", help="Wait for browser-done.json before native checks")
+    parser.add_argument("--work", action="store_true", help="Exercise optional signed native COB work management and exact CI links")
     args = parser.parse_args()
     os.umask(0o077)
     exercise = Exercise(args)
@@ -743,6 +1007,7 @@ def main():
         exercise.execute()
     except BaseException as error:
         exercise.report["failure"] = {"kind": type(error).__name__, "diagnostic": str(error)}
+        exercise.record_failure_diagnostics()
         raise
     finally:
         exercise.close()

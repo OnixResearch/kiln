@@ -1,0 +1,8 @@
+{
+  "git_directory": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/work-cobs/.git",
+  "schema": "kiln.web-work.v1",
+  "signer_seed_file": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/work.seed",
+  "write_principals": [
+    "local:operator"
+  ]
+}

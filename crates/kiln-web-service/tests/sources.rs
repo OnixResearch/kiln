@@ -288,7 +288,7 @@ fn git_source_log_tree_and_file_preserve_exact_revision_content() {
     );
 }
 
-// r[verify kiln.dashboard.source.read.scenario.jj]
+// r[verify kiln.dashboard.source.read]
 #[test]
 fn jj_source_reads_a_colocated_or_backend_git_store_without_mutation() {
     let root =
@@ -591,7 +591,7 @@ fn oversized_revision_changes_report_truncation_instead_of_failure() {
     assert!(!text.is_empty());
 }
 
-// r[verify kiln.dashboard.source.read.scenario.lookup]
+// r[verify kiln.dashboard.source.read]
 #[test]
 fn commit_lookup_reports_only_sources_that_contain_the_object() {
     let root =

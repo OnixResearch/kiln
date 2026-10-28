@@ -229,8 +229,9 @@ impl Engine {
         method: &str,
         target: &str,
         body: &[u8],
-        role: Role,
+        principal: &crate::access::Principal,
     ) -> Result<ApiResponse, String> {
+        let role = principal.role;
         if body.len() > self.profile.bounds.max_request_bytes {
             return error(400, "request_bound");
         }
@@ -238,6 +239,15 @@ impl Engine {
             Ok(v) => v,
             Err(_) => return error(400, "query_invalid"),
         };
+        if let Some(response) = self.snapshot_route(method, target, body, role)? {
+            return Ok(response);
+        }
+        if path == "/api/workers/heartbeat" {
+            if method != "POST" || !params.is_empty() {
+                return error(400, "request_invalid");
+            }
+            return self.worker_heartbeat(principal, body, super::host_time_ms()?);
+        }
         let worker_lookup = method == "GET"
             && path == "/api/runs"
             && params.len() == 2
@@ -259,15 +269,30 @@ impl Engine {
         let log_upload = method == "POST" && matches!(run_route, Some((_, Some("logs"), None)));
         let report_upload =
             method == "POST" && matches!(run_route, Some((_, Some("reports"), None)));
+        let telemetry_upload =
+            method == "POST" && matches!(run_route, Some((_, Some("telemetry"), None)));
+        let cache_operation = method == "POST"
+            && matches!(
+                run_route,
+                Some((_, Some("cache"), Some("restore" | "publish")))
+            );
         if role == Role::Worker
             && !worker_lookup
             && !artifact_upload
             && !log_upload
             && !report_upload
+            && !telemetry_upload
+            && !cache_operation
         {
             return error(403, "worker_scope");
         }
-        if role != Role::Worker && (artifact_upload || log_upload || report_upload) {
+        if role != Role::Worker
+            && (artifact_upload
+                || log_upload
+                || report_upload
+                || telemetry_upload
+                || cache_operation)
+        {
             return error(403, "worker_only");
         }
         if method == "GET" && !body.is_empty() {
@@ -352,6 +377,17 @@ impl Engine {
             match (method, resource, artifact) {
                 ("GET", None, None) if params.is_empty() => return json_response(200, run.view()),
                 ("POST", Some("rerun"), None) if params.is_empty() => return self.rerun(id, body),
+                ("POST", Some("telemetry"), None) if params.is_empty() => {
+                    return self.upload_telemetry(id, body);
+                }
+                ("GET", Some("telemetry"), None) if params.is_empty() => {
+                    return self.run_telemetry(id);
+                }
+                ("POST", Some("cache"), Some(operation @ ("restore" | "publish")))
+                    if params.is_empty() =>
+                {
+                    return self.cache_request(role, &principal.id, id, operation, body);
+                }
                 ("POST", Some("reports"), None) if params.is_empty() => {
                     return self.upload_report(id, body);
                 }
@@ -568,7 +604,7 @@ impl Engine {
         };
         json_response(
             200,
-            json!({"node_id":node,"stream":stream_name,"source":"native-provider","cursor":chunk.reference.cursor,"next_cursor":next,"text":String::from_utf8_lossy(&chunk.bytes),"gap":chunk.reference.gap_before,"truncated":chunk.reference.truncated,"retained":chunk.reference.retained}),
+            json!({"node_id":node,"stream":stream_name,"source":"native-provider","cursor":chunk.reference.cursor,"next_cursor":next,"text":String::from_utf8_lossy(&chunk.bytes),"body_base64":base64::Engine::encode(&base64::engine::general_purpose::STANDARD,&chunk.bytes),"gap":chunk.reference.gap_before,"truncated":chunk.reference.truncated,"retained":chunk.reference.retained}),
         )
     }
 }

@@ -1,0 +1,68 @@
+{
+  "argv": [
+    "cairn",
+    "traceability",
+    "coverage",
+    "--root",
+    "/tmp/kiln-coverage-control-xj_lhxvr",
+    "--policy",
+    "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/complete-internal-developer-loop/evidence/development-coverage-policy.json",
+    "--profile",
+    "kiln-coverage-negative-control",
+    "--json"
+  ],
+  "exit_code": 1,
+  "report": {
+    "command": "traceability coverage",
+    "dangling": [
+      "coverage.control.unknown"
+    ],
+    "input_hash": "8c2c1a5471361c956fdec405d54a38882ff60fc4148ed4985036f6965b1aa880",
+    "missing": [],
+    "policy": "kiln-default",
+    "policy_hash": "22efa516d900a6fc14684fa114c034e26c9a1558e3a09ecade05cc4c97b304df",
+    "profile": {
+      "anchor_kind": "exact_marker_bytes",
+      "assurance_level": "declared",
+      "evidence_sources": [
+        {
+          "extensions": [
+            "rs"
+          ],
+          "root": "evidence.rs",
+          "source_kind": "rust_source"
+        }
+      ],
+      "id": "kiln-coverage-negative-control",
+      "marker_verbs": [
+        "impl",
+        "verify",
+        "depends",
+        "related"
+      ],
+      "requirement_sources": [
+        {
+          "extensions": [
+            "md"
+          ],
+          "root": "requirements.md",
+          "source_kind": "requirements_doc"
+        }
+      ]
+    },
+    "profile_id": "kiln-coverage-negative-control",
+    "receipt_hash": "8f07894c689d060572edcc7629547a381c6264394796924b6766e0bc6c955047",
+    "referenced": 1,
+    "requirements": 1,
+    "root": "/tmp/kiln-coverage-control-xj_lhxvr",
+    "source_summary": {
+      "evidence_files": 1,
+      "evidence_manifest_hash": "5b6b6c5399c4a903158bfb5b7514769a3290a69684bd44c00f6ac4d8408aea29",
+      "requirement_files": 1,
+      "requirement_manifest_hash": "85f49a33795264cc5b8a186f5c4ca9d2439a807975cbffefebbb5a9a7045f089"
+    },
+    "valid": false,
+    "verdict": "fail"
+  },
+  "stderr": "error: traceability coverage failed\n"
+}

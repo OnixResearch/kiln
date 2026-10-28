@@ -7,8 +7,9 @@
 # stdout/stderr are uploaded during execution with separate worker-owned byte
 # cursors. Bounded Exec owns the process while private bounded transports retain
 # output; native diagnostics remain separate. No progress or bytes are synthesized.
-# This is not a sandbox: use a dedicated account and reviewed commands; token
-# files must be private, owned, outside repository_path and work_root.
+# Legacy profiles run reviewed commands with account authority. Optional execution
+# policy requires Linux namespaces and the exact reviewed bubblewrap executable;
+# unavailable isolation fails closed, without unsandboxed fallback.
 let Integer = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_number value
@@ -57,6 +58,17 @@ let Step = {
   artifacts | Array RelativeFile,
   # Omitted declarations remain omitted, preserving existing profile JSON identity.
   reports | Array Report | optional,
+  cache
+    | {
+      producer | String,
+      toolchain | String,
+      platform | String,
+      inputs | Array RelativeFile,
+      paths | Array RelativeFile,
+      maximum_entry_bytes | Integer 8388608,
+      maximum_files | Integer 4096,
+    }
+    | optional,
 }
 in
 fun input =>
@@ -95,6 +107,32 @@ fun input =>
         maximum_artifact_bytes | Integer 67108864 | default = 16777216,
         maximum_total_artifact_bytes | Integer 1073741824 | default = 67108864,
         maximum_artifacts | Integer 4096 | default = 32,
+        execution
+          | {
+            bubblewrap | AbsolutePath,
+            probe_program | AbsolutePath,
+            read_only_mounts
+              | Array (
+                std.contract.from_predicate (fun value =>
+                  std.array.elem value ["/nix/store", "/usr", "/bin", "/lib", "/lib64"]
+                )
+              ),
+            network | std.contract.from_predicate (fun value => std.array.elem value ["deny", "host"]),
+            cpu_seconds | Integer 86400,
+            address_space_bytes | Integer 1099511627776,
+            maximum_file_bytes | Integer 1099511627776,
+            maximum_open_files | Integer 65536,
+          }
+          | optional,
+        heartbeat
+          | {
+            worker_id | Component,
+            target_id | std.contract.from_predicate (fun value => std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value),
+            interval_ms | Integer 30000,
+            ttl_ms | Integer 120000,
+            slots | Integer 256,
+          }
+          | optional,
         steps | Array Step,
       }
   in
@@ -120,3 +158,5 @@ fun input =>
     maximum_artifacts = settings.maximum_artifacts,
     steps = settings.steps,
   }
+  & (if std.record.has_field "execution" settings then { execution = settings.execution } else {})
+  & (if std.record.has_field "heartbeat" settings then { heartbeat = settings.heartbeat } else {})

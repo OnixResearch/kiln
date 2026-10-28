@@ -7,7 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [features]
-fixture-process = []
+fixture-process = ["dep:nix"]
 
 [[bin]]
 name = "kiln-nix-eval-fixture"
@@ -25,6 +25,7 @@ bounded-exec.workspace = true
 kiln-core.workspace = true
 libc = "0.2.189"
 kiln-provider-api.workspace = true
+nix = { version = "=0.30.1", features = ["signal"], optional = true }
 serde.workspace = true
 serde_json.workspace = true
 

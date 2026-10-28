@@ -1,0 +1,185 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "transport": "local",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "tls": "TLS1.3 succeeded; TLS1.2 rejected"
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "loopback Iroh does not prove WAN or relay availability or distinct-host deployment",
+    "adapter labels do not implement per-node placement or mixed-host scheduling",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "source": {
+    "controller_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-b/source",
+    "worker_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-b/source",
+    "distinct_checkout": false,
+    "source_repository": "43e810fc11233e0a958366c9d5c2083353af354cfd81025d4897323aedb0beb9",
+    "worker_local_repository": "43e810fc11233e0a958366c9d5c2083353af354cfd81025d4897323aedb0beb9"
+  },
+  "profiles": {
+    "projects": {
+      "success": {
+        "provider_profile_id": "lattice-web-native-success",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:b0f2519222ba5156852cf487997b3d905c3a8adf55b877d566b56de06459ddce",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:39eba66662d6ca7940452de93da8f150157858dad9f61fe819739b6bc4c84bdc",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:4667780ada91bad8cab7f8682043b3a3d88a14c0e2b4e75d89c273d32317d9d1",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:eb154ef9135c10e564e03555765cd1f6a1957feca17758ade5be72596d0a4d64",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:be5ec5e8b16047f1a4f28e4c287aeeffbd3597a78ef6143178443beafb5e3c68",
+            "workflow_node_id": 1
+          }
+        ]
+      },
+      "slow": {
+        "provider_profile_id": "lattice-web-native-slow",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:26e23f4c520d4ebc2e09d2074fe9557306c4e6f1f9c5ff74b7be8fe2a55d4307",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:aa965bcab97b9a5c575580e331103865f2e7f3da779ccef879144b8d8a42b28b",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "fail": {
+        "provider_profile_id": "lattice-web-native-fail",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:e1268fdebcb334630b14b9af937b06ae5790a59e45a5432bff456697d515ed2d",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:efdab79a956b94b4d02897659e9546543eb6b2b973a8d3331414732d0b959120",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "partial": {
+        "provider_profile_id": "lattice-web-native-partial",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:080393fd8036c24ff5983a11de7a3f247340e90aec1d829eca261d059ab469ba",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:615aad5086b91fa01da3de46f4637e1cc71907b12b8c1c093295b54822a35cb2",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:d685a5cd7c56d9fb9019d51cb278abb5e1384f7ccc4b6b46a1636d31c18999a1",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:a6be561ca27083334976da5e19511af26ebbc2b43b14b1b2a99ac08000e78762",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:e8cce0207fb5a223eda1fe7fed946184505ee1f11ce510b11492d5fd2bee4957",
+            "workflow_node_id": 1
+          }
+        ]
+      }
+    },
+    "worker_blake3": {
+      "worker-success.json": "fa2cf5e53c0820dbf7f3170f2adc40f85c913ecb94feb111859dcc60b39563e2",
+      "worker-partial-lint.json": "a6be561ca27083334976da5e19511af26ebbc2b43b14b1b2a99ac08000e78762",
+      "worker-success-verify.json": "be5ec5e8b16047f1a4f28e4c287aeeffbd3597a78ef6143178443beafb5e3c68",
+      "worker-partial.json": "615aad5086b91fa01da3de46f4637e1cc71907b12b8c1c093295b54822a35cb2",
+      "worker-slow.json": "aa965bcab97b9a5c575580e331103865f2e7f3da779ccef879144b8d8a42b28b",
+      "worker-success-lint.json": "eb154ef9135c10e564e03555765cd1f6a1957feca17758ade5be72596d0a4d64",
+      "worker-success-join.json": "4667780ada91bad8cab7f8682043b3a3d88a14c0e2b4e75d89c273d32317d9d1",
+      "worker-partial-join.json": "d685a5cd7c56d9fb9019d51cb278abb5e1384f7ccc4b6b46a1636d31c18999a1",
+      "worker-fail.json": "efdab79a956b94b4d02897659e9546543eb6b2b973a8d3331414732d0b959120",
+      "worker-success-compatible.json": "d5835b9fe3c11686499f93c89a7a295fdb03cd29c5df2ddaabcc9c1a13efcc6c",
+      "worker-partial-verify.json": "e8cce0207fb5a223eda1fe7fed946184505ee1f11ce510b11492d5fd2bee4957",
+      "worker-success-pool.json": "39eba66662d6ca7940452de93da8f150157858dad9f61fe819739b6bc4c84bdc"
+    },
+    "handler_profile_blake3": "571bf8f6fc106a924f4059e58e78ed9e6e7b57f015152d8c8af77efb9eb0e092"
+  },
+  "origin": "https://127.0.0.1:47831",
+  "source_revision": "f54900114302fed4f58af895c8d455ed9bba39db",
+  "service_profile_blake3": "1250fabae0287e88a3fec48c0758a7df7a15e3b49749dcafeaad080327a59bab",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "true": {
+      "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/coreutils",
+      "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471"
+    },
+    "service": {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-web-service",
+      "blake3": "dd0b7102a3df9b6e1cf59bf5cae630283a041a3db62e50fb8ac88b354409be8c"
+    },
+    "lattice": {
+      "path": "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "failure": {
+    "kind": "TimeoutError",
+    "diagnostic": "both real worker daemon sessions admitted"
+  },
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

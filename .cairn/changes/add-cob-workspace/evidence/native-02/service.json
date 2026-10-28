@@ -1,0 +1,330 @@
+{
+  "bounds": {
+    "max_artifact_bytes": 65536,
+    "max_artifacts": 16,
+    "max_connections": 16,
+    "max_events_per_run": 128,
+    "max_header_bytes": 16384,
+    "max_log_read_bytes": 65536,
+    "max_projects": 8,
+    "max_request_bytes": 1048576,
+    "max_requests": 256,
+    "max_response_bytes": 4194304,
+    "max_run_artifact_bytes": 262144,
+    "max_runs": 32,
+    "max_state_bytes": 8388608,
+    "max_total_artifact_bytes": 1048576,
+    "poll_interval_ms": 100,
+    "timeout_seconds": 10
+  },
+  "listen_address": "127.0.0.1:51259",
+  "operator_token_file": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/operator.token",
+  "origin": "https://127.0.0.1:51259",
+  "projects": [
+    {
+      "admitted_references": [],
+      "id": "success",
+      "label": "Native <img src=x onerror=alert(1)> success",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "df9097d3db1195fe46c91a1c00a5e5bfebe524003c0db9eadf71259c6e60c2a4"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "join",
+            "kind": "test",
+            "operation_identity": "0c2debbfb46cacaebea3a25907b547b1f84b63129660c9bc26985674d8bd0af8"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "lint",
+            "kind": "test",
+            "operation_identity": "3d4fcd276768e0d61db3a1e7a72d95d2706f49ca094ab4e923f4253b25004db1"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "verify",
+            "kind": "test",
+            "operation_identity": "fe13ddb27d8aaae1a058c01c1ac1ed254f10379e92c91d43b1d593e89da59703"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-success",
+        "provider_profile_id": "lattice-web-native-success",
+        "socket_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    },
+    {
+      "admitted_references": [],
+      "id": "slow",
+      "label": "Native <img src=x onerror=alert(1)> slow",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "63617b372086d8677177c0f1fece3468a9ba317da143bf9a911ae66259aafe41"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-slow",
+        "provider_profile_id": "lattice-web-native-slow",
+        "socket_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    },
+    {
+      "admitted_references": [],
+      "id": "fail",
+      "label": "Native <img src=x onerror=alert(1)> fail",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "ad8a9c95f77f1f658d45ea816b12de8f20c9cfeccb11a3c84cb2144df6654693"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-fail",
+        "provider_profile_id": "lattice-web-native-fail",
+        "socket_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    },
+    {
+      "admitted_references": [],
+      "id": "partial",
+      "label": "Native <img src=x onerror=alert(1)> partial",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "8094f3c4b3a4c9c34d4768fcd12d2733778df6cca6815c1254010463f41c653b"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "join",
+            "kind": "test",
+            "operation_identity": "5b2f70515e660eac20e731a8aea1c6bfd8309c95ea024d56cad96fb6faa72d4d"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "lint",
+            "kind": "test",
+            "operation_identity": "b7c2b95bd18b0c172c0669c961051ebfc5ee39a8f58418f07b09ba5068d1bca8"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "verify",
+            "kind": "test",
+            "operation_identity": "3928ec4d991ef9d475bbd89b55456664e7871c75f2036aac20f2a48cc5568786"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-partial",
+        "provider_profile_id": "lattice-web-native-partial",
+        "socket_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    }
+  ],
+  "schema": "kiln.web-service.v1",
+  "service_id": "isolated-web-exercise",
+  "state_directory": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/state",
+  "tls": {
+    "certificate_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/certificate.pem",
+    "min_version": "TLS1.3",
+    "private_key_path": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/key.pem"
+  },
+  "worker_token_file": "/home/brittonr/.cache/kiln-cob-workspace-20261028-second/worker.token"
+}

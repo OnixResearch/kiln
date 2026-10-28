@@ -1344,3 +1344,12 @@ mod workers;
 
 #[path = "engine/registry.rs"]
 mod registry;
+
+#[path = "engine/telemetry.rs"]
+mod telemetry;
+
+#[path = "engine/cache.rs"]
+mod cache;
+
+#[path = "engine/snapshots.rs"]
+mod snapshots;

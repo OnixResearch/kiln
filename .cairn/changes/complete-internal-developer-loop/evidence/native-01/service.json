@@ -1,0 +1,330 @@
+{
+  "bounds": {
+    "max_artifact_bytes": 65536,
+    "max_artifacts": 16,
+    "max_connections": 16,
+    "max_events_per_run": 128,
+    "max_header_bytes": 16384,
+    "max_log_read_bytes": 65536,
+    "max_projects": 8,
+    "max_request_bytes": 1048576,
+    "max_requests": 256,
+    "max_response_bytes": 4194304,
+    "max_run_artifact_bytes": 262144,
+    "max_runs": 32,
+    "max_state_bytes": 8388608,
+    "max_total_artifact_bytes": 1048576,
+    "poll_interval_ms": 100,
+    "timeout_seconds": 10
+  },
+  "listen_address": "127.0.0.1:58833",
+  "operator_token_file": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/operator.token",
+  "origin": "https://127.0.0.1:58833",
+  "projects": [
+    {
+      "admitted_references": [],
+      "id": "success",
+      "label": "Native <img src=x onerror=alert(1)> success",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          }
+        ],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "f21c1be99b0423a83496d329d27677ca1e415b409d363436e443499a66bea009"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "verify",
+            "kind": "test",
+            "operation_identity": "5d2972f745f37ae73278c234d53ce5a8e96703a87a8fd18cff812a2a101e685d"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "lint",
+            "kind": "test",
+            "operation_identity": "e468a3287d927485224a96c955b48a34dcc2414a94dc0de228ff7c1fe65fb8dc"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "join",
+            "kind": "test",
+            "operation_identity": "8972ba20f59ba72bc2f05072a682d0f7dea40be73b12aaf14648ca9c3dd84472"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-success",
+        "provider_profile_id": "lattice-web-native-success",
+        "socket_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    },
+    {
+      "admitted_references": [],
+      "id": "slow",
+      "label": "Native <img src=x onerror=alert(1)> slow",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "a23474f365f6981b5c8865aee57757f7ddf62b99440fce9a7c15008cc45fcf48"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-slow",
+        "provider_profile_id": "lattice-web-native-slow",
+        "socket_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    },
+    {
+      "admitted_references": [],
+      "id": "fail",
+      "label": "Native <img src=x onerror=alert(1)> fail",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "78b0c99fba1b754fae5ac236f595cbdb4a894358986e5dba0174dc027bceef51"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-fail",
+        "provider_profile_id": "lattice-web-native-fail",
+        "socket_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    },
+    {
+      "admitted_references": [],
+      "id": "partial",
+      "label": "Native <img src=x onerror=alert(1)> partial",
+      "reference": "refs/heads/main",
+      "repository_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/source",
+      "source_limits": {
+        "max_entries": 128,
+        "max_file_bytes": 65536,
+        "max_path_bytes": 1024,
+        "max_total_bytes": 1048576
+      },
+      "workflow": {
+        "adapter_limits": {
+          "maximum_request_bytes": 1048576,
+          "maximum_response_bytes": 1048576
+        },
+        "allowed_user_ids": [
+          1555
+        ],
+        "bounds": {
+          "max_edges": 8,
+          "max_log_read_bytes": 32,
+          "max_log_references": 64,
+          "max_nodes": 8,
+          "max_total_log_bytes": 1048576
+        },
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "edges": [
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          }
+        ],
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "2e0550a94e4ac3ce66570530df36dc2c9b644ee070204ef9f67941e21848859c"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "verify",
+            "kind": "test",
+            "operation_identity": "9084d8101b993c2bf5b4365da045a94980e203abf93dfe1a394d3cbb38cda2a7"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "lint",
+            "kind": "test",
+            "operation_identity": "987c463f9a49fbf3278664fc95adb26cfab4fe59b954a8ce43c133da1e7fa9e4"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "test",
+            "id": "join",
+            "kind": "test",
+            "operation_identity": "eca46ea846ede7070728b548b59e2a55fbf87d0b8419fa32a7c53be4a4c63ccd"
+          }
+        ],
+        "platform": "linux-x86_64",
+        "policy_id": "web-native-partial",
+        "provider_profile_id": "lattice-web-native-partial",
+        "socket_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/lattice.sock",
+        "transport_limits": {
+          "maximum_connections": 4096,
+          "maximum_frame_bytes": 1048576,
+          "maximum_log_bytes": 1048576,
+          "read_deadline_milliseconds": 10000,
+          "write_deadline_milliseconds": 10000
+        }
+      }
+    }
+  ],
+  "schema": "kiln.web-service.v1",
+  "service_id": "isolated-web-exercise",
+  "state_directory": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/state",
+  "tls": {
+    "certificate_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/certificate.pem",
+    "min_version": "TLS1.3",
+    "private_key_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/key.pem"
+  },
+  "worker_token_file": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/worker.token"
+}

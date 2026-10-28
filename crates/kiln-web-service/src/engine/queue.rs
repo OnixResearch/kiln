@@ -19,12 +19,19 @@ pub(super) struct StartRequest {
     pub reference: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_revision: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub snapshot_id: Option<String>,
 }
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct RerunRequest {
     request_id: String,
     mode: String,
+}
+
+struct CandidateSource {
+    resolution: SourceResolution,
+    dirty_snapshot: Option<crate::snapshot::SnapshotProvenance>,
 }
 
 pub(super) fn resolve_source(
@@ -98,11 +105,30 @@ impl Engine {
         if !self.state.enrolled.contains(&project.id) {
             return error(409, "project_not_enrolled");
         }
-        let source = match resolve_source(
-            &project,
-            req.reference.as_deref().unwrap_or(&project.reference),
-            req.source_revision.as_deref(),
-        ) {
+        let dirty_snapshot = if let Some(snapshot_id) = &req.snapshot_id {
+            let Some(record) = self.state.snapshots.get(snapshot_id).cloned() else {
+                return error(404, "snapshot_missing");
+            };
+            if record.manifest.project_id != project.id
+                || req.reference.as_deref().unwrap_or(&project.reference)
+                    != record.manifest.reference
+                || req.source_revision.as_deref() != Some(record.manifest.base_revision.as_str())
+            {
+                return error(400, "snapshot_input_mismatch");
+            }
+            Some(record)
+        } else {
+            None
+        };
+        let source = match if let Some(record) = &dirty_snapshot {
+            super::snapshots::resolve_snapshot(&project, record)
+        } else {
+            resolve_source(
+                &project,
+                req.reference.as_deref().unwrap_or(&project.reference),
+                req.source_revision.as_deref(),
+            )
+        } {
             Ok(v) => v,
             Err(code) => {
                 return error(
@@ -119,7 +145,10 @@ impl Engine {
             &project,
             &req.request_id,
             fingerprint,
-            source,
+            CandidateSource {
+                resolution: source,
+                dirty_snapshot: dirty_snapshot.map(|record| record.provenance),
+            },
             None,
             Vec::new(),
         )
@@ -183,6 +212,9 @@ impl Engine {
                 }
             }
         }
+        if req.mode == "latest" && prior.dirty_snapshot.is_some() {
+            return error(409, "dirty_retry_requires_exact_source");
+        }
         let source = if req.mode == "latest" {
             match resolve_source(&project, &project.reference, None) {
                 Ok(v) => v,
@@ -191,11 +223,28 @@ impl Engine {
         } else {
             prior.source.clone()
         };
+        let dirty_snapshot = if req.mode == "latest" {
+            None
+        } else {
+            prior.dirty_snapshot.clone()
+        };
+        if let Some(provenance) = &dirty_snapshot {
+            let Some(record) = self.state.snapshots.get(&provenance.manifest_id) else {
+                return error(409, "snapshot_missing");
+            };
+            match super::snapshots::resolve_snapshot(&project, record) {
+                Ok(resolved) if resolved == source => {}
+                _ => return error(409, "snapshot_retry_source_unavailable"),
+            }
+        }
         self.enqueue(
             &project,
             &req.request_id,
             fingerprint,
-            source,
+            CandidateSource {
+                resolution: source,
+                dirty_snapshot,
+            },
             Some(id.to_owned()),
             selected.into_iter().collect(),
         )
@@ -205,10 +254,14 @@ impl Engine {
         project: &ProjectProfile,
         request_id: &str,
         fingerprint: kiln_core::types::ContentId,
-        source: SourceResolution,
+        candidate: CandidateSource,
         parent: Option<String>,
         selected: Vec<String>,
     ) -> Result<ApiResponse, String> {
+        let CandidateSource {
+            resolution: source,
+            dirty_snapshot,
+        } = candidate;
         if self.state.requests.len() >= self.profile.bounds.max_requests {
             return error(409, "request_retention");
         }
@@ -243,6 +296,8 @@ impl Engine {
             project_id: project.id.clone(),
             pipeline_identity: pipeline,
             source,
+            dirty_snapshot,
+            step_telemetry: Vec::new(),
             plan: plan.clone(),
             events: Vec::new(),
             event_recorded_at_ms: Vec::new(),
@@ -299,6 +354,9 @@ impl Engine {
             .collect();
         queued.sort();
         for (_, id, project) in queued {
+            if self.worker_capacity_available(&project, host_time_ms()?)? == Some(false) {
+                continue;
+            }
             if !busy.insert(project.clone()) {
                 continue;
             }

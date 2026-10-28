@@ -2,6 +2,8 @@
 """Exercise the installed review CLI against isolated real Patchgate/Pijul data."""
 # r[impl kiln.patchgate.conformance]
 # r[verify kiln.patchgate.conformance] r[verify kiln.patchgate.nonclaims]
+# r[verify kiln.patchgate.conformance.scenario.native]
+# r[verify kiln.patchgate.profile.scenario.match]
 
 import argparse
 import hashlib

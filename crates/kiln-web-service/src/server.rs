@@ -25,6 +25,9 @@ pub struct Options {
     pub cobs: Option<PathBuf>,
     pub sources: Option<PathBuf>,
     pub reviews: Option<PathBuf>,
+    pub cache: Option<PathBuf>,
+    pub workers: Option<PathBuf>,
+    pub work: Option<PathBuf>,
 }
 
 impl Options {
@@ -71,6 +74,29 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
         .as_deref()
         .map(crate::reviews::Profile::load)
         .transpose()?;
+    let _cache = options
+        .cache
+        .as_deref()
+        .map(crate::cache::CacheProfile::load)
+        .transpose()?;
+    let _workers = options
+        .workers
+        .as_deref()
+        .map(crate::engine::WorkerStatusProfile::load)
+        .transpose()?;
+    let _work = crate::work::Workspace::new(
+        options
+            .work
+            .as_deref()
+            .map(crate::work::Profile::load)
+            .transpose()?,
+    )?;
+    if let Some(cache) = &_cache {
+        cache.preflight_for(&profile)?;
+    }
+    if let Some(workers) = &_workers {
+        workers.preflight_for(&profile)?;
+    }
     let _tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)
 }
@@ -89,6 +115,16 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let access_identity = access.identity()?;
     let credentials = Credentials::load(&profile, access)?;
     let automation = options.automation_profile()?;
+    let cache = options
+        .cache
+        .as_deref()
+        .map(crate::cache::CacheProfile::load)
+        .transpose()?;
+    let workers = options
+        .workers
+        .as_deref()
+        .map(crate::engine::WorkerStatusProfile::load)
+        .transpose()?;
     let cobs = crate::cobs::Browser::new(
         options
             .cobs
@@ -110,6 +146,13 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
             .map(crate::reviews::Profile::load)
             .transpose()?,
     )?;
+    let work = crate::work::Workspace::new(
+        options
+            .work
+            .as_deref()
+            .map(crate::work::Profile::load)
+            .transpose()?,
+    )?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;
     let listener = TcpListener::bind(profile.listen_address)
@@ -118,6 +161,12 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     engine.configure_access_identity(&access_identity)?;
     if let Some(automation) = automation {
         engine.configure_automation(automation)?;
+    }
+    if let Some(cache) = cache {
+        engine.install_cache(cache)?;
+    }
+    if let Some(workers) = workers {
+        engine.configure_worker_status(workers)?;
     }
     let engine = Mutex::new(engine);
     let stop = Arc::new(AtomicBool::new(false));
@@ -137,6 +186,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         cobs: &cobs,
         sources: &sources,
         reviews: &reviews,
+        work: &work,
     };
     notify::ready()?;
     std::thread::scope(|scope| -> Result<(), String> {
@@ -298,6 +348,7 @@ struct Context<'a> {
     cobs: &'a crate::cobs::Browser,
     sources: &'a crate::sources::Browser,
     reviews: &'a crate::reviews::Browser,
+    work: &'a crate::work::Workspace,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -578,6 +629,23 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
+        // r[impl kiln.work.authority]
+        if path == "/api/work" || path.starts_with("/api/work/") {
+            let now = match crate::engine::host_time_ms().and_then(|value| {
+                i64::try_from(value).map_err(|_| "work clock exceeds bound".to_owned())
+            }) {
+                Ok(value) => value,
+                Err(_) => return error_response(503, "clock_unavailable"),
+            };
+            return context.work.response(
+                &request.method,
+                &request.target,
+                &request.body,
+                principal.role,
+                &principal.id,
+                now,
+            );
+        }
         if path == "/api/reviews" || path.starts_with("/api/reviews/") {
             if principal.role == crate::engine::Role::Worker || request.method != "GET" {
                 return denied(
@@ -642,6 +710,20 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             "/" => ("text/html; charset=utf-8", include_bytes!("web.html")),
             "/web.js" => ("text/javascript; charset=utf-8", include_bytes!("web.js")),
             "/web.css" => ("text/css; charset=utf-8", include_bytes!("web.css")),
+            "/work.js" => ("text/javascript; charset=utf-8", include_bytes!("work.js")),
+            "/work.css" => ("text/css; charset=utf-8", include_bytes!("work.css")),
+            "/work-interaction.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("work-interaction.js"),
+            ),
+            "/work-interaction.css" => (
+                "text/css; charset=utf-8",
+                include_bytes!("work-interaction.css"),
+            ),
+            "/work-evidence.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("work-evidence.js"),
+            ),
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
             "/catalog.css" => (
                 "text/css; charset=utf-8",
@@ -708,7 +790,9 @@ fn api_admission(
         if !json_content(request) {
             return Err((415, "json_required"));
         }
-        if principal.is_some_and(|principal| principal.role == crate::engine::Role::Viewer) {
+        if principal.is_some_and(|principal| principal.role == crate::engine::Role::Viewer)
+            && request.target != "/api/work/commands"
+        {
             return Err((403, "operator_required"));
         }
     }

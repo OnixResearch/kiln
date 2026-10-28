@@ -1,0 +1,39 @@
+{
+  "controls": {
+    "cancel": true,
+    "pause": false,
+    "resume": false
+  },
+  "graph": {
+    "edges": [],
+    "identity": "b3:4a4d7278aeaadc690cae7a13599872d3d840101db2158f477b9919a5e53a431e",
+    "nodes": [
+      {
+        "adapter_kind": "local",
+        "effect_class": "build",
+        "id": "build",
+        "kind": "build",
+        "operation_identity": "b3:ac8da767577ec59c7507b2cc6df9d54e1e408ffbc684c87e71f5cdd5c744a440"
+      }
+    ],
+    "schema": "lattice.workflow-graph.v1"
+  },
+  "idempotency_key": "b3:1f63545b7bdc1a9bc8caf0e1fe496ea9eb4438d841906e0badea7d9be0e4e6b4",
+  "identity": "b3:fc4d13b94e9efcb4f3c477276ebae8bc1f75e238ae6c5e372b601c85ec0f013d",
+  "kiln": {
+    "attempt_identity": "b3:545bcd848f4a21fa85e4ccc71109fbee056c70e0f544c46f429519b5990c0f67",
+    "candidate_identity": "b3:dd9cee32108ab33e5369d16f5442a61d2c82ee6f7b79dbd823a1ca468c3871cf",
+    "effect_identity": "b3:3df2b61a4003ff705d1f1bf96addb4528924c57f4b863ba6e965b4e714005f6b",
+    "pipeline_revision_identity": "b3:a24939097e8623636718441fbb743f2932657c58bafdcf7e1362aa5fb65a54c6",
+    "workflow_policy_identity": "b3:2465d8aa902037f70ec4ecd75191cbe970bc7235700ccee8514ec70b46761a1f"
+  },
+  "observation": {
+    "maximum_log_read_bytes": 32,
+    "maximum_log_references": 64,
+    "maximum_total_log_bytes": 1048576
+  },
+  "platform": "linux-x86_64",
+  "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+  "schema": "lattice.workflow-request.v2",
+  "source": null
+}

@@ -126,9 +126,9 @@ fn deterministic_fixture_processes_preserve_process_classes() {
             signal,
             NixEvalProcessOutput::Exited {
                 process_status: None,
-                signal: Some(_),
+                signal: Some(libc::SIGKILL),
                 ..
-            } | NixEvalProcessOutput::Unknown
+            }
         ),
         "unexpected signal fixture outcome: {signal:?}"
     );

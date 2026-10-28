@@ -1,0 +1,3324 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "transport": "local",
+  "checks": {
+    "startup": {
+      "preflight_state_unchanged": true,
+      "health": {
+        "status": "ok"
+      }
+    },
+    "tls": "TLS1.3 succeeded; TLS1.2 rejected",
+    "worker_capacity": {
+      "available": {
+        "id": "767da58021a3f554291052e0a5739fd31b3d85c6d95539bb4404fe300a22d55b",
+        "provider_profile_id": "lattice-web-native-success",
+        "platform": "linux-x86_64",
+        "liveness": "online",
+        "status": "slots_available",
+        "capacity": {
+          "configured_slots": 1,
+          "enrolled_slots": 1,
+          "active": 0,
+          "free_slots": 1,
+          "queued": 0
+        },
+        "projects": [
+          {
+            "id": "success",
+            "label": "Native <img src=x onerror=alert(1)> success",
+            "enrolled": true,
+            "active_run_ids": [],
+            "queued": 0
+          }
+        ],
+        "latest_run": null,
+        "observed_capacity": {
+          "observed_slots": 3,
+          "active_slots": 0,
+          "free_slots": 3,
+          "last_seen_at_ms": 1793213013566
+        }
+      },
+      "busy": {
+        "id": "767da58021a3f554291052e0a5739fd31b3d85c6d95539bb4404fe300a22d55b",
+        "provider_profile_id": "lattice-web-native-success",
+        "platform": "linux-x86_64",
+        "liveness": "online",
+        "status": "busy",
+        "capacity": {
+          "configured_slots": 1,
+          "enrolled_slots": 1,
+          "active": 1,
+          "free_slots": 0,
+          "queued": 0
+        },
+        "projects": [
+          {
+            "id": "success",
+            "label": "Native <img src=x onerror=alert(1)> success",
+            "enrolled": true,
+            "active_run_ids": [
+              "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205"
+            ],
+            "queued": 0
+          }
+        ],
+        "latest_run": {
+          "id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "project_id": "success",
+          "phase": "active",
+          "outcome": "Pending",
+          "sequence": 1,
+          "error_code": null,
+          "created_at_ms": 1793213013619,
+          "started_at_ms": 1793213013689,
+          "completed_at_ms": null
+        },
+        "observed_capacity": {
+          "observed_slots": 3,
+          "active_slots": 1,
+          "free_slots": 2,
+          "last_seen_at_ms": 1793213013869
+        }
+      },
+      "released": {
+        "id": "767da58021a3f554291052e0a5739fd31b3d85c6d95539bb4404fe300a22d55b",
+        "provider_profile_id": "lattice-web-native-success",
+        "platform": "linux-x86_64",
+        "liveness": "online",
+        "status": "slots_available",
+        "capacity": {
+          "configured_slots": 1,
+          "enrolled_slots": 1,
+          "active": 0,
+          "free_slots": 1,
+          "queued": 0
+        },
+        "projects": [
+          {
+            "id": "success",
+            "label": "Native <img src=x onerror=alert(1)> success",
+            "enrolled": true,
+            "active_run_ids": [],
+            "queued": 0
+          }
+        ],
+        "latest_run": {
+          "id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "project_id": "success",
+          "phase": "terminal",
+          "outcome": "Success",
+          "sequence": 2,
+          "error_code": null,
+          "created_at_ms": 1793213013619,
+          "started_at_ms": 1793213013689,
+          "completed_at_ms": 1793213017173
+        },
+        "observed_capacity": {
+          "observed_slots": 3,
+          "active_slots": 0,
+          "free_slots": 3,
+          "last_seen_at_ms": 1793213017225
+        }
+      }
+    },
+    "isolation": {
+      "host_credential_denied": true,
+      "host_loopback_service_denied": true,
+      "all_job_profiles_isolated": true
+    },
+    "success": {
+      "run": {
+        "id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "project_id": "success",
+        "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+        "canonical_tree": "3da9f1243eaa555071daae746f2f0b245f1e8765ca98701ed6d560ef5ca15f2e",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "outcome": "Success",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Completed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Completed",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 18,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793213013619,
+        "started_at_ms": 1793213013689,
+        "completed_at_ms": 1793213017173,
+        "duration_ms": 3484,
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "7b40940a77c4e004d6fbe7dfa2d0e87b78de6fa760c504b66f5e19dff35dc77a"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "72ef3f9bc3df4355a2bd6a265264b442df5d0d1b2c997553dce7f5f88e819484"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "step_telemetry": [
+          {
+            "id": "5e40a528417cd33bf0b3977653780105b96becae5813f884d5a235d0620a6bcb",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793213013731,
+                "completed_at_ms": 1793213014655,
+                "duration_ms": 924,
+                "exit_code": 0,
+                "cpu_time_us": 220263,
+                "peak_memory_bytes": 22040576,
+                "cache": [
+                  {
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "miss",
+                    "transferred_bytes": 718,
+                    "duration_ms": 29
+                  },
+                  {
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "published",
+                    "transferred_bytes": 1548,
+                    "duration_ms": 46
+                  }
+                ]
+              }
+            },
+            "recorded_at_ms": 1793213015104
+          },
+          {
+            "id": "340d62acf2f4d195808f5ece46bc2a2325e1dbe4942dbcbea192abd976d7ec11",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build"
+              },
+              "sequence": 2,
+              "step": {
+                "step_index": 1,
+                "started_at_ms": 1793213015113,
+                "completed_at_ms": 1793213016154,
+                "duration_ms": 1040,
+                "exit_code": 0,
+                "cpu_time_us": 13911,
+                "peak_memory_bytes": 11657216
+              }
+            },
+            "recorded_at_ms": 1793213016164
+          },
+          {
+            "id": "d697869e1db49f22dd2eaada7affe5b2056c0e99870a8e6ab005eb6559cb971b",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "verify"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793213016210,
+                "completed_at_ms": 1793213016407,
+                "duration_ms": 196,
+                "exit_code": 0,
+                "cpu_time_us": 23051,
+                "peak_memory_bytes": 15765504
+              }
+            },
+            "recorded_at_ms": 1793213016415
+          },
+          {
+            "id": "614351ebded1efcecb98020fe42e4d91776f943fb9114c76a59c31ba2ffc2ff6",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "lint"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793213016486,
+                "completed_at_ms": 1793213016681,
+                "duration_ms": 194,
+                "exit_code": 0,
+                "cpu_time_us": 23018,
+                "peak_memory_bytes": 16711680
+              }
+            },
+            "recorded_at_ms": 1793213016690
+          },
+          {
+            "id": "075b2a0ddedc823d1a7983132cb8a7005e6f449f007a07781726228566743e77",
+            "observation": {
+              "binding": {
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "join"
+              },
+              "sequence": 1,
+              "step": {
+                "step_index": 0,
+                "started_at_ms": 1793213016738,
+                "completed_at_ms": 1793213017018,
+                "duration_ms": 280,
+                "exit_code": 0,
+                "cpu_time_us": 30254,
+                "peak_memory_bytes": 15736832
+              }
+            },
+            "recorded_at_ms": 1793213017043
+          }
+        ]
+      },
+      "logs": {
+        "body_base64": "",
+        "cursor": 0,
+        "gap": false,
+        "next_cursor": 267,
+        "node_id": "build",
+        "retained": true,
+        "source": "worker-capture",
+        "stream": "stdout",
+        "text": "actual command started\nactual isolated host credential and service network denied\nactual source input: exact-source-artifact-v1\nactual direct CPU microseconds: 38445\nactual cold derived computation\nactual artifact bytes: exact-source-artifact-v1\nsecond reviewed step\n",
+        "truncated": false,
+        "reads": 10
+      },
+      "artifact": {
+        "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+        "bytes": 25,
+        "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/d16249747ff7a54258e7d83304294efa80c0f78f7c939c6d560fae4f30c6efda",
+        "id": "d16249747ff7a54258e7d83304294efa80c0f78f7c939c6d560fae4f30c6efda",
+        "name": "artifact.txt",
+        "node_id": "build"
+      }
+    },
+    "resource_scope": {
+      "direct_child_cpu_lower_bound_us": 38445,
+      "admitted_cpu_time_us": 220263,
+      "quantization_allowance_us": 1000
+    },
+    "measured_pipeline": {
+      "maximum_records": 4096,
+      "resources_origin": "observed_child_usage",
+      "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+      "steps": [
+        {
+          "id": "5e40a528417cd33bf0b3977653780105b96becae5813f884d5a235d0620a6bcb",
+          "observation": {
+            "binding": {
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "build",
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+            },
+            "sequence": 1,
+            "step": {
+              "cache": [
+                {
+                  "duration_ms": 29,
+                  "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                  "outcome": "miss",
+                  "transferred_bytes": 718
+                },
+                {
+                  "duration_ms": 46,
+                  "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                  "outcome": "published",
+                  "transferred_bytes": 1548
+                }
+              ],
+              "completed_at_ms": 1793213014655,
+              "cpu_time_us": 220263,
+              "duration_ms": 924,
+              "exit_code": 0,
+              "peak_memory_bytes": 22040576,
+              "started_at_ms": 1793213013731,
+              "step_index": 0
+            }
+          },
+          "recorded_at_ms": 1793213015104
+        },
+        {
+          "id": "340d62acf2f4d195808f5ece46bc2a2325e1dbe4942dbcbea192abd976d7ec11",
+          "observation": {
+            "binding": {
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "build",
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+            },
+            "sequence": 2,
+            "step": {
+              "completed_at_ms": 1793213016154,
+              "cpu_time_us": 13911,
+              "duration_ms": 1040,
+              "exit_code": 0,
+              "peak_memory_bytes": 11657216,
+              "started_at_ms": 1793213015113,
+              "step_index": 1
+            }
+          },
+          "recorded_at_ms": 1793213016164
+        },
+        {
+          "id": "d697869e1db49f22dd2eaada7affe5b2056c0e99870a8e6ab005eb6559cb971b",
+          "observation": {
+            "binding": {
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "verify",
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+            },
+            "sequence": 1,
+            "step": {
+              "completed_at_ms": 1793213016407,
+              "cpu_time_us": 23051,
+              "duration_ms": 196,
+              "exit_code": 0,
+              "peak_memory_bytes": 15765504,
+              "started_at_ms": 1793213016210,
+              "step_index": 0
+            }
+          },
+          "recorded_at_ms": 1793213016415
+        },
+        {
+          "id": "614351ebded1efcecb98020fe42e4d91776f943fb9114c76a59c31ba2ffc2ff6",
+          "observation": {
+            "binding": {
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "lint",
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+            },
+            "sequence": 1,
+            "step": {
+              "completed_at_ms": 1793213016681,
+              "cpu_time_us": 23018,
+              "duration_ms": 194,
+              "exit_code": 0,
+              "peak_memory_bytes": 16711680,
+              "started_at_ms": 1793213016486,
+              "step_index": 0
+            }
+          },
+          "recorded_at_ms": 1793213016690
+        },
+        {
+          "id": "075b2a0ddedc823d1a7983132cb8a7005e6f449f007a07781726228566743e77",
+          "observation": {
+            "binding": {
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "join",
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+            },
+            "sequence": 1,
+            "step": {
+              "completed_at_ms": 1793213017018,
+              "cpu_time_us": 30254,
+              "duration_ms": 280,
+              "exit_code": 0,
+              "peak_memory_bytes": 15736832,
+              "started_at_ms": 1793213016738,
+              "step_index": 0
+            }
+          },
+          "recorded_at_ms": 1793213017043
+        }
+      ],
+      "timing_origin": "worker_monotonic_elapsed"
+    },
+    "pipeline": {
+      "id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+      "project_id": "success",
+      "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+      "canonical_tree": "3da9f1243eaa555071daae746f2f0b245f1e8765ca98701ed6d560ef5ca15f2e",
+      "repository": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "repository",
+        "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0"
+      },
+      "revision": 2,
+      "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+      "outcome": "Success",
+      "phase": "terminal",
+      "execution": {
+        "contract_version": 1,
+        "provider_namespace": "lattice",
+        "native_kind": "execution",
+        "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e"
+      },
+      "sequence": 2,
+      "nodes": [
+        {
+          "id": "build",
+          "state": "Completed",
+          "kind": "build",
+          "started_at_ms": null,
+          "completed_at_ms": 1793213017173,
+          "duration_ms": null
+        },
+        {
+          "id": "join",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793213017173,
+          "duration_ms": null
+        },
+        {
+          "id": "lint",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793213017173,
+          "duration_ms": null
+        },
+        {
+          "id": "verify",
+          "state": "Completed",
+          "kind": "test",
+          "started_at_ms": null,
+          "completed_at_ms": 1793213017173,
+          "duration_ms": null
+        }
+      ],
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "error_code": null,
+      "log_bounds": {
+        "maximum_chunk_bytes": 32,
+        "maximum_total_bytes": 1048576,
+        "maximum_chunks": 64
+      },
+      "ordinal": 18,
+      "parent_run_id": null,
+      "selected_nodes": [],
+      "edges": [
+        {
+          "source": "build",
+          "target": "lint"
+        },
+        {
+          "source": "build",
+          "target": "verify"
+        },
+        {
+          "source": "lint",
+          "target": "join"
+        },
+        {
+          "source": "verify",
+          "target": "join"
+        }
+      ],
+      "created_at_ms": 1793213013619,
+      "started_at_ms": 1793213013689,
+      "completed_at_ms": 1793213017173,
+      "duration_ms": 3484,
+      "report_summary": {
+        "coverage": [
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "coverage.xml",
+            "node_id": "build",
+            "report_id": "7b40940a77c4e004d6fbe7dfa2d0e87b78de6fa760c504b66f5e19dff35dc77a"
+          },
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "lcov.info",
+            "node_id": "build",
+            "report_id": "72ef3f9bc3df4355a2bd6a265264b442df5d0d1b2c997553dce7f5f88e819484"
+          }
+        ],
+        "tests": {
+          "errors": 0,
+          "failed": 0,
+          "passed": 1,
+          "skipped": 0,
+          "total": 1
+        }
+      },
+      "step_telemetry": [
+        {
+          "id": "5e40a528417cd33bf0b3977653780105b96becae5813f884d5a235d0620a6bcb",
+          "observation": {
+            "binding": {
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "build"
+            },
+            "sequence": 1,
+            "step": {
+              "step_index": 0,
+              "started_at_ms": 1793213013731,
+              "completed_at_ms": 1793213014655,
+              "duration_ms": 924,
+              "exit_code": 0,
+              "cpu_time_us": 220263,
+              "peak_memory_bytes": 22040576,
+              "cache": [
+                {
+                  "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                  "outcome": "miss",
+                  "transferred_bytes": 718,
+                  "duration_ms": 29
+                },
+                {
+                  "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                  "outcome": "published",
+                  "transferred_bytes": 1548,
+                  "duration_ms": 46
+                }
+              ]
+            }
+          },
+          "recorded_at_ms": 1793213015104
+        },
+        {
+          "id": "340d62acf2f4d195808f5ece46bc2a2325e1dbe4942dbcbea192abd976d7ec11",
+          "observation": {
+            "binding": {
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "build"
+            },
+            "sequence": 2,
+            "step": {
+              "step_index": 1,
+              "started_at_ms": 1793213015113,
+              "completed_at_ms": 1793213016154,
+              "duration_ms": 1040,
+              "exit_code": 0,
+              "cpu_time_us": 13911,
+              "peak_memory_bytes": 11657216
+            }
+          },
+          "recorded_at_ms": 1793213016164
+        },
+        {
+          "id": "d697869e1db49f22dd2eaada7affe5b2056c0e99870a8e6ab005eb6559cb971b",
+          "observation": {
+            "binding": {
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "verify"
+            },
+            "sequence": 1,
+            "step": {
+              "step_index": 0,
+              "started_at_ms": 1793213016210,
+              "completed_at_ms": 1793213016407,
+              "duration_ms": 196,
+              "exit_code": 0,
+              "cpu_time_us": 23051,
+              "peak_memory_bytes": 15765504
+            }
+          },
+          "recorded_at_ms": 1793213016415
+        },
+        {
+          "id": "614351ebded1efcecb98020fe42e4d91776f943fb9114c76a59c31ba2ffc2ff6",
+          "observation": {
+            "binding": {
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "lint"
+            },
+            "sequence": 1,
+            "step": {
+              "step_index": 0,
+              "started_at_ms": 1793213016486,
+              "completed_at_ms": 1793213016681,
+              "duration_ms": 194,
+              "exit_code": 0,
+              "cpu_time_us": 23018,
+              "peak_memory_bytes": 16711680
+            }
+          },
+          "recorded_at_ms": 1793213016690
+        },
+        {
+          "id": "075b2a0ddedc823d1a7983132cb8a7005e6f449f007a07781726228566743e77",
+          "observation": {
+            "binding": {
+              "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+              "execution": {
+                "contract_version": 1,
+                "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                "native_kind": "execution",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "join"
+            },
+            "sequence": 1,
+            "step": {
+              "step_index": 0,
+              "started_at_ms": 1793213016738,
+              "completed_at_ms": 1793213017018,
+              "duration_ms": 280,
+              "exit_code": 0,
+              "cpu_time_us": 30254,
+              "peak_memory_bytes": 15736832
+            }
+          },
+          "recorded_at_ms": 1793213017043
+        }
+      ]
+    },
+    "reports": {
+      "flaky_history": [],
+      "reports": [
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "21fcf98ddc7330204ebb895b77a1fb1261fae14d52c769ec9f7fa1954128ba3d",
+            "bytes": 138,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/eb372aa896bc2281c2df15dbac1cf6e8a9d9fe5bcecabfc99bdf512f9b9c77bd",
+            "id": "eb372aa896bc2281c2df15dbac1cf6e8a9d9fe5bcecabfc99bdf512f9b9c77bd",
+            "name": "report-63a127c8347c2abe35335906d49d62c2a549f51a033873e2225c939050cef4fc.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "63a127c8347c2abe35335906d49d62c2a549f51a033873e2225c939050cef4fc",
+          "kind": "junit",
+          "name": "junit.xml",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014705,
+          "report": {
+            "coverage": null,
+            "evidence": null,
+            "kind": "junit",
+            "source_blake3": "21fcf98ddc7330204ebb895b77a1fb1261fae14d52c769ec9f7fa1954128ba3d",
+            "source_bytes": 138,
+            "tests": {
+              "cases": [
+                {
+                  "class_name": "SourceTest",
+                  "details": null,
+                  "duration_seconds": null,
+                  "file": "ci.py",
+                  "line": null,
+                  "message": null,
+                  "name": "test_source",
+                  "status": "passed",
+                  "suite": "source"
+                }
+              ],
+              "duration_seconds": null,
+              "errors": 0,
+              "failed": 0,
+              "passed": 1,
+              "skipped": 0,
+              "total": 1
+            }
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "459f63535178346a8c70ade299374348459c6bc4e64df91e7d6beb438cd2b0fd",
+            "bytes": 311,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/16a206bacd361b9b550d9a97b0615e179f8697975ddfb983f9cba0f70e9b637c",
+            "id": "16a206bacd361b9b550d9a97b0615e179f8697975ddfb983f9cba0f70e9b637c",
+            "name": "report-7b40940a77c4e004d6fbe7dfa2d0e87b78de6fa760c504b66f5e19dff35dc77a.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "7b40940a77c4e004d6fbe7dfa2d0e87b78de6fa760c504b66f5e19dff35dc77a",
+          "kind": "cobertura",
+          "name": "coverage.xml",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014754,
+          "report": {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "files": [
+                {
+                  "branches_found": null,
+                  "branches_hit": null,
+                  "lines": [
+                    {
+                      "hits": 1,
+                      "number": 46
+                    },
+                    {
+                      "hits": 1,
+                      "number": 47
+                    },
+                    {
+                      "hits": 0,
+                      "number": 48
+                    }
+                  ],
+                  "path": "ci.py"
+                }
+              ],
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "evidence": null,
+            "kind": "cobertura",
+            "source_blake3": "459f63535178346a8c70ade299374348459c6bc4e64df91e7d6beb438cd2b0fd",
+            "source_bytes": 311,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "9b81eecf60cac78e41e7f5f8c5a2eff1362b72ade4f879eea88acc43dbe21658",
+            "bytes": 67,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/cd06a4b85b8dd81a6853d457e2c331ecdbc0383cbfb9f130da385ed9d49a7a6e",
+            "id": "cd06a4b85b8dd81a6853d457e2c331ecdbc0383cbfb9f130da385ed9d49a7a6e",
+            "name": "report-72ef3f9bc3df4355a2bd6a265264b442df5d0d1b2c997553dce7f5f88e819484.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "72ef3f9bc3df4355a2bd6a265264b442df5d0d1b2c997553dce7f5f88e819484",
+          "kind": "lcov",
+          "name": "lcov.info",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014804,
+          "report": {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "files": [
+                {
+                  "branches_found": null,
+                  "branches_hit": null,
+                  "lines": [
+                    {
+                      "hits": 1,
+                      "number": 46
+                    },
+                    {
+                      "hits": 1,
+                      "number": 47
+                    },
+                    {
+                      "hits": 0,
+                      "number": 48
+                    }
+                  ],
+                  "path": "ci.py"
+                }
+              ],
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "evidence": null,
+            "kind": "lcov",
+            "source_blake3": "9b81eecf60cac78e41e7f5f8c5a2eff1362b72ade4f879eea88acc43dbe21658",
+            "source_bytes": 67,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "daff6ef3febb0e1d53bbc59be04bde1fc6809f2f13ef965bb1f07ac3dc06fc6b",
+            "bytes": 301,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/4a413665677e70e39c57792c9028931a54f94b4053451b12c0e5d990f1151345",
+            "id": "4a413665677e70e39c57792c9028931a54f94b4053451b12c0e5d990f1151345",
+            "name": "report-645877ebb0649d7d8f25ef405598fa54ef437118228d79ae72b6d82774926d48.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "645877ebb0649d7d8f25ef405598fa54ef437118228d79ae72b6d82774926d48",
+          "kind": "gate",
+          "name": "gate.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014872,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "direct_cpu_lower_bound_us": 38445,
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.gate.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/direct_cpu_lower_bound_us",
+                  "value": 38445
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.gate.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "gate",
+            "source_blake3": "daff6ef3febb0e1d53bbc59be04bde1fc6809f2f13ef965bb1f07ac3dc06fc6b",
+            "source_bytes": 301,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "e4887c39cf55c41f1707a62b91c47c28525dfb6ecc588b27b4eb3f871d62310a",
+            "bytes": 303,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/b75efa5756e5a9df3f33a44ce453af256dc067c449f51ee9ac1507b00e6a87af",
+            "id": "b75efa5756e5a9df3f33a44ce453af256dc067c449f51ee9ac1507b00e6a87af",
+            "name": "report-2ba67fdaa4e6b791145fe0d933aafade6e43d200a783e7466f312dfeb2a18742.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "2ba67fdaa4e6b791145fe0d933aafade6e43d200a783e7466f312dfeb2a18742",
+          "kind": "review",
+          "name": "review.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014931,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "direct_cpu_lower_bound_us": 38445,
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.review.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/direct_cpu_lower_bound_us",
+                  "value": 38445
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.review.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "review",
+            "source_blake3": "e4887c39cf55c41f1707a62b91c47c28525dfb6ecc588b27b4eb3f871d62310a",
+            "source_bytes": 303,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "527bef1e4f265f2d6d992bcc223a0ed6aa9c893290ae71e2e6be913aa7d5b278",
+            "bytes": 307,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/a984101d37f6bc8a2a95817d050ad63c8845240d66354b26f0b2aec312633d67",
+            "id": "a984101d37f6bc8a2a95817d050ad63c8845240d66354b26f0b2aec312633d67",
+            "name": "report-6f84986bf4e9bd5d67add2ac6156b0ff7f5b5bb617fb67360033cb2137ee7cf1.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "6f84986bf4e9bd5d67add2ac6156b0ff7f5b5bb617fb67360033cb2137ee7cf1",
+          "kind": "provenance",
+          "name": "provenance.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014980,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "direct_cpu_lower_bound_us": 38445,
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.provenance.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/direct_cpu_lower_bound_us",
+                  "value": 38445
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.provenance.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "provenance",
+            "source_blake3": "527bef1e4f265f2d6d992bcc223a0ed6aa9c893290ae71e2e6be913aa7d5b278",
+            "source_bytes": 307,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        }
+      ],
+      "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+      "summary": {
+        "coverage": [
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "cobertura",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "coverage.xml",
+            "node_id": "build",
+            "report_id": "7b40940a77c4e004d6fbe7dfa2d0e87b78de6fa760c504b66f5e19dff35dc77a"
+          },
+          {
+            "coverage": {
+              "branch_rate": null,
+              "branches_found": null,
+              "branches_hit": null,
+              "format": "lcov",
+              "line_rate": 0.6666666666666666,
+              "lines_found": 3,
+              "lines_hit": 2
+            },
+            "name": "lcov.info",
+            "node_id": "build",
+            "report_id": "72ef3f9bc3df4355a2bd6a265264b442df5d0d1b2c997553dce7f5f88e819484"
+          }
+        ],
+        "tests": {
+          "errors": 0,
+          "failed": 0,
+          "passed": 1,
+          "skipped": 0,
+          "total": 1
+        }
+      }
+    },
+    "evidence": {
+      "artifacts": [
+        {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "blake3": "21fcf98ddc7330204ebb895b77a1fb1261fae14d52c769ec9f7fa1954128ba3d",
+          "bytes": 138,
+          "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/eb372aa896bc2281c2df15dbac1cf6e8a9d9fe5bcecabfc99bdf512f9b9c77bd",
+          "id": "eb372aa896bc2281c2df15dbac1cf6e8a9d9fe5bcecabfc99bdf512f9b9c77bd",
+          "name": "report-63a127c8347c2abe35335906d49d62c2a549f51a033873e2225c939050cef4fc.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "blake3": "459f63535178346a8c70ade299374348459c6bc4e64df91e7d6beb438cd2b0fd",
+          "bytes": 311,
+          "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/16a206bacd361b9b550d9a97b0615e179f8697975ddfb983f9cba0f70e9b637c",
+          "id": "16a206bacd361b9b550d9a97b0615e179f8697975ddfb983f9cba0f70e9b637c",
+          "name": "report-7b40940a77c4e004d6fbe7dfa2d0e87b78de6fa760c504b66f5e19dff35dc77a.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "blake3": "9b81eecf60cac78e41e7f5f8c5a2eff1362b72ade4f879eea88acc43dbe21658",
+          "bytes": 67,
+          "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/cd06a4b85b8dd81a6853d457e2c331ecdbc0383cbfb9f130da385ed9d49a7a6e",
+          "id": "cd06a4b85b8dd81a6853d457e2c331ecdbc0383cbfb9f130da385ed9d49a7a6e",
+          "name": "report-72ef3f9bc3df4355a2bd6a265264b442df5d0d1b2c997553dce7f5f88e819484.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "blake3": "daff6ef3febb0e1d53bbc59be04bde1fc6809f2f13ef965bb1f07ac3dc06fc6b",
+          "bytes": 301,
+          "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/4a413665677e70e39c57792c9028931a54f94b4053451b12c0e5d990f1151345",
+          "id": "4a413665677e70e39c57792c9028931a54f94b4053451b12c0e5d990f1151345",
+          "name": "report-645877ebb0649d7d8f25ef405598fa54ef437118228d79ae72b6d82774926d48.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "blake3": "e4887c39cf55c41f1707a62b91c47c28525dfb6ecc588b27b4eb3f871d62310a",
+          "bytes": 303,
+          "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/b75efa5756e5a9df3f33a44ce453af256dc067c449f51ee9ac1507b00e6a87af",
+          "id": "b75efa5756e5a9df3f33a44ce453af256dc067c449f51ee9ac1507b00e6a87af",
+          "name": "report-2ba67fdaa4e6b791145fe0d933aafade6e43d200a783e7466f312dfeb2a18742.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "blake3": "527bef1e4f265f2d6d992bcc223a0ed6aa9c893290ae71e2e6be913aa7d5b278",
+          "bytes": 307,
+          "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/a984101d37f6bc8a2a95817d050ad63c8845240d66354b26f0b2aec312633d67",
+          "id": "a984101d37f6bc8a2a95817d050ad63c8845240d66354b26f0b2aec312633d67",
+          "name": "report-6f84986bf4e9bd5d67add2ac6156b0ff7f5b5bb617fb67360033cb2137ee7cf1.dat",
+          "node_id": "build"
+        },
+        {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+          "bytes": 25,
+          "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/d16249747ff7a54258e7d83304294efa80c0f78f7c939c6d560fae4f30c6efda",
+          "id": "d16249747ff7a54258e7d83304294efa80c0f78f7c939c6d560fae4f30c6efda",
+          "name": "artifact.txt",
+          "node_id": "build"
+        }
+      ],
+      "claim_boundary": "Recorded source, execution and report evidence is not gate acceptance, review approval or release authority",
+      "execution": {
+        "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "candidate_id": "web-candidate-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "effect_id": "web-effect-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "observation": {
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "candidate_id": "web-candidate-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "effect_id": "web-effect-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "idempotency_key": "3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "logs": [
+            {
+              "bytes": 10,
+              "cursor": 0,
+              "gap_before": false,
+              "node_id": "build",
+              "reference": {
+                "contract_version": 1,
+                "native_id": "b3:b375d49147a90566c759b127a75e7628451fbe7c90a9d3a25418d38a0e383d0b",
+                "native_kind": "log",
+                "provider_namespace": "lattice"
+              },
+              "retained": true,
+              "stream": "Diagnostic",
+              "truncated": false
+            },
+            {
+              "bytes": 10,
+              "cursor": 0,
+              "gap_before": false,
+              "node_id": "join",
+              "reference": {
+                "contract_version": 1,
+                "native_id": "b3:c924c14f7089243782ddabe384fb28039e85ab3b26e4f6e8d5eeb34e030cd46b",
+                "native_kind": "log",
+                "provider_namespace": "lattice"
+              },
+              "retained": true,
+              "stream": "Diagnostic",
+              "truncated": false
+            },
+            {
+              "bytes": 10,
+              "cursor": 0,
+              "gap_before": false,
+              "node_id": "lint",
+              "reference": {
+                "contract_version": 1,
+                "native_id": "b3:7b8c7577b78e493847259fe89c4805262f4d97c764d87a670462a4757d0a9416",
+                "native_kind": "log",
+                "provider_namespace": "lattice"
+              },
+              "retained": true,
+              "stream": "Diagnostic",
+              "truncated": false
+            },
+            {
+              "bytes": 10,
+              "cursor": 0,
+              "gap_before": false,
+              "node_id": "verify",
+              "reference": {
+                "contract_version": 1,
+                "native_id": "b3:3b999e2d1de71131d936b4732124da0590fd4db4650f820a9b28078c6b92254d",
+                "native_kind": "log",
+                "provider_namespace": "lattice"
+              },
+              "retained": true,
+              "stream": "Diagnostic",
+              "truncated": false
+            }
+          ],
+          "nodes": [
+            {
+              "adapter": {
+                "contract_version": 1,
+                "native_id": "b3:88386db032fefb044bccae38d02d69590815e80158da1bea9109ad54efda65a4",
+                "native_kind": "adapter",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "build",
+              "receipt": {
+                "contract_version": 1,
+                "native_id": "b3:25edbb351d47b6bd7c56dc807e12fe179aab1ba2b1a521e9615356cc38538b02",
+                "native_kind": "receipt",
+                "provider_namespace": "lattice"
+              },
+              "state": "Completed",
+              "successful": true,
+              "terminal": true
+            },
+            {
+              "adapter": {
+                "contract_version": 1,
+                "native_id": "b3:585ac336d37ebd1dae37a7d6f44502a23b9a4007cd4a3a58290d90202f532f0b",
+                "native_kind": "adapter",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "join",
+              "receipt": {
+                "contract_version": 1,
+                "native_id": "b3:5e88394b3fc3c357472c8e4627f096d844d48b35cfb28c7f755477f431d36c2d",
+                "native_kind": "receipt",
+                "provider_namespace": "lattice"
+              },
+              "state": "Completed",
+              "successful": true,
+              "terminal": true
+            },
+            {
+              "adapter": {
+                "contract_version": 1,
+                "native_id": "b3:ae26d48d428c8162563e48dc101a8702759925c7c9b504f6fc29923d085b4e25",
+                "native_kind": "adapter",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "lint",
+              "receipt": {
+                "contract_version": 1,
+                "native_id": "b3:eeb8b0f3f34f2fd81f76bbe4f6fd16de1b1c24b765f8860dc63d7b24b84c0377",
+                "native_kind": "receipt",
+                "provider_namespace": "lattice"
+              },
+              "state": "Completed",
+              "successful": true,
+              "terminal": true
+            },
+            {
+              "adapter": {
+                "contract_version": 1,
+                "native_id": "b3:8e10db71a3e14576533927dd72f93d877a7b0fb2d0dd2a85281c97b497e1f19c",
+                "native_kind": "adapter",
+                "provider_namespace": "lattice"
+              },
+              "node_id": "verify",
+              "receipt": {
+                "contract_version": 1,
+                "native_id": "b3:cbba862ed42733cbe1945ed08cc8e5cf1c348a380d78882b24c939adf6789715",
+                "native_kind": "receipt",
+                "provider_namespace": "lattice"
+              },
+              "state": "Completed",
+              "successful": true,
+              "terminal": true
+            }
+          ],
+          "outcome": "Success",
+          "pipeline_revision_id": "web-pipeline-a24c34b35f173408c5099b67697a30cf56c6f29137f7911e929521c9628e710f",
+          "provider_profile": "lattice-web-native-success",
+          "receipt": {
+            "contract_version": 1,
+            "native_id": "b3:2d41d00b1fd39bac654044b92df21bb4277e458f4e815c70829711dfe8a697a8",
+            "native_kind": "receipt",
+            "provider_namespace": "lattice"
+          },
+          "sequence": 2,
+          "state": "Completed",
+          "successful": true,
+          "terminal": true,
+          "workflow": {
+            "contract_version": 1,
+            "native_id": "b3:8e6d4fbed96d134381bd0e67f50f7e08db5f87569cc4fd172b8115e88b03e555",
+            "native_kind": "workflow",
+            "provider_namespace": "lattice"
+          },
+          "workflow_policy_id": "web-native-success"
+        }
+      },
+      "parent_run_id": null,
+      "pipeline": {
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "identity": "a24c34b35f173408c5099b67697a30cf56c6f29137f7911e929521c9628e710f",
+        "nodes": [
+          {
+            "adapter_kind": "local",
+            "effect_class": "Build",
+            "id": "build",
+            "kind": "build",
+            "operation_identity": "a8f3100ca231d97c90f3196f846a9a7c641c36bcc888382d3f88c6c16309bd40"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "Test",
+            "id": "join",
+            "kind": "test",
+            "operation_identity": "2df2bd570a88142cfb11741f1f9c7df8418b038fd6f088fb9aa157203b9e9802"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "Test",
+            "id": "lint",
+            "kind": "test",
+            "operation_identity": "5167265a08f7e11bd0b59b2876a678a958a79e8e4bed3dff3ad6a5562a32a27e"
+          },
+          {
+            "adapter_kind": "local",
+            "effect_class": "Test",
+            "id": "verify",
+            "kind": "test",
+            "operation_identity": "53707693ffa9ae4db0d4abd9e236b99851047b8e0308686507bb1633d422ed8e"
+          }
+        ],
+        "revision_id": "web-pipeline-a24c34b35f173408c5099b67697a30cf56c6f29137f7911e929521c9628e710f"
+      },
+      "reports": [
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "daff6ef3febb0e1d53bbc59be04bde1fc6809f2f13ef965bb1f07ac3dc06fc6b",
+            "bytes": 301,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/4a413665677e70e39c57792c9028931a54f94b4053451b12c0e5d990f1151345",
+            "id": "4a413665677e70e39c57792c9028931a54f94b4053451b12c0e5d990f1151345",
+            "name": "report-645877ebb0649d7d8f25ef405598fa54ef437118228d79ae72b6d82774926d48.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "645877ebb0649d7d8f25ef405598fa54ef437118228d79ae72b6d82774926d48",
+          "kind": "gate",
+          "name": "gate.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014872,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "direct_cpu_lower_bound_us": 38445,
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.gate.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/direct_cpu_lower_bound_us",
+                  "value": 38445
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.gate.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "gate",
+            "source_blake3": "daff6ef3febb0e1d53bbc59be04bde1fc6809f2f13ef965bb1f07ac3dc06fc6b",
+            "source_bytes": 301,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "e4887c39cf55c41f1707a62b91c47c28525dfb6ecc588b27b4eb3f871d62310a",
+            "bytes": 303,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/b75efa5756e5a9df3f33a44ce453af256dc067c449f51ee9ac1507b00e6a87af",
+            "id": "b75efa5756e5a9df3f33a44ce453af256dc067c449f51ee9ac1507b00e6a87af",
+            "name": "report-2ba67fdaa4e6b791145fe0d933aafade6e43d200a783e7466f312dfeb2a18742.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "2ba67fdaa4e6b791145fe0d933aafade6e43d200a783e7466f312dfeb2a18742",
+          "kind": "review",
+          "name": "review.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014931,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "direct_cpu_lower_bound_us": 38445,
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.review.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/direct_cpu_lower_bound_us",
+                  "value": 38445
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.review.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "review",
+            "source_blake3": "e4887c39cf55c41f1707a62b91c47c28525dfb6ecc588b27b4eb3f871d62310a",
+            "source_bytes": 303,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        },
+        {
+          "artifact": {
+            "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+            "blake3": "527bef1e4f265f2d6d992bcc223a0ed6aa9c893290ae71e2e6be913aa7d5b278",
+            "bytes": 307,
+            "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/artifacts/a984101d37f6bc8a2a95817d050ad63c8845240d66354b26f0b2aec312633d67",
+            "id": "a984101d37f6bc8a2a95817d050ad63c8845240d66354b26f0b2aec312633d67",
+            "name": "report-6f84986bf4e9bd5d67add2ac6156b0ff7f5b5bb617fb67360033cb2137ee7cf1.dat",
+            "node_id": "build"
+          },
+          "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+          "execution": {
+            "contract_version": 1,
+            "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+            "native_kind": "execution",
+            "provider_namespace": "lattice"
+          },
+          "id": "6f84986bf4e9bd5d67add2ac6156b0ff7f5b5bb617fb67360033cb2137ee7cf1",
+          "kind": "provenance",
+          "name": "provenance.json",
+          "node_id": "build",
+          "recorded_at_ms": 1793213014980,
+          "report": {
+            "coverage": null,
+            "evidence": {
+              "accepted_gate": false,
+              "claim_boundary": "Recorded document only; native verdicts and identities are preserved. This upload is not gate acceptance, review acceptance, source trust, release readiness, or authority to act.",
+              "document": {
+                "candidate_file_blake3": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b",
+                "direct_cpu_lower_bound_us": 38445,
+                "non_claims": [
+                  "Disposable command evidence; not Cairn acceptance or release authority"
+                ],
+                "schema": "kiln.native-exercise.provenance.v1",
+                "tests_observed": 1,
+                "verdict": "PASS"
+              },
+              "fields": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                },
+                {
+                  "path": "/direct_cpu_lower_bound_us",
+                  "value": 38445
+                },
+                {
+                  "path": "/non_claims/0",
+                  "value": "Disposable command evidence; not Cairn acceptance or release authority"
+                },
+                {
+                  "path": "/schema",
+                  "value": "kiln.native-exercise.provenance.v1"
+                },
+                {
+                  "path": "/tests_observed",
+                  "value": 1
+                },
+                {
+                  "path": "/verdict",
+                  "value": "PASS"
+                }
+              ],
+              "links": [
+                {
+                  "path": "/candidate_file_blake3",
+                  "value": "aee92f56b66b1b8aa7bbc62f847b97c80533dc85ec1514544b9677a27ca0ce7b"
+                }
+              ]
+            },
+            "kind": "provenance",
+            "source_blake3": "527bef1e4f265f2d6d992bcc223a0ed6aa9c893290ae71e2e6be913aa7d5b278",
+            "source_bytes": 307,
+            "tests": null
+          },
+          "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "unavailable": null
+        }
+      ],
+      "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+      "source": {
+        "canonical_tree": "3da9f1243eaa555071daae746f2f0b245f1e8765ca98701ed6d560ef5ca15f2e",
+        "exact_revision": {
+          "contract_version": 1,
+          "native_id": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+          "native_kind": "commit",
+          "provider_namespace": "git"
+        },
+        "native_facts": {
+          "Git": {
+            "alternate_object_database": false,
+            "exact_commit": {
+              "contract_version": 1,
+              "native_id": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "native_kind": "commit",
+              "provider_namespace": "git"
+            },
+            "native_tree": {
+              "contract_version": 1,
+              "native_id": "8ecd44b6dfc7a8addd3c92859dda93fa7b2e6de5",
+              "native_kind": "tree",
+              "provider_namespace": "git"
+            },
+            "object_format": "Sha1",
+            "observed_ref_after": {
+              "contract_version": 1,
+              "native_id": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "native_kind": "commit",
+              "provider_namespace": "git"
+            },
+            "observed_ref_before": {
+              "contract_version": 1,
+              "native_id": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+              "native_kind": "commit",
+              "provider_namespace": "git"
+            },
+            "partial_repository": false,
+            "replacement_objects": false,
+            "repository": {
+              "contract_version": 1,
+              "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0",
+              "native_kind": "repository",
+              "provider_namespace": "git"
+            },
+            "signature_observed": false,
+            "symbolic_reference": {
+              "contract_version": 1,
+              "native_id": "refs/heads/main",
+              "native_kind": "reference",
+              "provider_namespace": "git"
+            }
+          }
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "source_provider": "web-git-success",
+        "symbolic_reference": {
+          "contract_version": 1,
+          "native_id": "refs/heads/main",
+          "native_kind": "reference",
+          "provider_namespace": "git"
+        }
+      }
+    },
+    "log_search": {
+      "cursor": 198,
+      "gap": false,
+      "matches": [
+        {
+          "bytes": 15,
+          "cursor": 198
+        }
+      ],
+      "next_cursor": 230,
+      "node_id": "build",
+      "retained": true,
+      "searched_bytes": 213,
+      "source": "worker-capture",
+      "stream": "stdout",
+      "text": "actual artifact bytes: exact-sou",
+      "truncated": false
+    },
+    "retained_log": {
+      "blake3": "d30b274a2f52cfd72b4735d1878e81fdf863707baa9473f33ac09ee6a24e0b33",
+      "bytes": 267,
+      "download_path": "/api/runs/web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205/logs/download?node_id=build&stream=stdout",
+      "filename": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205-build-stdout-retained.log",
+      "retained": true,
+      "truncated": false
+    },
+    "cache_corruption": {
+      "run": {
+        "id": "web-run-444afd2453a91ae682c73b9fb5a7e88442a0bb5f7bd13ee39bfb10221a441e6d",
+        "project_id": "success",
+        "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+        "canonical_tree": "3da9f1243eaa555071daae746f2f0b245f1e8765ca98701ed6d560ef5ca15f2e",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-444afd2453a91ae682c73b9fb5a7e88442a0bb5f7bd13ee39bfb10221a441e6d",
+        "outcome": "DomainFailure",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:5b76425e3b78d68cf15c7383c719e1007681a54da0b00ed28f903eceb900ad3e"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Failed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 347,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793213022608,
+        "started_at_ms": 1793213022674,
+        "completed_at_ms": 1793213022788,
+        "duration_ms": 114,
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "step_telemetry": []
+      },
+      "command_not_started": true
+    }
+  },
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "loopback Iroh does not prove WAN or relay availability or distinct-host deployment",
+    "adapter labels do not implement per-node placement or mixed-host scheduling",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "source": {
+    "controller_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-e/source",
+    "worker_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-e/source",
+    "distinct_checkout": false,
+    "source_repository": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0",
+    "worker_local_repository": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0"
+  },
+  "profiles": {
+    "projects": {
+      "success": {
+        "provider_profile_id": "lattice-web-native-success",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:8eaf1c8cda8d9cb6f4eaaf857de6e9cb8fc4dfd8352846cf3b5ea10e8edbfb23",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:a8f3100ca231d97c90f3196f846a9a7c641c36bcc888382d3f88c6c16309bd40",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:2df2bd570a88142cfb11741f1f9c7df8418b038fd6f088fb9aa157203b9e9802",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:5167265a08f7e11bd0b59b2876a678a958a79e8e4bed3dff3ad6a5562a32a27e",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:53707693ffa9ae4db0d4abd9e236b99851047b8e0308686507bb1633d422ed8e",
+            "workflow_node_id": 1
+          }
+        ]
+      },
+      "slow": {
+        "provider_profile_id": "lattice-web-native-slow",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:8288441d5926c2019e331be3bcf0cafa1c900fdf67fdf085c934fb1935989f9e",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:8edfaa6b251e155194fbfdaeb2b76c8efe052cb4dce084b3d0ade1a9310db0cd",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "fail": {
+        "provider_profile_id": "lattice-web-native-fail",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:0083ff914a50bb0e2a1fde393314d5d44fbfbca04025e16dbcef23cc981f514b",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:85f84f112ec8b709e13ffba7676660986844b3b923a3c43a1954bd441fa16e96",
+            "workflow_node_id": 0
+          }
+        ]
+      },
+      "partial": {
+        "provider_profile_id": "lattice-web-native-partial",
+        "profile_identity": "b3:1bfdc4f3e64e1ab15be08987a520b9de6bd8c65e3ee88615af1bf3c6eb1e2c8c",
+        "graph_identity": "b3:1aa5b5466c06fca2461cf3d3f3abf96a9b67a61951c58bd03c889b5fcbaef7c0",
+        "nodes": [
+          {
+            "request_node_id": "build",
+            "operation_identity": "b3:322d0c0dd7e4483591cde7d8dabd4780aa319637d45d27ee615eb68c71a742fc",
+            "workflow_node_id": 0
+          },
+          {
+            "request_node_id": "join",
+            "operation_identity": "b3:10e465b1929f608266f0a1d603da58afc8c70bd6515313a6117c01a88034f753",
+            "workflow_node_id": 3
+          },
+          {
+            "request_node_id": "lint",
+            "operation_identity": "b3:b6c1c0c5d99597ea26f170d1f8a18255a8fe89181a6aff0de5f878fda2535dba",
+            "workflow_node_id": 2
+          },
+          {
+            "request_node_id": "verify",
+            "operation_identity": "b3:5e4bc99aea6f678f42d302c94cc23cc90a29b28b5f5b17bb4ab69c4fa5749f35",
+            "workflow_node_id": 1
+          }
+        ]
+      }
+    },
+    "worker_blake3": {
+      "worker-success.json": "2f003d5e78fe3956fde360f2ee43f456d8d246ecea48dc7d608c1d22ed4dc6a0",
+      "worker-partial-lint.json": "b6c1c0c5d99597ea26f170d1f8a18255a8fe89181a6aff0de5f878fda2535dba",
+      "worker-success-verify.json": "53707693ffa9ae4db0d4abd9e236b99851047b8e0308686507bb1633d422ed8e",
+      "worker-partial.json": "322d0c0dd7e4483591cde7d8dabd4780aa319637d45d27ee615eb68c71a742fc",
+      "worker-slow.json": "8edfaa6b251e155194fbfdaeb2b76c8efe052cb4dce084b3d0ade1a9310db0cd",
+      "worker-success-lint.json": "5167265a08f7e11bd0b59b2876a678a958a79e8e4bed3dff3ad6a5562a32a27e",
+      "worker-success-join.json": "2df2bd570a88142cfb11741f1f9c7df8418b038fd6f088fb9aa157203b9e9802",
+      "worker-partial-join.json": "10e465b1929f608266f0a1d603da58afc8c70bd6515313a6117c01a88034f753",
+      "worker-fail.json": "85f84f112ec8b709e13ffba7676660986844b3b923a3c43a1954bd441fa16e96",
+      "worker-success-compatible.json": "f6c642487ec3e1abc3d414d16e424445aaa03ba2cd2234f590d9a1bf2055dc2c",
+      "worker-partial-verify.json": "5e4bc99aea6f678f42d302c94cc23cc90a29b28b5f5b17bb4ab69c4fa5749f35",
+      "worker-success-pool.json": "a8f3100ca231d97c90f3196f846a9a7c641c36bcc888382d3f88c6c16309bd40"
+    },
+    "handler_profile_blake3": "5f8798070981954e457f8a335e3a8291f6ab11d794b9e27184800794d281339d"
+  },
+  "origin": "https://127.0.0.1:39995",
+  "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+  "service_profile_blake3": "37ffeb6b509d68903eeb76ecdc5e09b1701d88dc970c9321160267fa32aa41fd",
+  "executables": {
+    "nickel": {
+      "path": "/nix/store/5yqkl5bk4d335hnbss23w4a2crfafxlp-nickel-1.17.0/bin/nickel",
+      "blake3": "dfe37e39723633ace132b192be3d6bf74030b080517e482c72c8fb7e7775df3f"
+    },
+    "b3sum": {
+      "path": "/nix/store/f9myh5db7bz3m6x24781nyihgrdwby9r-b3sum-1.8.5/bin/b3sum",
+      "blake3": "b099d120db4e7da07343967afbb0b6c5b2c5ce2fe4b509b2d849019a26a16f82"
+    },
+    "openssl": {
+      "path": "/nix/store/prxr8sy3x6h5wsavl6fl0n1gkd5rp7g8-openssl-3.6.3-bin/bin/openssl",
+      "blake3": "6baccfae861418d7dec69ad37d690deb1c25d890d303da91b0abd853eae6aa81"
+    },
+    "jj": {
+      "path": "/nix/store/hwifmhfi50y1595lhwiqsn7acppa7zdm-jujutsu-0.45.1/bin/jj",
+      "blake3": "6d55bc9ed537f777e0a57cac8fd229e4bfbf9861f487d0f0bef1e6d4883984e2"
+    },
+    "python3": {
+      "path": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14",
+      "blake3": "2e847ca50f6470736cd990ba2d569560f381d9dec20c17c377a5b61514ef0c39"
+    },
+    "bwrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    },
+    "bash": {
+      "path": "/nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash",
+      "blake3": "4d49e8a73158e650967b10ffa943d5abbb4872139f9c1d6d20e2d0bbb81d65ad"
+    },
+    "true": {
+      "path": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+      "blake3": "9689676d29bb46ff59c8ab573d7a421c96f40a43a011716482dd2c86f8082471"
+    },
+    "service": {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-web-service",
+      "blake3": "dd0b7102a3df9b6e1cf59bf5cae630283a041a3db62e50fb8ac88b354409be8c"
+    },
+    "lattice": {
+      "path": "/nix/store/vmnxaklv4frgzmny25cb3lnfw6rh58kg-lattice-observed-cancellation",
+      "blake3": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925"
+    },
+    "bubblewrap": {
+      "path": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+      "blake3": "da9b1baed729f6ef62956334436385300032545c9a3a43ad7b1acef611a5bdfb"
+    }
+  },
+  "lattice_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "terminal_diagnostics": {
+    "web-run-444afd2453a91ae682c73b9fb5a7e88442a0bb5f7bd13ee39bfb10221a441e6d": {
+      "run": {
+        "id": "web-run-444afd2453a91ae682c73b9fb5a7e88442a0bb5f7bd13ee39bfb10221a441e6d",
+        "project_id": "success",
+        "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+        "canonical_tree": "3da9f1243eaa555071daae746f2f0b245f1e8765ca98701ed6d560ef5ca15f2e",
+        "repository": {
+          "contract_version": 1,
+          "provider_namespace": "git",
+          "native_kind": "repository",
+          "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0"
+        },
+        "revision": 2,
+        "attempt_id": "web-attempt-444afd2453a91ae682c73b9fb5a7e88442a0bb5f7bd13ee39bfb10221a441e6d",
+        "outcome": "DomainFailure",
+        "phase": "terminal",
+        "execution": {
+          "contract_version": 1,
+          "provider_namespace": "lattice",
+          "native_kind": "execution",
+          "native_id": "b3:5b76425e3b78d68cf15c7383c719e1007681a54da0b00ed28f903eceb900ad3e"
+        },
+        "sequence": 2,
+        "nodes": [
+          {
+            "id": "build",
+            "state": "Failed",
+            "kind": "build",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          },
+          {
+            "id": "join",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          },
+          {
+            "id": "lint",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          },
+          {
+            "id": "verify",
+            "state": "Skipped",
+            "kind": "test",
+            "started_at_ms": null,
+            "completed_at_ms": 1793213022788,
+            "duration_ms": null
+          }
+        ],
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "error_code": null,
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_total_bytes": 1048576,
+          "maximum_chunks": 64
+        },
+        "ordinal": 347,
+        "parent_run_id": null,
+        "selected_nodes": [],
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "created_at_ms": 1793213022608,
+        "started_at_ms": 1793213022674,
+        "completed_at_ms": 1793213022788,
+        "duration_ms": 114,
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "step_telemetry": []
+      },
+      "logs": {
+        "build/stdout": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "build",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "build/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "build",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stdout": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "join",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "join",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stdout": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "lint",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "lint",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stdout": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "verify",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "verify",
+            "retained": false,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        }
+      }
+    },
+    "web-run-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c": {
+      "run": {
+        "attempt_id": "web-attempt-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+        "canonical_tree": "3da9f1243eaa555071daae746f2f0b245f1e8765ca98701ed6d560ef5ca15f2e",
+        "completed_at_ms": 1793213021957,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793213018004,
+        "duration_ms": 3883,
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "b3:0a81edeb18cbe9387ea9975e2e1696bc5f858b6d504292b4c9c8e4678bac9908",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_chunks": 64,
+          "maximum_total_bytes": 1048576
+        },
+        "nodes": [
+          {
+            "completed_at_ms": 1793213021957,
+            "duration_ms": null,
+            "id": "build",
+            "kind": "build",
+            "started_at_ms": null,
+            "state": "Completed"
+          },
+          {
+            "completed_at_ms": 1793213021957,
+            "duration_ms": null,
+            "id": "join",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          },
+          {
+            "completed_at_ms": 1793213021957,
+            "duration_ms": null,
+            "id": "lint",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          },
+          {
+            "completed_at_ms": 1793213021957,
+            "duration_ms": null,
+            "id": "verify",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          }
+        ],
+        "ordinal": 183,
+        "outcome": "Success",
+        "parent_run_id": null,
+        "phase": "terminal",
+        "project_id": "success",
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "e2599e88114ea33a30dbd9e1f719c89806a63cf9273f7f58e57c4a966c72a4b6"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "d314fabc05ff2fa8d0bab37a3edf5e2a03f8960db318f97b4021266ba10658f5"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 2,
+        "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+        "started_at_ms": 1793213018074,
+        "step_telemetry": [
+          {
+            "id": "75011fe4e93644a6a58753b8953fde70bee241988e5e4dc7c6ac54830f3bcc67",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:0a81edeb18cbe9387ea9975e2e1696bc5f858b6d504292b4c9c8e4678bac9908",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build",
+                "run_id": "web-run-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "cache": [
+                  {
+                    "duration_ms": 57,
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "hit",
+                    "transferred_bytes": 1469
+                  },
+                  {
+                    "duration_ms": 61,
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "published",
+                    "transferred_bytes": 1548
+                  }
+                ],
+                "completed_at_ms": 1793213019036,
+                "cpu_time_us": 81745,
+                "duration_ms": 852,
+                "exit_code": 0,
+                "peak_memory_bytes": 22319104,
+                "started_at_ms": 1793213018183,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213019717
+          },
+          {
+            "id": "4e1899fc380e71a3e7bf4635d7b18e4a27f0afca11beb5b879997a8be2b7ec6a",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:0a81edeb18cbe9387ea9975e2e1696bc5f858b6d504292b4c9c8e4678bac9908",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build",
+                "run_id": "web-run-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 2,
+              "step": {
+                "completed_at_ms": 1793213020768,
+                "cpu_time_us": 14783,
+                "duration_ms": 1034,
+                "exit_code": 0,
+                "peak_memory_bytes": 11657216,
+                "started_at_ms": 1793213019733,
+                "step_index": 1
+              }
+            },
+            "recorded_at_ms": 1793213020804
+          },
+          {
+            "id": "8c33c5d521e543f638133bf0586d42d32b9554417cd5e4d5211bd68e68e18ee6",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:0a81edeb18cbe9387ea9975e2e1696bc5f858b6d504292b4c9c8e4678bac9908",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "verify",
+                "run_id": "web-run-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "completed_at_ms": 1793213021075,
+                "cpu_time_us": 26494,
+                "duration_ms": 210,
+                "exit_code": 0,
+                "peak_memory_bytes": 16023552,
+                "started_at_ms": 1793213020865,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213021097
+          },
+          {
+            "id": "a134f42b8e586a1ef378c927a37d778cb2c319841ec762c66ebc31e0e05a7767",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:0a81edeb18cbe9387ea9975e2e1696bc5f858b6d504292b4c9c8e4678bac9908",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "lint",
+                "run_id": "web-run-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "completed_at_ms": 1793213021404,
+                "cpu_time_us": 24549,
+                "duration_ms": 231,
+                "exit_code": 0,
+                "peak_memory_bytes": 16773120,
+                "started_at_ms": 1793213021172,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213021427
+          },
+          {
+            "id": "67d2b8cfb209c09a68000bcaef29c29005d3296076dfdafc53ce5625894fb98a",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:0a81edeb18cbe9387ea9975e2e1696bc5f858b6d504292b4c9c8e4678bac9908",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "join",
+                "run_id": "web-run-7665e8d8765054d62f334d2487ea752654e4fa474da04f021b5af682d231236c",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "completed_at_ms": 1793213021788,
+                "cpu_time_us": 25066,
+                "duration_ms": 293,
+                "exit_code": 0,
+                "peak_memory_bytes": 16023552,
+                "started_at_ms": 1793213021494,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213021834
+          }
+        ]
+      },
+      "logs": {
+        "build/stdout": {
+          "text": "actual command started\nactual isolated host credential and service network denied\nactual source input: exact-source-artifact-v1\nactual direct CPU microseconds: 24924\nactual restored derived output\nactual artifact bytes: exact-source-artifact-v1\nsecond reviewed step\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 266,
+            "gap": false,
+            "next_cursor": 266,
+            "node_id": "build",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "build/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "build",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stdout": {
+          "text": "actual fan-in joined both branches\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 35,
+            "gap": false,
+            "next_cursor": 35,
+            "node_id": "join",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "join",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stdout": {
+          "text": "actual dependent lint\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 22,
+            "gap": false,
+            "next_cursor": 22,
+            "node_id": "lint",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "lint",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stdout": {
+          "text": "actual dependent verify\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 24,
+            "gap": false,
+            "next_cursor": 24,
+            "node_id": "verify",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "verify",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        }
+      }
+    },
+    "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205": {
+      "run": {
+        "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "canonical_tree": "3da9f1243eaa555071daae746f2f0b245f1e8765ca98701ed6d560ef5ca15f2e",
+        "completed_at_ms": 1793213017173,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793213013619,
+        "duration_ms": 3484,
+        "edges": [
+          {
+            "source": "build",
+            "target": "lint"
+          },
+          {
+            "source": "build",
+            "target": "verify"
+          },
+          {
+            "source": "lint",
+            "target": "join"
+          },
+          {
+            "source": "verify",
+            "target": "join"
+          }
+        ],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+        "log_bounds": {
+          "maximum_chunk_bytes": 32,
+          "maximum_chunks": 64,
+          "maximum_total_bytes": 1048576
+        },
+        "nodes": [
+          {
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null,
+            "id": "build",
+            "kind": "build",
+            "started_at_ms": null,
+            "state": "Completed"
+          },
+          {
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null,
+            "id": "join",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          },
+          {
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null,
+            "id": "lint",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          },
+          {
+            "completed_at_ms": 1793213017173,
+            "duration_ms": null,
+            "id": "verify",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Completed"
+          }
+        ],
+        "ordinal": 18,
+        "outcome": "Success",
+        "parent_run_id": null,
+        "phase": "terminal",
+        "project_id": "success",
+        "report_summary": {
+          "coverage": [
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "cobertura",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "coverage.xml",
+              "node_id": "build",
+              "report_id": "7b40940a77c4e004d6fbe7dfa2d0e87b78de6fa760c504b66f5e19dff35dc77a"
+            },
+            {
+              "coverage": {
+                "branch_rate": null,
+                "branches_found": null,
+                "branches_hit": null,
+                "format": "lcov",
+                "line_rate": 0.6666666666666666,
+                "lines_found": 3,
+                "lines_hit": 2
+              },
+              "name": "lcov.info",
+              "node_id": "build",
+              "report_id": "72ef3f9bc3df4355a2bd6a265264b442df5d0d1b2c997553dce7f5f88e819484"
+            }
+          ],
+          "tests": {
+            "errors": 0,
+            "failed": 0,
+            "passed": 1,
+            "skipped": 0,
+            "total": 1
+          }
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "17980a0a291626eb028014bf3440a789d72bd48afd0db02366624870442621a0",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 2,
+        "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f",
+        "started_at_ms": 1793213013689,
+        "step_telemetry": [
+          {
+            "id": "5e40a528417cd33bf0b3977653780105b96becae5813f884d5a235d0620a6bcb",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build",
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "cache": [
+                  {
+                    "duration_ms": 29,
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "miss",
+                    "transferred_bytes": 718
+                  },
+                  {
+                    "duration_ms": 46,
+                    "key": "e231d3473258a76a2297a5983e2abb2ea7220f87fb0213f92e7751e61dcf2b5f",
+                    "outcome": "published",
+                    "transferred_bytes": 1548
+                  }
+                ],
+                "completed_at_ms": 1793213014655,
+                "cpu_time_us": 220263,
+                "duration_ms": 924,
+                "exit_code": 0,
+                "peak_memory_bytes": 22040576,
+                "started_at_ms": 1793213013731,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213015104
+          },
+          {
+            "id": "340d62acf2f4d195808f5ece46bc2a2325e1dbe4942dbcbea192abd976d7ec11",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "build",
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 2,
+              "step": {
+                "completed_at_ms": 1793213016154,
+                "cpu_time_us": 13911,
+                "duration_ms": 1040,
+                "exit_code": 0,
+                "peak_memory_bytes": 11657216,
+                "started_at_ms": 1793213015113,
+                "step_index": 1
+              }
+            },
+            "recorded_at_ms": 1793213016164
+          },
+          {
+            "id": "d697869e1db49f22dd2eaada7affe5b2056c0e99870a8e6ab005eb6559cb971b",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "verify",
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "completed_at_ms": 1793213016407,
+                "cpu_time_us": 23051,
+                "duration_ms": 196,
+                "exit_code": 0,
+                "peak_memory_bytes": 15765504,
+                "started_at_ms": 1793213016210,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213016415
+          },
+          {
+            "id": "614351ebded1efcecb98020fe42e4d91776f943fb9114c76a59c31ba2ffc2ff6",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "lint",
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "completed_at_ms": 1793213016681,
+                "cpu_time_us": 23018,
+                "duration_ms": 194,
+                "exit_code": 0,
+                "peak_memory_bytes": 16711680,
+                "started_at_ms": 1793213016486,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213016690
+          },
+          {
+            "id": "075b2a0ddedc823d1a7983132cb8a7005e6f449f007a07781726228566743e77",
+            "observation": {
+              "binding": {
+                "attempt_id": "web-attempt-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "execution": {
+                  "contract_version": 1,
+                  "native_id": "b3:e27e1811a39202157da9311bd2fc81edcb0827bfb74eacd85cd1177918f2d96e",
+                  "native_kind": "execution",
+                  "provider_namespace": "lattice"
+                },
+                "node_id": "join",
+                "run_id": "web-run-3985d9b8c74fb883b4c5c47ecf771c5542a4deec9fd519db4b4668a75bfb1205",
+                "source_revision": "09851879fa696a8f2f8aa10f5e90d0799bac557f"
+              },
+              "sequence": 1,
+              "step": {
+                "completed_at_ms": 1793213017018,
+                "cpu_time_us": 30254,
+                "duration_ms": 280,
+                "exit_code": 0,
+                "peak_memory_bytes": 15736832,
+                "started_at_ms": 1793213016738,
+                "step_index": 0
+              }
+            },
+            "recorded_at_ms": 1793213017043
+          }
+        ]
+      },
+      "logs": {
+        "build/stdout": {
+          "text": "actual command started\nactual isolated host credential and service network denied\nactual source input: exact-source-artifact-v1\nactual direct CPU microseconds: 38445\nactual cold derived computation\nactual artifact bytes: exact-source-artifact-v1\nsecond reviewed step\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 267,
+            "gap": false,
+            "next_cursor": 267,
+            "node_id": "build",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "build/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "build",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stdout": {
+          "text": "actual fan-in joined both branches\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 35,
+            "gap": false,
+            "next_cursor": 35,
+            "node_id": "join",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "join/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "join",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stdout": {
+          "text": "actual dependent lint\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 22,
+            "gap": false,
+            "next_cursor": 22,
+            "node_id": "lint",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "lint/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "lint",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stdout": {
+          "text": "actual dependent verify\n",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 24,
+            "gap": false,
+            "next_cursor": 24,
+            "node_id": "verify",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stdout",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        },
+        "verify/stderr": {
+          "text": "",
+          "last_page": {
+            "body_base64": "",
+            "cursor": 0,
+            "gap": false,
+            "next_cursor": 0,
+            "node_id": "verify",
+            "retained": true,
+            "source": "worker-capture",
+            "stream": "stderr",
+            "text": "",
+            "truncated": false
+          },
+          "bounded_maximum_pages": 65
+        }
+      }
+    }
+  },
+  "failure": {
+    "kind": "RuntimeError",
+    "diagnostic": "command /home/brittonr/.cargo-target/debug/kiln-web-service exited 1: kiln ci: snapshot_head_unavailable\n"
+  },
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

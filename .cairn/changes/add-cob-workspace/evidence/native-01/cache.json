@@ -1,0 +1,26 @@
+{
+  "schema": "kiln.web-cache.v1",
+  "directory": "/home/brittonr/.cache/kiln-cob-workspace-20261028/shared-cache",
+  "maximum_entry_bytes": 65536,
+  "maximum_total_bytes": 1048576,
+  "maximum_entries": 16,
+  "maximum_age_seconds": 3600,
+  "maximum_files": 16,
+  "projects": [
+    {
+      "project_id": "success",
+      "producers": [
+        "fixture-v1"
+      ],
+      "toolchains": [
+        "python-v1"
+      ],
+      "platforms": [
+        "linux-x86_64"
+      ],
+      "paths": [
+        "cache-output"
+      ]
+    }
+  ]
+}

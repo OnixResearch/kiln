@@ -173,6 +173,7 @@ pub(crate) struct CatalogRenderer {
 }
 
 // r[impl kiln.dashboard.product.shell]
+// r[impl kiln.dashboard.product.shell.scenario.inventory]
 impl CatalogRenderer {
     pub(crate) fn new(catalog: &Catalog) -> Self {
         let mut out = String::from(

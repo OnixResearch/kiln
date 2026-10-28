@@ -1381,10 +1381,21 @@ without deploying them; they do not prove the installed service uses those bytes
 
 ### Extend an existing project registry
 
+<!-- r[related kiln.web.projects.onixresearch] -->
+
 Ordinary startup remains bound to one exact service profile. Adding a project is
 an explicit offline authority extension, not an implicit migration or a database
 reset. Kiln application maintainers own admission and recovery behavior; the
 operator owns repository selection, command review, installed routes and activation.
+
+<!-- r[verify kiln.web.projects.onixresearch] -->
+The [retained installed-project observation](../.cairn/changes/extend-live-project-registry/evidence/verification.json)
+records fourteen additional reviewed committed-ref jobs through authenticated
+enrollment and native routes: eight successes and six explicit prerequisite
+failures. Original worker/routes, five original runs and retained bytes were
+preserved; restart recovered all nineteen run views. These are the recorded
+cohort's observations, not execution of the procedure below or qualification of
+today's revisions. Existing Kiln self-CI retained its independently pinned cohort.
 
 1. Preserve the original admitted service JSON. Export the next reviewed service
    profile with a nonempty appended project suffix. Preserve every existing
@@ -1493,7 +1504,108 @@ establish WAN/relay availability or distinct-host deployment. `local`/`remote`
 adapter labels bind supported capabilities and exact routes; they do not select
 per-node placement or split a DAG across hosts.
 
+### Optional signed COB workspace
+
+The live **Work**, **Planning**, **Triage**, **My work & inbox** and **Saved views**
+pages use an independently selected `--work` policy. Kiln's web-service maintainers
+own this application surface; the immediate consumer is the developer coordinating
+source-bound CI work. The existing CI project registry remains execution policy,
+not an editable planning-project database.
+
+Apply [`config/web-work.ncl`](../config/web-work.ncl) to an operator-reviewed
+record containing exactly `git_directory`, `signer_seed_file` and
+`write_principals`. The builder emits `kiln.web-work.v1`. Select an existing,
+operator-owned local Git directory, preferably a dedicated store, and provision
+a private file containing exactly **32 raw bytes** of service-signing seed.
+Hex text, implicit keys and discovered Radicle/operator keystores are not accepted.
+The Git directory must be owned by the service UID and not group/world-writable.
+Keep the exact signing key and Git history together when backing up or restoring.
+
+```console
+nickel export --format json --output "$KILN_WORK_PROFILE" "$KILN_WORK_NCL"
+kiln-web-service check --profile "$KILN_SERVICE_PROFILE" --work "$KILN_WORK_PROFILE"
+kiln-web-service serve --profile "$KILN_SERVICE_PROFILE" --work "$KILN_WORK_PROFILE"
+```
+
+Retain other independently admitted runtime options. Omitting `--work` leaves an
+explicit unconfigured surface and never discovers a default store. `check`
+admits policy and private seed without opening or modifying the Git repository;
+actual requests additionally verify store ownership, native framing, signatures
+and replay. No installed store, service configuration or operator key is changed
+by the disposable verification procedure below.
+
+An authenticated Viewer or Operator may collaborate only when its **exact
+application principal ID** is listed in `write_principals`. This is independent
+of CI Operator permission. Unlisted users remain read-only; Workers cannot use
+the work API. Same-origin JSON write admission is still required. Removing a
+writer denies its new commands while preserving its previously service-signed
+history. The signature attests the service-recorded authenticated principal,
+not an end-user Radicle signature or user-held key.
+
+Nine version-1 native types under `xyz.onixresearch.work.` retain issues,
+projects, milestones, cycles, initiatives, teams, requests, views and personal
+attention records. The pure model validates typed relationships, parent/blocker/
+duplicate cycles, team-defined statuses, scheduling, authorship and privacy.
+Requests preserve original customer/source intake. Comments, mentions, reactions,
+descriptions and team/project updates are durable operations, not browser-local
+canonical state. Personal subscriptions, read-head markers, favorites and
+reminders are private COB fields. The inbox derives attention from the admitted
+snapshot and browser time; this does not provide background push/email delivery.
+
+Private views and personal records are owner-controlled at the application API;
+they are **not encrypted from Git/store administrators**. View ownership and
+visibility are immutable: create a separate shared view rather than exposing a
+formerly private history. All work types deliberately stay out of the separate
+raw `/api/cobs` browser, which has no principal-aware work-history privacy.
+
+Writes confirm exact values and native heads. Stale heads, changed request
+replays and competing/foreign branches fail explicitly; exact duplicate requests
+return the original historical result. A signed global sequence and predecessor
+operation bind cross-object replay independently of timestamps and object-ID
+ordering. The local store uses a cross-process lock and native ref CAS; it is a
+single application history, **not automatic CRDT merging or remote synchronization**.
+Bounds include 1,024 objects, 128 operations per object, 8,192 total operations,
+16 MiB of verified history, 256 KiB per operation/reduced record and 4 MiB per
+HTTP response. Exceeding a bound reports unavailable rather than truncated success.
+
+Use Ctrl/Cmd+K for cross-entity search and commands. Work rows support j/k or
+arrow navigation, Enter to open, Space to preview, x or checkboxes for selection,
+and Shift+F10 for actions. Bulk changes confirm per-object heads, run sequentially
+and report partial outcomes; they are not atomic and are never blindly retried.
+Named views persist filters, sorting, grouping and list/board layout as COBs.
+Explicit URL controls override a named view only when present; opening it from
+favorites or the palette restores its saved configuration, including board layout.
+The Kiln web-service shell owns this optional collaboration surface and its
+native smoke exercise; its consumers are authenticated workspace principals.
+Clearing the session erases private snapshots, previews, results and pending reads.
+
+Linked change detail joins only explicit source/revision, patch/review, run,
+artifact and Cairn identities. Missing or inaccessible observations remain
+unavailable; work completion and recorded provider verdicts grant no merge,
+lifecycle or release acceptance. No work action writes native Radicle
+issue/patch objects, publishes refs, fetches peers or changes provider authority.
+
+Repeat native persistence, restart, stale/replay, privacy and actual CI/source
+joins using the maintained disposable exercise:
+
+```console
+cargo test --locked -p kiln-web-service
+python3 scripts/web-service-smoke.py \
+  --service "$KILN_WEB_SERVICE" --lattice "$LATTICE" \
+  --lattice-source "$LATTICE_SOURCE" --work \
+  --root "$NEW_PRIVATE_SCRATCH_OUTSIDE_TMP" --evidence "$EVIDENCE_DIRECTORY"
+```
+
+Add `--browser-hold` only when driving the browser and writing its evidence marker
+before the exercise's bounded wait expires. The exercise creates caller-owned
+disposable stores and credentials, uses real native signatures and source-bound
+commands, and retires its resources. This is repeatability evidence for the
+selected local cohort, not installed-service activation or release qualification.
+
 ### Optional read-only COB browser
+
+<!-- r[related kiln.dashboard.cobs.operated] -->
+<!-- r[related kiln.dashboard.cobs.operated.scenario.empty] -->
 
 The live workspace's **COBs** view reads explicitly selected local Git
 stores, independently of CI project enrollment. It does not search the current
@@ -1666,6 +1778,9 @@ session. Repeat with a deliberately unavailable selected store and verify an
 explicit incomplete/error state rather than an empty-success claim. Local
 fixtures and browser observations do not qualify deployment or release readiness.
 
+<!-- r[related kiln.dashboard.cobs.population] -->
+<!-- r[related kiln.dashboard.cobs.population.scenario.import] -->
+
 The browser shows nothing until the selected store holds `refs/cobs/<type>/<oid>`
 objects. To populate it from the repository's own reviewed lifecycle artifacts,
 import each active change once, as an explicit offline operator action:
@@ -1683,9 +1798,20 @@ Preview returns the actor, artifact identities and plan without mutation; add
 commit is bound to that Radicle identity. It writes only
 `refs/namespaces/<actor>/refs/cobs/xyz.onixresearch.cairn-change/<oid>`, refuses a
 change that already has a COB, and performs no publish, sync, announce, delegate
-or peer action. Nothing in the web service can create objects. Imported objects
+or peer action. The read-only COB browser cannot create these objects. Imported objects
 are raw recorded history: signatures, authority and lifecycle reduction stay
 unverified by the browser.
+
+<!-- r[verify kiln.dashboard.cobs.population] -->
+<!-- r[verify kiln.dashboard.cobs.population.scenario.import] -->
+The [retained signed-population observation](../.cairn/changes/show-local-run-time-check-cobs/evidence/verification.json)
+under `cob_population` records fourteen imports with the existing operator
+identity, one new namespaced ref per object, and duplicate-import refusal.
+Pre-existing refs, HEAD, packed refs and store configuration were unchanged.
+The live browser listed all fourteen native IDs/tips and opened retained
+artifact text; signatures remained unverified. No publication, synchronization,
+announcement, delegate change or peer exchange occurred. This is scoped
+historical evidence, not authority to import again or proof about newer changes.
 
 
 Inspect the candidate-bound local outcomes in
@@ -1899,6 +2025,11 @@ on failure with a five-second delay and at most three attempts per minute;
 startup has 60 seconds and SIGTERM shutdown 30 seconds before group kill.
 External workflows belong to the provider and must not be child processes of
 this web-service unit.
+
+Canonical-state ownership is explicitly unlocked after the shell's other fields
+close. A descriptor inherited during another thread's fork-to-exec window cannot
+retain ownership after that shell is dropped. A second live owner is still
+rejected; this does not bypass canonical replay, profile binding or recovery.
 
 Rotate by provisioning replacement source files securely and restarting under
 operator authority. Do not delete state to force a restart: durable state binds
@@ -2190,6 +2321,129 @@ poll-delay bound in mind. Credentials/destinations never enter the page. No
 declared trigger or notification means no invented subscription or destination;
 the current operator owns enrollment and delivery policy.
 
+
+### Internal developer loop
+
+The service/worker maintainers own these optional contracts. Operators own their
+reviewed profiles, credentials and host activation. Existing profiles omit the
+new fields when unused; installing a new worker command still requires its exact
+reviewed workflow operation, not an edit to retained identities.
+
+The [corrected native developer-loop receipt](../.cairn/changes/complete-internal-developer-loop/evidence/native-07/verification.json)
+records an actual four-node branching workflow, five measured steps, partial
+failure, isolated cancellation/recovery, expiring worker observations, verified
+cross-worker cache reuse, and committed/dirty CLI execution. The preceding
+[viewer-browser receipt](../.cairn/changes/complete-internal-developer-loop/evidence/native-06/verification.json)
+retains desktop (1440px) and mobile (390px) observations and screenshots. Both
+trials retired all disposable processes, credentials and scratch. They used two
+worker processes/work roots on one host, not two physical hosts. The corrected
+trial's cold/warm build steps measured 744ms/870ms: reuse passed, but the warm
+step was slower, so there is no performance-improvement claim.
+
+The ownership-lifetime regression and full Cargo workspace pass after explicit
+state-lock release. The Nix process fixture now uses non-core-dumping SIGKILL
+and requires exactly that signal under its unchanged deadline; its focused
+three-test rail passes. Earlier failures remain historical evidence, not current
+passing receipts. The original notification failure did not recur under syscall
+tracing; retained-description lock behavior was reproduced deterministically,
+not inferred from a successful rerun.
+
+For declared development coverage, explicitly select the optional
+[`kiln-active-development` profile](../cairn-policy/development-coverage.ncl).
+It includes the selected pending deltas and owned browser sources; it does not
+change accepted-only release defaults or accept any change. Unknown anchors
+still fail its negative control. Signed-population and installed-project links
+point to the scoped retained observations above, not procedures marked as
+implementation. See the [qualification results](../.cairn/changes/complete-internal-developer-loop/evidence/qualification.json).
+No lifecycle acceptance, production activation or release-readiness claim follows.
+
+#### Pipeline measurements and worker capacity
+
+The run inspector shows admitted per-node step measurements and retained reports.
+Elapsed duration uses the worker's monotonic clock. CPU usage measures the actual
+command and its waited descendants; Linux peak RSS is the maximum child-process
+peak, not aggregate concurrent memory or a cgroup reservation. Isolated commands
+are accounted inside the namespace, outside the command's resource limits.
+Cancellation or timeout can interrupt accounting; unavailable measurements remain
+unknown. Historical runs do not acquire invented measurements.
+
+Export `config/web-workers.ncl` and pass its JSON as `--workers` to both `check`
+and `serve`. Each admitted worker has an exact principal, project, target and
+maximum slot count. Derive the target before installing heartbeat authority:
+
+```console
+kiln-web-service worker-target --provider-profile "$PROVIDER_PROFILE_ID" \
+  --socket "$LATTICE_SOCKET" --platform linux-x86_64
+kiln-web-service heartbeat --profile "$WORKER_PROFILE" --identity "$WORKER_PROFILE_BLAKE3"
+```
+
+The worker profile's optional `heartbeat` config controls its stable worker ID,
+target, interval, TTL and slots. Run one daemon per worker ID/private work root.
+Independent workers may share one admitted project/target. Kernel-held job locks
+and available CPU parallelism bound observed slots; process exit releases locks.
+Heartbeats have authenticated sessions, strictly increasing observation sequences
+and explicit expiry. Transport loss can skip observations without replacing the
+session; policy rejection fails closed. Duplicate observations never renew TTL.
+Offline workers contribute no observed available capacity. Configured project
+slots remain separate from observed worker liveness and are not placement proof.
+
+Optional worker `execution` selects the exact reviewed bubblewrap executable,
+read-only toolchain mounts, network policy and per-command resource limits.
+Preflight failure never falls back to account-authority execution. The command
+gets its private writable checkout/temp and explicit environment, not service
+credentials or the worker's repository backing store. This is bounded namespace
+isolation, not a claim of hostile-code confinement or host-wide resource control.
+
+#### Shared cache
+
+Export `config/web-cache.ncl`; pass `--cache` to both `check` and `serve`. Its
+private cache directory must not overlap canonical state. Policy bounds entries,
+bytes, files, age and admitted project/producer/toolchain/platform/output paths.
+Each cacheable worker step explicitly declares its inputs and output paths.
+Compatible workers share keys based on those declarations and actual BLAKE3 input
+hashes, not their local checkout, token or work-root paths. Producer/toolchain
+identities must describe compatible commands and environments; a hit is not a
+semantic correctness guarantee.
+
+Restore verifies the entire admitted envelope and safe paths before writing.
+Publication follows actual successful execution and admitted output ingress;
+conflicting immutable content, corrupt bytes, links and credential paths fail
+closed. Retention only prunes verified cache members, never journals, source or
+run artifacts. The inspector reports actual miss/hit/publication, transferred
+bytes and duration. Compare measured cold/warm runs; do not infer a speedup.
+
+#### Developer CLI and explicitly selected dirty inputs
+
+Export `config/web-developer.ncl` with an HTTPS origin, trusted CA, private token
+file and finite request/watch bounds. Pin BLAKE3 of the original exported JSON
+bytes, not a reserialized object. Submit an exact committed reference:
+
+```console
+kiln-web-service ci --profile "$DEV_PROFILE" --identity "$DEV_PROFILE_BLAKE3" \
+  submit --project "$PROJECT" --request-id "$REQUEST_ID" \
+  --reference refs/heads/main --revision "$BASE_REVISION"
+kiln-web-service ci --profile "$DEV_PROFILE" --identity "$DEV_PROFILE_BLAKE3" watch --run "$RUN_ID"
+kiln-web-service ci --profile "$DEV_PROFILE" --identity "$DEV_PROFILE_BLAKE3" logs --run "$RUN_ID" --follow
+kiln-web-service ci --profile "$DEV_PROFILE" --identity "$DEV_PROFILE_BLAKE3" cancel --run "$RUN_ID" --request-id "$CANCEL_REQUEST_ID"
+kiln-web-service ci --profile "$DEV_PROFILE" --identity "$DEV_PROFILE_BLAKE3" retry --run "$RUN_ID" --request-id "$RETRY_REQUEST_ID"
+```
+
+For dirty input, add `--dirty-repository "$WORKTREE"` plus repeated
+`--include relative/file` and/or `--delete relative/file`. Only explicitly selected
+changes are uploaded. The token must be outside that worktree. Unsafe, ignored,
+linked or stale inputs are rejected. Submission binds a BLAKE3 manifest, exact
+base revision and deterministic synthetic Git revision; it neither publishes the
+source nor relabels the base commit as the executed tree. Independent backing
+repositories reconstruct the same admitted bytes, without modifying the user's
+index or worktree. Exact retry preserves snapshot provenance in a new run.
+
+The selected Git worktree's `HEAD` must equal the supplied base revision during
+capture. In a colocated Jujutsu fixture, create a worktree child of the admitted
+bookmark (`jj new main`) before capture; the bookmark itself stays fixed.
+
+Mutations are not blindly retried. Watch preserves success/failure/cancellation/
+unknown outcome exits; logs retain real stream bytes and cursors. These commands
+grant no source publication, release acceptance or remote mutation authority.
 
 ### Repeat the isolated native exercise
 

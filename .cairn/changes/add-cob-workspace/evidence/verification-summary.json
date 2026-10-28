@@ -1,0 +1,35 @@
+{
+  "schema": "kiln.work.delivery-observations.v1",
+  "immediate_outcome": "Optional signed native COB work workspace integrated with the authenticated Kiln dashboard.",
+  "durable_capability": "Replayable bounded native work history and repeatable authenticated desktop/mobile collaboration workflows.",
+  "consumer": "Kiln internal developers and self-CI operators",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers",
+  "native_exercises": [
+    {"receipt": "native-01/verification.json", "scope": "Native workflow exercise and initial browser creation, discussion, planning, search and change evidence; initial preview and evidence-layout findings retained."},
+    {"receipt": "native-02/verification.json", "scope": "Corrected read-only preview and two-object signed bulk priority persistence; saved-view precedence finding retained."},
+    {"receipt": "native-final/verification.json", "scope": "Saved board restoration through favorites, authenticated reload and palette despite explicit layout override; native source/diff/revision and CI report/artifact joins; desktop/mobile bounds and logout erasure.", "passed": true, "service_blake3": "50fdf32fc39dff32d77ebc2fff1e9125fbfb965b4853b1a3132e92577b52368e", "retirement": {"all_processes_exited": true, "credentials_removed": true, "scratch_removed": true}}
+  ],
+  "repository_gates": {
+    "command": "nix flake check path:. --no-write-lock-file -L --builders '' --keep-going",
+    "system": "x86_64-linux",
+    "checks": 47,
+    "passed": true,
+    "observed_verdict": "all checks passed!",
+    "log_artifact": "artifact://2794",
+    "includes": ["packaged workspace tests", "Octet", "Clippy", "formatting", "Nickel profiles and fixtures", "Bombadil terminal/browser rails", "web-service deployment VM"],
+    "execution_boundary": "Used local builders after the configured remote builder failed to open an overlong load-lock filename. Incompatible aarch64-linux checks were omitted by the flake command."
+  },
+  "other_gate_observations": "workspace-gates.json",
+  "lifecycle_observations": "lifecycle.json",
+  "known_gate_limits": [
+    "A separate direct cargo test --locked --workspace invocation failed cache::tests::cold_publish_warm_restore_is_immutable_and_survives_store_reopen with cache directory already owned. The focused service suite and packaged Nix suite passed; this direct invocation remains a failed observation.",
+    "Accepted-only traceability and release readiness remain failed for pending deltas. Explicit active-development coverage passed all 993 references with no missing or dangling IDs; no pending change was accepted or archived."
+  ],
+  "non_claims": [
+    "This is local disposable-cohort evidence, not installed-service activation or release eligibility.",
+    "Work completion and producer verdicts do not establish CI success, merge authority or lifecycle acceptance.",
+    "Private work records are API-access-controlled, not encrypted from Git/store administrators.",
+    "No Radicle publication, peer synchronization, governance change or production-store mutation was performed.",
+    "Internal artifact URLs identify session output, not permanent public artifacts; native exercise receipts are retained beside this file."
+  ]
+}

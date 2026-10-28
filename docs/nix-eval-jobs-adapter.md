@@ -79,6 +79,15 @@ A successful process exit does not complete discovery by itself. The stream, std
 
 Timeout, cancellation, signal loss, output overflow, provider error, and unknown remain separate outcomes. An unknown observation can only reconcile to its recorded value.
 
+The `fixture-process` conformance rail uses a self-delivered `SIGKILL` for its
+signal producer, not `abort()`/`SIGABRT`: a host core-dump handler can delay
+reaping an aborting process beyond the execution deadline. The fixture requires
+an observed signal exit with exactly `SIGKILL` under its unchanged 1,000 ms
+bound; timeout and unknown do not satisfy this assertion. Bounded Exec correctly
+keeps deadline expiry as `TimedOut` even if teardown subsequently reaps a signal
+exit. Separate timeout, cancellation, output-limit and descendant-teardown
+fixtures retain their own boundaries.
+
 ## Task mapping
 
 The pure core maps admitted successful jobs into task proposals. Each BLAKE3 mapping identity binds these facts:

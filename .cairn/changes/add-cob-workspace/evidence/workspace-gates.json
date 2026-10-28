@@ -1,0 +1,13 @@
+{
+  "schema": "kiln.work.workspace-gate-observations.v1",
+  "checks": [
+    {"command": "nix develop path:. -c cargo test --locked -p kiln-web-service", "passed": true, "output": "artifact://2784"},
+    {"command": "nix develop path:. -c cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings", "passed": true, "output": "artifact://2784"},
+    {"command": "nix develop path:. -c cargo clippy --locked --workspace --all-targets -- -D warnings", "passed": true},
+    {"command": "nix develop path:. -c cargo fmt --check", "passed": true},
+    {"command": "nix develop path:. -c nickel format --check config/web-work.ncl", "passed": true},
+    {"command": "nix develop path:. -c cargo test --locked --workspace", "passed": false, "failure": "cache::tests::cold_publish_warm_restore_is_immutable_and_survives_store_reopen: cache directory already owned", "source": "crates/kiln-web-service/src/cache_tests.rs:100", "output": "artifact://2818", "boundary": "The focused web-service suite passed separately. This workspace invocation failed; it is not reported as a full-suite pass."},
+    {"command": "nix develop path:. -c cargo fmt --all --check", "passed": false, "failure": "Vendored Cairn workspace references absent vendor/cairn/crates/cairn-core/Cargo.toml", "boundary": "The repository-owned cargo fmt --check invocation passed. Vendored snapshots were not edited to make --all traverse partial dependency workspaces."}
+  ],
+  "non_claims": ["Observed local checks do not establish installed-service activation or release eligibility.", "Internal artifact URLs identify this session's captured output, not permanent public artifacts."]
+}

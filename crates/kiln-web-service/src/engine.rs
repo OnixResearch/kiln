@@ -1,5 +1,4 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::File;
 
 use kiln_adapter_lattice::{LatticeAdapter, UnixWorkflowExchange};
 use kiln_codec::encode_and_identify;
@@ -12,6 +11,7 @@ mod admission;
 pub(crate) mod api;
 mod artifacts;
 mod automation;
+mod cache;
 mod dashboard;
 mod logs;
 pub(crate) mod model;
@@ -20,7 +20,11 @@ mod registry;
 pub use registry::extend_projects;
 mod reports;
 pub use automation::{NotificationCompletion, NotificationWork};
+mod snapshots;
 mod storage;
+mod telemetry;
+mod worker_status;
+pub use worker_status::WorkerStatusProfile;
 mod workers;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
@@ -46,7 +50,9 @@ pub struct Engine {
     known: BTreeSet<String>,
     storage_failed: bool,
     automation_profile: Option<crate::automation::AutomationProfile>,
-    _lock: File,
+    cache_store: Option<crate::cache::CacheStore>,
+    worker_status: Option<worker_status::Store>,
+    _lock: storage::StateLock,
 }
 
 impl std::fmt::Debug for Engine {
@@ -110,6 +116,8 @@ impl Engine {
             known: BTreeSet::new(),
             storage_failed: false,
             automation_profile: None,
+            cache_store: None,
+            worker_status: None,
             _lock: lock,
         })
     }

@@ -25,6 +25,8 @@ pub struct DurableState {
     pub automation: crate::automation::AutomationState,
     #[serde(default)]
     pub access_policy_identity: Option<String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub snapshots: BTreeMap<String, crate::snapshot::SnapshotRecord>,
 }
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -158,6 +160,10 @@ pub struct RunRecord {
     pub node_timing: BTreeMap<String, NodeTiming>,
     #[serde(default)]
     pub reports: Vec<ReportRecord>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub step_telemetry: Vec<crate::telemetry::TelemetryRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dirty_snapshot: Option<crate::snapshot::SnapshotProvenance>,
     #[serde(skip)]
     pub state: State,
 }
@@ -196,6 +202,9 @@ pub struct RunView {
     pub completed_at_ms: Option<u64>,
     pub duration_ms: Option<u64>,
     pub report_summary: serde_json::Value,
+    pub step_telemetry: Vec<crate::telemetry::TelemetryRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dirty_snapshot: Option<crate::snapshot::SnapshotProvenance>,
 }
 impl RunRecord {
     pub fn restore(&mut self) -> Result<(), String> {
@@ -222,6 +231,7 @@ impl RunRecord {
             kiln_core::workflow::admit_workflow_observation(&self.plan, obs)
                 .map_err(|_| "stored observation rejected")?;
         }
+        super::telemetry::validate(self)?;
         Ok(())
     }
     pub fn outcome(&self) -> Outcome {
@@ -355,6 +365,8 @@ impl RunRecord {
             completed_at_ms: self.completed_at_ms,
             duration_ms: duration(self.started_at_ms, self.completed_at_ms),
             report_summary: super::reports::summary(self),
+            step_telemetry: self.step_telemetry.clone(),
+            dirty_snapshot: self.dirty_snapshot.clone(),
             log_bounds: LogBounds {
                 maximum_chunk_bytes: self.plan.bounds.max_log_read_bytes,
                 maximum_total_bytes: self.plan.bounds.max_total_log_bytes,

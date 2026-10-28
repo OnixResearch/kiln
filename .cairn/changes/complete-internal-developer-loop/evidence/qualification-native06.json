@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.internal-developer-loop.qualification.v1",
+  "runtime_receipt": "native-06/verification.json",
+  "runtime_passed": true,
+  "maintenance_owner": "Kiln service/worker maintainers",
+  "consumer": "Kiln self-CI and explicitly profiled internal developers",
+  "durable_capability": "Source-bound measured pipelines, authenticated worker observations, verified shared cache and exact committed/dirty CLI execution",
+  "checks": [
+    {"command":"nix develop path:. -c cargo fmt --check","passed":true},
+    {"command":"nix develop path:. -c cargo clippy --workspace --all-targets -- -D warnings","passed":true},
+    {"command":"nix develop path:. -c cargo test --locked --workspace --exclude kiln-web-service","passed":true},
+    {"command":"nix develop path:. -c cargo test --locked -p kiln-web-service","passed":false,"observed":"56 library tests passed, one ignored; 10 COB tests and three developer tests passed; engine suite 58 passed, one failed: automation::real_https_acceptance_and_disconnect_are_durable_and_never_blindly_retried reported service state already has an owner"},
+    {"command":"nix develop path:. -c cargo test --locked -p kiln-web-service --test snapshot --test worker --test reports","passed":true,"tests_passed":12},
+    {"command":"nix build path:.#checks.x86_64-linux.octet --no-link -L --option builders '' --no-write-lock-file","passed":true},
+    {"command":"nix flake check path:$PWD -L","passed":false,"observed":"nix-eval-fixture-process: deterministic_fixture_processes_preserve_process_classes expected a signal outcome but observed TimedOut"},
+    {"command":"cairn validate --root . --policy <repository generated policy>","passed":true},
+    {"command":"cairn traceability coverage --root . --policy <repository generated policy> --json","passed":false,"observed":"37 dangling active-change anchors, including four developer-loop requirements; accepted-spec-only profile; missing list empty"},
+    {"command":"cairn release-readiness --root .","passed":false,"observed":"traceability coverage failed; onix_release_ready false"},
+    {"command":"nix develop path:. -c cargo fmt --all --check","passed":false,"observed":"Noncanonical --all expands vendored Cairn workspace whose cairn-core manifest is absent; canonical cargo fmt --check passed"}
+  ],
+  "browser": {"role":"viewer","desktop_width":1440,"mobile_width":390,"horizontal_document_overflow":false,"graph_nodes":4,"measured_step_cards":5,"logout_cleared_private_views":true,"screenshots":"native-06/browser-*.png"},
+  "cache": {"cross_worker_process_hit":true,"distinct_physical_hosts":false,"cold_elapsed_ms":707,"warm_elapsed_ms":3436,"speedup_claim":false},
+  "retirement": {"all_processes_exited":true,"credentials_removed":true,"scratch_removed":true},
+  "qualification": "Runtime behavior exercised successfully; repository gates not all green. Active lifecycle package remains unaccepted. No production activation, publication, hostile-code confinement or release readiness."
+}

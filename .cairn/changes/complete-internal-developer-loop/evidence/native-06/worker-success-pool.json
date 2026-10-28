@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.native-reviewed-worker-pool.v1",
+  "selection": "first-native-then-compatible",
+  "selector_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/pool-cold.dispatched",
+  "producer": "fixture-v1",
+  "workers": [
+    {
+      "worker_id": "native",
+      "profile": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/worker-success.json",
+      "original_blake3": "2661f280ea10536d4ec8d724e0fa613530443b219b34a10a71ce903609d9a27d",
+      "work_root": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/work"
+    },
+    {
+      "worker_id": "compatible",
+      "profile": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/worker-success-compatible.json",
+      "original_blake3": "1bfce6d6fe95afaa2eb38d5460985d948033d95a1012dda5527d4f832ce1faf3",
+      "work_root": "/home/brittonr/.cache/kiln-internal-loop-20261028-f/work-compatible"
+    }
+  ]
+}

@@ -233,6 +233,7 @@ impl Engine {
             200,
             json!({"node_id":node,"stream":stream,"source":"worker-capture",
             "cursor":cursor,"next_cursor":next,"text":String::from_utf8_lossy(&bytes),
+            "body_base64":base64::engine::general_purpose::STANDARD.encode(&bytes),
             "gap":false,"truncated":truncated || next < end,"retained":retained}),
         )
     }

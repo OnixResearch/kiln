@@ -149,6 +149,7 @@ enum ReviewStop {
     Interrupted,
 }
 
+// r[impl kiln.patchgate.request.scenario.exact]
 pub(crate) fn validate_plan(
     profile: &PatchgateProfile,
     plan: &ReviewEffectPlan,

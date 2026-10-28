@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.web-service.native-exercise.v1",
+  "transport": "local",
+  "checks": {},
+  "non_claims": [
+    "isolated local evidence is not production deployment",
+    "loopback Iroh does not prove WAN or relay availability or distinct-host deployment",
+    "adapter labels do not implement per-node placement or mixed-host scheduling",
+    "bounds are not hostile code confinement",
+    "worker artifacts are declarations, not semantic product proofs",
+    "no source trust, release eligibility or lifecycle acceptance"
+  ],
+  "source": {
+    "controller_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/source",
+    "worker_checkout": "/home/brittonr/.cache/kiln-internal-loop-20261028-a/source",
+    "distinct_checkout": false,
+    "source_repository": "b055591926b20418637c6d5800b0715a0f7a05f78a1cb2130859c2b8db8c97a4",
+    "worker_local_repository": "b055591926b20418637c6d5800b0715a0f7a05f78a1cb2130859c2b8db8c97a4"
+  },
+  "failure": {
+    "kind": "RuntimeError",
+    "diagnostic": "command /home/brittonr/.cargo-target/debug/kiln-web-service exited 1: kiln-web-service: workflow plan rejected\n"
+  },
+  "retirement": {
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "failures": [],
+    "scratch_removed": true
+  }
+}

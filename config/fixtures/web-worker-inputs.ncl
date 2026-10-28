@@ -1,0 +1,27 @@
+{
+  project_id = "fixture",
+  source_repository = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  repository_path = "/srv/kiln/repository",
+  service_origin = "https://localhost:9443",
+  token_file = "/run/kiln-worker/token",
+  tls_ca_path = "/run/kiln-worker/ca.pem",
+  work_root = "/srv/kiln/work",
+  execution = {
+    bubblewrap = "/usr/bin/bwrap",
+    probe_program = "/usr/bin/true",
+    read_only_mounts = ["/usr", "/lib", "/lib64"],
+    network = "deny",
+    cpu_seconds = 60,
+    address_space_bytes = 268435456,
+    maximum_file_bytes = 16777216,
+    maximum_open_files = 64,
+  },
+  heartbeat = {
+    worker_id = "local",
+    target_id = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    interval_ms = 1000,
+    ttl_ms = 3000,
+    slots = 1,
+  },
+  steps = [{ node_id = "build", program = "/usr/bin/true", argv = [], environment = {}, artifacts = [] }],
+}

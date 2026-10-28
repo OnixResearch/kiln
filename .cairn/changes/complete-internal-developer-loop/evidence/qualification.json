@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.internal-developer-loop.qualification.v1",
+  "runtime_receipt": "native-07/verification.json",
+  "runtime_passed": true,
+  "historical_qualification": "qualification-native06.json",
+  "maintenance_owner": "Kiln service/worker maintainers",
+  "consumer": "Kiln self-CI and explicitly profiled internal developers",
+  "durable_capability": "Source-bound measured pipelines, authenticated worker observations, verified shared cache, exact committed/dirty CLI execution, explicit ownership teardown and an opt-in active-development reference profile",
+  "corrections": {
+    "ownership": "Explicit unlock on owned-state guard teardown prevents a duplicated or fork-inherited open-file description from retaining ownership after shell drop. The retained-description case is covered by a deterministic regression; a second live owner remains rejected. The original notification failure did not recur under syscall tracing, so its exact original interleaving was not observed.",
+    "signal_fixture": "Non-core-dumping SIGKILL replaces the core-dumping signal fixture. The existing process deadline and exact signal classification remain enforced; actual fixture execution returned -9 with empty stdout/stderr.",
+    "traceability": "The optional kiln-active-development profile declares selected pending requirements and owned frontend sources. Stale anchors and missing scenario references are repaired. Operator observation links cite retained cohort receipts rather than marking procedures as implementations. Accepted-only release policy and lifecycle state are unchanged."
+  },
+  "checks": [
+    {"check":"cargo fmt --check","passed":true},
+    {"check":"cargo clippy --workspace --all-targets -- -D warnings","passed":true},
+    {"check":"cargo clippy --locked -p kiln-adapter-nix-eval --features fixture-process --all-targets -- -D warnings","passed":true},
+    {"check":"Cargo workspace tests","passed":true,"observed":"Ownership-lifetime regression passes; all 59 web-service engine tests pass, including real_https_acceptance_and_disconnect_are_durable_and_never_blindly_retried."},
+    {"check":"Nix evaluation fixture-process tests","passed":true,"tests_passed":3},
+    {"check":"x86_64-linux Nix flake check","passed":true,"observed":"all checks passed; incompatible aarch64-linux system omitted"},
+    {"check":"cairn validate --root .","passed":true,"receipt":"validation.json"},
+    {"check":"cairn traceability coverage with kiln-active-development","passed":true,"receipt":"development-coverage.json","requirements":984,"referenced":984,"missing":[],"dangling":[]},
+    {"check":"declared coverage positive control","passed":true,"receipt":"coverage-control-positive.json"},
+    {"check":"unknown-anchor negative control","passed":true,"receipt":"coverage-control-negative.json","observed":"Exit 1 and dangling coverage.control.unknown, as required."},
+    {"check":"cairn release-readiness --root .","passed":false,"receipt":"release-readiness.json","observed":"Unchanged accepted-only release policy still rejects unaccepted active-change anchors; onix_release_ready false."}
+  ],
+  "warnings": ["kache index reported a disk I/O error during final lint commands; caching was disabled and compilation/lint completed successfully."],
+  "browser": {"receipt":"native-06/verification.json","role":"viewer","desktop_width":1440,"mobile_width":390,"horizontal_document_overflow":false,"graph_nodes":4,"measured_step_cards":5,"logout_cleared_private_views":true,"screenshots":"native-06/browser-*.png"},
+  "cache": {"cross_worker_process_hit":true,"distinct_physical_hosts":false,"cold_elapsed_ms":744,"warm_elapsed_ms":870,"speedup_claim":false},
+  "retirement": {"all_processes_exited":true,"credentials_removed":true,"scratch_removed":true},
+  "qualification": "Runtime behavior, Cargo/lint, x86_64 Nix and explicit active-development reference coverage pass. Default release readiness remains held. Active lifecycle package remains unaccepted. No production activation, publication, hostile-code confinement, distinct-host execution or performance-improvement claim."
+}

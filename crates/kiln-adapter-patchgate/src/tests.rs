@@ -177,6 +177,7 @@ fn reconcile(
 }
 
 // r[verify kiln.patchgate.result]
+// r[verify kiln.patchgate.nonclaims.scenario.authority]
 #[test]
 fn deterministic_acceptance_needs_actual_landed_state_not_model_or_empty_records() {
     let (profile, plan, report) = fixture();
@@ -203,6 +204,7 @@ fn deterministic_acceptance_needs_actual_landed_state_not_model_or_empty_records
     assert!(reconcile(&profile, &plan, &undecided).is_err());
 }
 
+// r[verify kiln.patchgate.execution.scenario.reconcile]
 #[test]
 fn retained_receipt_binds_original_bytes_and_the_exact_request() {
     let (profile, plan, report) = fixture();
@@ -241,6 +243,7 @@ fn retained_receipt_binds_original_bytes_and_the_exact_request() {
     );
 }
 
+// r[verify kiln.patchgate.result.scenario.complete]
 #[test]
 fn all_native_nonaccepting_states_remain_distinct() {
     let (profile, plan, report) = fixture();
@@ -288,6 +291,7 @@ fn all_native_nonaccepting_states_remain_distinct() {
 }
 
 // r[verify kiln.patchgate.profile]
+// r[verify kiln.patchgate.request.scenario.stale]
 #[test]
 fn native_bindings_and_configuration_cannot_be_substituted() {
     let (profile, plan, report) = fixture();
@@ -321,6 +325,7 @@ fn native_bindings_and_configuration_cannot_be_substituted() {
     assert!(reconcile(&changed_profile, &plan, &report).is_err());
 }
 
+// r[verify kiln.patchgate.result.scenario.invalid]
 #[test]
 fn exact_selection_refuses_duplicates_missing_items_and_extra_prerequisites() {
     let (profile, plan, report) = fixture();
@@ -561,6 +566,7 @@ fn real_process_gets_null_stdin_and_only_explicit_environment() {
 }
 
 // r[verify kiln.patchgate.execution]
+// r[verify kiln.patchgate.execution.scenario.stop]
 #[cfg(unix)]
 #[test]
 fn real_process_deadline_cancellation_and_capture_overflow_preserve_failure_classes() {
@@ -608,6 +614,7 @@ fn real_process_deadline_cancellation_and_capture_overflow_preserve_failure_clas
     );
 }
 
+// r[verify kiln.patchgate.profile.scenario.drift]
 #[cfg(unix)]
 #[test]
 fn executable_replacement_is_refused_before_dispatch() {

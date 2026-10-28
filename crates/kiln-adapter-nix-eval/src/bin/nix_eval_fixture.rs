@@ -24,7 +24,7 @@ fn main() {
         "output-flood" => write_stdout(&vec![FIXTURE_BYTE; FLOOD_BYTES]),
         "stderr-flood" => write_stderr(&vec![FIXTURE_BYTE; FLOOD_BYTES]),
         "crash" => process::exit(FAILURE_STATUS),
-        "signal" => process::abort(),
+        "signal" => terminate_by_signal(),
         "timeout" => {
             thread::sleep(Duration::from_millis(TIMEOUT_MILLISECONDS));
             Ok(())
@@ -54,6 +54,15 @@ fn write_stderr(bytes: &[u8]) -> io::Result<()> {
     let mut stderr = io::stderr().lock();
     stderr.write_all(bytes)?;
     stderr.flush()
+}
+
+fn terminate_by_signal() -> io::Result<()> {
+    // SIGABRT can wait for a host core-dump handler before becoming reapable.
+    // SIGKILL exercises signal completion without that external dependency.
+    nix::sys::signal::raise(nix::sys::signal::Signal::SIGKILL).map_err(io::Error::from)?;
+    Err(io::Error::other(
+        "signal fixture unexpectedly survived SIGKILL",
+    ))
 }
 
 fn spawn_descendant() -> io::Result<()> {

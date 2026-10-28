@@ -110,7 +110,7 @@ impl Engine {
         if write {
             self.append_audit(method, target, Some(principal), "admitted", 0)?;
         }
-        let response = self.route(method, target, body, principal.role)?;
+        let response = self.route(method, target, body, principal)?;
         if write || response.status == 403 {
             self.append_audit(
                 method,

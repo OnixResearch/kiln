@@ -80,6 +80,20 @@ pub(crate) fn identifier(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
 }
 
+/// Identify a reviewed workflow target before installing heartbeat authority.
+pub fn worker_target_identity(
+    provider_profile_id: &str,
+    socket_path: &Path,
+    platform: &str,
+) -> Result<kiln_core::types::ContentId, String> {
+    crate::engine::identity(&(
+        "kiln.web-worker-target.v1",
+        provider_profile_id,
+        socket_path.to_str().ok_or("worker target path invalid")?,
+        platform,
+    ))
+}
+
 pub(crate) fn read_token(path: &Path) -> Result<Vec<u8>, String> {
     let bytes = crate::worker::files::regular(path, 64, true)
         .map_err(|_| "credential must be a bounded owned private regular file")?;

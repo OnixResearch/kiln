@@ -408,6 +408,7 @@ impl Fixture {
 
 // r[verify kiln.dashboard.cobs.read.scenario.present]
 // r[verify kiln.dashboard.cobs.authority.scenario.reader]
+// r[verify kiln.dashboard.cobs.operated]
 #[test]
 fn six_types_preserve_exact_multitip_history_actions_and_leave_git_unchanged() {
     let fixture = Fixture::new();
@@ -652,6 +653,7 @@ fn paging_search_and_cursor_identity_follow_filters_and_observed_ref_tips() {
     assert_eq!(repository_files(fixture.repository.path()), after_move);
 }
 
+// r[verify kiln.dashboard.cobs.operated.scenario.empty]
 #[test]
 fn unconfigured_empty_missing_and_unavailable_stores_are_distinct() {
     let root =

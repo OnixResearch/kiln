@@ -2,26 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">
-  <title>Kiln · Live workspace</title><link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><script src="/web.js" defer></script>
+  <title>Kiln · Live workspace</title><link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/work.css"><link rel="stylesheet" href="/work-interaction.css"><script src="/web.js" defer></script><script src="/work-evidence.js" defer></script><script src="/work.js" defer></script><script src="/work-interaction.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to workspace</a>
 <aside id="app-sidebar" class="app-sidebar" aria-label="Workspace navigation">
   <a class="brand" href="/?page=overview"><span class="brand-mark" aria-hidden="true">k</span><span>Kiln<span class="brand-caption">Live workspace</span></span></a>
-  <div class="workspace-card"><span class="workspace-avatar" aria-hidden="true">CI</span><div><strong>Pipeline operations</strong><span class="workspace-caption">Exact source · retained evidence</span></div></div>
-  <p class="nav-label">Workspace <span class="nav-hint">12 sections · scroll for more</span></p>
-  <nav class="app-navigation" aria-label="Main"><button data-page="overview" type="button">Overview</button><button data-page="projects" type="button">Projects</button><button data-page="workers" type="button">Workers</button><button data-page="runs" type="button">Runs</button><button data-page="cobs" type="button">COBs</button><button data-page="source" type="button">Source</button><button data-page="reviews" type="button">Reviews</button><button data-page="activity" type="button">Activity</button><button data-page="evidence" type="button">Evidence</button><button data-page="automation" type="button">Automation</button><button data-page="operations" type="button">Operations</button><button data-page="settings" type="button">Settings</button></nav>
+  <div class="workspace-card"><span class="workspace-avatar" aria-hidden="true">k</span><div><strong>Work &amp; delivery</strong><span class="workspace-caption">Native COBs · exact CI evidence</span></div></div>
+  <p class="nav-label">Workspace <span class="nav-hint">Work, planning &amp; delivery</span></p>
+  <nav class="app-navigation" aria-label="Main">
+    <button data-page="inbox" type="button">My work &amp; inbox</button><button data-page="work" type="button">Work</button><button data-page="planning" type="button">Planning</button><button data-page="triage" type="button">Triage</button><button data-page="workviews" type="button">Saved views</button>
+    <button data-page="overview" type="button">CI overview</button><button data-page="projects" type="button">CI projects</button><button data-page="workers" type="button">Workers</button><button data-page="runs" type="button">Runs</button><button data-page="cobs" type="button">Native COB history</button><button data-page="source" type="button">Source</button><button data-page="reviews" type="button">Reviews</button><button data-page="activity" type="button">Activity</button><button data-page="evidence" type="button">Evidence</button><button data-page="automation" type="button">Automation</button><button data-page="operations" type="button">Operations</button><button data-page="settings" type="button">Settings</button>
+  </nav>
   <div class="sidebar-boundary"><p>Authenticated live service. Actions affect the configured execution provider. Recorded evidence is not acceptance authority.</p></div>
 </aside>
 <button id="app-menu-backdrop" class="app-menu-backdrop" type="button" aria-label="Close navigation" hidden></button>
 <div class="app-workspace">
-  <header class="app-topbar"><div class="topbar-location"><button id="app-menu-toggle" class="icon-button" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="app-sidebar">☰</button><span class="topbar-workspace">Kiln</span><span class="breadcrumb-divider">/</span><span id="app-breadcrumb">Overview</span></div><div class="session-tools"><span id="auth-status" class="live-badge">Signed out</span><button id="logout" type="button" hidden>Clear session</button></div></header>
+  <header class="app-topbar"><div class="topbar-location"><button id="app-menu-toggle" class="icon-button" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="app-sidebar">☰</button><span class="topbar-workspace">Kiln</span><span class="breadcrumb-divider">/</span><span id="app-breadcrumb">Overview</span></div><div class="session-tools"><button id="work-command-open" type="button" aria-label="Open command and search palette">Search &amp; commands <kbd>Ctrl K</kbd></button><span id="auth-status" class="live-badge">Signed out</span><button id="logout" type="button" hidden>Clear session</button></div></header>
   <main id="main" class="app-main" tabindex="-1">
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <section id="login-panel" class="login-panel panel" aria-labelledby="login-title"><p class="eyebrow">Private live workspace</p><h1 id="login-title">Your work, live.</h1><p>Network identity is checked automatically. Alternatively, connect with an admitted viewer or operator bearer.</p><form id="login-form" autocomplete="off"><label for="operator-token">Access token</label><input id="operator-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required pattern="[0-9A-Fa-f]{64}" minlength="64" maxlength="64" aria-describedby="token-help"><p id="token-help" class="small">Kept only in page memory; never saved or included in a URL. Clearing the session erases private views and pending requests.</p><button id="login-button" class="primary" type="submit">Connect to service</button></form><p class="boundary">This public shell contains no private execution data.</p></section>
     <div id="workspace" hidden>
       <section class="page-heading"><div><p class="eyebrow">Live workspace</p><h1 id="workspace-title">Overview</h1><p id="observation-note">Finite snapshots are observations, not a complete history. Unknown historical timing stays unknown.</p></div><div class="connection-tools"><span id="connection-status" class="live-badge" role="status">Not connected</span><button id="refresh-all" type="button">Refresh &amp; reconnect</button></div></section>
       <section data-panel="overview" id="overview-panel" class="view-stack"><div id="overview-content" class="view-stack"></div></section>
+      <section data-panel="work" hidden class="view-stack"><div id="work-content" class="view-stack"></div></section>
+      <section data-panel="planning" hidden class="view-stack"><div id="planning-content" class="view-stack"></div></section>
+      <section data-panel="inbox" hidden class="view-stack"><div id="inbox-content" class="view-stack"></div></section>
+      <section data-panel="triage" hidden class="view-stack"><div id="triage-content" class="view-stack"></div></section>
+      <section data-panel="workviews" hidden class="view-stack"><div id="workviews-content" class="view-stack"></div></section>
       <section data-panel="projects" hidden class="view-stack">
         <p class="small">Project actions require operator access. Viewers can browse inventory and retained runs without changing execution.</p>
         <div class="project-forms">
@@ -50,6 +58,7 @@
             <div id="workflow-summary" class="workflow-summary" aria-label="Recorded node states"></div>
             <div id="pipeline-graph" class="pipeline-graph" tabindex="0" aria-label="Workflow dependency graph"></div>
             <div class="workflow-inspection"><details class="workflow-node-list" open><summary>All workflow nodes</summary><div id="node-list" class="node-list"></div></details><section class="workflow-node-inspector" aria-labelledby="workflow-node-title"><h3 id="workflow-node-title">Node inspector</h3><div id="node-facts"></div></section></div>
+            <section aria-labelledby="step-telemetry-title"><h3 id="step-telemetry-title">Measured worker steps</h3><p class="small">Elapsed time uses the worker’s monotonic clock. CPU and peak memory are observed child usage, not reservations or isolation guarantees. Native graph timestamps above are coarse provider observations. Missing historical measurements stay unknown.</p><div id="step-telemetry" class="view-stack"></div></section>
           </section>
           <section data-run-panel="logs" class="panel" hidden>
             <div class="section-heading"><h2>Execution logs</h2><label class="check"><input id="follow-logs" type="checkbox">Follow selected stream</label></div>

@@ -1,0 +1,52 @@
+{
+  "command_timeout_ms": 60000,
+  "execution": {
+    "address_space_bytes": 1073741824,
+    "bubblewrap": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+    "cpu_seconds": 60,
+    "maximum_file_bytes": 67108864,
+    "maximum_open_files": 256,
+    "network": "deny",
+    "probe_program": "/nix/store/di26b1kkbammy0sj70nq5qzvfrh78wxl-coreutils-9.11/bin/true",
+    "read_only_mounts": [
+      "/nix/store"
+    ]
+  },
+  "http_timeout_ms": 5000,
+  "lookup_timeout_ms": 15000,
+  "maximum_artifact_bytes": 65536,
+  "maximum_artifacts": 1,
+  "maximum_output_bytes": 65536,
+  "maximum_response_bytes": 1048576,
+  "maximum_total_artifact_bytes": 65536,
+  "poll_interval_ms": 10,
+  "project_id": "partial",
+  "repository_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-d/source",
+  "schema": "kiln.web-worker.v2",
+  "service_origin": "https://127.0.0.1:41381",
+  "snapshot_limits": {
+    "max_entries": 128,
+    "max_file_bytes": 65536,
+    "max_path_bytes": 1024,
+    "max_total_bytes": 1048576
+  },
+  "source_repository": "63cfcb507b9166908b55d55bf06b6d15f6f82bc533a074036564ce6df8f88ac6",
+  "steps": [
+    {
+      "argv": [
+        "-c",
+        "import hashlib,pathlib,sys,xml.etree.ElementTree as ET; payload=pathlib.Path('source-value.txt').read_bytes(); assert payload==b'exact-source-artifact-v1\\n'; compile(pathlib.Path('ci.py').read_text(),'ci.py','exec'); print('actual dependent lint',flush=True)"
+      ],
+      "artifacts": [],
+      "environment": {
+        "PYTHONNOUSERSITE": "1"
+      },
+      "node_id": "lint",
+      "program": "/nix/store/gxzhl7aaiid7zp3y47jqqiq7zg5mqpwp-python3-3.14.6/bin/python3.14"
+    }
+  ],
+  "teardown_timeout_ms": 2000,
+  "tls_ca_path": "/home/brittonr/.cache/kiln-internal-loop-20261028-d/ca.pem",
+  "token_file": "/home/brittonr/.cache/kiln-internal-loop-20261028-d/worker.token",
+  "work_root": "/home/brittonr/.cache/kiln-internal-loop-20261028-d/work"
+}

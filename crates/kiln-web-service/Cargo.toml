@@ -13,6 +13,12 @@ bounded-exec.workspace = true
 bounded-exec-core.workspace = true
 fs2.workspace = true
 git2.workspace = true
+cob-git2.workspace = true
+nonempty.workspace = true
+onix-radicle-cob-git-store.workspace = true
+radicle-cob.workspace = true
+radicle-crypto.workspace = true
+radicle-oid.workspace = true
 hmac = "0.12.1"
 kiln-adapter-git.workspace = true
 kiln-adapter-github = { path = "../kiln-adapter-github" }
@@ -24,7 +30,7 @@ kiln-core.workspace = true
 kiln-provider-api.workspace = true
 lattice-workflow-transport.workspace = true
 libc = "0.2"
-nix = { version = "=0.30.1", features = ["fs", "user", "process", "signal"] }
+nix = { version = "=0.30.1", features = ["fs", "user", "process", "signal", "resource"] }
 reqwest = { version = "=0.12.28", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 roxmltree = "=0.20.0"
 rusqlite.workspace = true
