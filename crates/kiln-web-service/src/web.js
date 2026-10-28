@@ -63,6 +63,21 @@
     updateControlButtons();
   }
   function pathFor(id) { return `/api/runs/${encodeURIComponent(id)}`; }
+  function shortIdentity(value) {
+    const source = text(value);
+    return source.length > 22 ? `${source.slice(0, 12)}…${source.slice(-6)}` : source;
+  }
+  function projectLabel(id) { return state.projects.enrolled.find((project) => project.id === id)?.label || id; }
+  function workspaceLink(patch, label, className) {
+    const link = element("a", label, className);
+    link.href = `?${new URLSearchParams(Object.entries({ ...state.route, ...patch }).filter(([, value]) => value))}`;
+    link.addEventListener("click", (event) => {
+      if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+        event.preventDefault(); navigate(patch);
+      }
+    });
+    return link;
+  }
 
   async function boundedText(response, maximum) {
     if (!response.body) throw new Error("The service returned no response body.");
@@ -192,12 +207,20 @@
     $("runs-status").textContent = state.runsError || `${runs.length} shown of ${text(state.total)} matching retained runs · bounded page${state.connected ? "" : " · snapshot may be stale"}`;
     $("runs-next").disabled = !state.nextCursor;
     $("run-list").replaceChildren();
+    if (!runs.length && !state.runsError) {
+      const empty = element("p", "No runs match these filters. Clear filters or browse another project.", "small");
+      const clear = element("button", "Clear run filters");
+      clear.type = "button";
+      clear.addEventListener("click", () => navigate({ q: "", project: "", outcome: "", source: "", cursor: "" }));
+      $("run-list").append(empty, clear);
+    }
     for (const run of runs) {
       const button = element("button", undefined, "run-choice");
       button.type = "button";
       button.dataset.runId = run.id;
       if (run.id === state.selected) button.setAttribute("aria-current", "true");
-      button.append(element("span", `${text(run.project_id)} · ${text(run.id)}`), element("span", `Source ${text(run.source_revision)}`, "run-source"), element("span", `${text(run.outcome)} · ${text(run.phase)}`, "run-summary"));
+      button.append(element("strong", text(projectLabel(run.project_id)), "run-name"), element("span", `${text(run.outcome)} · ${compactTimestamp(run.created_at_ms)}`, "run-summary"), element("span", `Revision ${shortIdentity(run.source_revision)} · ${duration(run.duration_ms)}`, "run-source"), element("span", shortIdentity(run.id), "run-id"));
+      button.title = `${run.id}\nSource: ${run.source_revision}`;
       button.addEventListener("click", () => navigate({ page: "runs", run: run.id, node: "", cursor: state.route.cursor }));
       $("run-list").append(button);
       if (focused === run.id) button.focus({ preventScroll: true });
@@ -280,7 +303,7 @@
     if (!run) return;
     $("empty-run").hidden = true;
     $("run-detail").hidden = false;
-    $("run-title").textContent = text(run.id);
+    $("run-title").textContent = text(projectLabel(run.project_id));
     $("run-badges").replaceChildren();
     for (const [label, value] of [["Outcome", run.outcome], ["Phase", run.phase]]) {
       const badge = element("span", `${label}: ${text(value)}`, "state-badge");
@@ -293,7 +316,8 @@
     if (!state.connected) warnings.push("Live observation is disconnected. These details may be stale.");
     $("run-warning").textContent = warnings.join(" ");
     $("run-warning").hidden = !warnings.length;
-    addFacts($("run-facts"), [["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ["Duration", duration(run.duration_ms)]]);
+    addFacts($("run-facts"), [["Source revision", shortIdentity(run.source_revision)], ["Created", compactTimestamp(run.created_at_ms)], ["Duration", duration(run.duration_ms)]]);
+    addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)]]);
     $("execution-identity").textContent = text(run.execution);
     const nodes = Array.isArray(run.nodes) ? run.nodes : [];
     renderGraph(run);
@@ -608,7 +632,7 @@
     state.detailGeneration++;
     state.artifactsGeneration++;
     resetLogs();
-    for (const id of ["run-list", "run-title", "run-facts", "run-badges", "run-warning", "execution-identity", "node-list", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
+    for (const id of ["run-list", "run-title", "run-facts", "run-exact-facts", "retained-run-options", "run-badges", "run-warning", "execution-identity", "node-list", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
     for (const id of ["available-project", "enrolled-project", "run-filter", "log-node"]) $(id).replaceChildren();
     state.principal = null;
     state.permissions = {};
@@ -663,6 +687,7 @@
     $("workspace").hidden = false;
     $("logout").hidden = false;
     $("auth-status").textContent = `${text(state.principal?.label)} · ${text(state.principal?.role)}`;
+    $("auth-status").title = $("auth-status").textContent;
     $("auth-status").dataset.state = "connected";
     addFacts($("principal-facts"), [["Principal", state.principal?.label], ["ID", state.principal?.id], ["Role", state.principal?.role], ["Admission", state.session === "network" ? "Trusted network identity" : "Manual bearer (memory only)"]]);
     notice("");
@@ -748,6 +773,26 @@
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
+    $("observation-note").textContent = {
+      overview: "Start with failing projects or browse recent runs. Counts cover retained history, not every execution.",
+      projects: "Choose a project to start a source-bound run, or browse its retained history.",
+      workers: "Inspect configured execution targets and admission slots. Availability is not a health check.",
+      runs: "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence.",
+      cobs: "Browse local collaboration records. Raw operation history is not verified lifecycle state.",
+      source: "Choose a repository and revision to browse files and changes without modifying source.",
+      reviews: "Inspect retained review decisions. Producer verdicts do not grant acceptance authority.",
+      activity: "Browse retained canonical events and attributable audit decisions.",
+      evidence: "Choose a retained run to inspect its source, execution and recorded evidence.",
+      automation: "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable.",
+      operations: "Inspect capacity, queued work and retention limits. No automatic pruning is performed.",
+      settings: "Review your access and adjust appearance. Credentials are never saved by this page."
+    }[route.page];
+    if (previous?.page !== route.page) {
+      notice("");
+      $("workspace-title").tabIndex = -1;
+      $("workspace-title").focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    }
     for (const [id, key] of [["run-search", "q"], ["run-filter", "project"], ["run-outcome", "outcome"], ["run-source", "source"], ["run-order", "order"], ["compare-other", "other"], ["evidence-run", "run"], ["log-stream", "stream"]]) $(id).value = route[key];
     $("worker-search").value = route.worker_q;
     $("worker-status").value = route.worker_status;
@@ -756,9 +801,7 @@
       if (value && ![...select.options].some((option) => option.value === value)) { const option = element("option", `Unavailable selection: ${value}`); option.value = value; select.append(option); }
       select.value = value;
     }
-    $("app-sidebar").classList.remove("is-open");
-    $("app-menu-toggle").setAttribute("aria-expanded", "false");
-    document.documentElement.classList.remove("app-menu-open");
+    setMenu(false);
     if (!state.session) return;
     if (previous && (previous.page !== route.page || previous.run !== route.run || previous.node !== route.node || previous.view !== route.view || previous.stream !== route.stream)) resetLogs();
     state.pageGeneration++;
@@ -776,6 +819,17 @@
       else if (route.run) { renderDetail(); await loadRunView(); }
       else { state.selected = null; state.run = null; $("run-detail").hidden = true; $("empty-run").hidden = false; $("empty-run-title").textContent = "Select a run"; $("empty-run-message").textContent = "Choose a retained run. No run is selected automatically."; }
     } else await loadPage();
+    if (state.route !== route || !state.session) return;
+    if (route.page === "runs" && route.run && previous?.run !== route.run && state.run) {
+      $("run-title").tabIndex = -1;
+      $("run-title").focus({ preventScroll: true });
+      $("run-title").scrollIntoView({ block: "start" });
+    } else if (route.page === "runs" && route.run && previous?.view !== route.view) {
+      const heading = document.querySelector(`[data-run-panel="${route.view}"] h2`);
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+      heading.scrollIntoView({ block: "start" });
+    }
   }
   function runLink(id, label = id, view = "pipeline") {
     const link = element("a", text(label));
@@ -824,6 +878,27 @@
     }
   }
   function activityQuery() { const query = new URLSearchParams({ limit: "50" }); if (state.route.activity_cursor) query.set("cursor", state.route.activity_cursor); return query; }
+  // r[impl kiln.dashboard.usability]
+  async function loadRunChoices() {
+    const route = state.route;
+    const list = $("retained-run-options");
+    list.replaceChildren();
+    try {
+      const query = new URLSearchParams({ limit: "100", order: "desc" });
+      if (route.page === "runs" && state.run?.project_id) query.set("project_id", state.run.project_id);
+      const result = await api(`/api/runs?${query}`);
+      if (state.route !== route) return;
+      for (const run of result.runs || []) {
+        if (route.page === "runs" && (run.id === route.run || run.project_id !== state.run?.project_id)) continue;
+        const option = element("option");
+        option.value = run.id;
+        option.label = `${projectLabel(run.project_id)} · ${run.outcome} · ${compactTimestamp(run.created_at_ms)} · ${shortIdentity(run.source_revision)}`;
+        list.append(option);
+      }
+    } catch (error) {
+      if (!isAborted(error) && state.route === route) notice(`Run suggestions unavailable: ${explain(error)} You can still enter an exact retained run ID.`);
+    }
+  }
   async function loadPage() {
     const route = state.route;
     if (route.page === "overview") await renderEndpoint("/api/overview", "overview-content", renderOverview);
@@ -831,6 +906,7 @@
     if (route.page === "workers") await renderEndpoint("/api/workers", "workers-content", renderWorkers);
     if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
     if (route.page === "evidence") {
+      void loadRunChoices();
       if (route.run) await renderEndpoint(`${pathFor(route.run)}/evidence`, "evidence-content", renderEvidence);
       else $("evidence-content").replaceChildren(element("p", "Enter a retained run ID. No evidence from another attempt is substituted.", "small"));
     }
@@ -847,12 +923,14 @@
     if (route.view === "tests") await renderEndpoint(`${pathFor(route.run)}/reports`, "reports-content", renderReports);
     if (route.view === "reviews") await renderEndpoint(`${pathFor(route.run)}/reports`, "reviews-content", renderReviews);
     if (route.view === "compare") {
+      void loadRunChoices();
       if (route.other) await renderEndpoint(`${pathFor(route.run)}/compare?${new URLSearchParams({ other: route.other })}`, "compare-content", renderComparison);
       else $("compare-content").replaceChildren(element("p", "Choose another retained run. Missing reports or historical durations remain unavailable, not zero.", "small"));
     }
     if (route.view === "activity") await renderEndpoint(`${pathFor(route.run)}/activity?${activityQuery()}`, "run-activity-content", renderActivity);
     if (route.view === "evidence") await renderEndpoint(`${pathFor(route.run)}/evidence`, "run-evidence-content", renderEvidence);
     if (route.view === "artifacts") await loadArtifacts();
+    if (route.view === "logs" && !state.logKey && !state.logBusy) await readLog(false);
   }
   // r[impl kiln.dashboard.workers.view]
   function workerMetrics(parent, capacity, targets) {
@@ -946,15 +1024,33 @@
     addFacts(observation, [["Project ID", run.project_id], ["Phase", unknown(run.phase)], ["Outcome", unknown(run.outcome)], ["Sequence", unknown(run.sequence)], ["Error code", unknown(run.error_code)], ["Created", recordedTime(run.created_at_ms)], ["Started", recordedTime(run.started_at_ms)], ["Completed", recordedTime(run.completed_at_ms)], ["Execution duration", elapsed]]);
     latest.append(observation, element("p", "Latest retained nonqueued execution, not necessarily an active run. A newer queued request never replaces this execution evidence.", "small"));
   }
+  const browsingLoads = new Map();
+  function beginBrowsingLoad(page, route) {
+    const generation = (browsingLoads.get(page) || 0) + 1;
+    browsingLoads.set(page, generation);
+    const epoch = state.epoch;
+    return () => state.session && state.epoch === epoch && state.route === route && browsingLoads.get(page) === generation;
+  }
+  function browsingClear(parent, label, patch) {
+    const button = element("button", label);
+    button.type = "button";
+    button.addEventListener("click", () => navigate(patch));
+    parent.append(button);
+  }
   // r[impl kiln.dashboard.cobs.view]
   async function loadCobs() {
     const route = state.route;
+    const current = beginBrowsingLoad("cobs", route);
     state.cobsNextCursor = null;
     $("cob-next").disabled = true;
     $("cob-first").disabled = !route.cob_cursor;
     $("cob-status").textContent = "Reading configured local COB stores…";
     $("cob-source-status").replaceChildren();
-    $("cob-detail").replaceChildren();
+    const list = $("cob-list"); list.replaceChildren(element("p", "Loading objects…", "small"));
+    const detail = $("cob-detail"); detail.replaceChildren();
+    if (route.cob || route.cob_repo || route.cob_kind) browsingClear(detail, "Clear selected COB", { cob: "", cob_repo: "", cob_kind: "" });
+    if (!route.cob) detail.append(element("h2", "Select a COB"), element("p", "Choose an object to inspect its exact identity and recorded operation content. No object is selected automatically.", "small"));
+    else detail.append(element("p", `Selected object: ${route.cob}`, "identity"), element("p", "Loading exact object history…", "small"));
     $("cob-search").value = route.cob_q;
     for (const [id, selected, label] of [["cob-repository", route.cob_repository, "All configured repositories"], ["cob-type", route.cob_type, "All types"]]) {
       const select = $(id);
@@ -963,16 +1059,36 @@
     }
     const query = new URLSearchParams({ limit: "25" });
     for (const [key, value] of [["repository", route.cob_repository], ["type", route.cob_type], ["q", route.cob_q], ["cursor", route.cob_cursor]]) if (value) query.set(key, value);
-    const loaded = await renderEndpoint(`/api/cobs?${query}`, "cob-list", renderCobs);
-    if (!state.session || state.route !== route) return;
-    if (!loaded) $("cob-status").textContent = "COB inventory unavailable. Exact selection is inspected independently; no page was substituted.";
-    if (!route.cob) {
-      $("cob-detail").append(element("h2", "Select a COB"), element("p", "Choose an object to inspect its exact identity and recorded operation content. No object is selected automatically.", "small"));
-    } else if (!route.cob_repo || !route.cob_kind) {
-      $("cob-detail").append(element("p", "The COB link needs its exact repository, type and object ID. No other object was substituted.", "warning"));
-    } else {
+    try {
+      const inventory = await api(`/api/cobs?${query}`);
+      if (!current()) return;
+      list.replaceChildren();
+      renderCobs(list, inventory);
+      if (route.cob && !inventory.objects.some((object) => object.object_id === route.cob && object.repository === route.cob_repo && object.type_name === route.cob_kind)) detail.append(element("p", "The exact selection is outside this filtered inventory page. Its history is inspected independently.", "small"));
+    } catch (error) {
+      if (!current() || isAborted(error)) return;
+      list.replaceChildren(element("p", explain(error), "warning"));
+      $("cob-status").textContent = "COB inventory unavailable. Exact selection is inspected independently; no page was substituted.";
+    }
+    if (!current() || !route.cob) return;
+    detail.replaceChildren();
+    browsingClear(detail, "Clear selected COB", { cob: "", cob_repo: "", cob_kind: "" });
+    if (!route.cob_repo || !route.cob_kind) {
+      detail.append(element("p", "The COB link needs its exact repository, type and object ID. No other object was substituted.", "warning"), element("p", route.cob, "identity"));
+      return;
+    }
+    const loading = element("p", "Loading exact object history…", "small"); detail.append(loading);
+    try {
       const selection = new URLSearchParams({ repository: route.cob_repo, type: route.cob_kind, object: route.cob });
-      await renderEndpoint(`/api/cobs/object?${selection}`, "cob-detail", renderCobDetail);
+      const result = await api(`/api/cobs/object?${selection}`);
+      if (!current()) return;
+      detail.replaceChildren();
+      renderCobDetail(detail, result);
+      if (!list.querySelector('[aria-current="true"]')) detail.append(element("p", "The exact selection is outside this filtered inventory page. No different object was substituted.", "small"));
+    } catch (error) {
+      if (!current() || isAborted(error)) return;
+      loading.remove();
+      detail.append(element("p", `Object history unavailable: ${explain(error)}`, "warning"), element("p", `${route.cob_repo} · ${route.cob_kind} · ${route.cob}`, "identity"));
     }
   }
   let cobTypeLabels = new Map();
@@ -1035,24 +1151,28 @@
     const candidates = patchCommitCandidates(object);
     if (!candidates.length) return;
     const epoch = state.epoch;
-    const selected = state.route.cob;
+    const route = state.route;
+    const generation = browsingLoads.get("cobs");
+    const current = () => state.session && state.epoch === epoch && state.route === route && browsingLoads.get("cobs") === generation && card.isConnected;
     const card = section("Recorded patch commits in admitted sources", parent, "record-card");
     card.append(element("p", "A patch commit is linked only when an admitted source actually contains that exact object. Coverage is not inferred from the patch itself.", "small"));
     let links = 0;
+    let unavailable = false;
     for (const revision of candidates) {
       let result;
       try { result = await api(`/api/sources/lookup?${new URLSearchParams({ revision })}`); }
-      catch (error) { if (!isAborted(error)) card.append(element("p", `Commit lookup unavailable: ${explain(error)}`, "warning")); continue; }
-      if (state.epoch !== epoch || state.route.cob !== selected) return;
+      catch (error) { if (!current() || isAborted(error)) return; unavailable = true; card.append(element("p", `Commit lookup unavailable: ${explain(error)}`, "warning")); continue; }
+      if (!current()) return;
       for (const match of result.matches || []) {
         const button = element("button", `Open ${match.label} · ${match.kind} · ${revision.slice(0, 12)}…`);
         button.type = "button";
+        button.title = revision;
         button.addEventListener("click", () => navigate({ page: "source", src: match.id, rev: revision, spath: "", sfile: "", sq: "", cob: "", cob_repo: "", cob_kind: "", cob_type: "", cob_cursor: "", cob_repository: "", cob_q: "" }));
         card.append(button);
         links += 1;
       }
     }
-    if (!links) card.append(element("p", "No admitted source contains a commit from this patch. Nothing was substituted.", "small"));
+    if (!links) card.append(element("p", unavailable ? "Commit coverage is unknown because a lookup was unavailable. Nothing was substituted." : "No admitted source contains a commit from this patch. Nothing was substituted.", "small"));
   }
   function renderCobDetail(parent, result) {
     const object = result.object;
@@ -1067,8 +1187,8 @@
     const tips = section("Observed ref tips", parent, "record-card"); renderRecorded(tips, identity.ref_tips);
     parent.append(element("p", "Every operation below is recorded data, ordered by operation identity—not a chosen semantic winner. Git author fields are unverified claims. Embedded source text is inert; no links or scripts are executed.", "warning"));
     for (const operation of object.operations) {
-      const card = section(`Operation ${text(operation.id)}`, parent, "record-card cob-operation");
-      const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Recorded", timestamp(operation.recorded_at_ms)], ["Git author (unverified)", `${text(operation.author_name)} <${text(operation.author_email)}>`], ["Git parents", operation.git_parents], ["History parents", operation.history_parents], ["Commit message", operation.message]]); card.append(metadata);
+      const card = section(`Operation ${shortOid(operation.id)}`, parent, "record-card cob-operation");
+      const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Exact operation ID", operation.id], ["Recorded", timestamp(operation.recorded_at_ms)], ["Git author (unverified)", `${text(operation.author_name)} <${text(operation.author_email)}>`], ["Git parents", operation.git_parents], ["History parents", operation.history_parents], ["Commit message", operation.message]]); card.append(metadata);
       for (const action of operation.actions || []) { const details = element("details"); details.open = Number.isSafeInteger(action.bytes) && action.bytes < 4096; details.append(element("summary", `Raw action ${text(action.index)} · ${text(action.bytes)} bytes · blob ${text(action.blob_id)}`), element("pre", JSON.stringify(action.value, null, 2), "identity cob-action")); card.append(details); }
     }
     for (const boundary of result.non_claims || []) parent.append(element("p", boundary, "small"));
@@ -1085,11 +1205,11 @@
     const crumb = element("div", undefined, "source-breadcrumb");
     if (route.spath) {
       const up = element("button", "↑ up"); up.type = "button";
-      up.addEventListener("click", () => navigate({ spath: route.spath.split("/").slice(0, -1).join("/"), sfile: "" }));
+      up.addEventListener("click", () => navigate({ spath: route.spath.split("/").slice(0, -1).join("/"), sfile: "", sq: "" }));
       crumb.append(up);
     }
     const root = element("button", "root"); root.type = "button";
-    root.addEventListener("click", () => navigate({ spath: "", sfile: "" }));
+    root.addEventListener("click", () => navigate({ spath: "", sfile: "", sq: "" }));
     crumb.append(root);
     let prefix = "";
     for (const part of route.spath.split("/").filter(Boolean)) {
@@ -1097,7 +1217,7 @@
       const separator = element("span", "/", "source-separator");
       const button = element("button", part); button.type = "button";
       const target = prefix;
-      button.addEventListener("click", () => navigate({ spath: target, sfile: "" }));
+      button.addEventListener("click", () => navigate({ spath: target, sfile: "", sq: "" }));
       crumb.append(separator, button);
     }
     parent.append(crumb);
@@ -1115,11 +1235,13 @@
       button.type = "button";
       if (entry.path === route.sfile) button.setAttribute("aria-current", "true");
       button.append(element("span", entry.kind === "directory" ? "dir" : entry.kind, "source-kind"), element("span", entry.name, "source-name"), element("span", entry.bytes === null || entry.bytes === undefined ? "" : text(entry.bytes), "source-size"));
-      const patch = entry.kind === "directory" ? { spath: entry.path, sfile: "" } : { sfile: entry.path };
+      const patch = entry.kind === "directory" ? { spath: entry.path, sfile: "", sq: "" } : { sfile: entry.path };
       button.addEventListener("click", () => navigate(patch));
       list.append(button);
     }
     parent.append(list);
+    if (tree.entries.length && !entries.length) parent.append(element("p", "No entries match this directory filter. Clear the filter to see this bounded listing; this is not a repository-wide search.", "small"));
+    if (route.sfile && !entries.some((entry) => entry.path === route.sfile)) parent.append(element("p", "The selected file is outside this filtered directory listing. Its exact content is inspected independently.", "small"));
     if (!tree.entries.length) parent.append(element("p", "This directory is empty in the selected revision.", "small"));
   }
   function renderSourceFile(parent, file) {
@@ -1147,73 +1269,108 @@
     }
     card.append(pre);
   }
-  async function loadSourceDiff(selected, route) {
+  async function loadSourceDiff(selected, route, current) {
     const parent = $("source-diff");
     if (!route.rev || selected.revision_scope !== "revision") {
-      parent.append(element("p", selected.kind === "pijul" ? "Pijul changes are listed from the current channel; historical diffs are not readable." : "Select a revision to see its changes against its first parent.", "small"));
+      parent.replaceChildren(element("p", selected.kind === "pijul" ? "Pijul changes are listed from the current channel; historical diffs are not readable." : "Select a revision to see its changes against its first parent.", "small"));
       return;
     }
-    let diff;
-    try { diff = await api(`/api/sources/${encodeURIComponent(selected.id)}/diff?${sourceQuery({ revision: route.rev })}`); }
-    catch (error) { if (!isAborted(error) && state.route === route) parent.append(element("p", `Changes unavailable: ${explain(error)}`, "warning")); return; }
-    if (state.route !== route || !state.session) return;
-    renderSourceDiff(parent, diff);
+    parent.replaceChildren(element("p", "Loading selected revision changes…", "small"));
+    try {
+      const diff = await api(`/api/sources/${encodeURIComponent(selected.id)}/diff?${sourceQuery({ revision: route.rev })}`);
+      if (!current()) return;
+      parent.replaceChildren(); renderSourceDiff(parent, diff);
+    } catch (error) { if (!isAborted(error) && current()) parent.replaceChildren(element("p", `Changes unavailable: ${explain(error)}`, "warning")); }
   }
   async function loadSource() {
     const route = state.route;
+    const current = beginBrowsingLoad("source", route);
     const status = $("source-log-status");
     const log = $("source-log");
-    log.replaceChildren(); $("source-tree").replaceChildren(); $("source-file").replaceChildren();
+    for (const id of ["source-log", "source-tree", "source-file", "source-diff"]) $(id).replaceChildren();
     $("source-log-next").disabled = true;
-    $("reviews-list").replaceChildren();
-    $("reviews-detail").replaceChildren();
-    $("reviews-status").textContent = "";
+    $("source-log-next").onclick = null;
+    $("source-filter").value = route.sq;
+    $("source-filter").disabled = !route.src;
+    $("source-up").disabled = true;
     status.textContent = "Reading configured sources…";
     $("source-browser-status").replaceChildren(element("p", "Loading admitted records…", "small"));
     let inventory;
     try { inventory = await api("/api/sources"); }
-    catch (error) { if (!isAborted(error) && state.route === route) { $("source-browser-status").replaceChildren(element("p", `Unavailable: ${explain(error)}`, "warning")); status.textContent = "Source inventory unavailable."; } return; }
-    if (state.route !== route || !state.session) return;
+    catch (error) { if (!isAborted(error) && current()) { $("source-browser-status").replaceChildren(element("p", `Unavailable: ${explain(error)}`, "warning")); status.textContent = "Source inventory unavailable."; } return; }
+    if (!current()) return;
     const sources = Array.isArray(inventory.sources) ? inventory.sources : [];
     const parent = $("source-browser-status"); parent.replaceChildren();
     if (!inventory.configured) parent.append(element("p", "No source repositories are configured. The service operator must admit a separate --sources policy. This is not proof that no repository is readable.", "warning"));
     for (const row of sources) {
-      parent.append(element("p", row.status === "available"
-        ? `${text(row.label)} · ${text(row.kind)}${row.channel ? ` · channel ${text(row.channel)}` : ""} · head ${text(row.head)} · ${text(row.revision_scope)}`
-        : `${text(row.label)} · ${text(row.kind)} · unavailable: ${text(row.reason)}`, row.status === "available" ? "small" : "warning"));
+      const details = element("details");
+      details.append(element("summary", `${text(row.label)} · ${text(row.kind)} · ${text(row.status)}${row.id === route.src ? " · selected" : ""}`));
+      const facts = element("dl", undefined, "facts");
+      addFacts(facts, [["Source ID", row.id], ["Scope", row.revision_scope], ["Channel", row.channel], ["Exact head", row.head], ["Unavailable reason", row.reason]]);
+      details.append(facts); parent.append(details);
     }
-    options($("source-select"), sources.map((row) => ({ id: row.id, label: `${row.label} · ${row.kind}` })), "Select a configured source", route.src);
+    options($("source-select"), sources.map((row) => ({ id: row.id, label: `${row.label} · ${row.kind}${row.status === "available" ? "" : " · unavailable"}` })), "Select a configured source", route.src);
     const selected = sources.find((row) => row.id === route.src);
-    if (!selected) { status.textContent = sources.length ? "Select a configured source. No repository is selected automatically." : "No source repository is configured."; return; }
-    if (route.src !== $("source-select").value) $("source-select").value = route.src;
+    if (!selected) {
+      $("source-filter").disabled = true;
+      if (route.src) { const option = element("option", `Unavailable selection: ${route.src}`); option.value = route.src; $("source-select").append(option); $("source-select").value = route.src; }
+      const message = route.src ? `Source not found in the configured inventory: ${route.src}. No repository was substituted.` : sources.length ? "Select a configured source above to browse revisions and files. No repository is selected automatically." : "No source repository is configured.";
+      status.textContent = message;
+      $("source-tree").append(element("p", message, route.src ? "warning" : "small"));
+      if (route.src) browsingClear(parent, "Clear source selection", { src: "", rev: "", spath: "", sfile: "", sq: "" });
+      return;
+    }
+    browsingClear(parent, "Clear source selection", { src: "", rev: "", spath: "", sfile: "", sq: "" });
+    if (selected.status !== "available") {
+      $("source-filter").disabled = true;
+      status.textContent = `Selected source unavailable: ${text(selected.reason)}. No repository was substituted.`;
+      $("source-tree").append(element("p", status.textContent, "warning"));
+      return;
+    }
+    $("source-filter").disabled = false;
+    $("source-up").disabled = !route.spath;
     status.textContent = "Reading revisions…";
-    let history;
-    try { history = await api(`/api/sources/${encodeURIComponent(selected.id)}/log?${sourceQuery({ limit: "30" })}`); }
-    catch (error) { if (!isAborted(error) && state.route === route) status.textContent = `Revisions unavailable: ${explain(error)}`; return; }
-    if (state.route !== route || !state.session) return;
-    renderSourceLog(log, route, selected, history);
-    const tree = $("source-tree");
-    let listing;
-    try { listing = await api(`/api/sources/${encodeURIComponent(selected.id)}/tree?${sourceQuery({ revision: route.rev, path: route.spath })}`); }
-    catch (error) { if (!isAborted(error) && state.route === route) tree.append(element("p", `Listing unavailable: ${explain(error)}`, "warning")); return; }
-    if (state.route !== route || !state.session) return;
-    renderSourceEntries(tree, route, listing);
-    await loadSourceDiff(selected, route);
-    if (state.route !== route || !state.session) return;
-    if (!route.sfile) { $("source-file").append(element("p", "Select a file entry to read its exact content. No file is selected automatically.", "small")); return; }
-    let file;
-    try { file = await api(`/api/sources/${encodeURIComponent(selected.id)}/file?${sourceQuery({ revision: route.rev, path: route.sfile })}`); }
-    catch (error) { if (!isAborted(error) && state.route === route) $("source-file").append(element("p", `File unavailable: ${explain(error)}`, "warning")); return; }
-    if (state.route !== route || !state.session) return;
-    renderSourceFile($("source-file"), file);
+    const tree = $("source-tree"); tree.append(element("p", "Loading selected directory…", "small"));
+    const file = $("source-file");
+    const content = element("div", undefined, "view-stack");
+    if (route.sfile) {
+      browsingClear(file, "Clear selected file", { sfile: "" });
+      file.append(element("p", `Selected file: ${route.sfile}`, "identity"), content);
+      content.append(element("p", "Loading exact file content…", "small"));
+    } else file.append(element("p", "Select a file entry to read its exact content. No file is selected automatically.", "small"));
+    await Promise.all([
+      (async () => {
+        try {
+          const history = await api(`/api/sources/${encodeURIComponent(selected.id)}/log?${sourceQuery({ limit: "30" })}`);
+          if (current()) renderSourceLog(log, route, selected, history, current);
+        } catch (error) { if (!isAborted(error) && current()) status.textContent = `Revisions unavailable: ${explain(error)}`; }
+      })(),
+      (async () => {
+        try {
+          const listing = await api(`/api/sources/${encodeURIComponent(selected.id)}/tree?${sourceQuery({ revision: route.rev, path: route.spath })}`);
+          if (!current()) return;
+          tree.replaceChildren(); renderSourceEntries(tree, route, listing);
+        } catch (error) { if (!isAborted(error) && current()) { tree.replaceChildren(); sourceBreadcrumb(tree, route); tree.append(element("p", `Listing unavailable: ${explain(error)}`, "warning")); } }
+      })(),
+      loadSourceDiff(selected, route, current),
+      (async () => {
+        if (!route.sfile) return;
+        try {
+          const result = await api(`/api/sources/${encodeURIComponent(selected.id)}/file?${sourceQuery({ revision: route.rev, path: route.sfile })}`);
+          if (!current()) return;
+          content.replaceChildren(); renderSourceFile(content, result);
+        } catch (error) { if (!isAborted(error) && current()) content.replaceChildren(element("p", `File unavailable: ${explain(error)}`, "warning")); }
+      })()
+    ]);
   }
-  function renderSourceLog(parent, route, selected, history) {
+  function renderSourceLog(parent, route, selected, history, current) {
     const entries = Array.isArray(history.entries) ? history.entries : [];
     parent.replaceChildren();
     const historical = selected.kind !== "pijul" && selected.revision_scope === "revision";
     for (const entry of entries) {
       const button = element("button", undefined, "run-choice source-revision");
       button.type = "button";
+      button.title = text(entry.id);
       if (historical && entry.id === route.rev) button.setAttribute("aria-current", "true");
       button.append(element("strong", text(entry.summary || entry.id)), element("span", text(entry.author), "small"), compactTimestampSpan(entry.recorded_at_ms), element("span", historical ? `select revision ${shortOid(entry.id)}` : `change ${shortOid(entry.id)} · historical trees are not readable`, "small"));
       button.addEventListener("click", () => { if (historical) navigate({ rev: entry.id, spath: "", sfile: "" }); });
@@ -1222,6 +1379,10 @@
     }
     if (!entries.length) parent.append(element("p", "No recorded revision is readable for this source.", "small"));
     $("source-log-status").textContent = `${entries.length} revision${entries.length === 1 ? "" : "s"} observed${history.next_cursor ? " · bounded page" : ""}${historical ? " · select one to pin the tree and file reads" : " · Pijul listings cover the current channel state only"}`;
+    if (route.rev) {
+      parent.append(element("p", `Selected revision: ${route.rev}${entries.some((entry) => entry.id === route.rev) ? "" : " · not in this bounded history page; exact reads are independent"}`, "identity"));
+      browsingClear(parent, "Use current head", { rev: "", spath: "", sfile: "" });
+    }
     const index = entries.findIndex((entry) => entry.id === route.rev);
     const steps = element("div", undefined, "source-steps");
     for (const [label, target] of [["← newer", index > 0 ? entries[index - 1] : null], ["older →", index >= 0 ? entries[index + 1] : null]]) {
@@ -1238,10 +1399,9 @@
       next.disabled = true;
       let more;
       try { more = await api(`/api/sources/${encodeURIComponent(selected.id)}/log?${sourceQuery({ limit: "30", cursor: history.next_cursor })}`); }
-      catch (error) { if (!isAborted(error)) $("source-log-status").textContent = explain(error); return; }
-      if (state.route !== route || !state.session) return;
-      history.next_cursor = more.next_cursor;
-      renderSourceLog(parent, state.route, selected, { ...history, entries: [...entries, ...(more.entries || [])], next_cursor: more.next_cursor });
+      catch (error) { if (!isAborted(error) && current()) { $("source-log-status").textContent = `More revisions unavailable: ${explain(error)}`; next.disabled = false; } return; }
+      if (!current()) return;
+      renderSourceLog(parent, route, selected, { ...history, entries: [...entries, ...(more.entries || [])], next_cursor: more.next_cursor }, current);
     };
   }
   function compactTimestampSpan(ms) {
@@ -1250,10 +1410,14 @@
     return span;
   }
   // r[impl kiln.dashboard.reviews.view]
+  function retainedDecisionLabel(decision) {
+    if (typeof decision !== "string" || !decision) return "Unknown (not recorded)";
+    return ["accepted", "rejected", "escalated", "blocked"].includes(decision) ? decision : `Unrecognized decision: ${decision}`;
+  }
   function reviewDecisionBadges(parent, counts) {
     const badges = element("div", undefined, "badges");
     for (const [decision, count] of Object.entries(counts || {}).sort()) {
-      const badge = element("span", `${decision} · ${count}`, "state-badge");
+      const badge = element("span", `${retainedDecisionLabel(decision)} · ${count}`, "state-badge");
       badge.dataset.tone = reviewDecisionTone(decision);
       badges.append(badge);
     }
@@ -1262,45 +1426,57 @@
   }
   async function loadReviewsPage() {
     const route = state.route;
+    const current = beginBrowsingLoad("reviews", route);
     $("reviews-list").replaceChildren();
-    $("reviews-detail").replaceChildren();
+    const detail = $("reviews-detail"); detail.replaceChildren();
+    if (route.receipt) {
+      browsingClear(detail, "Clear selected receipt", { receipt: "" });
+      detail.append(element("p", `Selected receipt: ${route.receipt}`, "identity"), element("p", "Loading retained receipt…", "small"));
+    } else detail.append(element("h2", "Select a receipt"), element("p", "Choose a retained receipt. No receipt is selected automatically.", "small"));
     $("reviews-status").textContent = "Reading retained receipts…";
-    let inventory;
+    let inventory = null;
     try { inventory = await api("/api/reviews"); }
-    catch (error) { if (!isAborted(error) && state.route === route) $("reviews-status").textContent = `Receipt inventory unavailable: ${explain(error)}`; return; }
-    if (state.route !== route || !state.session) return;
+    catch (error) { if (!current() || isAborted(error)) return; $("reviews-status").textContent = `Receipt inventory unavailable: ${explain(error)}. Exact selection is inspected independently.`; }
+    if (!current()) return;
     const list = $("reviews-list");
-    const receipts = Array.isArray(inventory.receipts) ? inventory.receipts : [];
-    $("reviews-status").textContent = inventory.configured
+    const receipts = Array.isArray(inventory?.receipts) ? inventory.receipts : [];
+    if (inventory) $("reviews-status").textContent = inventory.configured
       ? `${receipts.length} retained receipt${receipts.length === 1 ? "" : "s"} in ${text(inventory.label)}${(inventory.skipped || []).length ? ` · ${inventory.skipped.length} entry(ies) skipped` : ""}`
       : "No receipt directory is configured. The operator must admit a separate --reviews policy; this is not proof that no receipt exists.";
+    for (const skipped of inventory?.skipped || []) list.append(element("p", `Skipped retained entry: ${text(typeof skipped === "string" ? skipped : JSON.stringify(skipped))}. No verdict is inferred.`, "warning"));
     for (const receipt of receipts) {
       const link = element("a", undefined, "run-choice cob-choice");
       link.href = `?${new URLSearchParams({ ...state.route, page: "reviews", receipt: receipt.name })}`;
       if (receipt.name === route.receipt) link.setAttribute("aria-current", "true");
       const head = element("div", undefined, "cob-head");
-      head.append(element("span", text(receipt.provider_profile || "patchgate"), "cob-type"), element("span", `${text(receipt.bytes)} bytes`, "cob-repo"));
+      head.append(element("span", text(receipt.provider_profile), "cob-type"), element("span", `${text(receipt.bytes)} bytes`, "cob-repo"));
       link.append(head, element("strong", text(receipt.name), "cob-title"));
-      const summary = element("span", `${Object.entries(receipt.decision_counts || {}).map(([d, c]) => `${d} ${c}`).join(" · ") || "no decisions"} · acceptance authority ${receipt.authorizes_acceptance === true ? "claimed" : "none"}`, "small");
+      const summary = element("span", `${Object.entries(receipt.decision_counts || {}).map(([d, c]) => `${retainedDecisionLabel(d)} ${c}`).join(" · ") || "no decisions"} · acceptance authority ${receipt.authorizes_acceptance === true ? "producer claim, not granted" : receipt.authorizes_acceptance === false ? "none" : "unknown (not recorded)"}`, "small");
       link.append(summary);
       link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate({ page: "reviews", receipt: receipt.name }); } });
       list.append(link);
     }
-    if (!receipts.length) list.append(element("p", inventory.configured ? "No receipts are retained in the configured directory." : "No receipt directory is configured.", "small"));
-    const detail = $("reviews-detail");
-    if (!route.receipt) { detail.append(element("h2", "Select a receipt"), element("p", "Choose a retained receipt. No receipt is selected automatically.", "small")); return; }
+    if (inventory && !receipts.length) list.append(element("p", inventory.configured ? "No receipts are retained in the configured directory." : "No receipt directory is configured.", "small"));
+    if (!route.receipt) return;
+    const content = element("div", undefined, "view-stack");
+    detail.replaceChildren();
+    browsingClear(detail, "Clear selected receipt", { receipt: "" });
+    detail.append(element("p", `Selected receipt: ${route.receipt}`, "identity"), content);
+    if (inventory && !receipts.some((receipt) => receipt.name === route.receipt)) detail.append(element("p", "This exact receipt is not in the current inventory. No other receipt was substituted.", "warning"));
+    content.append(element("p", "Loading retained receipt…", "small"));
     let record;
     try { record = await api(`/api/reviews/${encodeURIComponent(route.receipt)}`); }
-    catch (error) { if (!isAborted(error) && state.route === route) detail.append(element("p", `Receipt unavailable: ${explain(error)}`, "warning")); return; }
-    if (state.route !== route || !state.session) return;
+    catch (error) { if (!isAborted(error) && current()) content.replaceChildren(element("p", `Receipt unavailable: ${explain(error)}`, "warning")); return; }
+    if (!current()) return;
+    content.replaceChildren();
     const document = record.document;
-    const heading = section(text(record.name), detail, "record-card");
+    const heading = section(text(record.name), content, "record-card");
     const facts = element("dl", undefined, "facts");
     const observation = document.observation || {};
-    addFacts(facts, [["Retained bytes", record.bytes], ["BLAKE3", record.blake3], ["Effect", observation.effect_id], ["Candidate", observation.candidate_id], ["Report identity", observation.report_identity], ["Acceptance authority", observation.authorizes_acceptance === true ? "producer claims authority (not granted)" : "none"], ["Isolated", observation.isolated === true ? "yes" : "no"]]);
+    addFacts(facts, [["Retained bytes", record.bytes], ["BLAKE3", record.blake3], ["Effect", observation.effect_id], ["Candidate", observation.candidate_id], ["Report identity", observation.report_identity], ["Acceptance authority", observation.authorizes_acceptance === true ? "producer claims authority (not granted)" : observation.authorizes_acceptance === false ? "none" : "Unknown (not recorded)"], ["Isolated", observation.isolated === true ? "yes" : observation.isolated === false ? "no" : "Unknown (not recorded)"]]);
     heading.append(facts);
     const reviews = Array.isArray(observation.reviews) ? observation.reviews : [];
-    reviewDecisionBadges(heading, reviews.reduce((counts, row) => { counts[row.decision] = (counts[row.decision] || 0) + 1; return counts; }, {}));
+    reviewDecisionBadges(heading, reviews.reduce((counts, row) => { const decision = typeof row?.decision === "string" ? row.decision : ""; counts[decision] = (counts[decision] || 0) + 1; return counts; }, Object.create(null)));
     if (reviews.length) {
       const table = element("table", undefined, "review-table");
       const head = element("tr");
@@ -1310,26 +1486,36 @@
       for (const row of reviews) {
         const line = element("tr");
         const decision = element("td");
-        const badge = element("span", text(row.decision), "state-badge");
-        badge.dataset.tone = reviewDecisionTone(row.decision);
+        const badge = element("span", retainedDecisionLabel(row?.decision), "state-badge");
+        badge.dataset.tone = reviewDecisionTone(row?.decision);
         decision.append(badge);
-        line.append(element("td", renderChangeRef(row.change), "review-change"), decision);
+        line.append(element("td", renderChangeRef(row?.change), "review-change"), decision);
         body.append(line);
       }
       table.append(body); heading.append(table);
     }
-    if (typeof document.native_report === "string") { const details = element("details"); details.append(element("summary", `Retained native report · ${document.native_report.length} bytes · verbatim`), element("pre", document.native_report, "identity")); heading.append(details); }
+    if (typeof document.native_report === "string") { const details = element("details"); details.append(element("summary", "Retained native report · verbatim text"), element("pre", document.native_report, "identity")); heading.append(details); }
+    const raw = element("details"); raw.append(element("summary", "Complete retained receipt fields"), element("pre", JSON.stringify(document, null, 2), "identity")); heading.append(raw);
     for (const boundary of record.non_claims || []) detail.append(element("p", boundary, "small"));
   }
   function renderOverview(parent, result) {
     const grid = element("div", undefined, "inventory-grid"); parent.append(grid);
-    for (const [label, value] of Object.entries(result.totals || {})) { const card = element("article", undefined, "inventory-card"); card.append(element("span", label, "metric-label"), element("strong", text(value), "metric-value")); grid.append(card); }
+    const outcomes = { runs: "", failed: "failed", queued: "queued", succeeded: "Success", cancelled: "Cancelled", unknown: "Unknown" };
+    for (const key of ["runs", "failed", "active", "queued", "succeeded", "cancelled", "unknown"]) {
+      if (!Object.hasOwn(result.totals || {}, key)) continue;
+      const patch = key === "active" ? { page: "operations" } : { page: "runs", outcome: outcomes[key], project: "", q: "", source: "", cursor: "", run: "", node: "" };
+      const card = workspaceLink(patch, undefined, "inventory-card metric-link");
+      card.append(element("span", key === "runs" ? "Total runs" : key[0].toUpperCase() + key.slice(1), "metric-label"), element("strong", text(result.totals[key]), "metric-value"), element("span", key === "active" ? "View capacity →" : "Browse runs →", "small"));
+      grid.append(card);
+    }
     const health = section("Project health", parent);
-    for (const project of result.projects || []) {
+    health.classList.add("project-health");
+    const priority = { failing: 0, unknown: 1, active: 2, queued: 3, unavailable: 4, cancelled: 5, healthy: 6 };
+    for (const project of [...(result.projects || [])].sort((a, b) => (priority[a.health] ?? 4) - (priority[b.health] ?? 4))) {
       const card = section(`${text(project.label)} · ${text(project.health)}`, health, "record-card");
-      card.append(element("p", text(project.id), "small"));
+      card.dataset.health = project.health;
       if (project.latest_run) {
-        card.append(runLink(project.latest_run.id, `Latest: ${project.latest_run.outcome} · ${duration(project.latest_run.duration_ms)}`), element("p", `Last run completed: ${timestamp(project.latest_run.completed_at_ms)}`, "small"));
+        card.append(runLink(project.latest_run.id, `Latest: ${project.latest_run.outcome} · ${duration(project.latest_run.duration_ms)}`), element("p", `Completed: ${compactTimestamp(project.latest_run.completed_at_ms)}`, "small"));
       } else card.append(element("p", "No retained runs.", "small"));
     }
     if (!result.projects?.length) health.append(element("p", "No enrolled project health is recorded.", "small"));
@@ -1342,13 +1528,28 @@
   }
   function renderProjects() {
     const parent = $("project-cards"); parent.replaceChildren();
-    for (const project of state.projects.enrolled) { const card = section(text(project.label || project.id), parent, "project-card surface"); const facts = element("dl", undefined, "facts"); addFacts(facts, [["ID", project.id], ["Repository", project.repository], ["Reference", project.reference], ["Pipeline", project.pipeline_identity]]); card.append(facts); const button = element("button", "Browse runs"); button.type = "button"; button.addEventListener("click", () => navigate({ page: "runs", project: project.id, cursor: "", run: "", node: "" })); card.append(button); }
+    for (const project of state.projects.enrolled) {
+      const card = section(text(project.label || project.id), parent, "project-card surface");
+      card.append(element("p", text(project.reference), "small"));
+      const actions = element("div", undefined, "project-actions");
+      actions.append(workspaceLink({ page: "runs", project: project.id, q: "", outcome: "", source: "", cursor: "", run: "", node: "" }, "Browse runs"));
+      const start = element("button", "Select for new run");
+      start.type = "button";
+      start.disabled = !canOperate();
+      start.addEventListener("click", () => { $("enrolled-project").value = project.id; projectDescriptions(); void readAction(loadRefs)(); $("enrolled-project").focus(); $("start-form").scrollIntoView({ block: "center" }); });
+      actions.append(start); card.append(actions);
+      const details = element("details");
+      details.append(element("summary", "Repository & pipeline identity"));
+      const facts = element("dl", undefined, "facts");
+      addFacts(facts, [["ID", project.id], ["Repository", project.repository], ["Reference", project.reference], ["Pipeline", project.pipeline_identity]]);
+      details.append(facts); card.append(details);
+    }
     if (!state.projects.enrolled.length) parent.append(element("p", "No enrolled projects.", "small"));
   }
   async function loadRefs() {
     const id = $("enrolled-project").value;
     const generation = ++state.refsGeneration;
-    if (!id) { options($("source-reference"), [], "Select a project first", ""); return; }
+    if (!id) { options($("source-reference"), [], "Select a project first", ""); $("source-status").textContent = "Choose an enrolled project to inspect its admitted source references."; return; }
     $("source-status").textContent = "Reading admitted source references…";
     try { const result = await api(`/api/projects/${encodeURIComponent(id)}/refs`); if (generation !== state.refsGeneration || id !== $("enrolled-project").value) return; options($("source-reference"), result.references.map((row) => ({ id: row.reference, label: `${row.reference} · ${text(row.source_revision)}` })), null, $("source-reference").value); $("source-status").textContent = "Latest resolves the admitted reference when the new run is dispatched; exact revision is reachability-checked by the service."; }
     catch (error) { if (!isAborted(error) && generation === state.refsGeneration) { options($("source-reference"), [], "References unavailable", ""); $("source-status").textContent = explain(error); } }
@@ -1685,14 +1886,43 @@
     catch (error) { if (!isAborted(error) && epoch === state.epoch && generation === state.logGeneration && id === state.selected) $("log-status").textContent = `Retained stream download unavailable: ${explain(error)}`; }
     finally { if (epoch === state.epoch) $("download-log").disabled = false; }
   }
+  function setMenu(open, restoreFocus = false) {
+    const mobile = window.matchMedia("(max-width: 60rem)").matches;
+    const wasOpen = $("app-menu-toggle").getAttribute("aria-expanded") === "true";
+    open = open && mobile;
+    $("app-sidebar").classList.toggle("is-open", open);
+    $("app-sidebar").inert = mobile && !open;
+    $("app-menu-toggle").setAttribute("aria-expanded", String(open));
+    $("app-menu-backdrop").hidden = !open;
+    document.documentElement.classList.toggle("app-menu-open", open);
+    $("main").inert = open;
+    document.querySelector(".session-tools").inert = open;
+    if (open) $("app-sidebar").querySelector('[aria-current="page"]')?.focus();
+    else if (restoreFocus) $("app-menu-toggle").focus();
+    else if (wasOpen && state.session) {
+      $("workspace-title").tabIndex = -1;
+      $("workspace-title").focus({ preventScroll: true });
+    }
+  }
   state.route = readRoute();
-  options($("run-outcome"), ["Pending", "Success", "DomainFailure", "Denied", "Cancelled", "TimedOut", "ProviderError", "Unknown"].map((id) => ({ id })), "All outcomes", state.route.outcome);
+  options($("run-outcome"), [{ id: "failed", label: "All failures" }, { id: "queued", label: "Queued" }, ...["Pending", "Success", "DomainFailure", "Denied", "Cancelled", "TimedOut", "ProviderError", "Unknown"].map((id) => ({ id }))], "All outcomes", state.route.outcome);
   for (const node of document.querySelectorAll("[data-page]")) node.addEventListener("click", () => navigate({ page: node.dataset.page }));
   for (const node of document.querySelectorAll("[data-view]")) node.addEventListener("click", () => navigate({ view: node.dataset.view }));
   for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).addEventListener("click", () => { void prepareRerun(mode); });
   for (const id of ["app-theme", "app-density"]) $(id).addEventListener("change", () => navigate({ [id === "app-theme" ? "theme" : "density"]: $(id).value }));
-  $("app-menu-toggle").addEventListener("click", () => { const open = $("app-sidebar").classList.toggle("is-open"); $("app-menu-toggle").setAttribute("aria-expanded", String(open)); document.documentElement.classList.toggle("app-menu-open", open); });
-  document.addEventListener("keydown", (event) => { if (event.key === "Escape") { $("app-sidebar").classList.remove("is-open"); $("app-menu-toggle").setAttribute("aria-expanded", "false"); document.documentElement.classList.remove("app-menu-open"); } });
+  $("app-menu-toggle").addEventListener("click", () => setMenu($("app-menu-toggle").getAttribute("aria-expanded") !== "true"));
+  $("app-menu-backdrop").addEventListener("click", () => setMenu(false, true));
+  window.matchMedia("(max-width: 60rem)").addEventListener("change", () => setMenu(false));
+  document.addEventListener("keydown", (event) => {
+    if ($("app-menu-toggle").getAttribute("aria-expanded") !== "true") return;
+    if (event.key === "Escape") { event.preventDefault(); setMenu(false, true); }
+    if (event.key === "Tab") {
+      const stops = [$("app-menu-toggle"), ...$("app-sidebar").querySelectorAll('a[href], button:not(:disabled)')];
+      const index = stops.indexOf(document.activeElement);
+      event.preventDefault();
+      stops[(index + (event.shiftKey ? -1 : 1) + stops.length) % stops.length].focus();
+    }
+  });
   $("runs-first").addEventListener("click", () => navigate({ cursor: "" }));
   $("runs-next").addEventListener("click", () => { if (state.nextCursor) navigate({ cursor: state.nextCursor }); });
   $("compare-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ other: $("compare-other").value.trim(), view: "compare" }); });
@@ -1703,8 +1933,8 @@
   $("refresh-reviews").addEventListener("click", readAction(loadPage));
   $("source-select").addEventListener("change", (event) => { if (state.session) navigate({ src: event.target.value, rev: "", spath: "", sfile: "", sq: "" }); });
   $("source-filter").addEventListener("input", (event) => { if (state.session) navigate({ sq: event.target.value }); });
-  $("source-up").addEventListener("click", () => { if (state.session && state.route.spath) navigate({ spath: state.route.spath.split("/").slice(0, -1).join("/"), sfile: "" }); });
-  $("source-form").addEventListener("submit", (event) => { event.preventDefault(); if (state.session) navigate({ src: $("source-select").value, rev: "", spath: "", sfile: "" }); });
+  $("source-up").addEventListener("click", () => { if (state.session && state.route.spath) navigate({ spath: state.route.spath.split("/").slice(0, -1).join("/"), sfile: "", sq: "" }); });
+  $("source-form").addEventListener("submit", (event) => { event.preventDefault(); if (state.session) navigate({ src: $("source-select").value, rev: "", spath: "", sfile: "", sq: "" }); });
   $("refresh-workers").addEventListener("click", readAction(loadPage));
   $("worker-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ worker_q: $("worker-search").value.trim(), worker_status: $("worker-status").value }); });
   $("worker-reset").addEventListener("click", () => navigate({ worker_q: "", worker_status: "" }));

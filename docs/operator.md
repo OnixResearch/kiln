@@ -1348,6 +1348,37 @@ checkout rather than the mutable worktree. Follow the existing
 [workflow application contract](lattice-workflow.md) for native handler setup;
 profile generation does not install or start it.
 
+### Navigate the live workspace
+
+Overview totals link to retained run filters; the active count opens Operations.
+Failing projects appear before healthy projects. Projects places enrollment and
+source-bound execution above the inventory; **Select for new run** only selects
+the project and never dispatches it.
+
+Run choices show project, outcome, local creation time and a shortened source
+revision. Open **Exact source & execution identities** for complete values.
+Execution controls remain under a separate disclosure and retain the exact
+confirmation and service-side admission. Opening Logs reads the selected stream
+immediately; empty output is not success or complete-log evidence.
+
+Evidence and comparison inputs offer bounded retained-run suggestions while
+still accepting exact IDs. Comparison suggestions exclude the current run and
+other projects; missing suggestions do not establish that no older run exists.
+Source requires an explicit repository selection. Changing or clearing that
+selection clears stale files and diffs; independent history/tree/file failures
+remain explicit. COB and receipt inspection preserves exact selected identities
+even when inventory reads fail. Expand complete retained fields when needed;
+producer decisions and missing authority values never grant acceptance authority.
+
+On narrow screens, the navigation drawer traps keyboard focus. Escape or the
+backdrop closes it; closed navigation is removed from keyboard focus. Page and
+run changes move focus to the selected heading. Appearance and density remain
+URL-restored, and clearing a session removes private views and suggestions.
+
+Kiln application/dashboard maintainers own these frontend behaviors. Browser
+asset overrides against authenticated read-only APIs exercise source candidates
+without deploying them; they do not prove the installed service uses those bytes.
+
 ### Extend an existing project registry
 
 Ordinary startup remains bound to one exact service profile. Adding a project is
