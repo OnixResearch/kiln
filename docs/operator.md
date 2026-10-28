@@ -135,9 +135,27 @@ this CLI and retain its receipt without receiving merge authority.
 ### Provision and bind the inputs
 
 - Install Patchgate from
-  `https://github.com/brittonr/patchgate` revision
+  `git@github.com:brittonr/patchgate.git` revision
   `97c1216fe13000d9dcbb97f70ddd5423180eea2c`, native report schema 1. Private
   acquisition is operator-managed and is not part of normal Kiln builds/tests.
+  The repository has no flake; install the packaged derivation into the user
+  profile directly, clearing any configured remote builder:
+
+  ```console
+  git clone git@github.com:brittonr/patchgate.git /path/to/patchgate
+  git -C /path/to/patchgate worktree add --detach /tmp/patchgate-pin \
+    97c1216fe13000d9dcbb97f70ddd5423180eea2c
+  nix profile install --impure --option builders '' --option secret-key-files '' \
+    --expr 'let pkgs = import (builtins.getFlake "nixpkgs") { }; in
+             import /tmp/patchgate-pin/nix/package.nix { inherit pkgs; }'
+  ```
+
+  The package builds the patched Pijul `1.0.0-beta.24` binary alongside
+  `patchgate`, so the wrapper's `PATH` already selects the matching Pijul.
+  Later upstream revisions add tests that do not pass on every host filesystem;
+  installing this exact pin keeps the acquisition reproducible. Verify the
+  installed binary identity before use; the exercised build was BLAKE3
+  `c7f9ad4bff9ca55ca57fab6df9aa018981792fa40a8ca3a90d97fefb338c72e5`.
 - Keep its patched Pijul executable/database cohort separate from
   `kiln-adapter-pijul`'s beta.11 library profile. The native smoke below used
   Patchgate's patched beta.24 executable; that does not establish compatibility

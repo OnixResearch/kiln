@@ -1,0 +1,142 @@
+{
+  "schema": "kiln.patchgate.live-native-run.v1",
+  "source": {
+    "url": "git@github.com:brittonr/patchgate.git",
+    "clone": "/home/brittonr/git/patchgate",
+    "head_clone": "ba2b5a2a2f18adff781a8c36312e697a4068603d",
+    "installed_revision": "97c1216fe13000d9dcbb97f70ddd5423180eea2c",
+    "why_installed_revision": "The documented Kiln-compatible pin. Upstream main adds a tests/bin patchgate-eval control test (changed_and_replaced_controls_fail_after_open) that fails on this host filesystem as well as in the Nix sandbox, so main does not build here."
+  },
+  "installation": {
+    "command": "nix profile install --impure --option builders '' --option secret-key-files '' --expr 'let pkgs = import (builtins.getFlake \"nixpkgs\") { }; in import /tmp/patchgate-97c1216f/nix/package.nix { inherit pkgs; }'",
+    "profile_entry": "patchgate",
+    "store_path": "/nix/store/gmapg4ryl3xip24rz5qf6kqjaypz5phk-patchgate-0.1.0",
+    "binary": "/nix/store/gmapg4ryl3xip24rz5qf6kqjaypz5phk-patchgate-0.1.0/bin/patchgate",
+    "binary_blake3": "c7f9ad4bff9ca55ca57fab6df9aa018981792fa40a8ca3a90d97fefb338c72e5",
+    "version": "patchgate 0.1.0",
+    "pijul": "/nix/store/xs68d2myk3ya7wxk7d3dk8frfbw3w62h-pijul-1.0.0-beta.24/bin/pijul (pijul 1.0.0-beta.24, patched by the package)"
+  },
+  "run": {
+    "repository": "/tmp/patchgate-demo (disposable Pijul repository, throwaway identity, XDG_CONFIG_HOME isolated to /tmp)",
+    "channels": {
+      "main": "QGAUSOETCANVXYDR3EEZFL5GU7Q5T6GLMRPNAW2HOXV333JZFK2AC",
+      "inbox": "C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPSWYPKFZMULQXW4IJ3PLYAC"
+    },
+    "command": "patchgate review --dry-run --json",
+    "exit": 0,
+    "decision": "accepted",
+    "change": "B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC",
+    "reason": "The change touches only documentation paths (docs/guide.md). Deterministic secret checks and the trusted Nix checks apply, and the model does not review it.",
+    "authorizes_acceptance": false,
+    "model_requests": 0,
+    "native_report_bytes": 2524,
+    "native_report": {
+      "schema_version": 1,
+      "dry_run": true,
+      "authorizes_acceptance": false,
+      "main": {
+        "channel": "main",
+        "state": "QGAUSOETCANVXYDR3EEZFL5GU7Q5T6GLMRPNAW2HOXV333JZFK2AC"
+      },
+      "inbox": {
+        "channel": "inbox",
+        "state": "C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPSWYPKFZMULQXW4IJ3PLYAC"
+      },
+      "configuration": {
+        "source": "main",
+        "path": "patchgate.json",
+        "sha256": "917248d653a9afe40b0e8585905237ccfa9c78d0a8ead994dd167e7de87147b0",
+        "values": {
+          "policy_path": "POLICY.md",
+          "protected": [
+            "src/**"
+          ],
+          "documentation_paths": [
+            "docs/*",
+            "*.md"
+          ],
+          "max_change_chars": 8000,
+          "timeout_seconds": 300.0,
+          "check_timeout_seconds": 900.0,
+          "max_review_requests": 128,
+          "review_timeout_seconds": 900.0
+        }
+      },
+      "items": [
+        {
+          "hash": "B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC",
+          "message": "Clarify the guide wording",
+          "paths": [
+            "docs/guide.md"
+          ],
+          "state": "accepted",
+          "reason": "",
+          "needs": [],
+          "decided": true,
+          "merge": null,
+          "note": ""
+        }
+      ],
+      "records": [
+        {
+          "hash": "B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC",
+          "decision": "accept",
+          "message": "Clarify the guide wording",
+          "by": "gate",
+          "summary": "",
+          "reason": "The change touches only documentation paths (docs/guide.md). Deterministic secret checks and the trusted Nix checks apply, and the model does not review it.",
+          "at": "2026-10-28T11:42:34+00:00",
+          "provenance": {
+            "requests": [],
+            "verifiers": {
+              "schema_version": 1,
+              "patchgate": "0.1.0",
+              "pijul": "pijul 1.0.0-beta.24",
+              "nix": null
+            }
+          },
+          "configuration": {
+            "source": "main",
+            "path": "patchgate.json",
+            "sha256": "917248d653a9afe40b0e8585905237ccfa9c78d0a8ead994dd167e7de87147b0",
+            "values": {
+              "policy_path": "POLICY.md",
+              "protected": [
+                "src/**"
+              ],
+              "documentation_paths": [
+                "docs/*",
+                "*.md"
+              ],
+              "max_change_chars": 8000,
+              "timeout_seconds": 300.0,
+              "check_timeout_seconds": 900.0,
+              "max_review_requests": 128,
+              "review_timeout_seconds": 900.0
+            }
+          }
+        }
+      ],
+      "review_usage": {
+        "requests": 0,
+        "max_requests": 128,
+        "elapsed_seconds": 0.161748763,
+        "timeout_seconds": 900.0,
+        "stop": null
+      }
+    }
+  },
+  "observations": [
+    "A real Patchgate binary built from source and installed into the user Nix profile runs against a real Pijul repository.",
+    "The docs-only deterministic path accepted the change with zero model requests, which is why no model endpoint was needed.",
+    "The native report keeps authorizes_acceptance=false and an empty provenance.requests vector."
+  ],
+  "limits": [
+    "This is a native Patchgate report, not a Kiln receipt. No kiln.patchgate.review.v1 receipt was produced: that requires a PatchgateProfile with exact executable/config identities, initial channel states and an intent, which is a separate operator step.",
+    "Patchgate main does not build on this host because of the failing eval control test; this run used the documented pin.",
+    "Nothing was merged into any real repository: the demo repository is disposable and review ran with --dry-run."
+  ],
+  "non_claims": [
+    "A native accepted decision in a disposable repository is not CI acceptance, merge authority, source trust or release readiness, and it is not displayed anywhere in the live workspace yet."
+  ]
+}
