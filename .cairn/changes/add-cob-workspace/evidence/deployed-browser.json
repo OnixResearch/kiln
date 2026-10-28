@@ -1,0 +1,31 @@
+{
+  "noAssetOrApiOverrides": true,
+  "work": {
+    "configured": true,
+    "canWrite": true,
+    "objects": 0,
+    "newRecordEnabled": true,
+    "overflow": false
+  },
+  "editor": {
+    "open": true,
+    "titleField": true,
+    "hasCreate": true
+  },
+  "palette": {
+    "query": "kiln",
+    "retainedProject": true,
+    "selectedRun": "web-run-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1"
+  },
+  "retainedRun": {
+    "run": "web-run-554d1b028c14d0e114ce9ced5d3d7b8fb7962eb2a76ce3582845192b6a576fa1",
+    "heading": true,
+    "overflow": false
+  },
+  "mobile": {
+    "width": 390,
+    "documentWidth": 390,
+    "retainedWorkflow": true
+  },
+  "pageErrors": []
+}

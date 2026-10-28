@@ -1,0 +1,14 @@
+[
+  {
+    "name": "lifecycle",
+    "passed": true,
+    "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+    "receiptHash": "4881e99a5d21d9ebad64a6a777599aef151e0ac9181237b0f2d02d3bc49b689f"
+  },
+  {
+    "name": "active-coverage",
+    "passed": true,
+    "command": "cairn traceability coverage --root . --policy .cairn/changes/add-cob-workspace/evidence/development-coverage-policy.json --profile kiln-active-development --json",
+    "receiptHash": "798aa904865d42550a2837f7ee4719aa1dc404db026b8e37cf003449d3affd61"
+  }
+]

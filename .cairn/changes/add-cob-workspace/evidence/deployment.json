@@ -1,0 +1,221 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "operator_request": "commit push and deploy",
+  "observed_at": "2026-10-28T20:38:03.093800+00:00",
+  "outcome": "Published and deployed the signed COB work workspace and internal developer loop on the maintained desktop user-service.",
+  "maintenance_owner": "Kiln dashboard/service maintainers; operator owns profiles, credentials, work permissions and activation.",
+  "source": {
+    "revision": "8d3a0bce7ee628f1a634c8a26327298ebbd16971",
+    "previous_main": "94bb61a5234f71083b87d60e0fce98798e97c8a9",
+    "frozen_nix_source": "/nix/store/jrj6jyijzg2x4h0lkbd0367hv0svknwa-source",
+    "archive": {
+      "name": "local",
+      "revision": "8d3a0bce7ee628f1a634c8a26327298ebbd16971",
+      "members": 5996,
+      "bytes": 97628160,
+      "archive_blake3": "0cb0cc0031c4e36b0f89269ae70f268741c46d091258e3549a5f8af41dd4f3e1"
+    },
+    "normalization": "Sorted tracked paths; GNU tar PAX with deterministic extended-header names, uid/gid/mtime zero, no atime/ctime, normalized Git executable modes, separately serialized hardlinked contents and preserved symbolic links.",
+    "receipt_is_later_evidence_only": true
+  },
+  "publication": {
+    "branch": "main",
+    "remotes": [
+      {
+        "name": "rad",
+        "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "result": "Fast-forward push and exact jj readback succeeded; transport synchronized with two seeds."
+      },
+      {
+        "name": "github",
+        "url": "git@github.com:OnixResearch/kiln.git",
+        "result": "Fast-forward push and exact jj readback succeeded."
+      }
+    ],
+    "acquisitions": [
+      {
+        "name": "local",
+        "revision": "8d3a0bce7ee628f1a634c8a26327298ebbd16971",
+        "members": 5996,
+        "bytes": 97628160,
+        "archive_blake3": "0cb0cc0031c4e36b0f89269ae70f268741c46d091258e3549a5f8af41dd4f3e1"
+      },
+      {
+        "name": "native",
+        "revision": "8d3a0bce7ee628f1a634c8a26327298ebbd16971",
+        "members": 5996,
+        "bytes": 97628160,
+        "archive_blake3": "0cb0cc0031c4e36b0f89269ae70f268741c46d091258e3549a5f8af41dd4f3e1"
+      },
+      {
+        "name": "garden_anonymous",
+        "revision": "8d3a0bce7ee628f1a634c8a26327298ebbd16971",
+        "members": 5996,
+        "bytes": 97628160,
+        "archive_blake3": "0cb0cc0031c4e36b0f89269ae70f268741c46d091258e3549a5f8af41dd4f3e1"
+      }
+    ],
+    "anonymous_environment": "Fresh private HOME and XDG_CONFIG_HOME; system/global Git configuration and prompts disabled; empty credential helper; protocol v0.",
+    "governance": {
+      "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "visibility": "public",
+      "unchanged": true,
+      "signed_refs_before": "479ffe8f59c976de379c24bb0f211e5b7b1c76fa",
+      "signed_refs_after": "9ccd7c5a5e7d528e467776b0afc36367a5ae4927",
+      "feature": "parent"
+    }
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "package": "/nix/store/glc7lcfj731c03gzqdanbbapppcasy0j-kiln-web-service-0.1.0",
+    "actual_running_executable": "/nix/store/glc7lcfj731c03gzqdanbbapppcasy0j-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "8301dbe2590eaa59286c9a29ba17c4bbe72103617ef68d4da2eccc19c135832e",
+    "previous_package": "/nix/store/fz3cy402bzn9ihj5apafvqkcfzydp66j-kiln-web-service-0.1.0",
+    "private_rollback_backup": "/home/brittonr/.local/state/kiln/redeploy-20261028-8d3a0bce",
+    "sqlite_backup_integrity": "ok",
+    "original_configuration_preserved": true,
+    "retained_file_contents_and_permissions_preserved": 393,
+    "retained_runs_original_fields_preserved": 19,
+    "additive_run_response_fields": {
+      "step_telemetry": []
+    },
+    "unrelated_profile_elements_unchanged": true,
+    "units": {
+      "kiln-web-service.service": {
+        "Id": "kiln-web-service.service",
+        "ActiveState": "active",
+        "MainPID": "341325",
+        "Result": "success"
+      },
+      "kiln-web-lattice.service": {
+        "Id": "kiln-web-lattice.service",
+        "ActiveState": "active",
+        "MainPID": "1145552",
+        "Result": "success"
+      },
+      "kiln-web-proxy-auth.service": {
+        "Id": "kiln-web-proxy-auth.service",
+        "ActiveState": "active",
+        "MainPID": "341327",
+        "Result": "success"
+      },
+      "kiln-tailnet-proxy.service": {
+        "Id": "kiln-tailnet-proxy.service",
+        "ActiveState": "active",
+        "MainPID": "341343",
+        "Result": "success"
+      }
+    },
+    "lattice_pid_unchanged": "1145552",
+    "activation": [
+      {
+        "argv": [
+          "systemctl",
+          "--user",
+          "daemon-reload"
+        ],
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "nix",
+          "profile",
+          "remove",
+          "kiln-web-service"
+        ],
+        "stdout": "",
+        "stderr": "removing 'kiln-web-service'\nremoved 1 packages, kept 6 packages"
+      },
+      {
+        "argv": [
+          "nix",
+          "profile",
+          "add",
+          "/nix/store/glc7lcfj731c03gzqdanbbapppcasy0j-kiln-web-service-0.1.0"
+        ],
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "systemctl",
+          "--user",
+          "restart",
+          "kiln-web-service.service"
+        ],
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "work_activation": {
+      "interactive_approval": "Enable signed work",
+      "git_directory": "/home/brittonr/.local/share/kiln/work-cobs/.git",
+      "signer_seed_file": "/home/brittonr/.config/kiln/web-service/credentials/work.seed",
+      "seed_bytes": 32,
+      "seed_mode": "0600",
+      "seed_disclosed": false,
+      "write_scope": "Only local:operator and the exact previously admitted operator tailnet principal selected in interactive approval; no wildcard or new CI permission.",
+      "typed_policy": "/home/brittonr/.config/kiln/web-service/work.ncl",
+      "runtime_policy": "/home/brittonr/.config/kiln/web-service/work.json",
+      "runtime_policy_blake3": "5c7972c16038db7d64d15207dfef4507e0246208dbecea858836632ed4c87287",
+      "drop_in": "/home/brittonr/.config/systemd/user/kiln-web-service.service.d/work.conf",
+      "empty_at_verification": true,
+      "production_test_objects_created": false,
+      "separate_store_and_key_backup": "new-work-provisioning.tar"
+    },
+    "rollback": [
+      "Move ~/.config/systemd/user/kiln-web-service.service.d/work.conf into the recorded private rollback directory; preserve the store and key.",
+      "systemctl --user daemon-reload",
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/fz3cy402bzn9ihj5apafvqkcfzydp66j-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service",
+      "Do not restore the old SQLite snapshot over live state."
+    ]
+  },
+  "verification": {
+    "package_build": {
+      "command": "nix build 'git+file:///home/brittonr/git/OnixResearch/kiln?rev=8d3a0bce7ee628f1a634c8a26327298ebbd16971#web-service' --no-link --print-out-paths --no-write-lock-file --builders '' -L",
+      "passed": true,
+      "packaged_work_tests_passed": 9,
+      "output": "artifact://2842"
+    },
+    "preflight": "Exact existing service/access/automation/cobs/sources/reviews arguments plus the explicitly approved work policy passed before activation.",
+    "health": {
+      "status": "ok"
+    },
+    "tls": "Public origin and all served assets verified against the installed private CA and hostname; no token sent to asset endpoints.",
+    "public_work_admission": {
+      "configured": true,
+      "can_write": true,
+      "objects": 0
+    },
+    "served_assets_blake3": {
+      "/": "0e0ce81fcf5452c8391cec29c15542ad372b4c1ddffe7a060d49a052d8b0e5a5",
+      "/web.js": "ed5b1383b967fc2294567b9411dea73d8ecf5666cad5cff21a77d8ca929a6f6e",
+      "/web.css": "a624bdb6ba6a873264ce7e121d01c1e90a9ab3059a6e46cbc6935d32de260cc7",
+      "/work.js": "4b8c293ad2d35dc7ccfe10722d947bcc162be3d16937a4ff0b586f55e06c6a14",
+      "/work.css": "62ad3cd1a86b5fee02329fc1d9c7f385330e045b1df0c8cbc9ac4c35a3a6934d",
+      "/work-interaction.js": "42f346ca906e195a2afb680ff66610478946a2480684fc32631c59ee045e1158",
+      "/work-interaction.css": "147a1bf26afe418b97e36602a10b5d8cca5e1d1d8dd21ad9cdf6a231d8c8eebb",
+      "/work-evidence.js": "11947114c9965be167194e71e8495f31a25be40ad52da516c5133c41b9899918"
+    },
+    "browser_receipt": "deployed-browser.json",
+    "browser_tls_boundary": "Managed Chromium did not trust the private CA; CDP certificate-error bypass was used only for UI observation, after independent CA/hostname-verified HTTPS checks. No asset/API overrides were used.",
+    "preservation_diagnostics": [
+      "The new API adds step_telemetry: [] to the 19 historical run projections; every original field matched.",
+      "GNU tar compare of the Python-created retained-files archive reported nanosecond mtime rounding differences. Direct comparison verified all 393 original regular-file bytes, modes, owners and groups; archive-vs-stat rounding differences were retained as a backup-format limitation."
+    ]
+  },
+  "non_claims": [
+    "Operator authorization covers this publication and activation, not lifecycle acceptance, archival or release eligibility.",
+    "No existing CI profile, credential, worker route or canonical history was changed to make the package start.",
+    "Work collaboration authority was separately confirmed and grants no CI, merge or release permission.",
+    "No artificial work records, new CI runs or native Radicle issues/patches were created for deployed UI verification.",
+    "Passing disposable/package checks do not prove arbitrary provider correctness or hostile workload confinement."
+  ]
+}

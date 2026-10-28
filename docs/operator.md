@@ -2074,6 +2074,15 @@ Exercise the served browser without asset overrides. The
 binds the published code, package, source acquisitions, rollback and live checks;
 it does not waive lifecycle or release holds.
 
+The later [signed-work deployment receipt](../.cairn/changes/add-cob-workspace/evidence/deployment.json)
+records separately approved work-store/key provisioning and the `work.conf`
+user-unit drop-in. When rolling back to an executable without `--work`, first
+move that drop-in into the private rollback directory and reload the user daemon;
+then restore the previous profile package and restart. Keep the new Git store
+and signing seed together; do not delete work history or rewind CI state.
+Original run fields remain preserved across this upgrade; the new response adds
+an empty `step_telemetry` array for histories without recorded step observations.
+
 #### Non-mutating evaluation and isolated proof
 
 Run these after integration, not while sibling changes are in flight:
