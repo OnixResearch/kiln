@@ -1,0 +1,256 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "operator_request": "commit push and redeploy",
+  "observed_at": "2026-10-28T01:01:59.250855+00:00",
+  "outcome": "Published worker inventory and exact-source remote execution source, then deployed the new controller/dashboard on the unchanged durable worker cohort.",
+  "maintenance_owner": "Kiln application/dashboard maintainers; operator owns deployed profiles, credentials and activation.",
+  "source": {
+    "revision": "b8270199ca2910b00cdd9fc4db2a177a1c1c3f6f",
+    "rollback_revision": "04663f341af9367c7ab0dd102fdbb8bf8151ea17",
+    "frozen_nix_source": "/nix/store/gvpw191ac8ca4pzwxfdrmgj67m4rvzkn-source",
+    "archive": {
+      "algorithm": "BLAKE3",
+      "digest": "0dcd8c431ca2dd9b3ca1173a6b92169595f6ce91a7aafd85c3725249be4ab5ec",
+      "bytes": 83148800,
+      "members": 5327,
+      "normalization": "Sorted tracked paths, POSIX PAX, uid/gid/mtime 0, empty owner names, executable 0755 / regular 0644, each hardlinked regular file emitted independently; preserve symbolic links."
+    },
+    "changed_files_scanned_for_private_keys_and_active_tokens": 184,
+    "private_key_or_active_token_matches": 0
+  },
+  "publication": {
+    "branch": "main",
+    "pushes": [
+      {
+        "argv": [
+          "jj",
+          "git",
+          "push",
+          "--remote",
+          "rad",
+          "--bookmark",
+          "main"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Changes to push to rad:\n  bookmark: main [move forward from 04663f341af9 to b8270199ca29]\ngit: \u2713 Canonical reference refs/heads/main updated to target commit b8270199ca2910b00cdd9fc4db2a177a1c1c3f6f        \ngit: \u2713 Synced with 2 seed(s)        \ngit: \ngit:   https://app.radicle.xyz/nodes/iris.radicle.network/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/b8270199ca2910b00cdd9fc4db2a177a1c1c3f6f        \ngit: \n"
+      },
+      {
+        "argv": [
+          "jj",
+          "git",
+          "push",
+          "--remote",
+          "github",
+          "--bookmark",
+          "main"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Changes to push to github:\n  bookmark: main [move forward from 04663f341af9 to b8270199ca29]\n"
+      }
+    ],
+    "acquisitions": {
+      "native": {
+        "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "revision": "b8270199ca2910b00cdd9fc4db2a177a1c1c3f6f",
+        "archive_blake3": "0dcd8c431ca2dd9b3ca1173a6b92169595f6ce91a7aafd85c3725249be4ab5ec",
+        "members": 5327,
+        "anonymous": false
+      },
+      "github_https": {
+        "url": "https://github.com/OnixResearch/kiln.git",
+        "revision": "b8270199ca2910b00cdd9fc4db2a177a1c1c3f6f",
+        "archive_blake3": "0dcd8c431ca2dd9b3ca1173a6b92169595f6ce91a7aafd85c3725249be4ab5ec",
+        "members": 5327,
+        "anonymous": true
+      },
+      "garden_https": {
+        "url": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "revision": "b8270199ca2910b00cdd9fc4db2a177a1c1c3f6f",
+        "archive_blake3": "0dcd8c431ca2dd9b3ca1173a6b92169595f6ce91a7aafd85c3725249be4ab5ec",
+        "members": 5327,
+        "anonymous": true
+      }
+    },
+    "governance_observation": {
+      "identity": {
+        "payload": {
+          "xyz.radicle.project": {
+            "defaultBranch": "main",
+            "description": "Provider-neutral CI control plane",
+            "name": "Kiln"
+          }
+        },
+        "delegates": [
+          "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+        ],
+        "threshold": 1
+      },
+      "signed_refs": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 4918915ca000b3383b3edb059d2046edc2a4ee82 parent",
+      "visibility": "public"
+    },
+    "governance_mutations": false
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "package": "/nix/store/mypjvddkls25jcy4yls5minbh6hbjdr5-kiln-web-service-0.1.0",
+    "actual_running_executable": "/nix/store/mypjvddkls25jcy4yls5minbh6hbjdr5-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "0d61f2fbb77922b243dbf1528fe4ea173b670f212db77ed290161ee5d69c244b",
+    "previous_package": "/nix/store/635nv7lqwyvlm4qr772007m5q31w43np-kiln-web-service-0.1.0",
+    "private_rollback_backup": "/home/brittonr/.local/state/kiln/redeploy-20261028T005112Z",
+    "supervision": "Id=kiln-web-lattice.service\nActiveState=active\nSubState=running\nMainPID=171687\nResult=success\n\nId=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=207461\nResult=success\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=207467\nResult=success\n\nId=kiln-tailnet-proxy.service\nActiveState=active\nSubState=running\nMainPID=207514\nResult=success\n",
+    "all_installed_profiles_and_credentials_byte_identical_to_before": true,
+    "unrelated_user_packages_unchanged": true,
+    "qualified_lattice_executable_unchanged": "61c0ffb899a820a0eace7faf5a368b9fb7a54763a4a322cc775e0bc5e7f57925",
+    "retained_runs_preserved_all_fields": 5,
+    "retained_log_members_preserved_all_bytes": 10,
+    "profile_blake3": "7ecaea0c852f78b1247526291c9a53eeeaa0d0334231097c381d5a0a5721a09e  /home/brittonr/.config/kiln/web-service/service.json\nc5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc  /home/brittonr/.config/kiln/web-service/worker.json\n56ac17dfe3965423fecf94bf53110b7d77b10c72b840d3ed573c3e3b0edd2a10  /home/brittonr/.config/kiln/web-service/workflow.json\n7e53209f72db9780a2887f7322efea1c43621f15284fa418121ca275a991ac32  /home/brittonr/.config/kiln/web-service/handler.json\n9a3e70c5d5ad607475c1ebf78deddedc8a182ced7a5667756a1797e24cf921dc  /home/brittonr/.config/kiln/web-service/access.json\n1dd89b537d2ffa0b48c40149c0da28738c21cf253fb99658a6f2170586de173b  /home/brittonr/.config/kiln/web-service/automation.json\n",
+    "worker_cohort": {
+      "schema": "kiln.web-worker.v1",
+      "helper": "/nix/store/vm3nhj1ik729axdi890j9kx8aqc1434p-kiln-web-service-0.1.0/bin/kiln-web-service",
+      "operation_blake3": "c5ad9a9e393d2f3d5472af76aec4a66d25c1992330d03aafd611ee7dbddac2bc",
+      "unchanged": true,
+      "reason": "Existing service database is bound to the exact entire service profile; operation/graph changes are not an admitted migration. Retain the reviewed immutable helper and exact routes instead of relabeling persisted state."
+    }
+  },
+  "verification": {
+    "package_build": {
+      "command": [
+        "nix",
+        "build",
+        "path:/nix/store/gvpw191ac8ca4pzwxfdrmgj67m4rvzkn-source#web-service",
+        "--no-link",
+        "--print-out-paths",
+        "--no-write-lock-file",
+        "--builders",
+        "",
+        "-L"
+      ],
+      "passed": true,
+      "package_tests": "Passed in release build, including engine, reports and worker suites."
+    },
+    "tls_session": {
+      "tls_verified_with_installed_private_ca_and_hostname": true,
+      "bearer_sent": false,
+      "status": 200,
+      "body": {
+        "permissions": {
+          "configure": true,
+          "operate": true,
+          "read": true
+        },
+        "principal": {
+          "id": "tailscale:47256370424925063",
+          "label": "Britton Robitzsch",
+          "role": "operator"
+        }
+      }
+    },
+    "worker_inventory": {
+      "status": 200,
+      "body": {
+        "schema": "kiln.web-workers.v1",
+        "version": 55,
+        "bounded": true,
+        "storage_failed": false,
+        "summary": {
+          "targets": 1,
+          "configured_slots": 1,
+          "enrolled_slots": 1,
+          "active": 0,
+          "free_slots": 1,
+          "queued": 0
+        },
+        "workers": [
+          {
+            "id": "3406da2314945b25b59fe79a5f03f522009875dd9ffbe168b3158947f21bb809",
+            "provider_profile_id": "lattice-desktop-self-ci-v1",
+            "platform": "linux-x86_64",
+            "liveness": "unknown",
+            "status": "slots_available",
+            "capacity": {
+              "configured_slots": 1,
+              "enrolled_slots": 1,
+              "active": 0,
+              "free_slots": 1,
+              "queued": 0
+            },
+            "projects": [
+              {
+                "id": "kiln-self-ci",
+                "label": "Kiln \u2014 Rust workspace tests",
+                "enrolled": true,
+                "active_run_ids": [],
+                "queued": 0
+              }
+            ],
+            "latest_run": {
+              "id": "web-run-21d8cc4db8255d60cc823bf0ef6e69b5e4403a698fe57f827210e72518830bbf",
+              "project_id": "kiln-self-ci",
+              "phase": "terminal",
+              "outcome": "Success",
+              "sequence": 2,
+              "error_code": null,
+              "created_at_ms": 1793141329189,
+              "started_at_ms": 1793141329861,
+              "completed_at_ms": 1793141603218
+            }
+          }
+        ]
+      }
+    },
+    "authority_negative": [
+      {
+        "name": "anonymous_direct_workers",
+        "status": 401
+      },
+      {
+        "name": "foreign_origin_tailnet_workers",
+        "status": 403
+      }
+    ],
+    "browser": {
+      "actual_origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+      "workers_navigation": true,
+      "exact_target_selected": true,
+      "search_no_match_then_clear": true,
+      "selected_target_restored_after_reload": true,
+      "mobile_width": 390,
+      "mobile_document_width": 390,
+      "token_empty": true,
+      "session_storage_entries": 0,
+      "local_storage_entries": 0,
+      "desktop_screenshot": "deployed-workers-desktop.webp",
+      "mobile_screenshot": "deployed-workers-mobile.webp",
+      "browser_private_ca_exception": "Isolated Chromium CDP exception only; independent HTTPS requests verified installed CA and hostname."
+    },
+    "cairn_validate": {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "valid": true,
+      "issues": [],
+      "receipt_hash": "89a214b90b4d5803c844d6eab29400a3cd51ec57001942773856c7fe12b81fd2"
+    }
+  },
+  "retained_attempts": [
+    {
+      "issue": "Initial source tar retained Nix-store hardlinks unlike native clones.",
+      "resolution": "Re-emitted every tracked regular file independently; native and both anonymous clones matched corrected archive identity."
+    },
+    {
+      "issue": "Installed Nix profile add rejects --name.",
+      "resolution": "Restored original package with supported positional store path; switched with profile remove/add, preserving unrelated entries."
+    },
+    {
+      "issue": "Changing the worker operation identity caused durable profile binding or size conflict.",
+      "resolution": "Rolled back every profile and database/Lattice mutation, restored and verified original history. Final deployment changes only the controller/proxy-auth package; no direct database rebind, bypass, history rewrite or v1-to-v2 worker migration."
+    }
+  ],
+  "non_claims": [
+    "No lifecycle acceptance, archive, release eligibility or waiver of existing failing readiness/traceability gates.",
+    "No new remote worker was enrolled or activated; remote capability retains prior local/loopback Iroh qualification boundaries.",
+    "No fresh live CI job was launched by this redeployment; retained historical Success is not a new run.",
+    "Configured free slots are not physical worker liveness, placement or guaranteed dispatch.",
+    "This receipt binds the source revision above; its later evidence-only carrier is not a rebuilt or independently qualified executable."
+  ]
+}
