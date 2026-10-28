@@ -2106,6 +2106,13 @@ and signing seed together; do not delete work history or rewind CI state.
 Original run fields remain preserved across this upgrade; the new response adds
 an empty `step_telemetry` array for histories without recorded step observations.
 
+The [workspace navigation deployment receipt](../.cairn/changes/repair-workspace-product-navigation/evidence/deployment.json)
+binds the subsequent issue-first navigation repair to its published source,
+running package and served asset identities. It records desktop and 320px mobile
+browser checks without asset overrides, preserved runs and retained files, and
+the private executable rollback backup. Existing traceability and release holds
+remain unchanged.
+
 #### Non-mutating evaluation and isolated proof
 
 Run these after integration, not while sibling changes are in flight:

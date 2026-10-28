@@ -1,0 +1,102 @@
+{
+  "schema": "kiln.work.usability.deployed-browser.v1",
+  "source": "d1f7d031c5a7e76bcbf7c6c98bd071e3e093a2d1",
+  "origin": "https://britton-desktop.bison-tailor.ts.net:8443/?page=work",
+  "assetOverrides": false,
+  "apiOverrides": false,
+  "tlsBoundary": "CDP private-CA bypass for UI only, following independent CA and hostname verified HTTPS checks",
+  "steps": [
+    {
+      "action": "Open New issue from authenticated Issues",
+      "passed": true
+    },
+    {
+      "action": "Ctrl+K opens command and search palette",
+      "passed": true
+    }
+  ],
+  "planning": [
+    {
+      "category": "Projects",
+      "primary": "New project",
+      "snapshot": "- main [ref=e1]:\n  - generic [ref=e2]:\n    - generic [ref=e3]:\n      - generic [ref=e4]:\n        - paragraph [ref=e5]: Live workspace\n        - heading \"Planning\" [level=1] [ref=e6]\n        - paragraph [ref=e7]: Organize issues into projects, milestones and cycles. Track larger goals with initiatives.\n      - generic [ref=e8]:\n        - status [ref=e9]: Live · authenticated\n        - button \"Refresh & reconnect\" [ref=e10] [cursor=pointer]\n    - generic [ref=e12]:\n      - generic [ref=e13]:\n        - button \"New project\" [ref=e14] [cursor=pointer]\n        - group [ref=e15]:\n          - generic \"Create something else\" [ref=e16] [cursor=pointer]\n        - button \"Refresh\" [ref=e17] [cursor=pointer]\n      - navigation \"Planning categories\" [ref=e18]:\n        - button \"All planning\" [ref=e19] [cursor=pointer]\n        - button \"Projects\" [ref=e20] [cursor=pointer]\n        - button \"Milestones\" [ref=e21] [cursor=pointer]\n        - button \"Cycles\" [ref=e22] [cursor=pointer]\n        - button \"Initiatives\" [ref=e23] [cursor=pointer]\n        - button \"Teams\" [ref=e24] [cursor=pointer]\n      - generic [ref=e25]:\n        - generic [ref=e26]:\n          - generic [ref=e27]: Search\n          - searchbox \"Search\" [ref=e28]\n        - button \"Search\" [ref=e29] [cursor=pointer]\n        - group [ref=e30]:\n          - generic \"Filters & display · 1 active\" [ref=e31] [cursor=pointer]\n          - option \"All types\"\n          - option \"Issue\"\n          - option \"Project\" [selected]\n          - option \"Milestone\"\n          - option \"Cycle\"\n          - option \"Initiative\"\n          - option \"Team\"\n          - option \"Request\"\n          - option \"Saved view\"\n          - option \"Attention preferences\"\n          - option \"All statuses\" [selected]\n          - option \"Backlog\"\n          - option \"Triage\"\n          - option \"Started\"\n          - option \"Completed\"\n          - option \"Cancelled\"\n          - option \"Snoozed\"\n          - option \"Duplicate\"\n          - option \"All projects\" [selected]\n          - option \"List\" [selected]\n          - option \"Board\"\n          - option \"None\" [selected]\n          - option \"Status\"\n          - option \"Assignee\"\n          - option \"Project\"\n          - option \"Priority\"\n          - option \"Team\"\n          - option \"Updated\" [selected]\n          - option \"Created\"\n          - option \"Priority\"\n          - option \"Title\"\n          - option \"Due\"\n      - group [ref=e32]:\n        - generic \"Roadmap · scheduled planning records\" [ref=e33] [cursor=pointer]\n        - paragraph [ref=e34]: No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.\n      - generic \"Work records\" [ref=e36]:\n        - generic [ref=e37]:\n          - heading \"No projects yet\" [level=2] [ref=e38]\n          - paragraph [ref=e39]: Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work.\n          - button \"New project\" [ref=e40] [cursor=pointer]\n    - text: No log bytes loaded."
+    },
+    {
+      "category": "Milestones",
+      "primary": "New milestone",
+      "snapshot": "- main [ref=e1]:\n  - generic [ref=e2]:\n    - generic [ref=e3]:\n      - generic [ref=e4]:\n        - paragraph [ref=e5]: Live workspace\n        - heading \"Planning\" [level=1] [ref=e6]\n        - paragraph [ref=e7]: Organize issues into projects, milestones and cycles. Track larger goals with initiatives.\n      - generic [ref=e8]:\n        - status [ref=e9]: Live · authenticated\n        - button \"Refresh & reconnect\" [ref=e10] [cursor=pointer]\n    - generic [ref=e12]:\n      - generic [ref=e13]:\n        - button \"New milestone\" [ref=e14] [cursor=pointer]\n        - group [ref=e15]:\n          - generic \"Create something else\" [ref=e16] [cursor=pointer]\n        - button \"Refresh\" [ref=e17] [cursor=pointer]\n      - navigation \"Planning categories\" [ref=e18]:\n        - button \"All planning\" [ref=e19] [cursor=pointer]\n        - button \"Projects\" [ref=e20] [cursor=pointer]\n        - button \"Milestones\" [ref=e21] [cursor=pointer]\n        - button \"Cycles\" [ref=e22] [cursor=pointer]\n        - button \"Initiatives\" [ref=e23] [cursor=pointer]\n        - button \"Teams\" [ref=e24] [cursor=pointer]\n      - generic [ref=e25]:\n        - generic [ref=e26]:\n          - generic [ref=e27]: Search\n          - searchbox \"Search\" [ref=e28]\n        - button \"Search\" [ref=e29] [cursor=pointer]\n        - group [ref=e30]:\n          - generic \"Filters & display · 1 active\" [ref=e31] [cursor=pointer]\n          - option \"All types\"\n          - option \"Issue\"\n          - option \"Project\"\n          - option \"Milestone\" [selected]\n          - option \"Cycle\"\n          - option \"Initiative\"\n          - option \"Team\"\n          - option \"Request\"\n          - option \"Saved view\"\n          - option \"Attention preferences\"\n          - option \"All statuses\" [selected]\n          - option \"Backlog\"\n          - option \"Triage\"\n          - option \"Started\"\n          - option \"Completed\"\n          - option \"Cancelled\"\n          - option \"Snoozed\"\n          - option \"Duplicate\"\n          - option \"All projects\" [selected]\n          - option \"List\" [selected]\n          - option \"Board\"\n          - option \"None\" [selected]\n          - option \"Status\"\n          - option \"Assignee\"\n          - option \"Project\"\n          - option \"Priority\"\n          - option \"Team\"\n          - option \"Updated\" [selected]\n          - option \"Created\"\n          - option \"Priority\"\n          - option \"Title\"\n          - option \"Due\"\n      - group [ref=e32]:\n        - generic \"Roadmap · scheduled planning records\" [ref=e33] [cursor=pointer]\n        - paragraph [ref=e34]: No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.\n      - generic \"Work records\" [ref=e36]:\n        - generic [ref=e37]:\n          - heading \"No milestones yet\" [level=2] [ref=e38]\n          - paragraph [ref=e39]: Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work.\n          - button \"New milestone\" [ref=e40] [cursor=pointer]\n    - text: No log bytes loaded."
+    },
+    {
+      "category": "Cycles",
+      "primary": "New cycle",
+      "snapshot": "- main [ref=e1]:\n  - generic [ref=e2]:\n    - generic [ref=e3]:\n      - generic [ref=e4]:\n        - paragraph [ref=e5]: Live workspace\n        - heading \"Planning\" [level=1] [ref=e6]\n        - paragraph [ref=e7]: Organize issues into projects, milestones and cycles. Track larger goals with initiatives.\n      - generic [ref=e8]:\n        - status [ref=e9]: Live · authenticated\n        - button \"Refresh & reconnect\" [ref=e10] [cursor=pointer]\n    - generic [ref=e12]:\n      - generic [ref=e13]:\n        - button \"New cycle\" [ref=e14] [cursor=pointer]\n        - group [ref=e15]:\n          - generic \"Create something else\" [ref=e16] [cursor=pointer]\n        - button \"Refresh\" [ref=e17] [cursor=pointer]\n      - navigation \"Planning categories\" [ref=e18]:\n        - button \"All planning\" [ref=e19] [cursor=pointer]\n        - button \"Projects\" [ref=e20] [cursor=pointer]\n        - button \"Milestones\" [ref=e21] [cursor=pointer]\n        - button \"Cycles\" [ref=e22] [cursor=pointer]\n        - button \"Initiatives\" [ref=e23] [cursor=pointer]\n        - button \"Teams\" [ref=e24] [cursor=pointer]\n      - generic [ref=e25]:\n        - generic [ref=e26]:\n          - generic [ref=e27]: Search\n          - searchbox \"Search\" [ref=e28]\n        - button \"Search\" [ref=e29] [cursor=pointer]\n        - group [ref=e30]:\n          - generic \"Filters & display · 1 active\" [ref=e31] [cursor=pointer]\n          - option \"All types\"\n          - option \"Issue\"\n          - option \"Project\"\n          - option \"Milestone\"\n          - option \"Cycle\" [selected]\n          - option \"Initiative\"\n          - option \"Team\"\n          - option \"Request\"\n          - option \"Saved view\"\n          - option \"Attention preferences\"\n          - option \"All statuses\" [selected]\n          - option \"Backlog\"\n          - option \"Triage\"\n          - option \"Started\"\n          - option \"Completed\"\n          - option \"Cancelled\"\n          - option \"Snoozed\"\n          - option \"Duplicate\"\n          - option \"All projects\" [selected]\n          - option \"List\" [selected]\n          - option \"Board\"\n          - option \"None\" [selected]\n          - option \"Status\"\n          - option \"Assignee\"\n          - option \"Project\"\n          - option \"Priority\"\n          - option \"Team\"\n          - option \"Updated\" [selected]\n          - option \"Created\"\n          - option \"Priority\"\n          - option \"Title\"\n          - option \"Due\"\n      - group [ref=e32]:\n        - generic \"Roadmap · scheduled planning records\" [ref=e33] [cursor=pointer]\n        - paragraph [ref=e34]: No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.\n      - generic \"Work records\" [ref=e36]:\n        - generic [ref=e37]:\n          - heading \"No cycles yet\" [level=2] [ref=e38]\n          - paragraph [ref=e39]: Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work.\n          - button \"New cycle\" [ref=e40] [cursor=pointer]\n    - text: No log bytes loaded."
+    },
+    {
+      "category": "Initiatives",
+      "primary": "New initiative",
+      "snapshot": "- main [ref=e1]:\n  - generic [ref=e2]:\n    - generic [ref=e3]:\n      - generic [ref=e4]:\n        - paragraph [ref=e5]: Live workspace\n        - heading \"Planning\" [level=1] [ref=e6]\n        - paragraph [ref=e7]: Organize issues into projects, milestones and cycles. Track larger goals with initiatives.\n      - generic [ref=e8]:\n        - status [ref=e9]: Live · authenticated\n        - button \"Refresh & reconnect\" [ref=e10] [cursor=pointer]\n    - generic [ref=e12]:\n      - generic [ref=e13]:\n        - button \"New initiative\" [ref=e14] [cursor=pointer]\n        - group [ref=e15]:\n          - generic \"Create something else\" [ref=e16] [cursor=pointer]\n        - button \"Refresh\" [ref=e17] [cursor=pointer]\n      - navigation \"Planning categories\" [ref=e18]:\n        - button \"All planning\" [ref=e19] [cursor=pointer]\n        - button \"Projects\" [ref=e20] [cursor=pointer]\n        - button \"Milestones\" [ref=e21] [cursor=pointer]\n        - button \"Cycles\" [ref=e22] [cursor=pointer]\n        - button \"Initiatives\" [ref=e23] [cursor=pointer]\n        - button \"Teams\" [ref=e24] [cursor=pointer]\n      - generic [ref=e25]:\n        - generic [ref=e26]:\n          - generic [ref=e27]: Search\n          - searchbox \"Search\" [ref=e28]\n        - button \"Search\" [ref=e29] [cursor=pointer]\n        - group [ref=e30]:\n          - generic \"Filters & display · 1 active\" [ref=e31] [cursor=pointer]\n          - option \"All types\"\n          - option \"Issue\"\n          - option \"Project\"\n          - option \"Milestone\"\n          - option \"Cycle\"\n          - option \"Initiative\" [selected]\n          - option \"Team\"\n          - option \"Request\"\n          - option \"Saved view\"\n          - option \"Attention preferences\"\n          - option \"All statuses\" [selected]\n          - option \"Backlog\"\n          - option \"Triage\"\n          - option \"Started\"\n          - option \"Completed\"\n          - option \"Cancelled\"\n          - option \"Snoozed\"\n          - option \"Duplicate\"\n          - option \"All projects\" [selected]\n          - option \"List\" [selected]\n          - option \"Board\"\n          - option \"None\" [selected]\n          - option \"Status\"\n          - option \"Assignee\"\n          - option \"Project\"\n          - option \"Priority\"\n          - option \"Team\"\n          - option \"Updated\" [selected]\n          - option \"Created\"\n          - option \"Priority\"\n          - option \"Title\"\n          - option \"Due\"\n      - group [ref=e32]:\n        - generic \"Roadmap · scheduled planning records\" [ref=e33] [cursor=pointer]\n        - paragraph [ref=e34]: No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.\n      - generic \"Work records\" [ref=e36]:\n        - generic [ref=e37]:\n          - heading \"No initiatives yet\" [level=2] [ref=e38]\n          - paragraph [ref=e39]: Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work.\n          - button \"New initiative\" [ref=e40] [cursor=pointer]\n    - text: No log bytes loaded."
+    },
+    {
+      "category": "Teams",
+      "primary": "New team",
+      "snapshot": "- main [ref=e1]:\n  - generic [ref=e2]:\n    - generic [ref=e3]:\n      - generic [ref=e4]:\n        - paragraph [ref=e5]: Live workspace\n        - heading \"Planning\" [level=1] [ref=e6]\n        - paragraph [ref=e7]: Organize issues into projects, milestones and cycles. Track larger goals with initiatives.\n      - generic [ref=e8]:\n        - status [ref=e9]: Live · authenticated\n        - button \"Refresh & reconnect\" [ref=e10] [cursor=pointer]\n    - generic [ref=e12]:\n      - generic [ref=e13]:\n        - button \"New team\" [ref=e14] [cursor=pointer]\n        - group [ref=e15]:\n          - generic \"Create something else\" [ref=e16] [cursor=pointer]\n        - button \"Refresh\" [ref=e17] [cursor=pointer]\n      - navigation \"Planning categories\" [ref=e18]:\n        - button \"All planning\" [ref=e19] [cursor=pointer]\n        - button \"Projects\" [ref=e20] [cursor=pointer]\n        - button \"Milestones\" [ref=e21] [cursor=pointer]\n        - button \"Cycles\" [ref=e22] [cursor=pointer]\n        - button \"Initiatives\" [ref=e23] [cursor=pointer]\n        - button \"Teams\" [ref=e24] [cursor=pointer]\n      - generic [ref=e25]:\n        - generic [ref=e26]:\n          - generic [ref=e27]: Search\n          - searchbox \"Search\" [ref=e28]\n        - button \"Search\" [ref=e29] [cursor=pointer]\n        - group [ref=e30]:\n          - generic \"Filters & display · 1 active\" [ref=e31] [cursor=pointer]\n          - option \"All types\"\n          - option \"Issue\"\n          - option \"Project\"\n          - option \"Milestone\"\n          - option \"Cycle\"\n          - option \"Initiative\"\n          - option \"Team\" [selected]\n          - option \"Request\"\n          - option \"Saved view\"\n          - option \"Attention preferences\"\n          - option \"All statuses\" [selected]\n          - option \"Backlog\"\n          - option \"Triage\"\n          - option \"Started\"\n          - option \"Completed\"\n          - option \"Cancelled\"\n          - option \"Snoozed\"\n          - option \"Duplicate\"\n          - option \"All projects\" [selected]\n          - option \"List\" [selected]\n          - option \"Board\"\n          - option \"None\" [selected]\n          - option \"Status\"\n          - option \"Assignee\"\n          - option \"Project\"\n          - option \"Priority\"\n          - option \"Team\"\n          - option \"Updated\" [selected]\n          - option \"Created\"\n          - option \"Priority\"\n          - option \"Title\"\n          - option \"Due\"\n      - group [ref=e32]:\n        - generic \"Roadmap · scheduled planning records\" [ref=e33] [cursor=pointer]\n        - paragraph [ref=e34]: No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.\n      - generic \"Work records\" [ref=e36]:\n        - generic [ref=e37]:\n          - heading \"No teams yet\" [level=2] [ref=e38]\n          - paragraph [ref=e39]: Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work.\n          - button \"New team\" [ref=e40] [cursor=pointer]\n    - text: No log bytes loaded."
+    }
+  ],
+  "mobile": {
+    "viewport": 320,
+    "documentWidth": 320,
+    "topbarHeight": 67.1875,
+    "searchHeight": 44,
+    "expandedMenu": {
+      "left": 16,
+      "right": 304,
+      "viewport": 320,
+      "documentWidth": 320
+    },
+    "drawerClosedOnEscape": true
+  },
+  "browserErrors": {
+    "entries": [
+      {
+        "seq": 1,
+        "ts": 1793221971645,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 2,
+        "ts": 1793221990061,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 3,
+        "ts": 1793222014624,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 4,
+        "ts": 1793222060205,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      }
+    ],
+    "nextSeq": 4,
+    "dropped": 0
+  },
+  "productionMutationSubmitted": false,
+  "screenshots": [
+    "deployed-desktop.png",
+    "deployed-issue-capture.png",
+    "deployed-mobile.png"
+  ]
+}
