@@ -245,6 +245,27 @@ The view is read-only, never dispatches Patchgate, and grants no review, merge,
 gate or release authority. Upload the receipt JSON as a `review` report to
 retain it for the run.
 
+### Produce one receipt outside a run
+
+`scripts/patchgate-review-job.py` builds the profile and intent from live native
+states, computes one archive identity per pending inbox change, runs
+`kiln-patchgate-review plan` and `review`, and writes the receipt:
+
+```console
+python3 scripts/patchgate-review-job.py \
+  --target /path/to/pijul-repository \
+  --patchgate "$(command -v patchgate)" \
+  --adapter "$(nix build path:$PWD#kiln --no-link --print-out-paths)/bin/kiln-patchgate-review" \
+  --pijul "$(dirname "$(readlink -f "$(command -v patchgate)")")/pijul" \
+  --out patchgate-review.json
+```
+
+The script refuses an inbox that is behind main or has no pending change, and it
+never records, applies, merges or accepts. Its exit is the adapter's exit;
+successful evidence admission is not review acceptance. The receipt is only
+visible in the Reviews tab when a run uploads it while active, because report
+upload binds the run, node and attempt exactly.
+
 ### Real producer repeatability
 
 In the development shell, with `PATCHGATE` naming the pinned installed program,
