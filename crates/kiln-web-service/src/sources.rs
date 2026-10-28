@@ -182,6 +182,16 @@ impl Browser {
             }
             return self.inventory();
         }
+        if path == "/api/sources/lookup" {
+            if values.keys().any(|key| key != "revision") {
+                return error(400, "query_invalid");
+            }
+            let revision = values.get("revision").map_or("", String::as_str);
+            if !is_revision(revision) {
+                return error(400, "source_revision_invalid");
+            }
+            return self.lookup(revision);
+        }
         let Some(rest) = path.strip_prefix("/api/sources/") else {
             return error(404, "route_missing");
         };
@@ -209,6 +219,36 @@ impl Browser {
             "diff" => self.diff(policy, &values),
             _ => self.file(policy, &values),
         }
+    }
+
+    /// Report which admitted sources actually contain one exact commit.
+    ///
+    /// This is how a recorded patch commit is linked to a readable diff; a
+    /// source that lacks the object is reported by omission, never guessed.
+    fn lookup(&self, revision: &str) -> Result<ApiResponse, String> {
+        let Some(profile) = &self.profile else {
+            return json_response(
+                200,
+                json!({"revision":revision,"matches":[],"non_claims":NON_CLAIMS}),
+            );
+        };
+        let oid = Oid::from_str(revision).map_err(|_| "revision is not an object id")?;
+        let mut matches = Vec::new();
+        for policy in &profile.sources {
+            if policy.kind == "pijul" {
+                continue;
+            }
+            let Ok(repository) = open_git(policy) else {
+                continue;
+            };
+            if repository.find_commit(oid).is_ok() {
+                matches.push(json!({"id":policy.id,"label":policy.label,"kind":policy.kind}));
+            }
+        }
+        json_response(
+            200,
+            json!({"revision":revision,"matches":matches,"non_claims":NON_CLAIMS}),
+        )
     }
 
     fn inventory(&self) -> Result<ApiResponse, String> {
@@ -349,6 +389,13 @@ fn observe(policy: &SourcePolicy) -> Observation {
             },
         },
     }
+}
+
+fn is_revision(value: &str) -> bool {
+    value.len() == 40
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn reject_symlink(path: &Path) -> Result<PathBuf, &'static str> {

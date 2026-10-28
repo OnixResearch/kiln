@@ -1008,6 +1008,46 @@
     }
     if (!result.objects.length) parent.append(element("p", result.complete === false ? "No matching objects were read from the available subset. Unavailable stores may contain objects." : "No matching COBs in the configured local snapshot. Remote peers and unconfigured stores were not queried.", "small"));
   }
+  // r[impl kiln.dashboard.source.view]
+  function patchCommitCandidates(object) {
+    const candidates = new Set();
+    const accept = (value) => { if (typeof value === "string" && /^[0-9a-f]{40}$/.test(value)) candidates.add(value); };
+    for (const operation of object.operations || []) {
+      for (const action of operation.actions || []) {
+        const value = action.value || {};
+        accept(value.oid);
+        accept(value.revision);
+        accept(value.base);
+        const state = value.state;
+        if (state && typeof state === "object") { accept(state.oid); accept(state.revision); }
+      }
+    }
+    return [...candidates].slice(0, 4);
+  }
+  async function attachPatchSources(parent, object) {
+    if (object.identity.type_name !== "xyz.radicle.patch") return;
+    const candidates = patchCommitCandidates(object);
+    if (!candidates.length) return;
+    const epoch = state.epoch;
+    const selected = state.route.cob;
+    const card = section("Recorded patch commits in admitted sources", parent, "record-card");
+    card.append(element("p", "A patch commit is linked only when an admitted source actually contains that exact object. Coverage is not inferred from the patch itself.", "small"));
+    let links = 0;
+    for (const revision of candidates) {
+      let result;
+      try { result = await api(`/api/sources/lookup?${new URLSearchParams({ revision })}`); }
+      catch (error) { if (!isAborted(error)) card.append(element("p", `Commit lookup unavailable: ${explain(error)}`, "warning")); continue; }
+      if (state.epoch !== epoch || state.route.cob !== selected) return;
+      for (const match of result.matches || []) {
+        const button = element("button", `Open ${match.label} · ${match.kind} · ${revision.slice(0, 12)}…`);
+        button.type = "button";
+        button.addEventListener("click", () => navigate({ page: "source", src: match.id, rev: revision, spath: "", sfile: "", sq: "", cob: "", cob_repo: "", cob_kind: "", cob_type: "", cob_cursor: "", cob_repository: "", cob_q: "" }));
+        card.append(button);
+        links += 1;
+      }
+    }
+    if (!links) card.append(element("p", "No admitted source contains a commit from this patch. Nothing was substituted.", "small"));
+  }
   function renderCobDetail(parent, result) {
     const object = result.object;
     if (!object?.identity || !Array.isArray(object.operations)) throw new Error("COB history response is invalid.");
@@ -1026,6 +1066,7 @@
       for (const action of operation.actions || []) { const details = element("details"); details.open = Number.isSafeInteger(action.bytes) && action.bytes < 4096; details.append(element("summary", `Raw action ${text(action.index)} · ${text(action.bytes)} bytes · blob ${text(action.blob_id)}`), element("pre", JSON.stringify(action.value, null, 2), "identity cob-action")); card.append(details); }
     }
     for (const boundary of result.non_claims || []) parent.append(element("p", boundary, "small"));
+    void attachPatchSources(parent, object);
   }
 
   // r[impl kiln.dashboard.source.view]

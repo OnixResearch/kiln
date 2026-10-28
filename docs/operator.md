@@ -1621,6 +1621,10 @@ deadline. The Pijul CLI exposes no historical blob read, so Pijul trees describe
 the current channel state and Pijul files describe the tracked working copy;
 `revision` is rejected for a Pijul source and both scopes are labelled.
 
+- `/api/sources/lookup?revision=` reports which admitted Git/Jujutsu sources
+  actually contain one exact commit, so a recorded Radicle patch can be opened
+  as a real diff. Sources that lack the object are omitted, never guessed.
+
 The view adds client-side entry filtering, an explicit up-one-level control and
 newer/older revision steps over the loaded page; all of them change only the URL
 selection, never the repository.

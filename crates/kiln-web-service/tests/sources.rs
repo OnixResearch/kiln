@@ -591,6 +591,76 @@ fn oversized_revision_changes_report_truncation_instead_of_failure() {
     assert!(!text.is_empty());
 }
 
+// r[verify kiln.dashboard.source.read.scenario.lookup]
+#[test]
+fn commit_lookup_reports_only_sources_that_contain_the_object() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let (_repository, first, second) = git_fixture(root.path());
+    let other = root.path().join("other");
+    let other_repository = Repository::init(other.join("work"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let foreign = commit(&other_repository, &[("x", "x\n")], "Foreign", None);
+    other_repository
+        .reference("refs/heads/main", foreign, true, "fixture")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    other_repository
+        .set_head("refs/heads/main")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let browser = browser(vec![
+        policy("kiln", "git", &root.path().join("work")),
+        policy("other", "git", &other.join("work")),
+    ]);
+
+    let found = get(&browser, &format!("/api/sources/lookup?revision={second}"));
+    let matches = found
+        .get("matches")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| unreachable!("fixture member absent"));
+    assert_eq!(matches.len(), 1);
+    assert_eq!(
+        matches
+            .first()
+            .and_then(|row| row.get("id"))
+            .and_then(Value::as_str),
+        Some("kiln")
+    );
+
+    let foreign_match = get(&browser, &format!("/api/sources/lookup?revision={foreign}"));
+    assert_eq!(
+        foreign_match
+            .get("matches")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(1)
+    );
+
+    let absent = get(
+        &browser,
+        "/api/sources/lookup?revision=0123456789012345678901234567890123456789",
+    );
+    assert_eq!(
+        absent
+            .get("matches")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(0)
+    );
+    rejects(
+        &browser,
+        "/api/sources/lookup?revision=HEAD",
+        400,
+        "source_revision_invalid",
+    );
+    rejects(
+        &browser,
+        "/api/sources/lookup?revision=HEAD&path=x",
+        400,
+        "query_invalid",
+    );
+    assert_eq!(first, first);
+}
+
 #[test]
 fn source_routes_reject_writes_workers_and_unconfigured_policies() {
     let unconfigured = Browser::new(None).unwrap_or_else(|error| unreachable!("{error}"));

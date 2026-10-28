@@ -130,5 +130,36 @@
       "source_diff_reports_exact_parent_changes_and_rejects_pijul_history",
       "oversized_revision_changes_report_truncation_instead_of_failure"
     ]
-  }
+  },
+  "patch_viewing": {
+    "lookup_endpoint": "/api/sources/lookup?revision=",
+    "live": {
+      "present": "c4bb071a95078e58a14eb01a8cc874a2af1559bf \u2192 native-ci (git)",
+      "absent": "0123456789\u2026 \u2192 []"
+    },
+    "browser": "A Radicle patch COB rendered \"Recorded patch commits in admitted sources\" with a link to the exact commit; opening it moved to the Source view with the patch commit selected and rendered 6 files changed, +3 \u221269. Without an admitted source containing the commit, the card states that nothing was substituted.",
+    "note": "Patch commits are linked only when an admitted source actually contains that object; coverage is never inferred from the patch record."
+  },
+  "sources_admitted": [
+    {
+      "id": "kiln",
+      "kind": "git",
+      "label": "Kiln (Git)"
+    },
+    {
+      "id": "lattice",
+      "kind": "jj",
+      "label": "Lattice (Jujutsu)"
+    },
+    {
+      "id": "native-ci",
+      "kind": "git",
+      "label": "Radicle native CI adapter (local Git store)"
+    },
+    {
+      "id": "redox",
+      "kind": "pijul",
+      "label": "Redox (Pijul)"
+    }
+  ]
 }
