@@ -1,0 +1,49 @@
+{
+  "schema": "kiln.patchgate.job-reproducibility.v1",
+  "producer": "scripts/patchgate-review-job.py",
+  "target": "/home/brittonr/git/patchgate-review-target",
+  "adapter": "/nix/store/ifapzzy3j22gwy5hi68snr1kchis5sw1-kiln-0.1.0/bin/kiln-patchgate-review",
+  "runs": 2,
+  "stable_identities": {
+    "request_identity": "0044f9a0b5babd0ee752a91dc084ca728bb4960144ae129f644ca5b7c149af5f",
+    "idempotency_key": "79a1763851fc114c562f8de59e105c707a58c704b6ac1281feb02080df13b3de",
+    "candidate_id": "candidate-C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPS",
+    "candidate_root": "391678bb1041d3a2119914dad252e1c681186edc3e753e1193764bf7f65d4b08",
+    "policy_identity": "bc6f6d5d32db1756b4b3cf9368e74edaabc942a072a41b74a335ad51ee5d0892",
+    "native_binding_identity": "d2f5d5a21c3f631f0b4173d43cc60010c85123b918f0a95e50e12e639c77d70c",
+    "identical_fields_across_runs": [
+      "contract_version",
+      "effect_id",
+      "idempotency_key",
+      "candidate_id",
+      "candidate_root",
+      "pipeline_revision",
+      "policy_identity",
+      "provider_profile",
+      "native_binding_identity",
+      "isolated",
+      "authorizes_acceptance",
+      "reviews"
+    ],
+    "differing_fields_across_runs": [
+      "report_identity"
+    ]
+  },
+  "varying": {
+    "report_identity": [
+      "9475110cffa87091797eedc61442e6caed99d83bff67dc108452d1db6adeb133",
+      "9f590569f1f38514f159968f150a9e444affa55c9aa042b089e8812f30ab5a2a"
+    ],
+    "native_report_record_time": [
+      "2026-10-28T12:21:25+00:00",
+      "2026-10-28T12:21:26+00:00"
+    ],
+    "native_report_elapsed_seconds": [
+      0.344807581,
+      0.373520632
+    ],
+    "cause": "Patchgate stamps its own report with the review time and elapsed seconds, so the retained native bytes and their BLAKE3 identity differ per run while every admitted request, candidate, policy and binding identity stays exact."
+  },
+  "fix_applied": "The job now uses a stable HOME and a canonical path/mode/content manifest as the frozen-source identity. Archive bytes (mtimes) and a temporary HOME previously leaked into the request identity.",
+  "claim": "For unchanged native states, the review request, candidate and policy identities are reproducible; the observation is not byte-identical because the producer records when it ran."
+}

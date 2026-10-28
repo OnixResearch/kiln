@@ -32,6 +32,14 @@ def blake3_file(path):
     return run(["b3sum", "--no-names", path]).decode().strip()
 
 
+def blake3_bytes(data):
+    result = subprocess.run(["b3sum", "--no-names"], input=data,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if result.returncode:
+        raise SystemExit("b3sum failed on in-memory bytes")
+    return result.stdout.decode().strip()
+
+
 def external(kind, value):
     return {"contract_version": 1, "provider_namespace": "pijul",
             "native_kind": kind, "native_id": value}
@@ -49,14 +57,28 @@ def status(patchgate, repo, env):
 
 
 def snapshot(repo, pijul, change, work, env):
+    """Canonical manifest identity of main plus one change.
+
+    Archive bytes carry mtimes and are not reproducible; the snapshot identity is
+    instead the BLAKE3 of a sorted path/mode/content-hash manifest of exactly the
+    snapshot channel's tracked files.
+    """
     copy = work / ("snapshot-" + change[:12])
     shutil.copytree(repo, copy, symlinks=True)
     channel = "snapshot-" + change[:12]
     run([pijul, "fork", "--channel", "main", channel, "--repository", copy], env=env)
     run([pijul, "apply", "--channel", channel, change, "--repository", copy], env=env)
-    archive = work / (change[:12] + ".tar.gz")
-    run([pijul, "archive", "--channel", channel, "-o", archive, "--repository", copy], env=env)
-    return blake3_file(archive)
+    run([pijul, "channel", "switch", channel], cwd=copy, env=env)
+    lines = []
+    for path in sorted(copy.rglob("*")):
+        relative = path.relative_to(copy)
+        if relative.parts[:1] in ((".pijul",), (".git",)):
+            continue
+        if path.is_symlink():
+            lines.append(f"{relative}\0symlink\0{os.readlink(path)}")
+        elif path.is_file():
+            lines.append(f"{relative}\0{path.stat().st_mode:o}\0{blake3_file(path)}")
+    return blake3_bytes("\n".join(lines).encode())
 
 
 def main():
@@ -66,11 +88,14 @@ def main():
     parser.add_argument("--adapter", required=True)
     parser.add_argument("--pijul", required=True)
     parser.add_argument("--out", default="patchgate-review.json")
+    parser.add_argument("--home", default="/home/brittonr/git/.patchgate-review-home",
+                        help="stable HOME bound into the review profile so identical native states reproduce an identical receipt")
     parser.add_argument("--pipeline", default="patchgate-review-v1")
     args = parser.parse_args()
 
     target = Path(args.target).resolve()
-    home = Path(tempfile.mkdtemp(prefix="patchgate-home-"))
+    home = Path(args.home).resolve()
+    home.mkdir(parents=True, exist_ok=True)
     env = {"HOME": str(home), "PATH": os.environ.get("PATH", "/run/current-system/sw/bin")}
     work = Path(tempfile.mkdtemp(prefix="patchgate-work-"))
     try:
@@ -180,7 +205,6 @@ def main():
         print(json.dumps(summary, indent=2))
     finally:
         shutil.rmtree(work, ignore_errors=True)
-        shutil.rmtree(home, ignore_errors=True)
 
 
 if __name__ == "__main__":
