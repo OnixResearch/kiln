@@ -172,13 +172,13 @@
 
   function builtins(query) {
     const entries = [
-      ["Go to work", { page: "work" }], ["Go to planning", { page: "planning" }],
-      ["Go to inbox", { page: "inbox" }], ["Go to triage", { page: "triage" }],
+      ["Go to issues", { page: "work" }], ["Go to planning", { page: "planning" }],
+      ["Go to my inbox", { page: "inbox" }], ["Go to requests and triage", { page: "triage" }],
       ["Go to saved views", { page: "workviews" }], ["Go to CI projects", { page: "projects" }],
       ["Go to CI runs", { page: "runs" }], ["Go to retained reviews", { page: "reviews" }],
     ].map(([label, patch]) => ({ label, detail: "Navigation", run: () => bridge().navigate(patch) }));
     if (writable() && typeof ui()?.create === "function") {
-      for (const kind of KINDS) entries.push({ label: `New ${kind}`, detail: "Open native work creation form", run: () => ui().create(kind) });
+      for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}`, detail: "Open creation form", run: () => ui().create(kind) });
     }
     const filtered = entries.filter((entry) => matches(query, entry.label));
     if (query) {

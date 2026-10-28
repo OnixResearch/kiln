@@ -1349,6 +1349,29 @@ checkout rather than the mutable worktree. Follow the existing
 profile generation does not install or start it.
 
 ### Navigate the live workspace
+<!-- r[related kiln.work.usability] -->
+
+The sidebar separates **Work**, **Continuous integration** and a collapsed
+**Administration** group. **Issues** opens the existing `page=work` route;
+existing page URLs remain valid. Administration opens automatically for a selected
+administrative page. The Kiln brand returns to Issues.
+
+Start with **New issue**. Title, description, status and priority are visible;
+ownership/labels, relationships, dates and CI/source links open in labelled
+disclosures. Creation and editing still confirm exact fields before signed writes.
+Each work destination offers its own primary action: requests in Triage, a saved
+view in Saved views, and the selected planning type in Planning. **Create something
+else** retains access to all supported types, including private attention
+preferences. Planning categories distinguish projects, milestones, cycles,
+initiatives and teams from CI project enrollment.
+
+Search stays visible. Open **Filters & display** for type/status/assignee/project,
+list/board layout, grouping, sorting, reset and saving the current view. Its summary
+shows active filter count and board mode. Named views keep their existing URL
+override precedence. An empty list gives contextual guidance; unavailable storage
+remains a failure, never substituted demo or empty-success data. Read-only sessions
+retain browsing without gaining work-write authority.
+
 
 Overview totals link to retained run filters; the active count opens Operations.
 Failing projects appear before healthy projects. Projects places enrollment and

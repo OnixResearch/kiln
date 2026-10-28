@@ -4,9 +4,21 @@
 .work-workspace h2, .work-workspace h3, .work-workspace h4, .work-dialog h2, .work-dialog h3 { margin: 0; overflow-wrap: anywhere; }
 .work-toolbar, .work-actions, .work-row-meta, .work-favorites, .work-detail-heading, .work-dialog-heading { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; }
 .work-favorites { padding: .7rem; border: 1px solid var(--border); border-radius: .55rem; background: var(--surface-soft); }
-.work-favorites > .small { margin-right: .4rem; }
 .work-favorites button { max-width: 100%; overflow-wrap: anywhere; text-align: left; }
-.work-toolbar { align-items: end; }
+.work-toolbar { align-items: center; }
+.work-toolbar > button:last-child { margin-left: auto; }
+.work-create-more { position: relative; }
+.work-create-more > summary, .work-filter-disclosure > summary, .work-disclosure > summary { cursor: pointer; padding: .7rem; font-size: .8rem; font-weight: 550; }
+.work-create-more > .work-actions { position: absolute; top: 100%; left: 0; z-index: 5; display: grid; width: min(17rem, 75vw); padding: .55rem; border: 1px solid var(--border-strong); border-radius: .5rem; background: var(--surface); box-shadow: var(--shadow); }
+.work-create-more button { text-align: left; }
+.work-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .7rem; }
+.work-search > .work-field { max-width: 38rem; }
+.work-filter-disclosure { grid-column: 1 / -1; border-block: 1px solid var(--border); }
+.work-filter-disclosure > summary { color: var(--muted); }
+.work-categories { display: flex; flex-wrap: wrap; gap: .4rem; }
+.work-categories [aria-current="page"] { border-color: var(--olive); background: var(--olive-soft); color: var(--olive); }
+.work-disclosure { border: 1px solid var(--border); border-radius: .45rem; }
+.work-disclosure > summary { padding: .9rem; }
 .work-field { display: grid; gap: .4rem; margin: 0; min-width: 0; color: var(--text); font-size: .77rem; }
 .work-field > span { overflow-wrap: anywhere; }
 .work-field input, .work-field select, .work-field textarea { width: 100%; min-width: 0; font: inherit; font-size: .85rem; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: .4rem; padding: .6rem; }
@@ -17,7 +29,9 @@
 .work-field :focus-visible, .work-workspace [tabindex]:focus-visible, .work-dialog :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .work-field select[multiple] { min-height: 6rem; }
 .work-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .8rem; padding: 1rem; background: var(--surface-soft); border: 1px solid var(--border); border-radius: .5rem; align-items: end; }
+.work-filters > .work-actions { grid-column: 1 / -1; }
 .work-columns { display: grid; grid-template-columns: minmax(18rem, 1fr) minmax(22rem, 1.05fr); align-items: start; gap: 1rem; min-width: 0; }
+.work-columns.work-columns-list-only { grid-template-columns: minmax(0, 1fr); }
 .work-list-scroll { max-height: min(75dvh, 65rem); overflow: auto; min-width: 0; padding: .2rem; scrollbar-gutter: stable; }
 .work-group { min-width: 0; display: grid; gap: .55rem; align-content: start; margin-bottom: 1rem; }
 .work-group > h3 { font-size: .8rem; padding: .65rem .3rem; position: sticky; top: 0; background: var(--surface); z-index: 1; }
@@ -49,6 +63,8 @@ pre.work-text { overflow: auto; max-height: 28rem; }
 .work-progress { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .work-progress progress { accent-color: var(--olive); height: .65rem; width: min(12rem, 100%); }
 .work-empty { border: 1px dashed var(--border-strong); border-radius: .5rem; padding: 1.5rem; font-size: .85rem; line-height: 1.8; color: var(--muted); }
+.work-empty h2 { font-size: 1.15rem; color: var(--text); }
+.work-empty p { max-width: 42rem; }
 .work-roadmap { border: 1px solid var(--border); border-radius: .5rem; padding: .75rem; }
 .work-roadmap > summary { font-size: .9rem; font-weight: 600; }
 .work-roadmap-row { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(8rem, 2fr) minmax(9rem, 1fr); gap: .6rem; align-items: center; margin-top: .6rem; }
@@ -67,6 +83,7 @@ pre.work-text { overflow: auto; max-height: 28rem; }
 .work-dialog-heading h2 { flex: 1; font-size: 1.2rem; }
 .work-dialog form { display: grid; gap: 1rem; }
 .work-editor .work-form-section { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; border: 1px solid var(--border); border-radius: .45rem; padding: 1rem; }
+.work-editor .work-disclosure > .work-form-section { border: 0; border-top: 1px solid var(--border); border-radius: 0; }
 .work-form-section > h3, .work-form-section > p, .work-form-section > .work-link-editor, .work-form-section > .work-reminder-editor { grid-column: 1 / -1; }
 .work-form-section > h3 { font-size: .9rem; }
 .work-form-section .work-field:has(textarea) { grid-column: 1 / -1; }
@@ -81,6 +98,9 @@ pre.work-text { overflow: auto; max-height: 28rem; }
   .work-roadmap-row > .small { grid-column: 1 / -1; }
 }
 @media (max-width: 850px) {
+  .work-toolbar { position: relative; }
+  .work-create-more { position: static; }
+  .work-create-more > .work-actions { left: 0; right: 0; width: auto; max-height: 55dvh; overflow-y: auto; }
   .work-columns { grid-template-columns: minmax(0, 1fr); }
   .work-list-scroll { max-height: 55dvh; }
   .work-detail { scroll-margin-top: 5rem; }

@@ -1,0 +1,374 @@
+{
+  "schema": "kiln.work.usability.browser.v1",
+  "scope": "Candidate frontend with isolated native signed work API; no production writes or deployment",
+  "assetOverrides": [
+    "web.html",
+    "web.css",
+    "work.css"
+  ],
+  "issue": {
+    "id": "45d1092de00d77a46a8df7826c5dfef858c7b651",
+    "head": "45d1092de00d77a46a8df7826c5dfef858c7b651",
+    "title": "Make the workflow understandable",
+    "description": "Captured through the simplified issue form in a disposable signed native store.",
+    "status": "backlog"
+  },
+  "editedIssue": {
+    "id": "45d1092de00d77a46a8df7826c5dfef858c7b651",
+    "head": "69a0b247682cbafb0289fb844cbc1048a4cf9f9e",
+    "fields": {
+      "title": "Make the workflow understandable",
+      "description": "Captured through the simplified issue form in a disposable signed native store.",
+      "status": "backlog",
+      "priority": 0,
+      "owner": "local:operator",
+      "assignees": [
+        "local:operator"
+      ],
+      "labels": [
+        "clarity",
+        "frontend"
+      ],
+      "parent": null,
+      "blocked_by": [],
+      "team": null,
+      "project": "498ef3923a5212b4887e802a325ce37b7424f6e2",
+      "milestone": null,
+      "cycle": null,
+      "initiative": null,
+      "start_at_ms": null,
+      "due_at_ms": null,
+      "customer": null,
+      "source_url": null,
+      "duplicate_of": null,
+      "links": [],
+      "workflow": [],
+      "view": null,
+      "personal": null
+    }
+  },
+  "planning": [
+    {
+      "kind": "project",
+      "primary": "New project",
+      "rows": 1
+    },
+    {
+      "kind": "milestone",
+      "primary": "New milestone",
+      "rows": 1
+    },
+    {
+      "kind": "cycle",
+      "primary": "New cycle",
+      "rows": 1
+    },
+    {
+      "kind": "initiative",
+      "primary": "New initiative",
+      "rows": 1
+    },
+    {
+      "kind": "team",
+      "primary": "New team",
+      "rows": 1
+    }
+  ],
+  "savedBoard": {
+    "url": "https://127.0.0.1:41037/?page=work&view=pipeline&stream=stdout&order=desc&work_view=fcb458a026ebfe67f34623c0623f1292a1c4b6f7&theme=system&density=comfortable",
+    "summary": "Filters & display · 2 active · Board",
+    "rows": 2,
+    "reloadRestored": true
+  },
+  "search": {
+    "url": "https://127.0.0.1:41037/?page=work&view=pipeline&stream=stdout&order=desc&work_q=Make+the+workflow+understandable&work_layout=list&work_group=none&work_sort=updated&theme=system&density=comfortable",
+    "rows": 1,
+    "title": "Make the workflow understandable"
+  },
+  "keyboardPalette": true,
+  "logout": {
+    "objects": 0,
+    "dialogs": 0,
+    "privateTitleRetained": false
+  },
+  "readOnly": {
+    "canWrite": false,
+    "primaryDisabled": true,
+    "privateViews": []
+  },
+  "unavailable": {
+    "message": "Work storage unavailable: Failed to fetch. No empty or demo data has been substituted.\n\nReconnect",
+    "rows": 0,
+    "recovered": true
+  },
+  "browserErrors": {
+    "entries": [
+      {
+        "seq": 1,
+        "ts": 1793220614729,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/?page=work: net::ERR_CERT_AUTHORITY_INVALID",
+        "location": "https://127.0.0.1:41037/?page=work"
+      },
+      {
+        "seq": 2,
+        "ts": 1793220631656,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/session: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/session"
+      },
+      {
+        "seq": 3,
+        "ts": 1793220845279,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7223: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7223"
+      },
+      {
+        "seq": 4,
+        "ts": 1793220849761,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7260: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7260"
+      },
+      {
+        "seq": 5,
+        "ts": 1793220854314,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7286: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7286"
+      },
+      {
+        "seq": 6,
+        "ts": 1793220856866,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7302: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7302"
+      },
+      {
+        "seq": 7,
+        "ts": 1793220860863,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7313: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7313"
+      },
+      {
+        "seq": 8,
+        "ts": 1793220865680,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7344: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7344"
+      },
+      {
+        "seq": 9,
+        "ts": 1793220866368,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/work: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/work"
+      },
+      {
+        "seq": 10,
+        "ts": 1793220872761,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7420: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7420"
+      },
+      {
+        "seq": 11,
+        "ts": 1793220880561,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7529: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7529"
+      },
+      {
+        "seq": 12,
+        "ts": 1793220884098,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7566: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7566"
+      },
+      {
+        "seq": 13,
+        "ts": 1793220885726,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7584: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7584"
+      },
+      {
+        "seq": 14,
+        "ts": 1793220887575,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7604: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7604"
+      },
+      {
+        "seq": 15,
+        "ts": 1793220893231,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7664: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7664"
+      },
+      {
+        "seq": 16,
+        "ts": 1793220897315,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7698: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7698"
+      },
+      {
+        "seq": 17,
+        "ts": 1793220900559,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7742: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7742"
+      },
+      {
+        "seq": 18,
+        "ts": 1793220902560,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/session: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/session"
+      },
+      {
+        "seq": 19,
+        "ts": 1793220902889,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=0: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=0"
+      },
+      {
+        "seq": 20,
+        "ts": 1793220909460,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7871: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7871"
+      },
+      {
+        "seq": 21,
+        "ts": 1793220911335,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7896: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7896"
+      },
+      {
+        "seq": 22,
+        "ts": 1793220912871,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=7916: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=7916"
+      },
+      {
+        "seq": 23,
+        "ts": 1793220934455,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=8212: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=8212"
+      },
+      {
+        "seq": 24,
+        "ts": 1793220939274,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/session: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/session"
+      },
+      {
+        "seq": 25,
+        "ts": 1793220939670,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=0: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=0"
+      },
+      {
+        "seq": 26,
+        "ts": 1793220939824,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/work: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/work"
+      },
+      {
+        "seq": 27,
+        "ts": 1793220940126,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/work: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/work"
+      },
+      {
+        "seq": 28,
+        "ts": 1793220940286,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/work: net::ERR_INTERNET_DISCONNECTED",
+        "location": "https://127.0.0.1:41037/api/work"
+      },
+      {
+        "seq": 29,
+        "ts": 1793220941204,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/work: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/work"
+      },
+      {
+        "seq": 30,
+        "ts": 1793220941321,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://127.0.0.1:41037/api/live?after=8298: net::ERR_ABORTED",
+        "location": "https://127.0.0.1:41037/api/live?after=8298"
+      }
+    ],
+    "nextSeq": 30,
+    "dropped": 0
+  },
+  "mobile": {
+    "widthsChecked": [
+      320,
+      390
+    ],
+    "expandedCreationMenuContained": true,
+    "finalTopbar": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "height": 67.1875,
+      "searchButtonHeight": 44
+    },
+    "screenshots": [
+      "desktop.png",
+      "mobile.png",
+      "issue-capture.png"
+    ]
+  },
+  "nonClaims": [
+    "Source asset overrides were used for web.html/web.css/work.css; no API or successful-response fixtures were substituted.",
+    "Read-only production APIs were used only for initial visual inspection. All signed writes used the disposable native store.",
+    "Network-offline emulation intentionally caused Failed to fetch; reload/logout aborts are retained, not described as page exceptions.",
+    "No deployment, publication, lifecycle acceptance, CI authority change or production data mutation."
+  ]
+}

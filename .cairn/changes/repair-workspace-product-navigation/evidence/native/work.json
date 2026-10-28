@@ -1,0 +1,8 @@
+{
+  "git_directory": "/home/brittonr/.local/state/kiln/usability-repair-native-20261028/work-cobs/.git",
+  "schema": "kiln.web-work.v1",
+  "signer_seed_file": "/home/brittonr/.local/state/kiln/usability-repair-native-20261028/work.seed",
+  "write_principals": [
+    "local:operator"
+  ]
+}

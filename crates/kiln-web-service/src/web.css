@@ -22,6 +22,10 @@ pre { font-size: .77rem; }
 .nav-hint { display: block; font-size: .62rem; font-weight: 450; letter-spacing: normal; text-transform: none; color: var(--muted); }
 .app-sidebar .app-navigation { flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: start; gap: .15rem; padding: .25rem; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--border-strong) var(--surface-soft); }
 .app-navigation button { min-height: 2.5rem; padding-block: .45rem; }
+.nav-group { display: grid; gap: .15rem; min-width: 0; margin-bottom: .7rem; }
+.nav-group .nav-label { margin: .55rem .5rem .25rem; font-size: .65rem; }
+.nav-group > button { width: 100%; text-align: left; }
+.nav-administration > summary { padding: .65rem .5rem; color: var(--muted); font-size: .75rem; cursor: pointer; }
 .app-sidebar .sidebar-boundary { flex: 0 0 auto; margin: .65rem .45rem 0; padding-top: .55rem; border-top: 1px solid var(--border); }
 .app-sidebar .sidebar-boundary p { font-size: .65rem; line-height: 1.5; margin: 0; }
 .app-menu-backdrop, .app-menu-backdrop[hidden] { display: none !important; }
@@ -33,6 +37,7 @@ pre { font-size: .77rem; }
 .session-tools, .connection-tools, .badges, .control-bar, .dialog-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
 .session-tools { justify-content: flex-end; }
 .session-tools { min-width: 0; flex-wrap: nowrap; }
+.command-label-short { display: none; }
 #auth-status { display: block; max-width: min(35vw, 24rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #auth-status::before { display: inline-block; margin-right: .45rem; vertical-align: middle; }
 #logout { flex: 0 0 auto; }
@@ -220,6 +225,9 @@ dialog::backdrop { background: #10170dc0; }
   .app-topbar { height: 4.2rem; min-height: 4.2rem; padding-block: .45rem; gap: .5rem; }
   .topbar-location { flex: 1 1 auto; }
   .session-tools { flex: 0 1 auto; gap: .4rem; }
+  #work-command-open .command-label, #work-command-open kbd { display: none; }
+  #work-command-open .command-label-short { display: inline; }
+  #work-command-open { font-size: .75rem; flex: 0 0 auto; }
   #auth-status { max-width: clamp(5rem, 22vw, 12rem); font-size: .65rem; }
   #logout { font-size: .7rem; padding-inline: .5rem; }
   .catalog-js .app-sidebar { width: min(19rem, calc(100vw - 3rem)); max-height: calc(100dvh - 4.2rem); padding-block: .75rem; }

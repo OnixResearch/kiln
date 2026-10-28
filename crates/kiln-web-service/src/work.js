@@ -32,6 +32,10 @@
     return node;
   }
   function section(parent, heading, cls = "work-card") { const node = el("section", undefined, cls); node.append(el("h3", heading)); parent.append(node); return node; }
+  function disclosure(parent, heading) {
+    const details = el("details", undefined, "work-disclosure"); details.append(el("summary", heading));
+    const body = el("div", undefined, "work-form-section"); details.append(body); parent.append(details); return body;
+  }
   function facts(parent, pairs) {
     const dl = el("dl", undefined, "work-facts");
     for (const [key, value] of pairs) { dl.append(el("dt", key), el("dd", value == null || value === "" ? "Not recorded" : value)); }
@@ -183,29 +187,53 @@
   }
   function navigation(parent) {
     const nav = el("nav", undefined, "work-favorites"); nav.setAttribute("aria-label", "Saved work views and favorites");
-    nav.append(el("span", "Views & favorites", "small"));
     for (const record of state.records.filter(record => record.kind === "view" || personal().favorites.includes(record.id))) {
       nav.append(button(`${record.kind === "view" ? record.fields.view?.shared ? "Shared: " : "Private: " : "★ "}${record.fields.title}`, () => record.kind === "view" ? bridge().navigate({ page: "work", work_view: record.id, work_id: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_sort: "", work_group: "", work_layout: "" }) : open(record.id)));
     }
-    parent.append(nav);
+    if (nav.childElementCount) parent.append(nav);
   }
+  // r[impl kiln.work.usability]
+  function creationKind() {
+    const page = state.route.page;
+    if (page === "triage") return "request";
+    if (page === "workviews") return "view";
+    if (page === "planning") return PLANNING.includes(state.route.work_kind) ? state.route.work_kind : "project";
+    return KINDS.includes(state.route.work_kind) ? state.route.work_kind : "issue";
+  }
+  const kindLabel = kind => kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind;
   function toolbar(parent, config) {
-    const top = el("div", undefined, "work-toolbar");
-    const kind = field(top, "Create", "select", state.route.page === "triage" ? "request" : state.route.page === "planning" ? "project" : state.route.page === "workviews" ? "view" : "issue", KINDS);
-    top.append(button("New record", () => create(kind.value), "primary", true), button("Refresh", refresh));
-    top.append(button("Save current view", () => editor("view", null, { view: { ...config, shared: false } }), undefined, true));
-    if (state.route.work_view) top.append(button("Clear saved view", () => bridge().navigate({ work_view: "" })));
-    parent.append(top);
-    const form = el("form", undefined, "work-filters"); const inputs = {};
-    for (const key of ["q", "kind", "status", "assignee", "project"]) {
-      const choices = key === "kind" ? [["", "All kinds"], ...KINDS] : key === "status" ? [["", "All statuses"], ...statuses()] : key === "project" ? [["", "All projects"], ...state.records.filter(r => r.kind === "project").map(r => [r.id, r.fields.title])] : null;
-      inputs[key] = field(form, key === "q" ? "Search work" : title(key), choices ? "select" : "text", config.filters[key] || "", choices);
+    const kind = creationKind(), top = el("div", undefined, "work-toolbar");
+    top.append(button(`New ${kindLabel(kind)}`, () => create(kind), "primary", true));
+    const more = el("details", undefined, "work-create-more"); more.append(el("summary", "Create something else"));
+    const choices = el("div", undefined, "work-actions");
+    for (const other of KINDS.filter(value => value !== kind)) choices.append(button(`New ${kindLabel(other)}`, () => { more.open = false; create(other); }, undefined, true));
+    more.append(choices); top.append(more, button("Refresh", refresh)); parent.append(top);
+    if (state.route.page === "planning") {
+      const categories = el("nav", undefined, "work-categories"); categories.setAttribute("aria-label", "Planning categories");
+      for (const [value, label] of [["", "All planning"], ...PLANNING.map(value => [value, `${title(value)}s`])]) {
+        const tab = button(label, () => bridge().navigate({ work_kind: value, work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" }));
+        if ((config.filters.kind || "") === value) tab.setAttribute("aria-current", "page"); categories.append(tab);
+      }
+      parent.append(categories);
     }
-    const layout = field(form, "Layout", "select", config.layout, ["list", "board"]);
-    const group = field(form, "Group by", "select", config.group_by, ["none", "status", "assignee", "project", "priority", "team"]);
-    const sort = field(form, "Sort by", "select", config.sort, ["updated", "created", "priority", "title", "due"]);
-    const submit = el("button", "Apply filters"); submit.type = "submit"; form.append(submit);
-    form.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" })));
+    const form = el("form", undefined, "work-search"), inputs = {};
+    inputs.q = field(form, "Search", "search", config.filters.q || ""); inputs.q.placeholder = "Title, description or label…";
+    const search = el("button", "Search"); search.type = "submit"; form.append(search);
+    const details = el("details", undefined, "work-filter-disclosure");
+    const active = Object.entries(config.filters).filter(([key, value]) => key !== "q" && value).length;
+    details.append(el("summary", `Filters & display${active ? ` · ${active} active` : ""}${config.layout === "board" ? " · Board" : ""}`));
+    const filters = el("div", undefined, "work-filters"); details.append(filters); form.append(details);
+    for (const key of ["kind", "status", "assignee", "project"]) {
+      const options = key === "kind" ? [["", "All types"], ...KINDS.map(value => [value, title(kindLabel(value))])] : key === "status" ? [["", "All statuses"], ...statuses()] : key === "project" ? [["", "All projects"], ...state.records.filter(r => r.kind === "project").map(r => [r.id, r.fields.title])] : null;
+      inputs[key] = field(filters, key === "kind" ? "Type" : title(key), options ? "select" : "text", config.filters[key] || "", options);
+    }
+    const layout = field(filters, "Layout", "select", config.layout, ["list", "board"]);
+    const group = field(filters, "Group by", "select", config.group_by, ["none", "status", "assignee", "project", "priority", "team"]);
+    const sort = field(filters, "Sort by", "select", config.sort, ["updated", "created", "priority", "title", "due"]);
+    const actions = el("div", undefined, "work-actions"); const submit = el("button", "Apply filters"); submit.type = "submit"; actions.append(submit);
+    actions.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" })), button("Save current view", () => editor("view", null, { view: { ...config, shared: false } }), undefined, true));
+    if (state.route.work_view) actions.append(button("Clear saved view", () => bridge().navigate({ work_view: "" })));
+    filters.append(actions);
     form.addEventListener("submit", event => { event.preventDefault(); const patch = { work_layout: layout.value, work_group: group.value, work_sort: sort.value }; for (const [key, input] of Object.entries(inputs)) patch[ROUTE_FILTERS[key]] = input.value.trim(); bridge().navigate(patch); });
     parent.append(form);
     if (state.route.work_view && !activeView()) parent.append(el("p", "Selected saved view is unavailable. No alternative view was selected.", "warning"));
@@ -245,11 +273,19 @@
     const groupBy = config.group_by === "none" && config.layout === "board" ? "status" : config.group_by;
     const groups = new Map();
     for (const record of records) {
-      const raw = groupBy === "none" ? "All records" : groupBy === "assignee" ? record.fields.assignees?.join(", ") || "Unassigned" : groupBy === "priority" ? PRIORITIES[record.fields.priority] : record.fields[groupBy] || "Not set";
+      const raw = groupBy === "none" ? "Items" : groupBy === "assignee" ? record.fields.assignees?.join(", ") || "Unassigned" : groupBy === "priority" ? PRIORITIES[record.fields.priority] : record.fields[groupBy] || "Not set";
       const label = ["project", "team"].includes(groupBy) ? nameFor(raw) : title(raw);
       if (!groups.has(label)) groups.set(label, []); groups.get(label).push(record);
     }
-    if (!records.length) parent.append(el("p", state.route.page === "inbox" ? "No unread assignments, mentions, watched changes or due reminders in the visible snapshot. Reading never changes your persisted state automatically." : "No matching records in this bounded snapshot. Adjust filters or create a record.", "work-empty"));
+    if (!records.length) {
+      const empty = el("section", undefined, "work-empty"), page = state.route.page;
+      const filtered = state.route.work_view || Object.entries(config.filters).some(([key, value]) => value && !(page === "planning" && key === "kind"));
+      const heading = page === "inbox" ? "You're all caught up" : filtered ? "No matching items" : page === "planning" ? `No ${state.route.work_kind ? `${state.route.work_kind}s` : "plans"} yet` : page === "triage" ? "No requests to triage" : page === "workviews" ? "Keep a useful view" : "Start with an issue";
+      const help = page === "inbox" ? "Your unread assignments, mentions, watched changes and due reminders appear here. Opening an item never marks it read automatically." : filtered ? "Try a different search or reset filters. This list covers the current bounded snapshot." : page === "planning" ? "Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work." : page === "triage" ? "Capture a request with its original source, then accept, decline, snooze or route it." : page === "workviews" ? "Save filters and a list or board layout so you can return to them later." : "Capture something to do. Add a title and description now; ownership, planning and CI links can come later.";
+      empty.append(el("h2", heading), el("p", help));
+      if (page !== "inbox" && writable()) empty.append(button(`New ${kindLabel(creationKind())}`, () => create(creationKind()), "primary", true));
+      parent.append(empty);
+    }
     parent.dataset.layout = config.layout;
     for (const [label, rows] of groups) { const group = el("section", undefined, "work-group"); group.append(el("h3", `${label} · ${rows.length}`)); for (const record of rows) workRow(record, group); parent.append(group); }
   }
@@ -280,18 +316,18 @@
     navigation(parent); const config = configuration(); toolbar(parent, config);
     if (state.route.page === "inbox") {
       const prefs = personalRecord(), tools = el("div", undefined, "work-actions");
-      tools.append(button("Manage private attention record", () => prefs ? edit(prefs.id) : create("personal"), undefined, true), button("Browse my private records", () => bridge().navigate({ page: "work", work_kind: "personal", work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" })));
-      parent.append(tools, el("p", prefs ? `Attention uses your first-created private record: ${prefs.fields.title} (${prefs.id}). Additional private records remain separately editable under Personal records.` : "No private attention record exists yet. Your first explicit watch, favorite, read marker or reminder will offer to persist one.", "small"));
+      tools.append(button("Attention preferences", () => prefs ? edit(prefs.id) : create("personal"), undefined, true), button("Browse my private preferences", () => bridge().navigate({ page: "work", work_kind: "personal", work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" })));
+      parent.append(tools);
     }
     const records = visibleRows(config);
     if (state.route.page === "planning") roadmap(parent, records);
     const layout = el("div", undefined, "work-columns"); const list = el("div", undefined, "work-list-scroll"); list.setAttribute("aria-label", "Work records");
-    grouped(list, records, config); const detail = el("aside", undefined, "work-detail"); detail.setAttribute("aria-label", "Selected work record");
+    grouped(list, records, config); const detail = el("aside", undefined, "work-detail"); detail.setAttribute("aria-label", "Selected work record"); detail.hidden = !state.route.work_id;
+    if (!state.route.work_id) layout.classList.add("work-columns-list-only");
     layout.append(list, detail); parent.append(layout);
     const position = state.scroll.get(scrollKey()); if (position) { list.scrollTop = position.top; list.scrollLeft = position.left; }
     if (focused) Array.from(list.querySelectorAll("[data-work-id]")).find(row => row.dataset.workId === focused)?.focus({ preventScroll: true });
     if (state.route.work_id) void loadDetail(state.route.work_id, detail).catch(report);
-    else detail.append(el("p", "Select a record to inspect its metadata, discussion and exact linked evidence. Selection never marks an item as read automatically.", "small"));
     window.dispatchEvent(new CustomEvent("kiln-work-updated"));
   }
   async function loadDetail(id, parent, preview = false) {
@@ -380,13 +416,14 @@
   function editor(kind, record = null, preset = {}) {
     if (!writable()) throw new Error("Editing is unavailable in this session.");
     const generation = state.generation, principal = identity(), f = { ...defaults(kind), ...(record ? clone(record.fields) : {}), ...clone(preset) };
-    const { dialog, close } = modal(`${record ? "Edit" : "Create"} ${title(kind)}`); const form = el("form", undefined, "work-editor"); dialog.append(form);
+    const { dialog, close } = modal(`${record ? "Edit" : "New"} ${kindLabel(kind)}`); const form = el("form", undefined, "work-editor"); dialog.append(form);
     const base = section(form, "Details", "work-form-section");
     const inputs = { title: field(base, "Title", "text", f.title), description: field(base, "Description", "textarea", f.description) }; inputs.title.required = true; inputs.title.maxLength = 256;
     inputs.status = field(base, "Status", "select", f.status, statuses().filter(status => status !== "duplicate" || ["issue", "request"].includes(kind))); inputs.priority = field(base, "Priority", "select", f.priority, PRIORITIES.map((label, index) => [index, label]));
-    inputs.owner = field(base, ["personal", "view"].includes(kind) ? "Private record owner (authenticated principal)" : "Owner principal", "text", f.owner); inputs.owner.readOnly = ["personal", "view"].includes(kind);
-    inputs.assignees = field(base, "Assignee principals (comma separated)", "text", f.assignees.join(", ")); inputs.labels = field(base, "Labels (comma separated)", "text", f.labels.join(", "));
-    const relations = section(form, "Typed relationships", "work-form-section");
+    const ownership = disclosure(form, "Ownership & labels");
+    inputs.owner = field(ownership, ["personal", "view"].includes(kind) ? "Private record owner (authenticated principal)" : "Owner principal", "text", f.owner); inputs.owner.readOnly = ["personal", "view"].includes(kind);
+    inputs.assignees = field(ownership, "Assignee principals (comma separated)", "text", f.assignees.join(", ")); inputs.labels = field(ownership, "Labels (comma separated)", "text", f.labels.join(", "));
+    const relations = disclosure(form, "Relationships · project, cycle & dependencies");
     if (!["personal", "view"].includes(kind)) inputs.parent = relation(relations, `Parent ${kind}`, kind, f.parent, false, record?.id);
     if (!["personal", "view", "team"].includes(kind)) inputs.blocked_by = relation(relations, "Blocked by work / planning records", ["issue", "request", "project", "milestone", "cycle", "initiative"], f.blocked_by, true, record?.id);
     for (const target of PLANNING) inputs[target] = relation(relations, title(target), target, f[target], false, record?.id);
@@ -396,14 +433,14 @@
       inputs.status.addEventListener("change", () => { if (inputs.status.value !== "duplicate") inputs.duplicate_of.value = ""; });
       relations.append(el("p", "Choosing a duplicate target sets duplicate status. Leaving duplicate status clears that target in the new event; signed prior intake and history remain retained.", "small"));
     }
-    const schedule = section(form, "Schedule", "work-form-section"); inputs.start_at_ms = field(schedule, "Starts at (local time)", "datetime-local", datetime(f.start_at_ms)); inputs.due_at_ms = field(schedule, "Due / snooze until (local time)", "datetime-local", datetime(f.due_at_ms));
+    const schedule = disclosure(form, "Schedule · dates & reminders"); inputs.start_at_ms = field(schedule, "Starts at (local time)", "datetime-local", datetime(f.start_at_ms)); inputs.due_at_ms = field(schedule, "Due / snooze until (local time)", "datetime-local", datetime(f.due_at_ms));
     if (kind === "request") {
       const intake = section(form, "Original intake", "work-form-section");
       inputs.customer = field(intake, "Original customer", "text", f.customer); inputs.source_url = field(intake, "Original source URL (HTTP or HTTPS)", "url", f.source_url);
       if (record) { inputs.customer.readOnly = true; inputs.source_url.readOnly = true; intake.append(el("p", "Routing and triage preserve the original customer and source. Add later context in description, links or discussion.", "small")); }
     }
     if (kind === "team") { inputs.workflow = field(base, "Additional workflow statuses (comma separated)", "text", f.workflow.join(", ")); base.append(el("p", "Built-in statuses remain available. Issues assigned to this team may use its additional statuses.", "small")); }
-    const linkSection = section(form, "Linked evidence identities", "work-form-section");
+    const linkSection = disclosure(form, "CI & source links");
     linkSection.append(el("p", "Links are inert identities, not provider permissions. Source: repository@revision; patch/Cairn: repository|nativeType|object; review: receiptName; run: exact run ID; artifact: runID|artifactID. Unresolvable links remain explicitly unavailable.", "small"));
     const linkRows = el("div", undefined, "work-link-editor"); linkSection.append(linkRows);
     const addLink = (link = { kind: "run", id: "" }) => { const row = el("div", undefined, "work-link-row"); const type = field(row, "Link kind", "select", link.kind, LINK_KINDS), id = field(row, "Exact identity", "text", link.id); row.readLink = () => ({ kind: type.value, id: id.value.trim() }); row.append(button("Remove link", () => row.remove())); linkRows.append(row); };
@@ -411,7 +448,7 @@
     const readView = kind === "view" ? viewEditor(form, f.view, !!record) : null;
     const readPersonal = kind === "personal" ? personalEditor(form, f.personal) : null;
     const status = el("p", "Changes persist only after explicit confirmation.", "small"); status.setAttribute("role", "status"); form.append(status);
-    const actions = el("div", undefined, "work-actions"), save = el("button", record ? "Save metadata" : "Create signed record", "primary"); save.type = "submit"; actions.append(save, button("Cancel", close)); form.append(actions);
+    const actions = el("div", undefined, "work-actions"), save = el("button", record ? "Save changes" : `Create ${kindLabel(kind)}`, "primary"); save.type = "submit"; actions.append(save, button("Cancel", close)); form.append(actions);
     form.addEventListener("submit", async event => {
       event.preventDefault(); if (!valid(generation, principal)) { close(); return; }
       const fields = clone(f);

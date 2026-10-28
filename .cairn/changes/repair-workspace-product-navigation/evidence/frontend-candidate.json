@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.work.usability.frontend-candidate.v1",
+  "identity_algorithm": "blake3",
+  "files": {
+    "crates/kiln-web-service/src/web.html": "e499a8fbd86ecbc1e3b2563ab01d0e456a7a959c5bfddec22e481b6937136e60",
+    "crates/kiln-web-service/src/web.js": "36518b5e8898cfd53590e06f26e0a41842322baa3915b5871c085dd1f4052430",
+    "crates/kiln-web-service/src/web.css": "74cfe4b2db14a6743e270baa827d0b35ccb21c53947351cf67bb96a935060f90",
+    "crates/kiln-web-service/src/work.js": "f18a2dc03126fb581682926b92917b7454f7112e50338a304335777fac314e7f",
+    "crates/kiln-web-service/src/work.css": "8e4f22eed3af9111361a1643df1c7b2d879cf221ab7e95b7ef66f69f5be26462",
+    "crates/kiln-web-service/src/work-interaction.js": "bf19725151336855c4bfccbdaad62447157bd4dd71d7496cc4e2f6dfe8a1ce97"
+  },
+  "consumer": "Authenticated Kiln work and CI workspace users",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers",
+  "browser_receipt": "browser.json",
+  "native_receipt": "native/verification.json",
+  "additional_navigation_observation": {
+    "settings_deep_link": "page=settings",
+    "administration_open": true,
+    "current_destination": "Settings",
+    "mobile_drawer_escape_aria_expanded": "false"
+  },
+  "boundary": "Frontend byte identity and scoped browser/native observations; not deployment, publication, lifecycle acceptance or release eligibility."
+}

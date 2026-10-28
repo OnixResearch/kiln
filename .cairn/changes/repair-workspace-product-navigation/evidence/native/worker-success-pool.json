@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.native-reviewed-worker-pool.v1",
+  "selection": "first-native-then-compatible",
+  "selector_path": "/home/brittonr/.local/state/kiln/usability-repair-native-20261028/pool-cold.dispatched",
+  "producer": "fixture-v1",
+  "workers": [
+    {
+      "worker_id": "native",
+      "profile": "/home/brittonr/.local/state/kiln/usability-repair-native-20261028/worker-success.json",
+      "original_blake3": "ffaea91af85fd635f397c12562cf0e1e9b6e0188f1d5a13e8bdc0948acea257f",
+      "work_root": "/home/brittonr/.local/state/kiln/usability-repair-native-20261028/work"
+    },
+    {
+      "worker_id": "compatible",
+      "profile": "/home/brittonr/.local/state/kiln/usability-repair-native-20261028/worker-success-compatible.json",
+      "original_blake3": "52c04710666958212d3c278704d355d12bafaccd99a6c87a52ec845446f15427",
+      "work_root": "/home/brittonr/.local/state/kiln/usability-repair-native-20261028/work-compatible"
+    }
+  ]
+}

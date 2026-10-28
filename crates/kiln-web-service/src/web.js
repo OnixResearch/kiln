@@ -820,9 +820,11 @@
     $("app-density").value = route.density;
     for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === route.page) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
+    const administration = document.querySelector(".nav-administration");
+    if (administration?.querySelector('[aria-current="page"]')) administration.open = true;
     for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = node.dataset.runPanel !== route.view;
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = route.page === "cobs" ? "COBs" : route.page === "source" ? "Source" : route.page === "reviews" ? "Reviews" : route.page[0].toUpperCase() + route.page.slice(1);
+    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", cobs: "Raw collaboration history", overview: "CI overview" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
@@ -838,11 +840,11 @@
       evidence: "Choose a retained run to inspect its source, execution and recorded evidence.",
       automation: "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable.",
       operations: "Inspect capacity, queued work and retention limits. No automatic pruning is performed.",
-      work: "Capture and coordinate native COB work. CI and lifecycle evidence remain independently authoritative.",
-      planning: "Plan outcomes, milestones, cycles and initiatives. Work completion does not grant release acceptance.",
-      inbox: "Your assignments, mentions, watched updates and reminders from the bounded admitted work store.",
-      triage: "Review incoming requests, preserve their source, assign ownership and record explicit triage decisions.",
-      workviews: "Native COB-backed saved views and favorites. Private records are scoped to your admitted principal.",
+      work: "Capture an issue, decide what happens next, and follow its discussion and linked CI results.",
+      planning: "Organize issues into projects, milestones and cycles. Track larger goals with initiatives.",
+      inbox: "Assignments, mentions, watched updates and due reminders. Opening an item does not mark it read.",
+      triage: "Review incoming requests, keep their original source and decide what to take on next.",
+      workviews: "Return to private or shared filters, boards and favorites saved in this workspace.",
       settings: "Review your access and adjust appearance. Credentials are never saved by this page."
     }[route.page];
     if (previous?.page !== route.page) {

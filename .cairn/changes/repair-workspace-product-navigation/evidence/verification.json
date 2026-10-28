@@ -1,0 +1,46 @@
+{
+  "schema": "kiln.work.usability.verification.v1",
+  "change": "repair-workspace-product-navigation",
+  "immediate_outcome": "Issue-first navigation and capture, explicit planning categories, secondary filter/editor disclosures, contextual empty states and bounded mobile controls.",
+  "durable_capability": "Repeatable authenticated work capture and navigation over existing signed native histories, with saved-view and authority contracts preserved.",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers",
+  "frontend_identity": "frontend-candidate.json",
+  "browser_receipt": "browser.json",
+  "native_receipt": "native/verification.json",
+  "native_exercise": {
+    "passed": true,
+    "all_processes_exited": true,
+    "credentials_removed": true,
+    "scratch_removed": true,
+    "browser_writes": "Created one issue and edited its ownership, assignees, labels and project relation through exact-value/head confirmations in the disposable native store.",
+    "observations": ["Signed fields survived authenticated reload", "All five planning categories selected their own primary action and existing records", "Saved board restored after reload", "Search isolated the intended issue", "Ctrl+K opened the updated command palette", "Logout erased private records and dialogs", "Viewer had no write controls or another principal's private views", "Real browser-offline transport failure cleared stale rows and recovered explicitly"]
+  },
+  "final_narrow_boundary": {
+    "viewport": 320,
+    "document_width": 320,
+    "topbar_height": 67.1875,
+    "search_button_height": 44,
+    "expanded_menu_left": 16,
+    "expanded_menu_right": 304,
+    "expanded_menu_document_width": 320
+  },
+  "checks": [
+    {"commands": ["cairn gate proposal repair-workspace-product-navigation --root . --policy cairn-policy/generated/cairn-policy.json", "cairn gate design repair-workspace-product-navigation --root . --policy cairn-policy/generated/cairn-policy.json", "cairn gate tasks repair-workspace-product-navigation --root . --policy cairn-policy/generated/cairn-policy.json"], "passed": true, "scope": "Three prerequisite gates ran individually before implementation"},
+    {"command": "cargo build --locked -p kiln-web-service", "passed": true, "environment": "Repository Nix development shell"},
+    {"command": "cargo test --locked --workspace", "passed": true, "log": "artifact://2904", "environment": "Repository Nix development shell, private /tmp bind and explicit read-only /nix/store mount"},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "passed": true, "environment": "Repository Nix development shell"},
+    {"command": "cargo fmt --check", "passed": true, "environment": "Repository Nix development shell"},
+    {"command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link --builders '' --option build-dir /nix/var/nix/builds -L", "passed": true, "observed": "Consumer checks reported clean, zero findings, warnings and errors; aggregate derivation completed"},
+    {"command": "nix flake check path:$PWD --no-write-lock-file --builders '' --option build-dir /nix/var/nix/builds -L", "passed": true, "log": "artifact://2930", "full_log": "artifact://2914", "observed": "45 selected checks; all checks passed; incompatible aarch64-linux checks omitted"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "passed": true, "receipt_hash": "b827804d3d4a1727bee062bcee07fddfdb9775cc256fd3abc15c47a2f431a287", "log": "artifact://2898"}
+  ],
+  "retained_failures_and_holds": [
+    {"command": "cargo test --locked -p kiln-web-service", "observed": "Initial direct-host run: 69 passed, 8 worker tests failed, 1 ignored; /tmp filesystem had zero available bytes and worker stream directory creation failed", "log": "artifact://2890", "resolution": "No host files deleted. Private /tmp mount and explicit store mount allowed the workspace suite to pass; packaged Nix web-service unit tests separately passed 77 with 1 ignored, plus its integration suites."},
+    {"observed": "First private-root bind hid executable store mount permissions", "resolution": "Added explicit read-only /nix/store mount and device/proc mounts for the successful workspace run"},
+    {"observed": "Initial Nix build scratch under private home was not traversable; /var/tmp build scratch was rejected as world-writable ancestry", "resolution": "Used existing daemon-owned /nix/var/nix/builds; no permissions, sandbox policy or host configuration changed"},
+    {"observed": "Kache cache index reported disk I/O errors and disabled caching", "resolution": "Compilation and Clippy completed without cache hits or stores"},
+    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "passed": false, "receipt_hash": "138e3aebcf187d20ff360c7d6e26d6ef4b92d2ea7f19ceff6320da473fd4f2b6", "observed": "Accepted-spec-only default profile reports dangling references to active work/dashboard/developer-loop changes; missing accepted requirements list is empty", "disposition": "Retained existing lifecycle boundary; no specs synchronized or changes accepted/archived"},
+    {"command": "cairn release-readiness --root .", "passed": false, "receipt_hash": "cf9a9ddff1293a00cb32a7e327b17abd8370b84cb803b2c24d62313f52b03162", "observed": "onix_release_ready=false; traceability coverage check failed", "disposition": "No release or lifecycle authority claimed"}
+  ],
+  "non_claims": ["No production work records or CI runs created", "No deployment, publication, commit, permission change or lifecycle acceptance performed", "Browser frontend overrides establish candidate behavior, not installed-service bytes", "Passing checks do not prove arbitrary provider correctness or release eligibility"]
+}
