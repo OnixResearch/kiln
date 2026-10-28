@@ -1,0 +1,581 @@
+{
+  "schema": "kiln.web.visual-design.verification.v1",
+  "reference": "https://www.blacksmith.sh/",
+  "prerequisiteGates": [
+    {
+      "stage": "proposal",
+      "valid": true,
+      "receipt_hash": "46fd52b93915f781d031cb5679103a18f80d26f08bfe45657564ea29c054b837"
+    },
+    {
+      "stage": "design",
+      "valid": true,
+      "receipt_hash": "70668e421b2eb2c697ceecea62f8ebea6daa267b1223634ba626d5449f5d3213"
+    },
+    {
+      "stage": "tasks",
+      "valid": true,
+      "receipt_hash": "6320b5f52ad719b4bc96001934789a2d485e167ea730cfe60b7f15239f77e099"
+    }
+  ],
+  "scope": "Candidate frontend assets over the unchanged authenticated service and real retained CI observations; not deployment",
+  "assetOverrides": [
+    "/",
+    "/web.css",
+    "/work.css",
+    "/work-interaction.css"
+  ],
+  "apiOverrides": false,
+  "productionWrites": false,
+  "observations": [
+    {
+      "label": "Desktop light overview, real retained metrics",
+      "route": "?page=overview&theme=light",
+      "title": "Kiln · CI overview",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "Desktop issue capture, no submission",
+      "route": "?page=work&view=pipeline&stream=stdout&order=desc&theme=light&density=comfortable",
+      "title": "Kiln · Issues",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "theme": "light",
+      "density": "comfortable",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "Appearance selector: explicit dark",
+      "route": "?page=settings&view=pipeline&stream=stdout&order=desc&theme=dark&density=comfortable",
+      "title": "Kiln · Settings",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "comfortable",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "Density selector: compact",
+      "route": "?page=settings&view=pipeline&stream=stdout&order=desc&theme=dark&density=compact",
+      "title": "Kiln · Settings",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "Dark compact real retained run inspector",
+      "route": "?page=runs&view=pipeline&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stdout&order=desc&theme=dark&density=compact",
+      "title": "Kiln · Runs",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px dark compact run/log inspector",
+      "route": "?page=runs&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&theme=dark&density=compact",
+      "title": "Kiln · Runs",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px dark compact Issues",
+      "route": "?page=work&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&theme=dark&density=compact",
+      "title": "Kiln · Issues",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px expanded secondary filters",
+      "route": "?page=work&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&theme=dark&density=compact",
+      "title": "Kiln · Issues",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px dark compact creation dialog",
+      "route": "?page=work&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&theme=dark&density=compact",
+      "title": "Kiln · Issues",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px planning Projects",
+      "route": "?page=planning&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=project&theme=dark&density=compact",
+      "title": "Kiln · Planning",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px planning Milestones",
+      "route": "?page=planning&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=milestone&theme=dark&density=compact",
+      "title": "Kiln · Planning",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px planning Cycles",
+      "route": "?page=planning&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=cycle&theme=dark&density=compact",
+      "title": "Kiln · Planning",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px planning Initiatives",
+      "route": "?page=planning&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=initiative&theme=dark&density=compact",
+      "title": "Kiln · Planning",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px planning Teams",
+      "route": "?page=planning&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=dark&density=compact",
+      "title": "Kiln · Planning",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px keyboard command palette",
+      "route": "?page=planning&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=dark&density=compact",
+      "title": "Kiln · Planning",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "dark",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "System appearance follows OS dark",
+      "route": "?page=settings&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=system&density=compact",
+      "title": "Kiln · Settings",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "theme": "system",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "Explicit light overrides OS dark",
+      "route": "?page=settings&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=light&density=compact",
+      "title": "Kiln · Settings",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "theme": "light",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "System appearance follows OS light",
+      "route": "?page=settings&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=system&density=compact",
+      "title": "Kiln · Settings",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "theme": "system",
+      "density": "compact",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "label": "320px light overview",
+      "route": "?page=overview&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=system&density=comfortable",
+      "title": "Kiln · CI overview",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "theme": "system",
+      "density": "comfortable",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ]
+    }
+  ],
+  "retainedLog": {
+    "status": "Worker-captured output · byte cursor. Actual retained bytes loaded; text is displayed inertly.",
+    "excerpt": "warning: unknown experimental feature 'wasm-builtin'\nwarning: nix-grpc-store: no plugin build matching the loaded libnixstore in '/nix/store/flxfh4xym8i201q71p69xg684xm86a9h-nix-grpc-store-0.1.0-beta.4/lib/nix/nix-grpc-store-versions'. grpc:// stores are unavailable\nunpacking 'github:OnixResearch/octet/731571fbfffd0b7db11ac0cc9d3939105ddc71e2?narHash=sha256-Y8qEti3wSJ1g2Dd08OGZpOPp7PrkaQoGMoHtByzuWik%3D' into the Git cache...\nerror:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:37:12:\n           36|\n           37|   strict = derivation"
+  },
+  "checkboxHitArea": {
+    "labelHeight": 44,
+    "inputSize": 17.59375
+  },
+  "mobileMenu": {
+    "left": 12,
+    "right": 308,
+    "viewport": 320,
+    "minButtonHeight": 44,
+    "documentWidth": 320
+  },
+  "contrast": [
+    {
+      "foreground": "text",
+      "background": "background",
+      "ratio": 14.947976667286026
+    },
+    {
+      "foreground": "muted",
+      "background": "surface",
+      "ratio": 6.005586909696315
+    },
+    {
+      "foreground": "signal-text",
+      "background": "signal",
+      "ratio": 13.686844471610199
+    },
+    {
+      "foreground": "olive",
+      "background": "olive-soft",
+      "ratio": 6.160114892575165
+    },
+    {
+      "foreground": "accent",
+      "background": "accent-soft",
+      "ratio": 5.398350939708516
+    }
+  ],
+  "accessibilityModes": {
+    "forcedColors": true,
+    "reducedMotion": true,
+    "background": "rgb(255, 255, 255)",
+    "text": "rgb(0, 0, 0)",
+    "viewport": 320,
+    "documentWidth": 320
+  },
+  "browserErrors": {
+    "entries": [
+      {
+        "seq": 1,
+        "ts": 1793222640130,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 2,
+        "ts": 1793222724313,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 3,
+        "ts": 1793222869145,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 4,
+        "ts": 1793223037816,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 5,
+        "ts": 1793223070010,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 6,
+        "ts": 1793223109861,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 7,
+        "ts": 1793223139119,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 8,
+        "ts": 1793223152909,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      },
+      {
+        "seq": 9,
+        "ts": 1793223155974,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1432"
+      }
+    ],
+    "nextSeq": 9,
+    "dropped": 0
+  },
+  "screenshots": [
+    "before-desktop.png",
+    "desktop-light.png",
+    "desktop-dark.png",
+    "issue-capture.png",
+    "run-inspector-dark.png",
+    "mobile-dialog-dark.png",
+    "mobile-palette-dark.png",
+    "mobile-light.png"
+  ],
+  "nonClaims": [
+    "No deployment, publication or production writes",
+    "Candidate frontend assets were supplied by browser interception; real service APIs and retained CI data were unchanged",
+    "Visual checks do not prove arbitrary provider correctness, lifecycle acceptance or release eligibility",
+    "Contrast measurements cover the exercised light palette, not a complete accessibility certification"
+  ],
+  "assetIdentities": {
+    "crates/kiln-web-service/src/web.html": "6a060d8e1d20af6b4b5e6ceb378e203525c7d03c4d2eee95779e17e8bcd05b2a",
+    "crates/kiln-web-service/src/web.css": "7df41fb9930c8341e5eddc293fa73021bbcfd39365652db3a796e62971edc2f8",
+    "crates/kiln-web-service/src/work.css": "d8b3933fda0416d63ea2f9d300932ccf468653e1734092e7d1db0628225160c1",
+    "crates/kiln-web-service/src/work-interaction.css": "96ec3d912e7f5bf7c23905717e2e310403b961fac62cfa83b78fb8c1f4e603d5"
+  }
+}

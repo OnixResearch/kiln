@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.web.visual-design.packaged-check.v1",
+  "command": "env TMPDIR=/home/brittonr/.local/state/kiln/blacksmith-design-check-tmp nix flake check path:$PWD --no-write-lock-file --builders '' --option build-dir /nix/var/nix/builds -L",
+  "passed": true,
+  "observed_verdict": "all checks passed!",
+  "duration_seconds": 529.65,
+  "system": "x86_64-linux",
+  "omitted_systems": ["aarch64-linux"],
+  "source": "/nix/store/p9xbddshsf79kvknh97xkb6c442dk1fq-source",
+  "frontend_identity_evidence": "checks.json",
+  "web_service_derivation": "/nix/store/dh4b8gblm5iw2di30z81dcni0w1bkq67-kiln-web-service-0.1.0.drv",
+  "web_service_output": "/nix/store/81nvqrdy6cvsl5gi9xphvxzl5brkcrxr-kiln-web-service-0.1.0",
+  "additional_observed_outputs": {
+    "package": "/nix/store/f372lq7m9hbwh175cp7z2m38sx773911-kiln-0.1.0",
+    "bombadil": "/nix/store/gzq87gv2hillxfsy28rl46y882rjvw51-kiln-bombadil",
+    "dashboard_publication": "/nix/store/irzsgsqkyzr01wkgh6krlc6nx4mciwb1-kiln-dashboard-publication",
+    "release_evidence": "/nix/store/qck85mqmi772a02kknfyp51xjpsrx0v8-kiln-release-evidence"
+  },
+  "boundary": "Packaged checks include the isolated deployment VM and existing dashboard rails; this does not deploy the candidate, qualify aarch64-linux, clear repository-wide traceability holds or authorize release. Lifecycle/evidence files recorded afterward do not change the four frontend assets bound in checks.json."
+}

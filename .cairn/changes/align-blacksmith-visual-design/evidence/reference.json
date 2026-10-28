@@ -1,0 +1,9 @@
+{
+  "schema": "kiln.visual-reference.v1",
+  "reference": "https://www.blacksmith.sh/",
+  "dashboard_image": "https://www.blacksmith.sh/webflow/assets/6847465b27bcd8f14bf73aa1_5082b7f5befbf8951ed12608b25358e0_image-feature-insight-light.png",
+  "observed_traits": ["Off-white and charcoal", "Acid-yellow emphasis", "Crisp rectangular frames", "Hard offset shadows", "Monospaced labels", "Technical dotted texture"],
+  "consumer": "Authenticated Kiln developers and CI operators",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers",
+  "boundary": "Visual reference only. No copied Blacksmith branding, metrics, remote fonts or runtime assets."
+}

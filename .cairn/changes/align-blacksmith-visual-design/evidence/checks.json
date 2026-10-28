@@ -1,0 +1,50 @@
+{
+  "schema": "kiln.web.visual-design.checks.v1",
+  "scope": "Local visual-design candidate; no deployment, publication, release acceptance or production write",
+  "owner": "Kiln web-service/dashboard maintainers",
+  "consumer": "Kiln live work and CI console",
+  "durable_capability": "Shared live-console visual tokens and accessible framed components across work, CI, navigation and dialogs",
+  "checks": [
+    {
+      "command": "env TMPDIR=/home/brittonr/.local/state/kiln/blacksmith-design-check-tmp nix develop path:$PWD -c bwrap --bind / / --bind /home/brittonr/.local/state/kiln/blacksmith-design-check-tmp /tmp --ro-bind /nix/store /nix/store --dev-bind /dev /dev --proc /proc cargo test --locked --workspace",
+      "passed": true,
+      "boundary": "Workspace tests and doctests; temporary-directory bind supplies writable fixture storage without changing product code"
+    },
+    {
+      "command": "env TMPDIR=/home/brittonr/.local/state/kiln/blacksmith-design-check-tmp nix develop path:$PWD -c bwrap --bind / / --bind /home/brittonr/.local/state/kiln/blacksmith-design-check-tmp /tmp --ro-bind /nix/store /nix/store --dev-bind /dev /dev --proc /proc cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "passed": true,
+      "boundary": "Nix eval-cache busy warning and kache cache-index I/O diagnostics did not prevent compilation; Clippy completed successfully"
+    },
+    {
+      "command": "env TMPDIR=/home/brittonr/.local/state/kiln/blacksmith-design-check-tmp nix develop path:$PWD -c cargo fmt --check",
+      "passed": true
+    },
+    {
+      "command": "env TMPDIR=/home/brittonr/.local/state/kiln/blacksmith-design-check-tmp nix build path:$PWD#checks.x86_64-linux.octet --no-link --builders '' --option build-dir /nix/var/nix/builds -L",
+      "passed": true,
+      "boundary": "The Octet aggregate built; both rebuilt consumer checks reported clean, zero findings, warnings and errors"
+    }
+  ],
+  "browser_evidence": "browser.json",
+  "browser_scope": "Real authenticated service and retained data with candidate HTML/CSS response overrides; no API mocks and no deployed-asset claim",
+  "live_data_preservation": {
+    "health_status": "ok",
+    "run_records": 19,
+    "runs_equal_before_after": true,
+    "work_objects": 0,
+    "work_equal_before_after": true
+  },
+  "packaged_source": "/nix/store/p9xbddshsf79kvknh97xkb6c442dk1fq-source",
+  "frontend_blake3": {
+    "crates/kiln-web-service/src/web.html": "6a060d8e1d20af6b4b5e6ceb378e203525c7d03c4d2eee95779e17e8bcd05b2a",
+    "crates/kiln-web-service/src/web.css": "7df41fb9930c8341e5eddc293fa73021bbcfd39365652db3a796e62971edc2f8",
+    "crates/kiln-web-service/src/work.css": "d8b3933fda0416d63ea2f9d300932ccf468653e1734092e7d1db0628225160c1",
+    "crates/kiln-web-service/src/work-interaction.css": "96ec3d912e7f5bf7c23905717e2e310403b961fac62cfa83b78fb8c1f4e603d5"
+  },
+  "frontend_identity_check": "b3sum of all four working-tree assets and all four packaged-source assets matched the browser-observed identities",
+  "lifecycle": {
+    "validation": {"passed": true, "evidence": "validate.json"},
+    "traceability": {"passed": false, "evidence": "traceability.json", "receipt_hash": "138e3aebcf187d20ff360c7d6e26d6ef4b92d2ea7f19ceff6320da473fd4f2b6", "missing": [], "boundary": "Repository-wide dangling references remain; no release or archive authority is inferred"},
+    "release_readiness": {"onix_release_ready": false, "evidence": "release-readiness.json"}
+  }
+}

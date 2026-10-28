@@ -1356,6 +1356,16 @@ The sidebar separates **Work**, **Continuous integration** and a collapsed
 existing page URLs remain valid. Administration opens automatically for a selected
 administrative page. The Kiln brand returns to Issues.
 
+<!-- r[impl kiln.web.visual_design] -->
+The live console uses Blacksmith-inspired off-white/charcoal surfaces, acid-yellow
+action emphasis, crisp frames, icon-labelled navigation and monospaced metadata.
+Yellow marks actions and emphasis, not successful execution; success and errors
+retain their distinct semantic colors and text. **Settings → Appearance** keeps
+Light, Dark and System modes; **Density** changes spacing without shrinking mobile
+touch targets. The visual system lives in `web.css`, `work.css` and
+`work-interaction.css`, maintained by Kiln's web-service/dashboard owners; it does
+not change the offline catalog or request external fonts or image assets.
+
 Start with **New issue**. Title, description, status and priority are visible;
 ownership/labels, relationships, dates and CI/source links open in labelled
 disclosures. Creation and editing still confirm exact fields before signed writes.
