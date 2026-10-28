@@ -1,0 +1,64 @@
+{
+  "schema": "kiln.web-service.deployment.v1",
+  "scope": "Operated local single-tenant service on this host (user systemd units). No OnixOS target, host selection, credential generation or remote activation was performed.",
+  "revision": "86070d260b17894a22c306f1e0f8dd3931bc6a83",
+  "package": {
+    "output": "/nix/store/xrwsxbg1zfw2ihz18q27p2hln227nrnd-kiln-web-service-0.1.0",
+    "binary_blake3": "f2e60a8090902c7ff5b6e0d74f1188e07eee99c479de3927e210487f92985459",
+    "previous_output": "/nix/store/4dwhf77civz6nbr18kqi700dhxi95dc1-kiln-web-service-0.1.0",
+    "binary_unchanged_from_previous": true
+  },
+  "gates": {
+    "deployment_vm_check": "checks.x86_64-linux.web-service-deployment built and ran with the deployed package; the test script finished and the VM cleaned up (the package path appears in the preflight must-fail step).",
+    "package_build": "nix build path:.#web-service --no-link --json -L succeeded with builders/secret-key-files cleared."
+  },
+  "activation": {
+    "units": [
+      "kiln-web-service.service",
+      "kiln-tailnet-proxy.service"
+    ],
+    "state": "active",
+    "listener": "https://localhost:9443",
+    "proxy_healthz": "{\"status\":\"ok\"}"
+  },
+  "smoke": {
+    "endpoints": [
+      "/api/overview",
+      "/api/projects",
+      "/api/runs",
+      "/api/cobs",
+      "/api/sources",
+      "/api/workers",
+      "/api/automation",
+      "/api/operations"
+    ],
+    "sources": [
+      {
+        "id": "kiln",
+        "kind": "git",
+        "status": "available"
+      },
+      {
+        "id": "lattice",
+        "kind": "jj",
+        "status": "available"
+      },
+      {
+        "id": "native-ci",
+        "kind": "git",
+        "status": "available"
+      },
+      {
+        "id": "redox",
+        "kind": "pijul",
+        "status": "available"
+      }
+    ],
+    "cobs_total": 159,
+    "revision_diff_files": 2,
+    "trusted_ca_validation": true
+  },
+  "non_claims": [
+    "Activation proves the recorded unit, profile and package run on this host. It does not prove CI acceptance, reviewer authority, provider behaviour, or that any OnixOS target was updated."
+  ]
+}
