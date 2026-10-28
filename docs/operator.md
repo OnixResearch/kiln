@@ -1561,9 +1561,10 @@ Authenticated viewers and operators may make bodyless GET requests:
 
 - `/api/cobs` accepts only optional `repository` (local key), `type` (exact
   registered name), `q`, `limit` and `cursor`. Search is case-insensitive substring
-  matching over the root-commit summary, object ID, local key, label, native
-  repository ID, type and recorded author, not action content or the displayed
-  excerpt. Ordering is by local key,
+  matching over bounded recorded root titles, the root-commit summary, object ID,
+  local key, label, native repository ID, type and recorded author. It does not
+  search later edits, document bodies or arbitrary action content.
+  Ordering is by local key,
   type and native object ID. The default page has 25 objects; `limit` is 1–100.
   Keep filters and limit unchanged when following the returned `next_cursor`.
   Cursor snapshots bind those selections and observed object/ref-tip identities;
@@ -1578,9 +1579,13 @@ Authenticated viewers and operators may make bodyless GET requests:
 Inventory returns all admitted public repository keys/labels/native IDs in
 `repositories`, selected-store availability and counts in `sources`, all
 registered `types`, paged `objects`, filtered `total`, `next_cursor`, `snapshot`,
-`complete` and `non_claims`. Each object row carries its exact type, title,
-native object ID and ref tips plus the root commit's recorded author and time;
-the browser renders that time in local time alongside UTC. An unavailable
+`complete` and `non_claims`. Each object row carries its exact type, bounded
+recorded root title (or root-summary fallback), native object ID and ref tips plus
+the root commit's recorded author and time; the browser renders that time in local
+time alongside UTC. Titles may come from later numbered actions in the root, not
+just action zero. Unavailable or oversized metadata does not make up a title:
+the root summary remains the fallback. These are not reduced current titles.
+An unavailable
 selected store makes the inventory incomplete,
 not falsely empty; detail reads fail explicitly on unavailable/malformed stores
 or exhausted bounds. Distinguish these from an available store containing no
@@ -1596,6 +1601,22 @@ its type manifest. History follows operation parents back to the selected root;
 parents named by `Rad-Resource` or `Rad-Related` trailers are resource links, not
 history edges. Concurrent tips remain observations, not a chosen semantic winner.
 
+The inspector presents content by native type: Cairn change artifacts, RFD/ADR
+documents, verification-obligation fields and claims, release candidates and
+evidence, policy-exception requests, issue comments/edits, patch revisions/reviews
+and native job Request/Run/Finished events. Named artifacts and fields have
+separate disclosures; body text preserves its recorded whitespace without JSON
+escape sequences. Markdown/HTML and source-supplied URLs remain inert text, not
+executed markup, navigable links or fetched resources. Admitted patch-to-source
+lookup links retain their separate exact-commit checks.
+
+Exact object identities/ref tips, operation framing and raw JSON remain available
+in labelled disclosures. Unknown or malformed action shapes open raw content
+instead of guessing meaning. Every recorded operation remains visible in identity
+order, including concurrent and superseded claims. A lifecycle, vote or job
+outcome is a recorded claim, not current lifecycle state, CI success or acceptance
+authority. This presentation path is maintained by Kiln dashboard maintainers.
+
 Current implementation bounds are fixed, not policy knobs:
 
 | Read boundary | Maximum |
@@ -1607,7 +1628,8 @@ Current implementation bounds are fixed, not policy knobs:
 | Git parents per operation / tree entries per operation | 128 / 256 |
 | Commit / tree / manifest bytes | 65,536 / 65,536 / 4,096 |
 | Numbered actions per operation / bytes per action | 128 / 262,144 |
-| Retained action bytes across one history / displayed root-summary characters | 1,048,576 / 256 |
+| Root metadata preview bytes across numbered actions / excerpt characters | 8,192 / 180 |
+| Retained action bytes across one history / displayed root-title or summary characters | 1,048,576 / 256 |
 
 Raw action JSON and commit metadata are untrusted recorded content, rendered as
 inert text. `signature_status = "not_verified"`, `signatures_verified = false`
@@ -1987,6 +2009,21 @@ Neither stream invents progress or completion. Text is inert; byte cursors are
 never inferred from displayed UTF-8 character counts. Follow works with an
 admitted network session as well as a manual bearer.
 
+The web viewer reads one bounded chunk at a time. **Read from cursor** appends
+when the requested cursor is the displayed stream/search's next cursor. Empty
+reads preserve existing output and text selection. **Read from start**, or an
+explicit different cursor, replaces the displayed range after a successful read.
+Failed continuations and rejected seeks retain admitted text with an explicit
+unavailable/stale status; they do not advance the accepted cursor. Changing a
+run, node, stream or search invalidates old responses rather than mixing output.
+
+Changing the literal search loads matching stdout/stderr from the beginning.
+Diagnostic streams disable search and never submit `q`; switching back restores
+the worker-stream search. Search skips are not source gaps. Follow scrolls only
+while already at the tail, so scrolling up permits inspection of older text.
+The existing display memory limit can still evict old visible text with a warning;
+use an earlier cursor or the exact retained-stream download when needed.
+
 Artifacts are real declared worker files, bound to exact source, attempt,
 execution and known node. Uploads verify bounded bytes and BLAKE3 before atomic
 owned retention; downloads use opaque IDs rather than caller paths. A receipt or
@@ -2017,8 +2054,21 @@ credential provisioning and worker isolation remain operator responsibilities.
   exclude later arrivals. A missing or filtered selection is not silently
   replaced. Page, run, node, inspection tab, comparison, appearance and density
   are URL-restored, including a full reload.
-- **Pipeline:** the admitted dependency edges, observed stage state and exact
-  node inspection. Edges and unknown timings are never inferred from log text.
+- **Pipeline:** admitted dependencies grouped by longest dependency depth, with
+  recorded state badges/counts, measured node cards and highlighted immediate
+  prerequisites/dependents. Stages do not imply execution order, readiness or
+  placement. **Fit**, **100%**, and bounded 35–150% zoom affect only the scrollable
+  diagram; long names wrap and the bounded full-node list remains available.
+  Select a card or list entry for exact state/timing facts, relationship links
+  and **View node logs**. Selection is URL-restored; same-run refresh preserves
+  diagram zoom/pan, list position and keyboard focus. Missing, ambiguous or stale
+  node selections are never replaced. Historical missing edges and invalid
+  topology show an explicit warning instead of an invented or partial diagram.
+  Unknown timing stays unknown; a recorded zero duration remains zero. Neither
+  Completed nor a green badge grants CI, gate, review or release authority.
+  Clearing the session clears all private workflow views. Kiln dashboard
+  maintainers own this browser presentation; Lattice retains execution semantics.
+  See [bounded rendering evidence](../.cairn/changes/improve-lattice-rendering/evidence/verification.json).
 - **Rerun exact revision** creates a new source-bound attempt at the selected
   immutable revision. **Run latest admitted reference** resolves the current
   reviewed reference into a new candidate. **Retry known failed nodes** selects

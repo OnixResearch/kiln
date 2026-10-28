@@ -267,6 +267,10 @@ impl Browser {
             .filter(|row| {
                 (type_name.is_empty() || row.type_name == type_name)
                     && (needle.is_empty()
+                        || row
+                            .root_summary
+                            .as_ref()
+                            .is_some_and(|summary| summary.to_lowercase().contains(&needle))
                         || [
                             &row.title,
                             &row.object_id,

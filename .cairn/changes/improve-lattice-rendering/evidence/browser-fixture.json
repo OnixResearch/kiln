@@ -1,0 +1,105 @@
+{
+  "kind": "synthetic-browser-response-overlay",
+  "id": "workflow-render-fixture",
+  "nodes": [
+    {
+      "id": "fetch",
+      "state": "Completed",
+      "kind": "shell",
+      "started_at_ms": 1700000000000,
+      "completed_at_ms": 1700000000000,
+      "duration_ms": 0
+    },
+    {
+      "id": "evaluate",
+      "state": "Completed",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    },
+    {
+      "id": "lint-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-",
+      "state": "Failed",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    },
+    {
+      "id": "test",
+      "state": "Running",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    },
+    {
+      "id": "package",
+      "state": "Pending",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    },
+    {
+      "id": "publish",
+      "state": "Skipped",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    },
+    {
+      "id": "paused-branch",
+      "state": "Paused",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    },
+    {
+      "id": "cancelled-branch",
+      "state": "Cancelled",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    },
+    {
+      "id": "unknown-branch",
+      "state": "Unknown",
+      "kind": "shell",
+      "started_at_ms": null,
+      "completed_at_ms": null,
+      "duration_ms": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "fetch",
+      "target": "evaluate"
+    },
+    {
+      "source": "evaluate",
+      "target": "lint-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-"
+    },
+    {
+      "source": "evaluate",
+      "target": "test"
+    },
+    {
+      "source": "lint-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-long-node-name-",
+      "target": "package"
+    },
+    {
+      "source": "test",
+      "target": "package"
+    },
+    {
+      "source": "package",
+      "target": "publish"
+    }
+  ],
+  "usage": "Overlay these fields on an admitted run response only inside the isolated browser. Never submit this fixture to an execution provider."
+}

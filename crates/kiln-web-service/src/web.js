@@ -10,7 +10,11 @@
   const LOG_READ_BYTES = 16384;
   const MAX_DISPLAYED_LOG_CHARS = 256 * 1024;
   const LOG_FOLLOW_MS = 2000;
+  const LOG_TAIL_SLOP_PX = 24;
   const CONTROL_FRESHNESS_MS = 30000;
+  const GRAPH_MIN_ZOOM = 0.35;
+  const GRAPH_MAX_ZOOM = 1.5;
+  const GRAPH_ZOOM_STEP = 0.15;
   const localTimeFormat = new Intl.DateTimeFormat(undefined, {
     year: "numeric", month: "short", day: "numeric",
     hour: "2-digit", minute: "2-digit", second: "2-digit", timeZoneName: "short",
@@ -32,6 +36,7 @@
     endpointGeneration: new Map(),
     runsError: "",
     cobsNextCursor: null,
+    graphRun: null, graphZoom: 1,
   };
 
   function text(value) {
@@ -327,7 +332,11 @@
       options($("log-node"), [], `Node not found: ${state.route.node}`, "");
     }
     if (previousNode && previousNode !== $("log-node").value) resetLogs();
-    $("read-log").disabled = !$("log-node").value;
+    $("read-log").disabled = state.logBusy || !$("log-node").value;
+    $("restart-log").disabled = state.logBusy || !$("log-node").value;
+    const diagnostic = $("log-stream").value === "diagnostic";
+    $("log-search").disabled = diagnostic;
+    $("log-search-help").textContent = diagnostic ? "Search is unavailable for native diagnostic streams. Your worker-stream search is kept for stdout/stderr." : "Search retained stdout/stderr from the beginning; changing the search loads matching output.";
     $("follow-logs").disabled = !$("log-node").value;
     $("download-log").disabled = !$("log-node").value;
     updateControlButtons();
@@ -481,25 +490,23 @@
     if (!/^\d+$/.test(source) || BigInt(source) > 18446744073709551615n) throw new Error("A stream cursor must be an unsigned 64-bit decimal integer.");
     return BigInt(source).toString();
   }
+  // r[impl kiln.dashboard.logs.continuation]
   async function readLog(follow = false) {
     if (state.logBusy || !state.selected || !$("log-node").value) return;
     const id = state.selected;
     const node = $("log-node").value;
     const stream = $("log-stream").value;
-    const search = $("log-search").value.trim();
+    const search = stream === "diagnostic" ? "" : $("log-search").value.trim();
     const key = `${id}\0${node}\0${stream}\0${search}`;
     let cursor;
     try { cursor = cursorValue(follow ? state.logNext : $("log-cursor").value); }
     catch (error) { $("log-status").textContent = explain(error); return; }
-    if (!follow || key !== state.logKey) {
-      state.logGeneration++;
-      state.logKey = key;
-      $("log-output").textContent = "";
-      $("log-gap").hidden = true;
-    }
-    const generation = state.logGeneration;
+    stopLogFollow();
+    const append = key === state.logKey && cursor === state.logNext;
+    const generation = ++state.logGeneration;
     state.logBusy = true;
     $("read-log").disabled = true;
+    $("restart-log").disabled = true;
     $("log-status").textContent = "Reading retained stream cursor…";
     try {
       const maximum = state.run?.log_bounds?.maximum_chunk_bytes;
@@ -515,26 +522,37 @@
       const sourceLabel = result.source === "worker-capture" ? "Worker-captured output · byte cursor" : "Native provider diagnostic · native cursor";
       const next = cursorValue(result.next_cursor);
       const returned = cursorValue(result.cursor);
-      if (BigInt(next) < BigInt(returned)) throw new Error("The stream cursor moved backwards; automatic following stopped.");
+      if (BigInt(returned) < BigInt(cursor) || BigInt(next) < BigInt(returned)) throw new Error("The stream cursor moved backwards; automatic following stopped.");
       const gaps = [];
       if (result.gap) gaps.push(`Source reports a log gap: ${text(result.gap)}. Missing bytes are not reconstructed.`);
-      if (returned !== cursor) gaps.push(`Source returned cursor ${returned} instead of requested ${cursor}.`);
+      if (returned !== cursor) gaps.push(search ? `Search advanced from cursor ${cursor} to ${returned}; nonmatching bytes are not displayed.` : `Source returned cursor ${returned} instead of requested ${cursor}.`);
       if (result.truncated) gaps.push("Captured output or this read is truncated. Missing bytes are not reconstructed; retained bytes may remain at the next cursor.");
-      let output = $("log-output").textContent + result.text;
+      const view = $("log-output");
+      const scrollTop = view.scrollTop;
+      const followTail = $("follow-logs").checked && view.scrollHeight - view.clientHeight - scrollTop <= LOG_TAIL_SLOP_PX;
+      const previousOutput = view.textContent;
+      let output = (append ? previousOutput : "") + result.text;
       if (output.length > MAX_DISPLAYED_LOG_CHARS) {
         output = output.slice(-MAX_DISPLAYED_LOG_CHARS);
         gaps.push("Older displayed log text was removed at this page’s memory bound. Re-read an earlier stream cursor to inspect retained bytes.");
       }
-      $("log-output").textContent = output;
+      if (output !== previousOutput) view.textContent = output;
+      if (!append) { $("log-gap").textContent = ""; $("log-gap").hidden = true; }
       if (gaps.length) {
         $("log-gap").textContent = [$("log-gap").hidden ? "" : $("log-gap").textContent, ...gaps].filter(Boolean).join("\n").slice(-8192);
         $("log-gap").hidden = false;
       }
+      state.logKey = key;
       state.logNext = next;
       $("log-cursor").value = next;
       $("log-position").textContent = `${sourceLabel} · ${returned} → ${next} · retained: ${text(result.retained)}`;
-      $("log-status").textContent = result.text ? `${sourceLabel}. Actual retained bytes loaded; text is displayed inertly.` : "No log bytes returned at this cursor. This does not imply execution success or complete logs.";
-      if ($("follow-logs").checked) $("log-output").scrollTop = $("log-output").scrollHeight;
+      if (result.text) $("log-status").textContent = `${sourceLabel}. Actual retained bytes loaded; text is displayed inertly.`;
+      else if (search) $("log-status").textContent = "No further matches at this cursor. Previously loaded matching text is retained.";
+      else {
+        $("log-status").textContent = `No new ${stream} bytes at cursor ${next}. Previously loaded text is retained; an empty read does not imply success or complete logs.`;
+        if (stream === "stdout" && !output) $("log-status").textContent += " Check stderr for compiler/build diagnostics.";
+      }
+      view.scrollTop = followTail ? view.scrollHeight : append ? scrollTop : 0;
     } catch (error) {
       if (!isAborted(error) && generation === state.logGeneration) {
         $("log-status").textContent = `Logs unavailable: ${explain(error)} Following stopped; retained displayed bytes may be stale.`;
@@ -544,6 +562,7 @@
       if (generation === state.logGeneration) {
         state.logBusy = false;
         $("read-log").disabled = !$("log-node").value;
+        $("restart-log").disabled = !$("log-node").value;
         if ($("follow-logs").checked && state.session) state.logTimer = setTimeout(() => readLog(true), LOG_FOLLOW_MS);
       }
     }
@@ -659,6 +678,8 @@
     $("source-reference").replaceChildren();
     for (const id of ["source-revision", "log-search"]) $(id).value = "";
     for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status"]) $(id).replaceChildren();
+    for (const id of ["workflow-title", "workflow-caption", "workflow-summary"]) $(id).replaceChildren();
+    state.graphRun = null; state.graphZoom = 1;
     $("operator-token").value = "";
     $("workspace").hidden = true;
     $("run-detail").hidden = true;
@@ -1174,22 +1195,87 @@
     }
     if (!links) card.append(element("p", unavailable ? "Commit coverage is unknown because a lookup was unavailable. Nothing was substituted." : "No admitted source contains a commit from this patch. Nothing was substituted.", "small"));
   }
+  const cobPresentations = {
+    "xyz.onixresearch.cairn-change": { label: "Cairn change", actions: ["init", "set_artifact", "attach_evidence", "set_lifecycle"] },
+    "xyz.onixresearch.rfd": { label: "RFD", actions: ["init", "set_artifact", "add_discussion", "add_link", "set_lifecycle", "set_publication"] },
+    "xyz.onixresearch.adr": { label: "ADR", actions: ["init", "set_artifact", "add_discussion", "add_link", "set_lifecycle", "set_publication"] },
+    "xyz.onixresearch.verification-obligation": { label: "Verification obligation", actions: ["init", "set_field", "attach_evidence", "add_finding", "respond_finding", "set_disposition", "discharge", "reject", "invalidate", "resolve_field"] },
+    "xyz.onixresearch.release-decision": { label: "Release decision", actions: ["init", "attach_evidence", "add_finding", "respond_finding", "dispose_finding", "vote", "withdraw", "invalidate", "supersede", "resolve"] },
+    "xyz.onixresearch.policy-exception": { label: "Policy exception", actions: ["init", "revise", "add_finding", "resolve_finding", "approve", "reject", "observe_validity", "revoke", "expire", "close", "supersede"] },
+    "xyz.radicle.issue": { label: "Issue", actions: ["edit", "comment", "comment.edit", "comment.redact", "comment.react", "lifecycle", "label", "assign"] },
+    "xyz.radicle.patch": { label: "Patch", actions: ["edit", "revision", "revision.edit", "revision.redact", "revision.react", "revision.comment", "revision.comment.edit", "revision.comment.redact", "revision.comment.react", "review", "review.edit", "review.redact", "review.comment", "review.comment.edit", "review.comment.redact", "review.comment.react", "merge", "lifecycle", "label", "assign"] },
+    "xyz.radworks.job": { label: "CI job", actions: ["Request", "Run", "Finished"] },
+  };
+  function cobFieldLabel(key) {
+    const words = key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_.]/g, " ");
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+  // COB data must not acquire renderRecorded's CI links or timestamp semantics.
+  function renderCobFields(parent, value, depth = 0) {
+    if (value === null) { parent.append(element("span", "null (recorded)")); return; }
+    if (typeof value !== "object") { parent.append(element("span", value === "" ? "(empty text)" : text(value), "cob-text")); return; }
+    if (depth >= 4) { parent.append(element("pre", JSON.stringify(value, null, 2), "identity cob-action")); return; }
+    if (Array.isArray(value)) {
+      if (!value.length) { parent.append(element("span", "Empty list (recorded)", "small")); return; }
+      const list = element("ul", undefined, "cob-values");
+      for (const item of value) { const row = element("li"); renderCobFields(row, item, depth + 1); list.append(row); }
+      parent.append(list); return;
+    }
+    if (!Object.keys(value).length) { parent.append(element("span", "Empty record (recorded)", "small")); return; }
+    const facts = element("dl", undefined, "facts cob-fields"); parent.append(facts);
+    for (const [key, item] of Object.entries(value)) {
+      const cell = element("dd"); facts.append(element("dt", cobFieldLabel(key)), cell);
+      if ((key === "artifacts" || key === "fields") && item && typeof item === "object" && !Array.isArray(item)) {
+        for (const [name, content] of Object.entries(item)) {
+          const document = element("details", undefined, "cob-document");
+          document.open = ["proposal", "title", "body", "document", "statement"].includes(name);
+          document.append(element("summary", `${key === "artifacts" ? "Artifact" : "Field"}: ${name}`));
+          renderCobFields(document, content, depth + 1); cell.append(document);
+        }
+        if (!Object.keys(item).length) cell.append(element("span", "No recorded content", "small"));
+      } else renderCobFields(cell, item, depth + 1);
+    }
+  }
+  function renderCobAction(parent, typeName, action) {
+    const value = action.value;
+    const presentation = Object.hasOwn(cobPresentations, typeName) ? cobPresentations[typeName] : null;
+    let kind = value?.type;
+    let content = value;
+    const record = value && typeof value === "object" && !Array.isArray(value);
+    if (typeName === "xyz.radworks.job" && record && Object.keys(value).length === 1) {
+      kind = Object.keys(value)[0]; content = value[kind];
+    }
+    const known = record && presentation?.actions.includes(kind) && content && typeof content === "object" && !Array.isArray(content)
+      && (kind !== "init" || (content.state && typeof content.state === "object" && !Array.isArray(content.state)));
+    const card = element("article", undefined, "cob-content"); parent.append(card);
+    if (known) {
+      card.append(element("h4", `${presentation.label} · ${kind === "init" ? "Initial record" : cobFieldLabel(kind)}`));
+      const fields = kind === "init" ? content.state : Object.fromEntries(Object.entries(content).filter(([key]) => key !== "type"));
+      renderCobFields(card, fields);
+    } else card.append(element("p", "Unrecognized action shape. Exact recorded content is available below; no meaning was inferred.", "small"));
+    const raw = element("details", undefined, "cob-raw"); raw.open = !known;
+    raw.append(element("summary", `Raw action ${text(action.index)} · ${text(action.bytes)} bytes · blob ${text(action.blob_id)}`), element("pre", JSON.stringify(value, null, 2), "identity cob-action"));
+    card.append(raw);
+  }
   function renderCobDetail(parent, result) {
     const object = result.object;
     if (!object?.identity || !Array.isArray(object.operations)) throw new Error("COB history response is invalid.");
     const identity = object.identity;
-    parent.append(element("h2", text(identity.title)));
+    parent.append(element("h2", text(identity.title)), element("p", "Recorded root title or import summary; later edits remain separate observations below.", "small"));
     const clear = element("button", "Clear selected COB"); clear.type = "button"; clear.addEventListener("click", () => navigate({ cob: "", cob_repo: "", cob_kind: "" })); parent.append(clear);
     const badges = element("div", undefined, "badges");
     badges.append(element("span", cobTypeLabel(identity.type_name), "cob-type"), element("span", "Signatures not verified", "state-badge"), element("span", text(object.observation), "state-badge"));
     parent.append(badges);
-    const facts = element("dl", undefined, "facts"); addFacts(facts, [["Repository", identity.repository_label], ["Native repository ID", identity.repository_id], ["Native object ID", identity.object_id], ["Kiln observation key", identity.id], ["Observed operations", object.operation_count], ["Retained action bytes", object.retained_action_bytes]]); parent.append(facts);
-    const tips = section("Observed ref tips", parent, "record-card"); renderRecorded(tips, identity.ref_tips);
-    parent.append(element("p", "Every operation below is recorded data, ordered by operation identity—not a chosen semantic winner. Git author fields are unverified claims. Embedded source text is inert; no links or scripts are executed.", "warning"));
+    const exact = element("details", undefined, "cob-exact"); exact.append(element("summary", "Exact object identity & observed ref tips")); parent.append(exact);
+    const facts = element("dl", undefined, "facts"); addFacts(facts, [["Repository", identity.repository_label], ["Native repository ID", identity.repository_id], ["Native object ID", identity.object_id], ["Kiln observation key", identity.id], ["Observed operations", object.operation_count], ["Retained action bytes", object.retained_action_bytes]]); exact.append(facts);
+    const tips = section("Observed ref tips", exact, "record-card"); renderCobFields(tips, identity.ref_tips);
+    parent.append(element("p", "Recorded actions, ordered by operation identity—not a current state or chosen concurrent winner. Authors, status and decision claims are unverified. Embedded text and URLs are inert.", "warning"));
     for (const operation of object.operations) {
       const card = section(`Operation ${shortOid(operation.id)}`, parent, "record-card cob-operation");
-      const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Exact operation ID", operation.id], ["Recorded", timestamp(operation.recorded_at_ms)], ["Git author (unverified)", `${text(operation.author_name)} <${text(operation.author_email)}>`], ["Git parents", operation.git_parents], ["History parents", operation.history_parents], ["Commit message", operation.message]]); card.append(metadata);
-      for (const action of operation.actions || []) { const details = element("details"); details.open = Number.isSafeInteger(action.bytes) && action.bytes < 4096; details.append(element("summary", `Raw action ${text(action.index)} · ${text(action.bytes)} bytes · blob ${text(action.blob_id)}`), element("pre", JSON.stringify(action.value, null, 2), "identity cob-action")); card.append(details); }
+      card.append(element("p", `${shortAuthor(operation.author_name)} · ${timestamp(operation.recorded_at_ms)} · unverified author`, "small"));
+      for (const action of operation.actions || []) renderCobAction(card, identity.type_name, action);
+      const framing = element("details", undefined, "cob-framing"); framing.append(element("summary", "Exact operation metadata"));
+      const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Exact operation ID", operation.id], ["Recorded", timestamp(operation.recorded_at_ms)], ["Git author (unverified)", `${text(operation.author_name)} <${text(operation.author_email)}>`], ["Git parents", operation.git_parents], ["History parents", operation.history_parents], ["Commit message", operation.message]]); framing.append(metadata); card.append(framing);
     }
     for (const boundary of result.non_claims || []) parent.append(element("p", boundary, "small"));
     void attachPatchSources(parent, object);
@@ -1554,40 +1640,163 @@
     try { const result = await api(`/api/projects/${encodeURIComponent(id)}/refs`); if (generation !== state.refsGeneration || id !== $("enrolled-project").value) return; options($("source-reference"), result.references.map((row) => ({ id: row.reference, label: `${row.reference} · ${text(row.source_revision)}` })), null, $("source-reference").value); $("source-status").textContent = "Latest resolves the admitted reference when the new run is dispatched; exact revision is reachability-checked by the service."; }
     catch (error) { if (!isAborted(error) && generation === state.refsGeneration) { options($("source-reference"), [], "References unavailable", ""); $("source-status").textContent = explain(error); } }
   }
-  function renderGraph(run) {
-    const focused = document.activeElement?.dataset.nodeId;
-    const parent = $("pipeline-graph"); const list = $("node-list"); parent.replaceChildren(); list.replaceChildren();
-    const nodes = run.nodes || []; const edges = run.edges;
-    if (!Array.isArray(edges)) parent.append(element("p", "Dependency graph unavailable for this historical run.", "small"));
-    const positions = new Map(); const rank = new Map(nodes.map((node) => [node.id, 0]));
-    // Bound traversal; malformed cyclic input never creates an unbounded layout loop.
-    if (Array.isArray(edges)) for (let i = 0; i < nodes.length; i++) { let changed = false; for (const edge of edges) if (rank.has(edge.source) && rank.has(edge.target) && rank.get(edge.target) <= rank.get(edge.source)) { rank.set(edge.target, Math.min(nodes.length, rank.get(edge.source) + 1)); changed = true; } if (!changed) break; }
-    const columns = new Map(); for (const node of nodes) { const col = rank.get(node.id); const row = columns.get(col) || 0; columns.set(col, row + 1); positions.set(node.id, { x: 24 + col * 230, y: 24 + row * 110 }); }
-    if (nodes.length && Array.isArray(edges)) {
-      const width = Math.max(...[...positions.values()].map((pos) => pos.x)) + 215; const height = Math.max(...[...positions.values()].map((pos) => pos.y)) + 90;
-      const canvas = element("div", undefined, "dag-canvas"); canvas.style.width = `${width}px`; canvas.style.height = `${height}px`; parent.append(canvas);
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("width", width); svg.setAttribute("height", height); svg.setAttribute("aria-hidden", "true"); canvas.append(svg);
-      for (const edge of edges) { const from = positions.get(edge.source); const to = positions.get(edge.target); if (!from || !to) continue; const path = document.createElementNS(svg.namespaceURI, "path"); const mid = (from.x + 190 + to.x) / 2; path.setAttribute("d", `M${from.x + 190},${from.y + 36} C${mid},${from.y + 36} ${mid},${to.y + 36} ${to.x},${to.y + 36}`); path.setAttribute("class", "dag-edge"); svg.append(path); const arrow = document.createElementNS(svg.namespaceURI, "path"); arrow.setAttribute("d", `M${to.x - 7},${to.y + 31} L${to.x},${to.y + 36} L${to.x - 7},${to.y + 41}`); arrow.setAttribute("class", "dag-edge"); svg.append(arrow); }
-      for (const node of nodes) {
-        const button = element("button", undefined, "dag-node"); button.type = "button"; button.dataset.nodeId = node.id;
-        button.style.left = `${positions.get(node.id).x}px`; button.style.top = `${positions.get(node.id).y}px`;
-        button.append(element("strong", node.id), element("span", `${text(node.state)} · ${duration(node.duration_ms)}`, "small"));
-        if (node.id === state.route.node) button.setAttribute("aria-current", "true");
-        button.addEventListener("click", () => navigate({ node: node.id })); canvas.append(button);
-        if (focused === node.id) button.focus({ preventScroll: true });
+  const workflowTones = { Pending: "pending", Running: "running", Paused: "paused", Completed: "completed", Failed: "failed", Cancelled: "cancelled", Skipped: "skipped", Unknown: "unknown" };
+  function workflowBadge(value) {
+    const badge = element("span", text(value), "workflow-state");
+    badge.dataset.state = Object.hasOwn(workflowTones, value) ? workflowTones[value] : "unknown";
+    return badge;
+  }
+  // r[impl kiln.dashboard.workflow.presentation]
+  function workflowTopology(nodes, edges) {
+    const ids = new Set();
+    for (const node of nodes) {
+      if (!node || typeof node.id !== "string" || !node.id || ids.has(node.id)) return { problem: "Node identities are missing or duplicated. No dependency diagram or ambiguous node selection was substituted." };
+      ids.add(node.id);
+    }
+    if (!Array.isArray(edges)) return { problem: "Dependency graph unavailable for this historical run. Node records do not imply independent stages." };
+    const incoming = new Map(nodes.map((node) => [node.id, []]));
+    const outgoing = new Map(nodes.map((node) => [node.id, []]));
+    const seen = new Set();
+    for (const edge of edges) {
+      if (!edge || !ids.has(edge.source) || !ids.has(edge.target)) return { problem: "A dependency refers to an unavailable node. No partial dependency diagram was substituted." };
+      const key = JSON.stringify([edge.source, edge.target]);
+      if (seen.has(key)) return { problem: "Duplicate dependency edges were recorded. No approximate dependency diagram was substituted." };
+      seen.add(key); incoming.get(edge.target).push(edge.source); outgoing.get(edge.source).push(edge.target);
+    }
+    const remaining = new Map(nodes.map((node) => [node.id, incoming.get(node.id).length]));
+    const rank = new Map(nodes.map((node) => [node.id, 0]));
+    const queue = nodes.filter((node) => !remaining.get(node.id)).map((node) => node.id);
+    for (let index = 0; index < queue.length; index++) {
+      const id = queue[index];
+      for (const target of outgoing.get(id)) {
+        rank.set(target, Math.max(rank.get(target), rank.get(id) + 1));
+        remaining.set(target, remaining.get(target) - 1);
+        if (!remaining.get(target)) queue.push(target);
       }
     }
-    if (!nodes.length) list.append(element("p", "No workflow nodes admitted.", "small"));
-    for (const node of nodes) {
-      const row = element("button", undefined, "node-row"); row.type = "button"; row.dataset.nodeId = `list:${node.id}`;
-      row.append(element("strong", node.id), element("span", `${text(node.kind)} · ${text(node.state)} · ${duration(node.duration_ms)}`, "node-state"));
-      row.addEventListener("click", () => navigate({ node: node.id })); list.append(row);
-      if (focused === `list:${node.id}`) row.focus({ preventScroll: true });
-    }
-    const selected = nodes.find((node) => node.id === state.route.node);
-    if (selected) { addFacts($("node-facts"), [["Node", selected.id], ["Kind", selected.kind], ["State", selected.state], ["Started", timestamp(selected.started_at_ms)], ["Completed", timestamp(selected.completed_at_ms)], ["Duration", duration(selected.duration_ms)], ["Depends on", Array.isArray(edges) ? edges.filter((edge) => edge.target === selected.id).map((edge) => edge.source) : null]]); const button = element("button", "Inspect node logs"); button.type = "button"; button.addEventListener("click", () => navigate({ view: "logs", node: selected.id })); $("node-facts").append(button); }
-    else { $("node-facts").replaceChildren(element("p", state.route.node ? `Node not found: ${state.route.node}. No other node substituted.` : "Select a node for details.", state.route.node ? "warning" : "small")); }
+    if (queue.length !== nodes.length) return { problem: "Cyclic dependencies were recorded. They cannot be presented as a workflow DAG; inspect the retained node records below." };
+    const stages = [];
+    for (const node of nodes) { const stage = rank.get(node.id); (stages[stage] ||= []).push(node); }
+    return { stages, incoming, outgoing };
   }
+  function updateGraphZoom(mode) {
+    const parent = $("pipeline-graph"); const canvas = parent.querySelector(".dag-canvas");
+    if (canvas) {
+      if (mode === "fit") state.graphZoom = Math.min(1, (parent.clientWidth - 2) / canvas.offsetWidth);
+      else if (mode === "actual") state.graphZoom = 1;
+      else if (mode === "in") state.graphZoom += GRAPH_ZOOM_STEP;
+      else if (mode === "out") state.graphZoom -= GRAPH_ZOOM_STEP;
+      state.graphZoom = Math.max(GRAPH_MIN_ZOOM, Math.min(GRAPH_MAX_ZOOM, state.graphZoom));
+      canvas.style.zoom = state.graphZoom;
+    }
+    $("graph-scale").textContent = `${Math.round(state.graphZoom * 100)}%`;
+    for (const id of ["graph-fit", "graph-actual", "graph-in", "graph-out"]) $(id).disabled = !canvas;
+    if (canvas) { $("graph-in").disabled = state.graphZoom >= GRAPH_MAX_ZOOM; $("graph-out").disabled = state.graphZoom <= GRAPH_MIN_ZOOM; }
+  }
+  function workflowNodeButton(node, location, relation) {
+    const button = element("button", undefined, location === "graph" ? "dag-node" : "node-row");
+    button.type = "button"; button.dataset.nodeId = node.id; button.dataset.workflowFocus = `${location}:${node.id}`;
+    button.dataset.state = Object.hasOwn(workflowTones, node.state) ? workflowTones[node.state] : "unknown";
+    button.dataset.relation = relation || "";
+    const head = element("span", undefined, "workflow-node-head");
+    head.append(element("span", text(node.kind), "workflow-kind"), workflowBadge(node.state));
+    button.append(head, element("strong", node.id), element("span", node.duration_ms == null ? "Timing not observed" : `Recorded duration · ${duration(node.duration_ms)}`, "small"));
+    if (relation) button.append(element("span", relation === "before" ? "Prerequisite of selection" : "Depends on selection", "workflow-relation"));
+    if (node.id === state.route.node) button.setAttribute("aria-current", "true");
+    button.addEventListener("click", () => navigate({ node: node.id }));
+    return button;
+  }
+  function drawWorkflowEdges(canvas, edges, buttons) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", canvas.offsetWidth); svg.setAttribute("height", canvas.offsetHeight); svg.setAttribute("aria-hidden", "true"); canvas.prepend(svg);
+    for (const edge of edges) {
+      const from = buttons.get(edge.source); const to = buttons.get(edge.target);
+      const startX = from.offsetLeft + from.parentElement.offsetLeft + from.offsetWidth;
+      const startY = from.offsetTop + from.parentElement.offsetTop + from.offsetHeight / 2;
+      const endX = to.offsetLeft + to.parentElement.offsetLeft;
+      const endY = to.offsetTop + to.parentElement.offsetTop + to.offsetHeight / 2;
+      const mid = (startX + endX) / 2;
+      const path = document.createElementNS(svg.namespaceURI, "path");
+      path.setAttribute("d", `M${startX},${startY} C${mid},${startY} ${mid},${endY} ${endX},${endY}`);
+      path.setAttribute("class", "dag-edge");
+      const relation = edge.target === state.route.node ? "before" : edge.source === state.route.node ? "after" : "";
+      path.dataset.relation = relation; svg.append(path);
+      const arrow = document.createElementNS(svg.namespaceURI, "path");
+      arrow.setAttribute("d", `M${endX - 6},${endY - 4} L${endX},${endY} L${endX - 6},${endY + 4}`);
+      arrow.setAttribute("class", "dag-edge"); arrow.dataset.relation = relation; svg.append(arrow);
+    }
+  }
+  function renderWorkflowNode(nodes, topology) {
+    const parent = $("node-facts"); parent.replaceChildren();
+    const matches = nodes.filter((node) => node?.id === state.route.node);
+    if (matches.length !== 1) { parent.append(element("p", state.route.node ? `Node unavailable or ambiguous: ${state.route.node}. No other node substituted.` : "Select a node in the diagram or list to inspect its recorded state and relationships.", state.route.node ? "warning" : "small")); return; }
+    const node = matches[0];
+    const name = element("h4", node.id, "workflow-node-name"); name.tabIndex = -1; name.dataset.workflowFocus = `inspector:${node.id}`;
+    parent.append(name, workflowBadge(node.state));
+    const facts = element("dl", undefined, "facts");
+    addFacts(facts, [["Kind", node.kind], ["Started", timestamp(node.started_at_ms)], ["Completed", timestamp(node.completed_at_ms)], ["Duration", duration(node.duration_ms)]]); parent.append(facts);
+    if (topology.problem) parent.append(element("p", "Dependency relationships are unavailable; no prerequisites or dependents are inferred.", "small"));
+    else for (const [label, ids, location] of [["Prerequisites", topology.incoming.get(node.id), "before"], ["Dependents", topology.outgoing.get(node.id), "after"]]) {
+      const group = element("div", undefined, "workflow-relations"); group.append(element("h4", label));
+      if (!ids.length) group.append(element("p", "None in the admitted graph.", "small"));
+      for (const id of ids) {
+        const button = element("button", id, "workflow-node-link"); button.type = "button"; button.dataset.workflowFocus = `${location}:${id}`;
+        button.addEventListener("click", () => navigate({ node: id })); group.append(button);
+      }
+      parent.append(group);
+    }
+    const actions = element("div", undefined, "workflow-node-actions");
+    const logs = element("button", "Inspect node logs"); logs.type = "button"; logs.dataset.workflowFocus = `logs:${node.id}`;
+    logs.addEventListener("click", () => navigate({ view: "logs", node: node.id }));
+    const clear = element("button", "Clear node selection"); clear.type = "button"; clear.dataset.workflowFocus = "clear"; clear.addEventListener("click", () => navigate({ node: "" }));
+    actions.append(logs, clear); parent.append(actions);
+  }
+  // r[impl kiln.dashboard.workflow.presentation]
+  function renderGraph(run) {
+    const focused = document.activeElement?.dataset.workflowFocus;
+    const parent = $("pipeline-graph"); const list = $("node-list");
+    const sameRun = state.graphRun === run.id;
+    const scroll = sameRun ? [parent.scrollLeft, parent.scrollTop, list.scrollTop] : [0, 0, 0];
+    if (!sameRun) { state.graphRun = run.id; state.graphZoom = 1; }
+    parent.replaceChildren(); list.replaceChildren();
+    const nodes = Array.isArray(run.nodes) ? run.nodes : [];
+    const topology = workflowTopology(nodes, run.edges);
+    $("workflow-title").textContent = run.execution?.provider_namespace === "lattice" ? "Lattice workflow" : "Workflow graph";
+    $("workflow-caption").textContent = `${nodes.length} admitted node(s) · ${topology.problem ? "dependency topology unavailable" : `${run.edges.length} dependency edge(s) · ${topology.stages.length} stage(s)`}`;
+    const summary = $("workflow-summary"); summary.replaceChildren();
+    const counts = new Map(); for (const node of nodes) { const key = text(node?.state); counts.set(key, (counts.get(key) || 0) + 1); }
+    for (const [value, count] of counts) { const item = workflowBadge(value); item.append(document.createTextNode(` · ${count}`)); summary.append(item); }
+    const before = new Set(topology.problem ? [] : topology.incoming.get(state.route.node) || []);
+    const after = new Set(topology.problem ? [] : topology.outgoing.get(state.route.node) || []);
+    const relation = (id) => before.has(id) ? "before" : after.has(id) ? "after" : "";
+    if (topology.problem) parent.append(element("p", topology.problem, "warning"));
+    else if (nodes.length) {
+      const canvas = element("div", undefined, "dag-canvas"); parent.append(canvas);
+      const buttons = new Map();
+      topology.stages.forEach((nodes, index) => {
+        const column = element("section", undefined, "dag-stage");
+        column.append(element("h3", `Stage ${index + 1}`), element("p", `${nodes.length} node(s) · dependency depth ${index}`, "small"));
+        for (const node of nodes) { const button = workflowNodeButton(node, "graph", relation(node.id)); buttons.set(node.id, button); column.append(button); }
+        canvas.append(column);
+      });
+      drawWorkflowEdges(canvas, run.edges, buttons);
+    } else parent.append(element("p", "No workflow nodes admitted.", "small"));
+    if (!nodes.length) list.append(element("p", "No workflow nodes admitted.", "small"));
+    const identities = new Map(); for (const node of nodes) if (node?.id) identities.set(node.id, (identities.get(node.id) || 0) + 1);
+    for (const node of nodes) {
+      if (!node || typeof node.id !== "string" || !node.id) { list.append(element("p", "A retained node record has no usable identity.", "warning")); continue; }
+      const button = workflowNodeButton(node, "list", relation(node.id)); button.disabled = identities.get(node.id) !== 1; list.append(button);
+    }
+    renderWorkflowNode(nodes, topology); updateGraphZoom();
+    parent.scrollLeft = scroll[0]; parent.scrollTop = scroll[1]; list.scrollTop = scroll[2];
+    if (focused) {
+      let target = [...document.querySelectorAll(".workflow-panel [data-workflow-focus]")].find((node) => node.dataset.workflowFocus === focused);
+      if (!target && /^(before|after):/.test(focused)) target = $("node-facts").querySelector(".workflow-node-name");
+      if (!target && focused === "clear") { target = $("workflow-node-title"); target.tabIndex = -1; }
+      target?.focus({ preventScroll: true });
+    }
+  }
+  for (const mode of ["fit", "actual", "in", "out"]) $("graph-" + mode).addEventListener("click", () => updateGraphZoom(mode));
   async function prepareRerun(mode) {
     if (!canOperate()) return;
     const id = state.selected;
@@ -2009,8 +2218,17 @@
     if (state.session && pending.id === state.selected) await readAction(loadDetail)();
   });
   $("log-form").addEventListener("submit", (event) => { event.preventDefault(); stopLogFollow(); void readLog(false); });
-  for (const id of ["log-node", "log-stream", "log-search"]) $(id).addEventListener("change", () => { resetLogs(); if (id === "log-node") navigate({ node: $("log-node").value, view: "logs" }); else if (id === "log-stream") navigate({ stream: $("log-stream").value }); });
-  $("follow-logs").addEventListener("change", () => { stopLogFollow(); if ($("follow-logs").checked) void readLog(state.logKey !== ""); });
+  $("restart-log").addEventListener("click", () => { $("log-cursor").value = "0"; void readLog(false); });
+  for (const id of ["log-node", "log-stream", "log-search"]) $(id).addEventListener("change", () => {
+    resetLogs();
+    if (id === "log-node") navigate({ node: $("log-node").value, view: "logs" });
+    else if (id === "log-stream") navigate({ stream: $("log-stream").value });
+    else void readLog(false);
+  });
+  $("follow-logs").addEventListener("change", () => {
+    stopLogFollow();
+    if ($("follow-logs").checked) { $("log-output").scrollTop = $("log-output").scrollHeight; void readLog(state.logKey !== ""); }
+  });
   $("clear-log").addEventListener("click", resetLogs);
   // Restoration rechecks network authorization; a cleared bearer is never restored.
   window.addEventListener("pagehide", () => logout("Disconnected when leaving the live page."));

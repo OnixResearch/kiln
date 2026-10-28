@@ -37,6 +37,9 @@ pub(super) struct Object {
     pub type_name: String,
     pub object_id: String,
     pub title: String,
+    // Search the original summary when a recorded content title replaces it.
+    #[serde(skip)]
+    pub root_summary: Option<String>,
     pub excerpt: String,
     pub author: String,
     pub recorded_at_ms: i64,
@@ -194,41 +197,74 @@ fn scan(repository: &Repository) -> Result<BTreeMap<(String, String), Vec<RefTip
     Ok(objects)
 }
 
-/// First recorded free-text field of action zero.
-///
-/// Radicle COBs carry generic commit summaries ("Create issue"), so the list
-/// shows the object's own recorded text instead of inventing a title. Absent or
-/// malformed payloads yield an empty excerpt; nothing is synthesized.
-fn excerpt(repository: &Repository, tree: &git2::Tree<'_>) -> String {
-    const FIELDS: [&str; 6] = ["title", "body", "description", "message", "summary", "name"];
-    let Some(entry) = tree.get_name("0") else {
-        return String::new();
-    };
-    let Ok(bytes) = blob(repository, &entry, MAX_EXCERPT_BYTES) else {
-        return String::new();
-    };
-    let Ok(value) = serde_json::from_slice::<Value>(bytes.content()) else {
-        return String::new();
-    };
-    let mut candidates = vec![&value];
-    for key in ["state", "payload", "object"] {
-        if let Some(nested) = value.get(key) {
-            candidates.push(nested);
-        }
-    }
-    for field in FIELDS {
-        for candidate in &candidates {
-            let Some(text) = candidate.get(field).and_then(Value::as_str) else {
-                continue;
-            };
-            let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
-            if normalized.is_empty() {
-                continue;
+/// Root content only: later edits require the producer's reducer, not this reader.
+fn root_metadata(repository: &Repository, tree: &git2::Tree<'_>) -> (Option<String>, String) {
+    let mut title = None;
+    let mut excerpt = None;
+    let mut remaining = MAX_EXCERPT_BYTES;
+    for index in 0..MAX_ACTIONS {
+        let Some(entry) = tree.get_name(&index.to_string()) else {
+            break;
+        };
+        let Ok(bytes) = blob(repository, &entry, remaining) else {
+            continue;
+        };
+        remaining -= bytes.size();
+        let Ok(value) = serde_json::from_slice::<Value>(bytes.content()) else {
+            continue;
+        };
+        for candidate in std::iter::once(&value).chain(
+            ["state", "payload", "object"]
+                .into_iter()
+                .filter_map(|key| value.get(key)),
+        ) {
+            if title.is_none() {
+                title = candidate
+                    .get("artifacts")
+                    .and_then(|artifacts| artifacts.get("title"))
+                    .and_then(|value| metadata_text(value, MAX_TITLE_CHARS));
+                for key in [
+                    "title",
+                    "change_id",
+                    "document_id",
+                    "obligation_id",
+                    "decision_id",
+                    "exception_id",
+                ] {
+                    if title.is_none() {
+                        title = candidate
+                            .get(key)
+                            .and_then(|value| metadata_text(value, MAX_TITLE_CHARS));
+                    }
+                }
             }
-            return normalized.chars().take(MAX_EXCERPT_CHARS).collect();
+            for key in ["body", "description", "message", "summary", "name", "title"] {
+                if excerpt.is_none() {
+                    excerpt = candidate
+                        .get(key)
+                        .and_then(|value| metadata_text(value, MAX_EXCERPT_CHARS));
+                }
+            }
+        }
+        if title.is_some() && excerpt.is_some() {
+            break;
         }
     }
-    String::new()
+    (title, excerpt.unwrap_or_default())
+}
+
+fn metadata_text(value: &Value, maximum: usize) -> Option<String> {
+    let normalized: String = value
+        .as_str()?
+        .split_whitespace()
+        .enumerate()
+        .flat_map(|(index, word)| {
+            let separator = if index == 0 { "" } else { " " };
+            separator.chars().chain(word.chars())
+        })
+        .take(maximum)
+        .collect();
+    (!normalized.is_empty()).then_some(normalized)
 }
 
 fn row(
@@ -241,12 +277,15 @@ fn row(
     let root = commit(repository, Oid::from_str(&object_id).map_err(|_| ())?)?;
     let tree = tree(repository, &root)?;
     manifest(repository, &tree, &type_name)?;
-    let title = root
-        .summary()
-        .ok_or(())?
-        .chars()
-        .take(MAX_TITLE_CHARS)
-        .collect();
+    let (recorded_title, excerpt) = root_metadata(repository, &tree);
+    let summary = root.summary().ok_or(())?;
+    let root_summary = recorded_title
+        .as_ref()
+        .map(|_| summary.chars().take(MAX_TITLE_CHARS).collect());
+    let title = match recorded_title {
+        Some(title) => title,
+        None => summary.chars().take(MAX_TITLE_CHARS).collect(),
+    };
     let author = root.author();
     let author = format!(
         "{} <{}>",
@@ -257,7 +296,6 @@ fn row(
     .take(MAX_TITLE_CHARS)
     .collect();
     let recorded_at_ms = root.time().seconds().saturating_mul(1000);
-    let excerpt = excerpt(repository, &tree);
     let id = crate::engine::identity(&(
         "kiln.web-cob-object.v1",
         &policy.repository_id,
@@ -275,6 +313,7 @@ fn row(
         type_name,
         object_id,
         title,
+        root_summary,
         excerpt,
         author,
         recorded_at_ms,

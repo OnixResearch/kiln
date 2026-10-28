@@ -1216,7 +1216,6 @@ fn radicle_observation_types_render_with_author_and_ignore_unregistered_types() 
             .find(|row| (*member(row, "object_id")) == id.to_string())
             .unwrap_or_else(|| unreachable!("fixture value absent"));
         assert_eq!((*member(row, "type_name")), *type_name);
-        assert_eq!((*member(row, "title")), format!("{type_name} example"));
         assert_eq!(
             (*member(row, "author")),
             "COB fixture <cob@example.invalid>"
@@ -1249,4 +1248,121 @@ fn radicle_observation_types_render_with_author_and_ignore_unregistered_types() 
     let searched = get(&browser, "/api/cobs?q=cob%40example.invalid");
     assert_eq!((*member(&searched, "total")), 3);
     assert_eq!(refs(&repository), before_refs);
+}
+
+// r[verify kiln.dashboard.cobs.presentation]
+#[test]
+fn root_action_titles_are_searchable_without_reducing_later_edits() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let repository = Repository::init_bare(root.path().join("titles.git"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let kind = "xyz.radicle.issue";
+    let initial = cob_operation(
+        &repository,
+        kind,
+        "Create issue\n",
+        &[
+            json!({"type":"comment","body":"Recorded description\nwith another line"}),
+            json!({"type":"edit","title":"Second-action title"}),
+        ],
+        &[],
+    );
+    let update = cob_operation(
+        &repository,
+        kind,
+        "Edit issue\n",
+        &[json!({"type":"edit","title":"Later title, not reduced"})],
+        &[initial],
+    );
+    repository
+        .reference(
+            &format!("refs/cobs/{kind}/{initial}"),
+            update,
+            false,
+            "fixture",
+        )
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let browser = browser(vec![policy("onix", NATIVE_ID, repository.path())]);
+    let inventory = get(&browser, "/api/cobs?q=second-action");
+    assert_eq!(*member(&inventory, "total"), 1);
+    let row = member(member(&inventory, "objects"), 0);
+    assert_eq!(*member(row, "title"), "Second-action title");
+    assert_eq!(
+        *member(row, "excerpt"),
+        "Recorded description with another line"
+    );
+    assert_eq!(
+        *member(&get(&browser, "/api/cobs?q=Later%20title"), "total"),
+        0
+    );
+    let detail = get(&browser, &detail_target(kind, initial));
+    let object = member(&detail, "object");
+    let operations = member(object, "operations")
+        .as_array()
+        .unwrap_or_else(|| unreachable!());
+    let initial_id = initial.to_string();
+    let root_operation = operations
+        .iter()
+        .find(|op| member(op, "id").as_str() == Some(initial_id.as_str()))
+        .unwrap_or_else(|| unreachable!());
+    assert_eq!(
+        *member(
+            member(member(member(root_operation, "actions"), 0), "value"),
+            "body"
+        ),
+        "Recorded description\nwith another line"
+    );
+    assert_eq!(
+        *member(
+            member(member(member(root_operation, "actions"), 1), "value"),
+            "title"
+        ),
+        "Second-action title"
+    );
+    assert_eq!(*member(object, "reduced_state"), Value::Null);
+}
+
+// r[verify kiln.dashboard.cobs.presentation]
+#[test]
+fn nested_root_titles_and_metadata_fallback_remain_bounded() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let repository = Repository::init_bare(root.path().join("metadata.git"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let kind = "xyz.onixresearch.rfd";
+    let cases = [
+        (
+            json!({"type":"init","state":{"artifacts":{"title":"Nested document title"}}}),
+            "Nested document title",
+        ),
+        (
+            json!({"type":"init","state":{"document_id":"rfd-recorded-identity"}}),
+            "rfd-recorded-identity",
+        ),
+        (json!({"title":42}), "Root summary"),
+        (json!(null), "Root summary"),
+        (json!({"title":"   "}), "Root summary"),
+        (
+            json!({"title":"must not be read","body":"x".repeat(8193)}),
+            "Root summary",
+        ),
+    ];
+    for (action, expected) in cases {
+        let initial = cob_operation(&repository, kind, "Root summary\n", &[action], &[]);
+        repository
+            .reference(
+                &format!("refs/cobs/{kind}/{initial}"),
+                initial,
+                false,
+                "fixture",
+            )
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+        let browser = browser(vec![policy("onix", NATIVE_ID, repository.path())]);
+        let detail = get(&browser, &detail_target(kind, initial));
+        assert_eq!(
+            *member(member(member(&detail, "object"), "identity"), "title"),
+            expected
+        );
+    }
 }

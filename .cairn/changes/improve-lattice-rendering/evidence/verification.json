@@ -1,0 +1,182 @@
+{
+  "change": "improve-lattice-rendering",
+  "requirement": "kiln.dashboard.workflow.presentation",
+  "maintenance_owner": "Kiln dashboard maintainers",
+  "immediate_outcome": "Readable staged Lattice workflow inspection with exact node relationships, state distinctions, bounded zoom and preserved reading position.",
+  "durable_contribution": "Reusable dependency-only browser presentation over the existing provider-neutral run response; no execution or provider contract changes.",
+  "scope": "Local candidate assets in isolated Chromium, using read-only live API responses and explicitly synthetic response overlays. Non-GET/HEAD requests were blocked.",
+  "assets_blake3": {
+    "crates/kiln-web-service/src/web.html": "367bd6260d767184feb426232f3389035e17b529c5803e4797fac1fa30ffa5f5",
+    "crates/kiln-web-service/src/web.js": "4a8ad08fe1d3cff1a47af108c899ba51289ed05f776fb380d4be733fa155b5f9",
+    "crates/kiln-web-service/src/web.css": "a624bdb6ba6a873264ce7e121d01c1e90a9ab3059a6e46cbc6935d32de260cc7"
+  },
+  "checks": [
+    {
+      "command": "node --check crates/kiln-web-service/src/web.js",
+      "result": "passed",
+      "scope": "Final JavaScript assets."
+    },
+    {
+      "command": "nix develop path:. -c cargo test --locked -p kiln-web-service",
+      "result": "passed",
+      "passed": 116,
+      "ignored": 1,
+      "note": "The ignored process child entry is exercised through the worker-process tests. This service suite preceded the final browser-only list-height/list-scroll adjustment; final assets were subsequently exercised in Chromium."
+    },
+    {
+      "command": "nix develop path:. -c cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings",
+      "result": "passed",
+      "note": "Same pre-list-adjustment service source cohort. Build-cache I/O errors disabled caching, not compilation."
+    },
+    {
+      "command": "nix develop path:. -c cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "passed",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "command": "nix develop path:. -c cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json",
+      "result": "failed",
+      "referenced": 906,
+      "requirements": 906,
+      "missing": 0,
+      "dangling": 33,
+      "receipt_hash": "4daaebad3d04d2974e6b31cb01eb3a6d69b5d4573beff6c1bd5c0fd975f2ed22",
+      "note": "Dangling references concern other staged requirements. The current evidence-source profile does not scan browser JS/HTML; this new requirement remains a staged delta, not an accepted-spec coverage claim. No acceptance, sync, archive or policy mutation was performed."
+    }
+  ],
+  "browser": {
+    "real_failed": {
+      "run": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb",
+      "title": "Lattice workflow",
+      "summary": "Failed · 1",
+      "timing": [],
+      "node": "test",
+      "theme": "dark",
+      "pageOverflow": false
+    },
+    "real_completed_and_session_retirement": {
+      "completed": {
+        "title": "Lattice workflow",
+        "state": "Completed · 1",
+        "unknownTiming": true,
+        "diagramNodes": 1,
+        "run": "web-run-f16e6d931ded35a312135fa08cf465c6edeb2e2177387f61019dcf8ba85c7c17"
+      },
+      "retired": {
+        "signedOut": "Signed out",
+        "workspaceHidden": true,
+        "nodeCards": 0,
+        "nodeFacts": "",
+        "summary": "",
+        "title": "",
+        "caption": "",
+        "zoom": "100%"
+      }
+    },
+    "synthetic_layout": {
+      "fixture": "browser-fixture.json",
+      "nodes": 9,
+      "stages": 5,
+      "no_card_overlap": true,
+      "edge_endpoints_aligned_with_measured_cards": true,
+      "all_eight_native_states_distinguished": true,
+      "zero_duration_retained": "Recorded duration · 0.000 s",
+      "page_horizontal_overflow": false
+    },
+    "interaction": {
+      "keyboardTarget": "evaluate",
+      "keyboardFocusRetained": true,
+      "refreshViewportPreserved": {
+        "left": 350,
+        "top": 50,
+        "focus": "graph:evaluate",
+        "zoom": "150%"
+      },
+      "zoomBounds": "35–150%",
+      "exactLogNode": "evaluate",
+      "selectionRestored": true
+    },
+    "invalid_topology": [
+      {
+        "case": "missing edges",
+        "diagram": 0,
+        "records": 9,
+        "message": "Dependency graph unavailable for this historical run. Node records do not imply independent stages.",
+        "zoomDisabled": true,
+        "disabledNodes": 0
+      },
+      {
+        "case": "unknown endpoint",
+        "diagram": 0,
+        "records": 9,
+        "message": "A dependency refers to an unavailable node. No partial dependency diagram was substituted.",
+        "zoomDisabled": true,
+        "disabledNodes": 0
+      },
+      {
+        "case": "duplicate identities",
+        "diagram": 0,
+        "records": 10,
+        "message": "Node identities are missing or duplicated. No dependency diagram or ambiguous node selection was substituted.",
+        "zoomDisabled": true,
+        "disabledNodes": 2
+      },
+      {
+        "case": "duplicate edge",
+        "diagram": 0,
+        "records": 9,
+        "message": "Duplicate dependency edges were recorded. No approximate dependency diagram was substituted.",
+        "zoomDisabled": true,
+        "disabledNodes": 0
+      },
+      {
+        "case": "cycle",
+        "diagram": 0,
+        "records": 9,
+        "message": "Cyclic dependencies were recorded. They cannot be presented as a workflow DAG; inspect the retained node records below.",
+        "zoomDisabled": true,
+        "disabledNodes": 0
+      },
+      {
+        "case": "empty",
+        "diagram": 0,
+        "records": 0,
+        "message": "No workflow nodes admitted.",
+        "zoomDisabled": true,
+        "disabledNodes": 0
+      }
+    ],
+    "narrow_viewport": {
+      "refreshPositionPreserved": {
+        "graphLeft": 200,
+        "graphTop": 30,
+        "listTop": 250,
+        "focus": "list:test"
+      },
+      "pageOverflow": false,
+      "listHeight": 384,
+      "embeddedElements": 0,
+      "injected": false,
+      "futureState": true,
+      "staleNotSubstituted": true,
+      "clearFocus": "workflow-node-title",
+      "note": "Focus checked after the asynchronous clear-selection transition completed; intermediate URL changes alone were not treated as completed navigation.",
+      "css_width": 390
+    },
+    "inert_text": "An HTML-like node identity remained text; no image/script/frame/link element or injected global was created. An unrecognized future state was retained with neutral unknown styling."
+  },
+  "repeatability": [
+    "Open an isolated authenticated browser on the existing read-only workspace. Block non-GET/HEAD requests; serve /, /web.js and /web.css from the recorded candidate asset paths.",
+    "For synthetic layout, overlay browser-fixture.json fields on an existing run response and return it only for GET /api/runs/workflow-render-fixture. Navigate the browser to that exact run; do not submit or dispatch it.",
+    "Exercise cards/list, prerequisite/dependent keyboard links, clear selection, exact-node log navigation, reload, refresh at 150% zoom and nonzero graph/list offsets, then 390px width. Mutate the overlay for each retained negative case.",
+    "Without API overlays, inspect retained Completed and Failed runs; timings stay unknown. Clear the isolated session and verify all new private workflow content and controls are retired.",
+    "Repeat the recorded focused commands. Browser observations are scoped manual/throwaway smoke evidence, not a new permanent test runner."
+  ],
+  "non_claims": [
+    "No real multi-node execution was available in the observed retained page; branching and malformed cases are browser-only fixtures.",
+    "Candidate assets were not deployed or published, and no CI work was dispatched.",
+    "This record does not grant accepted-spec, review, release or production authority.",
+    "No full workspace or Nix release qualification is claimed."
+  ]
+}

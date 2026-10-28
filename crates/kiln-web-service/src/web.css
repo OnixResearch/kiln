@@ -84,6 +84,16 @@ pre { font-size: .77rem; }
 .cob-choice strong, #cob-detail h2 { overflow-wrap: anywhere; }
 .cob-action { min-width: 0; }
 .cob-operation + .cob-operation { margin-top: 1rem; }
+.cob-content { border-top: 1px solid var(--border); padding-block: .8rem; min-width: 0; }
+.cob-content h4 { margin: 0 0 .7rem; font-size: .9rem; overflow-wrap: anywhere; }
+.cob-content .cob-fields dd { font-family: inherit; white-space: normal; }
+.cob-content .cob-fields .cob-fields { font-size: inherit; }
+.cob-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.cob-document { border-bottom: 1px solid var(--border); min-width: 0; }
+.cob-document > .cob-text { display: block; max-height: 32rem; overflow: auto; padding-block: .65rem; }
+.cob-values { margin: 0; padding-left: 1.2rem; }
+.cob-values li + li { margin-top: .4rem; }
+.cob-exact, .cob-framing, .cob-raw { margin-block: .7rem; min-width: 0; }
 .worker-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .75rem; }
 .worker-metrics .inventory-card { min-width: 0; }
 .worker-metrics .metric-label { overflow-wrap: anywhere; }
@@ -125,19 +135,59 @@ summary { cursor: pointer; color: var(--muted); font-size: .78rem; padding: .5re
 .notice, .warning { border: 1px solid var(--accent); color: var(--accent); background: var(--accent-soft); border-radius: .5rem; padding: .8rem 1rem; font-size: .8rem; overflow-wrap: anywhere; white-space: pre-wrap; }
 .notice { margin-bottom: 1.25rem; }
 .notice[data-kind="success"] { background: var(--olive-soft); border-color: var(--olive); color: var(--olive); }
-.node-list { display: grid; gap: .5rem; }
-.node-row { display: flex; gap: .8rem; align-items: center; justify-content: space-between; width: 100%; text-align: left; }
-.node-row strong { font: .8rem ui-monospace, monospace; overflow-wrap: anywhere; }
-.node-state { text-align: right; overflow-wrap: anywhere; font-size: .76rem; }
+.node-list { display: grid; gap: .6rem; }
+.workflow-node-list .node-list { max-height: 24rem; overflow: auto; padding: .3rem; }
+.node-row { display: grid; gap: .45rem; width: 100%; text-align: left; min-width: 0; }
+.node-row strong { font-size: .85rem; overflow-wrap: anywhere; }
 .run-tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
-.pipeline-graph { overflow: auto; border: 1px solid var(--border); border-radius: .5rem; max-height: 40rem; }
-.dag-canvas { position: relative; }
-.dag-canvas svg { position: absolute; inset: 0; }
-.dag-edge { fill: none; stroke: var(--olive); stroke-width: 1.8; }
-.dag-node { position: absolute; width: 190px; min-height: 72px; display: grid; gap: .3rem; text-align: left; padding: .65rem; }
-.dag-node strong { font: .8rem ui-monospace, monospace; overflow-wrap: anywhere; }
+.workflow-panel { display: grid; gap: 1rem; min-width: 0; }
+.workflow-panel > .section-heading { align-items: flex-start; }
+.workflow-zoom { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.workflow-zoom button { min-width: 2.75rem; font-size: .75rem; }
+#graph-scale { min-width: 3rem; text-align: center; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.workflow-summary { display: flex; flex-wrap: wrap; gap: .5rem; }
+.workflow-state { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 600; border: 1px solid var(--border-strong); border-radius: 2rem; padding: .2rem .55rem; color: var(--muted); width: fit-content; max-width: 100%; overflow-wrap: anywhere; }
+.workflow-state::before { content: ""; flex: 0 0 .4rem; width: .4rem; height: .4rem; border-radius: 50%; background: currentColor; }
+.workflow-state[data-state="completed"] { color: var(--olive); border-color: var(--olive); background: var(--olive-soft); }
+.workflow-state[data-state="failed"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.workflow-state[data-state="running"] { color: var(--focus); border-color: var(--focus); }
+.workflow-state[data-state="paused"], .workflow-state[data-state="unknown"] { border-style: dashed; }
+.workflow-inspection { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; align-items: start; }
+.workflow-node-list, .workflow-node-inspector { min-width: 0; border: 1px solid var(--border); border-radius: .5rem; padding: .85rem; }
+.workflow-node-list > summary { color: var(--text); font-weight: 600; }
+.workflow-node-inspector h3 { font-size: .85rem; }
+.workflow-node-name { overflow-wrap: anywhere; font-size: 1rem; margin-block: .8rem; }
+.workflow-node-inspector .facts { grid-template-columns: minmax(0, 1fr); gap: .2rem; margin-top: 1rem; }
+.workflow-node-inspector .facts dd { margin-bottom: .5rem; }
+.workflow-relations { display: grid; gap: .4rem; margin-top: 1rem; }
+.workflow-relations h4 { font-size: .8rem; margin: 0; }
+.workflow-node-link { text-align: left; overflow-wrap: anywhere; font-size: .78rem; }
+.workflow-node-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.workflow-node-actions button { font-size: .75rem; }
+.pipeline-graph { overflow: auto; border: 1px solid var(--border); border-radius: .5rem; max-height: 36rem; min-width: 0; background: var(--surface-soft); }
+.pipeline-graph > .warning, .pipeline-graph > .small { margin: 1rem; }
+.dag-canvas { position: relative; display: flex; align-items: flex-start; gap: 3rem; padding: 1.25rem; width: max-content; min-width: 100%; }
+.dag-canvas svg { position: absolute; inset: 0; pointer-events: none; }
+.dag-stage { position: relative; display: grid; align-content: start; gap: 1rem; width: 15rem; flex: 0 0 15rem; min-width: 0; }
+.dag-stage > h3 { font-size: .85rem; margin: 0; }
+.dag-stage > .small { font-size: .7rem; margin: -.6rem 0 0; }
+.dag-edge { fill: none; stroke: var(--border-strong); stroke-width: 1.8; }
+.dag-edge[data-relation="before"] { stroke: var(--focus); stroke-width: 2.8; }
+.dag-edge[data-relation="after"] { stroke: var(--olive); stroke-width: 2.8; }
+.dag-node { position: relative; width: 100%; display: grid; gap: .65rem; text-align: left; padding: .9rem; min-width: 0; border-left-width: 3px; }
+.dag-node strong { font-size: .9rem; overflow-wrap: anywhere; line-height: 1.4; }
+.dag-node[data-state="failed"] { border-left-color: var(--accent); }
+.dag-node[data-state="completed"] { border-left-color: var(--olive); }
+.dag-node[data-state="running"] { border-left-color: var(--focus); }
+.dag-node[data-relation="before"], .node-row[data-relation="before"] { border-color: var(--focus); }
+.dag-node[data-relation="after"], .node-row[data-relation="after"] { border-color: var(--olive); }
+.dag-node[aria-current="true"], .node-row[aria-current="true"] { outline: 2px solid var(--focus); outline-offset: 2px; background: var(--surface); border-color: var(--focus); box-shadow: none; }
+.workflow-node-head { display: flex; align-items: center; justify-content: space-between; gap: .4rem; flex-wrap: wrap; }
+.workflow-kind { color: var(--muted); font-size: .7rem; overflow-wrap: anywhere; }
+.workflow-relation { font-size: .7rem; color: var(--muted); }
 .check { display: flex; gap: .5rem; align-items: center; margin: 0; font-weight: 450; }
 .log-tools { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(5rem, .8fr) minmax(5rem, .8fr) auto; gap: .7rem; align-items: end; }
+.log-read-actions { display: grid; gap: .4rem; }
 .log-search { grid-column: 1 / -1; }
 .log-output { background: #151b16; color: #e0eadb; min-height: 15rem; max-height: 34rem; overflow: auto; padding: 1rem; border: 1px solid var(--border-strong); border-radius: .5rem; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; line-height: 1.65; }
 .log-output:empty::before { content: "No log bytes loaded."; color: #a9b2a5; }
