@@ -1,0 +1,471 @@
+{
+  "sourceRevision": "dba7b02f2344aa52d948be48177a89321679c168",
+  "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+  "assetOverrides": false,
+  "apiOverrides": false,
+  "productionWrites": false,
+  "tlsBoundary": "Browser-only private-CA exception after independent CA and hostname verification",
+  "observations": [
+    {
+      "label": "Deployed desktop light overview",
+      "route": "?page=overview&theme=light",
+      "title": "Kiln · CI overview",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed issue capture opened without submission",
+      "route": "?page=work&view=pipeline&stream=stdout&order=desc&theme=light&density=comfortable",
+      "title": "Kiln · Issues",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed planning Projects",
+      "route": "?page=planning&view=pipeline&stream=stdout&order=desc&work_kind=project&theme=light&density=comfortable",
+      "title": "Kiln · Planning",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed planning Milestones",
+      "route": "?page=planning&view=pipeline&stream=stdout&order=desc&work_kind=milestone&theme=light&density=comfortable",
+      "title": "Kiln · Planning",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed planning Cycles",
+      "route": "?page=planning&view=pipeline&stream=stdout&order=desc&work_kind=cycle&theme=light&density=comfortable",
+      "title": "Kiln · Planning",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed planning Initiatives",
+      "route": "?page=planning&view=pipeline&stream=stdout&order=desc&work_kind=initiative&theme=light&density=comfortable",
+      "title": "Kiln · Planning",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed planning Teams",
+      "route": "?page=planning&view=pipeline&stream=stdout&order=desc&work_kind=team&theme=light&density=comfortable",
+      "title": "Kiln · Planning",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed desktop dark compact settings",
+      "route": "?page=settings&view=pipeline&stream=stdout&order=desc&work_kind=team&theme=dark&density=compact",
+      "title": "Kiln · Settings",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed retained stderr inspection",
+      "route": "?page=runs&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=dark&density=compact",
+      "title": "Kiln · Runs",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed 320px dark compact run inspector",
+      "route": "?page=runs&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=dark&density=compact",
+      "title": "Kiln · Runs",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed mobile filtered team capture without submission",
+      "route": "?page=work&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=dark&density=compact",
+      "title": "Kiln · Issues",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed mobile keyboard command palette",
+      "route": "?page=work&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=dark&density=compact",
+      "title": "Kiln · Issues",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#161714",
+      "text": "#f1f2eb",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    },
+    {
+      "label": "Deployed system appearance follows OS light",
+      "route": "?page=settings&view=logs&run=web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb&stream=stderr&order=desc&work_kind=team&theme=system&density=compact",
+      "title": "Kiln · Settings",
+      "viewport": 320,
+      "documentWidth": 320,
+      "background": "#f6f6f2",
+      "text": "#20211d",
+      "signal": "#e9f64a",
+      "metrics": [
+        "19",
+        "7",
+        "0",
+        "0",
+        "12",
+        "0",
+        "0"
+      ],
+      "connection": "Live · authenticated"
+    }
+  ],
+  "logRead": {
+    "status": "Worker-captured output · byte cursor. Actual retained bytes loaded; text is displayed inertly.",
+    "characters": 1752,
+    "run": "web-run-8bc083a64e99cbb28228033b9b19f9318eb5bf938adb1e553150159417dbb8eb",
+    "stream": "stderr"
+  },
+  "errors": {
+    "entries": [
+      {
+        "seq": 1,
+        "ts": 1793224294787,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/projects: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/projects"
+      },
+      {
+        "seq": 2,
+        "ts": 1793224305558,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 3,
+        "ts": 1793224319407,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 4,
+        "ts": 1793224322473,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 5,
+        "ts": 1793224333253,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 6,
+        "ts": 1793224336353,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 7,
+        "ts": 1793224380849,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 8,
+        "ts": 1793224388545,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 9,
+        "ts": 1793224391632,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 10,
+        "ts": 1793224396229,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 11,
+        "ts": 1793224399331,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 12,
+        "ts": 1793224402407,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 13,
+        "ts": 1793224410095,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 14,
+        "ts": 1793224411623,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/runs?limit=25&order=desc: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/runs?limit=25&order=desc"
+      },
+      {
+        "seq": 15,
+        "ts": 1793224413196,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 16,
+        "ts": 1793224422414,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 17,
+        "ts": 1793224428553,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 18,
+        "ts": 1793224430394,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/runs?limit=25&order=desc: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/runs?limit=25&order=desc"
+      },
+      {
+        "seq": 19,
+        "ts": 1793224451609,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 20,
+        "ts": 1793224473239,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 21,
+        "ts": 1793224474698,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1434"
+      },
+      {
+        "seq": 22,
+        "ts": 1793224480495,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/work: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/work"
+      },
+      {
+        "seq": 23,
+        "ts": 1793224480953,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/overview: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/overview"
+      }
+    ],
+    "nextSeq": 23,
+    "dropped": 0
+  },
+  "browserDiagnostics": [
+    "Initial navigation rejected the private CA; CDP exception applied only after independently verified HTTPS.",
+    "Automation selector/API mismatches were corrected using fresh accessibility evidence; no product code changed.",
+    "The retained team filter correctly selected New team on the mobile Issues route; capture was cancelled."
+  ]
+}

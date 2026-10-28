@@ -1366,6 +1366,11 @@ touch targets. The visual system lives in `web.css`, `work.css` and
 `work-interaction.css`, maintained by Kiln's web-service/dashboard owners; it does
 not change the offline catalog or request external fonts or image assets.
 
+The operator-authorized [visual-design deployment receipt](../.cairn/changes/align-blacksmith-visual-design/evidence/deployment.json)
+binds the published source, committed executable, unchanged profiles/state and
+actual deployed desktop/mobile checks. It does not clear the separately retained
+repository-wide traceability or release-readiness holds.
+
 Start with **New issue**. Title, description, status and priority are visible;
 ownership/labels, relationships, dates and CI/source links open in labelled
 disclosures. Creation and editing still confirm exact fields before signed writes.

@@ -1,0 +1,15 @@
+{
+  "schema": "kiln.deployment-document-checks.v1",
+  "source_revision": "dba7b02f2344aa52d948be48177a89321679c168",
+  "scope": "Evidence-only descendant: deployment receipt, deployed screenshots/browser observations and operator-document link. No executable source changes.",
+  "json_receipts_parse": true,
+  "cairn_validate": {
+    "valid": true,
+    "receipt_hash": "d993ba8125b93be58a4d6efb09a3745060519d8522a7872dddbbe0646a0ce16a",
+    "issues": [],
+    "findings": []
+  },
+  "non_claims": [
+    "Document validation does not refresh runtime qualification, lifecycle acceptance or release eligibility."
+  ]
+}

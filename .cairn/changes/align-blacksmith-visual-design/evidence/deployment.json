@@ -1,0 +1,199 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "operator_request": "commit push and deploy",
+  "observed_at": "2026-10-28T21:55:48.401380+00:00",
+  "outcome": "Published and activated the verified Blacksmith-inspired live-console design on the existing desktop user-service.",
+  "maintenance_owner": "Kiln dashboard/web-service maintainers; operator owns activation, profiles, credentials and permissions.",
+  "source": {
+    "revision": "dba7b02f2344aa52d948be48177a89321679c168",
+    "previous_main": "d91bc37b1b183503b999c2c7de9662522c2e2e2d",
+    "frozen_nix_source": "/nix/store/xhcb8lmjj607pryr6w0km1wgaj61n4a2-source",
+    "archive": {
+      "name": "local",
+      "revision": "dba7b02f2344aa52d948be48177a89321679c168",
+      "members": 6088,
+      "bytes": 100874240,
+      "archive_blake3": "53656c7007504c22f5ea8a1c0119deedffa339850360c9a9a4612734ad5cffb5",
+      "sorted_path_manifest_blake3": "743e440998814629e3433ba6b1daa29e82b6d6bc3a187df79fb993898d28dfc8"
+    },
+    "normalization": "Sorted tracked files; GNU tar PAX; deterministic extended-header names; zero owner/group/mtime; no atime/ctime; normalized executable modes; separately serialized hardlinked contents; preserved symbolic links.",
+    "receipt_is_later_evidence_only": true
+  },
+  "publication": {
+    "branch": "main",
+    "remotes": [
+      {
+        "name": "rad",
+        "url": "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        "result": "Fast-forward push, two-seed synchronization and exact jj fetch readback succeeded."
+      },
+      {
+        "name": "github",
+        "url": "git@github.com:OnixResearch/kiln.git",
+        "result": "Fast-forward push and exact jj fetch readback succeeded."
+      }
+    ],
+    "acquisitions": [
+      {
+        "name": "local",
+        "revision": "dba7b02f2344aa52d948be48177a89321679c168",
+        "members": 6088,
+        "bytes": 100874240,
+        "archive_blake3": "53656c7007504c22f5ea8a1c0119deedffa339850360c9a9a4612734ad5cffb5",
+        "sorted_path_manifest_blake3": "743e440998814629e3433ba6b1daa29e82b6d6bc3a187df79fb993898d28dfc8"
+      },
+      {
+        "name": "native",
+        "revision": "dba7b02f2344aa52d948be48177a89321679c168",
+        "members": 6088,
+        "bytes": 100874240,
+        "archive_blake3": "53656c7007504c22f5ea8a1c0119deedffa339850360c9a9a4612734ad5cffb5",
+        "sorted_path_manifest_blake3": "743e440998814629e3433ba6b1daa29e82b6d6bc3a187df79fb993898d28dfc8"
+      },
+      {
+        "name": "garden_anonymous",
+        "revision": "dba7b02f2344aa52d948be48177a89321679c168",
+        "members": 6088,
+        "bytes": 100874240,
+        "archive_blake3": "53656c7007504c22f5ea8a1c0119deedffa339850360c9a9a4612734ad5cffb5",
+        "sorted_path_manifest_blake3": "743e440998814629e3433ba6b1daa29e82b6d6bc3a187df79fb993898d28dfc8"
+      }
+    ],
+    "anonymous_environment": "Fresh private HOME and XDG_CONFIG_HOME; system/global Git config and prompts disabled; empty credential helper; protocol v0.",
+    "governance": {
+      "payload": {
+        "xyz.radicle.project": {
+          "defaultBranch": "main",
+          "description": "Provider-neutral CI control plane",
+          "name": "Kiln"
+        }
+      },
+      "delegates": [
+        "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+      ],
+      "threshold": 1,
+      "unchanged": true,
+      "signed_refs_after": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx 78c0ba55282060132890d7cc0c6f3c9b1bcedcc6 parent"
+    },
+    "ref_readback": "main: onuqrstv dba7b02f Align the live console with Blacksmith-inspired visual design\n  @git: onuqrstv dba7b02f Align the live console with Blacksmith-inspired visual design\n  @github: onuqrstv dba7b02f Align the live console with Blacksmith-inspired visual design\n  @rad: onuqrstv dba7b02f Align the live console with Blacksmith-inspired visual design\n"
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "package": "/nix/store/8xd5pp2402r57bh2jsx0qk33adgl5frm-kiln-web-service-0.1.0",
+    "actual_running_executable": "/nix/store/8xd5pp2402r57bh2jsx0qk33adgl5frm-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "a6ed3710c8f7ba0d39c415e52700ff0d0c4024de02f8aac9822aea25dfcbd3ad",
+    "previous_package": "/nix/store/bg1h7c09dcsqgmgmzzikhzxdnpjr33fb-kiln-web-service-0.1.0",
+    "private_rollback_backup": "/home/brittonr/.local/state/kiln/redeploy-20261028-dba7b02f",
+    "sqlite_backup_integrity": "ok",
+    "live_sqlite_integrity": "ok",
+    "original_configuration_and_work_files_preserved": 155,
+    "retained_file_contents_modes_owners_groups_preserved": 393,
+    "original_run_projections_preserved_exactly": 19,
+    "work_objects_before_and_after": 0,
+    "unrelated_profile_elements_unchanged": true,
+    "units": {
+      "kiln-web-service.service": {
+        "ActiveState": "active",
+        "MainPID": "2783315",
+        "Result": "success"
+      },
+      "kiln-web-proxy-auth.service": {
+        "ActiveState": "active",
+        "MainPID": "2783387",
+        "Result": "success"
+      },
+      "kiln-tailnet-proxy.service": {
+        "ActiveState": "active",
+        "MainPID": "2783477",
+        "Result": "success"
+      },
+      "kiln-web-lattice.service": {
+        "ActiveState": "active",
+        "MainPID": "1145552",
+        "Result": "success"
+      }
+    },
+    "lattice_pid_unchanged": "1145552",
+    "activation": [
+      {
+        "argv": [
+          "nix",
+          "profile",
+          "remove",
+          "kiln-web-service"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "removing 'kiln-web-service'\nremoved 1 packages, kept 6 packages\n"
+      },
+      {
+        "argv": [
+          "nix",
+          "profile",
+          "add",
+          "/nix/store/8xd5pp2402r57bh2jsx0qk33adgl5frm-kiln-web-service-0.1.0"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "systemctl",
+          "--user",
+          "restart",
+          "kiln-web-service.service"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "rollback": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/bg1h7c09dcsqgmgmzzikhzxdnpjr33fb-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service",
+      "Keep work.conf and existing profiles. Do not restore the old SQLite snapshot over live state or rewind the work store."
+    ]
+  },
+  "verification": {
+    "package_build": {
+      "command": "nix build 'git+file:///home/brittonr/git/OnixResearch/kiln?rev=dba7b02f2344aa52d948be48177a89321679c168#web-service' --no-link --print-out-paths --no-write-lock-file --builders '' --option build-dir /nix/var/nix/builds -L",
+      "passed": true,
+      "log": "artifact://3054"
+    },
+    "prior_candidate_checks": [
+      "checks.json",
+      "packaged-check.json"
+    ],
+    "preflight": "The committed executable check passed with all installed ExecStartPre arguments, including the unchanged signed-work policy.",
+    "health": {
+      "status": "ok"
+    },
+    "tls": "Private CA and hostname verified for public health and all seven served assets; no tokens sent to asset endpoints.",
+    "served_assets_blake3": {
+      "/": "6a060d8e1d20af6b4b5e6ceb378e203525c7d03c4d2eee95779e17e8bcd05b2a",
+      "/web.css": "7df41fb9930c8341e5eddc293fa73021bbcfd39365652db3a796e62971edc2f8",
+      "/work.css": "d8b3933fda0416d63ea2f9d300932ccf468653e1734092e7d1db0628225160c1",
+      "/work-interaction.css": "96ec3d912e7f5bf7c23905717e2e310403b961fac62cfa83b78fb8c1f4e603d5",
+      "/web.js": "36518b5e8898cfd53590e06f26e0a41842322baa3915b5871c085dd1f4052430",
+      "/work.js": "f18a2dc03126fb581682926b92917b7454f7112e50338a304335777fac314e7f",
+      "/work-interaction.js": "bf19725151336855c4bfccbdaad62447157bd4dd71d7496cc4e2f6dfe8a1ce97"
+    },
+    "browser_receipt": "deployed-browser.json",
+    "browser_tls_boundary": "Managed Chromium rejected the private CA; a browser-only CDP exception was used after independent CA/hostname-verified HTTPS. No asset/API overrides.",
+    "browser_scope": "Actual desktop light/dark, compact density, issue capture cancelled, five planning categories, retained stderr, 320px team capture cancelled, Ctrl+K/Escape and system appearance following OS light.",
+    "browser_diagnostics": "Read-request ERR_ABORTED entries were retained across route transitions; no JavaScript exceptions were reported. Automation selector/API errors were corrected without product changes.",
+    "preservation_rechecked_after_browser": true
+  },
+  "retained_holds": [
+    "Default accepted-spec traceability and release-readiness remain false as retained in traceability.json and release-readiness.json. No specs synchronized, changes accepted or archived."
+  ],
+  "non_claims": [
+    "Operator authorized this source publication and desktop activation, not lifecycle acceptance or release eligibility.",
+    "No production work objects, CI runs, native Radicle issues or patches were created for deployed UI checks.",
+    "No profiles, credentials, write-principal lists, worker routes, canonical CI history or work history changed.",
+    "Private rollback archives contain credentials and are not committed or published.",
+    "Matching source acquisitions and bounded live checks do not prove arbitrary provider correctness, hostile workload isolation or indefinite availability."
+  ]
+}
