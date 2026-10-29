@@ -42,7 +42,17 @@
 .work-command-result[aria-selected="true"] { background: var(--surface-hover); box-shadow: inset 3px 0 var(--text); }
 .work-command-result:hover { background: var(--surface-hover); }
 .work-interaction-dialog :focus-visible, .work-selection-toolbar :focus-visible, [data-work-id]:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.work-command-palette .work-interaction-help { margin: var(--space-2) 0 0; padding-top: var(--space-2); border-top: 1px solid var(--border); }
+/* r[impl kiln.web.page_consistency] */
+/* Fixed chrome never shrinks under the result list; the footer keeps a short hint beside a keyboard-reference disclosure. */
+.work-command-palette[open] > :not(.work-command-results) { flex: 0 0 auto; }
+.work-command-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--space-3); margin-top: var(--space-2); padding-top: var(--space-1); border-top: 1px solid var(--border); }
+.work-command-footer .work-interaction-help { margin: 0; }
+.work-command-shortcuts { min-width: 0; }
+.work-command-shortcuts[open] { flex: 1 1 100%; order: 2; }
+.work-command-shortcuts > summary { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0 var(--space-2); border-radius: var(--radius); color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
+.work-command-shortcuts > summary:hover { background: var(--surface-hover); color: var(--text); }
+.work-command-shortcuts > .work-interaction-help { padding: 0 var(--space-2) var(--space-1); }
+.work-command-result-exact { font-size: .6875rem; overflow-wrap: anywhere; }
 
 /* Row actions menu */
 .work-context-menu { width: min(24rem, calc(100vw - 2rem)); }
@@ -53,11 +63,14 @@
 /* Quick peek */
 .work-quick-peek { width: min(58rem, calc(100vw - 2rem)); }
 .work-quick-peek-content { display: grid; gap: var(--space-3); margin-bottom: var(--space-3); overflow-wrap: anywhere; }
+.work-quick-peek-content > div { display: grid; gap: var(--space-4); min-width: 0; }
 .work-quick-peek-content pre { white-space: pre-wrap; }
 .work-quick-peek-content img, .work-quick-peek-content table { max-width: 100%; }
 
 /* Row selection and actions inside work rows */
-.work-row-select { grid-column: 1; grid-row: 1 / span 2; align-self: start; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; margin: .65rem 0 0; accent-color: var(--text); cursor: pointer; }
+/* The label is the hit area (44px on touch layouts); the checkbox stays checkbox-sized inside it. */
+.work-row-select-hit { grid-column: 1; grid-row: 1 / span 2; align-self: start; display: grid; place-items: center; width: 1.5rem; height: 2.25rem; margin: 0; cursor: pointer; }
+.work-row-select { flex: 0 0 auto; width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--text); cursor: pointer; }
 button.work-row-menu { grid-column: 3; grid-row: 2; align-self: center; justify-self: end; margin-inline-start: auto; width: 2rem; height: 2rem; min-width: 0; min-height: 0; padding: 0; color: var(--muted); }
 button.work-row-menu:hover:not(:disabled) { color: var(--text); }
 [data-work-id].work-row-selected { box-shadow: inset 3px 0 var(--text); background: var(--surface-hover); }
@@ -94,7 +107,9 @@ button.work-row-menu:hover:not(:disabled) { color: var(--text); }
 /* Touch targets: 44px wherever the shared --control-height becomes 2.75rem. */
 @media (max-width: 60rem) {
   button.work-row-menu { width: 2.75rem; height: 2.75rem; }
-  .work-row-select { width: 2.75rem; height: 2.75rem; margin-top: 0; }
+  .work-row-select-hit { width: 2.75rem; height: 2.75rem; margin-inline-start: calc(var(--space-2) * -1); }
+  .work-row-select { width: 1.25rem; height: 1.25rem; }
+  .work-command-shortcuts > summary { min-height: 2.75rem; }
 }
 @media (max-width: 640px) {
   .work-interaction-dialog { width: calc(100vw - 1rem); max-height: 90dvh; padding: 0 var(--space-3) var(--space-3); }

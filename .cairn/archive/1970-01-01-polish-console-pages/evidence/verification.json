@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.console-page-polish.verification.v1",
+  "date": "2026-10-29",
+  "maintenance_owner": "Kiln web-service maintainers",
+  "method": "Each slice audited its pages in real Chromium against the live service's real retained data, with local candidate assets substituted (read-only; dialogs opened and cancelled). Before/after screenshots and per-page findings are in ci/ (findings.json), work/ and review/.",
+  "integrated_check": "Combined candidate on 21 routes (overview, projects, four run tabs, workers, source, receipts, COBs, activity, evidence, automation, operations, settings, issues, inbox, planning, triage, saved views, code review) at 320px light and 1440px dark: 0 JS errors, 0 document overflow, 0 controls under 44px at 320px on every route.",
+  "highlights": [
+    "Projects: card actions unified; 19-22px Logs/Browse runs links now 44px on touch",
+    "Runs: full project names instead of two-line truncation; pipeline zoom no longer shows 100% twice",
+    "Workers, activity, overview activity: readable titles lead; 64-hex identities secondary and shortened, full value in tooltip/inspector",
+    "Long boundary prose moved into labelled 'About this view' disclosures with text preserved",
+    "Work: one creation action per empty page, filtered empty state offers Reset filters, readable sort labels, disclosure chevrons",
+    "Code review: access shown as a pill, empty state distinguishes filtered/no changes, panel badges state Not configured/None, non_claims and write boundary now reachable"
+  ],
+  "incidental_fix": {
+    "finding": "cache::tests::cold_publish_warm_restore_is_immutable_and_survives_store_reopen failed intermittently (4 of 15 full lib runs) with 'cache directory already owned' on reopen. CacheStore relied on closing its descriptor to release the flock, which a concurrently forked child's inherited copy keeps held.",
+    "fix": "CacheStore now holds an OwnerLock guard that unlocks explicitly on drop, the same pattern as the review store and service state lock.",
+    "result": "0 failures in 15 consecutive full lib runs; Clippy and formatting clean"
+  },
+  "checks": [
+    "cargo fmt --check; cargo clippy -p kiln-web-service --all-targets -D warnings; cargo test -p kiln-web-service",
+    "node --test tests/live-console-ui.test.mjs; node --check on every console script; py_compile on smoke scripts"
+  ]
+}

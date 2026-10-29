@@ -13,6 +13,12 @@
 .work-create-more { position: relative; min-width: 0; max-width: 100%; }
 .work-create-more > summary, .work-filter-disclosure > summary, .work-disclosure > summary, .work-roadmap > summary, .work-identity > summary { cursor: pointer; display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-height, 2.75rem); padding: var(--space-2) var(--space-3); border-radius: var(--radius); color: var(--text); font-size: var(--text-sm); font-weight: 550; line-height: 1.4; overflow-wrap: anywhere; transition: background-color var(--motion-fast); }
 .work-create-more > summary { display: inline-flex; color: var(--muted); }
+/* r[impl kiln.web.page_consistency] */
+/* Disclosure summaries show a chevron (flex summaries drop the native marker), rotated when open. */
+.work-filter-disclosure > summary, .work-disclosure > summary, .work-roadmap > summary, .work-identity > summary { list-style: none; }
+.work-filter-disclosure > summary::-webkit-details-marker, .work-disclosure > summary::-webkit-details-marker, .work-roadmap > summary::-webkit-details-marker, .work-identity > summary::-webkit-details-marker { display: none; }
+.work-filter-disclosure > summary::after, .work-disclosure > summary::after, .work-roadmap > summary::after, .work-identity > summary::after { content: ""; flex: 0 0 auto; width: .45rem; height: .45rem; margin-inline: auto .25rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform var(--motion-fast); }
+.work-filter-disclosure[open] > summary::after, .work-disclosure[open] > summary::after, .work-roadmap[open] > summary::after, .work-identity[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
 .work-create-more > summary::-webkit-details-marker { display: none; }
 .work-create-more > summary { list-style: none; }
 .work-create-more > summary svg { transition: transform var(--motion-fast); }
@@ -56,7 +62,7 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--surface-hover);
 /* Fields */
 .work-field { display: grid; gap: var(--space-1); margin: 0; min-width: 0; color: var(--text); font-size: var(--text-sm); }
 .work-field > span { overflow-wrap: anywhere; font-size: var(--text-xs); font-weight: 600; color: var(--muted); }
-.work-field input, .work-field select, .work-field textarea { width: 100%; min-width: 0; min-height: var(--control-height, 2.75rem); font: inherit; font-size: var(--text-md); color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); transition: border-color var(--motion-fast); }
+.work-field input, .work-field select, .work-field textarea { width: 100%; min-width: 0; min-height: var(--control-height, 2.75rem); font: inherit; font-size: var(--text-md); font-weight: 400; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); transition: border-color var(--motion-fast); }
 .work-field input:hover:not(:disabled):not([readonly]), .work-field select:hover:not(:disabled), .work-field textarea:hover:not(:disabled):not([readonly]) { border-color: var(--text); }
 .work-field input[type="checkbox"] { width: 1.2rem; height: 1.2rem; min-height: 0; accent-color: var(--text); }
 .work-field textarea { resize: vertical; min-height: 7rem; line-height: 1.55; }
@@ -67,6 +73,7 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--surface-hover);
 
 /* Notices and states */
 .work-banner { margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-soft); }
+.work-toolbar-label { font-size: var(--text-xs); }
 .work-unavailable { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); }
 .work-unavailable > p { margin: 0; }
 .work-empty, .work-error { display: grid; justify-items: center; align-content: start; gap: var(--space-2); min-height: 0; min-width: 0; padding: clamp(var(--space-5), 4vw, var(--space-6)); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--muted); text-align: center; }
@@ -94,7 +101,7 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--surface-hover);
 .work-row:last-child { border-bottom: 0; }
 .work-row:hover { background: var(--surface-hover); }
 .work-row[aria-current="true"] { box-shadow: inset 3px 0 var(--text); background: var(--surface-soft); }
-.work-row-title { grid-column: 2; grid-row: 1; justify-self: start; max-width: 100%; min-height: 2.25rem; padding: var(--space-1) 0; border: 0; background: transparent; color: var(--text); text-align: left; font-size: var(--text-md); font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.work-row-title { grid-column: 2; grid-row: 1; justify-self: start; max-width: 100%; min-height: 2.25rem; padding: var(--space-1) 0; border: 0; background: transparent; box-shadow: none; color: var(--text); text-align: left; font-size: var(--text-md); font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
 .work-row-title:hover:not(:disabled) { background: transparent; text-decoration: underline; text-underline-offset: .2em; }
 .work-row-updated { grid-column: 3; grid-row: 1; align-self: center; justify-self: end; white-space: nowrap; font-size: var(--text-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
 .work-row-meta { grid-column: 2; grid-row: 2; gap: var(--space-1) var(--space-2); color: var(--muted); font-size: var(--text-xs); line-height: 1.5; overflow-wrap: anywhere; }
@@ -123,10 +130,11 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--surface-hover);
 .work-detail-body { display: grid; gap: var(--space-4); min-width: 0; }
 .work-detail-bar { display: flex; justify-content: flex-end; }
 .work-detail .work-select-prompt { min-height: 16rem; align-content: center; border: 0; background: transparent; }
-.work-detail-heading { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.work-detail-heading > .work-detail-eyebrow { flex: 1 1 auto; }
-.work-detail-heading > button { margin-left: auto; }
-.work-detail-heading h2 { flex: 1 1 100%; font-size: var(--text-xl); line-height: 1.35; letter-spacing: -.02em; }
+/* The eyebrow and close control share the first row at every width; the title spans below. */
+.work-detail-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); }
+.work-detail-heading > .work-detail-eyebrow { grid-column: 1; min-width: 0; }
+.work-detail-heading > button { grid-column: 2; grid-row: 1; }
+.work-detail-heading h2 { grid-column: 1 / -1; font-size: var(--text-xl); line-height: 1.35; letter-spacing: -.02em; }
 .work-card { display: grid; gap: var(--space-3); min-width: 0; padding-top: var(--space-4); border-top: 1px solid var(--border); }
 .work-card > h3 { font-size: var(--text-sm); font-weight: 650; color: var(--text); }
 .work-text { white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; line-height: 1.65; font-size: var(--text-md); max-width: 100%; margin: 0; }
@@ -151,9 +159,13 @@ pre.work-text { overflow: auto; max-height: 28rem; font-family: var(--mono); fon
 .work-attention-actions { gap: var(--space-1); }
 .work-identity { border-top: 1px solid var(--border); padding-top: var(--space-2); }
 .work-identity > summary { color: var(--muted); padding-inline: 0; }
+/* r[impl kiln.web.page_consistency] */
+/* Linked evidence: its boundary statement is a quiet footnote disclosure; unset detail fields share one line. */
+.work-evidence > .about-view { max-width: none; }
 
 /* Roadmap */
 .card.work-roadmap { padding: var(--space-2) var(--space-5) var(--space-4); }
+.card.work-roadmap:not([open]) { padding-bottom: var(--space-2); }
 .work-roadmap > summary { padding-inline: 0; }
 .work-roadmap-row { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(8rem, 2fr) minmax(9rem, 1fr); gap: var(--space-3); align-items: center; margin-top: var(--space-2); }
 .work-roadmap-row > button { justify-content: flex-start; text-align: left; overflow-wrap: anywhere; }
@@ -170,6 +182,7 @@ pre.work-text { overflow: auto; max-height: 28rem; font-family: var(--mono); fon
 .work-reaction { min-height: 2rem; padding: 0 var(--space-3); border-radius: var(--radius-pill); border-color: var(--border); font-size: var(--text-xs); overflow-wrap: anywhere; }
 .work-active { background: var(--surface-hover); border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
 .work-discussion-form { display: grid; gap: var(--space-3); padding-top: var(--space-2); }
+.work-discussion-form textarea { min-height: 4.5rem; height: 4.5rem; }
 .work-discussion-form > button { justify-self: end; }
 
 /* Dialogs: sticky header and footer, primary action last. */
@@ -185,7 +198,7 @@ pre.work-text { overflow: auto; max-height: 28rem; font-family: var(--mono); fon
 .work-form-section > h3, .work-form-section > p, .work-form-section > .work-link-editor, .work-form-section > .work-reminder-editor, .work-form-section > button { grid-column: 1 / -1; }
 .work-form-section > button { justify-self: start; }
 .work-form-section > h3 { font-size: var(--text-sm); font-weight: 650; }
-.work-form-section .work-field:has(textarea) { grid-column: 1 / -1; }
+.work-form-section .work-field:has(textarea), .work-form-section .work-field-wide { grid-column: 1 / -1; }
 .work-link-editor, .work-reminder-editor { display: grid; gap: var(--space-3); }
 .work-link-row { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(10rem, 2fr) auto; gap: var(--space-3); align-items: end; border-top: 1px solid var(--border); padding-top: var(--space-3); }
 .work-dialog-status { margin: 0; }
@@ -210,7 +223,7 @@ pre.work-text { overflow: auto; max-height: 28rem; font-family: var(--mono); fon
 @media (max-width: 60rem) {
   .work-row-title, .work-favorite, .work-reaction, .work-chip, .work-category { min-height: 2.75rem; }
   button.work-chip-remove { width: 2.75rem; height: 2.75rem; }
-  .work-row input[type="checkbox"], .work-field input[type="checkbox"] { width: 2.75rem; height: 2.75rem; }
+  .work-field input[type="checkbox"] { width: 2.75rem; height: 2.75rem; }
 }
 @media (max-width: 850px) {
   .work-create-more { position: static; }
@@ -229,16 +242,26 @@ pre.work-text { overflow: auto; max-height: 28rem; font-family: var(--mono); fon
   .work-filter-bar > .work-search { flex-basis: 100%; }
   .work-list-scroll[data-layout="board"] { padding: var(--space-2); gap: var(--space-2); }
   .work-actions > button { max-width: 100%; overflow-wrap: anywhere; }
-  .work-row { grid-template-columns: auto minmax(0, 1fr); }
+  /* r[impl kiln.web.page_consistency] */
+  /* Narrow rows keep selection, content and the actions control on one line; time and meta stack under the title. */
+  .work-row { grid-template-columns: auto minmax(0, 1fr) auto; }
   .work-row-title, .work-row-meta { grid-column: 2; }
   .work-row-updated { grid-column: 2; grid-row: auto; justify-self: start; }
-  .work-row > button.work-row-menu { grid-column: 2; grid-row: auto; justify-self: start; margin-inline-start: 0; }
+  .work-row > button.work-row-menu { grid-column: 3; grid-row: 1; align-self: start; justify-self: end; }
   .work-row > .work-progress { grid-column: 2; }
   .work-dialog { width: calc(100vw - .7rem); max-height: calc(100dvh - .7rem); padding-inline: var(--space-3); }
   .work-dialog-footer > button { flex: 1 1 auto; }
   .work-facts { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
   .work-facts dd { margin-bottom: var(--space-2); }
   .work-roadmap-row { grid-template-columns: minmax(0, 1fr); }
+}
+/* Narrow header: the primary action, the other-types menu (icon-sized, still named) and Refresh share one row. */
+@media (max-width: 30rem) {
+  .page-actions:has(.work-create) { flex: 1 1 100%; flex-wrap: nowrap; }
+  #page-primary-action:has(> .work-create) { flex: 1 1 auto; min-width: 0; }
+  .work-create { flex: 1 1 auto; flex-wrap: nowrap; justify-content: flex-start; }
+  .work-create-more-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .work-create-more > summary { justify-content: center; min-width: 2.75rem; padding-inline: var(--space-2); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
 }
 @media (prefers-reduced-motion: reduce) { .work-workspace *, .work-dialog *, .work-create * { scroll-behavior: auto !important; transition: none !important; } }
 @media (forced-colors: active) {

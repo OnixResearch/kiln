@@ -987,14 +987,23 @@
       heading.scrollIntoView({ block: "start" });
     }
   }
+  // r[impl kiln.web.page_consistency] Run links are row actions: .row-link keeps them 44px tall on touch layouts.
   function runLink(id, label = id, view = "pipeline") {
-    const link = element("a", text(label));
+    const link = element("a", text(label), "row-link");
     const params = new URLSearchParams({ page: "runs", run: id, view });
     link.href = `?${params}`;
     link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate({ page: "runs", run: id, view, node: "" }); } });
     return link;
   }
   function section(title, parent, className = "panel") { const node = element("section", undefined, className); node.append(element("h3", title)); parent.append(node); return node; }
+  // r[impl kiln.web.page_consistency] Boundary and non-claim copy stays reachable behind the shared "About" disclosure.
+  function aboutView(label, ...paragraphs) {
+    const details = element("details", undefined, "about-view");
+    const body = element("div", undefined, "about-view-body");
+    for (const paragraph of paragraphs) body.append(element("p", paragraph));
+    details.append(element("summary", label), body);
+    return details;
+  }
   function renderRecorded(parent, value, depth = 0) {
     if (value === null || value === undefined) { parent.append(element("p", "Not recorded", "small")); return; }
     if (Array.isArray(value)) {
@@ -1145,7 +1154,15 @@
       const patch = { page: "workers", worker: worker.id };
       choice.href = `?${new URLSearchParams({ ...route, ...patch })}`;
       if (route.worker === worker.id) choice.setAttribute("aria-current", "true");
-      choice.append(element("strong", text(worker.provider_profile_id)), element("span", text(worker.platform), "small"), element("span", text(worker.id), "run-source"), workerStatusBadge(worker.status), element("span", `${text(worker.capacity.free_slots)} configured project slots free · ${text(worker.capacity.active)} occupied · ${text(worker.capacity.queued)} queued`, "small"), element("span", `${worker.projects.length} assigned projects · heartbeat ${text(worker.liveness || "unknown")}`, "small"));
+      // r[impl kiln.web.page_consistency.scenario.data] Assigned project labels lead each target; the provider profile and shortened exact target id stay secondary (full id in the title and inspector).
+      const labels = worker.projects.map((project) => text(project.label || project.id));
+      const primary = labels.length ? (labels.length > 2 ? `${labels.slice(0, 2).join(", ")} +${labels.length - 2} more` : labels.join(", ")) : text(worker.provider_profile_id);
+      const identity = element("span", `${shortIdentity(worker.id)}`, "run-source");
+      identity.title = text(worker.id);
+      const head = element("span", undefined, "worker-choice-head");
+      head.append(workerStatusBadge(worker.status), element("span", text(worker.platform), "small"));
+      choice.title = `${text(worker.provider_profile_id)}\n${text(worker.id)}`;
+      choice.append(head, element("strong", primary), element("span", text(worker.provider_profile_id), "run-source"), identity, element("span", `${text(worker.capacity.free_slots)} of ${text(worker.capacity.configured_slots)} configured project slot${worker.capacity.configured_slots === 1 ? "" : "s"} free · ${text(worker.capacity.active)} occupied · ${text(worker.capacity.queued)} queued`, "small"), element("span", `${worker.projects.length} assigned project${worker.projects.length === 1 ? "" : "s"} · heartbeat ${text(worker.liveness || "unknown")}`, "small"));
       choice.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate(patch); } });
       list.append(choice);
     }
@@ -1187,7 +1204,7 @@
       addFacts(metadata, [["Project ID", project.id], ["Enrollment", project.enrolled ? "Enrolled" : "Not enrolled"], ["Queued runs", project.queued]]);
       card.append(metadata);
       const runs = element("div", undefined, "view-stack worker-run-links");
-      for (const id of project.active_run_ids) runs.append(runLink(id, `Active / occupying: ${id}`));
+      for (const id of project.active_run_ids) { const link = runLink(id, `Active / occupying: ${shortIdentity(id)}`); link.title = id; runs.append(link); }
       if (!project.active_run_ids.length) runs.append(element("p", "No active execution is retained for this project slot. Physical liveness remains unknown.", "small"));
       card.append(runs);
     }
@@ -1195,7 +1212,7 @@
     const latest = section("Latest execution observation", parent, "record-card");
     const run = worker.latest_run;
     if (!run) { latest.append(element("p", "Unknown: no retained execution observation. Queued requests are not execution evidence; timing, sequence and outcome are unknown.", "small")); return; }
-    latest.append(runLink(run.id, `Inspect exact run: ${run.id}`));
+    { const link = runLink(run.id, `Inspect exact run: ${shortIdentity(run.id)}`); link.title = run.id; latest.append(link); }
     const observation = element("dl", undefined, "facts");
     const unknown = (value) => value === null || value === undefined ? "Not recorded" : value;
     const executionMs = Number.isSafeInteger(run.started_at_ms) && Number.isSafeInteger(run.completed_at_ms) && run.completed_at_ms >= run.started_at_ms ? run.completed_at_ms - run.started_at_ms : null;
@@ -1426,7 +1443,8 @@
     const exact = element("details", undefined, "cob-exact"); exact.append(element("summary", "Exact object identity & observed ref tips")); parent.append(exact);
     const facts = element("dl", undefined, "facts"); addFacts(facts, [["Repository", identity.repository_label], ["Native repository ID", identity.repository_id], ["Native object ID", identity.object_id], ["Kiln observation key", identity.id], ["Observed operations", object.operation_count], ["Retained action bytes", object.retained_action_bytes]]); exact.append(facts);
     const tips = section("Observed ref tips", exact, "record-card"); renderCobFields(tips, identity.ref_tips);
-    parent.append(element("p", "Recorded actions, ordered by operation identity—not a current state or chosen concurrent winner. Authors, status and decision claims are unverified. Embedded text and URLs are inert.", "warning"));
+    // r[impl kiln.web.page_consistency] The history-reading boundary stays reachable without a warning box above every object.
+    parent.append(aboutView("How to read this history", "Recorded actions, ordered by operation identity—not a current state or chosen concurrent winner. Authors, status and decision claims are unverified. Embedded text and URLs are inert."));
     for (const operation of object.operations) {
       const card = section(`Operation ${shortOid(operation.id)}`, parent, "record-card cob-operation");
       const byline = element("p", `${shortAuthor(operation.author_name)} · `, "small");
@@ -2028,11 +2046,29 @@
     for (const [status, count] of counts) { const badge = workerStatusBadge(status); badge.append(document.createTextNode(` · ${count}`)); statuses.append(badge); }
     body.append(metrics, statuses, element("p", "Configured targets and admission slots, not discovered machines. Physical liveness is unknown.", "small"));
   }
+  // r[impl kiln.web.page_consistency] Readable activity rows: long identity segments are shortened in the title, the exact target stays secondary mono text.
+  function compactTarget(target) { return typeof target === "string" ? target.split("/").map((part) => part.length > 22 ? shortIdentity(part) : part).join("/") : text(target); }
   function activityTitle(item) {
-    if (item.kind === "audit") { const audit = item.audit || {}; return `${text(audit.method)} ${text(audit.target)} · ${text(audit.decision)}`; }
+    if (item.kind === "audit") { const audit = item.audit || {}; return `${text(audit.method)} ${compactTarget(audit.target)} · ${text(audit.decision)}`; }
     const event = item.event;
     const name = typeof event === "string" ? event : event && typeof event === "object" ? Object.keys(event)[0] : "";
     return name ? name.replace(/([a-z])([A-Z])/g, (_, lower, upper) => `${lower} ${upper.toLowerCase()}`) : "Canonical event";
+  }
+  function activityExact(item) {
+    const target = item.kind === "audit" ? item.audit?.target : null;
+    if (typeof target !== "string" || compactTarget(target) === target) return null;
+    const node = element("span", target, "mono meta activity-exact");
+    node.title = "Exact audit target";
+    return node;
+  }
+  function activityMeta(item) {
+    const meta = element("span", undefined, "activity-feed-meta");
+    meta.append(element("span", item.kind === "audit" ? "Audit decision" : "Canonical event"));
+    if (item.project_id) meta.append(element("span", text(projectLabel(item.project_id))));
+    if (item.kind === "audit" && item.audit?.actor_label) meta.append(element("span", text(item.audit.actor_label)));
+    meta.append(when(item.recorded_at_ms));
+    if (item.run_id) { const link = runLink(item.run_id, `Run ${shortIdentity(item.run_id)}`, "activity"); link.title = item.run_id; meta.append(link); }
+    return meta;
   }
   function renderOverviewActivity(result) {
     if (!Array.isArray(result?.items)) throw new Error("Activity response is invalid.");
@@ -2044,13 +2080,10 @@
     const list = element("ul", undefined, "activity-feed");
     for (const item of items) {
       const row = element("li");
-      const meta = element("span", undefined, "activity-feed-meta");
-      meta.append(element("span", item.kind === "audit" ? "Audit decision" : "Canonical event"));
-      if (item.project_id) meta.append(element("span", text(projectLabel(item.project_id))));
-      if (item.kind === "audit" && item.audit?.actor_label) meta.append(element("span", text(item.audit.actor_label)));
-      meta.append(when(item.recorded_at_ms));
-      if (item.run_id) { const link = runLink(item.run_id, `Run ${shortIdentity(item.run_id)}`, "activity"); link.title = item.run_id; meta.append(link); }
-      row.append(element("span", activityTitle(item), "activity-feed-title"), meta);
+      row.append(element("span", activityTitle(item), "activity-feed-title"));
+      const exact = activityExact(item);
+      if (exact) row.append(exact);
+      row.append(activityMeta(item));
       list.append(row);
     }
     body.append(list);
@@ -2091,14 +2124,19 @@
       for (const [card, slot] of slots()) {
         const project = byId.get(card.dataset.projectId);
         slot.replaceChildren();
+        card.querySelector(".project-actions [data-project-logs]")?.remove();
         if (!project) { slot.append(element("span", "Health not reported for this project in the bounded overview.", "meta")); continue; }
         card.dataset.health = project.health;
         const latest = project.latest_run;
         if (!latest) { slot.append(statePill("unknown", "No retained runs")); continue; }
+        // r[impl kiln.web.page_consistency] Logs joins the card's shared action row instead of an inline 19px link.
         const { logs } = projectRunLinks(project, latest);
+        logs.dataset.projectLogs = "";
+        if (project.health === "failing") logs.prepend(ui.icon("warning"));
+        card.querySelector(".project-actions")?.prepend(logs);
         const finished = element("span", "Finished ");
         finished.append(when(latest.completed_at_ms));
-        slot.append(ui.statusPill(latest.outcome, latest.phase), finished, logs);
+        slot.append(ui.statusPill(latest.outcome, latest.phase), finished);
       }
     } catch (error) {
       if (isAborted(error) || generation !== state.pageGeneration) return;
@@ -2285,8 +2323,9 @@
   // r[impl kiln.dashboard.complete.reports]
   function renderFlaky(parent, rows) {
     const group = section("Repeated-test instability", parent, "view-stack");
-    group.append(element("p", "Instability requires actual repeated pass/fail observations for the same exact source revision, pipeline, node, report and test identity. It is not inferred from code changes, execution logs or missing reports.", "small"));
+    // r[impl kiln.web.page_consistency.scenario.states] Explicit empty state; the detection boundary stays one disclosure away.
     if (!rows.length) group.append(element("p", "No repeated pass/fail instability is recorded in the bounded history. This does not prove all tests are stable.", "small"));
+    group.append(aboutView("About instability detection", "Instability requires actual repeated pass/fail observations for the same exact source revision, pipeline, node, report and test identity. It is not inferred from code changes, execution logs or missing reports."));
     for (const row of rows) {
       const card = section(`${text(row.suite)} / ${text(row.class_name)} / ${text(row.name)}`, group, "record-card");
       const facts = element("dl", undefined, "facts"); addFacts(facts, [["Exact source revision", row.source_revision], ["Node", row.node_id], ["Report", row.report_name], ["Passed observations", row.passed], ["Failed observations", row.failed], ["Total observations", row.observations]]); card.append(facts);
@@ -2319,7 +2358,7 @@
     if (Array.isArray(result.flaky_history)) renderFlaky(parent, result.flaky_history);
     if (!Array.isArray(records)) throw new Error("Structured report response unavailable.");
     parent.append(element("p", "Reported tests and coverage are recorded evidence, not execution-success or accepted-gate authority. Missing reports are unavailable, not zero failures or full coverage.", "boundary"));
-    if (!records.length) parent.append(element("p", "No declared reports retained for this run.", "small"));
+    if (!records.length) parent.append(emptyState("No declared reports", "No declared reports retained for this run. Structured JUnit, Cobertura or LCOV results appear here once a node retains a declared report."));
     for (const record of records) {
       const report = record.report || record;
       const card = section(`${text(record.name)} · ${text(report.kind)}`, parent, "record-card");
@@ -2423,13 +2462,16 @@
     if (report.evidence?.claim_boundary) card.append(element("p", report.evidence.claim_boundary, "small"));
     if (runId) card.append(runLink(runId, "Inspect this exact run", "pipeline"));
   }
+  // r[impl kiln.web.page_consistency.scenario.states] Absence is an explicit empty state that keeps the non-claim inline; with receipts, the boundary moves into a disclosure.
   function renderReviews(parent, result) {
-    parent.append(element("p", "A retained receipt proves only that Kiln admitted and preserved that review evidence for this run. Rejected, escalated, blocked, waiting, pending, removed, reverted and unknown decisions stay distinct; absence of a receipt is not a clean review.", "warning"));
+    const boundary = "A retained receipt proves only that Kiln admitted and preserved that review evidence for this run. Rejected, escalated, blocked, waiting, pending, removed, reverted and unknown decisions stay distinct; absence of a receipt is not a clean review.";
     const receipts = patchgateReceipts(result);
     if (!receipts.length) {
-      parent.append(element("p", "No retained Patchgate review receipt for this run. Upload a kiln.patchgate.review.v1 document as a review report to retain one.", "small"));
+      parent.append(emptyState("No retained Patchgate receipt", "No retained Patchgate review receipt for this run. Upload a kiln.patchgate.review.v1 document as a review report to retain one. Absence of a receipt is not a clean review."));
+      parent.append(aboutView("What a receipt proves", boundary));
       return;
     }
+    parent.append(aboutView("What a receipt proves", boundary));
     const runId = result.run_id || state.route.run;
     for (const record of receipts) {
       const report = record.report || record;
@@ -2442,8 +2484,10 @@
   function renderEvidence(parent, result) {
     parent.append(element("p", "Recorded evidence only. A reported verdict, review, provenance link or retained artifact does not establish accepted gate authority or product correctness.", "warning"));
     for (const key of ["source", "pipeline", "execution"]) if (Object.hasOwn(result, key)) { const group = section(key[0].toUpperCase() + key.slice(1) + " linkage", parent, "record-card"); renderRecorded(group, result[key]); }
-    if (result.run_id) parent.append(runLink(result.run_id, "Inspect this exact run", "pipeline"));
-    if (result.parent_run_id) parent.append(runLink(result.parent_run_id, "Inspect parent run"));
+    const runLinks = element("div", undefined, "action-row");
+    if (result.run_id) runLinks.append(runLink(result.run_id, "Inspect this exact run", "pipeline"));
+    if (result.parent_run_id) runLinks.append(runLink(result.parent_run_id, "Inspect parent run"));
+    if (runLinks.childElementCount) parent.append(runLinks);
     if (Array.isArray(result.artifacts)) {
       const group = section("Retained artifact provenance", parent, "view-stack");
       if (!result.artifacts.length) group.append(element("p", "No retained artifacts for this run.", "small"));
@@ -2470,15 +2514,20 @@
   function renderActivity(parent, result) {
     if (!Array.isArray(result.items)) throw new Error("Activity response is invalid.");
     parent.append(element("p", `${result.items.length} shown of ${text(result.total)} · bounded retained timeline · audit window: ${text(result.audit_window)}`, "small"));
+    // r[impl kiln.web.page_consistency.scenario.data] Each entry leads with a readable title and attribution; exact recorded fields stay one disclosure away.
     for (const item of result.items) {
       const card = element("section", undefined, "record-card activity-item");
-      const heading = element("h3", `${item.kind === "audit" ? "Audit decision" : "Canonical event"} · `);
-      heading.append(when(item.recorded_at_ms));
-      card.append(heading); parent.append(card);
-      if (item.run_id) card.append(runLink(item.run_id));
-      if (item.kind === "audit") renderRecorded(card, item.audit); else renderRecorded(card, { event_identity: item.event_identity, ordinal: item.ordinal, event_index: item.event_index, event: item.event });
+      card.append(element("h3", activityTitle(item)));
+      const exact = activityExact(item);
+      if (exact) card.append(exact);
+      card.append(activityMeta(item));
+      parent.append(card);
+      const fields = element("details", undefined, "activity-fields");
+      fields.append(element("summary", "Recorded fields"));
+      if (item.kind === "audit") renderRecorded(fields, item.audit); else renderRecorded(fields, { event_identity: item.event_identity, ordinal: item.ordinal, event_index: item.event_index, event: item.event });
+      card.append(fields);
     }
-    if (!result.items.length) parent.append(element("p", "No retained activity in this bounded page.", "small"));
+    if (!result.items.length) parent.append(emptyState("No retained activity", "No retained activity in this bounded page. Audit decisions and canonical events appear here as they are recorded."));
     const controls = element("div", undefined, "control-bar");
     const first = element("button", "First page"); first.type = "button"; first.disabled = !state.route.activity_cursor; first.addEventListener("click", () => navigate({ activity_cursor: "" }));
     const next = element("button", "Next page"); next.type = "button"; next.disabled = !result.next_cursor; next.addEventListener("click", () => navigate({ activity_cursor: result.next_cursor }));
@@ -2491,12 +2540,35 @@
       const row = element("div", undefined, "warning"); row.append(element("span", `${text(warning.code)}: ${text(warning.resource)} uses ${text(warning.used)} / ${text(warning.maximum)}. Retention admission may fail; no canonical data is automatically pruned.`));
       if (warning.run_id) row.append(document.createTextNode(" "), runLink(warning.run_id, "Inspect affected run")); parent.append(row);
     }
-    const capacity = section("Execution capacity", parent, "record-card"); renderRecorded(capacity, result.capacity);
+    // r[impl kiln.web.page_consistency.scenario.data] Scalar capacity reads as metric tiles; project labels lead queue and provider rows with exact ids kept secondary.
+    const capacity = section("Execution capacity", parent, "record-card");
+    const capacityRows = result.capacity && typeof result.capacity === "object" && !Array.isArray(result.capacity) ? Object.entries(result.capacity) : [];
+    if (capacityRows.length && capacityRows.every(([, value]) => value === null || typeof value !== "object")) {
+      const grid = element("div", undefined, "inventory-grid worker-metrics");
+      for (const [key, value] of capacityRows) { const card = element("article", undefined, "inventory-card"); const label = key.replaceAll("_", " "); card.append(element("span", label[0].toUpperCase() + label.slice(1), "metric-label"), element("strong", text(value), "metric-value")); grid.append(card); }
+      capacity.append(grid);
+    } else renderRecorded(capacity, result.capacity);
     const queue = section("Durable queue", parent, "view-stack");
-    if (!result.queue?.length) queue.append(element("p", "No queued work in the admitted snapshot.", "small"));
-    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(row.project_id)}`, queue, "record-card"); const queued = element("p", "Queued ", "small"); queued.append(when(row.created_at_ms)); card.append(runLink(row.run_id), queued); }
+    if (!result.queue?.length) queue.append(emptyState("Queue is empty", "No queued work in the admitted snapshot."));
+    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(projectLabel(row.project_id))}`, queue, "record-card"); const queued = element("p", "Queued ", "small"); queued.append(when(row.created_at_ms)); card.append(element("p", text(row.project_id), "mono meta"), runLink(row.run_id), queued); }
     const providers = section("Provider observations", parent, "view-stack");
-    for (const row of result.providers || []) { const card = section(`${text(row.project_id)} · ${text(row.status)}`, providers, "record-card"); if (row.status === "unavailable") card.append(element("p", "Provider observation is unavailable, not healthy capacity.", "warning")); renderRecorded(card, row); }
+    if (!result.providers?.length) providers.append(emptyState("No provider observations", "No provider observation is retained in this snapshot. Capacity is not inferred."));
+    for (const row of result.providers || []) {
+      const card = element("article", undefined, "record-card provider-observation");
+      const head = element("div", undefined, "provider-observation-head");
+      const badge = element("span", text(row.status), "state-badge");
+      if (row.status === "unavailable" || row.status === "observed") badge.dataset.tone = row.status === "observed" ? "good" : "warning";
+      head.append(element("h4", text(projectLabel(row.project_id))), badge);
+      card.append(head);
+      const meta = element("p", undefined, "activity-feed-meta");
+      if (row.provider_profile_id) meta.append(element("span", text(row.provider_profile_id), "mono"));
+      if (row.sequence !== undefined) meta.append(element("span", `Sequence ${text(row.sequence)}`));
+      if (typeof row.run_id === "string") { const link = runLink(row.run_id, `Run ${shortIdentity(row.run_id)}`); link.title = row.run_id; meta.append(link); }
+      card.append(meta);
+      if (row.status === "unavailable") card.append(element("p", "Provider observation is unavailable, not healthy capacity.", "warning"));
+      const fields = element("details"); fields.append(element("summary", "Recorded fields")); renderRecorded(fields, row); card.append(fields);
+      providers.append(card);
+    }
     const usage = section("Retained usage & limits", parent, "view-stack");
     for (const row of result.usage || []) {
       const card = section(text(row.resource), usage, "record-card"); card.append(element("p", `${text(row.used)} / ${text(row.maximum)}`, "small"));
@@ -2518,14 +2590,19 @@
   }
   // r[impl kiln.dashboard.complete.automation]
   function renderAutomation(parent, result) {
-    parent.append(element("p", `Automation: ${text(result.status)}. ${result.configured ? "Only registered sources and destinations are editable." : "No automation policy is admitted. Register sources/destinations in server policy; browser input cannot create authority."}`, "small"));
+    // r[impl kiln.web.page_consistency.scenario.states] Automation status leads as a badge; an unconfigured policy is an explicit state with guidance.
+    const status = element("div", undefined, "badges");
+    const statusBadge = element("span", `Automation: ${text(result.status)}`, "state-badge");
+    if (result.status === "enabled" || result.status === "unconfigured") statusBadge.dataset.tone = result.status === "enabled" ? "good" : "warning";
+    status.append(statusBadge, element("span", result.configured ? "Only registered sources and destinations are editable." : "No automation policy is admitted. Register sources/destinations in server policy; browser input cannot create authority.", "small"));
+    parent.append(status);
     const policy = element("dl", undefined, "facts"); addFacts(policy, [["Reviewed policy BLAKE3", result.policy_identity]]); parent.append(policy);
     for (const [key, kind] of [["triggers", "trigger"], ["schedules", "schedule"], ["notifications", "notification"]]) {
       const group = section(key[0].toUpperCase() + key.slice(1), parent, "view-stack");
-      if (!result[key]?.length) group.append(element("p", "No registrations.", "small"));
+      if (!result[key]?.length) group.append(emptyState(`No registered ${key}`, "No registrations. Registrations are admitted in server policy, not created from this page."));
       for (const row of result[key] || []) {
         const form = element("form", undefined, "record-card automation-form"); form.append(element("h3", text(row.id)));
-        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", row.project_id], ["Reference", row.reference], ["Last status", CANONICAL_OUTCOMES.has(row.last_status) ? ui.statusPill(row.last_status) : row.last_status]]); form.append(facts);
+        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", projectLabel(row.project_id) === row.project_id ? row.project_id : `${projectLabel(row.project_id)} · ${row.project_id}`], ["Reference", row.reference], ["Last status", CANONICAL_OUTCOMES.has(row.last_status) ? ui.statusPill(row.last_status) : row.last_status]]); form.append(facts);
         const inputs = { enabled: field(form, "Enabled", "checkbox", row.enabled) };
         if (kind === "trigger") {
           inputs.push = field(form, "Signed push events", "checkbox", row.push); inputs.pull_request = field(form, "Signed pull request events", "checkbox", row.pull_request);

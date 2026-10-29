@@ -1,0 +1,54 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-29",
+  "authority": "Operator asked to go through each page and fix the UI/UX; deployment follows the established approval for console redesign work.",
+  "package": "/nix/store/w630qxx2ykzcwm33v9bspk6wafr6zh9d-kiln-web-service-0.1.0",
+  "executable_blake3": "e7428aaeed6793196d3c68a9c6addf3c981af4d567888785d70584e31cd9f130",
+  "previous_package": "/nix/store/d54ard8363g9zbn3nldccmx9afxp3d2j-kiln-web-service-0.1.0",
+  "gates": "nix flake check: all x86_64-linux checks passed; cairn validate valid, traceability 1084/1084, release-readiness valid",
+  "verification": {
+    "assets_identical": 11,
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "retained_runs": 19,
+    "code_review_configured": true,
+    "live_pages": {
+      "overview": {
+        "overflow": 0,
+        "title": "Kiln · CI overview",
+        "about": 8
+      },
+      "projects": {
+        "overflow": 0,
+        "title": "Kiln · CI projects",
+        "about": 8
+      },
+      "workers": {
+        "overflow": 0,
+        "title": "Kiln · Workers",
+        "about": 8
+      },
+      "activity": {
+        "overflow": 0,
+        "title": "Kiln · Activity",
+        "about": 8
+      },
+      "work": {
+        "overflow": 0,
+        "title": "Kiln · Issues",
+        "about": 8
+      },
+      "code-review": {
+        "overflow": 0,
+        "title": "Kiln · Code review",
+        "about": 11
+      }
+    },
+    "js_errors": 0
+  },
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}

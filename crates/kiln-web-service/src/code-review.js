@@ -54,6 +54,27 @@
     return list;
   }
   function stateBox(title, text, cls = "empty-state") { const box = node("div", null, `${cls} cr-state`); box.append(node("p", title, "empty-state-title"), node("p", text, "empty-state-text")); return box; }
+  // r[impl kiln.web.page_consistency]
+  // Boundary and non-claim prose stays reachable behind the shared labelled "about" disclosure instead of dominating the data.
+  // Each label is unique so draw() can restore its open state across redraws.
+  function about(parent, summary, ...items) {
+    const d = node("details", null, "about-view"), body = node("div", null, "about-view-body"); d.append(node("summary", summary), body);
+    for (const item of items) if (item instanceof Node) body.append(item); else if (item) body.append(node("p", item));
+    parent.append(d); return d;
+  }
+  // Principals and refs: readable wrapping after ":" and "/" separators (wbr), exact value kept verbatim in the text.
+  function principalNode(value, cls = "cr-principal", tag = "span") {
+    const span = node(tag, null, cls), text = String(value ?? ""); if (!text) { span.textContent = "Not recorded"; return span; }
+    for (const part of text.split(/(?<=[:/])/)) { if (span.firstChild) span.append(document.createElement("wbr")); span.append(part); }
+    return span;
+  }
+  // Exact identifier as secondary text: a shortened visible form with the exact value in its title (as before for change IDs).
+  function exactId(value, cls = "cr-exact-id") { const code = node("code", short(value), cls); code.title = String(value ?? ""); return code; }
+  function titleFor(id) {
+    if (state.detail?.change?.id === id) return state.detail.change.title;
+    return arr(state.snapshot?.changes).find(c => c.id === id)?.title || arr(state.detail?.stack?.dependencies).find(c => c.id === id)?.title || "";
+  }
+  function changeRef(id) { const title = titleFor(id), a = changeLink(id, title || id); if (title) a.title = id; return a; }
   function loading(text) {
     const box = node("div", null, "cr-loading"); box.setAttribute("aria-busy", "true"); box.append(node("p", text, "cr-muted"));
     for (let i = 0; i < 3; i++) { const bar = node("div", null, "skeleton"); bar.setAttribute("aria-hidden", "true"); box.append(bar); }
@@ -135,33 +156,43 @@
     const { dialog, close } = modal("Submit a contribution branch for review");
     dialog.append(node("p", "Only configured source branches are admitted. The service resolves the exact immutable tip and configured target, without pushing or moving a real ref.", "cr-muted"));
     const source = field(dialog, "Configured contribution branch", "select", sources[0].source_ref, sources.map(s => [s.source_ref, `${s.source_ref} → ${s.target_ref} · ${short(s.commit)}`]), "contribution-source");
-    const expected = field(dialog, "Expected exact source commit (clear to resolve branch tip at intake)", "text", sources.find(s => s.source_ref === source.value)?.commit || "", [], "contribution-commit");
-    source.addEventListener("change", () => { expected.value = sources.find(s => s.source_ref === source.value)?.commit || ""; state.forms.set(memoryKey("contribution-commit"), expected.value); });
+    // Narrow selects clip long option labels, so the selected branch's target and tip also read in full below it.
+    const routeNote = node("p", null, "cr-muted cr-field-note"); routeNote.id = `cr-${crypto.randomUUID()}`; source.setAttribute("aria-describedby", routeNote.id); source.parentElement.after(routeNote);
+    const describe = () => { const s = sources.find(item => item.source_ref === source.value); routeNote.replaceChildren(...(s ? [principalNode(s.source_ref, "cr-principal", "code"), " → ", principalNode(s.target_ref, "cr-principal", "code"), " · tip ", exactId(s.commit)] : ["Select an admitted contribution branch."])); };
+    const expected = field(dialog, "Expected exact source commit (clear to resolve branch tip at intake)", "text", sources.find(s => s.source_ref === source.value)?.commit || "", [], "contribution-commit"); expected.autocomplete = "off"; expected.spellcheck = false; expected.classList.add("mono");
+    source.addEventListener("change", () => { expected.value = sources.find(s => s.source_ref === source.value)?.commit || ""; state.forms.set(memoryKey("contribution-commit"), expected.value); describe(); }); describe();
     const title = field(dialog, "Title", "text", "", [], "contribution-title"), description = field(dialog, "Description (Markdown supported)", "textarea", "", [], "contribution-description"), wip = field(dialog, "Work in progress", "checkbox", true, [], "contribution-wip");
-    dialog.append(writeButton("Confirm branch intake", async () => {
+    dialogActions(dialog, close).append(writeButton("Confirm branch intake", async () => {
       if (!title.value.trim()) throw new Error("A contribution title is required.");
       const configured = sources.find(s => s.source_ref === source.value); if (!configured) throw new Error("Select an admitted contribution branch.");
       const result = await command({ type: "contribute", source_ref: source.value, expected_commit: expected.value.trim() || null, title: title.value.trim(), description: description.value, wip: wip.checked }, null, ["Submit contribution branch", [["Principal", state.context.principal], ["Repository", state.snapshot.repository], ["Source branch", source.value], ["Expected source", expected.value.trim() || "Resolve the configured branch tip at intake; no exact commit precondition"], ["Configured target", configured.target_ref], ["Title", title.value.trim()], ["Description", description.value], ["WIP", String(wip.checked)], ["Effect", "Register review only; no target movement or remote publication"]]]);
       if (result) { clearFields("contribution-source", "contribution-commit", "contribution-title", "contribution-description", "contribution-wip"); close(); if (result.change?.id) route({ review_change: result.change.id, review_revision: "" }); }
     }, "primary"));
+    source.focus();
   }
+  // r[impl kiln.web.page_consistency]
+  // Dialog footer: Cancel then the dialog's single primary action, right-aligned; form dialogs focus their first field.
+  function dialogActions(dialog, close) { const actions = node("div", null, "cr-toolbar cr-dialog-actions"); actions.append(button("Cancel", close, "quiet")); dialog.append(actions); return actions; }
   function drawQueue(root, entries = state.snapshot?.queue) {
     if (!Array.isArray(entries)) return;
-    const card = panel(root, "CI-bound merge queue", "queue", entries.length > 0, entries.length ? String(entries.length) : null);
-    card.append(node("p", "Each entry constructs a candidate against its exact observed target. Required CI must qualify that exact constructed commit before CAS submission. Target movement requires a newly constructed candidate and fresh CI, never reuse of the previous result.", "cr-muted"));
+    // r[impl kiln.web.page_consistency.scenario.states]
+    const disabled = state.snapshot?.queue_enabled === false && !entries.length;
+    const card = panel(root, "CI-bound merge queue", "queue", entries.length > 0, entries.length ? String(entries.length) : disabled ? "Not configured" : "None");
+    about(card, "About the merge queue", "Each entry constructs a candidate against its exact observed target. Required CI must qualify that exact constructed commit before CAS submission. Target movement requires a newly constructed candidate and fresh CI, never reuse of the previous result.");
     for (const entry of entries) {
       const article = node("article", null, "list-row cr-operation"), head = node("div", null, "cr-row-head"), meta = node("p", null, "cr-muted");
-      head.append(pill(entry.status, "Queue status"), changeLink(entry.change, entry.change)); meta.append(`${entry.actor || "Not recorded"} · ${entry.target_ref || "Not recorded"} · enqueued `, when(entry.created_ms)); article.append(head, meta);
+      head.append(pill(entry.status, "Queue status"), changeRef(entry.change)); meta.append(principalNode(entry.actor), ` · ${entry.target_ref || "Not recorded"} · enqueued `, when(entry.created_ms)); article.append(head, meta);
       if (entry.detail) article.append(node("p", entry.detail, "cr-text"));
       facts(disclosure(article, "Exact queue identities"), [["Queue entry", entry.id], ["Authorized by", entry.actor], ["Source revision", entry.revision], ["Source commit", entry.source_commit], ["Target ref", entry.target_ref], ["Exact observed target", entry.target_commit], ["Constructed candidate commit", entry.candidate_commit || "Not constructed yet; no exact candidate CI claim"], ["Canonical CI run", entry.ci_run || "No candidate CI observed"], ["Observation", entry.detail], ["Enqueued at", when(entry.created_ms)]]);
       if (entry.ci_run) { const run = node("a", "Inspect candidate CI run"); run.href = `?${new URLSearchParams({ page: "runs", run: entry.ci_run, view: "pipeline" })}`; article.append(run); }
       card.append(article);
     }
-    if (!entries.length) card.append(node("p", "No retained merge queue entries.", "cr-muted"));
+    if (!entries.length) card.append(disabled ? stateBox("Merge queue not configured", "This service has no merge queue profile, so CI-bound merge automation is unavailable. Submit changes from their checklist instead.", "empty-state empty-state-inline") : node("p", "No retained merge queue entries.", "cr-muted"));
     const c = state.detail?.change;
     if (!c || revision() !== current()?.id || !Array.isArray(state.snapshot?.queue)) return;
     const entry = entries.find(e => e.change === c.id && !["submitted", "cancelled"].includes(e.status));
     if (entry) card.append(writeButton("Cancel queued automation", () => command({ type: "dequeue" }, c, ["Cancel merge queue entry", [["Principal", state.context.principal], ["Change", c.id], ["Queue entry", entry.id], ["State", entry.status], ["Effect", "Revoke pending automation; an already completed provider effect cannot be undone"]]])));
+    else if (c.state === "open" && state.snapshot?.queue_enabled === false) return;
     else if (c.state === "open") card.append(writeButton("Authorize CI-bound merge automation", () => {
       requireCurrent(); const expected = state.detail.source?.current_target; if (!expected) throw new Error("An exact target observation is required before queue authorization.");
       return command({ type: "enqueue", expected_target: expected }, c, ["Authorize merge queue automation", [["Principal", state.context.principal], ["Repository", c.repository], ["Change", c.id], ["Exact source revision", current()?.id], ["Exact source commit", current()?.commit], ["Target ref", c.target_ref], ["Currently observed target", expected], ["Automation scope", "Construct a new merge candidate and run required CI on its exact resulting commit. Automatically submit only after all exact-candidate policy checks pass."], ["Target movement authorization", "If this same target ref moves, recompute a new merge candidate using this exact source revision and the new target, run fresh required CI, and submit the resulting merge commit by exact-target CAS. This authorizes those resulting commits, not a single pre-built commit."], ["Bounds", "No source revision change, target-ref change, policy bypass, or reuse of stale CI is authorized. Cancel the queue entry to revoke pending automation."]]]);
@@ -170,8 +201,8 @@
   function drawSubscriptions(root) {
     if (typeof state.detail?.subscribed !== "boolean") return;
     const c = state.detail.change, deliveries = arr(state.detail.delivery_outcomes);
-    const card = panel(root, "Mentions, subscription and notification delivery", "subscriptions", false, state.detail.subscribed ? "Subscribed" : null);
-    card.append(node("p", `Subscription belongs only to authenticated principal ${state.context.principal}. Published @principal or @{principal} mentions request attention; private drafts do not send notifications. External recipients are configured by the operator, never entered here.`, "cr-muted"));
+    const card = panel(root, "Mentions, subscription and notification delivery", "subscriptions", false, state.detail.subscribed ? "Subscribed" : "Not subscribed");
+    about(card, "About mentions and delivery", `Subscription belongs only to authenticated principal ${state.context.principal}. Published @principal or @{principal} mentions request attention; private drafts do not send notifications. External recipients are configured by the operator, never entered here.`);
     card.append(writeButton(state.detail.subscribed ? "Unsubscribe me" : "Subscribe me", () => command({ type: "subscribe", subscribed: !state.detail.subscribed }, c)));
     for (const delivery of deliveries) {
       const article = node("article", null, "list-row cr-operation"), head = node("div", null, "cr-row-head"); head.append(pill(delivery.status, "Delivery status"), node("span", human(delivery.notification?.kind), "cr-row-title")); article.append(head);
@@ -204,8 +235,8 @@
     const threads = arr(c.threads).filter(t => t.anchor.revision === current()?.id && t.anchor.side === "revision" && !t.resolved && suggestionText(t) !== null);
     if (!threads.length) return;
     const card = section(root, "Apply published suggestions as a new immutable revision"), chosen = [];
-    card.append(node("p", "A complete fenced suggestion comment replaces its exact inclusive revision-side line range. Only the current change owner may apply it. Batch ranges must not overlap; stale or mismatched source text fails closed in the service. Applying never rewrites an existing revision or advances the target.", "cr-muted"));
-    for (const thread of threads) { const article = node("article", null, "cr-operation"), a = thread.anchor; article.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a))); facts(article, [["Thread", thread.id], ["Revision", a.revision], ["Comparison base", a.base_commit], ["Exact path", a.file], ["Inclusive replacement range", `${a.start_line}–${a.end_line}`]]); const pre = node("pre", null, "cr-suggestion"); pre.append(highlighted(suggestionText(thread), a.file)); article.append(pre); const input = field(article, "Select this suggestion", "checkbox", false, [], `suggestion-${thread.id}`); input.disabled = c.owner !== state.context.principal || revision() !== current()?.id; chosen.push({ thread, input }); card.append(article); }
+    about(card, "About applying suggestions", "A complete fenced suggestion comment replaces its exact inclusive revision-side line range. Only the current change owner may apply it. Batch ranges must not overlap; stale or mismatched source text fails closed in the service. Applying never rewrites an existing revision or advances the target.");
+    for (const thread of threads) { const article = node("article", null, "cr-operation"), a = thread.anchor; article.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a))); const pre = node("pre", null, "cr-suggestion"); pre.append(highlighted(suggestionText(thread), a.file)); article.append(pre); facts(disclosure(article, "Exact suggestion identities"), [["Thread", thread.id], ["Revision", a.revision], ["Comparison base", a.base_commit], ["Exact path", a.file], ["Inclusive replacement range", `${a.start_line}–${a.end_line}`]]); const input = field(article, "Select this suggestion", "checkbox", false, [], `suggestion-${thread.id}`); input.disabled = c.owner !== state.context.principal || revision() !== current()?.id; chosen.push({ thread, input }); card.append(article); }
     if (c.owner !== state.context.principal || revision() !== current()?.id) { card.append(node("p", "Select the current revision as its authenticated owner to apply suggestions.", "cr-muted")); return; }
     card.append(writeButton("Confirm and apply selected suggestions", async () => {
       requireCurrent(); const selected = chosen.filter(s => s.input.checked).map(s => s.thread); if (!selected.length) throw new Error("Select at least one published suggestion.");
@@ -265,7 +296,7 @@
     const dialog = node("dialog", null, "cr-dialog"); const heading = node("h2", title); heading.id = `cr-${crypto.randomUUID()}`; dialog.setAttribute("aria-labelledby", heading.id);
     const opener = document.activeElement;
     const close = () => { dialog.close(); dialog.remove(); state.dialogs.delete(dialog); const target = opener?.isConnected ? opener : state.container?.querySelector("button"); target?.focus({ preventScroll: true }); };
-    const header = node("div", null, "cr-toolbar"); header.append(heading, button("Close", close)); dialog.append(header); dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
+    const header = node("div", null, "cr-toolbar cr-dialog-head"); header.append(heading, iconOnly(button("Close", close, "quiet"), "close")); dialog.append(header); dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
     document.body.append(dialog); state.dialogs.add(dialog); dialog.showModal(); return { dialog, close };
   }
   async function confirmAction(title, values) {
@@ -275,7 +306,7 @@
       let settled = false;
       const finish = value => { if (settled) return; settled = true; close(); resolve(value); };
       dialog.addEventListener("close", () => { if (!settled) { settled = true; resolve(false); } });
-      const actions = node("div", null, "cr-toolbar"); actions.append(button("Cancel", () => finish(false)), button(`Confirm ${title.toLowerCase()}`, () => finish(true), "primary")); dialog.append(actions);
+      const actions = node("div", null, "cr-toolbar cr-dialog-actions"); actions.append(button("Cancel", () => finish(false), "quiet"), button(`Confirm ${title.toLowerCase()}`, () => finish(true), "primary")); dialog.append(actions);
     });
   }
   async function command(action, change = state.detail?.change, confirmation = null) {
@@ -324,7 +355,20 @@
       if (id) await loadDiff();
     } catch (error) { if (active(epoch, id) && request === state.request) { state.error = message(error); draw(); } }
   }
-  const access = () => `Principal ${state.context.principal} · ${state.snapshot.can_write ? "Review writes admitted" : "Read-only review access"}. CI and provider submission authority are checked separately.`;
+  // r[impl kiln.web.page_consistency.scenario.data]
+  // Access reads as a labelled pill with the exact principal as secondary monospace text; its boundary sentence moves to "About this view".
+  const accessText = () => state.snapshot.can_write ? "Review writes admitted" : "Read-only review access";
+  function access() {
+    const box = node("div", null, "cr-access"), who = node("span", "as ", "meta");
+    who.append(principalNode(state.context.principal, "cr-principal mono"));
+    box.append(pill(state.snapshot.can_write ? "admitted" : "read_only", "Review access", accessText(), state.snapshot.can_write ? "success" : "unknown"), who); return box;
+  }
+  function aboutPage(parent) {
+    const items = [`Principal ${state.context.principal} · ${accessText()}. CI and provider submission authority are checked separately.`];
+    const claims = arr(state.snapshot.non_claims); if (claims.length) { const list = node("ul", null, "cr-non-claims"); for (const claim of claims) list.append(node("li", claim)); items.push(list); }
+    const writers = state.snapshot.target_write_boundary?.unmanaged_writers; if (writers) items.push(`Target write boundary: ${writers}.`);
+    return about(parent, "About this view", ...items);
+  }
   // r[impl kiln.web.console_layout]
   // The shell page header (#workspace-title) is this page's single header. Review fills only its primary-action slot;
   // the slot sits outside the container, so ownership is marked on the child and released by clear() and non-list states.
@@ -347,8 +391,13 @@
   function detailHeader() {
     const c = state.detail.change, header = node("section", null, "card cr-change-header"), heading = node("div", null, "cr-change-heading"), meta = node("div", null, "cr-header-meta"), actions = node("div", null, "cr-change-actions");
     meta.append(pill(c.state, "Change state")); if (c.wip) meta.append(chip("Work in progress"));
-    const target = node("span", null, "cr-muted"); target.append(node("code", c.repository), " → ", node("code", c.target_ref)); meta.append(node("span", `Owner ${c.owner}`, "cr-muted"), target);
-    heading.append(node("h2", c.title, "cr-change-name"), meta, node("p", access(), "cr-muted"));
+    const target = node("span", null, "cr-muted"), owner = node("span", "Owner ", "cr-muted"); target.append(exactId(c.repository), " → ", node("code", c.target_ref)); owner.append(principalNode(c.owner)); meta.append(owner, target);
+    // One-glance attention: the observed submit readiness links to the requirements card (also below the main column on narrow screens).
+    const items = arr(state.detail.checklist?.items), ready = state.detail.checklist?.ready === true, readiness = node("a", null, "cr-readiness"); readiness.href = "#cr-requirements";
+    readiness.append(state.detail.checklist ? pill(`ready=${ready}`, "Submit checklist", ready ? "Ready to submit" : "Submit blocked", ready ? "success" : "failure") : pill(null, "Submit checklist", "Checklist unavailable", "failure"), node("span", `${items.filter(item => item.satisfied).length} of ${items.length} requirements met`));
+    readiness.addEventListener("click", event => { const card = document.getElementById("cr-requirements"); if (!card) return; event.preventDefault(); card.scrollIntoView({ block: "start" }); card.querySelector("h3")?.focus({ preventScroll: true }); });
+    meta.append(readiness);
+    heading.append(node("h2", c.title, "cr-change-name"), meta, access()); aboutPage(heading);
     const rev = field(actions, "Review revision", "select", revision(), arr(c.revisions).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}${item.id === current()?.id ? " · current" : ""}`]));
     rev.dataset.crKey = "header-revision"; rev.addEventListener("change", () => route({ review_revision: rev.value, review_base: "base", review_file: "", review_side: "", review_line: "" }));
     header.append(heading, actions); return [link("← All changes", ALL_CHANGES, "cr-back"), header];
@@ -361,14 +410,15 @@
     const root = state.container; if (!root) return; root.classList.add("code-review"); root.replaceChildren();
     const notice = node("p", null, "cr-notice cr-status-region"); notice.setAttribute("role", "status"); notice.setAttribute("aria-live", "polite");
     const begin = (...head) => { root.append(...head, notice); drawNotice(); };
-    if (!state.snapshot) { headerActions(null); begin(); root.append(state.error ? stateBox("The review workspace could not be loaded", "The observed error is shown above. Refresh to retry; nothing was changed.", "error-state") : loading("Loading review workspace…")); return; }
+    if (!state.snapshot) { headerActions(null); begin(); if (!state.error) { root.append(loading("Loading review workspace…")); return; } const box = stateBox("The review workspace could not be loaded", "The observed error is shown above. Retry to observe it again; nothing was changed.", "error-state"); box.append(button("Retry", refresh, "quiet")); root.append(box); return; }
     if (!state.snapshot.configured) {
       headerActions(null); begin(); const box = stateBox("Interactive review is not configured", "A separately admitted collaboration provider, actors, policy and durable store are required. Existing review receipts remain available in the receipts section.");
-      const receipts = node("a", "Open Patchgate receipts"); receipts.href = "?page=reviews"; box.append(receipts); root.append(box); return;
+      const receipts = node("a", "Open Patchgate receipts", "cr-state-link"); receipts.href = "?page=reviews"; box.append(receipts); root.append(box); return;
     }
-    if (!selected()) { listActions(); begin(); drawList(root); }
+    if (!selected()) { listActions(); begin(aboutPage(document.createDocumentFragment())); drawList(root); }
     else if (state.detail) { headerActions(null); begin(...detailHeader()); drawDetail(root); }
-    else { headerActions(null); begin(link("← All changes", ALL_CHANGES, "cr-back")); root.append(state.error ? stateBox("Selected change is unavailable", "Refresh or return to the change list. A missing change is never replaced by another.") : loading("Loading change…")); }
+    else if (!state.error) { headerActions(null); begin(link("← All changes", ALL_CHANGES, "cr-back")); root.append(loading("Loading change…")); }
+    else { headerActions(null); begin(link("← All changes", ALL_CHANGES, "cr-back")); const box = stateBox("Selected change is unavailable", "Retry, or return to the change list. A missing change is never replaced by another."); box.append(button("Retry", refresh, "quiet")); root.append(box); }
     for (const d of root.querySelectorAll("details")) { const k = detailsKey(d); if (opened.has(k) && d.dataset.crForceOpen !== "true") { d.open = opened.get(k); if (d.dataset.crSection) d.dataset.crTouched = "true"; } }
     if (key) { const next = Array.from(root.querySelectorAll("[data-cr-key]")).find(n => n.dataset.crKey === key); if (next) { next.focus({ preventScroll: true }); if (typeof start === "number" && next.setSelectionRange && next.type !== "checkbox" && next.tagName !== "SELECT") { try { next.setSelectionRange(start, end); } catch {} } } }
   }
@@ -380,8 +430,9 @@
     const { main, aside } = layout(root, "Review activity", "cr-list-layout");
     // r[impl kiln.web.console_layout]
     // One card holds the query controls and the change table; access stays explicit in the card heading.
+    // r[impl kiln.web.page_consistency.scenario.data]
     const list = node("section", null, "card cr-card cr-changes"), listHead = node("div", null, "cr-card-head"), listTitle = node("h2", "Changes", "card-title");
-    listTitle.id = "cr-changes-title"; list.setAttribute("aria-labelledby", listTitle.id); listHead.append(listTitle, node("p", access(), "cr-muted cr-access")); list.append(listHead); main.append(list);
+    listTitle.id = "cr-changes-title"; list.setAttribute("aria-labelledby", listTitle.id); listHead.append(listTitle, access()); list.append(listHead); main.append(list);
     const search = node("form", null, "toolbar cr-toolbar cr-search"); search.setAttribute("role", "search"); search.setAttribute("aria-label", "Search changes");
     const q = field(search, "Search change text", "search", state.route.review_q || "", [], "search");
     const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], "open", "abandoned", "submitted"]);
@@ -410,30 +461,37 @@
       for (const change of changes) {
         const tr = node("tr"), latest = arr(change.revisions).at(-1), cell = (name, ...content) => { const td = node("td"); td.dataset.label = name; td.append(...content); tr.append(td); return td; };
         const title = changeLink(change.id, change.title); title.classList.add("cr-change-title");
-        const meta = node("p", null, "cr-muted"), id = node("code", short(change.id)); id.title = change.id; meta.append(id);
-        if (change.unresolved) meta.append(` · ${change.unresolved} unresolved`);
-        if (arr(change.attention).length) meta.append(` · Attention: ${change.attention.join(", ")}`);
+        const meta = node("p", null, "cr-muted cr-change-meta"); meta.append(exactId(change.id));
+        if (change.unresolved) meta.append(chip(`${change.unresolved} unresolved`));
+        const attention = arr(change.attention), others = attention.filter(p => p !== state.context.principal);
+        if (others.length < attention.length) meta.append(chip("Needs your attention", "cr-chip-attention"));
+        if (others.length) { const who = node("span", `${others.length < attention.length ? "Also" : "Attention"}: `); others.forEach((p, i) => who.append(...(i ? [", "] : []), principalNode(p))); meta.append(who); }
         cell("Change", title, meta);
         const stateCell = cell("State", pill(change.state, "Change state")); if (change.wip) stateCell.append(chip("WIP"));
-        cell("Owner", change.owner ?? "Not recorded");
-        cell("Target", node("code", change.target_ref), node("p", change.repository, "cr-muted"));
+        cell("Owner", principalNode(change.owner));
+        cell("Target", principalNode(change.target_ref, "cr-principal", "code"), node("p", null, "cr-muted")).lastChild.append(exactId(change.repository));
         cell("Latest revision", when(latest?.created_ms), node("p", latest ? `Revision ${latest.number}` : "Not recorded", "cr-muted"));
         body.append(tr);
       }
       table.append(body); wrap.append(table); list.append(wrap);
     } else {
-      const empty = stateBox("No changes match this query", "Adjust the search text, state or personal view.");
-      if (state.route.review_q || state.route.review_status || kind !== "all") empty.append(button("Clear filters", () => { clearFields("search"); route({ review_q: "", review_status: "", review_view: "" }); }, "quiet"));
+      // r[impl kiln.web.page_consistency.scenario.states]
+      const filtered = !!(state.route.review_q || state.route.review_status || kind !== "all");
+      const empty = filtered ? stateBox("No changes match this query", "Adjust the search text, state or personal view.")
+        : offset ? stateBox("No changes on this page", "The retained list may have changed. Return to the previous page.")
+        : stateBox("No changes yet", state.snapshot.can_write ? `Use Create change to register an exact local commit for review.${state.snapshot.intake_enabled ? " Submitted contribution branches appear here too." : ""}` : "No change has been registered. Review writes are not admitted for this principal.");
+      if (filtered) empty.append(button("Clear filters", () => { clearFields("search"); route({ review_q: "", review_status: "", review_view: "" }); }, "quiet"));
       list.append(empty);
     }
     if (changes.length || offset) list.append(pager("Change pages", "Previous page", "Next page", `${changes.length ? offset + 1 : 0}–${offset + changes.length} of ${state.snapshot.total ?? changes.length} matching changes`, offset === 0, state.snapshot.next_offset == null, () => route({ review_offset: String(Math.max(0, offset - 25)) }), () => route({ review_offset: String(state.snapshot.next_offset) })));
     const notifications = arr(state.snapshot.notifications), unread = notifications.filter(item => !item.read).length, notificationOffset = Number(state.route.review_notification_offset) || 0;
-    const inbox = panel(aside, "Review notifications", "notifications", true, unread ? `${unread} unread` : null);
+    const inbox = panel(aside, "Review notifications", "notifications", true, unread ? `${unread} unread` : notifications.length ? null : "None");
     if (notifications.length) {
       const rows = node("ul", null, "cr-rows");
       for (const item of notifications) {
-        const li = node("li", null, "list-row cr-notification"), text = node("div", null, "cr-row-main"), meta = node("p", null, "cr-muted"); li.dataset.read = String(!!item.read);
-        meta.append(`${item.actor} · `, when(item.created_ms), ` · ${item.read ? "Read" : "Unread"}`); text.append(changeLink(item.change, `${human(item.kind)} · ${short(item.revision)}`), meta);
+        // The notification kind and change title lead; actor, time, read state and the exact revision follow as metadata.
+        const li = node("li", null, "list-row cr-notification"), text = node("div", null, "cr-row-main"), meta = node("p", null, "cr-muted"), title = titleFor(item.change); li.dataset.read = String(!!item.read);
+        meta.append(principalNode(item.actor), " · ", when(item.created_ms), ` · ${item.read ? "Read" : "Unread"} · `, exactId(item.revision)); text.append(changeLink(item.change, title ? `${human(item.kind)}: ${title}` : `${human(item.kind)} · ${short(item.revision)}`), meta);
         li.append(text, writeButton(item.read ? "Mark unread" : "Mark read", () => command({ type: "read_notification", id: item.id, read: !item.read }, null), "quiet")); rows.append(li);
       }
       inbox.append(rows);
@@ -441,43 +499,45 @@
     if (notificationOffset > 0 || state.snapshot.next_notification_offset != null) inbox.append(pager("Notification pages", "Previous notifications", "Next notifications", `${notifications.length} shown · ${state.snapshot.notifications_total ?? notifications.length} retained notifications`, notificationOffset === 0, state.snapshot.next_notification_offset == null, () => route({ review_notification_offset: String(Math.max(0, notificationOffset - 200)) }), () => route({ review_notification_offset: String(state.snapshot.next_notification_offset) })));
     drawQueue(aside);
     const operations = arr(state.snapshot.operations), operationOffset = Number(state.route.review_operation_offset) || 0;
-    const outstanding = panel(aside, "Outstanding provider operations", "operations", operations.length > 0, operations.length ? String(state.snapshot.operations_total ?? operations.length) : null);
-    outstanding.append(node("p", "Pending and uncertain operations reserve their affected changes, including creates that do not yet have materialized detail. Refresh observes reconciliation; never blindly repeat an effect.", "cr-muted"));
+    const outstanding = panel(aside, "Outstanding provider operations", "operations", operations.length > 0, operations.length ? String(state.snapshot.operations_total ?? operations.length) : "None");
+    about(outstanding, "About outstanding operations", "Pending and uncertain operations reserve their affected changes, including creates that do not yet have materialized detail. Refresh observes reconciliation; never blindly repeat an effect.");
     for (const op of operations) {
       const article = node("article", null, "list-row cr-operation"), head = node("div", null, "cr-row-head"); head.append(pill(op.state, "Operation state"), node("span", human(op.kind), "cr-row-title")); article.append(head);
-      facts(article, [["Operation", op.operation_id], ["Kind", label(op.kind)], ["Observed state", op.state], ["Affected stable change", op.change], ["Source commit", op.commit], ["Target ref", op.target_ref], ["Observed target commit", op.target_commit]]);
-      if (op.result_change) article.append(changeLink(op.result_change, `Resulting change: ${op.result_change}`));
+      if (op.change) { const affected = node("p", "Affects ", "cr-muted"); affected.append(changeRef(op.change)); article.append(affected); }
+      facts(disclosure(article, "Exact operation identities"), [["Operation", op.operation_id], ["Kind", label(op.kind)], ["Observed state", op.state], ["Affected stable change", op.change], ["Source commit", op.commit], ["Target ref", op.target_ref], ["Observed target commit", op.target_commit]]);
+      if (op.result_change) { const result = node("p", "Resulting change: ", "cr-muted"); result.append(changeRef(op.result_change)); article.append(result); }
       outstanding.append(article);
     }
     if (!operations.length) outstanding.append(node("p", "No outstanding operations on this page.", "cr-muted"));
-    outstanding.append(pager("Operation pages", "Previous operations", "Next operations", `${operations.length} shown · ${state.snapshot.operations_total ?? 0} outstanding operations`, operationOffset === 0, state.snapshot.next_operation_offset == null, () => route({ review_operation_offset: String(Math.max(0, operationOffset - 100)) }), () => route({ review_operation_offset: String(state.snapshot.next_operation_offset) })));
+    if (operationOffset > 0 || state.snapshot.next_operation_offset != null) outstanding.append(pager("Operation pages", "Previous operations", "Next operations", `${operations.length} shown · ${state.snapshot.operations_total ?? 0} outstanding operations`, operationOffset === 0, state.snapshot.next_operation_offset == null, () => route({ review_operation_offset: String(Math.max(0, operationOffset - 100)) }), () => route({ review_operation_offset: String(state.snapshot.next_operation_offset) })));
   }
   function createChange() {
     const { dialog, close } = modal("Create change from an exact local commit");
-    facts(dialog, [["Project", state.snapshot.project], ["Repository", state.snapshot.repository]]);
+    facts(dialog, [["Project", state.snapshot.project], ["Repository", state.snapshot.repository]]).classList.add("cr-facts-compact");
     const form = node("div", null, "cr-fields"); dialog.append(form);
-    const title = field(form, "Title", "text", "", [], "create-title");
+    const title = field(form, "Title", "text", "", [], "create-title"); title.required = true;
     const description = field(form, "Description", "textarea", "", [], "create-description");
-    const commit = field(form, "Exact immutable commit", "text", "", [], "create-commit");
+    const commit = field(form, "Exact immutable commit", "text", "", [], "create-commit"); commit.required = true; commit.autocomplete = "off"; commit.spellcheck = false; commit.classList.add("mono");
     const target = field(form, "Admitted target ref", "select", arr(state.snapshot.target_refs)[0] || "", arr(state.snapshot.target_refs), "create-target");
     const wip = field(form, "Work in progress", "checkbox", true, [], "create-wip");
     dialog.append(node("p", "Upload registers a locally available commit as a new review. It does not advance the target or publish to a remote provider.", "cr-muted"));
-    dialog.append(writeButton("Register change", async () => {
+    dialogActions(dialog, close).append(writeButton("Register change", async () => {
       if (!title.value.trim() || !commit.value.trim() || !target.value) throw new Error("Title, exact commit and admitted target are required.");
       const result = await command({ type: "create", title: title.value.trim(), description: description.value, commit: commit.value.trim(), target_ref: target.value, wip: wip.checked }, null, ["Register change", [["Repository", state.snapshot.repository], ["Source commit", commit.value.trim()], ["Target ref", target.value], ["Title", title.value.trim()], ["WIP", String(wip.checked)]]]);
       if (result) { clearFields("create-title", "create-description", "create-commit", "create-target", "create-wip"); close(); if (result.change?.id) route({ review_change: result.change.id }); }
     }, "primary"));
+    title.focus();
   }
   function drawCi(root) {
     const c = state.detail.change, selectedRevision = arr(c.revisions).find(r => r.id === revision());
     const matching = arr(state.detail.ci_runs).filter(fact => fact.project === c.project && fact.repository === c.repository && fact.revision === selectedRevision?.commit);
-    const card = panel(root, "Canonical CI for the selected exact revision", "ci", true, matching.length ? String(Math.min(matching.length, 25)) : null);
-    facts(card, [["Review revision", selectedRevision?.id], ["Exact source commit", selectedRevision?.commit]]);
-    card.append(node("p", "Up to 25 newest exact-source facts retained in this response are shown. Full/clean successful facts and the policy's exact winner evaluation remain checklist authority; a displayed run alone does not authorize submission.", "cr-muted"));
+    const card = panel(root, "Canonical CI for the selected exact revision", "ci", true, matching.length ? String(Math.min(matching.length, 25)) : "None");
+    about(card, "About canonical CI evidence", "Up to 25 newest exact-source facts retained in this response are shown. Full/clean successful facts and the policy's exact winner evaluation remain checklist authority; a displayed run alone does not authorize submission.");
+    facts(card, [["Review revision", selectedRevision?.id], ["Exact source commit", selectedRevision?.commit]]).classList.add("cr-facts-compact");
     for (const fact of matching.slice(0, 25)) {
-      const row = node("article", null, "list-row cr-operation"), head = node("div", null, "cr-row-head"), tags = node("div", null, "cr-tags"), run = node("a", `Inspect run ${fact.run_id}`);
-      run.href = `?${new URLSearchParams({ page: "runs", run: fact.run_id, view: "pipeline" })}`;
-      head.append(pill(`success=${fact.success === true}`, "Canonical CI", fact.success ? "Passed" : "Not passed or not terminal", fact.success ? "success" : "warning"), run);
+      const row = node("article", null, "list-row cr-operation"), head = node("div", null, "cr-row-head"), tags = node("div", null, "cr-tags"), run = node("a", "Inspect run");
+      run.href = `?${new URLSearchParams({ page: "runs", run: fact.run_id, view: "pipeline" })}`; run.setAttribute("aria-label", `Inspect run ${fact.run_id}`);
+      head.append(pill(`success=${fact.success === true}`, "Canonical CI", fact.success ? "Passed" : "Not passed or not terminal", fact.success ? "success" : "warning"), run, exactId(fact.run_id));
       tags.append(chip(fact.full_run ? "Full run" : "Partial run"), chip(fact.clean ? "Clean input" : "Dirty input"), chip(Number.isSafeInteger(fact.ordinal) ? `Ordinal ${fact.ordinal}` : "Ordinal outside exact browser integer range; service ordering retained"));
       row.append(head, tags); card.append(row);
     }
@@ -488,7 +548,7 @@
     if (revision() !== current()?.id) root.append(node("p", "Historical revision selected. Comments and drafts retain this exact revision and comparison base. Optional votes always apply to the current revision shown in the publication confirmation; provider actions require the current revision.", "cr-notice"));
     if (!r) root.append(node("p", "The requested revision is not part of this change. Choose an admitted revision.", "cr-notice"));
     const { main, aside } = layout(root, "Submit requirements and change details", "cr-detail-layout");
-    const about = section(main, "Description"); about.append(String(c.description ?? "").trim() ? markdown(c.description) : node("p", "No description provided.", "cr-muted"));
+    const description = section(main, "Description"); description.append(String(c.description ?? "").trim() ? markdown(c.description) : node("p", "No description provided.", "cr-muted"));
     const diff = section(main, "Changed files and diff", "cr-diff-card"), controls = node("div", null, "toolbar cr-toolbar cr-diff-toolbar");
     const base = field(controls, "Compare against", "select", state.route.review_base || "base", [["base", "Selected revision's base"], ...arr(c.revisions).filter(item => item.number < (r?.number || 0)).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}`])]);
     base.dataset.crKey = "diff-base"; base.addEventListener("change", () => route({ review_base: base.value, review_file: "", review_side: "", review_line: "" }));
@@ -510,31 +570,31 @@
     card.append(log);
   }
   function drawOperations(root) {
-    const ops = arr(state.detail.operations), card = panel(root, "Durable provider operations", "change-operations", ops.some(op => op.state === "pending" || op.state === "uncertain"), ops.length ? String(ops.length) : null);
+    const ops = arr(state.detail.operations), card = panel(root, "Durable provider operations", "change-operations", ops.some(op => op.state === "pending" || op.state === "uncertain"), ops.length ? String(ops.length) : "None");
+    about(card, "About durable operations", "Pending or uncertain effects are not automatically retried by this page. Refresh observes the service's durable reconciliation. Read-only review receipts remain in the existing receipts section.");
     for (const op of ops) {
       const article = node("article", null, "list-row cr-operation"), head = node("div", null, "cr-row-head"); head.append(pill(op.state, "Operation state"), node("span", human(op.kind), "cr-row-title")); article.append(head);
-      facts(article, [["Operation", op.operation_id], ["Kind", label(op.kind)], ["Observed state", op.state], ["Commit", op.commit], ["Target ref", op.target_ref], ["Target commit", op.target_commit]]);
-      if (op.result_change) article.append(changeLink(op.result_change, `Resulting change: ${op.result_change}`));
+      facts(disclosure(article, "Exact operation identities"), [["Operation", op.operation_id], ["Kind", label(op.kind)], ["Observed state", op.state], ["Commit", op.commit], ["Target ref", op.target_ref], ["Target commit", op.target_commit]]);
+      if (op.result_change) { const result = node("p", "Resulting change: ", "cr-muted"); result.append(changeRef(op.result_change)); article.append(result); }
       if (op.state === "pending" || op.state === "uncertain") article.append(node("p", "This operation reserves the affected change until the service reconciles its exact outcome. Do not retry the provider action.", "cr-notice"));
       card.append(article);
     }
     if (!ops.length) card.append(node("p", "No retained provider operations for this change.", "cr-muted"));
-    card.append(node("p", "Pending or uncertain effects are not automatically retried by this page. Refresh observes the service's durable reconciliation. Read-only review receipts remain in the existing receipts section.", "cr-muted"));
   }
   function requireCurrent() { if (revision() !== current()?.id) throw new Error("This is a historical revision. Select the current revision before changing review state."); }
   function drawReviewers(root) {
-    const c = state.detail.change, entries = Object.entries(c.reviewers || {}), card = panel(root, "Reviewers, CC and attention", "reviewers", true, entries.length ? String(entries.length) : null);
-    if (entries.length) { const list = node("ul", null, "cr-rows"); for (const [principal, role] of entries) { const li = node("li", null, "list-row"); li.append(node("span", principal, "cr-row-title"), chip(human(role)), writeButton(`Remove ${principal}`, () => command({ type: "set_reviewer", principal, role: null }, c), "quiet")); list.append(li); } card.append(list); }
+    const c = state.detail.change, entries = Object.entries(c.reviewers || {}), card = panel(root, "Reviewers, CC and attention", "reviewers", true, entries.length ? String(entries.length) : "None");
+    if (entries.length) { const list = node("ul", null, "cr-rows"); for (const [principal, role] of entries) { const li = node("li", null, "list-row"); li.append(principalNode(principal, "cr-row-title cr-principal"), chip(human(role)), iconOnly(writeButton(`Remove ${principal}`, () => command({ type: "set_reviewer", principal, role: null }, c), "quiet"), "close")); list.append(li); } card.append(list); }
     else card.append(node("p", "No reviewers or CC requested.", "cr-muted"));
     const form = node("div", null, "toolbar cr-toolbar"); const principal = field(form, "Principal", "text", "", [], "reviewer-principal"); const role = field(form, "Role", "select", "reviewer", ["reviewer", "cc"], "reviewer-role");
     form.append(writeButton("Request review / add CC", async () => { requireCurrent(); if (!principal.value.trim()) throw new Error("A principal is required."); await command({ type: "set_reviewer", principal: principal.value.trim(), role: role.value }, c); clearFields("reviewer-principal"); })); card.append(form);
-    card.append(node("p", `Attention: ${arr(c.attention).join(", ") || "No principals"}`, "cr-muted"));
+    const attentionLine = node("p", "Attention: ", "cr-muted"); arr(c.attention).forEach((p, i) => attentionLine.append(...(i ? [", "] : []), principalNode(p))); if (!arr(c.attention).length) attentionLine.append("No principals"); card.append(attentionLine);
     const attention = node("div", null, "toolbar cr-toolbar"); const who = field(attention, "Attention principal", "text", state.context.principal, [], "attention-principal");
     for (const [text, value, cls] of [["Request attention", true, undefined], ["Clear attention", false, "quiet"]]) attention.append(writeButton(text, () => { requireCurrent(); return command({ type: "set_attention", principal: who.value.trim(), attention: value }, c); }, cls)); card.append(attention);
   }
   function drawApproval(root) {
     const c = state.detail.change, checklist = state.detail.checklist, items = arr(checklist?.items), ready = checklist?.ready === true, policy = state.snapshot.policy;
-    const card = section(root, "Submit requirements", "cr-requirements"), summary = node("div", null, "cr-row-head");
+    const card = section(root, "Submit requirements", "cr-requirements"), summary = node("div", null, "cr-row-head"); card.id = "cr-requirements"; card.firstElementChild.tabIndex = -1;
     summary.append(checklist ? pill(`ready=${ready}`, "Submit checklist", ready ? "Ready to submit" : "Blocked", ready ? "success" : "failure") : pill(null, "Submit checklist", "Checklist unavailable", "failure"), node("span", `${items.filter(item => item.satisfied).length} of ${items.length} met`, "cr-muted"));
     card.append(summary);
     if (c.submission) {
@@ -553,7 +613,7 @@
     const votes = node("div", null, "cr-subsection"); votes.append(node("h4", "Votes"));
     if (arr(c.votes).length) {
       const list = node("ul", null, "cr-rows");
-      for (const vote of c.votes) { const li = node("li", null, "list-row"), live = vote.revision === current()?.id, rev = node("code", short(vote.revision)); rev.title = vote.revision; li.append(node("span", vote.actor, "cr-row-title"), pill(vote.value, "Vote"), rev, chip(live ? "Current" : "Stale; no current authority", live ? "" : "cr-chip-stale")); list.append(li); }
+      for (const vote of c.votes) { const li = node("li", null, "list-row"), live = vote.revision === current()?.id; li.append(principalNode(vote.actor, "cr-row-title cr-principal"), pill(vote.value, "Vote"), exactId(vote.revision), chip(live ? "Current" : "Stale; no current authority", live ? "" : "cr-chip-stale")); list.append(li); }
       votes.append(list);
     } else votes.append(node("p", "No votes recorded.", "cr-muted"));
     card.append(votes);
@@ -566,8 +626,8 @@
   }
   function drawStack(root) {
     const c = state.detail.change, dependencies = arr(c.dependencies), dependents = arr(state.detail.stack?.dependents), card = panel(root, "Stack and exact dependencies", "stack", dependencies.length + dependents.length > 0);
-    card.append(node("p", "Dependencies must be submitted before this change. Follow the links in order, prepare and confirm each candidate independently; target movement requires a fresh checklist. No unchecked batch submission is sent.", "cr-muted"));
-    const list = node("ol", null, "cr-stack"); for (const dep of dependencies) { const li = node("li"); const related = arr(state.detail.stack?.dependencies).find(item => item.id === dep.change); li.append(changeLink(dep.change, related?.title || dep.change), node("code", dep.revision), related ? pill(related.state, "Dependency state") : node("span", "Dependency detail unavailable", "cr-muted")); list.append(li); } const self = node("li"); self.append(node("strong", c.title), pill(c.state, "Change state"), node("span", "Selected change", "cr-muted")); self.setAttribute("aria-current", "true"); list.append(self); card.append(list);
+    about(card, "About stack submission", "Dependencies must be submitted before this change. Follow the links in order, prepare and confirm each candidate independently; target movement requires a fresh checklist. No unchecked batch submission is sent.");
+    const list = node("ol", null, "cr-stack"); for (const dep of dependencies) { const li = node("li"); const related = arr(state.detail.stack?.dependencies).find(item => item.id === dep.change); li.append(changeLink(dep.change, related?.title || dep.change), exactId(dep.revision), related ? pill(related.state, "Dependency state") : node("span", "Dependency detail unavailable", "cr-muted")); list.append(li); } const self = node("li"); self.append(node("strong", c.title), pill(c.state, "Change state"), node("span", "Selected change", "cr-muted")); self.setAttribute("aria-current", "true"); list.append(self); card.append(list);
     const required = node("div", null, "cr-tags"); required.append(node("span", "Required by:", "cr-muted")); for (const dep of dependents) required.append(changeLink(dep.id, dep.title)); if (!dependents.length) required.append(node("span", "No dependents observed", "cr-muted")); card.append(required);
     card.append(writeButton("Start ordered stack submission", orderedStack));
     const edit = disclosure(card, "Edit exact dependency revisions"); const initial = dependencies.map(dep => `${dep.change} ${dep.revision}`).join("\n"); const input = field(edit, "One stable change ID and exact review revision ID per line", "textarea", initial, [], "dependencies");
@@ -695,7 +755,8 @@
     // The visible sticky file header repeats the caption, so it is hidden from assistive technology.
     const head = node("thead"), fileRow = node("tr", null, "cr-file-header"), fileCell = node("th"), fileLabel = node("div", null, "cr-file-header-label"); fileRow.setAttribute("aria-hidden", "true"); fileCell.colSpan = 4;
     fileLabel.append(node("span", file.renamed ? `${file.old_path} → ${filePath(file)}` : filePath(file), "cr-file-path"), node("span", `${short(comparison.old_commit)} → ${short(comparison.new_commit)}`, "cr-muted")); fileCell.append(fileLabel); fileRow.append(fileCell); head.append(fileRow);
-    const hr = node("tr"); for (const text of state.mode === "split" ? ["Base line", "Base content", "Revision line", "Revision content"] : ["Base line", "Revision line", "Change", "Content"]) { const th = node("th", text); th.scope = "col"; hr.append(th); } head.append(hr); table.append(head);
+    // The narrow sign column shows "±" visually; its accessible header stays "Change".
+    const hr = node("tr"); for (const text of state.mode === "split" ? ["Base line", "Base content", "Revision line", "Revision content"] : ["Base line", "Revision line", "Change", "Content"]) { const th = node("th", text === "Change" ? null : text); if (text === "Change") { const sign = node("span", "±"); sign.setAttribute("aria-hidden", "true"); th.title = text; th.classList.add("cr-diff-sign"); th.append(sign, node("span", text, "sr-only")); } th.scope = "col"; hr.append(th); } head.append(hr); table.append(head);
     const body = node("tbody");
     const coordinate = (line, side) => {
       const td = node("td", null, "cr-line-number"); if (line != null) { const a = link(line, { review_revision: revision(), review_base: state.route.review_base || "base", review_file: (side === "base" ? file.old_path : file.new_path) || filePath(file), review_side: side, review_line: String(line) }); a.setAttribute("aria-label", `${side} line ${line}`); if (state.route.review_side === side && Number(state.route.review_line) === line) { a.classList.add("cr-line-selected"); a.setAttribute("aria-current", "location"); } td.append(a); } return td;
@@ -720,17 +781,20 @@
     const threads = arr(c.threads).filter(thread => thread.anchor.revision === revision());
     for (const thread of threads) {
       const article = node("article", null, "cr-thread"), a = thread.anchor, head = node("div", null, "cr-row-head");
-      head.append(link(`${a.file} · ${a.side} lines ${a.start_line}–${a.end_line} · base ${short(a.base_commit)}`, anchorRoute(a), "cr-anchor"), pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"), chip(thread.blocking ? "Blocking" : "Non-blocking")); article.append(head);
-      for (const comment of arr(thread.comments)) { const item = node("div", null, "cr-comment"), byline = node("h4", null, "cr-byline"); byline.append(node("strong", comment.author), " · ", when(comment.created_ms)); item.append(byline, markdown(comment.body)); article.append(item); }
+      // The exact file and range lead; side and comparison base follow as secondary metadata.
+      const where = node("div", null, "cr-row-main"), anchorMeta = node("span", `${human(a.side)} side · base `, "cr-muted"); anchorMeta.append(exactId(a.base_commit)); where.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a), "cr-anchor"), anchorMeta);
+      head.append(where, pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"), chip(thread.blocking ? "Blocking" : "Non-blocking")); article.append(head);
+      for (const comment of arr(thread.comments)) { const item = node("div", null, "cr-comment"), byline = node("h4", null, "cr-byline"), author = node("strong"); author.append(principalNode(comment.author)); byline.append(author, " · ", when(comment.created_ms)); item.append(byline, markdown(comment.body)); article.append(item); }
       const actions = node("div", null, "cr-actions");
-      const reply = field(article, "Private reply", "textarea", "", [], `reply-${thread.id}`);
+      const reply = field(article, "Private reply", "textarea", "", [], `reply-${thread.id}`); reply.rows = 2; reply.parentElement.classList.add("cr-reply");
       actions.append(writeButton("Save private reply draft", async () => { if (!reply.value.trim()) throw new Error("Reply text is required."); const result = await command({ type: "save_draft", anchor: a, thread: thread.id, body: reply.value, blocking: thread.blocking }, c); if (result) { clearFields(`reply-${thread.id}`); draw(); } }));
       actions.append(writeButton(thread.resolved ? "Unresolve" : "Resolve", () => command({ type: "resolve", thread: thread.id, resolved: !thread.resolved }, c), "quiet")); article.append(actions); card.append(article);
     }
     if (!threads.length) card.append(node("p", "No published threads on the selected revision.", "cr-muted"));
     const compose = disclosure(card, "Write an anchored private draft");
     if (state.route.review_line) { compose.parentElement.open = true; compose.parentElement.dataset.crForceOpen = "true"; }
-    compose.append(node("p", "Choose a line number in the diff to seed this editor. Draft text is private until publication. Both sides bind the exact displayed old commit, selected revision and side-specific file path, including historical comparisons.", "cr-muted"));
+    compose.append(node("p", "Choose a line number in the diff to seed this editor.", "cr-muted"));
+    about(compose, "About anchored drafts and formatting", "Draft text is private until publication. Both sides bind the exact displayed old commit, selected revision and side-specific file path, including historical comparisons.", "Markdown: headings, lists, emphasis, links and fenced code. Raw HTML and image loading are not supported. Mention a configured principal as @principal. To propose an applyable replacement, use a revision-side range and one complete ```suggestion fence containing the replacement text. Surrounding prose is allowed.");
     const choices = state.diff ? [...new Set(state.diff.files.flatMap(f => [f.old_path, f.new_path]).filter(Boolean))] : arr(state.detail.change.revisions).find(r => r.id === revision())?.files || [];
     const grid = node("div", null, "cr-field-grid"); compose.append(grid);
     const file = field(grid, "Exact file", "select", state.route.review_file || choices[0] || "", choices, "draft-file");
@@ -738,7 +802,6 @@
     const start = field(grid, "First line", "number", state.route.review_line || 1, [], "draft-start"); start.min = "1"; start.step = "1";
     const end = field(grid, "Last line", "number", state.route.review_line || 1, [], "draft-end"); end.min = "1"; end.step = "1";
     const body = field(compose, "Comment", "textarea", "", [], "draft-body"); const blocking = field(compose, "Blocks submission until resolved", "checkbox", true, [], "draft-blocking");
-    compose.append(node("p", "Markdown: headings, lists, emphasis, links and fenced code. Raw HTML and image loading are not supported. Mention a configured principal as @principal. To propose an applyable replacement, use a revision-side range and one complete ```suggestion fence containing the replacement text. Surrounding prose is allowed.", "cr-muted"));
     const preview = node("div", null, "cr-preview"), composeActions = node("div", null, "cr-actions"); compose.append(composeActions, preview);
     composeActions.append(writeButton("Save private draft", async () => {
       if (!state.diff || state.diff.new_commit !== arr(c.revisions).find(r => r.id === revision())?.commit) throw new Error("Wait for the exact comparison before saving an anchored draft.");
@@ -754,7 +817,8 @@
     const drafts = section(card, "My private drafts", "cr-drafts"); const publishIds = [];
     for (const draft of arr(state.detail.drafts)) {
       const article = node("article", null, "cr-draft"), a = draft.anchor; const currentDraft = a.revision === current()?.id;
-      const draftHead = node("div", null, "cr-row-head"); draftHead.append(node("h4", `${draft.thread ? "Reply" : "New thread"} · ${a.file}:${a.start_line}–${a.end_line} (${a.side})${currentDraft ? "" : " · Historical revision"}`), chip("Private")); article.append(draftHead, node("p", `Comment revision: ${a.revision} · Comparison base: ${a.base_commit}`, "cr-muted"));
+      const draftHead = node("div", null, "cr-row-head"), draftMeta = node("p", "Comment revision ", "cr-muted"); draftMeta.append(exactId(a.revision), " · comparison base ", exactId(a.base_commit));
+      draftHead.append(node("h4", `${draft.thread ? "Reply" : "New thread"} · ${a.file}:${a.start_line}–${a.end_line} (${a.side})${currentDraft ? "" : " · Historical revision"}`), chip("Private")); article.append(draftHead, draftMeta);
       const include = field(article, "Include in atomic publication", "checkbox", a.revision === revision(), [], `publish-${draft.id}`);
       publishIds.push({ id: draft.id, input: include, anchor: a });
       const draftBody = field(article, "Private draft text", "textarea", draft.body, [], `draft-edit-${draft.id}`);
@@ -764,7 +828,7 @@
     const publish = section(card, "Publish review atomically", "cr-publish");
     const eligible = arr(state.snapshot.policy?.eligible_reviewers).includes(state.context.principal) && c.owner !== state.context.principal && c.reviewers?.[state.context.principal] === "reviewer";
     const vote = field(publish, "Vote on the exact current revision", "select", "", eligible ? [["", "No vote"], ["approve", "Approve"], ["needs_revision", "Needs revision"], ["veto", "Veto"], ["abstain", "Abstain"]] : [["", "No vote — requires an eligible requested non-owner reviewer"]], "publish-vote");
-    publish.append(node("p", `Only saved, selected drafts are published at their own original revision and comparison base. Unsaved editor changes are not included. An optional vote applies only to CURRENT revision ${current()?.id} (${current()?.commit}), independently of historical comments.`, "cr-muted"));
+    const scope = node("p", "Only saved, selected drafts are published at their own original revision and comparison base. Unsaved editor changes are not included. An optional vote applies only to CURRENT revision ", "cr-muted"); scope.append(exactId(current()?.id), " (", exactId(current()?.commit), "), independently of historical comments."); publish.append(scope);
     publish.append(writeButton("Publish selected drafts and vote", async () => {
       const chosen = publishIds.filter(item => item.input.checked), ids = chosen.map(item => item.id);
       if (!ids.length && !vote.value) throw new Error("Select at least one saved draft or an eligible vote.");

@@ -155,6 +155,17 @@ kbd { display: inline-flex; align-items: center; min-height: 1.25rem; padding: 0
 summary { cursor: pointer; color: var(--muted); font-size: var(--text-sm); padding: var(--space-2) 0; overflow-wrap: anywhere; }
 summary:hover { color: var(--text); }
 
+/* r[impl kiln.web.page_consistency] Shared "About this view" disclosure keeps boundary and non-claim copy reachable without dominating the page. */
+.about-view { max-width: 72ch; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-soft); }
+.about-view > summary { display: flex; align-items: center; gap: var(--space-2); min-height: 2.5rem; padding: var(--space-2) var(--space-3); list-style: none; font-weight: 600; font-size: var(--text-xs); }
+.about-view > summary::-webkit-details-marker { display: none; }
+.about-view > summary::before { content: "i"; display: inline-grid; place-items: center; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; border: 1px solid currentColor; border-radius: 50%; font: 700 .65rem/1 var(--mono); }
+.about-view > summary::after { content: ""; flex: 0 0 auto; width: .4rem; height: .4rem; margin-left: auto; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--motion-fast) ease; }
+.about-view[open] > summary::after { transform: rotate(45deg); }
+.about-view-body { display: grid; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); color: var(--muted); font-size: var(--text-xs); line-height: 1.6; overflow-wrap: anywhere; }
+.about-view-body > * { margin: 0; }
+.page-header + .about-view { margin-top: calc(var(--space-6) * -0.5); margin-bottom: var(--space-5); }
+@media (max-width: 30rem) { .about-view > summary { min-height: 2.75rem; } }
 /* ---------- Components ---------- */
 .card, .panel { min-width: 0; padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); box-shadow: var(--shadow-sm); }
 .panel .panel, .card .card { box-shadow: none; }
@@ -335,7 +346,8 @@ button.account-button.quiet { color: var(--text); }
 #project-cards .project-card { padding: var(--space-4); }
 #project-cards .project-card > * + * { margin-top: var(--space-2); }
 #project-cards .facts { gap: .35rem .7rem; font-size: var(--text-xs); }
-.project-actions { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+/* r[impl kiln.web.page_consistency] Project card actions share the attention-card action row: bordered link buttons, one quiet button. */
+.project-actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; padding-top: var(--space-3); border-top: 1px solid var(--border); }
 .metric-label { font: .6875rem/1.5 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .metric-value { color: var(--text); font-size: 1.6rem; font-weight: 650; letter-spacing: -.03em; margin-block: .25rem 0; font-variant-numeric: tabular-nums; }
 .inventory-grid { gap: var(--space-3); margin-block: var(--space-3); }
@@ -366,8 +378,9 @@ button.account-button.quiet { color: var(--text); }
 .run-choice:hover:not(:disabled) { background: var(--surface-hover); border-color: transparent; }
 .run-choice[aria-current="true"], .run-choice[aria-current="true"]:hover:not(:disabled) { background: var(--surface-soft); border-color: var(--border-strong); box-shadow: inset 3px 0 var(--text); }
 .run-choice span { overflow-wrap: anywhere; }
-.run-choice-head { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
-.run-name { min-width: 0; flex: 1 1 auto; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 650; color: var(--text); }
+/* r[impl kiln.web.page_consistency] Run choices: status and time on the first line, the full project name below (never clamped). */
+.run-choice-head { display: flex; align-items: center; flex-wrap: wrap; gap: .2rem var(--space-2); min-width: 0; }
+.run-name { order: 3; flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; font-weight: 650; color: var(--text); line-height: 1.35; }
 .run-summary { flex: 0 0 auto; margin-left: auto; color: var(--muted); font-size: var(--text-xs); }
 .run-source { color: var(--muted); font-size: var(--text-xs); font-family: var(--mono); }
 .run-id { display: block; font: var(--text-xs)/1.5 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
@@ -402,6 +415,7 @@ button.account-button.quiet { color: var(--text); }
 .worker-metrics .inventory-card { min-width: 0; }
 .worker-metrics .metric-label { overflow-wrap: anywhere; text-transform: none; letter-spacing: normal; font-family: inherit; }
 .worker-choice { min-height: var(--control-height); }
+.worker-choice-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); min-width: 0; }
 .worker-choice strong, .worker-detail h3, .worker-identity, .worker-run-links a { overflow-wrap: anywhere; }
 .worker-choice .state-badge { justify-self: start; }
 .worker-detail { min-width: 0; }
@@ -492,7 +506,16 @@ button.account-button.quiet { color: var(--text); }
 .artifact-meta { grid-column: 1 / -1; font-family: var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .record-card { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); background: var(--surface); overflow-wrap: anywhere; }
 .record-card .record-card { background: var(--surface-soft); }
-.record-card > h3, .activity-item > h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem; font-size: var(--text-sm); }
+.record-card > h3, .activity-item > h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem; font-size: var(--text-sm); overflow-wrap: anywhere; }
+.activity-item { display: grid; gap: .3rem; }
+.activity-item > * + * { margin-top: 0; }
+.activity-item > .activity-fields > summary { padding-block: .3rem; font-size: var(--text-xs); }
+.activity-item > .activity-fields[open] > .facts { margin-top: var(--space-2); }
+.activity-exact { display: block; }
+.provider-observation { display: grid; gap: .35rem; }
+.provider-observation > * + * { margin-top: 0; }
+.provider-observation-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.provider-observation-head h4 { margin: 0; font-size: var(--text-sm); overflow-wrap: anywhere; }
 .activity-item > h3 .relative-time { color: var(--muted); font-weight: 500; }
 .inline-form { display: flex; gap: var(--space-3); align-items: flex-end; flex-wrap: wrap; }
 .inline-form > div { flex: 1; min-width: min(100%, 15rem); }
@@ -600,9 +623,10 @@ a.count-chip:hover { border-color: var(--border-strong); background: var(--surfa
 .attention-meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); color: var(--muted); font-size: var(--text-xs); }
 .attention-meta .mono { color: var(--text); }
 .attention-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
-.attention-actions a { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.25rem; padding: .3rem .7rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
-.attention-actions a:hover { border-color: var(--border-strong); background: var(--surface-hover); }
-.attention-actions a .icon { width: 1rem; height: 1rem; }
+.action-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.attention-actions a, .project-actions a, .action-row a { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.25rem; padding: .3rem .7rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
+.attention-actions a:hover, .project-actions a:hover, .action-row a:hover { border-color: var(--border-strong); background: var(--surface-hover); }
+.attention-actions a .icon, .project-actions a .icon, .action-row a .icon { width: 1rem; height: 1rem; }
 .attention-clear { border-left-color: var(--status-success); }
 .side-card { display: grid; gap: var(--space-3); align-content: start; }
 .side-card > * + * { margin-top: 0; }
@@ -614,7 +638,7 @@ a.count-chip:hover { border-color: var(--border-strong); background: var(--surfa
 .activity-feed li { display: grid; gap: .15rem; min-width: 0; padding: .55rem 0; border-bottom: 1px solid var(--border); }
 .activity-feed li:last-child { border-bottom: 0; }
 .activity-feed-title { color: var(--text); font-size: var(--text-sm); font-weight: 600; overflow-wrap: anywhere; }
-.activity-feed-meta { display: flex; flex-wrap: wrap; gap: .2rem .6rem; color: var(--muted); font-size: var(--text-xs); }
+.activity-feed-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .6rem; margin: 0; color: var(--muted); font-size: var(--text-xs); }
 .activity-feed-meta a { overflow-wrap: anywhere; }
 .project-card-health { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-height: 1.75rem; font-size: var(--text-xs); color: var(--muted); }
 #project-cards .project-card[data-health="failing"] { border-left: 3px solid var(--status-failure); }
@@ -693,7 +717,9 @@ a.count-chip:hover { border-color: var(--border-strong); background: var(--surfa
   summary { min-height: 2.75rem; }
   .project-row-actions a, .project-row-name > a { display: inline-flex; align-items: center; min-height: 2.75rem; }
   button.chip { min-height: 2.75rem; }
-  a.count-chip, .attention-actions a, .split-toggle, .dashboard-section-head a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+  a.count-chip, .attention-actions a, .project-actions a, .action-row a, .split-toggle, .dashboard-section-head a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+  /* r[impl kiln.web.page_consistency] Run links act as row actions; keep them 44px tall on touch layouts. */
+  a.row-link { display: inline-flex; align-items: center; max-width: 100%; min-height: 2.75rem; }
 }
 @media (max-width: 40rem) {
   #worker-search-form > div { flex-basis: 100%; }
@@ -730,6 +756,10 @@ a.count-chip:hover { border-color: var(--border-strong); background: var(--surfa
   .data-table-stack td[data-label="Duration"]::before, .data-table-stack td[data-label="Finished"]::before { content: attr(data-label) " "; color: var(--muted); font-size: var(--text-xs); }
   .data-table-stack td[data-label="Inspect"] { grid-column: 1 / -1; }
   .project-row-actions { justify-content: flex-start; }
+  /* r[impl kiln.web.page_consistency] With no page action, the refresh control sits beside the title instead of on its own row. */
+  .page-header:has(#page-primary-action:empty) { position: relative; }
+  .page-header:has(#page-primary-action:empty) .page-header-text { padding-right: 3.25rem; }
+  .page-header:has(#page-primary-action:empty) .page-actions { position: absolute; top: 0; right: 0; }
 }
 @media (max-width: 23rem) { .command-label-short { display: none !important; } .app-topbar { padding-inline: .5rem; } }
 

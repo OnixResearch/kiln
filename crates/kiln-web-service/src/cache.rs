@@ -336,13 +336,23 @@ impl CacheProfile {
     }
 }
 
+/// Exclusive cache-directory ownership. Closing our descriptor alone leaves the
+/// flock held while a concurrently forked child still has its inherited copy.
+#[derive(Debug)]
+struct OwnerLock(File);
+impl Drop for OwnerLock {
+    fn drop(&mut self) {
+        let _ = fs2::FileExt::unlock(&self.0);
+    }
+}
+
 /// A dedicated private directory, separately locked from canonical state. Only
 /// verified cache entries created in its marked child are eligible for eviction.
 #[derive(Debug)]
 pub struct CacheStore {
     pub profile: CacheProfile,
     directory: PathBuf,
-    _lock: File,
+    _lock: OwnerLock,
     directory_handle: File,
 }
 impl CacheStore {
@@ -436,7 +446,7 @@ impl CacheStore {
         Ok(Self {
             profile,
             directory,
-            _lock: lock,
+            _lock: OwnerLock(lock),
             directory_handle,
         })
     }

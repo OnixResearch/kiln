@@ -39,6 +39,8 @@
   const rows = () => [...document.querySelectorAll("[data-work-id]")].filter((row) => row.closest(WORK_ROOTS) && visible(row));
   const notify = (error) => bridge()?.notice(errorText(error));
   const icon = (name) => window.KilnUi?.icon?.(name) || null;
+  const humanize = (value) => String(value || "").replaceAll("_", " ").replace(/^./, (first) => first.toUpperCase());
+  const kindName = (kind) => kind === "view" ? "Saved view" : kind === "personal" ? "Attention preferences" : humanize(kind);
 
   function button(label, action, className) {
     const result = node("button", label, className);
@@ -110,14 +112,22 @@
     list.id = "work-command-results";
     list.setAttribute("role", "listbox");
     list.setAttribute("aria-label", "Search results and commands");
+    // r[impl kiln.web.page_consistency]
+    // A one-line hint stays visible; the full keyboard reference (the input's description) is one disclosure away.
+    const hint = node("p", "↑/↓ choose · Enter open · Esc close", "work-interaction-help work-command-hint");
+    const shortcuts = node("details", undefined, "work-command-shortcuts");
+    shortcuts.append(node("summary", "Keyboard shortcuts"));
     const help = node("p", "Ctrl/Cmd+K: search · ↑/↓: choose · Enter: open · Escape: close. Work rows: j/k or ↑/↓ to move, Enter to open, Space to peek, x to select, Shift+↑/↓ to select a range, Shift+F10 for actions. Selection checkboxes support bulk updates.", "work-interaction-help");
     help.id = "work-command-help";
+    shortcuts.append(help);
     input.setAttribute("aria-describedby", help.id);
     const field = node("div", undefined, "work-command-field");
     const glass = icon("search");
     if (glass) field.append(glass);
     field.append(input);
-    shell.append(label, field, status, list, help);
+    const footer = node("div", undefined, "work-command-footer");
+    footer.append(hint, shortcuts);
+    shell.append(label, field, status, list, footer);
     const value = { shell, input, status, list, results: [], active: -1 };
     input.addEventListener("input", () => scheduleSearch());
     shell.addEventListener("keydown", (event) => {
@@ -129,6 +139,10 @@
       else if (event.key === "Enter" && event.target === input) {
         event.preventDefault();
         if (value.active >= 0) runResult(value.results[value.active]);
+      } else if (event.key === "Escape" && event.target === input) {
+        // A native search field consumes the first Escape to clear itself; Escape closes the palette instead.
+        event.preventDefault();
+        shell.close();
       }
     });
     shell.addEventListener("close", () => {
@@ -234,7 +248,8 @@
         const favorites = new Set(data.objects.filter((record) => record.kind === "personal" && record.fields?.owner === who).flatMap((record) => record.fields?.personal?.favorites || []));
         return data.objects.filter((record) => matches(query, record.id, record.kind, record.fields?.title, record.fields?.description, ...(record.fields?.labels || []))).map((record) => ({
           label: record.fields?.title || record.id,
-          detail: `${favorites.has(record.id) ? "Favorite · " : ""}${record.kind === "view" ? "Saved view" : record.kind} · ${record.fields?.status || ""} · ${record.id}`,
+          detail: [favorites.has(record.id) ? "Favorite" : "", kindName(record.kind), humanize(record.fields?.status)].filter(Boolean).join(" · "),
+          exact: record.id,
           rank: favorites.has(record.id) ? 0 : record.kind === "view" ? 1 : 2,
           run: () => record.kind === "view" ? bridge().navigate({ page: "work", work_view: record.id, work_id: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_sort: "", work_group: "", work_layout: "" }) : ui().open(record.id),
         })).sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label));
@@ -242,13 +257,13 @@
       ["CI projects", "/api/projects", (data) => {
         if (!Array.isArray(data.available) || !Array.isArray(data.enrolled)) throw new Error("Invalid project inventory");
         const projects = new Map([...data.available, ...data.enrolled].map((project) => [project.id, project]));
-        return [...projects.values()].filter((project) => matches(query, project.id, project.label, project.reference)).map((project) => ({ label: project.label || project.id, detail: `CI project · ${project.id}`, run: () => bridge().navigate({ page: "runs", project: project.id, q: "", cursor: "", run: "" }) }));
+        return [...projects.values()].filter((project) => matches(query, project.id, project.label, project.reference)).map((project) => ({ label: project.label || project.id, detail: "CI project", exact: project.id, run: () => bridge().navigate({ page: "runs", project: project.id, q: "", cursor: "", run: "" }) }));
       }],
       // r[impl kiln.web.readable_observations]
       ["CI runs", `/api/runs?${new URLSearchParams({ limit: "25", order: "desc", ...(query ? { q: query } : {}) })}`, (data) => {
         if (!Array.isArray(data.runs)) throw new Error("Invalid run inventory");
         const readable = typeof window.KilnUi?.statusPill === "function";
-        return data.runs.map((run) => ({ label: readable ? run.project_id : `${run.project_id} · ${run.outcome}`, outcome: run.outcome ?? null, phase: run.phase, at: run.created_at_ms, detail: `CI run · ${run.id} · ${run.source_revision || ""}`, run: () => bridge().navigate({ page: "runs", run: run.id, node: "" }) }));
+        return data.runs.map((run) => ({ label: readable ? run.project_id : `${run.project_id} · ${run.outcome}`, outcome: run.outcome ?? null, phase: run.phase, at: run.created_at_ms, detail: "CI run", exact: [run.id, run.source_revision].filter(Boolean).join(" · "), run: () => bridge().navigate({ page: "runs", run: run.id, node: "" }) }));
       }],
       ["Retained reviews", "/api/reviews", (data) => {
         if (!Array.isArray(data.receipts)) throw new Error("Invalid review inventory");
@@ -292,7 +307,10 @@
         const head = node("span", undefined, "work-command-result-head");
         head.append(node("strong", result.label));
         if ("outcome" in result && typeof window.KilnUi?.statusPill === "function") head.append(window.KilnUi.statusPill(result.outcome, result.phase));
+        // r[impl kiln.web.page_consistency]
+        // Human context reads first; the exact identity follows as secondary monospace text.
         const detail = node("span", result.detail, "work-command-result-detail");
+        if (result.exact) { detail.append(" · "); detail.append(node("span", result.exact, "mono work-command-result-exact")); }
         if (result.at != null && typeof window.KilnUi?.timeElement === "function") detail.append(" · ", window.KilnUi.timeElement(result.at));
         option.append(head, detail);
         option.addEventListener("click", () => runResult(result));
@@ -435,7 +453,11 @@
         checkbox.setAttribute("aria-label", `Select ${row.getAttribute("aria-label") || id} for bulk updates`);
         checkbox.addEventListener("click", (event) => event.stopPropagation());
         checkbox.addEventListener("change", () => toggleSelection(row, checkbox.checked));
-        row.prepend(checkbox);
+        // A 44px label carries the hit area on touch layouts while the box itself stays checkbox-sized.
+        const hit = node("label", undefined, "work-row-select-hit");
+        hit.addEventListener("click", (event) => event.stopPropagation());
+        hit.append(checkbox);
+        row.prepend(hit);
       }
       const checkbox = row.querySelector("[data-work-select]");
       checkbox.checked = selected.has(id);
@@ -444,7 +466,8 @@
         const control = iconButton("Actions", "more", () => showMenu(row), "work-row-menu");
         control.dataset.workMenu = id;
         control.setAttribute("aria-haspopup", "dialog");
-        control.setAttribute("aria-label", `Actions for ${id}`);
+        control.setAttribute("aria-label", `Actions for ${row.getAttribute("aria-label") || id}`);
+        control.title = `Actions for ${row.getAttribute("aria-label") || id}`;
         row.append(control);
       }
     }

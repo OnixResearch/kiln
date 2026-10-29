@@ -1394,6 +1394,19 @@ UTC instant stay available on hover and to assistive technology, and exact
 identity disclosures keep full local/UTC timestamps. Missing timing reads **Not
 recorded**, never zero or the current time. Formatting never changes stored data.
 
+<!-- r[impl kiln.web.page_consistency] -->
+Every CI page leads with readable labels and keeps exact identities secondary:
+run choices show the full project name under the status and time, worker targets
+lead with their assigned projects (provider profile and a shortened target ID
+below; the full ID is in the inspector), and activity entries lead with the
+method, a shortened target and the decision, with the exact target beneath and
+every recorded field under **Recorded fields**. Long boundary and non-claim
+statements sit in labelled **About this view** (or **About …**) disclosures near
+the page or section heading; short decision-relevant warnings stay inline. Empty
+and unconfigured sections show an explicit state with guidance instead of a
+blank area. Row actions such as **Logs**, **Browse runs** and run links share one
+bordered action style and are at least 44px tall on touch layouts.
+
 The operator-authorized [visual-design deployment receipt](../.cairn/archive/1970-01-01-align-blacksmith-visual-design/evidence/deployment.json)
 binds the published source, committed executable, unchanged profiles/state and
 actual deployed desktop/mobile checks. It does not clear the separately retained
@@ -2361,7 +2374,7 @@ credential provisioning and worker isolation remain operator responsibilities.
 - **Pipeline:** admitted dependencies grouped by longest dependency depth, with
   recorded state badges/counts, measured node cards and highlighted immediate
   prerequisites/dependents. Stages do not imply execution order, readiness or
-  placement. **Fit**, **100%**, and bounded 35–150% zoom affect only the scrollable
+  placement. **Fit**, **1:1** (actual size), and bounded 35–150% zoom affect only the scrollable
   diagram; long names wrap and the bounded full-node list remains available.
   Select a card or list entry for exact state/timing facts, relationship links
   and **View node logs**. Selection is URL-restored; same-run refresh preserves
@@ -2732,6 +2745,10 @@ contribution branch**. Search, personal views and the change table share one
 **Changes** card that states the principal's review access. A selected change
 opens with an identity card and revision selector; on wide screens the side
 column, led by the submit requirements, stays in view while the diff scrolls.
+The identity card also shows the observed submit readiness, linked to the
+requirements card. The access boundary, the service's non-claims and the target
+write boundary sit in an **About this view** disclosure; each panel keeps its own
+boundary text in a labelled "About …" disclosure.
 
 The checklist exposes each unmet submit requirement with an icon and label:
 **Met**, **Unmet** (outstanding review work such as approvals, threads, WIP,
