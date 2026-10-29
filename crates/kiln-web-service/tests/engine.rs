@@ -335,6 +335,8 @@ fn start(engine: &mut Engine, key: &str) -> ApiResponse {
     )
 }
 
+// r[verify kiln.web.enrollment.scenario.source] r[verify kiln.web.enrollment.scenario.denied]
+// r[verify kiln.web.lifecycle.scenario.replay] r[verify kiln.web.lifecycle.scenario.restart]
 #[test]
 fn allowlist_exact_source_and_request_replay_survive_restart() {
     let (_root, profile, revision) = fixture();
@@ -447,6 +449,7 @@ fn allowlist_exact_source_and_request_replay_survive_restart() {
     assert!(Engine::open_with_ports(conflict, ports).is_err());
 }
 
+// r[verify kiln.web.lifecycle.scenario.restart]
 #[test]
 fn accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution() {
     let (_root, profile, _) = fixture();
@@ -491,6 +494,8 @@ fn accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution() {
     assert_eq!(backend.lock().recoveries, 1);
 }
 
+// r[verify kiln.web.controls.scenario.cancel] r[verify kiln.web.controls.scenario.denied]
+// r[verify kiln.web.authentication.scenario.denied]
 #[test]
 fn controls_reject_stale_and_unsupported_before_mutation_and_replay_exact_result() {
     let (_root, profile, _) = fixture();
@@ -532,6 +537,8 @@ fn controls_reject_stale_and_unsupported_before_mutation_and_replay_exact_result
     assert_eq!(backend.lock().controls, 1);
 }
 
+// r[verify kiln.web.artifacts.scenario.download] r[verify kiln.web.artifacts.scenario.denied]
+// r[verify kiln.web.authentication.scenario.denied]
 #[test]
 fn artifacts_are_real_bounded_identity_checked_retained_bytes_and_worker_is_narrow() {
     let (root, profile, revision) = fixture();
@@ -626,6 +633,7 @@ fn artifacts_are_real_bounded_identity_checked_retained_bytes_and_worker_is_narr
     assert_eq!(get(&mut engine, &download, Role::Operator).status, 503);
 }
 
+// r[verify kiln.web.worker.scenario.logs]
 #[test]
 fn native_log_cursor_gap_and_bounds_are_preserved() {
     let (_root, profile, _) = fixture();
@@ -672,6 +680,7 @@ fn native_log_cursor_gap_and_bounds_are_preserved() {
     );
 }
 
+// r[verify kiln.web.enrollment.scenario.denied] r[verify kiln.web.deploy.runtime.scenario.denied]
 #[test]
 fn private_state_ownership_and_unknown_profile_authority_fail_closed() {
     use std::os::unix::fs::PermissionsExt;
@@ -698,6 +707,7 @@ fn private_state_ownership_and_unknown_profile_authority_fail_closed() {
     assert!(Engine::open(profile).is_err());
 }
 
+// r[verify kiln.web.lifecycle.scenario.replay]
 #[test]
 fn timed_out_dispatch_remains_unknown_and_control_disconnect_never_replays_mutation() {
     let (_root, profile, _) = fixture();
@@ -756,6 +766,7 @@ fn timed_out_dispatch_remains_unknown_and_control_disconnect_never_replays_mutat
     assert_eq!(backend.lock().controls, 1);
 }
 
+// r[verify kiln.web.artifacts.scenario.denied]
 #[test]
 fn restart_discards_unadmitted_artifact_bytes_without_inventing_metadata() {
     use std::os::unix::fs::PermissionsExt;
@@ -781,6 +792,7 @@ fn restart_discards_unadmitted_artifact_bytes_without_inventing_metadata() {
     );
 }
 
+// r[verify kiln.web.enrollment.scenario.denied]
 #[test]
 fn profile_load_accepts_reviewed_nested_fields_and_rejects_unknown_native_bounds() {
     let (root, profile, _) = fixture();
@@ -828,6 +840,7 @@ fn profile_load_accepts_reviewed_nested_fields_and_rejects_unknown_native_bounds
     }
 }
 
+// r[verify kiln.web.lifecycle.scenario.restart] r[verify kiln.web.lifecycle.scenario.replay]
 #[test]
 fn missing_reply_after_durable_start_returns_original_resource_without_redispatch() {
     let (root, profile, _) = fixture();
@@ -918,6 +931,7 @@ fn read_capture(
     )
 }
 
+// r[verify kiln.web.worker.scenario.logs]
 #[test]
 fn captured_logs_round_trip_empty_chunks_byte_cursors_and_restart_without_native_reads() {
     let (_root, profile, _) = fixture();
@@ -991,6 +1005,7 @@ fn captured_logs_round_trip_empty_chunks_byte_cursors_and_restart_without_native
     assert_eq!(backend.lock().dispatches, 1);
 }
 
+// r[verify kiln.web.worker.scenario.denied]
 #[test]
 fn log_ingress_rejects_private_roles_stale_identity_conflicts_and_open_json() {
     let (_root, profile, _) = fixture();

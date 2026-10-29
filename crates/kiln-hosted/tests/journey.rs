@@ -232,6 +232,7 @@ fn reservation(attempt: &str, price: &Value, plan: &Value, units: u64) -> Value 
     })
 }
 
+// r[verify kiln.hosted.accounts.scenario.membership]
 #[test]
 fn current_membership_and_project_authority_precede_retained_responses() {
     let fixture = Fixture::new();
@@ -361,6 +362,7 @@ fn current_membership_and_project_authority_precede_retained_responses() {
     assert_eq!(guest_membership.get("revision").unwrap_or(&Value::Null), 5);
 }
 
+// r[verify kiln.hosted.finance.scenario.cap]
 #[test]
 fn reviewed_plan_and_exact_reservations_survive_restart_without_releasing_exposure() {
     let fixture = Fixture::new();
@@ -486,6 +488,7 @@ fn reviewed_plan_and_exact_reservations_survive_restart_without_releasing_exposu
     );
 }
 
+// r[verify kiln.hosted.operations.scenario.restore]
 #[test]
 fn incident_hold_denies_new_consumption_but_preserves_recovery_and_exact_retry() {
     let fixture = Fixture::new();
@@ -603,6 +606,7 @@ fn incident_hold_denies_new_consumption_but_preserves_recovery_and_exact_retry()
     );
 }
 
+// r[verify kiln.hosted.operations.scenario.restore]
 #[test]
 fn whole_service_restore_preserves_membership_unknown_obligations_and_request_replay() {
     let fixture = Fixture::new();
@@ -789,6 +793,7 @@ async fn rpc(endpoint: &Endpoint, remote: &EndpointAddr, request: &Request) -> R
         .unwrap_or_else(|error| unreachable!("RPC exchange failed: {error:?}"))
 }
 
+// r[verify kiln.hosted.iroh.scenario.peers]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn local_iroh_authenticates_peer_and_rejects_invalid_frames_without_dispatch() {
     let fixture = Fixture::new();
@@ -1029,6 +1034,7 @@ fn issuer_metadata_reads_preserve_replay_capacity_and_current_authority() {
     rejected(service.handle(&guest, request("metadata-a", "secrets.jwks", json!({}))));
 }
 
+// r[verify kiln.hosted.accounts.scenario.membership]
 #[test]
 fn enrollment_receipt_failure_rolls_back_membership_and_invitation_consumption() {
     let fixture = Fixture::new();

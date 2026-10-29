@@ -1,0 +1,136 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "observed_at": "2026-10-29T08:03:08.886Z",
+  "maintenance_owner": "Kiln maintainers; operator owns profiles, credentials and activation",
+  "source_commit": "9e837966fe9927c5b27b72ebc0f2a1753d65de07",
+  "publication": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "canonical_main": "9e837966fe9927c5b27b72ebc0f2a1753d65de07",
+    "canonical_push": "jj git push --remote rad --bookmark main: canonical ref updated; synced with 3 seeds",
+    "github_main": "9e837966fe9927c5b27b72ebc0f2a1753d65de07",
+    "github_readback": "https://api.github.com/repos/OnixResearch/kiln/commits/main",
+    "fast_forward_from": "1781960af63116ed57fb43e49d9972ee17beabd4"
+  },
+  "build": {
+    "command": "nix build path:.#web-service path:.#kiln --no-link --print-out-paths --no-write-lock-file --builders '' --option substituters https://cache.nixos.org -L",
+    "frozen_source": "/nix/store/kiq9mndipdmkzndrbxsb8m9cq0ffj4a0-source",
+    "web_package": "/nix/store/3cll109v19pz4cg87z1ll913d9dd5chx-kiln-web-service-0.1.0",
+    "workspace_package": "/nix/store/zd5cmxylvvhw9wxlaj74kqp9md7zhcq7-kiln-0.1.0",
+    "workspace_packaged_tests": "passed"
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "service": "kiln-web-service.service",
+    "running_executable": "/nix/store/3cll109v19pz4cg87z1ll913d9dd5chx-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "e45a57b0bb2e07acf915d76856cd05484ff95a9973c8a8fbf2638812b7a1f866",
+    "previous_package": "/nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0",
+    "private_backup": "/home/brittonr/.local/state/kiln/redeploy-20261029-075616-9e837966",
+    "preflight": "candidate check with all unchanged installed profile arguments exited zero",
+    "activation": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/3cll109v19pz4cg87z1ll913d9dd5chx-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service"
+    ],
+    "rollback": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/j24gng61ppa2n6pdsml61pai8rq9y7vs-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service",
+      "Preserve live state; do not rewind SQLite or collaboration refs."
+    ],
+    "preservation": {
+      "config_credentials_logs_artifacts_work_files": 525,
+      "contents_modes_owners_groups": "unchanged",
+      "sqlite_integrity": "ok",
+      "project_projection": "exactly unchanged",
+      "retained_run_projection": "exactly unchanged",
+      "unrelated_profile_elements": "unchanged",
+      "lattice_pid_before_after": 1145552
+    }
+  },
+  "verification": {
+    "local_health": {
+      "status": 200,
+      "body": "{\"status\":\"ok\"}"
+    },
+    "tailnet_health": {
+      "status": 200,
+      "body": "{\"status\":\"ok\"}"
+    },
+    "anonymous_api_status": 401,
+    "tls": "CA and hostname verification, TLS >= 1.3; no credentials on health or asset requests",
+    "assets": [
+      {
+        "path": "/",
+        "status": 200,
+        "blake3": "3e046ace7a6d8ec40a914cc711329f5234fd21e3a2729ecb0fa047441117261b"
+      },
+      {
+        "path": "/web.js",
+        "status": 200,
+        "blake3": "b4fc19b6f8194d28ad95577246449020aa3dfc010943c9d928bd539a8fc85f02"
+      },
+      {
+        "path": "/web.css",
+        "status": 200,
+        "blake3": "1389c5d1e1000c07f8f5df6afde62412ce5dc2aa55dc615bb11cb45e0ebb7c7f"
+      },
+      {
+        "path": "/code-review.js",
+        "status": 200,
+        "blake3": "d4f4f38d006b442bbc70f6022df771e62609d810dc802279d29b173a7cdbfedf"
+      },
+      {
+        "path": "/code-review.css",
+        "status": 200,
+        "blake3": "13138dfcd8f2a1539c4d1465863e810a57296b10297b94b7aa93f21402121ed2"
+      }
+    ],
+    "browser": "Real network-identity session; review navigation and explicit unconfigured status, CI overview and retained Kiln log navigation; 390px viewport/document width 390px",
+    "browser_js_exceptions": [],
+    "browser_request_failures": [
+      {
+        "seq": 1,
+        "ts": 1793260766586,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+      },
+      {
+        "seq": 2,
+        "ts": 1793260824775,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+      },
+      {
+        "seq": 3,
+        "ts": 1793260826317,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+      },
+      {
+        "seq": 4,
+        "ts": 1793260827851,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436: net::ERR_ABORTED",
+        "location": "https://britton-desktop.bison-tailor.ts.net:8443/api/live?after=1436"
+      }
+    ],
+    "desktop_screenshot": "deployment-20261029-desktop.png",
+    "mobile_screenshot": "deployment-20261029-mobile.png",
+    "browser_closed": true,
+    "browser_trust_boundary": "Browser CDP trust exception only after independent native HTTPS CA/hostname verification; open(ignore_https_errors) alone failed."
+  },
+  "boundaries": {
+    "code_review": "Initial deployment: unconfigured. Later the same day, on explicit operator request, a writable review profile was admitted for project kiln-self-ci: repository /home/brittonr/git/OnixResearch/kiln (identity 0f39cf5b4a1d841b012ec9cdec4db64cf65c1c9e0d76740269a2b2131eb8ecf7), target refs/heads/main, all nine capabilities, readers/writers/reviewers/submitters local:operator and tailscale:47256370424925063 only, one non-author approval, required CI, intake on refs/heads/review/, no external delivery, no merge queue. Database /home/brittonr/git/.kiln-web-service/code-review/review.sqlite. Live preflight passed; unit drop-in gained --code-review (previous drop-in retained in the private backup). Authenticated API reports configured/can_write for local:operator; anonymous request 401; retained runs unchanged. Real tailnet browser session shows review writes admitted for the tailnet principal with no JS exceptions (review-activation-20261029.png). No review change, ref or submission was created by this verification.",
+    "hosted_ci": "Built and published, not activated as a hosted listener: no retained operator-owned hosted profile/key/route exists. Previous disposable smoke keys are not deployment configuration.",
+    "paid_provider_activation": false,
+    "hostile_isolation_claim": false,
+    "release_readiness": "Existing accepted-spec traceability hold remains; publication/deployment is not lifecycle acceptance."
+  }
+}

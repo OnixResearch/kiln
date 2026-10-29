@@ -308,6 +308,7 @@ async fn exchange(
     }
 }
 
+// r[impl kiln.hosted.iroh]
 pub async fn serve(
     profile: Profile,
     endpoint: Endpoint,

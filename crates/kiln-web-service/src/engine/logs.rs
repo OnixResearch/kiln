@@ -83,6 +83,7 @@ pub(super) fn validate(run: &RunRecord) -> Result<(), String> {
     Ok(())
 }
 impl Engine {
+    // r[impl kiln.web.worker]
     pub(super) fn upload_log(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
         let upload: Upload = match serde_json::from_slice(body) {
             Ok(value) => value,

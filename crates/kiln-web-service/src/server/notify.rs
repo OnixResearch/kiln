@@ -3,6 +3,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::net::{SocketAddr, UnixDatagram};
 use std::path::Path;
 
+// r[impl kiln.web.deploy.runtime]
 pub(super) fn ready() -> Result<(), String> {
     match std::env::var_os("NOTIFY_SOCKET") {
         Some(path) => send_ready(&path),
@@ -43,6 +44,7 @@ fn send_ready(path: &OsStr) -> Result<(), String> {
 mod tests {
     use super::*;
 
+    // r[verify kiln.web.deploy.runtime.scenario.ready]
     #[test]
     fn readiness_reaches_supervisor_and_missing_supervisor_fails_closed() {
         let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());

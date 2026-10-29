@@ -157,7 +157,7 @@ invitation acceptance retains no replay quota: membership, invitation consumptio
 successful response and audit commit atomically. Issuer discovery/JWKS are current
 authorized reads, not permanently retained effect requests; repeated metadata
 GETs cannot consume that replay capacity.
-The [2026-10-29 security regression and real transport exercise](../.cairn/changes/add-iroh-hosted-ci/evidence/replay-capacity-20261029.json)
+The [2026-10-29 security regression and real transport exercise](../.cairn/archive/1970-01-01-add-iroh-hosted-ci/evidence/replay-capacity-20261029.json)
 records failing-before/passing-after capacity cases, injected audit failure,
 same-request acceptance after rollback, restart replay and actual HTTP metadata
 reads without permanent replay allocation. This is scoped local evidence, not
@@ -664,7 +664,7 @@ effects and retained obligations before allowing new work.
 
 ## Qualification and activation checklist
 
-The [2026-10-28 local runtime observations](../.cairn/changes/add-iroh-hosted-ci/evidence/local-runtime.json)
+The [2026-10-28 local runtime observations](../.cairn/archive/1970-01-01-add-iroh-hosted-ci/evidence/local-runtime.json)
 retain actual server/bridge executable identities, scoped source identities,
 browser role/deep-link inspection and direct Iroh requests. Real trusted
 namespace jobs exercised success, failure and cancellation, excluded the
@@ -685,13 +685,15 @@ not a new live GitHub run. The procedures above supply the typed inputs for a
 separate operator-owned runtime cohort; temporary smoke keys and workspaces are
 not deployment configuration.
 
-The [2026-10-29 publication and desktop deployment receipt](../.cairn/changes/add-iroh-hosted-ci/evidence/deployment-20261029.json)
+The [2026-10-29 publication and desktop deployment receipt](../.cairn/archive/1970-01-01-add-iroh-hosted-ci/evidence/deployment-20261029.json)
 records source `9e837966fe9927c5b27b72ebc0f2a1753d65de07` on canonical
 Radicle and its GitHub projection, and activation of the rebuilt existing
 desktop web service. TLS-verified health/assets, actual desktop/mobile browser
 navigation, retained logs and unchanged state/credentials bound that deployment.
-This did not activate the separate hosted listener or grant writable review
-provider capabilities: neither has an installed, separately admitted profile.
+It did not activate the separate hosted listener, which has no installed,
+separately admitted profile. Writable code review for the Kiln self-CI
+repository was later admitted on explicit operator request; the receipt records
+its exact principals, target and policy.
 The hosted executable was built and published; commercial and hostile-isolation
 qualification remain separate from this desktop deployment.
 

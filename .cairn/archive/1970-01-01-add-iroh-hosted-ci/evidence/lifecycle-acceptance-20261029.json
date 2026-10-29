@@ -1,0 +1,39 @@
+{
+  "schema": "kiln.lifecycle-acceptance.v1",
+  "date": "2026-10-29",
+  "authority": "Operator chose 'Finish 3, then accept all' and 'Enable for Kiln self-CI repo' in this session.",
+  "maintenance_owner": "Kiln maintainers",
+  "qualification_closures": {
+    "operate-single-tenant-web-service": "Native exercise rerun on web-service /nix/store/lq364g7bbhbmdayp01gipxw3cmm8wq0l (source 1cda616f) with the corrected Lattice cohort passed, including canonical Cancelled; evidence/native-final/.",
+    "prepare-web-service-deployment": "Required Kiln gates passed; Lattice's own gates stay with Lattice's owner-local change.",
+    "complete-internal-developer-loop": "Held only by the accepted-only release gate; closed by this acceptance and the native rerun above."
+  },
+  "accepted_changes": 28,
+  "spec_corrections": [
+    "show-local-run-time-check-cobs: MODIFIED blocks for kiln.dashboard.cobs.read/view moved from the dashboard-local-time delta into an onix-cob-dashboard delta, the spec that owns those requirements. Gates passed before sync."
+  ],
+  "policy": {
+    "change": "Accepted cairn-default profile now includes crates js/css/html, web/dashboard-index/src, docs/operator.md and docs/observation-dashboard.md; the development overlay has no active roots.",
+    "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "fixture_rebind": "fixtures/agent-completion contract/results policy_hash rebound from 66b80a30… to 2ccfb968…, following the 51a740f precedent; checks, command hashes and artifacts unchanged."
+  },
+  "traceability_anchors": "68 accepted IDs had no marker anywhere (hosted, single-tenant web service, deployment, network access, complete live dashboard). Comment-only r[impl]/r[verify] markers were added at the implementing code and tests in crates/kiln-hosted, crates/kiln-web-service, scripts/web-service-smoke.py, flake.nix, and related markers in docs/operator.md.",
+  "results": {
+    "cairn_validate": "valid; 0 active changes; no issues",
+    "traceability_coverage": "pass; 1074/1074 referenced; 0 missing; 0 dangling",
+    "release_readiness": "valid=true, verdict pass; onix_release_ready=false because the optional authenticated release profile is not required or configured for Kiln",
+    "nix_flake_check": "all x86_64-linux checks passed (aarch64-linux omitted); frozen source /nix/store/2bjd2br88k8bl08xzrmpp9l9wb2d80lg-source; package /nix/store/mnch66wfmy7mg3p67szsx26yi1j6d468-kiln-0.1.0",
+    "doc_links": "180 local links in docs/*.md and README.md resolve after archiving"
+  },
+  "redeployment": {
+    "package": "/nix/store/zma6049kkd9d9fg8854g2n5hr0snvmz0-kiln-web-service-0.1.0",
+    "executable_blake3": "94cabdeea01f3a02298f25501b3074827e22ead9baa9c5cfba4bf9d1c3208580",
+    "previous_package": "/nix/store/3cll109v19pz4cg87z1ll913d9dd5chx-kiln-web-service-0.1.0",
+    "verification": "Preflight with all live profiles, including --code-review, passed. The running executable matches the package. The tailnet origin serves /, web.js, web.css, code-review.js and code-review.css byte-identical to source. Review is configured and writable for local:operator; anonymous API returns 401; retained runs are unchanged; service and review SQLite integrity are ok.",
+    "rollback": "nix profile remove kiln-web-service; nix profile add <previous_package>; systemctl --user restart kiln-web-service.service. Remove --code-review from the work.conf drop-in (backup in the private redeploy directory) to disable review."
+  },
+  "non_claims": [
+    "Acceptance records lifecycle conformance and declared traceability, not behavioral correctness or production readiness.",
+    "No hosted listener, paid provider, hostile-isolation or Onix authenticated-release claim."
+  ]
+}

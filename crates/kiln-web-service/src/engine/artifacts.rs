@@ -22,6 +22,7 @@ fn safe_name(name: &str) -> bool {
     crate::profile::identifier(name) && name != "." && name != ".."
 }
 impl Engine {
+    // r[impl kiln.web.artifacts]
     pub(super) fn upload(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
         let upload: Upload = match serde_json::from_slice(body) {
             Ok(v) => v,
@@ -132,6 +133,7 @@ impl Engine {
         self.persist()?;
         json_response(201, view)
     }
+    // r[impl kiln.web.artifacts]
     pub(super) fn download(&self, id: &str, artifact_id: &str) -> Result<ApiResponse, String> {
         let Some(artifact) = self
             .state

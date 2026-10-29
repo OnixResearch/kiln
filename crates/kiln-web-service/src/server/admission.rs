@@ -5,6 +5,7 @@ use std::path::Path;
 use crate::profile::ServiceProfile;
 use crate::worker::files::directory;
 
+// r[impl kiln.web.deploy.runtime]
 /// Filesystem admission only: never create a state root or contact an external worker.
 pub(super) fn runtime_inputs(profile: &ServiceProfile) -> Result<(), String> {
     state_directory(&profile.state_directory, true)?;

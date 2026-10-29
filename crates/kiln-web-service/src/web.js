@@ -1,5 +1,6 @@
 "use strict";
 
+// r[impl kiln.web.interface]
 (() => {
   document.documentElement.classList.add("catalog-js");
   const LIVE_DELAY_MS = 1500;
@@ -114,6 +115,7 @@
     finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
   }
 
+  // r[impl kiln.dashboard.complete.access]
   async function api(target, { method = "GET", body, kind = "json", controller = new AbortController(), bootstrap = false } = {}) {
     if (!state.session && !bootstrap) throw new DOMException("Signed out", "AbortError");
     const epoch = state.epoch;
@@ -251,6 +253,7 @@
     const selected = state.runs.find((run) => run.id === state.selected);
     if (selected) adoptRun(selected);
   }
+  // r[impl kiln.dashboard.complete.navigation]
   async function loadRuns() {
     const generation = ++state.runsGeneration;
     const route = state.route;
@@ -511,6 +514,7 @@
     return BigInt(source).toString();
   }
   // r[impl kiln.dashboard.logs.continuation]
+  // r[impl kiln.dashboard.complete.follow]
   async function readLog(follow = false) {
     if (state.logBusy || !state.selected || !$("log-node").value) return;
     const id = state.selected;
@@ -645,6 +649,7 @@
     }
   }
 
+  // r[impl kiln.web.interface.scenario.loss]
   function logout(message = "Signed out. Private views and pending requests were cleared.") {
     state.epoch++;
     state.session = null;
@@ -782,6 +787,7 @@
   }
   function duration(ms) { return Number.isSafeInteger(ms) && ms >= 0 ? `${(ms / 1000).toFixed(3)} s` : "Unavailable (not recorded)"; }
   // r[impl kiln.dashboard.source.view.scenario.restore]
+  // r[impl kiln.dashboard.complete.navigation]
   function readRoute() {
     const params = new URLSearchParams(location.search);
     // Accept catalog-style fragment links as well, but never read credentials from either location.
@@ -1659,6 +1665,7 @@
     for (const boundary of record.non_claims || []) detail.append(element("p", boundary, "small"));
   }
   // r[impl kiln.web.minimal_console]
+  // r[impl kiln.dashboard.complete.overview]
   function renderOverview(parent, result) {
     const grid = element("div", undefined, "overview-totals");
     grid.setAttribute("aria-label", "Retained run counts");
@@ -1852,6 +1859,7 @@
     actions.append(logs, clear); parent.append(actions);
   }
   // r[impl kiln.dashboard.workflow.presentation]
+  // r[impl kiln.dashboard.complete.pipeline]
   function renderGraph(run) {
     const focused = document.activeElement?.dataset.workflowFocus;
     const parent = $("pipeline-graph"); const list = $("node-list");
@@ -1897,12 +1905,14 @@
     }
   }
   for (const mode of ["fit", "actual", "in", "out"]) $("graph-" + mode).addEventListener("click", () => updateGraphZoom(mode));
+  // r[impl kiln.dashboard.complete.reruns]
   async function prepareRerun(mode) {
     if (!canOperate()) return;
     const id = state.selected;
     try { const run = await loadDetail(); if (!run || id !== state.selected) return; if (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state))) throw new Error("No known failed node set is available. Unknown states cannot be retried blindly."); state.confirm = { id, mode }; $("confirm-title").textContent = mode === "latest" ? "Run latest admitted reference" : mode === "failed" ? "Retry known failed nodes" : "Rerun exact source revision"; $("confirm-control").textContent = "Create new run"; addFacts($("confirm-facts"), [["Parent run", id], ["Project", run.project_id], ["Mode", mode], ["Source", mode === "latest" ? "Latest admitted reference (resolved by service)" : run.source_revision], ["Failed selection", mode === "failed" ? run.nodes.filter((node) => /^(failed|error)$/i.test(node.state)).map((node) => node.id) : "Not a node retry"], ["Boundary", "New candidate and attempt; queued durably if project is busy."]]); $("control-dialog").showModal(); $("dismiss-control").focus(); }
     catch (error) { if (!isAborted(error)) notice(explain(error)); }
   }
+  // r[impl kiln.dashboard.complete.reports]
   function renderFlaky(parent, rows) {
     const group = section("Repeated-test instability", parent, "view-stack");
     group.append(element("p", "Instability requires actual repeated pass/fail observations for the same exact source revision, pipeline, node, report and test identity. It is not inferred from code changes, execution logs or missing reports.", "small"));
@@ -2052,6 +2062,7 @@
     const other = (result.reports || []).filter((record) => !receipts.includes(record));
     if (other.length) parent.append(element("p", `${other.length} other retained report(s) are shown under Tests & coverage.`, "small"));
   }
+  // r[impl kiln.dashboard.complete.evidence]
   function renderEvidence(parent, result) {
     parent.append(element("p", "Recorded evidence only. A reported verdict, review, provenance link or retained artifact does not establish accepted gate authority or product correctness.", "warning"));
     for (const key of ["source", "pipeline", "execution"]) if (Object.hasOwn(result, key)) { const group = section(key[0].toUpperCase() + key.slice(1) + " linkage", parent, "record-card"); renderRecorded(group, result[key]); }
@@ -2094,6 +2105,7 @@
     const next = element("button", "Next page"); next.type = "button"; next.disabled = !result.next_cursor; next.addEventListener("click", () => navigate({ activity_cursor: result.next_cursor }));
     controls.append(first, next); parent.append(controls);
   }
+  // r[impl kiln.dashboard.complete.operations]
   function renderOperations(parent, result) {
     if (result.storage_failed) parent.append(element("p", "Durable storage is failed. Mutating admission is unavailable; no healthy state is inferred.", "warning"));
     for (const warning of result.warnings || []) {
@@ -2125,6 +2137,7 @@
     input.disabled = !canOperate() || state.permissions.configure !== true;
     form.append(wrapper); return input;
   }
+  // r[impl kiln.dashboard.complete.automation]
   function renderAutomation(parent, result) {
     parent.append(element("p", `Automation: ${text(result.status)}. ${result.configured ? "Only registered sources and destinations are editable." : "No automation policy is admitted. Register sources/destinations in server policy; browser input cannot create authority."}`, "small"));
     const policy = element("dl", undefined, "facts"); addFacts(policy, [["Reviewed policy BLAKE3", result.policy_identity]]); parent.append(policy);
@@ -2177,6 +2190,7 @@
     const link = element("a"); link.href = url; link.download = filename.replace(/[\\/\u0000-\u001f\u007f]/g, "_"); link.hidden = true; document.body.append(link); link.click(); link.remove();
     const timer = setTimeout(() => { URL.revokeObjectURL(url); state.urls.delete(url); state.urlTimers.delete(timer); }, 1000); state.urlTimers.add(timer);
   }
+  // r[impl kiln.dashboard.complete.streaming]
   async function downloadLogs() {
     const id = state.selected; const node = $("log-node").value; const stream = $("log-stream").value;
     if (!id || !node) return;
@@ -2284,6 +2298,7 @@
   $("available-project").addEventListener("change", projectDescriptions);
   $("enrolled-project").addEventListener("change", () => { projectDescriptions(); void readAction(loadRefs)(); });
   $("run-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ q: $("run-search").value.trim(), project: $("run-filter").value, outcome: $("run-outcome").value, source: $("run-source").value.trim(), order: $("run-order").value, cursor: "" }); });
+  // r[impl kiln.web.interface.scenario.workflow]
   $("enroll-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const projectId = $("available-project").value;

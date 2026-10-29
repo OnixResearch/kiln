@@ -30,6 +30,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+// r[impl kiln.web.worker]
 pub fn load_profile(path: &Path, identity: &str) -> Result<WorkerProfile, String> {
     if !profile::hex(identity, 32) {
         return Err("worker profile identity invalid".into());
@@ -53,6 +54,7 @@ pub fn load_profile(path: &Path, identity: &str) -> Result<WorkerProfile, String
     Ok(profile)
 }
 
+// r[impl kiln.web.worker]
 pub fn run_job(
     profile: &WorkerProfile,
     context: &SourceContext,

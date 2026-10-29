@@ -307,7 +307,7 @@ channel state, work files/directories and gate audit state, including dirty/untr
 data. No caller signer or model credentials reach review; all three cases make zero model requests.
 
 The retained run is in
-`.cairn/changes/add-patchgate-review-adapter/evidence/native-smoke.json`.
+`.cairn/archive/1970-01-01-add-patchgate-review-adapter/evidence/native-smoke.json`.
 The adjacent `verification.json` records the local checks and the separate
 traceability/release-readiness hold: the new requirement IDs remain in the active
 change, outside the accepted-spec registry. No acceptance, sync or archive is
@@ -1268,6 +1268,8 @@ deployment or release authority.
 
 ## Single-tenant live web service
 
+<!-- r[related kiln.web.evidence] r[related kiln.web.deploy.evidence] r[related kiln.web.deploy.install] -->
+
 `kiln-web-service` composes existing Kiln core, Git snapshot and Lattice workflow
 ports into a dedicated HTTPS application. The current consumer is Kiln self-CI;
 Kiln application/dashboard and provider-adapter maintainers own this composition
@@ -1280,7 +1282,7 @@ unchanged strict native exercise: source-bound `Success`, intentional
 the original execution without redispatch; logs, artifact bytes/hash,
 authentication, TLS and exact control checks pass. The measured executable,
 source and profile identities and resource retirement are retained in
-[the native receipt](../.cairn/changes/prepare-web-service-deployment/evidence/native-corrected/verification.json).
+[the native receipt](../.cairn/archive/1970-01-01-prepare-web-service-deployment/evidence/native-corrected/verification.json).
 The earlier cancellation misclassification and compiler failures remain
 historical evidence, not a verdict on this corrected cohort. Lattice's broader
 repository checks and Kiln's separate readiness checks are not all green; this
@@ -1366,7 +1368,7 @@ touch targets. The visual system lives in `web.css`, `work.css` and
 `work-interaction.css`, maintained by Kiln's web-service/dashboard owners; it does
 not change the offline catalog or request external fonts or image assets.
 
-The operator-authorized [visual-design deployment receipt](../.cairn/changes/align-blacksmith-visual-design/evidence/deployment.json)
+The operator-authorized [visual-design deployment receipt](../.cairn/archive/1970-01-01-align-blacksmith-visual-design/evidence/deployment.json)
 binds the published source, committed executable, unchanged profiles/state and
 actual deployed desktop/mobile checks. It does not clear the separately retained
 repository-wide traceability or release-readiness holds.
@@ -1382,7 +1384,7 @@ default overview. In Runs, **More filters** holds exact-source and sort order an
 opens automatically when a URL restores non-default values. These views remain
 bounded retained observations, not complete history or release authority.
 
-The [minimal-console deployment receipt](../.cairn/changes/simplify-live-console/evidence/deployment.json)
+The [minimal-console deployment receipt](../.cairn/archive/1970-01-01-simplify-live-console/evidence/deployment.json)
 binds the frozen source, installed executable, served assets and actual desktop/320px
 workflows. All 19 retained run projections and 546 original configuration, work
 and retained files were preserved; no source publication or lifecycle acceptance
@@ -1444,7 +1446,7 @@ reset. Kiln application maintainers own admission and recovery behavior; the
 operator owns repository selection, command review, installed routes and activation.
 
 <!-- r[verify kiln.web.projects.onixresearch] -->
-The [retained installed-project observation](../.cairn/changes/extend-live-project-registry/evidence/verification.json)
+The [retained installed-project observation](../.cairn/archive/1970-01-01-extend-live-project-registry/evidence/verification.json)
 records fourteen additional reviewed committed-ref jobs through authenticated
 enrollment and native routes: eight successes and six explicit prerequisite
 failures. Original worker/routes, five original runs and retained bytes were
@@ -1495,7 +1497,7 @@ their real jobs and inspect **Projects**, **Workers**, exact source revisions,
 retained output and original histories. CI failures remain failures; enrollment
 and a passing bounded job are not whole-repository release qualification.
 
-The [recorded local registry exercise](../.cairn/changes/extend-live-project-registry/evidence/verification.json)
+The [recorded local registry exercise](../.cairn/archive/1970-01-01-extend-live-project-registry/evidence/verification.json)
 added fourteen projects while preserving the original five Kiln run views and
 ten retained files. Eight initial checks passed. Five others could not fetch
 SSH dependencies because the host rejected its SSH configuration permissions;
@@ -1859,7 +1861,7 @@ unverified by the browser.
 
 <!-- r[verify kiln.dashboard.cobs.population] -->
 <!-- r[verify kiln.dashboard.cobs.population.scenario.import] -->
-The [retained signed-population observation](../.cairn/changes/show-local-run-time-check-cobs/evidence/verification.json)
+The [retained signed-population observation](../.cairn/archive/1970-01-01-show-local-run-time-check-cobs/evidence/verification.json)
 under `cob_population` records fourteen imports with the existing operator
 identity, one new namespaced ref per object, and duplicate-import refusal.
 Pre-existing refs, HEAD, packed refs and store configuration were unchanged.
@@ -1870,7 +1872,7 @@ historical evidence, not authority to import again or proof about newer changes.
 
 
 Inspect the candidate-bound local outcomes in
-`.cairn/changes/add-onix-cob-dashboard/evidence/verification.json`; the commands
+`.cairn/archive/1970-01-01-add-onix-cob-dashboard/evidence/verification.json`; the commands
 and procedure above are repeatability instructions, not a claim that a new
 candidate has passed them.
 
@@ -2125,11 +2127,11 @@ proxy with the web service. Verify all three units, the unchanged Lattice PID,
 CA-verified HTTPS health, exact served asset identities, unchanged unrelated
 profile elements, and preservation of the original runs and retained files.
 Exercise the served browser without asset overrides. The
-[2026-10-28 deployment receipt](../.cairn/changes/improve-lattice-rendering/evidence/deployment.json)
+[2026-10-28 deployment receipt](../.cairn/archive/1970-01-01-improve-lattice-rendering/evidence/deployment.json)
 binds the published code, package, source acquisitions, rollback and live checks;
 it does not waive lifecycle or release holds.
 
-The later [signed-work deployment receipt](../.cairn/changes/add-cob-workspace/evidence/deployment.json)
+The later [signed-work deployment receipt](../.cairn/archive/1970-01-01-add-cob-workspace/evidence/deployment.json)
 records separately approved work-store/key provisioning and the `work.conf`
 user-unit drop-in. When rolling back to an executable without `--work`, first
 move that drop-in into the private rollback directory and reload the user daemon;
@@ -2138,7 +2140,7 @@ and signing seed together; do not delete work history or rewind CI state.
 Original run fields remain preserved across this upgrade; the new response adds
 an empty `step_telemetry` array for histories without recorded step observations.
 
-The [workspace navigation deployment receipt](../.cairn/changes/repair-workspace-product-navigation/evidence/deployment.json)
+The [workspace navigation deployment receipt](../.cairn/archive/1970-01-01-repair-workspace-product-navigation/evidence/deployment.json)
 binds the subsequent issue-first navigation repair to its published source,
 running package and served asset identities. It records desktop and 320px mobile
 browser checks without asset overrides, preserved runs and retained files, and
@@ -2307,7 +2309,7 @@ credential provisioning and worker isolation remain operator responsibilities.
   Completed nor a green badge grants CI, gate, review or release authority.
   Clearing the session clears all private workflow views. Kiln dashboard
   maintainers own this browser presentation; Lattice retains execution semantics.
-  See [bounded rendering evidence](../.cairn/changes/improve-lattice-rendering/evidence/verification.json).
+  See [bounded rendering evidence](../.cairn/archive/1970-01-01-improve-lattice-rendering/evidence/verification.json).
 - **Rerun exact revision** creates a new source-bound attempt at the selected
   immutable revision. **Run latest admitted reference** resolves the current
   reviewed reference into a new candidate. **Retry known failed nodes** selects
@@ -2367,7 +2369,7 @@ development shell. For runtime evidence, enroll an isolated project, observe a
 real active and queued run, then terminal release; inspect Workers on desktop
 and mobile, restore its URL, follow the exact run and clear the session.
 Candidate-local observations are retained under
-`.cairn/changes/add-dashboard-workers-view/evidence/`; they grant no deployment,
+`.cairn/archive/1970-01-01-add-dashboard-workers-view/evidence/`; they grant no deployment,
 release or lifecycle acceptance authority.
 
 #### Registered automation
@@ -2400,11 +2402,11 @@ reviewed profiles, credentials and host activation. Existing profiles omit the
 new fields when unused; installing a new worker command still requires its exact
 reviewed workflow operation, not an edit to retained identities.
 
-The [corrected native developer-loop receipt](../.cairn/changes/complete-internal-developer-loop/evidence/native-07/verification.json)
+The [corrected native developer-loop receipt](../.cairn/archive/1970-01-01-complete-internal-developer-loop/evidence/native-07/verification.json)
 records an actual four-node branching workflow, five measured steps, partial
 failure, isolated cancellation/recovery, expiring worker observations, verified
 cross-worker cache reuse, and committed/dirty CLI execution. The preceding
-[viewer-browser receipt](../.cairn/changes/complete-internal-developer-loop/evidence/native-06/verification.json)
+[viewer-browser receipt](../.cairn/archive/1970-01-01-complete-internal-developer-loop/evidence/native-06/verification.json)
 retains desktop (1440px) and mobile (390px) observations and screenshots. Both
 trials retired all disposable processes, credentials and scratch. They used two
 worker processes/work roots on one host, not two physical hosts. The corrected
@@ -2425,7 +2427,7 @@ It includes the selected pending deltas and owned browser sources; it does not
 change accepted-only release defaults or accept any change. Unknown anchors
 still fail its negative control. Signed-population and installed-project links
 point to the scoped retained observations above, not procedures marked as
-implementation. See the [qualification results](../.cairn/changes/complete-internal-developer-loop/evidence/qualification.json).
+implementation. See the [qualification results](../.cairn/archive/1970-01-01-complete-internal-developer-loop/evidence/qualification.json).
 No lifecycle acceptance, production activation or release-readiness claim follows.
 
 #### Pipeline measurements and worker capacity
@@ -2550,21 +2552,21 @@ Long activity identities wrap within record cards on narrow displays.
 
 The complete-dashboard observations, including retained failures and corrected
 deep-link/mobile browser checks, are under
-`.cairn/changes/complete-live-dashboard/evidence/`. Their immediate consumer is
+`.cairn/archive/1970-01-01-complete-live-dashboard/evidence/`. Their immediate consumer is
 Kiln self-CI; dashboard/service maintainers own the reusable rail and operators
 own host activation and separately admitted access/automation policies.
 
-The separate [local activation receipt](../.cairn/changes/complete-live-dashboard/evidence/deployment.json)
+The separate [local activation receipt](../.cairn/archive/1970-01-01-complete-live-dashboard/evidence/deployment.json)
 records the supervised tailnet deployment, genuine tokenless operator identity,
 log-follow cursor progression, byte/hash-verified retained-log download and
 desktop/mobile observations. Original profiles, all four retained runs, eight
 retained log members and unrelated tailnet routes were preserved. The listener
 continues to use the original private deployment CA; clients must trust it.
-The [live-response diagnostic](../.cairn/changes/complete-live-dashboard/evidence/live-completion-diagnostic.json)
+The [live-response diagnostic](../.cairn/archive/1970-01-01-complete-live-dashboard/evidence/live-completion-diagnostic.json)
 retains Chromium cancellation events alongside completed finite snapshot and
 heartbeat readback; it does not claim an empty browser diagnostics log.
 
-The [verification record](../.cairn/changes/complete-live-dashboard/evidence/verification.json)
+The [verification record](../.cairn/archive/1970-01-01-complete-live-dashboard/evidence/verification.json)
 retains the broader Radicle mutation timeout failure and nine dangling
 traceability IDs. Those failures remain release holds, not waived checks.
 

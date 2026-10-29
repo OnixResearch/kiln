@@ -21,6 +21,7 @@ pub struct NetworkProfile {
     pub relay_urls: Vec<String>,
 }
 impl NetworkProfile {
+    // r[impl kiln.hosted.iroh]
     pub fn admit(&self) -> Result<(), String> {
         if !self.key_file.is_absolute() || self.relay_urls.len() > 8 {
             return Err("network profile rejected".into());
@@ -218,6 +219,7 @@ pub async fn call(
     .map_err(|_| "customer exchange timed out; recover the same request identity".to_owned())?
 }
 
+// r[impl kiln.hosted.iroh]
 pub async fn serve(
     endpoint: Endpoint,
     service: Arc<Mutex<crate::service::Service>>,

@@ -110,6 +110,7 @@ const ACL_MASK: u16 = 0x10;
 const ACL_OTHER: u16 = 0x20;
 const ACL_READ: u16 = 0x04;
 
+// r[impl kiln.web.deploy.runtime]
 fn private_access(file: &File, metadata: &fs::Metadata) -> bool {
     let uid = geteuid().as_raw();
     let mode = metadata.mode() & 0o7777;
@@ -208,6 +209,7 @@ mod tests {
         bytes
     }
 
+    // r[verify kiln.web.deploy.runtime.scenario.denied]
     #[test]
     fn private_acl_grants_only_root_and_the_exact_service_identity() {
         let service_uid = 41001;

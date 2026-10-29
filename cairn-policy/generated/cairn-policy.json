@@ -5713,6 +5713,36 @@
           },
           {
             "extensions": [
+              "md"
+            ],
+            "root": "docs/observation-dashboard.md",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": "docs/operator.md",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "js",
+              "css",
+              "html"
+            ],
+            "root": "crates",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "rs"
+            ],
+            "root": "web/dashboard-index/src",
+            "source_kind": "rust_source"
+          },
+          {
+            "extensions": [
               "rs",
               "ncl"
             ],

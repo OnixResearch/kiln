@@ -51,6 +51,7 @@ mod admission;
 #[path = "server/notify.rs"]
 mod notify;
 
+// r[impl kiln.web.deploy.runtime]
 /// Admit startup inputs without creating state, binding listeners or contacting providers.
 pub fn check(path: &Path) -> Result<(), String> {
     check_with_options(path, &Options::default())
@@ -208,6 +209,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         work: &work,
         code_review: &code_review,
     };
+    // r[impl kiln.web.deploy.runtime] Readiness follows TLS, listener and canonical state initialization.
     notify::ready()?;
     std::thread::scope(|scope| -> Result<(), String> {
         let stop_ref = &stop;
@@ -294,6 +296,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     }
 }
 
+// r[impl kiln.web.network.boundaries]
 /// Private nginx auth_request endpoint. Its credential is never returned to a browser.
 /// The trusted nginx caller must overwrite X-Kiln-Peer from the TCP peer socket.
 pub fn proxy_auth(path: &Path) -> Result<(), String> {
@@ -583,6 +586,7 @@ fn read_request<R: BufRead>(
     Ok(request)
 }
 
+// r[impl kiln.web.authentication]
 fn route(request: Request, context: &Context<'_>) -> ApiResponse {
     let principal = context.credentials.authenticate_request(
         header(&request, "authorization"),
@@ -785,6 +789,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-evidence.js"),
             ),
+            // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
             "/catalog.css" => (
                 "text/css; charset=utf-8",
@@ -836,6 +841,7 @@ fn json_content(request: &Request) -> bool {
     )
 }
 
+// r[impl kiln.web.authentication] r[impl kiln.web.network.boundaries]
 fn api_admission(
     request: &Request,
     origin: &str,
@@ -945,6 +951,7 @@ mod tests {
         read_request(&mut std::io::Cursor::new(bytes), 1024, 16)
     }
 
+    // r[verify kiln.web.authentication.scenario.denied]
     #[test]
     fn framing_accepts_one_bounded_json_request_and_rejects_ambiguous_bodies() {
         let request = parse(b"POST /api/projects HTTP/1.1\r\nHost: localhost:8443\r\nContent-Length: 2\r\nContent-Type: application/json\r\n\r\n{}").unwrap_or_else(|_| unreachable!());
@@ -976,6 +983,8 @@ mod tests {
         );
     }
 
+    // r[verify kiln.web.authentication.scenario.operator] r[verify kiln.web.authentication.scenario.denied]
+    // r[verify kiln.web.network.boundaries]
     #[test]
     fn viewer_reads_but_never_mutates_and_writes_require_exact_origin() {
         let viewer = Principal {

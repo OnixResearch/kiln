@@ -460,6 +460,7 @@ impl Service {
                     return Err("operator secret policy unavailable".into());
                 }
                 let (module, action) = request.action.split_once('.').ok_or("action rejected")?;
+                // r[impl kiln.hosted.qualification]
                 if module == "system" && action == "info" {
                     return Ok(
                         json!({"schema":SCHEMA,"service_id":self.profile.service_id,"peer":actor.peer,"organization":actor.organization,"role":actor.role,"connection":"iroh","alpn":"kiln.customer.v1","modules":["accounts","connections","finance","pipelines","execution","fleet","secrets","operations"],"production_ready":false}),

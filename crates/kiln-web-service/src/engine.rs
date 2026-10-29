@@ -151,6 +151,7 @@ impl Engine {
         self.dispatch_queued()?;
         self.tick_automation()
     }
+    // r[impl kiln.web.lifecycle]
     fn refresh(&mut self, id: &str) -> Result<(), String> {
         let record = self.state.runs.get(id).ok_or("run missing")?;
         if record.outcome().is_terminal() || record.phase == "queued" {
@@ -192,6 +193,8 @@ impl Engine {
         run.error_code = Some(code.into());
         self.persist()
     }
+    // r[impl kiln.web.deploy.cancellation] r[impl kiln.web.deploy.cancellation.scenario.race]
+    // Outcomes come only from admitted observations; cancellation intent never rewrites completion.
     fn accept(
         &mut self,
         id: &str,

@@ -124,6 +124,7 @@ impl Engine {
         )
         .map_err(|_| "native request encoding failed".into())
     }
+    // r[impl kiln.web.lifecycle] r[impl kiln.web.lifecycle.scenario.replay]
     pub(super) fn request_replay(
         &self,
         key: &str,
@@ -276,6 +277,7 @@ impl Engine {
                 run_route,
                 Some((_, Some("cache"), Some("restore" | "publish")))
             );
+        // r[impl kiln.web.authentication]
         if role == Role::Worker
             && !worker_lookup
             && !artifact_upload
@@ -314,6 +316,7 @@ impl Engine {
             let enrolled:Vec<Value>=self.profile.projects.iter().filter(|p|self.state.enrolled.contains(&p.id)).map(|p|Ok(json!({"id":p.id,"label":p.label,"repository":p.repository_path,"reference":p.reference,"pipeline_identity":identity(&p.workflow)?}))).collect::<Result<_,String>>()?;
             return json_response(200, json!({"available":available,"enrolled":enrolled}));
         }
+        // r[impl kiln.web.enrollment]
         if method == "POST" && path == "/api/projects" && params.is_empty() {
             let req: ProjectRequest = match serde_json::from_slice(body) {
                 Ok(v) => v,
@@ -417,6 +420,7 @@ impl Engine {
         }
         error(404, "route_missing")
     }
+    // r[impl kiln.web.controls]
     fn control(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
         let queued_action = serde_json::from_slice::<Value>(body).ok().is_some_and(|v| {
             v.get("attempt_id").is_none()
@@ -503,6 +507,7 @@ impl Engine {
                 .map_err(|_| "run view encoding failed")?,
         )
     }
+    // r[impl kiln.web.worker]
     fn logs(&mut self, id: &str, params: &BTreeMap<&str, &str>) -> Result<ApiResponse, String> {
         if !(params.len() == 4 || params.len() == 5 && params.contains_key("q"))
             || params

@@ -148,6 +148,7 @@ impl ProjectProfile {
 }
 
 impl ServiceProfile {
+    // r[impl kiln.web.enrollment]
     pub fn load(path: &Path) -> Result<Self, String> {
         let file = std::fs::File::open(path).map_err(|_| "profile cannot be opened")?;
         let mut bytes = Vec::new();

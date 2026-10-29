@@ -518,6 +518,7 @@ fn reference(
     Ok((resolver, u64::try_from(expires).map_err(|_| DENIED)?))
 }
 
+// r[impl kiln.hosted.secrets]
 /// One private delivery per admitted job/name. Reserve before resolver process;
 /// failed/uncertain delivery is not retried, and no value is persisted.
 pub fn resolve_for_job(
@@ -577,6 +578,7 @@ pub fn resolve_for_job(
     })
 }
 
+// r[impl kiln.hosted.secrets]
 /// Consume the executor-issued capability once, durably before returning a JWT.
 pub fn exchange(
     db: &mut Connection,
@@ -638,6 +640,7 @@ pub fn exchange(
     Ok(WorkloadToken(Zeroizing::new(token)))
 }
 
+// r[impl kiln.hosted.secrets]
 fn verify(db: &Connection, token: &str, audience: &str, now_ms: u64) -> Result<Claims> {
     if token.len() > MAX_TOKEN_BYTES {
         return Err(DENIED.into());
@@ -790,6 +793,7 @@ mod tests {
         }
     }
 
+    // r[verify kiln.hosted.secrets.scenario.denial]
     #[test]
     fn jwt_is_interoperable_scoped_expiring_and_consume_once() {
         let mut f = Fixture::new();
@@ -861,6 +865,7 @@ mod tests {
         assert!(verify_token(&f.db, token.as_str(), &audience, NOW).is_err());
     }
 
+    // r[verify kiln.hosted.secrets.scenario.denial]
     #[test]
     fn job_completion_revokes_tokens_capabilities_and_reentry() {
         let mut f = Fixture::new();
@@ -949,6 +954,7 @@ mod tests {
         assert!(begin_job(&mut f.db, &stale, NOW).is_err());
     }
 
+    // r[verify kiln.hosted.secrets.scenario.denial]
     #[test]
     fn reference_rotation_and_expiry_deny_old_and_expired_grants() {
         let mut f = Fixture::new();
@@ -1007,6 +1013,7 @@ mod tests {
         assert!(signing_key(&alias).is_err());
     }
 
+    // r[verify kiln.hosted.secrets.scenario.denial]
     #[test]
     fn customer_rpc_has_no_mint_or_secret_access_and_current_project_scopes_hold() {
         let mut f = Fixture::new();

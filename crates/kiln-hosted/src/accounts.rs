@@ -100,6 +100,7 @@ pub fn bootstrap(db: &mut Connection, peer: &str, org: &str) -> Result<(), Strin
     tx.commit().map_err(storage)
 }
 
+// r[impl kiln.hosted.accounts]
 pub fn authorize(db: &Connection, peer: &str, organization: &str) -> Result<Actor, String> {
     if !peer_valid(peer) || !crate::identifier(organization) {
         return Err("membership denied".into());
@@ -250,6 +251,7 @@ pub fn accept_invitation(
     Ok(json!({"peer":peer,"organization":org,"role":role,"revision":revision}))
 }
 
+// r[impl kiln.hosted.accounts]
 pub fn handle(
     db: &mut Connection,
     actor: &Actor,
@@ -432,6 +434,7 @@ mod tests {
     fn invite(db: &mut Connection, owner: &Actor, peer: &str, nonce: &str) -> Value {
         handle(db,owner,"invite",json!({"peer":peer,"role":"member","projects":["app"],"expires_at_ms":5000,"nonce":nonce}),1000).unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}")).get("invitation").unwrap_or(&Value::Null).clone()
     }
+    // r[verify kiln.hosted.accounts.scenario.membership]
     #[test]
     fn intended_peer_once_scope_and_revocation() {
         let (mut db, owner, peer) = setup();
@@ -494,6 +497,7 @@ mod tests {
             .is_err()
         );
     }
+    // r[verify kiln.hosted.accounts.scenario.membership]
     #[test]
     fn final_owner_expiry_and_bootstrap_pin() {
         let (mut db, owner, peer) = setup();
@@ -563,6 +567,7 @@ mod tests {
             .is_err()
         );
     }
+    // r[verify kiln.hosted.accounts.scenario.membership]
     #[test]
     fn ownership_transfer_does_not_rebootstrap_revoked_peer() {
         let (mut db, owner, peer) = setup();

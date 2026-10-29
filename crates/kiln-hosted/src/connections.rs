@@ -422,6 +422,7 @@ struct Delivery<'a> {
     body: &'a [u8],
 }
 
+// r[impl kiln.hosted.connections]
 /// Native webhook ingress: no customer peer is asserted. Exact signature, repository,
 /// live generation and pinned operator profile establish source-event authority.
 pub fn ingest(
@@ -746,6 +747,7 @@ pub fn status(
     )
 }
 
+// r[impl kiln.hosted.connections]
 pub fn handle(
     db: &mut Connection,
     actor: &Actor,
@@ -1087,6 +1089,7 @@ mod tests {
             signature: format!("sha256={signature}"),
         }
     }
+    // r[verify kiln.hosted.connections.scenario.revoke]
     #[test]
     fn signed_ingress_replay_signature_repository_and_scope() {
         let mut f = fixture();
@@ -1141,6 +1144,7 @@ mod tests {
             .is_err()
         );
     }
+    // r[verify kiln.hosted.connections.scenario.revoke]
     #[test]
     fn disconnect_generations_preserve_replay_and_namespace() {
         let mut f = fixture();
@@ -1190,6 +1194,7 @@ mod tests {
         assert!(original.config.replay_database_path.exists());
         assert!(handle(&mut f.db,&f.actor,"connect",json!({"project":"app","connection":"origin","repository_id":1296269,"owner":"octocat","name":"hello-world","profile_blake3":f.digest,"expected_revision":1}),1).is_err());
     }
+    // r[verify kiln.hosted.connections.scenario.revoke]
     #[test]
     fn profile_drift_deactivation_and_restart_fail_closed() {
         let mut f = fixture();
@@ -1251,6 +1256,7 @@ mod tests {
             f.digest
         );
     }
+    // r[verify kiln.hosted.connections.scenario.revoke]
     #[test]
     fn revoked_relay_peer_and_cross_project_access_fail_before_native_admission() {
         let mut f = fixture();

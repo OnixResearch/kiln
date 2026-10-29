@@ -356,6 +356,7 @@ fn matrix_rows(matrix: &BTreeMap<String, Vec<String>>, path: &str) -> Result<Vec
     Ok(rows)
 }
 
+// r[impl kiln.hosted.pipelines]
 /// Pure bounded compiler. Identity is BLAKE3 over the exact compact JSON plan
 /// with an empty identity field; schema supplies domain separation. It binds
 /// commands, runner labels, dependency expansion, env, triggers and deadlines.
@@ -717,6 +718,7 @@ fn trigger(value: &str, path: &str) -> Result<Trigger, String> {
     }
 }
 
+// r[impl kiln.hosted.pipelines]
 /// Fail-closed GitHub Actions shell-job importer. All jobs run only after all
 /// needs succeed; matrix needs expand to every dependency variant. Bash uses
 /// --noprofile --norc -e -o pipefail; sh uses -e. Runner labels and triggers are
@@ -1160,6 +1162,7 @@ mod tests {
         some(job.steps.get(index))
     }
 
+    // r[verify kiln.hosted.pipelines.scenario.compile]
     #[test]
     fn deterministic_templates_matrix_and_dependency_semantics() {
         let config = fixture();
@@ -1178,6 +1181,7 @@ mod tests {
             .insert("message".into(), "changed".into());
         assert_ne!(first.identity, ok(compile(&changed)).identity);
     }
+    // r[verify kiln.hosted.pipelines.scenario.compile]
     #[test]
     fn cycle_overflow_missing_template_and_unknown_fields_fail() {
         let mut config = fixture();
@@ -1199,6 +1203,7 @@ mod tests {
             assert!(error(compile_value(config)).contains("unknown field"));
         }
     }
+    // r[verify kiln.hosted.pipelines.scenario.compile]
     #[test]
     fn deadline_path_environment_and_expression_bounds_fail_closed() {
         let mut config = fixture();
@@ -1258,6 +1263,7 @@ mod tests {
         );
         assert_eq!(migrated.compiled, ok(compile(&migrated.pipeline)));
     }
+    // r[verify kiln.hosted.pipelines.scenario.compile]
     #[test]
     fn unsupported_actions_features_fail_with_paths() {
         for (input, path) in [

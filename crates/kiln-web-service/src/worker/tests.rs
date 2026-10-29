@@ -269,6 +269,7 @@ fn old_missing_and_malformed_profiles_are_rejected_before_source_effects() {
     }
 }
 
+// r[verify kiln.web.worker.scenario.logs]
 #[test]
 fn exact_commit_runs_reviewed_command_and_produces_actual_artifact_not_mutable_worktree() {
     let (_root, profile, context) = fixture();
@@ -312,6 +313,7 @@ fn exact_commit_runs_reviewed_command_and_produces_actual_artifact_not_mutable_w
     assert!(!profile.repository_path.join("product.txt").exists());
 }
 
+// r[verify kiln.web.worker.scenario.denied]
 // r[verify kiln.web.remote_workers.source.scenario.denied]
 #[test]
 fn wrong_source_context_and_snapshot_overflow_never_materialize() {
@@ -351,6 +353,7 @@ fn wrong_source_context_and_snapshot_overflow_never_materialize() {
     );
 }
 
+// r[verify kiln.web.worker.scenario.denied]
 #[test]
 fn symlink_source_is_rejected_instead_of_following_outside_checkout() {
     let (_root, profile, mut context) = fixture();
@@ -386,6 +389,7 @@ fn symlink_source_is_rejected_instead_of_following_outside_checkout() {
     );
 }
 
+// r[verify kiln.web.worker.scenario.denied]
 #[test]
 fn child_environment_is_explicit_and_failure_deadline_and_cancellation_are_not_success() {
     let (_root, mut profile, context) = fixture();
@@ -481,6 +485,7 @@ fn live_log_budget_accounts_each_ingress_chunk_and_rejected_reservations_are_ato
     assert!(progress.reserve(&bounds, 0).is_err());
 }
 
+// r[verify kiln.web.artifacts.scenario.denied]
 #[test]
 fn real_artifacts_admit_regular_bytes_and_reject_escape_symlink_hardlink_fifo_and_bounds() {
     let (root, profile, context) = fixture();
@@ -520,6 +525,7 @@ fn real_artifacts_admit_regular_bytes_and_reject_escape_symlink_hardlink_fifo_an
     assert!(files::artifact(&prepared.checkout, std::path::Path::new("fifo"), 100).is_err());
 }
 
+// r[verify kiln.web.worker.scenario.denied]
 #[test]
 fn source_attempt_execution_and_node_bindings_are_all_required() {
     let (_root, mut profile, context) = fixture();
@@ -697,6 +703,7 @@ fn worker_credential_reads_owned_private_regular_file_only() {
     assert!(files::regular(&profile.token_file, 64, true).is_err());
 }
 
+// r[verify kiln.web.deploy.cancellation.scenario.cancel] r[verify kiln.web.worker.scenario.denied]
 #[test]
 fn in_flight_cancellation_stops_owned_command_and_preserves_cancelled_exit() {
     let (_root, mut profile, context) = fixture();
@@ -736,6 +743,7 @@ fn in_flight_cancellation_stops_owned_command_and_preserves_cancelled_exit() {
     });
 }
 
+// r[verify kiln.web.worker.scenario.logs]
 #[test]
 fn output_is_ingressed_before_exit_and_each_retained_byte_is_uploaded_once() {
     let (_root, mut profile, context) = fixture();

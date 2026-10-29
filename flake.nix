@@ -200,6 +200,7 @@
           ];
           cargoTestFlags = [ "--workspace" ];
         };
+      # r[impl kiln.web.deploy.install]
       webServicePackageFor =
         system:
         (packageFor system).overrideAttrs (_: {
@@ -399,6 +400,7 @@
         };
     in
     {
+      # r[impl kiln.web.deploy.install]
       onixModules.kiln-web-service = {
         file = ./deployment/onixos-module.ncl;
       };
@@ -597,6 +599,9 @@
           boundaries = package;
           runtime-independence = package;
           dashboard-index-assets = dashboardIndexPackageFor system;
+          # r[verify kiln.web.deploy.install.scenario.install] r[verify kiln.web.deploy.install.scenario.denied]
+          # r[verify kiln.web.deploy.runtime.scenario.ready] r[verify kiln.web.deploy.runtime.scenario.denied]
+          # r[impl kiln.web.deploy.evidence]
           web-service-deployment = import ./checks/web-service-deployment.nix {
             inherit pkgs;
             package = webServicePackageFor system;

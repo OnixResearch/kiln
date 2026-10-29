@@ -310,7 +310,7 @@ checks the actual wasm32 code with Clippy, and formats only Kiln-owned browser
 source. It deliberately leaves pristine imported widget source unchanged.
 
 Kiln dashboard maintainers own the browser shell, asset lock and repeatability
-rail; Subwayrat owns the widget. [The retained integration evidence](../.cairn/changes/use-rats-browser-index/evidence/verification.json)
+rail; Subwayrat owns the widget. [The retained integration evidence](../.cairn/archive/1970-01-01-use-rats-browser-index/evidence/verification.json)
 covers the exercised offline Chromium inputs, not arbitrary Rats widgets, CI
 success, deployment or release eligibility. Independent Patchgate holds remain.
 <!-- r[impl kiln.dashboard.rats.claims] -->
@@ -723,7 +723,7 @@ cleanup. Stopping the dedicated canary retires its CI processes and credentials,
 not the read-only dashboard timer. The timer does not provision a continuously
 running production CI controller or make retained observations fresh again.
 
-The [operated fresh proof](../.cairn/changes/operate-dashboard-live/evidence/fresh-publication.json)
+The [operated fresh proof](../.cairn/archive/1970-01-01-operate-dashboard-live/evidence/fresh-publication.json)
 binds the dedicated fork's exact success, genuine compile failure and unresolved
 provider-unavailable histories to the Aspen3 report. Publisher restart preserved
 all canonical journal bytes; credential-free replay of the retained inputs

@@ -33,6 +33,7 @@ impl TokenVerifier {
     }
 }
 
+// r[impl kiln.web.authentication]
 pub(crate) struct Credentials {
     operator: TokenVerifier,
     worker: TokenVerifier,
@@ -149,6 +150,7 @@ fn token(candidate: &str) -> bool {
 mod tests {
     use super::*;
 
+    // r[verify kiln.web.authentication.scenario.operator] r[verify kiln.web.authentication.scenario.denied]
     #[test]
     fn bearer_roles_cannot_be_substituted_or_partially_matched() {
         let operator = "a".repeat(64);
@@ -191,6 +193,7 @@ mod tests {
         assert!(credentials.authenticate(Some("Bearer a")).is_none());
     }
 
+    // r[verify kiln.web.network.boundaries]
     #[test]
     fn proxy_identity_requires_distinct_credential_and_explicit_binding() {
         let secret = "c".repeat(64);

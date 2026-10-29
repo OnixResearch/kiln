@@ -55,6 +55,7 @@ def put(path, value):
 # r[verify kiln.web.developer_loop.cache]
 # r[verify kiln.web.developer_loop.cli]
 # r[impl kiln.web.remote_workers.transport.scenario.native] r[verify kiln.web.remote_workers.transport.scenario.native]
+# r[impl kiln.web.evidence] r[impl kiln.web.deploy.evidence]
 class Exercise:
     def __init__(self, args):
         self.args = args
@@ -76,6 +77,7 @@ class Exercise:
             (self.root / name).mkdir(mode=0o700)
         self.env = {"HOME": str(self.root / "home"), "XDG_CONFIG_HOME": str(self.root / "home/config"), "XDG_CACHE_HOME": str(self.root / "home/cache"), "LANG": "C.UTF-8", "PATH": os.environ["PATH"], "TMPDIR": str(self.root / "lattice-tmp")}
         self.processes = []
+        # r[verify kiln.web.evidence.scenario.scope]
         self.report = {"schema": "kiln.web-service.native-exercise.v1", "transport": "iroh" if args.iroh else "local", "checks": {}, "non_claims": ["isolated local evidence is not production deployment", "loopback Iroh does not prove WAN or relay availability or distinct-host deployment", "adapter labels do not implement per-node placement or mixed-host scheduling", "bounds are not hostile code confinement", "worker artifacts are declarations, not semantic product proofs", "no source trust, release eligibility or lifecycle acceptance"]}
         self.operator = os.urandom(32).hex()
         self.worker = os.urandom(32).hex()
@@ -833,6 +835,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
 
     def execute(self):
         self.prepare()
+        # r[verify kiln.web.authentication.scenario.operator] r[verify kiln.web.authentication.scenario.denied]
         self.api("GET", "/api/projects", token="0" * 64, expected=(401,))
         self.api("POST", "/api/projects", {"project_id": "success", "request_id": "worker-cannot-enroll"}, token=self.worker, expected=(403,))
         self.api("POST", "/api/projects", {"project_id": "success", "request_id": "wrong-origin"}, origin="https://not-registered.invalid", expected=(403,))
@@ -847,10 +850,12 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
                     raise AssertionError("service admitted TLS below 1.3")
         except ssl.SSLError:
             self.report["checks"]["tls"] = "TLS1.3 succeeded; TLS1.2 rejected"
+        # r[verify kiln.web.enrollment.scenario.denied]
         self.api("POST", "/api/runs", {"project_id": "not-installed", "request_id": "unknown-project"}, expected=(400, 404))
         self.enroll("success")
         self.start_heartbeat()
         initial_capacity = self.wait(lambda: self.worker_capacity("online", active=0), "fresh observed worker capacity")
+        # r[verify kiln.web.enrollment.scenario.source] r[verify kiln.web.lifecycle.scenario.replay]
         request = {"project_id": "success", "request_id": "native-success"}
         run = self.api("POST", "/api/runs", request)
         assert self.api("POST", "/api/runs", request)["id"] == run["id"]
@@ -860,6 +865,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         assert success["outcome"] == "Success" and success["source_revision"] == self.revision, success
         free_capacity = self.wait(lambda: self.worker_capacity("online", active=0), "real worker ledger releases job slots")
         self.report["checks"]["worker_capacity"] = {"available":initial_capacity,"busy":busy_capacity,"released":free_capacity}
+        # r[verify kiln.web.worker.scenario.logs]
         logs = self.captured_log(run["id"], "stdout")
         assert "actual artifact bytes: exact-source-artifact-v1" in logs["text"], logs
         assert "actual isolated host credential and service network denied" in logs["text"], logs
@@ -870,6 +876,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         assert empty["text"] == "" and empty["next_cursor"] == 0 and empty["retained"] is True, empty
         diagnostic = self.api("GET", f'/api/runs/{run["id"]}/logs?node_id=build&stream=diagnostic&cursor=0&max_bytes={LOG_CHUNK_BYTES}')
         assert diagnostic["source"] == "native-provider" and diagnostic["text"] == "completed\n", diagnostic
+        # r[verify kiln.web.artifacts.scenario.download]
         artifacts = self.api("GET", f'/api/runs/{run["id"]}/artifacts')["artifacts"]
         artifact = next(artifact for artifact in artifacts if artifact["name"] == "artifact.txt")
         downloaded = self.api("GET", artifact["download_path"])
@@ -908,6 +915,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         assert queued["phase"] == "queued" and queued["execution"] is None, queued
         queue = self.api("GET", "/api/operations")["queue"]
         assert any(row["run_id"] == queued["id"] and row["position"] == 1 for row in queue), queue
+        # r[verify kiln.web.lifecycle.scenario.restart]
         invocation_count = len((self.root / "invocations.log").read_text().splitlines())
         # Stop observation before planned transport maintenance. A live lost
         # exchange correctly retains canonical Unknown, not a fresh Pending run.
@@ -929,6 +937,8 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         if self.args.iroh:
             assert restored["phase"] == "active" and restored["outcome"] == "Pending" and restored["controls"]["cancel"], restored
             self.report["checks"]["bridge_restart"] = {"run": restored, "invocations_before": invocation_count, "invocations_after": invocation_count, "worker_and_proxy_restarted": True, "controller_stopped_during_restart": True}
+        # r[verify kiln.web.controls.scenario.denied] r[verify kiln.web.controls.scenario.cancel]
+        # r[verify kiln.web.deploy.cancellation.scenario.cancel]
         control = {"request_id": "cancel-exact", "attempt_id": restored["attempt_id"], "expected_revision": restored["revision"], "expected_sequence": restored["sequence"], "execution": restored["execution"], "action": "cancel"}
         self.api("POST", f'/api/runs/{slow["id"]}/control', {**control, "request_id": "stale", "expected_revision": restored["revision"] + 1}, expected=(409,))
         self.api("POST", f'/api/runs/{slow["id"]}/control', {**control, "request_id": "unsupported", "action": "pause"}, expected=(409,))
@@ -938,6 +948,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         self.api("POST", f'/api/runs/{slow["id"]}/control', control)
         cancelled = self.terminal(slow)
         self.report["checks"].update(authentication="invalid token and worker control-plane role rejected", replay="same request returns same run; changed request conflicts", restart={"execution_preserved": True, "invocations_before": invocation_count, "invocations_after": len((self.root / "invocations.log").read_text().splitlines())}, cancellation=cancelled, stale_control="rejected", unsupported_control="rejected")
+        # r[impl kiln.web.deploy.cancellation] Retain the strict producer Cancelled assertion.
         assert cancelled["outcome"] == "Cancelled", cancelled
         assert self.api("GET", f'/api/runs/{slow["id"]}/artifacts')["artifacts"] == [], "cancelled work published an artifact"
         def advanced():
@@ -976,6 +987,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait(timeout=5)
                     failures.append("forced process termination")
+        # r[verify kiln.web.evidence.scenario.runtime] r[verify kiln.web.deploy.evidence.scenario.repeat]
         secrets = ("operator.token", "worker.token", "viewer.token", "trigger.token", "notification.token", "work.seed", "key.pem", "ca-key.pem", "iroh-worker.key", "iroh-proxy.key")
         for name in secrets:
             (self.root / name).unlink(missing_ok=True)
@@ -1005,6 +1017,7 @@ def main():
     exercise = Exercise(args)
     try:
         exercise.execute()
+    # r[impl kiln.web.deploy.evidence.scenario.failure] Failure stays explicit; no passing verdict is recorded.
     except BaseException as error:
         exercise.report["failure"] = {"kind": type(error).__name__, "diagnostic": str(error)}
         exercise.record_failure_diagnostics()

@@ -101,6 +101,7 @@ impl Engine {
             self.append_audit(method, target, Some(principal), "principal_invalid", 403)?;
             return error(403, "principal_invalid");
         }
+        // r[impl kiln.web.network.bootstrap]
         if method == "GET" && target == "/api/session" && body.is_empty() {
             return json_response(
                 200,

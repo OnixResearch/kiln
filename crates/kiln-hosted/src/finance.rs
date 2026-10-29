@@ -311,6 +311,7 @@ fn admit_price(db: &mut Connection, a: &crate::Actor, v: Value, now: u64) -> Res
     Ok(json!({"price_id":id,"price":p}))
 }
 
+// r[impl kiln.hosted.finance]
 /// Reserve before dispatch. Binding must contain the exact execution identities, not provider IDs.
 pub fn reserve(db: &mut Connection, a: &crate::Actor, v: Value, now: u64) -> Result<Value> {
     let attempt = text(&v, "attempt_id")?;
@@ -779,6 +780,7 @@ fn reconcile(db: &Connection, org: &str) -> Result<Value> {
     )
 }
 
+// r[impl kiln.hosted.finance]
 pub fn handle(
     db: &mut Connection,
     a: &crate::Actor,
@@ -1403,6 +1405,7 @@ mod tests {
     fn request(attempt: &str, price: &str, units: u64) -> Value {
         json!({"attempt_id":attempt,"price_id":price,"class":"linux","max_units":units,"binding":{"project":"p","pipeline":"plan","job":"build"}})
     }
+    // r[verify kiln.hosted.finance.scenario.cap]
     #[test]
     fn exact_reservation_unknown_restart_and_cap() {
         let file = tempfile::NamedTempFile::new()
@@ -1504,6 +1507,7 @@ mod tests {
             0
         );
     }
+    // r[verify kiln.hosted.finance.scenario.cap]
     #[test]
     fn authority_exact_price_invoice_credit_and_dedup() {
         let mut db = Connection::open_in_memory()
@@ -1621,6 +1625,7 @@ mod tests {
             .is_err()
         );
     }
+    // r[verify kiln.hosted.finance.scenario.cap]
     #[test]
     fn competing_connections_cannot_oversubscribe() {
         let dir = tempfile::tempdir()
@@ -1672,6 +1677,7 @@ mod tests {
             60
         );
     }
+    // r[verify kiln.hosted.qualification.scenario.nonclaims]
     #[test]
     fn sandbox_outbox_and_signed_inbox_do_not_conflate_draft_and_payment() {
         let mut db = Connection::open_in_memory()

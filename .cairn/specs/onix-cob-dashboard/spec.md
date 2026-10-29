@@ -7,14 +7,15 @@ Defines the `onix-cob-dashboard` capability.
 ## Requirements
 
 ### Requirement: Bounded native COB observations
-r[kiln.dashboard.cobs.read] Kiln MUST expose a read-only inventory and exact object history for its six registered Onix COB types from explicitly admitted local repositories, preserving native repository, type, object, ref-tip and operation identities under named bounds without substituting a Cairn reducer.
+r[kiln.dashboard.cobs.read] Kiln MUST expose a read-only inventory and exact object history for its six registered Onix COB types and three registered Radicle observation types (`xyz.radicle.issue`, `xyz.radicle.patch`, `xyz.radworks.job`) from explicitly admitted local repositories, preserving native repository, type, object, ref-tip, author, recorded-time and operation identities under named bounds without substituting a Cairn reducer.
 
 #### Scenario: Supported objects are present
 r[kiln.dashboard.cobs.read.scenario.present]
-- GIVEN local Cairn change, RFD, ADR, verification-obligation, release-decision or policy-exception COB refs
+- GIVEN local Cairn change, RFD, ADR, verification-obligation, release-decision or policy-exception COB refs, or native Radicle issue, patch or job refs
 - WHEN an admitted reader requests inventory and one exact object
-- THEN Kiln MUST preserve native identities and bounded operation/action content, including every observed ref tip
-- AND it MUST label raw history as observations rather than reduced lifecycle, signature verification or authority.
+- THEN Kiln MUST preserve native identities and bounded operation/action content, including every observed ref tip and the recorded author/time
+- AND it MUST label raw history as observations rather than reduced lifecycle, signature verification or authority
+- AND types outside the registry MUST be skipped without failing the inventory.
 
 #### Scenario: A store or cursor is unavailable
 r[kiln.dashboard.cobs.read.scenario.unavailable]
@@ -39,7 +40,7 @@ r[kiln.dashboard.cobs.authority.scenario.denied]
 - THEN Kiln MUST reject it before repository effects.
 
 ### Requirement: Integrated accessible COB view
-r[kiln.dashboard.cobs.view] The live workspace MUST provide an Onix COBs navigation view with repository/type/search filtering, stable bounded paging, exact URL-restored object selection and readable raw content/identity inspection using existing authentication and responsive shell conventions.
+r[kiln.dashboard.cobs.view] The live workspace MUST provide a COBs navigation view with repository/type/search filtering, stable bounded paging, exact URL-restored object selection and readable raw content/identity inspection using existing authentication and responsive shell conventions, showing each object's type label, title, author and browser-local recorded time.
 
 #### Scenario: A COB deep link is restored
 r[kiln.dashboard.cobs.view.scenario.restore]

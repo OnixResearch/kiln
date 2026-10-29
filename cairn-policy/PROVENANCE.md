@@ -7,20 +7,20 @@
 The Kiln profile reports declared reference coverage, not executable conformance. It includes accepted specifications, including the Aspen runtime-profile binding, paced observation, and operated combined live-CI requirements after their native Cairn sync and archive. Maintained Python operator helpers under `scripts` are `tool_source` evidence. Their marker coverage is not a substitute for the retained real-forge, worker, status, recovery, and credential-retirement observations. Operator production-evidence obligations link to explicitly scoped hosting tool documentation as `related` references, not fabricated implementation or test evidence. Source-ref publication does not approve production eligibility.
 
 `development-coverage.ncl` is an explicit development-only overlay. Its
-`kiln-active-development` profile adds selected pending delta-spec roots and
-Kiln-owned JavaScript/CSS/HTML, browser Rust and operator documentation to the
-declared reference surface. Maintain its explicit roots when the selected
-changes move through lifecycle; it is not automatic acceptance of every pending
-package. The inherited `cairn-default` remains accepted-only. `related` operator
-procedure references do not discharge implementation or executable-evidence
-obligations, so a development report may still expose genuine missing links.
+`kiln-active-development` profile adds selected pending delta-spec roots to the
+accepted profile. After the 2026-10-29 acceptance every selected change was
+archived, so its root list is empty; add a pending change's root only while it
+remains active. Kiln-owned JavaScript/CSS/HTML, browser Rust and operator
+documentation are now part of the accepted `cairn-default` evidence surface.
+`related` operator procedure references do not discharge implementation or
+executable-evidence obligations, so a report may still expose genuine missing links.
 
 Export source and destination as repository-relative paths (the bounded export
 boundary rejects absolute paths), then select the profile explicitly:
 
 ```console
-cairn policy export --source cairn-policy/development-coverage.ncl --output .cairn/changes/complete-internal-developer-loop/evidence/development-coverage-policy.json
-cairn traceability coverage --root . --policy .cairn/changes/complete-internal-developer-loop/evidence/development-coverage-policy.json --profile kiln-active-development --json
+cairn policy export --source cairn-policy/development-coverage.ncl --output target/development-coverage-policy.json
+cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json
 ```
 
 The overlay's `kiln-coverage-negative-control` profile uses only disposable

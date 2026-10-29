@@ -426,6 +426,7 @@ fn snapshot_sqlite(
     let (len, digest) = hash_file(&mut file, remaining)?;
     Ok((len, digest, schema, counts))
 }
+// r[impl kiln.hosted.operations]
 /// Caller MUST exclude all native adapter effects with its service-wide effect barrier.
 /// The primary write fence additionally excludes concurrent RPC database commits.
 pub fn backup(
@@ -618,6 +619,7 @@ fn copy_snapshot(
     fs::fsync(target).map_err(err)?;
     Ok(())
 }
+// r[impl kiln.hosted.operations]
 /// Whole-service restore onto a fresh host with the SAME explicitly trusted native replay roots.
 /// Existing database/sidecar files are never changed and native profile identities are never rewritten.
 pub fn restore(
@@ -755,6 +757,7 @@ fn profile(db: &Connection) -> Result<OperationsProfile, String> {
     validate_profile(&p)?;
     Ok(p)
 }
+// r[impl kiln.hosted.operations]
 pub fn is_held(db: &Connection, organization: &str) -> Result<bool, String> {
     let held: Option<i64> = db
         .query_row(
@@ -1105,6 +1108,7 @@ mod tests {
         configure(&db, &p).unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"));
         (tmp, p, db)
     }
+    // r[verify kiln.hosted.operations.scenario.restore]
     #[test]
     fn whole_restore_preserves_authority_unknown_obligations_and_replay() {
         let (_tmp, p, mut db) = fixture();
@@ -1288,6 +1292,7 @@ mod tests {
             270
         );
     }
+    // r[verify kiln.hosted.operations.scenario.restore]
     #[test]
     fn restore_rejects_corruption_manifest_tampering_and_wrong_service() {
         let (_tmp, p, db) = fixture();
@@ -1311,6 +1316,7 @@ mod tests {
         assert!(restore(&p, "snapshot", "corrupt", &pin).is_err());
         assert!(!p.restore_root.join("corrupt").exists());
     }
+    // r[verify kiln.hosted.operations.scenario.restore]
     #[test]
     fn held_scope_revision_and_audit_are_durable_and_attributable() {
         let (_tmp, _p, mut db) = fixture();

@@ -365,6 +365,7 @@ fn workspace(
     }
     Ok(path)
 }
+// r[impl kiln.hosted.execution]
 fn admit_backend(backend: &Backend, trust: &str) -> Result<(), String> {
     match (trust,backend) {
         ("trusted",_)=>Ok(()),
@@ -374,6 +375,7 @@ fn admit_backend(backend: &Backend, trust: &str) -> Result<(), String> {
     }
 }
 
+// r[impl kiln.hosted.execution]
 /// Real pipeline entry point. Compiled commands come only from the reviewed plan,
 /// finance reserves before the first child can start, and retries never rerun an
 /// interrupted attempt. Parallel-ready jobs are executed sequentially.
@@ -1379,6 +1381,7 @@ pub fn handle(
 #[cfg(test)]
 mod tests {
     use super::*;
+    // r[verify kiln.hosted.execution.scenario.teardown]
     #[test]
     fn cancellation_does_not_turn_uncertain_teardown_into_safe_completion() {
         assert_eq!(
@@ -1403,6 +1406,7 @@ mod tests {
         assert!(reservation_units(1, 0, 2).is_err());
         assert_eq!(reservation_units(u64::MAX, 2, u64::MAX), Ok(1_u64 << 63));
     }
+    // r[verify kiln.hosted.execution.scenario.teardown r[verify kiln.hosted.qualification.scenario.nonclaims]]
     #[test]
     fn namespaces_never_admit_hostile_jobs() {
         let e = Executable {
@@ -1424,6 +1428,7 @@ mod tests {
         );
         assert!(admit_backend(&backend, "unknown").is_err());
     }
+    // r[verify kiln.hosted.execution.scenario.teardown]
     #[test]
     fn uncertain_states_retain_capacity_until_owned_reaping() {
         let db = Connection::open_in_memory()

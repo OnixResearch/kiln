@@ -4,6 +4,7 @@ use kiln_web_service::worker::load_profile;
 
 const PROFILE: &[u8] = include_bytes!("../../../fixtures/web-worker/profile.json");
 
+// r[verify kiln.web.worker.scenario.denied]
 #[test]
 fn original_profile_bytes_are_authority_not_equivalent_reserialized_json() {
     let root = tempfile::tempdir()
@@ -23,6 +24,7 @@ fn original_profile_bytes_are_authority_not_equivalent_reserialized_json() {
     assert!(load_profile(&path, &identity).is_err());
 }
 
+// r[verify kiln.web.worker.scenario.denied]
 #[test]
 fn pinned_profiles_reject_unknown_authority_fields_and_secret_forwarding() {
     let root = tempfile::tempdir()

@@ -93,6 +93,7 @@ fn preflight_accepts_readonly_credentials_without_binding_creating_or_reconcilin
     assert!(matches!(proxy.accept(), Err(error) if error.kind() == std::io::ErrorKind::WouldBlock));
 }
 
+// r[verify kiln.web.deploy.runtime.scenario.denied]
 #[test]
 fn preflight_rejects_unsafe_secrets_tls_and_filesystem_inputs_without_state() {
     for case in [
@@ -232,6 +233,7 @@ impl Drop for Service {
     }
 }
 
+// r[verify kiln.web.deploy.runtime.scenario.ready]
 #[test]
 fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart() {
     use std::os::unix::net::UnixDatagram;
@@ -336,6 +338,7 @@ fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart(
     }
 }
 
+// r[verify kiln.web.deploy.runtime.scenario.denied]
 #[test]
 fn configured_notification_failure_prevents_running_service_claim() {
     let (root, _profile, path) = runtime_fixture();

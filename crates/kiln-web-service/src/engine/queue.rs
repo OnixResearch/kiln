@@ -142,6 +142,7 @@ impl Engine {
         )
     }
 
+    // r[impl kiln.web.enrollment]
     pub(super) fn start_run(&mut self, body: &[u8]) -> Result<ApiResponse, String> {
         let req: StartRequest = match serde_json::from_slice(body) {
             Ok(v) => v,

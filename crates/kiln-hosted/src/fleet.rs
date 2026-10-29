@@ -446,6 +446,7 @@ fn mutate(
     Ok(result)
 }
 
+// r[impl kiln.hosted.execution]
 fn admit_capacity(
     occupied: u32,
     maximum: u32,
@@ -512,6 +513,7 @@ pub fn handle(
             configure(db, actor, config, r.expected_revision)
         }
         "provision" | "deprovision" | "reconcile" => mutate(db, actor, action, input, now_ms),
+        // r[impl kiln.hosted.qualification]
         "status" => {
             crate::require(actor, &["owner", "admin", "member", "viewer", "billing"])?;
             let mut stmt=db.prepare("SELECT id,state,revision FROM hosted_fleet_instances WHERE org=?1 ORDER BY id LIMIT 129").map_err(|e|e.to_string())?;

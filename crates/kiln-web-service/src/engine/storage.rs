@@ -158,6 +158,7 @@ impl Store {
     ) -> Result<(Self, DurableState, StateLock), String> {
         Self::open_bound(profile, false)
     }
+    // r[impl kiln.web.lifecycle]
     fn open_bound(
         profile: &ServiceProfile,
         initialize: bool,
