@@ -12,39 +12,41 @@
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to workspace</a>
-<aside id="app-sidebar" class="app-sidebar" aria-label="Workspace navigation">
-  <a class="brand" href="/?page=work"><span class="brand-mark" aria-hidden="true">K</span>Kiln</a>
+<!-- r[impl kiln.web.console_layout] Compact icon rail: labels stay in the DOM (visually hidden while collapsed, always announced) and appear on hover, keyboard focus or pinning; below 60rem it is the navigation drawer. -->
+<!-- r[impl kiln.web.console_layout.scenario.navigation] -->
+<aside id="app-sidebar" class="app-sidebar app-rail" aria-label="Workspace navigation">
+  <a class="brand" href="/?page=work"><span class="brand-mark" aria-hidden="true">K</span><span class="nav-text brand-text">Kiln</span></a>
   <nav class="app-navigation" aria-label="Main">
     <section class="nav-group" aria-labelledby="nav-work"><h2 id="nav-work" class="nav-label">Work</h2>
-      <button data-page="work" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><path d="M12 8v5m0 3h.01"/></svg>Issues</button>
-      <button data-page="inbox" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 4-2 11v5h20v-5L20 4ZM2 14h6l2 3h4l2-3h6"/></svg>My inbox</button>
-      <button data-page="planning" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16m6-16v16M3 9h18"/></svg>Planning</button>
-      <button data-page="code-review" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h12v18H4V7Zm0 0v5H4m4 6 3 3 6-6"/></svg>Code review</button>
-      <details class="nav-group nav-disclosure"><summary>More work</summary>
-      <button data-page="triage" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 5h18l-7 8v6l-4 2v-8Z"/></svg>Requests &amp; triage</button>
-      <button data-page="workviews" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 7 9-4 9 4-9 4Zm0 5 9 4 9-4M3 17l9 4 9-4"/></svg>Saved views</button>
+      <button data-page="work" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><path d="M12 8v5m0 3h.01"/></svg><span class="nav-text">Issues</span></button>
+      <button data-page="inbox" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 4-2 11v5h20v-5L20 4ZM2 14h6l2 3h4l2-3h6"/></svg><span class="nav-text">My inbox</span></button>
+      <button data-page="planning" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16m6-16v16M3 9h18"/></svg><span class="nav-text">Planning</span></button>
+      <button data-page="code-review" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h12v18H4V7Zm0 0v5H4m4 6 3 3 6-6"/></svg><span class="nav-text">Code review</span></button>
+      <details class="nav-group nav-disclosure"><summary><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8m-4-4h8"/></svg><span class="nav-text">More work</span></summary>
+      <button data-page="triage" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 5h18l-7 8v6l-4 2v-8Z"/></svg><span class="nav-text">Requests &amp; triage</span></button>
+      <button data-page="workviews" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 7 9-4 9 4-9 4Zm0 5 9 4 9-4M3 17l9 4 9-4"/></svg><span class="nav-text">Saved views</span></button>
       </details>
     </section>
     <section class="nav-group" aria-labelledby="nav-ci"><h2 id="nav-ci" class="nav-label">Continuous integration</h2>
-      <button data-page="overview" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h7v7H3Zm11 0h7v7h-7ZM3 14h7v7H3Zm11 0h7v7h-7Z"/></svg>Overview</button>
-      <button data-page="projects" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6V4h7l2 3h9v13H3Z"/></svg>CI projects</button>
-      <button data-page="runs" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4Z"/></svg>Runs</button>
-      <button data-page="workers" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h18v7H3Zm0 11h18v7H3ZM7 6v1m0 10v1m5-12h5m-5 11h5"/></svg>Workers</button>
+      <button data-page="overview" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h7v7H3Zm11 0h7v7h-7ZM3 14h7v7H3Zm11 0h7v7h-7Z"/></svg><span class="nav-text">Overview</span></button>
+      <button data-page="projects" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6V4h7l2 3h9v13H3Z"/></svg><span class="nav-text">CI projects</span></button>
+      <button data-page="runs" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4Z"/></svg><span class="nav-text">Runs</span></button>
+      <button data-page="workers" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h18v7H3Zm0 11h18v7H3ZM7 6v1m0 10v1m5-12h5m-5 11h5"/></svg><span class="nav-text">Workers</span></button>
     </section>
-    <details class="nav-group nav-disclosure"><summary>Inspect</summary>
-      <button data-page="source" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10c0 6-12 2-12 8"/></svg>Source</button>
-      <button data-page="reviews" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h12v18H4V7Zm0 0v5H4m4 6 3 3 6-6"/></svg>Patchgate receipts</button>
-      <button data-page="activity" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12h5l3-8 4 16 3-8h5"/></svg>Activity</button>
-      <button data-page="evidence" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h10l4 4v14H5Zm10 0v5h4M8 12h8m-8 4h6"/></svg>Evidence</button>
+    <details class="nav-group nav-disclosure"><summary><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span class="nav-text">Inspect</span></summary>
+      <button data-page="source" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10c0 6-12 2-12 8"/></svg><span class="nav-text">Source</span></button>
+      <button data-page="reviews" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h12v18H4V7Zm0 0v5H4m4 6 3 3 6-6"/></svg><span class="nav-text">Patchgate receipts</span></button>
+      <button data-page="activity" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12h5l3-8 4 16 3-8h5"/></svg><span class="nav-text">Activity</span></button>
+      <button data-page="evidence" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h10l4 4v14H5Zm10 0v5h4M8 12h8m-8 4h6"/></svg><span class="nav-text">Evidence</span></button>
     </details>
-    <details class="nav-group nav-disclosure nav-administration"><summary>Administration</summary>
-      <button data-page="automation" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m13 2-9 12h7l-1 8 10-13h-7Z"/></svg>Automation</button>
-      <button data-page="operations" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h6m4 0h8M3 12h10m4 0h4M3 18h3m4 0h11M9 3v6m4 0v6m-7 0v6"/></svg>Operations</button>
-      <button data-page="cobs" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-4v6l4 2"/></svg>Raw collaboration history</button>
-      <button data-page="settings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+    <details class="nav-group nav-disclosure nav-administration"><summary><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-text">Administration</span></summary>
+      <button data-page="automation" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m13 2-9 12h7l-1 8 10-13h-7Z"/></svg><span class="nav-text">Automation</span></button>
+      <button data-page="operations" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h6m4 0h8M3 12h10m4 0h4M3 18h3m4 0h11M9 3v6m4 0v6m-7 0v6"/></svg><span class="nav-text">Operations</span></button>
+      <button data-page="cobs" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-4v6l4 2"/></svg><span class="nav-text">Raw collaboration history</span></button>
+      <button data-page="settings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg><span class="nav-text">Settings</span></button>
     </details>
   </nav>
-  <div class="sidebar-boundary"><p>Authenticated live service. Actions affect the configured execution provider. Recorded evidence is not acceptance authority.</p></div>
+  <div class="rail-footer"><button id="rail-pin" class="rail-pin" type="button" aria-pressed="false" title="Keep navigation expanded"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3Z"/><path d="M12 15v6"/></svg><span class="nav-text">Keep navigation expanded</span></button></div>
 </aside>
 <button id="app-menu-backdrop" class="app-menu-backdrop" type="button" aria-label="Close navigation" hidden></button>
 <div class="app-workspace">
@@ -53,8 +55,10 @@
       <button id="app-menu-toggle" class="icon-button quiet" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="app-sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <nav class="breadcrumb" aria-label="Breadcrumb"><span class="topbar-workspace">Kiln</span><span class="breadcrumb-divider" aria-hidden="true">/</span><span id="app-breadcrumb" aria-current="page">Overview</span></nav>
     </div>
-    <div class="session-tools">
+    <div class="topbar-search">
       <button id="work-command-open" class="command-trigger" type="button" aria-label="Open command and search palette" aria-keyshortcuts="Control+K"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></svg><span class="command-label">Search &amp; commands</span><span class="command-label-short" aria-hidden="true">Search</span><kbd>Ctrl K</kbd></button>
+    </div>
+    <div class="session-tools">
       <span id="connection-status" class="live-indicator" role="status" hidden>Not connected</span>
       <div class="account">
         <button id="account-button" class="account-button quiet" type="button" aria-expanded="false" aria-controls="account-menu"><span id="account-avatar" class="account-avatar" aria-hidden="true">?</span><span class="sr-only">Account: </span><span id="auth-status" class="account-label">Signed out</span><svg class="account-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
@@ -62,6 +66,7 @@
           <div class="menu-section"><p id="account-name" class="menu-title">Not signed in</p><p id="account-role" class="meta">Network identity is checked automatically, or connect with an access token.</p></div>
           <button id="account-settings" class="menu-item" type="button" hidden>Appearance &amp; settings</button>
           <button id="logout" class="menu-item menu-item-danger" type="button" hidden>Clear session</button>
+          <div class="menu-section menu-boundary"><p class="meta">Authenticated live service. Actions affect the configured execution provider. Recorded evidence is not acceptance authority.</p></div>
         </div>
       </div>
     </div>
@@ -69,8 +74,9 @@
   <main id="main" class="app-main" tabindex="-1">
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <section id="login-panel" class="login-panel panel" aria-labelledby="login-title"><span class="brand-mark login-mark" aria-hidden="true">K</span><p class="eyebrow">Private live workspace</p><h1 id="login-title">Your work, live.</h1><p>Network identity is checked automatically. Alternatively, connect with an admitted viewer or operator bearer.</p><form id="login-form" autocomplete="off"><label for="operator-token">Access token</label><input id="operator-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required pattern="[0-9A-Fa-f]{64}" minlength="64" maxlength="64" aria-describedby="token-help"><p id="token-help" class="small">Kept only in page memory; never saved or included in a URL. Clearing the session erases private views and pending requests.</p><button id="login-button" class="primary" type="submit">Connect to service</button></form><p class="boundary">This public shell contains no private execution data.</p></section>
-    <div id="workspace" hidden>
-      <header class="page-header"><div class="page-header-text"><h1 id="workspace-title" class="page-title">Overview</h1><p id="observation-note" class="page-description">Finite snapshots are observations, not a complete history. Unknown historical timing stays unknown.</p></div><div class="page-actions"><button id="refresh-all" class="icon-button quiet" type="button" aria-label="Refresh" title="Refresh and reconnect live observations"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.5 10.5A7.7 7.7 0 0 0 6 6.6L4 8.5M4 4v4.5h4.5M4.5 13.5A7.7 7.7 0 0 0 18 17.4l2-1.9M20 20v-4.5h-4.5"/></svg></button></div></header>
+    <!-- r[impl kiln.web.console_layout] Centred page frame: every page inherits the width, rhythm and one large page header. -->
+    <div id="workspace" class="page-frame" hidden>
+      <header class="page-header"><div class="page-header-text"><p id="workspace-eyebrow" class="page-eyebrow">Continuous integration</p><h1 id="workspace-title" class="page-title">Overview</h1><p id="observation-note" class="page-description">Finite snapshots are observations, not a complete history. Unknown historical timing stays unknown.</p></div><div class="page-actions"><div id="page-primary-action" class="cluster"></div><button id="refresh-all" class="icon-button quiet" type="button" aria-label="Refresh" title="Refresh and reconnect live observations"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.5 10.5A7.7 7.7 0 0 0 6 6.6L4 8.5M4 4v4.5h4.5M4.5 13.5A7.7 7.7 0 0 0 18 17.4l2-1.9M20 20v-4.5h-4.5"/></svg></button></div></header>
       <section data-panel="overview" id="overview-panel" class="view-stack"><div id="overview-content" class="view-stack"></div></section>
       <section data-panel="work" hidden class="view-stack"><div id="work-content" class="view-stack"></div></section>
       <section data-panel="planning" hidden class="view-stack"><div id="planning-content" class="view-stack"></div></section>
@@ -92,8 +98,9 @@
         </section>
         <div id="workers-content" class="view-stack" aria-live="polite"></div>
       </section>
+      <!-- r[impl kiln.web.console_layout] Split run view: collapsible run list beside the inspector; ≥90rem shows pipeline and logs together, narrower widths keep one tabbed column. -->
       <section data-panel="runs" hidden>
-        <div class="workspace-grid"><aside class="project-column"><section class="panel run-browser"><div class="section-heading"><h2>Retained runs</h2></div>
+        <div id="run-split" class="split-view run-split"><aside id="run-browser" class="split-list project-column" aria-label="Retained run browser"><section class="panel run-browser"><div class="section-heading"><h2>Retained runs</h2></div>
           <form id="run-search-form" class="view-stack">
             <div><label for="run-search">Search</label><input id="run-search" type="search" maxlength="256" autocomplete="off" placeholder="Run, repository, revision…"></div>
             <div class="run-filter-pair">
@@ -107,12 +114,13 @@
             <button type="submit">Apply filters</button>
           </form>
           <p id="runs-status" class="small" role="status">No private data loaded.</p><div id="run-list" class="run-list" aria-label="Select a run"></div><div class="control-bar pager"><button id="runs-first" class="quiet" type="button">First page</button><button id="runs-next" type="button" disabled>Next page</button></div></section></aside>
-        <div class="detail-column"><section id="empty-run" class="panel empty-state"><p class="eyebrow">Execution inspector</p><h2 id="empty-run-title" class="empty-state-title">Select a run</h2><p id="empty-run-message" class="empty-state-text">Choose a retained run. Missing or filtered runs are never silently replaced.</p></section><div id="run-detail" hidden>
+        <div class="split-detail detail-column"><div class="split-toolbar"><button id="run-list-toggle" class="quiet split-toggle" type="button" aria-expanded="true" aria-controls="run-browser"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg><span id="run-list-toggle-label">Hide run list</span></button></div><section id="empty-run" class="panel empty-state"><p class="eyebrow">Execution inspector</p><h2 id="empty-run-title" class="empty-state-title">Select a run</h2><p id="empty-run-message" class="empty-state-text">Choose a retained run. Missing or filtered runs are never silently replaced.</p></section><div id="run-detail" hidden>
           <section class="panel run-header"><div class="run-heading"><h2 id="run-title"></h2><div id="run-badges" class="badges"></div></div><p id="run-warning" class="warning" hidden></p><dl id="run-facts" class="fact-grid"></dl>
             <details class="run-exact-identity"><summary>Exact source &amp; execution identities</summary><dl id="run-exact-facts" class="facts"></dl><h3>Native execution identity</h3><pre id="execution-identity" class="identity"></pre></details>
             <details class="run-actions"><summary>Execution actions · cancel, pause &amp; rerun</summary><p id="control-note" class="small"></p><div class="control-bar" aria-label="Execution controls"><button id="control-cancel" class="danger" type="button" disabled data-operate>Cancel run</button><button id="control-pause" type="button" disabled data-operate>Pause run</button><button id="control-resume" type="button" disabled data-operate>Resume run</button></div><div class="control-bar"><button id="rerun-exact" type="button" data-operate>Rerun exact revision</button><button id="rerun-latest" type="button" data-operate>Run latest admitted reference</button><button id="rerun-failed" type="button" data-operate>Retry known failed nodes</button></div></details>
           </section>
           <nav id="run-tabs" class="run-tabs" aria-label="Run inspection"><button type="button" data-view="pipeline">Pipeline</button><button type="button" data-view="logs">Logs</button><button type="button" data-view="artifacts">Artifacts</button><button type="button" data-view="tests">Tests &amp; coverage</button><button type="button" data-view="reviews">Reviews</button><button type="button" data-view="compare">Compare &amp; flaky</button><button type="button" data-view="activity">Activity</button><button type="button" data-view="evidence">Evidence</button></nav>
+          <div class="run-primary-panels">
           <section data-run-panel="pipeline" class="panel workflow-panel" aria-labelledby="workflow-title">
             <div class="section-heading"><div><h2 id="workflow-title">Workflow graph</h2><p id="workflow-caption" class="small"></p></div><div class="workflow-zoom segmented" role="group" aria-label="Workflow diagram zoom"><button id="graph-fit" type="button" disabled>Fit</button><button id="graph-actual" type="button" disabled>100%</button><button id="graph-out" type="button" aria-label="Zoom workflow out" disabled>−</button><output id="graph-scale" aria-label="Workflow zoom">100%</output><button id="graph-in" type="button" aria-label="Zoom workflow in" disabled>+</button></div></div>
             <p class="meta">Stages describe dependency depth, not execution order, placement or readiness. States and timings are recorded observations; missing timing stays unknown.</p>
@@ -121,7 +129,7 @@
             <div class="workflow-inspection"><details class="workflow-node-list" open><summary>All workflow nodes</summary><div id="node-list" class="node-list"></div></details><section class="workflow-node-inspector" aria-labelledby="workflow-node-title"><h3 id="workflow-node-title">Node inspector</h3><div id="node-facts"></div></section></div>
             <section aria-labelledby="step-telemetry-title"><h3 id="step-telemetry-title">Measured worker steps</h3><p class="meta">Elapsed time uses the worker’s monotonic clock. CPU and peak memory are observed child usage, not reservations or isolation guarantees. Native graph timestamps above are coarse provider observations. Missing historical measurements stay unknown.</p><div id="step-telemetry" class="view-stack"></div></section>
           </section>
-          <section data-run-panel="logs" class="panel log-panel" hidden>
+          <section data-run-panel="logs" class="panel log-panel terminal-panel" hidden>
             <div class="section-heading"><h2>Execution logs</h2><label class="check"><input id="follow-logs" type="checkbox">Follow selected stream</label></div>
             <p class="meta">Actual worker-captured stdout/stderr can arrive before completion. Diagnostics use native provider cursors; an empty read implies neither completion nor success.</p>
             <form id="log-form" class="log-tools" aria-describedby="log-read-help">
@@ -136,6 +144,7 @@
             <div class="log-viewer"><pre id="log-output" class="log-output" tabindex="0" aria-label="Selected node log output"></pre>
             <div class="log-footer"><span id="log-position" class="small mono">No log read yet</span><div class="log-footer-actions"><button id="download-log" class="quiet" type="button">Download full retained stream</button><button id="clear-log" class="quiet" type="button">Clear displayed log</button></div></div></div>
           </section>
+          </div>
           <section data-run-panel="artifacts" class="panel" hidden><div class="section-heading"><h2>Retained artifacts</h2></div><p class="meta">Only retained uploads. A receipt is not a product artifact.</p><p id="artifact-status" class="small" role="status"></p><div id="artifact-list" class="artifact-list"></div></section>
           <section data-run-panel="tests" class="panel" hidden><h2>Structured tests &amp; coverage</h2><div id="reports-content" class="view-stack"></div></section>
           <section data-run-panel="reviews" class="panel" hidden><h2>Patchgate review receipts</h2><p class="meta">Retained <code>kiln.patchgate.review.v1</code> receipts only. Kiln preserves the producer&rsquo;s native report and normalized decisions; it does not re-run Patchgate, verify model weights, or grant review, merge, gate or release authority.</p><div id="reviews-content" class="view-stack"></div></section>

@@ -301,7 +301,8 @@
   function drawNotice() {
     const region = state.container?.querySelector(".cr-status-region"); if (!region) return;
     region.textContent = state.error || (state.pending ? "Recording command. Wait for an observed result." : ""); region.hidden = !region.textContent; region.dataset.kind = state.error ? "error" : "status";
-    for (const scope of [state.container, ...state.dialogs]) for (const b of scope.querySelectorAll("[data-cr-write]")) b.disabled = !writable() || b.dataset.crBlocked === "true";
+    const slot = document.getElementById(HEADER_SLOT)?.querySelector("[data-cr-actions]");
+    for (const scope of [state.container, ...state.dialogs, ...(slot ? [slot] : [])]) for (const b of scope.querySelectorAll("[data-cr-write]")) b.disabled = !writable() || b.dataset.crBlocked === "true";
   }
   function writeButton(text, action, cls) { const b = button(text, action, cls, true); b.dataset.crWrite = "true"; return b; }
   async function refresh() {
@@ -324,17 +325,30 @@
     } catch (error) { if (active(epoch, id) && request === state.request) { state.error = message(error); draw(); } }
   }
   const access = () => `Principal ${state.context.principal} · ${state.snapshot.can_write ? "Review writes admitted" : "Read-only review access"}. CI and provider submission authority are checked separately.`;
-  function listHeader() {
-    const header = node("div", null, "page-header cr-page-header"), heading = node("div", null, "cr-page-heading"), actions = node("div", null, "page-actions");
-    heading.append(node("h2", "Changes", "page-title"), node("p", access(), "page-description"));
-    if (arr(state.snapshot.contribution_sources).length) actions.append(writeButton("Submit contribution branch", contribution));
-    actions.append(writeButton("Create change", createChange, "primary")); header.append(heading, actions); return header;
+  // r[impl kiln.web.console_layout]
+  // The shell page header (#workspace-title) is this page's single header. Review fills only its primary-action slot;
+  // the slot sits outside the container, so ownership is marked on the child and released by clear() and non-list states.
+  const HEADER_SLOT = "page-primary-action";
+  // A drawing page may replace any leftover slot content (active = true); clear() releases only review's own content.
+  function headerActions(signature, build, active = true) {
+    const slot = document.getElementById(HEADER_SLOT); if (!slot) return;
+    const owned = slot.firstElementChild?.dataset.crActions;
+    if (!signature) { if (owned || active) slot.replaceChildren(); return; }
+    if (owned === signature) return;
+    const group = node("div", null, "cr-header-actions cluster"); group.dataset.crActions = signature; build(group); slot.replaceChildren(group);
+  }
+  function listActions() {
+    const contributions = arr(state.snapshot.contribution_sources).length > 0;
+    headerActions(`list|${state.context.principal}|${state.snapshot.can_write === true}|${contributions}`, group => {
+      if (contributions) group.append(writeButton("Submit contribution branch", contribution, "quiet"));
+      group.append(writeButton("Create change", createChange, "primary"));
+    });
   }
   function detailHeader() {
-    const c = state.detail.change, header = node("div", null, "page-header cr-page-header"), heading = node("div", null, "cr-page-heading"), meta = node("div", null, "cr-header-meta"), actions = node("div", null, "page-actions");
+    const c = state.detail.change, header = node("section", null, "card cr-change-header"), heading = node("div", null, "cr-change-heading"), meta = node("div", null, "cr-header-meta"), actions = node("div", null, "cr-change-actions");
     meta.append(pill(c.state, "Change state")); if (c.wip) meta.append(chip("Work in progress"));
     const target = node("span", null, "cr-muted"); target.append(node("code", c.repository), " → ", node("code", c.target_ref)); meta.append(node("span", `Owner ${c.owner}`, "cr-muted"), target);
-    heading.append(node("h2", c.title, "page-title"), meta, node("p", access(), "page-description"));
+    heading.append(node("h2", c.title, "cr-change-name"), meta, node("p", access(), "cr-muted"));
     const rev = field(actions, "Review revision", "select", revision(), arr(c.revisions).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}${item.id === current()?.id ? " · current" : ""}`]));
     rev.dataset.crKey = "header-revision"; rev.addEventListener("change", () => route({ review_revision: rev.value, review_base: "base", review_file: "", review_side: "", review_line: "" }));
     header.append(heading, actions); return [link("← All changes", ALL_CHANGES, "cr-back"), header];
@@ -347,28 +361,32 @@
     const root = state.container; if (!root) return; root.classList.add("code-review"); root.replaceChildren();
     const notice = node("p", null, "cr-notice cr-status-region"); notice.setAttribute("role", "status"); notice.setAttribute("aria-live", "polite");
     const begin = (...head) => { root.append(...head, notice); drawNotice(); };
-    if (!state.snapshot) { begin(); root.append(state.error ? stateBox("The review workspace could not be loaded", "The observed error is shown above. Refresh to retry; nothing was changed.", "error-state") : loading("Loading review workspace…")); return; }
+    if (!state.snapshot) { headerActions(null); begin(); root.append(state.error ? stateBox("The review workspace could not be loaded", "The observed error is shown above. Refresh to retry; nothing was changed.", "error-state") : loading("Loading review workspace…")); return; }
     if (!state.snapshot.configured) {
-      begin(); const box = stateBox("Interactive review is not configured", "A separately admitted collaboration provider, actors, policy and durable store are required. Existing review receipts remain available in the receipts section.");
+      headerActions(null); begin(); const box = stateBox("Interactive review is not configured", "A separately admitted collaboration provider, actors, policy and durable store are required. Existing review receipts remain available in the receipts section.");
       const receipts = node("a", "Open Patchgate receipts"); receipts.href = "?page=reviews"; box.append(receipts); root.append(box); return;
     }
-    if (!selected()) { begin(listHeader()); drawList(root); }
-    else if (state.detail) { begin(...detailHeader()); drawDetail(root); }
-    else { begin(link("← All changes", ALL_CHANGES, "cr-back")); root.append(state.error ? stateBox("Selected change is unavailable", "Refresh or return to the change list. A missing change is never replaced by another.") : loading("Loading change…")); }
+    if (!selected()) { listActions(); begin(); drawList(root); }
+    else if (state.detail) { headerActions(null); begin(...detailHeader()); drawDetail(root); }
+    else { headerActions(null); begin(link("← All changes", ALL_CHANGES, "cr-back")); root.append(state.error ? stateBox("Selected change is unavailable", "Refresh or return to the change list. A missing change is never replaced by another.") : loading("Loading change…")); }
     for (const d of root.querySelectorAll("details")) { const k = detailsKey(d); if (opened.has(k) && d.dataset.crForceOpen !== "true") { d.open = opened.get(k); if (d.dataset.crSection) d.dataset.crTouched = "true"; } }
     if (key) { const next = Array.from(root.querySelectorAll("[data-cr-key]")).find(n => n.dataset.crKey === key); if (next) { next.focus({ preventScroll: true }); if (typeof start === "number" && next.setSelectionRange && next.type !== "checkbox" && next.tagName !== "SELECT") { try { next.setSelectionRange(start, end); } catch {} } } }
   }
-  function layout(root, name) {
-    const grid = node("div", null, "cr-layout"), main = node("div", null, "cr-main"), aside = node("aside", null, "cr-aside"); aside.setAttribute("aria-label", name);
+  function layout(root, name, cls = "") {
+    const grid = node("div", null, `cr-layout ${cls}`.trim()), main = node("div", null, "cr-main"), aside = node("aside", null, "cr-aside"); aside.setAttribute("aria-label", name);
     grid.append(main, aside); root.append(grid); return { main, aside };
   }
   function drawList(root) {
-    const { main, aside } = layout(root, "Review activity");
+    const { main, aside } = layout(root, "Review activity", "cr-list-layout");
+    // r[impl kiln.web.console_layout]
+    // One card holds the query controls and the change table; access stays explicit in the card heading.
+    const list = node("section", null, "card cr-card cr-changes"), listHead = node("div", null, "cr-card-head"), listTitle = node("h2", "Changes", "card-title");
+    listTitle.id = "cr-changes-title"; list.setAttribute("aria-labelledby", listTitle.id); listHead.append(listTitle, node("p", access(), "cr-muted cr-access")); list.append(listHead); main.append(list);
     const search = node("form", null, "toolbar cr-toolbar cr-search"); search.setAttribute("role", "search"); search.setAttribute("aria-label", "Search changes");
     const q = field(search, "Search change text", "search", state.route.review_q || "", [], "search");
     const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], "open", "abandoned", "submitted"]);
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
-    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_change: "" }); }); main.append(search);
+    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_change: "" }); }); list.append(search);
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
     for (const [text, value] of [["All changes", "all"], ["Awaiting my review", "awaiting_review"], ["My changes needing revision", "owned_needs_revision"], ["Unresolved discussions", "unresolved"]]) { const b = button(text, () => { clearFields("search"); route({ review_view: value }); }); b.setAttribute("aria-pressed", String(value === kind)); group.append(b); }
     views.append(group);
@@ -383,8 +401,8 @@
       views.append(list);
     }
     const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: { kind: state.route.review_view || "all", text: state.route.review_q || "", status: state.route.review_status || null } }, null); clearFields("view-name"); }));
-    disclosure(views, "Save current query as a personal view").append(save); main.append(views);
-    const changes = arr(state.snapshot.changes), offset = Number(state.route.review_offset) || 0, list = section(main, "Matching changes", "cr-changes");
+    disclosure(views, "Save current query as a personal view").append(save); list.append(views);
+    const changes = arr(state.snapshot.changes), offset = Number(state.route.review_offset) || 0;
     if (changes.length) {
       const wrap = node("div", null, "data-table-wrap"), table = node("table", null, "data-table data-table-stack cr-change-table"), head = node("thead"), hr = node("tr"), body = node("tbody");
       table.append(node("caption", "Changes matching the current query", "sr-only"));
@@ -469,7 +487,7 @@
     const c = state.detail.change, r = arr(c.revisions).find(item => item.id === revision());
     if (revision() !== current()?.id) root.append(node("p", "Historical revision selected. Comments and drafts retain this exact revision and comparison base. Optional votes always apply to the current revision shown in the publication confirmation; provider actions require the current revision.", "cr-notice"));
     if (!r) root.append(node("p", "The requested revision is not part of this change. Choose an admitted revision.", "cr-notice"));
-    const { main, aside } = layout(root, "Submit requirements and change details");
+    const { main, aside } = layout(root, "Submit requirements and change details", "cr-detail-layout");
     const about = section(main, "Description"); about.append(String(c.description ?? "").trim() ? markdown(c.description) : node("p", "No description provided.", "cr-muted"));
     const diff = section(main, "Changed files and diff", "cr-diff-card"), controls = node("div", null, "toolbar cr-toolbar cr-diff-toolbar");
     const base = field(controls, "Compare against", "select", state.route.review_base || "base", [["base", "Selected revision's base"], ...arr(c.revisions).filter(item => item.number < (r?.number || 0)).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}`])]);
@@ -764,6 +782,7 @@
     for (const dialog of state.dialogs) { dialog.close(); dialog.remove(); } state.dialogs.clear();
     state.container?.replaceChildren(); state.container = null; state.context = null; state.snapshot = null; state.detail = null; state.diff = null; state.forms.clear(); state.pending = false; state.pinnedRevision = "";
     state.error = ""; state.diffError = ""; state.route = {};
+    headerActions(null, null, false);
   }
   function load(container, context) {
     if (!container || typeof context?.api !== "function" || typeof context?.navigate !== "function") throw new Error("Code review requires a container and authenticated api/navigate callbacks.");

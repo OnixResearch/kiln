@@ -8,7 +8,7 @@
   const LINK_KINDS = ["source", "revision", "patch", "review", "run", "artifact", "cairn"];
   const FILTERS = ["kind", "status", "assignee", "priority", "label", "team", "project", "cycle", "initiative", "q"];
   const ROUTE_FILTERS = { kind: "work_kind", status: "work_status", assignee: "work_assignee", project: "work_project", q: "work_q" };
-  const state = { parent: null, route: {}, records: [], configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, dialogs: new Set(), scroll: new Map(), pending: false, error: "" };
+  const state = { parent: null, route: {}, records: [], configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, dialogs: new Set(), scroll: new Map(), pending: false, error: "", listCollapsed: false };
   const previewRequests = new WeakMap();
   const bridge = () => window.KilnWork;
   const el = (tag, text, cls) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = String(text); if (cls) node.className = cls; return node; };
@@ -116,7 +116,8 @@
     state.generation++; state.load++; state.detail++; saveScroll();
     for (const dialog of state.dialogs) dialog.remove();
     state.dialogs.clear(); state.records = []; state.parent?.replaceChildren(); state.parent = null;
-    state.principal = ""; state.canWrite = false; state.configured = false; state.pending = false; state.error = ""; state.scroll.clear();
+    state.principal = ""; state.canWrite = false; state.configured = false; state.pending = false; state.error = ""; state.scroll.clear(); state.listCollapsed = false;
+    headerActions(null, false);
   }
   function objects() { return identity() === state.principal ? clone(state.records) : []; }
   function open(id) { bridge().navigate({ work_id: id || "" }); }
@@ -242,8 +243,18 @@
     return KINDS.includes(state.route.work_kind) ? state.route.work_kind : "issue";
   }
   const kindLabel = kind => kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind;
-  function toolbar(parent, config) {
-    const kind = creationKind(), top = el("div", undefined, "work-toolbar"), start = el("div", undefined, "work-create");
+  // r[impl kiln.web.console_layout]
+  // The shell page header (#workspace-title) is the page's single header; work fills only its primary-action slot.
+  // The slot sits outside this module's parent, so ownership is marked on the child and cleared on clear()/unavailable states.
+  const HEADER_SLOT = "page-primary-action";
+  // A drawing page may replace any leftover slot content (active = true); clear() releases only work's own content.
+  function headerActions(kind, active = true) {
+    const slot = document.getElementById(HEADER_SLOT); if (!slot) return;
+    const owned = slot.firstElementChild?.dataset.workActions;
+    if (!kind) { if (owned || active) slot.replaceChildren(); return; }
+    const signature = `${state.route.page}|${kind}|${writable()}`;
+    if (owned === signature) return;
+    const start = el("div", undefined, "work-create cluster"); start.dataset.workActions = signature;
     start.append(button(`New ${kindLabel(kind)}`, () => create(kind), "primary", true));
     const more = el("details", undefined, "work-create-more"), summary = el("summary"); summary.append(el("span", "Create something else"));
     const chevron = icon("chevron"); if (chevron) summary.append(chevron);
@@ -251,13 +262,15 @@
     more.addEventListener("keydown", event => { if (event.key === "Escape" && more.open) { event.preventDefault(); event.stopPropagation(); more.open = false; summary.focus(); } });
     const choices = el("div", undefined, "work-actions work-create-menu"); choices.setAttribute("role", "group"); choices.setAttribute("aria-label", "Other work types");
     for (const other of KINDS.filter(value => value !== kind)) choices.append(button(`New ${kindLabel(other)}`, () => { more.open = false; create(other); }, "quiet", true));
-    more.append(choices); start.append(more); top.append(start);
+    more.append(choices); start.append(more); slot.replaceChildren(start);
+  }
+  function toolbar(parent, config) {
+    headerActions(creationKind());
     if (state.route.page === "inbox") {
-      const prefs = personalRecord(), tools = el("div", undefined, "work-actions work-toolbar-end");
+      const prefs = personalRecord(), tools = el("div", undefined, "work-actions work-toolbar");
       tools.append(button("Attention preferences", () => prefs ? edit(prefs.id) : create("personal"), "quiet", true), button("Browse my private preferences", () => bridge().navigate({ page: "work", work_kind: "personal", work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" }), "quiet"));
-      top.append(tools);
+      parent.append(tools);
     }
-    parent.append(top);
     if (state.route.page === "planning") {
       const categories = el("nav", undefined, "work-categories"); categories.setAttribute("aria-label", "Planning categories");
       for (const [value, label] of [["", "All planning"], ...PLANNING.map(value => [value, `${title(value)}s`])]) {
@@ -266,6 +279,8 @@
       }
       parent.append(categories);
     }
+    const bar = el("div", undefined, "work-filter-bar");
+    quickStatus(bar, config);
     const form = el("form", undefined, "work-search"), inputs = {};
     form.setAttribute("role", "search"); form.setAttribute("aria-label", "Search and filter work");
     inputs.q = field(form, "Search", "search", config.filters.q || ""); inputs.q.placeholder = "Title, description or label…";
@@ -287,13 +302,30 @@
     actions.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" }), "quiet"), button("Save current view", () => editor("view", null, { view: { ...config, shared: false } }), "quiet", true));
     filters.append(actions);
     form.addEventListener("submit", event => { event.preventDefault(); const patch = { work_layout: layout.value, work_group: group.value, work_sort: sort.value }; for (const [key, input] of Object.entries(inputs)) patch[ROUTE_FILTERS[key]] = input.value.trim(); bridge().navigate(patch); });
-    parent.append(form);
+    bar.append(form); parent.append(bar);
     if (state.route.work_view && !activeView()) {
       const missing = el("div", undefined, "error-state work-unavailable");
       missing.append(el("p", "Selected saved view is unavailable. No alternative view was selected.", "warning"), button("Clear saved view", () => bridge().navigate({ work_view: "" }), "quiet"));
       parent.append(missing);
     }
     const chips = activeChips(config); if (chips) parent.append(chips);
+  }
+  // r[impl kiln.web.console_layout]
+  // Quick status is only a shortcut for the exact single-value work_status URL override. A saved view's status
+  // keeps its precedence: the last segment clears the override and names the view default instead of claiming "All".
+  const QUICK_STATUS = [["started", "Active"], ["backlog", "Backlog"], ["completed", "Done"]];
+  function quickStatus(parent, config) {
+    if (!["work", "inbox", "triage"].includes(state.route.page)) return;
+    const saved = activeView()?.filters?.status || "", override = state.route.work_status || "", effective = config.filters.status || "";
+    const group = el("div", undefined, "segmented work-quick-status"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Quick status filter");
+    for (const [value, label] of QUICK_STATUS) {
+      const choice = button(label, () => bridge().navigate({ work_status: value }));
+      choice.title = `Show only status ${title(value)}`; choice.setAttribute("aria-pressed", String(effective === value)); group.append(choice);
+    }
+    const reset = button(saved ? `View default: ${title(saved)}` : "All", () => bridge().navigate({ work_status: "" }));
+    reset.title = saved ? "Clear the status override and use the saved view's status" : "Clear the status filter";
+    reset.setAttribute("aria-pressed", String(saved ? !override : !effective)); group.append(reset);
+    parent.append(group);
   }
   function filterValue(key, value) {
     if (key === "kind") return title(kindLabel(value));
@@ -383,7 +415,7 @@
   function roadmap(parent, records) {
     const plans = records.filter(record => PLANNING.includes(record.kind));
     const scheduled = plans.filter(record => record.fields.start_at_ms != null || record.fields.due_at_ms != null);
-    const details = el("details", undefined, "work-roadmap"); details.open = true; details.append(el("summary", "Roadmap · scheduled planning records"));
+    const details = el("details", undefined, "card work-roadmap"); details.open = true; details.append(el("summary", "Roadmap · scheduled planning records"));
     if (!scheduled.length) details.append(el("p", "No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.", "meta"));
     const times = scheduled.flatMap(record => [record.fields.start_at_ms, record.fields.due_at_ms]).filter(value => value != null);
     const min = Math.min(...times), max = Math.max(...times), span = Math.max(max - min, 86400000);
@@ -397,32 +429,69 @@
     }
     parent.append(details);
   }
+  // r[impl kiln.web.console_layout]
+  // Lists sit in a card; list layouts use the shared two-pane .split-view (list left, detail right, stacked when narrow).
+  // Boards keep full width so their columns stay readable, with the selected record below.
+  function selectPrompt() {
+    const kind = creationKind(), page = state.route.page;
+    const noun = page === "inbox" ? "an item" : kind === "personal" ? "a record" : `${/^[aeiou]/.test(kindLabel(kind)) ? "an" : "a"} ${kindLabel(kind)}`;
+    const prompt = el("div", undefined, "work-empty work-select-prompt empty-state");
+    prompt.append(el("h2", `Select ${noun}`, "empty-state-title"), el("p", "Its description, relationships, discussion and linked CI evidence open here. Keyboard: j/k or ↑/↓ to move, Enter to open, Space to peek.", "empty-state-text"));
+    return prompt;
+  }
+  function listToggle(view, listPane) {
+    const bar = el("div", undefined, "work-detail-bar"), collapsed = state.listCollapsed === true;
+    const toggle = button(collapsed ? "Show list" : "Hide list", () => {
+      state.listCollapsed = !state.listCollapsed; view.classList.toggle("is-list-collapsed", state.listCollapsed);
+      toggle.textContent = state.listCollapsed ? "Show list" : "Hide list"; toggle.setAttribute("aria-expanded", String(!state.listCollapsed));
+    }, "quiet work-list-toggle");
+    toggle.setAttribute("aria-controls", listPane.id); toggle.setAttribute("aria-expanded", String(!collapsed));
+    bar.append(toggle); return bar;
+  }
   function draw(preserveScroll = true) {
     if (!state.parent || identity() !== state.principal) return;
     if (preserveScroll) saveScroll();
     const focused = document.activeElement?.closest("[data-work-id]")?.dataset.workId;
     const parent = state.parent; parent.replaceChildren(); parent.classList.add("work-workspace");
     if (state.error) {
+      headerActions(null);
       const failure = el("section", undefined, "error-state work-error"); failure.setAttribute("role", "alert");
       failure.append(el("h2", "Work storage unavailable", "empty-state-title"), el("p", `${state.error}. No empty or demo data has been substituted.`, "empty-state-text"), button("Reconnect", refresh));
       parent.append(failure); return;
     }
     if (!state.configured) {
+      headerActions(null);
       const missing = el("section", undefined, "work-empty empty-state");
       missing.append(el("h2", "Work storage is not configured", "empty-state-title"), el("p", "Native work storage is not configured. Configure an explicit signed work COB store on the server to enable this workspace. No records or private preferences are stored in this browser.", "empty-state-text"));
       parent.append(missing); return;
     }
     if (!writable()) { const notice = el("p", "Read-only work workspace. Creating, editing, commenting and personal preferences require an admitted work writer and writable native store. CI operator authority is separate.", "work-banner meta"); notice.dataset.tone = "info"; parent.append(notice); }
     navigation(parent); const config = configuration(); toolbar(parent, config);
-    const records = visibleRows(config);
+    const records = visibleRows(config), selectedId = state.route.work_id || "";
     if (state.route.page === "planning") roadmap(parent, records);
-    const layout = el("div", undefined, "work-columns"); const list = el("div", undefined, "work-list-scroll"); list.setAttribute("aria-label", "Work records");
-    grouped(list, records, config); const detail = el("aside", undefined, "work-detail"); detail.setAttribute("aria-label", "Selected work record"); detail.hidden = !state.route.work_id;
-    if (!state.route.work_id) layout.classList.add("work-columns-list-only");
-    layout.append(list, detail); parent.append(layout);
+    const board = config.layout === "board";
+    const split = !board && (!!selectedId || (records.length > 0 && ["work", "inbox", "triage"].includes(state.route.page)));
+    const listPane = el("section", undefined, `card work-list-card${split ? " split-list" : ""}`); const prefix = parent.id || "work"; listPane.id = `${prefix}-list-pane`;
+    const listHead = el("div", undefined, "work-list-head"), listTitle = el("h2", "Results", "card-title"); listTitle.id = `${prefix}-list-title`; listPane.setAttribute("aria-labelledby", listTitle.id);
+    const count = el("span", String(records.length), "work-count"); count.title = `${records.length} record(s) in the current bounded snapshot`;
+    listHead.append(listTitle, count, el("span", `Sorted by ${config.sort}${config.group_by !== "none" ? ` · grouped by ${config.group_by}` : ""}`, "meta work-list-order"));
+    const list = el("div", undefined, "work-list-scroll"); list.setAttribute("aria-label", "Work records");
+    grouped(list, records, config); listPane.append(listHead, list);
+    const detail = el("aside", undefined, `card work-detail${split ? " split-detail" : ""}`); detail.id = `${prefix}-detail-pane`; detail.setAttribute("aria-label", "Selected work record");
+    const body = el("div", undefined, "work-detail-body");
+    let layout;
+    if (split) {
+      layout = el("div", undefined, "split-view work-split"); layout.classList.toggle("is-list-collapsed", !!selectedId && state.listCollapsed === true);
+      if (selectedId) detail.append(listToggle(layout, listPane)); else body.append(selectPrompt());
+      detail.append(body); layout.append(listPane, detail);
+    } else {
+      layout = el("div", undefined, "stack work-stacked"); layout.append(listPane);
+      if (selectedId) { detail.append(body); layout.append(detail); }
+    }
+    parent.append(layout);
     const position = state.scroll.get(scrollKey()); if (position) { list.scrollTop = position.top; list.scrollLeft = position.left; }
     if (focused) Array.from(list.querySelectorAll("[data-work-id]")).find(row => row.dataset.workId === focused)?.focus({ preventScroll: true });
-    if (state.route.work_id) void loadDetail(state.route.work_id, detail).catch(report);
+    if (selectedId) void loadDetail(selectedId, body).catch(report);
     window.dispatchEvent(new CustomEvent("kiln-work-updated"));
   }
   async function loadDetail(id, parent, preview = false) {

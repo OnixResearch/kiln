@@ -1,0 +1,28 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-29",
+  "authority": "Operator asked why the redesign looked the same, then chose \"New layout, keep Kiln colours\"; deployment follows the same approval for the redesign.",
+  "package": "/nix/store/d54ard8363g9zbn3nldccmx9afxp3d2j-kiln-web-service-0.1.0",
+  "executable_blake3": "308d6f9622a22aa0b62bee30f000c1daeea98a1b3e9929799ea5f41185576037",
+  "previous_package": "/nix/store/7f2ldf12s0zxkybyjidrkfbr27ckfava-kiln-web-service-0.1.0",
+  "gates": "nix flake check: all x86_64-linux checks passed; cairn validate valid, traceability 1081/1081, release-readiness valid",
+  "verification": {
+    "assets_identical": 10,
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "retained_runs_unchanged": true,
+    "code_review_configured": true,
+    "live_browser": {
+      "rail": true,
+      "health": true,
+      "attention": 15
+    },
+    "js_errors": 0,
+    "candidate_checks": "Real-data candidate review before deploy: zero errors, zero overflow and no sub-44px targets at 320px on overview, runs, issues and code review; rail labels appear on keyboard focus; the attention Logs link opened the exact failed run on stderr; split view shows pipeline and terminal logs together at 1920px"
+  },
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}

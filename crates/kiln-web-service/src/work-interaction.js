@@ -164,15 +164,18 @@
     scheduleSearch(true);
   }
 
+  const paletteOptions = () => palette ? [...palette.list.querySelectorAll("[role='option']")] : [];
+
   function choose(index, focus = false) {
     const value = palette;
     if (!value || !value.results.length) return;
     value.active = (index + value.results.length) % value.results.length;
-    [...value.list.children].forEach((item, position) => {
+    const options = paletteOptions();
+    options.forEach((item, position) => {
       item.setAttribute("aria-selected", String(position === value.active));
       item.tabIndex = position === value.active ? 0 : -1;
     });
-    const item = value.list.children[value.active];
+    const item = options[value.active];
     value.input.setAttribute("aria-activedescendant", item.id);
     item.scrollIntoView({ block: "nearest" });
     if (focus && document.activeElement !== item) item.focus();
@@ -191,14 +194,14 @@
       ["Go to my inbox", { page: "inbox" }], ["Go to requests and triage", { page: "triage" }],
       ["Go to saved views", { page: "workviews" }], ["Go to CI projects", { page: "projects" }],
       ["Go to CI runs", { page: "runs" }], ["Go to retained reviews", { page: "reviews" }],
-    ].map(([label, patch]) => ({ label, detail: "Navigation", run: () => bridge().navigate(patch) }));
+    ].map(([label, patch]) => ({ label, group: "Go to", detail: "Navigation", run: () => bridge().navigate(patch) }));
     if (writable() && typeof ui()?.create === "function") {
-      for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}`, detail: "Open creation form", run: () => ui().create(kind) });
+      for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}`, group: "Create", detail: "Open creation form", run: () => ui().create(kind) });
     }
     const filtered = entries.filter((entry) => matches(query, entry.label));
     if (query) {
-      filtered.unshift({ label: `Search all work for “${query}”`, detail: "Open filtered work list", run: () => bridge().navigate({ page: "work", work_q: query, work_id: "" }) });
-      filtered.push({ label: `Search CI runs for “${query}”`, detail: "Open server-filtered run browser", run: () => bridge().navigate({ page: "runs", q: query, cursor: "", run: "" }) });
+      filtered.unshift({ label: `Search all work for “${query}”`, group: "Search", detail: "Open filtered work list", run: () => bridge().navigate({ page: "work", work_q: query, work_id: "" }) });
+      filtered.push({ label: `Search CI runs for “${query}”`, group: "Search", detail: "Open server-filtered run browser", run: () => bridge().navigate({ page: "runs", q: query, cursor: "", run: "" }) });
     }
     return filtered;
   }
@@ -257,28 +260,47 @@
     const errors = [];
     const entries = builtins(query);
     results.forEach((result, index) => {
-      if (result.status === "fulfilled") entries.push(...result.value);
+      if (result.status === "fulfilled") entries.push(...result.value.map((entry) => ({ ...entry, group: sources[index][0] })));
       else errors.push(`${sources[index][0]} unavailable: ${errorText(result.reason)}`);
     });
-    palette.results = entries.slice(0, MAX_RESULTS);
+    // r[impl kiln.web.console_layout]
+    // Results are grouped under visible headings in first-appearance order; keyboard order follows the visual order.
+    const groups = new Map();
+    for (const entry of entries.slice(0, MAX_RESULTS)) {
+      if (!groups.has(entry.group)) groups.set(entry.group, []);
+      groups.get(entry.group).push(entry);
+    }
+    palette.results = [...groups.values()].flat();
     palette.active = -1;
     palette.list.replaceChildren();
-    palette.results.forEach((result, index) => {
-      const option = node("div", undefined, "work-command-result");
-      option.id = `work-command-result-${token}-${index}`;
-      option.setAttribute("role", "option");
-      option.setAttribute("aria-selected", "false");
-      option.tabIndex = -1;
-      const head = node("span", undefined, "work-command-result-head");
-      head.append(node("strong", result.label));
-      if ("outcome" in result && typeof window.KilnUi?.statusPill === "function") head.append(window.KilnUi.statusPill(result.outcome, result.phase));
-      const detail = node("span", result.detail, "work-command-result-detail");
-      if (result.at != null && typeof window.KilnUi?.timeElement === "function") detail.append(" · ", window.KilnUi.timeElement(result.at));
-      option.append(head, detail);
-      option.addEventListener("click", () => runResult(result));
-      option.addEventListener("focus", () => choose(index));
-      option.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); runResult(result); } });
-      palette.list.append(option);
+    let index = 0;
+    [...groups].forEach(([name, members], groupIndex) => {
+      const group = node("div", undefined, "work-command-group");
+      group.setAttribute("role", "group");
+      const heading = node("div", name, "work-command-group-label");
+      heading.id = `work-command-group-${token}-${groupIndex}`;
+      heading.setAttribute("role", "presentation");
+      group.setAttribute("aria-labelledby", heading.id);
+      group.append(heading);
+      for (const result of members) {
+        const position = index++;
+        const option = node("div", undefined, "work-command-result");
+        option.id = `work-command-result-${token}-${position}`;
+        option.setAttribute("role", "option");
+        option.setAttribute("aria-selected", "false");
+        option.tabIndex = -1;
+        const head = node("span", undefined, "work-command-result-head");
+        head.append(node("strong", result.label));
+        if ("outcome" in result && typeof window.KilnUi?.statusPill === "function") head.append(window.KilnUi.statusPill(result.outcome, result.phase));
+        const detail = node("span", result.detail, "work-command-result-detail");
+        if (result.at != null && typeof window.KilnUi?.timeElement === "function") detail.append(" · ", window.KilnUi.timeElement(result.at));
+        option.append(head, detail);
+        option.addEventListener("click", () => runResult(result));
+        option.addEventListener("focus", () => choose(position));
+        option.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); runResult(result); } });
+        group.append(option);
+      }
+      palette.list.append(group);
     });
     palette.status.textContent = `${palette.results.length} results and commands${entries.length > MAX_RESULTS ? ` (first ${MAX_RESULTS}; refine your search)` : ""}. CI runs show at most the latest 25 matching runs. ${errors.join(" · ")}`;
     if (palette.results.length) choose(0);

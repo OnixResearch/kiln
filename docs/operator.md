@@ -1353,10 +1353,18 @@ profile generation does not install or start it.
 ### Navigate the live workspace
 <!-- r[related kiln.work.usability] -->
 
-The sidebar keeps **Issues**, **My inbox**, **Planning** and the main CI destinations
-visible. **More work**, **Inspect** and **Administration** disclose secondary
-destinations and open automatically for a selected deep link. Existing page URLs
-remain valid; the Kiln brand returns to Issues.
+<!-- r[impl kiln.web.console_layout] -->
+Navigation is a compact icon rail. Hovering it, or moving keyboard focus into it,
+expands it over the page to show every label and the **Work**, **Continuous
+integration**, **More work**, **Inspect** and **Administration** groups; labels
+stay available to assistive technology while it is collapsed. **Keep navigation
+expanded** at the bottom pins it open beside the content for this page session
+(the URL is unchanged). Escape collapses an unpinned expansion and returns focus.
+The active page has an acid-yellow icon. Secondary groups open automatically for
+a selected deep link. Existing page URLs remain valid; the Kiln brand returns to
+Issues. The service boundary note (authenticated live service; actions affect the
+configured execution provider; recorded evidence is not acceptance authority)
+is in the account menu. Pages sit in a centred column under a large page title.
 
 <!-- r[impl kiln.web.visual_design] -->
 The live console uses quiet off-white/charcoal surfaces, restrained borders,
@@ -1392,14 +1400,21 @@ actual deployed desktop/mobile checks. It does not clear the separately retained
 repository-wide traceability or release-readiness holds.
 
 <!-- r[impl kiln.web.minimal_console] -->
-Overview shows retained-run counts as compact clickable stat tiles. **Active**
-opens busy execution targets; other counts filter retained runs. **Latest
-project runs** is a table that puts failures first, with a status pill, recorded
-duration, relative finish time and direct **Pipeline**
-and **Logs** links. Logs opens the exact latest execution, defaults to stderr for
-a failing project and clears stale run filters; another stream remains selectable.
-**Recorded duration trend** opens the detailed observations without crowding the
-default overview. In Runs, **More filters** holds exact-source and sort order and
+Overview is a dashboard built only from the bounded overview, workers and
+activity reads. **Project health** states how many projects are failing, a pass
+rate over the latest run of each project with its denominator (passed, failed
+and in-progress runs) and a legend; unknown, cancelled and run-less projects are
+excluded from the rate and listed. Its retained-run count chips filter runs, and
+**Active** opens busy execution targets. **Needs attention** shows one card per
+failing project with a status pill, duration, relative finish time, short source
+revision and direct **Logs** and **Pipeline** links. Logs opens the exact latest
+execution, defaults to stderr for a failing project and clears stale run filters;
+another stream remains selectable. **Recently passed** and **In progress &
+unresolved** list the other projects with the same links. The side column shows
+worker slots by status and the latest five activity entries. Each section loads,
+empties and fails independently: an unavailable read is stated in its section and
+never replaced by sample data. **Recorded duration trend** opens the detailed
+observations. In Runs, **More filters** holds exact-source and sort order and
 opens automatically when a URL restores non-default values. These views remain
 bounded retained observations, not complete history or release authority.
 
@@ -1433,11 +1448,24 @@ UTC instant. Linked CI outcomes and durations in work detail use the same readab
 labels while keeping the canonical value inspectable. The page **Refresh** re-reads
 the bounded work snapshot.
 
+<!-- r[impl kiln.web.console_layout] -->
+Work pages use the shared page header: **New issue** (or the destination's own
+type) and **Create something else** sit in its action area. Issues, My inbox and
+Requests & triage show the list in a card beside a detail card on wide screens
+and stacked on narrow ones; with nothing selected the detail card reads
+**Select an issue** (or the destination's item). **Hide list** collapses the list
+while a record is open. The **Active / Backlog / Done / All** quick status sets
+only the exact `work_status` URL override (started, backlog, completed or none),
+so it never adds a new status rule; under a saved view with its own status, the
+last segment reads **View default** and clears only the override. Planning and
+board layouts keep full width with card columns; the selected record opens below.
 
-Overview totals link to retained run filters; the active count opens busy workers.
-Failing projects appear before healthy projects. Projects places enrollment and
-source-bound execution above the inventory; **Select for new run** only selects
-the project and never dispatches it.
+
+Overview count chips link to retained run filters; the active count opens busy
+workers. Failing projects appear before healthy projects. Projects places
+enrollment and source-bound execution above the inventory cards, which show each
+project's latest retained run; **Select for new run** only selects the project and
+never dispatches it.
 
 Run choices show a status pill, project, relative creation time, humanized
 duration, a shortened source revision and the run ID. The run header shows the
@@ -1445,7 +1473,11 @@ outcome pill and phase above a facts grid. Open **Exact source & execution
 identities** for complete values, including exact local/UTC timestamps.
 Execution controls remain under a separate disclosure and retain the exact
 confirmation and service-side admission. Opening Logs reads the selected stream
-immediately; empty output is not success or complete-log evidence.
+immediately; empty output is not success or complete-log evidence. **Hide run
+list** collapses the run list beside an open run. On screens at least 90rem wide,
+the pipeline and a terminal-styled log panel are shown side by side; the Pipeline
+and Logs tabs move focus to their panel and the other tabs open below them.
+Narrower screens keep one tabbed column.
 
 Evidence and comparison inputs offer bounded retained-run suggestions while
 still accepting exact IDs. Comparison suggestions exclude the current run and
@@ -1654,7 +1686,9 @@ Bounds include 1,024 objects, 128 operations per object, 8,192 total operations,
 16 MiB of verified history, 256 KiB per operation/reduced record and 4 MiB per
 HTTP response. Exceeding a bound reports unavailable rather than truncated success.
 
-Use Ctrl/Cmd+K for cross-entity search and commands. Work rows support j/k or
+Use Ctrl/Cmd+K for cross-entity search and commands; results are grouped under
+headings (Search, Go to, Create, Work, CI projects, CI runs, Retained reviews) and
+arrow keys follow that visible order. Work rows support j/k or
 arrow navigation, Enter to open, Space to preview, x or checkboxes for selection,
 and Shift+F10 for actions. Bulk changes confirm per-object heads, run sequentially
 and report partial outcomes; they are not atomic and are never blindly retried.
@@ -2691,6 +2725,13 @@ Published mentions and subscriptions additionally use explicitly configured
 external delivery; private drafts never do. Search offers awaiting-review,
 owned-needs-revision and unresolved views; saved queries and drafts are private
 to the authenticated principal.
+
+<!-- r[impl kiln.web.console_layout] -->
+The page header holds **Create change** and, when branches are admitted, **Submit
+contribution branch**. Search, personal views and the change table share one
+**Changes** card that states the principal's review access. A selected change
+opens with an identity card and revision selector; on wide screens the side
+column, led by the submit requirements, stays in view while the diff scrolls.
 
 The checklist exposes each unmet submit requirement with an icon and label:
 **Met**, **Unmet** (outstanding review work such as approvals, threads, WIP,

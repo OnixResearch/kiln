@@ -23,13 +23,18 @@
 .work-interaction-status { min-height: 1.5em; margin: var(--space-2) 0; }
 .work-interaction-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
 
-/* Command palette: anchored near the top, large search field, quiet result rows. */
-.work-command-palette { margin-top: min(12vh, 6rem); }
+/* r[impl kiln.web.console_layout] */
+/* Command palette: a larger centred dialog of fixed height, so loading results never moves it; grouped headed results. */
+.work-command-palette { width: min(52rem, calc(100vw - 2rem)); height: min(40rem, calc(100dvh - 4rem)); margin: auto; padding-bottom: var(--space-3); }
+.work-command-palette[open] { display: flex; flex-direction: column; overflow: hidden; }
+.work-command-palette > .work-interaction-header { flex: 0 0 auto; }
 .work-command-field { position: relative; }
 .work-command-field > svg { position: absolute; left: var(--space-3); top: 50%; width: 1.1rem; height: 1.1rem; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .work-interaction-dialog input[type="search"] { box-sizing: border-box; width: 100%; min-height: 3rem; padding: var(--space-3); font: inherit; font-size: var(--text-lg); border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text); background: var(--surface); }
 .work-command-field > svg + input[type="search"] { padding-inline-start: calc(var(--space-3) + 1.75rem); }
-.work-command-results { display: grid; gap: 2px; max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-1) 0; }
+.work-command-results { display: grid; align-content: start; gap: var(--space-3); flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-1) 0; }
+.work-command-group { display: grid; gap: 2px; min-width: 0; }
+.work-command-group-label { position: sticky; top: 0; z-index: 1; padding: var(--space-1) var(--space-3); background: var(--panel); color: var(--muted); font-family: var(--mono); font-size: .6875rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
 .work-command-result { display: grid; gap: 2px; min-height: 2.75rem; padding: var(--space-2) var(--space-3); border-radius: var(--radius); cursor: pointer; overflow-wrap: anywhere; transition: background-color var(--motion-fast); }
 .work-command-result-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
 .work-command-result-head > strong { min-width: 0; font-size: var(--text-md); font-weight: 600; }
@@ -93,8 +98,7 @@ button.work-row-menu:hover:not(:disabled) { color: var(--text); }
 }
 @media (max-width: 640px) {
   .work-interaction-dialog { width: calc(100vw - 1rem); max-height: 90dvh; padding: 0 var(--space-3) var(--space-3); }
-  .work-command-palette { margin-top: var(--space-2); }
-  .work-command-results { max-height: 42dvh; }
+  .work-command-palette { height: 90dvh; }
   .work-selection-toolbar { inset-inline: .5rem; bottom: .5rem; padding: var(--space-3); }
   .work-selection-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; }
   .work-selection-fields input { width: 100%; }

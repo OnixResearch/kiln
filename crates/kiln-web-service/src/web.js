@@ -754,7 +754,7 @@
     $("worker-status").value = "";
     $("source-reference").replaceChildren();
     for (const id of ["source-revision", "log-search"]) $(id).value = "";
-    for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status"]) $(id).replaceChildren();
+    for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status", "page-primary-action"]) $(id).replaceChildren();
     for (const id of ["workflow-title", "workflow-caption", "workflow-summary"]) $(id).replaceChildren();
     state.graphRun = null; state.graphZoom = 1;
     $("operator-token").value = "";
@@ -822,6 +822,25 @@
   }
   const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
+  // Navigation group shown as the page-header eyebrow; matches the rail sections.
+  const pageGroups = Object.freeze({
+    work: "Work", inbox: "Work", planning: "Work", triage: "Work", workviews: "Work", "code-review": "Review",
+    overview: "Continuous integration", projects: "Continuous integration", runs: "Continuous integration", workers: "Continuous integration",
+    source: "Inspect", reviews: "Inspect", activity: "Inspect", evidence: "Inspect",
+    automation: "Administration", operations: "Administration", cobs: "Administration", settings: "Administration",
+  });
+  // r[impl kiln.web.console_layout] Wide screens show pipeline and logs together; the tab bar selects the remaining run view below them.
+  const splitRunQuery = window.matchMedia("(min-width: 90rem)");
+  const PRIMARY_RUN_VIEWS = Object.freeze(["pipeline", "logs"]);
+  function applyRunPanels() {
+    const view = state.route?.view;
+    for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = !(node.dataset.runPanel === view || (splitRunQuery.matches && PRIMARY_RUN_VIEWS.includes(node.dataset.runPanel)));
+  }
+  function setRunList(open) {
+    $("run-split").classList.toggle("is-list-collapsed", !open);
+    $("run-list-toggle").setAttribute("aria-expanded", String(open));
+    $("run-list-toggle-label").textContent = open ? "Hide run list" : "Show run list";
+  }
   const workerStatuses = { slots_available: "Slots available", busy: "Busy", unknown: "Unknown execution", not_enrolled: "Not enrolled" };
   function canOperate() { return !!state.session && state.permissions.operate === true; }
   function adoptSession(result) {
@@ -894,14 +913,16 @@
     for (const group of document.querySelectorAll(".app-navigation details")) {
       if (group.querySelector('[aria-current="page"]')) group.open = true;
     }
-    for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = node.dataset.runPanel !== route.view;
+    $("workspace").classList.toggle("page-frame-wide", route.page === "runs");
+    applyRunPanels();
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", cobs: "Raw collaboration history", overview: "CI overview", "code-review": "Code review", reviews: "Patchgate receipts" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
+    $("workspace-eyebrow").textContent = pageGroups[route.page] || "";
     $("observation-note").textContent = {
-      overview: "Latest per project, failures first. Counts cover retained runs only.",
+      overview: "Failing projects first, then health, worker capacity and recent activity. Counts cover retained runs only.",
       projects: "Choose a project to start a source-bound run, or browse its retained history.",
       workers: "Inspect configured execution targets and admission slots. Availability is not a health check.",
       runs: "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence.",
@@ -922,6 +943,7 @@
     }[route.page];
     if (previous?.page !== route.page) {
       notice("");
+      $("page-primary-action").replaceChildren();
       $("workspace-title").tabIndex = -1;
       $("workspace-title").focus({ preventScroll: true });
       window.scrollTo(0, 0);
@@ -937,7 +959,7 @@
     }
     setMenu(false);
     if (!state.session) return;
-    if (previous && (previous.page !== route.page || previous.run !== route.run || previous.node !== route.node || previous.view !== route.view || previous.stream !== route.stream)) resetLogs();
+    if (previous && (previous.page !== route.page || previous.run !== route.run || previous.node !== route.node || (previous.view !== route.view && !splitRunQuery.matches) || previous.stream !== route.stream)) resetLogs();
     state.pageGeneration++;
     if (route.page === "runs") {
       if (state.selected !== route.run) {
@@ -1053,8 +1075,8 @@
       await window.KilnWorkUI.render(parent, route);
       return;
     }
-    if (route.page === "overview") await renderEndpoint("/api/overview", "overview-content", renderOverview);
-    if (route.page === "projects") { renderProjects(); await loadRefs(); }
+    if (route.page === "overview") await loadOverview();
+    if (route.page === "projects") { renderProjects(); await Promise.all([loadRefs(), loadProjectHealth()]); }
     if (route.page === "workers") await renderEndpoint("/api/workers", "workers-content", renderWorkers);
     if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
     if (route.page === "evidence") {
@@ -1082,7 +1104,7 @@
     if (route.view === "activity") await renderEndpoint(`${pathFor(route.run)}/activity?${activityQuery()}`, "run-activity-content", renderActivity);
     if (route.view === "evidence") await renderEndpoint(`${pathFor(route.run)}/evidence`, "run-evidence-content", renderEvidence);
     if (route.view === "artifacts") await loadArtifacts();
-    if (route.view === "logs" && !state.logKey && !state.logBusy) await readLog(false);
+    if ((route.view === "logs" || splitRunQuery.matches) && !state.logKey && !state.logBusy) await readLog(false);
   }
   // r[impl kiln.dashboard.workers.view]
   function workerMetrics(parent, capacity, targets) {
@@ -1103,7 +1125,7 @@
   }
   // r[impl kiln.dashboard.workers.view.scenario.restore]
   function renderWorkers(parent, result) {
-    if (result?.schema !== "kiln.web-workers.v1" || result.bounded !== true || typeof result.storage_failed !== "boolean" || !result.summary || !Array.isArray(result.workers) || result.workers.some((worker) => !worker.capacity || !Array.isArray(worker.projects) || worker.projects.some((project) => !Array.isArray(project.active_run_ids)))) throw new Error("Worker inventory response is invalid. Target capacity is unavailable.");
+    validWorkers(result);
     const route = state.route;
     const summary = section("Bounded target snapshot", parent);
     summary.append(element("p", `Snapshot ${text(result.version)} · complete configured target inventory within service limits · liveness unknown`, "small"));
@@ -1720,74 +1742,223 @@
   // r[impl kiln.web.minimal_console]
   // r[impl kiln.dashboard.complete.overview]
   // r[impl kiln.web.readable_observations.scenario.failed]
-  function renderOverview(parent, result) {
-    const grid = element("div", undefined, "overview-totals stat-tiles");
-    grid.setAttribute("aria-label", "Retained run counts");
-    parent.append(grid);
+  // r[impl kiln.web.console_layout]
+  // The dashboard composes existing bounded reads only (/api/overview, /api/workers, /api/activity).
+  // Each read owns its sections' loading, empty and unavailable states; one failure never blocks another.
+  const OVERVIEW_ACTIVITY_LIMIT = 5;
+  const OVERVIEW_SECTIONS = Object.freeze({
+    overview: ["overview-health", "overview-attention", "overview-passed", "overview-other", "overview-trend"],
+    workers: ["overview-workers"],
+    activity: ["overview-activity"],
+  });
+  const OVERVIEW_UNAVAILABLE = Object.freeze({
+    overview: "Project health unavailable",
+    workers: "Worker capacity unavailable",
+    activity: "Recent activity unavailable",
+  });
+  function dashboardSection(parent, id, title, className, link) {
+    const node = element("section", undefined, className);
+    const head = element("div", undefined, "dashboard-section-head");
+    const heading = element("h2", undefined, "card-title");
+    heading.id = `${id}-title`;
+    heading.append(document.createTextNode(title));
+    const count = element("span", undefined, "section-count");
+    count.id = `${id}-count`;
+    head.append(heading, count);
+    if (link) head.append(link);
+    const body = element("div", undefined, "dashboard-section-body stack stack-sm");
+    body.id = id;
+    node.setAttribute("aria-labelledby", heading.id);
+    node.append(head, body);
+    parent.append(node);
+    return node;
+  }
+  function buildOverview(parent) {
+    const grid = element("div", undefined, "dashboard-grid");
+    const main = element("div", undefined, "dashboard-main");
+    const side = element("div", undefined, "dashboard-side");
+    dashboardSection(main, "overview-health", "Project health", "card health-hero");
+    dashboardSection(main, "overview-attention", "Needs attention", "dashboard-section");
+    dashboardSection(main, "overview-passed", "Recently passed", "card dashboard-section");
+    dashboardSection(main, "overview-other", "In progress & unresolved", "card dashboard-section");
+    const trend = element("details", undefined, "panel overview-timing");
+    const trendBody = element("div", undefined, "stack stack-sm");
+    trendBody.id = "overview-trend";
+    trend.append(element("summary", "Recorded duration trend"), trendBody);
+    main.append(trend);
+    dashboardSection(side, "overview-workers", "Workers", "card side-card", workspaceLink({ page: "workers", worker_q: "", worker_status: "", worker: "" }, "Open workers"));
+    dashboardSection(side, "overview-activity", "Recent activity", "card side-card", workspaceLink({ page: "activity", activity_cursor: "" }, "View all activity"));
+    grid.append(main, side);
+    parent.replaceChildren(grid);
+  }
+  function setSectionCount(id, value) { const node = $(`${id}-count`); if (node) node.textContent = value; }
+  // r[impl kiln.web.console_layout.scenario.unavailable]
+  async function overviewRead(target, key, render) {
+    const generation = state.pageGeneration;
+    const endpointKey = `overview:${key}`;
+    const requestGeneration = (state.endpointGeneration.get(endpointKey) || 0) + 1;
+    state.endpointGeneration.set(endpointKey, requestGeneration);
+    const bodies = () => OVERVIEW_SECTIONS[key].map((id) => $(id)).filter(Boolean);
+    // Live refreshes keep the previous observation in place; only an empty section shows a skeleton.
+    for (const body of bodies()) if (!body.childElementCount) body.replaceChildren(loadingState("Reading bounded observations…"));
+    const current = () => generation === state.pageGeneration && requestGeneration === state.endpointGeneration.get(endpointKey) && state.route.page === "overview";
+    try {
+      const result = await api(target);
+      if (!current()) return;
+      render(result);
+    } catch (error) {
+      if (isAborted(error) || !current()) return;
+      for (const body of bodies()) {
+        const container = body.closest("section, details");
+        if (container) container.hidden = false;
+        const unavailable = errorState(`${OVERVIEW_UNAVAILABLE[key]}: ${explain(error)} Nothing is inferred and no sample data is shown.`);
+        unavailable.dataset.state = "unavailable";
+        body.replaceChildren(unavailable);
+        setSectionCount(body.id, "");
+      }
+    }
+  }
+  async function loadOverview() {
+    if (!$("overview-health")) buildOverview($("overview-content"));
+    await Promise.all([
+      overviewRead("/api/overview", "overview", renderOverviewHealth),
+      overviewRead("/api/workers", "workers", renderOverviewWorkers),
+      overviewRead(`/api/activity?${new URLSearchParams({ limit: String(OVERVIEW_ACTIVITY_LIMIT) })}`, "activity", renderOverviewActivity),
+    ]);
+  }
+  function shortRevision(value) { return typeof value === "string" && value.length > 12 ? value.slice(0, 12) : text(value); }
+  function finishedAt(ms) { return Number.isSafeInteger(ms) ? ms : -1; }
+  // Pipeline/Logs keep their exact accessible names; Logs opens stderr of the exact latest execution for a failing project.
+  function projectRunLinks(project, latest) {
+    const history = { page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" };
+    const selection = { ...history, run: latest.id, stream: project.health === "failing" ? "stderr" : "stdout" };
+    const pipeline = workspaceLink({ ...selection, view: "pipeline" }, "Pipeline");
+    const logs = workspaceLink({ ...selection, view: "logs" }, "Logs");
+    pipeline.setAttribute("aria-label", `Pipeline for ${text(project.label)}`);
+    logs.setAttribute("aria-label", `Logs for ${text(project.label)}`);
+    logs.title = `Open ${selection.stream} of this exact execution`;
+    return { history, pipeline, logs };
+  }
+  function overviewCountChips(totals) {
+    const chips = element("div", undefined, "count-chips");
+    chips.setAttribute("role", "group");
+    chips.setAttribute("aria-label", "Retained run counts");
+    chips.append(element("span", "Retained runs", "eyebrow"));
     const outcomes = { runs: "", failed: "failed", active: "", queued: "queued", succeeded: "Success", cancelled: "Cancelled", unknown: "Unknown" };
     const labels = { runs: "Retained", failed: "Failed", active: "Active", queued: "Queued", succeeded: "Succeeded", cancelled: "Cancelled", unknown: "Unknown" };
     const statuses = { failed: "failure", active: "running", queued: "queued", unknown: "unknown", succeeded: "success", cancelled: "cancelled" };
     for (const key of ["failed", "active", "queued", "unknown", "succeeded", "cancelled", "runs"]) {
-      if (!Object.hasOwn(result.totals || {}, key)) continue;
+      if (!Object.hasOwn(totals, key)) continue;
       const patch = { page: "runs", outcome: outcomes[key], project: "", q: "", source: "", cursor: "", run: "", node: "" };
       if (key === "active") Object.assign(patch, { page: "workers", worker_status: "busy", worker_q: "", worker: "" });
-      const link = workspaceLink(patch, undefined, "overview-total stat-tile");
+      const link = workspaceLink(patch, undefined, "count-chip");
       link.dataset.outcome = key;
-      if (statuses[key]) link.dataset.status = statuses[key];
+      if (statuses[key]) { link.dataset.status = statuses[key]; link.append(ui.icon(statuses[key])); }
       if (key === "active") link.title = "Inspect execution targets with active runs";
-      const label = element("span", undefined, "metric-label");
-      if (statuses[key]) label.append(ui.icon(statuses[key]));
-      label.append(document.createTextNode(labels[key]));
-      link.append(element("strong", text(result.totals[key]), "metric-value"), label);
-      grid.append(link);
+      link.append(element("strong", text(totals[key]), "metric-value"), element("span", labels[key], "metric-label"));
+      chips.append(link);
     }
-    const health = section("Latest project runs", parent);
-    health.classList.add("project-health");
-    const priority = { failing: 0, unknown: 1, active: 2, queued: 3, unavailable: 4, cancelled: 5, healthy: 6 };
-    const projects = [...(result.projects || [])].sort((a, b) => (priority[a.health] ?? 4) - (priority[b.health] ?? 4));
-    if (projects.length) {
-      const wrap = element("div", undefined, "data-table-wrap");
-      const table = element("table", undefined, "data-table data-table-stack project-table");
-      const headings = element("tr");
-      for (const [label, className] of [["Status"], ["Project"], ["Duration", "num"], ["Finished"], ["Inspect", "actions-heading"]]) headings.append(element("th", label, className));
-      for (const cell of headings.children) cell.scope = "col";
-      const head = element("thead"); head.append(headings);
-      const body = element("tbody");
-      table.append(head, body); wrap.append(table); health.append(wrap);
-      for (const project of projects) {
-        const row = element("tr", undefined, "project-row");
-        row.dataset.health = project.health;
-        const latest = project.latest_run;
-        const history = { page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" };
-        const cell = (label, content, className) => { const node = element("td", undefined, className); node.dataset.label = label; if (content) node.append(content); row.append(node); return node; };
-        const name = element("span", undefined, "project-row-name");
-        name.append(workspaceLink(history, text(project.label)));
-        if (latest) {
-          cell("Status", ui.statusPill(latest.outcome, latest.phase), "project-row-status");
-          cell("Project", name);
-          cell("Duration", elapsed(latest.duration_ms), "num project-row-duration");
-          cell("Finished", when(latest.completed_at_ms), "project-row-time");
-          const actions = element("div", undefined, "project-row-actions");
-          const selection = { ...history, run: latest.id, stream: project.health === "failing" ? "stderr" : "stdout" };
-          const pipeline = workspaceLink({ ...selection, view: "pipeline" }, "Pipeline");
-          const logs = workspaceLink({ ...selection, view: "logs" }, "Logs");
-          pipeline.setAttribute("aria-label", `Pipeline for ${text(project.label)}`);
-          logs.setAttribute("aria-label", `Logs for ${text(project.label)}`);
-          actions.append(pipeline, logs);
-          cell("Inspect", actions, "project-row-actions-cell");
-        } else {
-          cell("Status", statePill("unknown", "No retained runs"), "project-row-status");
-          cell("Project", name);
-          for (const label of ["Duration", "Finished", "Inspect"]) cell(label, element("span", "—", "meta"), label === "Duration" ? "num" : "");
-        }
-        body.append(row);
+    return chips;
+  }
+  // r[impl kiln.web.console_layout.scenario.attention] Pass rate states its denominator; unknown, cancelled and run-less projects are excluded and listed.
+  function renderHealthHero(body, groups, total, totals) {
+    body.replaceChildren();
+    const failing = groups.failing.length;
+    const passed = groups.healthy.length;
+    const active = groups.active.length + groups.queued.length;
+    const denominator = passed + failing + active;
+    if (!total) body.append(emptyState("No projects configured", "No project health is recorded. Enroll an allowlisted repository to start source-bound runs."));
+    else {
+      const headline = element("p", undefined, "health-headline");
+      headline.dataset.state = failing ? "failing" : "clear";
+      headline.append(element("span", String(failing), "health-failing"), document.createTextNode(` failing of ${total} project${total === 1 ? "" : "s"}`));
+      const summary = element("p", failing ? "Latest retained run per project. Failing projects are listed first below." : "No project's latest retained run failed.", "health-summary");
+      const rate = element("div", undefined, "rate-block");
+      const head = element("div", undefined, "rate-head");
+      head.append(element("span", "Pass rate of latest project runs"), element("span", denominator ? `${Math.floor((passed / denominator) * 100)}%` : "Unavailable", "rate-value"));
+      const bar = element("div", undefined, "rate-bar");
+      bar.setAttribute("role", "img");
+      const segments = [[passed, "success", "Passed"], [failing, "failure", "Failed"], [active, "running", "Active or queued"]];
+      bar.setAttribute("aria-label", denominator ? `Latest project runs: ${segments.map(([count, , label]) => `${count} ${label.toLowerCase()}`).join(", ")}, of ${denominator}` : "No latest project run passed, failed or is in progress");
+      const legend = element("ul", undefined, "rate-legend");
+      for (const [count, status, label] of segments) {
+        if (count) { const segment = element("span", undefined, "rate-seg"); segment.dataset.status = status; segment.style.flexGrow = String(count); segment.title = `${label}: ${count}`; bar.append(segment); }
+        const item = element("li");
+        const swatch = element("span", undefined, "rate-swatch"); swatch.dataset.status = status; swatch.setAttribute("aria-hidden", "true");
+        item.append(swatch, document.createTextNode(`${label} `), element("strong", String(count)));
+        legend.append(item);
       }
-    } else health.append(emptyState("No project runs yet", "No enrolled project health is recorded."));
-    const trend = element("details", undefined, "panel overview-timing");
-    trend.append(element("summary", "Recorded duration trend"));
-    parent.append(trend);
-    trend.append(element("p", `${text(result.timing?.recorded)} / ${text(result.timing?.total)} retained runs have recorded timing. Historical unknowns are excluded, not treated as zero.`, "small"));
-    const rows = result.duration_trend || [];
+      const denominatorText = element("p", denominator ? `${passed} passed of ${denominator} latest project runs that passed, failed or are in progress.` : "No latest project run passed, failed or is in progress, so no pass rate is computed.", "small");
+      const excluded = [[groups.unknown.length, "unknown"], [groups.cancelled.length, "cancelled"], [groups.unavailable.length, "without a retained run"]].filter(([count]) => count);
+      const excludedText = element("p", excluded.length ? `Excluded from the rate: ${excluded.map(([count, label]) => `${count} ${label}`).join(", ")}.` : "No latest project run is excluded from the rate.", "rate-excluded");
+      rate.append(head, bar, legend, denominatorText, excludedText);
+      body.append(headline, summary, rate);
+    }
+    body.append(overviewCountChips(totals));
+  }
+  function attentionCard(project) {
+    const latest = project.latest_run;
+    const card = element("article", undefined, "attention-card");
+    card.dataset.health = project.health;
+    const { history, pipeline, logs } = projectRunLinks(project, latest);
+    const head = element("div", undefined, "attention-head");
+    const finished = element("span", "Finished ", "meta");
+    finished.append(when(latest.completed_at_ms));
+    head.append(ui.statusPill(latest.outcome, latest.phase), finished);
+    const title = element("h3", undefined, "attention-title");
+    title.append(workspaceLink(history, text(project.label)));
+    const meta = element("p", undefined, "attention-meta");
+    const took = element("span", "Duration ");
+    took.append(elapsed(latest.duration_ms));
+    const revision = element("span", "Revision ");
+    const exact = element("span", shortRevision(latest.source_revision), "mono");
+    exact.title = text(latest.source_revision);
+    revision.append(exact);
+    meta.append(took, revision);
+    const actions = element("div", undefined, "attention-actions");
+    logs.prepend(ui.icon("warning"));
+    actions.append(logs, pipeline);
+    card.append(head, title, meta, actions);
+    return card;
+  }
+  function projectRunTable(projects) {
+    const wrap = element("div", undefined, "data-table-wrap");
+    const table = element("table", undefined, "data-table data-table-stack project-table");
+    const headings = element("tr");
+    for (const [label, className] of [["Status"], ["Project"], ["Duration", "num"], ["Finished"], ["Inspect", "actions-heading"]]) headings.append(element("th", label, className));
+    for (const cell of headings.children) cell.scope = "col";
+    const head = element("thead"); head.append(headings);
+    const body = element("tbody");
+    table.append(head, body); wrap.append(table);
+    for (const project of projects) {
+      const row = element("tr", undefined, "project-row");
+      row.dataset.health = project.health;
+      const latest = project.latest_run;
+      const cell = (label, content, className) => { const node = element("td", undefined, className); node.dataset.label = label; if (content) node.append(content); row.append(node); return node; };
+      const name = element("span", undefined, "project-row-name");
+      if (latest) {
+        const { history, pipeline, logs } = projectRunLinks(project, latest);
+        name.append(workspaceLink(history, text(project.label)));
+        cell("Status", ui.statusPill(latest.outcome, latest.phase), "project-row-status");
+        cell("Project", name);
+        cell("Duration", elapsed(latest.duration_ms), "num project-row-duration");
+        cell("Finished", when(latest.completed_at_ms), "project-row-time");
+        const actions = element("div", undefined, "project-row-actions");
+        actions.append(pipeline, logs);
+        cell("Inspect", actions, "project-row-actions-cell");
+      } else {
+        name.append(workspaceLink({ page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" }, text(project.label)));
+        cell("Status", statePill("unknown", "No retained runs"), "project-row-status");
+        cell("Project", name);
+        for (const label of ["Duration", "Finished", "Inspect"]) cell(label, element("span", "—", "meta"), label === "Duration" ? "num" : "");
+      }
+      body.append(row);
+    }
+    return wrap;
+  }
+  function renderDurationTrend(body, result) {
+    body.replaceChildren(element("p", `${text(result.timing?.recorded)} / ${text(result.timing?.total)} retained runs have recorded timing. Historical unknowns are excluded, not treated as zero.`, "small"));
+    const rows = Array.isArray(result.duration_trend) ? result.duration_trend : [];
     const max = Math.max(1, ...rows.map((row) => Number.isSafeInteger(row.duration_ms) ? row.duration_ms : 0));
     for (const row of rows) {
       const item = element("div", undefined, "trend-row");
@@ -1797,14 +1968,101 @@
       heading.append(ui.statusPill(row.outcome), runLink(row.run_id, text(row.project_id)), meta);
       item.append(heading);
       if (Number.isSafeInteger(row.duration_ms)) { const bar = element("meter"); bar.min = 0; bar.max = max; bar.value = row.duration_ms; bar.setAttribute("aria-label", `${row.run_id}: ${duration(row.duration_ms)}`); item.append(bar); }
-      trend.append(item);
+      body.append(item);
     }
-    if (!rows.length) trend.append(element("p", "No recorded duration samples available.", "small"));
+    if (!rows.length) body.append(element("p", "No recorded duration samples available.", "small"));
+  }
+  function renderOverviewHealth(result) {
+    if (!result || typeof result.totals !== "object" || result.totals === null || !Array.isArray(result.projects)) throw new Error("The overview response is invalid.");
+    const groups = { failing: [], healthy: [], active: [], queued: [], unknown: [], cancelled: [], unavailable: [] };
+    for (const project of result.projects) {
+      // A health claim without its latest run cannot be shown as an exact execution; it stays unresolved.
+      const health = Object.hasOwn(groups, project.health) && (project.latest_run || project.health === "unavailable") ? project.health : "unknown";
+      groups[health].push(project);
+    }
+    const newestFirst = (a, b) => finishedAt(b.latest_run?.completed_at_ms) - finishedAt(a.latest_run?.completed_at_ms);
+    groups.failing.sort(newestFirst);
+    groups.healthy.sort(newestFirst);
+    renderHealthHero($("overview-health"), groups, result.projects.length, result.totals);
+    const attention = $("overview-attention");
+    attention.replaceChildren();
+    setSectionCount("overview-attention", groups.failing.length ? String(groups.failing.length) : "");
+    if (groups.failing.length) {
+      const grid = element("div", undefined, "attention-grid");
+      for (const project of groups.failing) grid.append(attentionCard(project));
+      attention.append(grid);
+    } else attention.append(emptyState("Nothing needs attention", result.projects.length ? "No project's latest retained run failed." : "No project runs are retained yet."));
+    const passed = $("overview-passed");
+    passed.replaceChildren();
+    setSectionCount("overview-passed", groups.healthy.length ? String(groups.healthy.length) : "");
+    if (groups.healthy.length) passed.append(projectRunTable(groups.healthy));
+    else passed.append(emptyState("No passing projects", "No project's latest retained run passed."));
+    const other = $("overview-other");
+    const unresolved = [...groups.unknown, ...groups.active, ...groups.queued, ...groups.unavailable, ...groups.cancelled];
+    other.replaceChildren();
+    setSectionCount("overview-other", unresolved.length ? String(unresolved.length) : "");
+    other.closest("section").hidden = !unresolved.length;
+    if (unresolved.length) other.append(projectRunTable(unresolved));
+    renderDurationTrend($("overview-trend"), result);
+  }
+  function validWorkers(result) {
+    if (result?.schema !== "kiln.web-workers.v1" || result.bounded !== true || typeof result.storage_failed !== "boolean" || !result.summary || !Array.isArray(result.workers) || result.workers.some((worker) => !worker.capacity || !Array.isArray(worker.projects) || worker.projects.some((project) => !Array.isArray(project.active_run_ids)))) throw new Error("Worker inventory response is invalid. Target capacity is unavailable.");
+  }
+  function renderOverviewWorkers(result) {
+    validWorkers(result);
+    const body = $("overview-workers");
+    body.replaceChildren();
+    setSectionCount("overview-workers", `${result.workers.length} target${result.workers.length === 1 ? "" : "s"}`);
+    if (result.storage_failed) body.append(element("p", "Durable storage is failed. Mutating admission is unavailable; no healthy state is inferred.", "warning"));
+    if (!result.workers.length) { body.append(emptyState("No targets configured", "No workflow targets are configured in this bounded snapshot. This is not a discovery of physical workers.")); return; }
+    const metrics = element("dl", undefined, "side-metrics");
+    for (const [label, value] of [["Free project slots", result.summary.free_slots], ["Active / occupied", result.summary.active], ["Configured slots", result.summary.configured_slots], ["Queued runs", result.summary.queued]]) {
+      const metric = element("div", undefined, "side-metric");
+      metric.append(element("dt", label), element("dd", text(value)));
+      metrics.append(metric);
+    }
+    const counts = new Map();
+    for (const worker of result.workers) counts.set(worker.status, (counts.get(worker.status) || 0) + 1);
+    const statuses = element("div", undefined, "cluster");
+    statuses.setAttribute("aria-label", "Targets by slot status");
+    for (const [status, count] of counts) { const badge = workerStatusBadge(status); badge.append(document.createTextNode(` · ${count}`)); statuses.append(badge); }
+    body.append(metrics, statuses, element("p", "Configured targets and admission slots, not discovered machines. Physical liveness is unknown.", "small"));
+  }
+  function activityTitle(item) {
+    if (item.kind === "audit") { const audit = item.audit || {}; return `${text(audit.method)} ${text(audit.target)} · ${text(audit.decision)}`; }
+    const event = item.event;
+    const name = typeof event === "string" ? event : event && typeof event === "object" ? Object.keys(event)[0] : "";
+    return name ? name.replace(/([a-z])([A-Z])/g, (_, lower, upper) => `${lower} ${upper.toLowerCase()}`) : "Canonical event";
+  }
+  function renderOverviewActivity(result) {
+    if (!Array.isArray(result?.items)) throw new Error("Activity response is invalid.");
+    const body = $("overview-activity");
+    body.replaceChildren();
+    const items = result.items.slice(0, OVERVIEW_ACTIVITY_LIMIT);
+    setSectionCount("overview-activity", `${items.length} of ${text(result.total)}`);
+    if (!items.length) { body.append(emptyState("No recent activity", "No retained canonical events or audit decisions in this bounded timeline.")); return; }
+    const list = element("ul", undefined, "activity-feed");
+    for (const item of items) {
+      const row = element("li");
+      const meta = element("span", undefined, "activity-feed-meta");
+      meta.append(element("span", item.kind === "audit" ? "Audit decision" : "Canonical event"));
+      if (item.project_id) meta.append(element("span", text(projectLabel(item.project_id))));
+      if (item.kind === "audit" && item.audit?.actor_label) meta.append(element("span", text(item.audit.actor_label)));
+      meta.append(when(item.recorded_at_ms));
+      if (item.run_id) { const link = runLink(item.run_id, `Run ${shortIdentity(item.run_id)}`, "activity"); link.title = item.run_id; meta.append(link); }
+      row.append(element("span", activityTitle(item), "activity-feed-title"), meta);
+      list.append(row);
+    }
+    body.append(list);
   }
   function renderProjects() {
     const parent = $("project-cards"); parent.replaceChildren();
     for (const project of state.projects.enrolled) {
       const card = section(text(project.label || project.id), parent, "project-card card");
+      card.dataset.projectId = project.id;
+      const health = element("div", undefined, "project-card-health");
+      health.append(element("span", "Reading latest run…", "meta"));
+      card.append(health);
       card.append(element("p", text(project.reference), "meta mono"));
       const actions = element("div", undefined, "project-actions");
       actions.append(workspaceLink({ page: "runs", project: project.id, q: "", outcome: "", source: "", cursor: "", run: "", node: "" }, "Browse runs"));
@@ -1820,6 +2078,32 @@
       details.append(facts); card.append(details);
     }
     if (!state.projects.enrolled.length) parent.append(emptyState("No enrolled projects", "Enroll an allowlisted repository above to start source-bound runs."));
+  }
+  // Project cards show the latest retained run from the bounded overview read; its failure leaves inventory usable.
+  async function loadProjectHealth() {
+    const generation = state.pageGeneration;
+    const slots = () => [...document.querySelectorAll("#project-cards .project-card")].map((card) => [card, card.querySelector(".project-card-health")]).filter(([, slot]) => slot);
+    try {
+      const result = await api("/api/overview");
+      if (generation !== state.pageGeneration) return;
+      if (!Array.isArray(result?.projects)) throw new Error("The overview response is invalid.");
+      const byId = new Map(result.projects.map((project) => [project.id, project]));
+      for (const [card, slot] of slots()) {
+        const project = byId.get(card.dataset.projectId);
+        slot.replaceChildren();
+        if (!project) { slot.append(element("span", "Health not reported for this project in the bounded overview.", "meta")); continue; }
+        card.dataset.health = project.health;
+        const latest = project.latest_run;
+        if (!latest) { slot.append(statePill("unknown", "No retained runs")); continue; }
+        const { logs } = projectRunLinks(project, latest);
+        const finished = element("span", "Finished ");
+        finished.append(when(latest.completed_at_ms));
+        slot.append(ui.statusPill(latest.outcome, latest.phase), finished, logs);
+      }
+    } catch (error) {
+      if (isAborted(error) || generation !== state.pageGeneration) return;
+      for (const [, slot] of slots()) slot.replaceChildren(element("span", `Health unavailable: ${explain(error)}`, "meta"));
+    }
   }
   async function loadRefs() {
     const id = $("enrolled-project").value;
@@ -2334,7 +2618,7 @@
     $("app-menu-backdrop").hidden = !open;
     document.documentElement.classList.toggle("app-menu-open", open);
     $("main").inert = open;
-    document.querySelector(".session-tools").inert = open;
+    for (const node of document.querySelectorAll(".session-tools, .topbar-search")) node.inert = open;
     if (open) $("app-sidebar").querySelector('[aria-current="page"]')?.focus();
     else if (restoreFocus) $("app-menu-toggle").focus();
     else if (wasOpen && state.session) {
@@ -2357,11 +2641,43 @@
     if ($("app-menu-toggle").getAttribute("aria-expanded") !== "true") return;
     if (event.key === "Escape") { event.preventDefault(); setMenu(false, true); }
     if (event.key === "Tab") {
-      const stops = [$("app-menu-toggle"), ...$("app-sidebar").querySelectorAll('a[href], button:not(:disabled)')];
+      const stops = [$("app-menu-toggle"), ...$("app-sidebar").querySelectorAll('a[href], button:not(:disabled), summary')].filter((node) => node.getClientRects().length);
       const index = stops.indexOf(document.activeElement);
       event.preventDefault();
       stops[(index + (event.shiftKey ? -1 : 1) + stops.length) % stops.length].focus();
     }
+  });
+  // r[impl kiln.web.console_layout.scenario.navigation] Desktop rail: pin keeps it expanded (page memory only); Escape collapses an unpinned expansion and returns focus.
+  const railQuery = window.matchMedia("(min-width: 60.001rem)");
+  let railReturnFocus = null;
+  function setRailPinned(pinned) {
+    document.documentElement.classList.toggle("rail-pinned", pinned);
+    $("rail-pin").setAttribute("aria-pressed", String(pinned));
+    $("app-sidebar").classList.remove("rail-suppressed");
+  }
+  $("rail-pin").addEventListener("click", () => setRailPinned($("rail-pin").getAttribute("aria-pressed") !== "true"));
+  $("app-sidebar").addEventListener("mouseenter", () => $("app-sidebar").classList.remove("rail-suppressed"));
+  $("app-sidebar").addEventListener("focusin", (event) => {
+    $("app-sidebar").classList.remove("rail-suppressed");
+    if (!(event.relatedTarget instanceof Node && $("app-sidebar").contains(event.relatedTarget))) railReturnFocus = event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || event.defaultPrevented || !railQuery.matches || document.documentElement.classList.contains("rail-pinned") || document.querySelector("dialog[open]")) return;
+    const sidebar = $("app-sidebar");
+    const focused = sidebar.contains(document.activeElement);
+    const idle = !document.activeElement || document.activeElement === document.body || document.activeElement === $("main");
+    if (!focused && !(idle && sidebar.matches(":hover"))) return;
+    event.preventDefault();
+    sidebar.classList.add("rail-suppressed");
+    if (!focused) return;
+    const target = railReturnFocus?.isConnected && !sidebar.contains(railReturnFocus) && !railReturnFocus.closest("[hidden], [inert]") ? railReturnFocus : $("main");
+    target.focus({ preventScroll: true });
+  });
+  $("run-list-toggle").addEventListener("click", () => setRunList($("run-list-toggle").getAttribute("aria-expanded") !== "true"));
+  splitRunQuery.addEventListener("change", () => {
+    if (!state.route) return;
+    applyRunPanels();
+    if (splitRunQuery.matches && state.session && state.route.page === "runs" && state.run && !state.logKey && !state.logBusy) void readLog(false);
   });
   $("runs-first").addEventListener("click", () => navigate({ cursor: "" }));
   $("runs-next").addEventListener("click", () => { if (state.nextCursor) navigate({ cursor: state.nextCursor }); });
