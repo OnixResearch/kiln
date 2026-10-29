@@ -1,0 +1,31 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-29",
+  "authority": "Operator answered 'yes' to push, deploy and accept the redesign.",
+  "maintenance_owner": "Kiln web-service maintainers; operator owns activation, profiles and credentials",
+  "candidate": {
+    "frozen_source": "/nix/store/ackigrpvl6lmbq89hqnv19vjav0rymgl-source",
+    "gates": "nix flake check: all x86_64-linux checks passed, including live-console-ui; aarch64-linux omitted",
+    "lifecycle": "modernize-live-console synced and archived; cairn validate valid with 0 active changes; traceability 1077/1077 with nothing missing or dangling; release-readiness valid"
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "package": "/nix/store/7f2ldf12s0zxkybyjidrkfbr27ckfava-kiln-web-service-0.1.0",
+    "executable_blake3": "f9460c17496f5b64df78949ae506740776de92bb32672be492ba850c3c83140e",
+    "previous_package": "/nix/store/zma6049kkd9d9fg8854g2n5hr0snvmz0-kiln-web-service-0.1.0",
+    "preflight": "check passed with every live profile, including --code-review",
+    "activation": ["nix profile remove kiln-web-service", "nix profile add <package>", "systemctl --user restart kiln-web-service.service"],
+    "rollback": ["nix profile remove kiln-web-service", "nix profile add <previous_package>", "systemctl --user restart kiln-web-service.service"]
+  },
+  "verification": {
+    "running_executable": "matches package",
+    "assets": "/, ui.js, web.js, web.css, work.js, work.css, work-interaction.js, work-interaction.css, code-review.js and code-review.css are served byte-identical to source over the TLS-verified tailnet origin",
+    "health": "ok",
+    "anonymous_api": 401,
+    "retained_runs": "unchanged",
+    "code_review": "still configured",
+    "browser": "Real tailnet session with no asset overrides: overview desktop and code review at 320px; zero JS errors; zero document overflow",
+    "screenshots": ["deployed-overview-desktop.png", "deployed-code-review-320.png"],
+    "lattice_pid_unchanged": 1145552
+  }
+}

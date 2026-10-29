@@ -1360,13 +1360,31 @@ remain valid; the Kiln brand returns to Issues.
 
 <!-- r[impl kiln.web.visual_design] -->
 The live console uses quiet off-white/charcoal surfaces, restrained borders,
-icon-labelled navigation and acid-yellow action emphasis without decorative shadows.
-Yellow marks actions and emphasis, not successful execution; success and errors
-retain their distinct semantic colors and text. **Settings → Appearance** keeps
+subtle elevation, icon-labelled navigation and acid-yellow emphasis reserved for
+each view's single primary action. Yellow marks actions and emphasis, not
+successful execution; success, failure, running, queued, cancelled, unknown and
+warning states keep distinct semantic colors, icons and text. Every page has one
+title row with one quiet **Refresh** icon button that refreshes and reconnects
+live observations. The top bar holds the search/command trigger (**Ctrl K**), a
+live-connection indicator and an account menu with the signed-in identity,
+**Appearance & settings** and **Clear session**. **Settings → Appearance** keeps
 Light, Dark and System modes; **Density** changes spacing without shrinking mobile
-touch targets. The visual system lives in `web.css`, `work.css` and
-`work-interaction.css`, maintained by Kiln's web-service/dashboard owners; it does
-not change the offline catalog or request external fonts or image assets.
+touch targets, and reduced-motion preferences disable transitions and loading
+shimmer. The token layer and shared components live in `web.css`; `ui.js` (served
+at `/ui.js` and loaded before the other scripts) provides `window.KilnUi`
+presentation helpers. `work.css`, `work-interaction.css` and `code-review.css`
+build on the same tokens. These assets are maintained by Kiln's
+web-service/dashboard owners; they do not change the offline catalog or request
+external fonts or image assets.
+
+<!-- r[impl kiln.web.readable_observations] -->
+Outcomes appear as status pills with an icon and a human label (for example a
+`DomainFailure` run reads **Failed**, `Success` reads **Passed**). Durations use
+human units (`273357 ms` reads **4m 33s**) and timestamps read relative to now
+(**2h ago**). The exact canonical outcome, recorded milliseconds and the local and
+UTC instant stay available on hover and to assistive technology, and exact
+identity disclosures keep full local/UTC timestamps. Missing timing reads **Not
+recorded**, never zero or the current time. Formatting never changes stored data.
 
 The operator-authorized [visual-design deployment receipt](../.cairn/archive/1970-01-01-align-blacksmith-visual-design/evidence/deployment.json)
 binds the published source, committed executable, unchanged profiles/state and
@@ -1374,9 +1392,10 @@ actual deployed desktop/mobile checks. It does not clear the separately retained
 repository-wide traceability or release-readiness holds.
 
 <!-- r[impl kiln.web.minimal_console] -->
-Overview keeps all retained-run counts in a compact clickable strip. **Active**
+Overview shows retained-run counts as compact clickable stat tiles. **Active**
 opens busy execution targets; other counts filter retained runs. **Latest
-project runs** puts failures first, with recorded timing and direct **Pipeline**
+project runs** is a table that puts failures first, with a status pill, recorded
+duration, relative finish time and direct **Pipeline**
 and **Logs** links. Logs opens the exact latest execution, defaults to stderr for
 a failing project and clears stale run filters; another stream remains selectable.
 **Recorded duration trend** opens the detailed observations without crowding the
@@ -1406,14 +1425,24 @@ override precedence. An empty list gives contextual guidance; unavailable storag
 remains a failure, never substituted demo or empty-success data. Read-only sessions
 retain browsing without gaining work-write authority.
 
+Active search and filters appear as chips below the search. Filters inherited from
+a named view are shown but only URL overrides can be removed, so view precedence is
+unchanged; the view chip clears the named view. Rows show work status, priority
+and a relative update time; hovering or focusing a time reveals the exact local and
+UTC instant. Linked CI outcomes and durations in work detail use the same readable
+labels while keeping the canonical value inspectable. The page **Refresh** re-reads
+the bounded work snapshot.
 
-Overview totals link to retained run filters; the active count opens Operations.
+
+Overview totals link to retained run filters; the active count opens busy workers.
 Failing projects appear before healthy projects. Projects places enrollment and
 source-bound execution above the inventory; **Select for new run** only selects
 the project and never dispatches it.
 
-Run choices show project, outcome, local creation time and a shortened source
-revision. Open **Exact source & execution identities** for complete values.
+Run choices show a status pill, project, relative creation time, humanized
+duration, a shortened source revision and the run ID. The run header shows the
+outcome pill and phase above a facts grid. Open **Exact source & execution
+identities** for complete values, including exact local/UTC timestamps.
 Execution controls remain under a separate disclosure and retain the exact
 confirmation and service-side admission. Opening Logs reads the selected stream
 immediately; empty output is not success or complete-log evidence.
@@ -2663,7 +2692,11 @@ external delivery; private drafts never do. Search offers awaiting-review,
 owned-needs-revision and unresolved views; saved queries and drafts are private
 to the authenticated principal.
 
-The checklist exposes each unmet submit requirement. Canonical exact-source CI
+The checklist exposes each unmet submit requirement with an icon and label:
+**Met**, **Unmet** (outstanding review work such as approvals, threads, WIP,
+dependencies, source/target or CI) or **Blocked** (policy, a non-open change,
+a current veto or needs-revision vote, or an unreadable ownership observation);
+the requirement name and service detail stay visible. Canonical exact-source CI
 facts link to the run, preserving full/partial and clean/dirty distinctions.
 Only the server's current exact winner evaluation can satisfy required CI;
 browser assertions and retained Patchgate verdicts never grant merge authority.

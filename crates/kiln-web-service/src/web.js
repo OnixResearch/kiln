@@ -21,9 +21,6 @@
     hour: "2-digit", minute: "2-digit", second: "2-digit", timeZoneName: "short",
   });
   const localTimeZone = localTimeFormat.resolvedOptions().timeZone;
-  const compactTimeFormat = new Intl.DateTimeFormat(undefined, {
-    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short",
-  });
   const $ = (id) => document.getElementById(id);
   const state = {
     session: null, token: null, epoch: 0, requests: new Set(), urls: new Set(), urlTimers: new Set(),
@@ -52,6 +49,40 @@
     if (className) node.className = className;
     return node;
   }
+  // Presentation-only helpers over window.KilnUi; stored values are never rewritten.
+  // r[impl kiln.web.readable_observations]
+  // r[impl kiln.web.readable_observations.scenario.unknown]
+  const ui = window.KilnUi;
+  function when(ms) { return ui.timeElement(Number.isSafeInteger(ms) ? ms : null); }
+  function elapsed(ms) { return ui.durationElement(Number.isSafeInteger(ms) && ms >= 0 ? ms : null); }
+  function relativeText(ms) { return Number.isSafeInteger(ms) ? ui.formatRelative(ms) : "Not recorded"; }
+  function statePill(status, label, exact) {
+    const pill = element("span", undefined, "status-pill");
+    pill.dataset.status = status;
+    pill.append(ui.icon(status), element("span", label, "status-pill-label"));
+    if (exact && exact !== label) pill.title = exact;
+    return pill;
+  }
+  function phaseChip(phase) {
+    const chip = element("span", `Phase: ${text(phase)}`, "chip");
+    chip.title = `Recorded phase: ${text(phase)}`;
+    return chip;
+  }
+  // r[impl kiln.web.visual_design]
+  function loadingState(label = "Loading admitted records…") {
+    const node = element("div", undefined, "loading-state");
+    node.setAttribute("aria-busy", "true");
+    for (const width of ["skeleton-wide", "skeleton-mid", "skeleton-short"]) node.append(element("span", undefined, `skeleton ${width}`));
+    node.append(element("p", label, "small"));
+    return node;
+  }
+  function errorState(message) { return element("p", message, "warning error-state"); }
+  function emptyState(title, message, action) {
+    const node = element("div", undefined, "empty-state empty-state-inline");
+    node.append(element("p", title, "empty-state-title"), element("p", message, "empty-state-text"));
+    if (action) node.append(action);
+    return node;
+  }
   function notice(message, kind = "error") {
     $("notice").textContent = message;
     $("notice").dataset.kind = kind;
@@ -66,6 +97,7 @@
   function connection(message, healthy) {
     state.connected = healthy;
     $("connection-status").textContent = message;
+    $("connection-status").title = message;
     $("connection-status").dataset.state = healthy ? "connected" : "stale";
     updateControlButtons();
   }
@@ -163,9 +195,21 @@
     }
   }
 
+  function factValue(cell, value) {
+    if (value instanceof Node) cell.append(value); else cell.textContent = text(value);
+    return cell;
+  }
   function addFacts(target, entries) {
     target.replaceChildren();
-    for (const [label, value] of entries) target.append(element("dt", label), element("dd", text(value)));
+    for (const [label, value] of entries) target.append(element("dt", label), factValue(element("dd"), value));
+  }
+  function addFactTiles(target, entries) {
+    target.replaceChildren();
+    for (const [label, value] of entries) {
+      const tile = element("div", undefined, "fact");
+      tile.append(element("dt", label), factValue(element("dd"), value));
+      target.append(tile);
+    }
   }
   function options(select, rows, placeholder, selected) {
     select.replaceChildren();
@@ -216,18 +260,22 @@
     $("runs-next").disabled = !state.nextCursor;
     $("run-list").replaceChildren();
     if (!runs.length && !state.runsError) {
-      const empty = element("p", "No runs match these filters. Clear filters or browse another project.", "small");
       const clear = element("button", "Clear run filters");
       clear.type = "button";
       clear.addEventListener("click", () => navigate({ q: "", project: "", outcome: "", source: "", cursor: "" }));
-      $("run-list").append(empty, clear);
+      $("run-list").append(emptyState("No matching runs", "No runs match these filters. Clear filters or browse another project.", clear));
     }
     for (const run of runs) {
       const button = element("button", undefined, "run-choice");
       button.type = "button";
       button.dataset.runId = run.id;
       if (run.id === state.selected) button.setAttribute("aria-current", "true");
-      button.append(element("strong", text(projectLabel(run.project_id)), "run-name"), element("span", `${text(run.outcome)} · ${compactTimestamp(run.created_at_ms)}`, "run-summary"), element("span", `Revision ${shortIdentity(run.source_revision)} · ${duration(run.duration_ms)}`, "run-source"), element("span", shortIdentity(run.id), "run-id"));
+      const head = element("span", undefined, "run-choice-head");
+      head.append(ui.statusPill(run.outcome, run.phase), element("strong", text(projectLabel(run.project_id)), "run-name"), element("span", undefined, "run-summary"));
+      head.lastChild.append(when(run.created_at_ms));
+      const meta = element("span", undefined, "run-source");
+      meta.append(elapsed(run.duration_ms), document.createTextNode(` · ${shortIdentity(run.source_revision)}`));
+      button.append(head, meta, element("span", shortIdentity(run.id), "run-id mono"));
       button.title = `${run.id}\nSource: ${run.source_revision}`;
       button.addEventListener("click", () => navigate({ page: "runs", run: run.id, node: "", cursor: state.route.cursor }));
       $("run-list").append(button);
@@ -313,19 +361,16 @@
     $("empty-run").hidden = true;
     $("run-detail").hidden = false;
     $("run-title").textContent = text(projectLabel(run.project_id));
-    $("run-badges").replaceChildren();
-    for (const [label, value] of [["Outcome", run.outcome], ["Phase", run.phase]]) {
-      const badge = element("span", `${label}: ${text(value)}`, "state-badge");
-      badge.dataset.tone = value === "Success" ? "good" : /unknown|error|fail|denied|unavailable/i.test(text(value)) ? "warning" : "neutral";
-      $("run-badges").append(badge);
-    }
+    $("run-badges").replaceChildren(ui.statusPill(run.outcome, run.phase), phaseChip(run.phase));
     const warnings = [];
     if (run.error_code) warnings.push(`Service diagnostic: ${text(run.error_code)}.`);
     if (run.outcome === "Unknown" || /unknown|recover|unavailable/i.test(text(run.phase))) warnings.push("Execution state is uncertain or recovering. This is not a successful run; do not assume provider effects completed.");
     if (!state.connected) warnings.push("Live observation is disconnected. These details may be stale.");
     $("run-warning").textContent = warnings.join(" ");
     $("run-warning").hidden = !warnings.length;
-    addFacts($("run-facts"), [["Source revision", shortIdentity(run.source_revision)], ["Created", compactTimestamp(run.created_at_ms)], ["Duration", duration(run.duration_ms)]]);
+    const revision = element("span", shortIdentity(run.source_revision), "mono");
+    revision.title = text(run.source_revision);
+    addFactTiles($("run-facts"), [["Source revision", revision], ["Created", when(run.created_at_ms)], ["Started", when(run.started_at_ms)], ["Completed", when(run.completed_at_ms)], ["Duration", elapsed(run.duration_ms)]]);
     addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)]]);
     $("execution-identity").textContent = text(run.execution);
     const nodes = Array.isArray(run.nodes) ? run.nodes : [];
@@ -350,15 +395,15 @@
     const target = $("step-telemetry");
     target.replaceChildren();
     const records = Array.isArray(run.step_telemetry) ? run.step_telemetry : [];
-    if (!records.length) { target.append(element("p", "Unknown: no worker step measurements were recorded for this execution.", "small")); return; }
-    const observed = (value, unit) => Number.isSafeInteger(value) && value >= 0 ? `${value.toLocaleString()} ${unit}` : "Unknown (not recorded)";
+    if (!records.length) { target.append(element("p", "Not recorded: no worker step measurements were recorded for this execution.", "small")); return; }
+    const observed = (value, unit) => Number.isSafeInteger(value) && value >= 0 ? `${value.toLocaleString()} ${unit}` : "Not recorded";
     for (const record of records) {
       const observation = record.observation || {};
       const step = observation.step || {};
       const panel = element("article", undefined, "telemetry-step");
       panel.append(element("h4", `${text(observation.binding?.node_id)} · reviewed step ${text(step.step_index)} · sequence ${text(observation.sequence)}`));
       const facts = element("dl", undefined, "facts");
-      addFacts(facts, [["Started", timestamp(step.started_at_ms)], ["Completed", timestamp(step.completed_at_ms)], ["Measured elapsed", duration(step.duration_ms)], ["Exit code", step.exit_code], ["Observed CPU", observed(step.cpu_time_us, "µs")], ["Observed peak memory", observed(step.peak_memory_bytes, "bytes")]]);
+      addFacts(facts, [["Started", when(step.started_at_ms)], ["Completed", when(step.completed_at_ms)], ["Measured elapsed", elapsed(step.duration_ms)], ["Exit code", step.exit_code], ["Observed CPU", observed(step.cpu_time_us, "µs")], ["Observed peak memory", observed(step.peak_memory_bytes, "bytes")]]);
       panel.append(facts);
       for (const cache of step.cache || []) panel.append(element("p", `Shared cache ${text(cache.outcome)} · ${observed(cache.transferred_bytes, "bytes transferred")} · ${duration(cache.duration_ms)} · key ${text(cache.key)}`, "small identity"));
       target.append(panel);
@@ -421,7 +466,7 @@
       connection(stopped ? "Disconnected · reconnect required" : `Stale · reconnect ${state.liveFailures}/${MAX_LIVE_FAILURES}`, false);
       renderRunList();
       if (state.run) renderDetail();
-      notice(`Live observation unavailable: ${explain(error)}${stopped ? " Automatic reconnect stopped. Use Refresh & reconnect." : " Read-only reconnect is bounded; no mutations are retried."}`);
+      notice(`Live observation unavailable: ${explain(error)}${stopped ? " Automatic reconnect stopped. Use Refresh to reconnect." : " Read-only reconnect is bounded; no mutations are retried."}`);
       if (!stopped) scheduleLive(Math.min(MAX_BACKOFF_MS, LIVE_DELAY_MS * 2 ** (state.liveFailures - 1)), generation);
     } finally {
       if (state.liveController === controller) state.liveController = null;
@@ -718,8 +763,15 @@
     $("empty-run").hidden = false;
     $("login-panel").hidden = false;
     $("logout").hidden = true;
+    $("account-settings").hidden = true;
+    setAccountMenu(false);
     $("auth-status").textContent = "Signed out";
     $("auth-status").removeAttribute("data-state");
+    $("auth-status").removeAttribute("title");
+    $("account-avatar").textContent = "?";
+    $("account-name").textContent = "Not signed in";
+    $("account-role").textContent = "Network identity is checked automatically, or connect with an access token.";
+    $("connection-status").hidden = true;
     $("login-button").disabled = false;
     $("confirm-control").disabled = false;
     $("runs-status").textContent = "No private run data loaded.";
@@ -739,10 +791,17 @@
     $("login-panel").hidden = true;
     $("workspace").hidden = false;
     $("logout").hidden = false;
-    $("auth-status").textContent = `${text(state.principal?.label)} · ${text(state.principal?.role)}`;
+    $("account-settings").hidden = false;
+    const principalLabel = text(state.principal?.label);
+    const admission = state.session === "network" ? "Trusted network identity" : "Manual bearer (memory only)";
+    $("auth-status").textContent = `${principalLabel} · ${text(state.principal?.role)}`;
     $("auth-status").title = $("auth-status").textContent;
     $("auth-status").dataset.state = "connected";
-    addFacts($("principal-facts"), [["Principal", state.principal?.label], ["ID", state.principal?.id], ["Role", state.principal?.role], ["Admission", state.session === "network" ? "Trusted network identity" : "Manual bearer (memory only)"]]);
+    $("account-avatar").textContent = ([...principalLabel.trim()][0] || "?").toUpperCase();
+    $("account-name").textContent = principalLabel;
+    $("account-role").textContent = `${text(state.principal?.role)} · ${admission}`;
+    $("connection-status").hidden = false;
+    addFacts($("principal-facts"), [["Principal", state.principal?.label], ["ID", state.principal?.id], ["Role", state.principal?.role], ["Admission", admission]]);
     notice("");
     projectDescriptions();
     startLive();
@@ -775,17 +834,13 @@
   // r[impl kiln.dashboard.time.local.scenario.zone]
   // r[impl kiln.dashboard.time.local.scenario.unknown]
   function timestamp(ms) {
-    if (!Number.isSafeInteger(ms)) return "Unavailable (not recorded)";
+    if (!Number.isSafeInteger(ms)) return "Not recorded";
     const date = new Date(ms);
-    if (Number.isNaN(date.valueOf())) return "Unavailable (not recorded)";
+    if (Number.isNaN(date.valueOf())) return "Not recorded";
     return `${localTimeFormat.format(date)} (local · ${localTimeZone}) · ${date.toISOString()} (UTC)`;
   }
-  function compactTimestamp(ms) {
-    if (!Number.isSafeInteger(ms)) return "Unavailable (not recorded)";
-    const date = new Date(ms);
-    return Number.isNaN(date.valueOf()) ? "Unavailable (not recorded)" : compactTimeFormat.format(date);
-  }
-  function duration(ms) { return Number.isSafeInteger(ms) && ms >= 0 ? `${(ms / 1000).toFixed(3)} s` : "Unavailable (not recorded)"; }
+  function duration(ms) { return ui.formatDuration(Number.isSafeInteger(ms) && ms >= 0 ? ms : null); }
+  const CANONICAL_OUTCOMES = new Set(["Success", "DomainFailure", "Denied", "ProviderError", "TimedOut", "Cancelled", "Unknown", "Pending"]);
   // r[impl kiln.dashboard.source.view.scenario.restore]
   // r[impl kiln.dashboard.complete.navigation]
   function readRoute() {
@@ -919,7 +974,7 @@
   }
   function section(title, parent, className = "panel") { const node = element("section", undefined, className); node.append(element("h3", title)); parent.append(node); return node; }
   function renderRecorded(parent, value, depth = 0) {
-    if (value === null || value === undefined) { parent.append(element("p", "Unavailable (not recorded)", "small")); return; }
+    if (value === null || value === undefined) { parent.append(element("p", "Not recorded", "small")); return; }
     if (Array.isArray(value)) {
       if (!value.length) parent.append(element("p", "No retained records in this bounded view.", "small"));
       for (const row of value) { const card = element("article", undefined, "record-card"); renderRecorded(card, row, depth + 1); parent.append(card); }
@@ -936,8 +991,9 @@
         const details = element("details"); details.append(element("summary", `${key.replaceAll("_", " ")} · recorded facts`)); cell.append(details);
         if (depth < 7) renderRecorded(details, item, depth + 1); else details.append(element("pre", text(item), "identity"));
       } else if ((key === "run_id" || key === "parent_run_id") && typeof item === "string") cell.append(runLink(item));
-      else if (key.endsWith("_at_ms") || key === "next_due_ms" || key === "reserved_at_ms") cell.textContent = timestamp(item);
-      else if (key === "duration_ms") cell.textContent = duration(item);
+      else if (key.endsWith("_at_ms") || key === "next_due_ms" || key === "reserved_at_ms") cell.append(when(item));
+      else if (key === "duration_ms") cell.append(elapsed(item));
+      else if ((key === "outcome" || key.endsWith("_outcome")) && CANONICAL_OUTCOMES.has(item)) cell.append(ui.statusPill(item, value.phase));
       else cell.textContent = text(item);
     }
   }
@@ -947,13 +1003,13 @@
     state.endpointGeneration.set(id, requestGeneration);
     const run = state.route.run;
     const parent = $(id);
-    parent.replaceChildren(element("p", "Loading admitted records…", "small"));
+    parent.replaceChildren(loadingState());
     try {
       const result = await api(target);
       if (generation !== state.pageGeneration || requestGeneration !== state.endpointGeneration.get(id) || run !== state.route.run) return;
       parent.replaceChildren(); render(parent, result); return true;
     } catch (error) {
-      if (!isAborted(error) && generation === state.pageGeneration && requestGeneration === state.endpointGeneration.get(id)) parent.replaceChildren(element("p", `Unavailable: ${explain(error)} No presence, absence or success is inferred.`, "warning"));
+      if (!isAborted(error) && generation === state.pageGeneration && requestGeneration === state.endpointGeneration.get(id)) parent.replaceChildren(errorState(`Unavailable: ${explain(error)} No presence, absence or success is inferred.`));
     }
   }
   function activityQuery() { const query = new URLSearchParams({ limit: "50" }); if (state.route.activity_cursor) query.set("cursor", state.route.activity_cursor); return query; }
@@ -971,7 +1027,7 @@
         if (route.page === "runs" && (run.id === route.run || run.project_id !== state.run?.project_id)) continue;
         const option = element("option");
         option.value = run.id;
-        option.label = `${projectLabel(run.project_id)} · ${run.outcome} · ${compactTimestamp(run.created_at_ms)} · ${shortIdentity(run.source_revision)}`;
+        option.label = `${projectLabel(run.project_id)} · ${ui.outcomeStatus(run.outcome, run.phase).label} · ${relativeText(run.created_at_ms)} · ${shortIdentity(run.source_revision)}`;
         list.append(option);
       }
     } catch (error) {
@@ -1099,7 +1155,7 @@
     parent.append(element("p", "Each enrolled project contributes one admission slot. Ambiguous nonterminal executions retain their occupied slots. Availability is not a heartbeat or a provider concurrency guarantee.", "small"));
     if (worker.observed_capacity) {
       const observed = element("dl", undefined, "facts");
-      addFacts(observed, [["Heartbeat observed slots", worker.observed_capacity.observed_slots], ["Heartbeat active slots", worker.observed_capacity.active_slots], ["Heartbeat free slots", worker.observed_capacity.free_slots], ["Last heartbeat", timestamp(worker.observed_capacity.last_seen_at_ms)]]);
+      addFacts(observed, [["Heartbeat observed slots", worker.observed_capacity.observed_slots], ["Heartbeat active slots", worker.observed_capacity.active_slots], ["Heartbeat free slots", worker.observed_capacity.free_slots], ["Last heartbeat", when(worker.observed_capacity.last_seen_at_ms)]]);
       parent.append(observed, element("p", "Expired observations contribute no free slots. Heartbeats observe availability, not physical capacity guarantees.", "small"));
     }
     const projects = section("Assigned projects & current runs", parent, "view-stack");
@@ -1119,10 +1175,9 @@
     if (!run) { latest.append(element("p", "Unknown: no retained execution observation. Queued requests are not execution evidence; timing, sequence and outcome are unknown.", "small")); return; }
     latest.append(runLink(run.id, `Inspect exact run: ${run.id}`));
     const observation = element("dl", undefined, "facts");
-    const unknown = (value) => value === null || value === undefined ? "Unknown (not recorded)" : value;
-    const recordedTime = (value) => value === null || value === undefined ? "Unknown (not recorded)" : timestamp(value);
-    const elapsed = Number.isSafeInteger(run.started_at_ms) && Number.isSafeInteger(run.completed_at_ms) && run.completed_at_ms >= run.started_at_ms ? duration(run.completed_at_ms - run.started_at_ms) : "Unknown (not recorded)";
-    addFacts(observation, [["Project ID", run.project_id], ["Phase", unknown(run.phase)], ["Outcome", unknown(run.outcome)], ["Sequence", unknown(run.sequence)], ["Error code", unknown(run.error_code)], ["Created", recordedTime(run.created_at_ms)], ["Started", recordedTime(run.started_at_ms)], ["Completed", recordedTime(run.completed_at_ms)], ["Execution duration", elapsed]]);
+    const unknown = (value) => value === null || value === undefined ? "Not recorded" : value;
+    const executionMs = Number.isSafeInteger(run.started_at_ms) && Number.isSafeInteger(run.completed_at_ms) && run.completed_at_ms >= run.started_at_ms ? run.completed_at_ms - run.started_at_ms : null;
+    addFacts(observation, [["Project ID", run.project_id], ["Phase", unknown(run.phase)], ["Outcome", ui.statusPill(run.outcome, run.phase)], ["Sequence", unknown(run.sequence)], ["Error code", unknown(run.error_code)], ["Created", when(run.created_at_ms)], ["Started", when(run.started_at_ms)], ["Completed", when(run.completed_at_ms)], ["Execution duration", elapsed(executionMs)]]);
     latest.append(observation, element("p", "Latest retained nonqueued execution, not necessarily an active run. A newer queued request never replaces this execution evidence.", "small"));
   }
   const browsingLoads = new Map();
@@ -1220,9 +1275,9 @@
       const footer = element("div", undefined, "cob-foot");
       const oid = element("code", shortOid(object.object_id), "cob-oid");
       oid.title = text(object.object_id);
-      const when = element("span", compactTimestamp(object.recorded_at_ms), "cob-when");
-      when.title = timestamp(object.recorded_at_ms);
-      footer.append(oid, when, element("span", `${shortAuthor(object.author)} · ${object.ref_tips.length} ref tip(s)`, "cob-when"));
+      const recorded = when(object.recorded_at_ms);
+      recorded.classList.add("cob-when");
+      footer.append(oid, recorded, element("span", `${shortAuthor(object.author)} · ${object.ref_tips.length} ref tip(s)`, "cob-when"));
       link.append(head, element("strong", text(object.title), "cob-title"));
       if (object.excerpt) link.append(element("span", text(object.excerpt), "cob-excerpt"));
       link.append(footer);
@@ -1352,7 +1407,9 @@
     parent.append(element("p", "Recorded actions, ordered by operation identity—not a current state or chosen concurrent winner. Authors, status and decision claims are unverified. Embedded text and URLs are inert.", "warning"));
     for (const operation of object.operations) {
       const card = section(`Operation ${shortOid(operation.id)}`, parent, "record-card cob-operation");
-      card.append(element("p", `${shortAuthor(operation.author_name)} · ${timestamp(operation.recorded_at_ms)} · unverified author`, "small"));
+      const byline = element("p", `${shortAuthor(operation.author_name)} · `, "small");
+      byline.append(when(operation.recorded_at_ms), document.createTextNode(" · unverified author"));
+      card.append(byline);
       for (const action of operation.actions || []) renderCobAction(card, identity.type_name, action);
       const framing = element("details", undefined, "cob-framing"); framing.append(element("summary", "Exact operation metadata"));
       const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Exact operation ID", operation.id], ["Recorded", timestamp(operation.recorded_at_ms)], ["Git author (unverified)", `${text(operation.author_name)} <${text(operation.author_email)}>`], ["Git parents", operation.git_parents], ["History parents", operation.history_parents], ["Commit message", operation.message]]); framing.append(metadata); card.append(framing);
@@ -1460,10 +1517,10 @@
     $("source-filter").disabled = !route.src;
     $("source-up").disabled = true;
     status.textContent = "Reading configured sources…";
-    $("source-browser-status").replaceChildren(element("p", "Loading admitted records…", "small"));
+    $("source-browser-status").replaceChildren(loadingState());
     let inventory;
     try { inventory = await api("/api/sources"); }
-    catch (error) { if (!isAborted(error) && current()) { $("source-browser-status").replaceChildren(element("p", `Unavailable: ${explain(error)}`, "warning")); status.textContent = "Source inventory unavailable."; } return; }
+    catch (error) { if (!isAborted(error) && current()) { $("source-browser-status").replaceChildren(errorState(`Unavailable: ${explain(error)}`)); status.textContent = "Source inventory unavailable."; } return; }
     if (!current()) return;
     const sources = Array.isArray(inventory.sources) ? inventory.sources : [];
     const parent = $("source-browser-status"); parent.replaceChildren();
@@ -1538,7 +1595,7 @@
       button.type = "button";
       button.title = text(entry.id);
       if (historical && entry.id === route.rev) button.setAttribute("aria-current", "true");
-      button.append(element("strong", text(entry.summary || entry.id)), element("span", text(entry.author), "small"), compactTimestampSpan(entry.recorded_at_ms), element("span", historical ? `select revision ${shortOid(entry.id)}` : `change ${shortOid(entry.id)} · historical trees are not readable`, "small"));
+      button.append(element("strong", text(entry.summary || entry.id)), element("span", text(entry.author), "small"), recordedTimeSpan(entry.recorded_at_ms), element("span", historical ? `select revision ${shortOid(entry.id)}` : `change ${shortOid(entry.id)} · historical trees are not readable`, "small"));
       button.addEventListener("click", () => { if (historical) navigate({ rev: entry.id, spath: "", sfile: "" }); });
       if (!historical) button.disabled = true;
       parent.append(button);
@@ -1570,10 +1627,10 @@
       renderSourceLog(parent, route, selected, { ...history, entries: [...entries, ...(more.entries || [])], next_cursor: more.next_cursor }, current);
     };
   }
-  function compactTimestampSpan(ms) {
-    const span = element("span", compactTimestamp(ms), "small");
-    span.title = timestamp(ms);
-    return span;
+  function recordedTimeSpan(ms) {
+    const node = when(ms);
+    node.classList.add("small");
+    return node;
   }
   // r[impl kiln.dashboard.reviews.view]
   function retainedDecisionLabel(decision) {
@@ -1583,9 +1640,7 @@
   function reviewDecisionBadges(parent, counts) {
     const badges = element("div", undefined, "badges");
     for (const [decision, count] of Object.entries(counts || {}).sort()) {
-      const badge = element("span", `${retainedDecisionLabel(decision)} · ${count}`, "state-badge");
-      badge.dataset.tone = reviewDecisionTone(decision);
-      badges.append(badge);
+      badges.append(decisionPill(decision, `${retainedDecisionLabel(decision)} · ${count}`));
     }
     if (!badges.childElementCount) badges.append(element("span", "No review rows recorded", "state-badge"));
     parent.append(badges);
@@ -1652,9 +1707,7 @@
       for (const row of reviews) {
         const line = element("tr");
         const decision = element("td");
-        const badge = element("span", retainedDecisionLabel(row?.decision), "state-badge");
-        badge.dataset.tone = reviewDecisionTone(row?.decision);
-        decision.append(badge);
+        decision.append(decisionPill(row?.decision, retainedDecisionLabel(row?.decision)));
         line.append(element("td", renderChangeRef(row?.change), "review-change"), decision);
         body.append(line);
       }
@@ -1666,67 +1719,96 @@
   }
   // r[impl kiln.web.minimal_console]
   // r[impl kiln.dashboard.complete.overview]
+  // r[impl kiln.web.readable_observations.scenario.failed]
   function renderOverview(parent, result) {
-    const grid = element("div", undefined, "overview-totals");
+    const grid = element("div", undefined, "overview-totals stat-tiles");
     grid.setAttribute("aria-label", "Retained run counts");
     parent.append(grid);
     const outcomes = { runs: "", failed: "failed", active: "", queued: "queued", succeeded: "Success", cancelled: "Cancelled", unknown: "Unknown" };
     const labels = { runs: "Retained", failed: "Failed", active: "Active", queued: "Queued", succeeded: "Succeeded", cancelled: "Cancelled", unknown: "Unknown" };
+    const statuses = { failed: "failure", active: "running", queued: "queued", unknown: "unknown", succeeded: "success", cancelled: "cancelled" };
     for (const key of ["failed", "active", "queued", "unknown", "succeeded", "cancelled", "runs"]) {
       if (!Object.hasOwn(result.totals || {}, key)) continue;
       const patch = { page: "runs", outcome: outcomes[key], project: "", q: "", source: "", cursor: "", run: "", node: "" };
       if (key === "active") Object.assign(patch, { page: "workers", worker_status: "busy", worker_q: "", worker: "" });
-      const link = workspaceLink(patch, undefined, "overview-total");
+      const link = workspaceLink(patch, undefined, "overview-total stat-tile");
       link.dataset.outcome = key;
+      if (statuses[key]) link.dataset.status = statuses[key];
       if (key === "active") link.title = "Inspect execution targets with active runs";
-      link.append(element("strong", text(result.totals[key]), "metric-value"), element("span", labels[key], "metric-label"));
+      const label = element("span", undefined, "metric-label");
+      if (statuses[key]) label.append(ui.icon(statuses[key]));
+      label.append(document.createTextNode(labels[key]));
+      link.append(element("strong", text(result.totals[key]), "metric-value"), label);
       grid.append(link);
     }
     const health = section("Latest project runs", parent);
     health.classList.add("project-health");
     const priority = { failing: 0, unknown: 1, active: 2, queued: 3, unavailable: 4, cancelled: 5, healthy: 6 };
-    for (const project of [...(result.projects || [])].sort((a, b) => (priority[a.health] ?? 4) - (priority[b.health] ?? 4))) {
-      const row = element("article", undefined, "project-row");
-      row.dataset.health = project.health;
-      const name = element("div", undefined, "project-row-name");
-      const latest = project.latest_run;
-      const history = { page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" };
-      name.append(workspaceLink(history, text(project.label)));
-      if (latest) {
-        const badge = element("span", text(latest.outcome), "state-badge");
-        badge.dataset.tone = project.health === "failing" ? "warning" : project.health === "healthy" ? "good" : "neutral";
-        name.append(badge);
-        row.append(name, element("span", duration(latest.duration_ms), "project-row-duration"), element("span", compactTimestamp(latest.completed_at_ms), "project-row-time"));
-        const actions = element("div", undefined, "project-row-actions");
-        const selection = { ...history, run: latest.id, stream: project.health === "failing" ? "stderr" : "stdout" };
-        const pipeline = workspaceLink({ ...selection, view: "pipeline" }, "Pipeline");
-        const logs = workspaceLink({ ...selection, view: "logs" }, "Logs");
-        pipeline.setAttribute("aria-label", `Pipeline for ${text(project.label)}`);
-        logs.setAttribute("aria-label", `Logs for ${text(project.label)}`);
-        actions.append(pipeline, logs); row.append(actions);
-      } else {
-        row.append(name, element("span", "No retained runs", "small"));
+    const projects = [...(result.projects || [])].sort((a, b) => (priority[a.health] ?? 4) - (priority[b.health] ?? 4));
+    if (projects.length) {
+      const wrap = element("div", undefined, "data-table-wrap");
+      const table = element("table", undefined, "data-table data-table-stack project-table");
+      const headings = element("tr");
+      for (const [label, className] of [["Status"], ["Project"], ["Duration", "num"], ["Finished"], ["Inspect", "actions-heading"]]) headings.append(element("th", label, className));
+      for (const cell of headings.children) cell.scope = "col";
+      const head = element("thead"); head.append(headings);
+      const body = element("tbody");
+      table.append(head, body); wrap.append(table); health.append(wrap);
+      for (const project of projects) {
+        const row = element("tr", undefined, "project-row");
+        row.dataset.health = project.health;
+        const latest = project.latest_run;
+        const history = { page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" };
+        const cell = (label, content, className) => { const node = element("td", undefined, className); node.dataset.label = label; if (content) node.append(content); row.append(node); return node; };
+        const name = element("span", undefined, "project-row-name");
+        name.append(workspaceLink(history, text(project.label)));
+        if (latest) {
+          cell("Status", ui.statusPill(latest.outcome, latest.phase), "project-row-status");
+          cell("Project", name);
+          cell("Duration", elapsed(latest.duration_ms), "num project-row-duration");
+          cell("Finished", when(latest.completed_at_ms), "project-row-time");
+          const actions = element("div", undefined, "project-row-actions");
+          const selection = { ...history, run: latest.id, stream: project.health === "failing" ? "stderr" : "stdout" };
+          const pipeline = workspaceLink({ ...selection, view: "pipeline" }, "Pipeline");
+          const logs = workspaceLink({ ...selection, view: "logs" }, "Logs");
+          pipeline.setAttribute("aria-label", `Pipeline for ${text(project.label)}`);
+          logs.setAttribute("aria-label", `Logs for ${text(project.label)}`);
+          actions.append(pipeline, logs);
+          cell("Inspect", actions, "project-row-actions-cell");
+        } else {
+          cell("Status", statePill("unknown", "No retained runs"), "project-row-status");
+          cell("Project", name);
+          for (const label of ["Duration", "Finished", "Inspect"]) cell(label, element("span", "—", "meta"), label === "Duration" ? "num" : "");
+        }
+        body.append(row);
       }
-      health.append(row);
-    }
-    if (!result.projects?.length) health.append(element("p", "No enrolled project health is recorded.", "small"));
+    } else health.append(emptyState("No project runs yet", "No enrolled project health is recorded."));
     const trend = element("details", undefined, "panel overview-timing");
     trend.append(element("summary", "Recorded duration trend"));
     parent.append(trend);
     trend.append(element("p", `${text(result.timing?.recorded)} / ${text(result.timing?.total)} retained runs have recorded timing. Historical unknowns are excluded, not treated as zero.`, "small"));
     const rows = result.duration_trend || [];
     const max = Math.max(1, ...rows.map((row) => Number.isSafeInteger(row.duration_ms) ? row.duration_ms : 0));
-    for (const row of rows) { const item = element("div", undefined, "trend-row"); item.append(runLink(row.run_id, `${row.project_id} · ${row.outcome}`), element("span", `${duration(row.duration_ms)} · ${timestamp(row.completed_at_ms)}`, "small")); if (Number.isSafeInteger(row.duration_ms)) { const bar = element("meter"); bar.min = 0; bar.max = max; bar.value = row.duration_ms; bar.setAttribute("aria-label", `${row.run_id}: ${duration(row.duration_ms)}`); item.append(bar); } trend.append(item); }
+    for (const row of rows) {
+      const item = element("div", undefined, "trend-row");
+      const heading = element("div", undefined, "trend-row-head");
+      const meta = element("span", undefined, "meta");
+      meta.append(elapsed(row.duration_ms), document.createTextNode(" · "), when(row.completed_at_ms));
+      heading.append(ui.statusPill(row.outcome), runLink(row.run_id, text(row.project_id)), meta);
+      item.append(heading);
+      if (Number.isSafeInteger(row.duration_ms)) { const bar = element("meter"); bar.min = 0; bar.max = max; bar.value = row.duration_ms; bar.setAttribute("aria-label", `${row.run_id}: ${duration(row.duration_ms)}`); item.append(bar); }
+      trend.append(item);
+    }
     if (!rows.length) trend.append(element("p", "No recorded duration samples available.", "small"));
   }
   function renderProjects() {
     const parent = $("project-cards"); parent.replaceChildren();
     for (const project of state.projects.enrolled) {
-      const card = section(text(project.label || project.id), parent, "project-card surface");
-      card.append(element("p", text(project.reference), "small"));
+      const card = section(text(project.label || project.id), parent, "project-card card");
+      card.append(element("p", text(project.reference), "meta mono"));
       const actions = element("div", undefined, "project-actions");
       actions.append(workspaceLink({ page: "runs", project: project.id, q: "", outcome: "", source: "", cursor: "", run: "", node: "" }, "Browse runs"));
-      const start = element("button", "Select for new run");
+      const start = element("button", "Select for new run", "quiet");
       start.type = "button";
       start.disabled = !canOperate();
       start.addEventListener("click", () => { $("enrolled-project").value = project.id; projectDescriptions(); void readAction(loadRefs)(); $("enrolled-project").focus(); $("start-form").scrollIntoView({ block: "center" }); });
@@ -1737,7 +1819,7 @@
       addFacts(facts, [["ID", project.id], ["Repository", project.repository], ["Reference", project.reference], ["Pipeline", project.pipeline_identity]]);
       details.append(facts); card.append(details);
     }
-    if (!state.projects.enrolled.length) parent.append(element("p", "No enrolled projects.", "small"));
+    if (!state.projects.enrolled.length) parent.append(emptyState("No enrolled projects", "Enroll an allowlisted repository above to start source-bound runs."));
   }
   async function loadRefs() {
     const id = $("enrolled-project").value;
@@ -1748,8 +1830,10 @@
     catch (error) { if (!isAborted(error) && generation === state.refsGeneration) { options($("source-reference"), [], "References unavailable", ""); $("source-status").textContent = explain(error); } }
   }
   const workflowTones = { Pending: "pending", Running: "running", Paused: "paused", Completed: "completed", Failed: "failed", Cancelled: "cancelled", Skipped: "skipped", Unknown: "unknown" };
+  const workflowStatuses = { Pending: "queued", Running: "running", Paused: "warning", Completed: "success", Failed: "failure", Cancelled: "cancelled", Skipped: "cancelled", Unknown: "unknown" };
   function workflowBadge(value) {
-    const badge = element("span", text(value), "workflow-state");
+    const badge = statePill(Object.hasOwn(workflowStatuses, value) ? workflowStatuses[value] : "unknown", text(value));
+    badge.classList.add("workflow-state");
     badge.dataset.state = Object.hasOwn(workflowTones, value) ? workflowTones[value] : "unknown";
     return badge;
   }
@@ -1807,7 +1891,9 @@
     button.dataset.relation = relation || "";
     const head = element("span", undefined, "workflow-node-head");
     head.append(element("span", text(node.kind), "workflow-kind"), workflowBadge(node.state));
-    button.append(head, element("strong", node.id), element("span", node.duration_ms == null ? "Timing not observed" : `Recorded duration · ${duration(node.duration_ms)}`, "small"));
+    const timing = element("span", node.duration_ms == null ? "Duration not recorded" : "Recorded duration · ", "small");
+    if (node.duration_ms != null) timing.append(elapsed(node.duration_ms));
+    button.append(head, element("strong", node.id), timing);
     if (relation) button.append(element("span", relation === "before" ? "Prerequisite of selection" : "Depends on selection", "workflow-relation"));
     if (node.id === state.route.node) button.setAttribute("aria-current", "true");
     button.addEventListener("click", () => navigate({ node: node.id }));
@@ -1841,7 +1927,7 @@
     const name = element("h4", node.id, "workflow-node-name"); name.tabIndex = -1; name.dataset.workflowFocus = `inspector:${node.id}`;
     parent.append(name, workflowBadge(node.state));
     const facts = element("dl", undefined, "facts");
-    addFacts(facts, [["Kind", node.kind], ["Started", timestamp(node.started_at_ms)], ["Completed", timestamp(node.completed_at_ms)], ["Duration", duration(node.duration_ms)]]); parent.append(facts);
+    addFacts(facts, [["Kind", node.kind], ["Started", when(node.started_at_ms)], ["Completed", when(node.completed_at_ms)], ["Duration", elapsed(node.duration_ms)]]); parent.append(facts);
     if (topology.problem) parent.append(element("p", "Dependency relationships are unavailable; no prerequisites or dependents are inferred.", "small"));
     else for (const [label, ids, location] of [["Prerequisites", topology.incoming.get(node.id), "before"], ["Dependents", topology.outgoing.get(node.id), "after"]]) {
       const group = element("div", undefined, "workflow-relations"); group.append(element("h4", label));
@@ -1926,7 +2012,14 @@
   function renderComparison(parent, result) {
     parent.append(element("p", "Only admitted recorded facts are compared. Missing tests, coverage and timing stay unavailable. A changed test verdict is not acceptance authority.", "boundary"));
     const facts = element("dl", undefined, "facts");
-    addFacts(facts, [["Current source", result.source?.current], ["Other source", result.source?.other], ["Current outcome", result.outcome?.current], ["Other outcome", result.outcome?.other], ["Current duration", duration(result.duration_ms?.current)], ["Other duration", duration(result.duration_ms?.other)], ["Duration delta (current − other)", Number.isSafeInteger(result.duration_ms?.delta) ? `${(result.duration_ms.delta / 1000).toFixed(3)} s` : null]]);
+    const delta = result.duration_ms?.delta;
+    let deltaNode = null;
+    if (Number.isSafeInteger(delta)) {
+      deltaNode = element("span", `${delta > 0 ? "+" : delta < 0 ? "−" : "±"}${ui.formatDuration(Math.abs(delta))}`, "duration");
+      deltaNode.title = `${delta.toLocaleString("en-US")} ms`;
+      deltaNode.append(element("span", ` (${delta.toLocaleString("en-US")} ms)`, "sr-only"));
+    }
+    addFacts(facts, [["Current source", result.source?.current], ["Other source", result.source?.other], ["Current outcome", ui.statusPill(result.outcome?.current)], ["Other outcome", ui.statusPill(result.outcome?.other)], ["Current duration", elapsed(result.duration_ms?.current)], ["Other duration", elapsed(result.duration_ms?.other)], ["Duration delta (current − other)", deltaNode]]);
     parent.append(facts, runLink(result.run_id, "Inspect current run"), runLink(result.other_run_id, "Inspect compared run"));
     for (const key of ["current", "other"]) { const group = section(`${key === "current" ? "Current" : "Other"} structured tests & coverage`, parent, "record-card"); renderRecorded(group, result.reports?.[key]); }
     const changes = section("Recorded test changes", parent, "view-stack");
@@ -1946,16 +2039,19 @@
     for (const record of records) {
       const report = record.report || record;
       const card = section(`${text(record.name)} · ${text(report.kind)}`, parent, "record-card");
-      const facts = element("dl", undefined, "facts"); addFacts(facts, [["Node", record.node_id], ["Attempt", record.attempt_id], ["Source revision", record.source_revision], ["Source BLAKE3", report.source_blake3], ["Source bytes", report.source_bytes], ["Report identity", record.id], ["Recorded", timestamp(record.recorded_at_ms)]]); card.append(facts);
+      const facts = element("dl", undefined, "facts"); addFacts(facts, [["Node", record.node_id], ["Attempt", record.attempt_id], ["Source revision", record.source_revision], ["Source BLAKE3", report.source_blake3], ["Source bytes", report.source_bytes], ["Report identity", record.id], ["Recorded", when(record.recorded_at_ms)]]); card.append(facts);
       if (record.unavailable) card.append(element("p", `Report unavailable: ${text(record.unavailable)}. Missing normalized data is not a passing report.`, "warning"));
       if (record.artifact) { const button = element("button", "Download retained report source"); button.type = "button"; button.addEventListener("click", () => downloadArtifact(runId, record.artifact, button)); card.append(button); }
       if (report.tests) {
         const tests = report.tests;
-        const summary = element("dl", undefined, "facts"); addFacts(summary, [["Total", tests.total], ["Passed", tests.passed], ["Failed", tests.failed], ["Errors", tests.errors], ["Skipped", tests.skipped], ["Reported seconds", tests.duration_seconds]]); card.append(summary);
+        const summary = element("dl", undefined, "facts"); addFacts(summary, [["Total", tests.total], ["Passed", tests.passed], ["Failed", tests.failed], ["Errors", tests.errors], ["Skipped", tests.skipped], ["Reported duration", reportedSeconds(tests.duration_seconds)]]); card.append(summary);
         for (const test of tests.cases || []) {
-          const details = element("details", undefined, "test-case"); details.append(element("summary", `${text(test.status)} · ${text(test.suite)} / ${text(test.class_name)} / ${text(test.name)}`));
+          const details = element("details", undefined, "test-case");
+          const heading = element("summary");
+          heading.append(testStatusPill(test.status), document.createTextNode(` ${text(test.suite)} / ${text(test.class_name)} / ${text(test.name)}`));
+          details.append(heading);
           if (test.status === "failed" || test.status === "error") details.open = true;
-          const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["File", test.file], ["Line", test.line], ["Reported seconds", test.duration_seconds], ["Message", test.message]]); details.append(metadata);
+          const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["File", test.file], ["Line", test.line], ["Reported duration", reportedSeconds(test.duration_seconds)], ["Message", test.message]]); details.append(metadata);
           if (test.details) details.append(element("pre", test.details, "identity"));
           card.append(details);
         }
@@ -1976,10 +2072,10 @@
       return report?.kind === "review" && report?.evidence?.document?.schema === "kiln.patchgate.review.v1";
     });
   }
-  function reviewDecisionTone(decision) {
-    if (decision === "accepted") return "good";
-    if (decision === "rejected" || decision === "escalated" || decision === "blocked") return "warning";
-    return "";
+  // Producer decisions are evidence, not CI outcomes; map them to semantic tones only.
+  function decisionPill(decision, label) {
+    const status = decision === "accepted" ? "success" : decision === "rejected" || decision === "blocked" ? "failure" : decision === "escalated" ? "warning" : "unknown";
+    return statePill(status, label, typeof decision === "string" && decision ? `Recorded decision: ${decision}` : "Decision not recorded");
   }
   function renderChangeRef(change) {
     if (!change || typeof change !== "object") return text(change);
@@ -1993,9 +2089,7 @@
     const card = section(`Patchgate review · ${reviews.length} change${reviews.length === 1 ? "" : "s"}`, parent, "record-card");
     const badges = element("div", undefined, "badges");
     for (const [decision, count] of [...counts.entries()].sort()) {
-      const badge = element("span", `${decision} · ${count}`, "state-badge");
-      badge.dataset.tone = reviewDecisionTone(decision);
-      badges.append(badge);
+      badges.append(decisionPill(decision, `${text(decision)} · ${count}`));
     }
     if (!counts.size) badges.append(element("span", "No review rows recorded", "state-badge"));
     badges.append(element("span", observation.authorizes_acceptance === true ? "Producer claims acceptance authority (not granted)" : "Acceptance authority: none", "state-badge"));
@@ -2013,7 +2107,7 @@
       ["Report identity", observation.report_identity],
       ["Request identity", document.request_identity],
       ["Retained native report bytes", typeof document.native_report === "string" ? document.native_report.length : null],
-      ["Recorded", timestamp(record.recorded_at_ms)],
+      ["Recorded", when(record.recorded_at_ms)],
       ["Source revision", record.source_revision],
       ["Report record", record.id]
     ]);
@@ -2029,9 +2123,7 @@
       for (const row of reviews) {
         const line = element("tr");
         const decision = element("td");
-        const badge = element("span", text(row.decision), "state-badge");
-        badge.dataset.tone = reviewDecisionTone(row.decision);
-        decision.append(badge);
+        decision.append(decisionPill(row.decision, text(row.decision)));
         line.append(element("td", renderChangeRef(row.change), "review-change"), decision);
         body.append(line);
       }
@@ -2095,7 +2187,10 @@
     if (!Array.isArray(result.items)) throw new Error("Activity response is invalid.");
     parent.append(element("p", `${result.items.length} shown of ${text(result.total)} · bounded retained timeline · audit window: ${text(result.audit_window)}`, "small"));
     for (const item of result.items) {
-      const card = section(`${item.kind === "audit" ? "Audit decision" : "Canonical event"} · ${timestamp(item.recorded_at_ms)}`, parent, "record-card");
+      const card = element("section", undefined, "record-card activity-item");
+      const heading = element("h3", `${item.kind === "audit" ? "Audit decision" : "Canonical event"} · `);
+      heading.append(when(item.recorded_at_ms));
+      card.append(heading); parent.append(card);
       if (item.run_id) card.append(runLink(item.run_id));
       if (item.kind === "audit") renderRecorded(card, item.audit); else renderRecorded(card, { event_identity: item.event_identity, ordinal: item.ordinal, event_index: item.event_index, event: item.event });
     }
@@ -2115,7 +2210,7 @@
     const capacity = section("Execution capacity", parent, "record-card"); renderRecorded(capacity, result.capacity);
     const queue = section("Durable queue", parent, "view-stack");
     if (!result.queue?.length) queue.append(element("p", "No queued work in the admitted snapshot.", "small"));
-    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(row.project_id)}`, queue, "record-card"); card.append(runLink(row.run_id), element("p", `Queued: ${timestamp(row.created_at_ms)}`, "small")); }
+    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(row.project_id)}`, queue, "record-card"); const queued = element("p", "Queued ", "small"); queued.append(when(row.created_at_ms)); card.append(runLink(row.run_id), queued); }
     const providers = section("Provider observations", parent, "view-stack");
     for (const row of result.providers || []) { const card = section(`${text(row.project_id)} · ${text(row.status)}`, providers, "record-card"); if (row.status === "unavailable") card.append(element("p", "Provider observation is unavailable, not healthy capacity.", "warning")); renderRecorded(card, row); }
     const usage = section("Retained usage & limits", parent, "view-stack");
@@ -2146,7 +2241,7 @@
       if (!result[key]?.length) group.append(element("p", "No registrations.", "small"));
       for (const row of result[key] || []) {
         const form = element("form", undefined, "record-card automation-form"); form.append(element("h3", text(row.id)));
-        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", row.project_id], ["Reference", row.reference], ["Last status", row.last_status]]); form.append(facts);
+        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", row.project_id], ["Reference", row.reference], ["Last status", CANONICAL_OUTCOMES.has(row.last_status) ? ui.statusPill(row.last_status) : row.last_status]]); form.append(facts);
         const inputs = { enabled: field(form, "Enabled", "checkbox", row.enabled) };
         if (kind === "trigger") {
           inputs.push = field(form, "Signed push events", "checkbox", row.push); inputs.pull_request = field(form, "Signed pull request events", "checkbox", row.pull_request);
@@ -2209,10 +2304,30 @@
     catch (error) { if (!isAborted(error) && epoch === state.epoch && generation === state.logGeneration && id === state.selected) $("log-status").textContent = `Retained stream download unavailable: ${explain(error)}`; }
     finally { if (epoch === state.epoch) $("download-log").disabled = false; }
   }
+  // Reported test seconds are producer floats; humanize while keeping the exact value inspectable.
+  function reportedSeconds(seconds) {
+    if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) return "Not recorded";
+    const node = element("span", ui.formatDuration(seconds * 1000), "duration");
+    node.title = `${seconds} s reported`;
+    node.append(element("span", ` (${seconds} s reported)`, "sr-only"));
+    return node;
+  }
+  const testStatuses = { passed: ["success", "Passed"], failed: ["failure", "Failed"], error: ["failure", "Error"], skipped: ["cancelled", "Skipped"] };
+  function testStatusPill(status) {
+    const [tone, label] = Object.hasOwn(testStatuses, status) ? testStatuses[status] : ["unknown", typeof status === "string" && status ? status : "Not recorded"];
+    return statePill(tone, label, typeof status === "string" ? `Reported status: ${status}` : "");
+  }
+  // Account disclosure: identity and session actions stay subordinate to page actions.
+  function setAccountMenu(open, restoreFocus = false) {
+    $("account-menu").hidden = !open;
+    $("account-button").setAttribute("aria-expanded", String(open));
+    if (!open && restoreFocus) $("account-button").focus();
+  }
   function setMenu(open, restoreFocus = false) {
     const mobile = window.matchMedia("(max-width: 60rem)").matches;
     const wasOpen = $("app-menu-toggle").getAttribute("aria-expanded") === "true";
     open = open && mobile;
+    if (open) setAccountMenu(false);
     $("app-sidebar").classList.toggle("is-open", open);
     $("app-sidebar").inert = mobile && !open;
     $("app-menu-toggle").setAttribute("aria-expanded", String(open));
@@ -2228,7 +2343,9 @@
     }
   }
   state.route = readRoute();
-  options($("run-outcome"), [{ id: "failed", label: "All failures" }, { id: "queued", label: "Queued" }, ...["Pending", "Success", "DomainFailure", "Denied", "Cancelled", "TimedOut", "ProviderError", "Unknown"].map((id) => ({ id }))], "All outcomes", state.route.outcome);
+  // Filter values stay canonical; labels are human with the exact outcome alongside.
+  const outcomeFilterLabel = (id) => { const label = id === "Pending" ? "Pending (queued or running)" : ui.outcomeStatus(id).label; return label === id || id === "Pending" ? label : `${label} (${id})`; };
+  options($("run-outcome"), [{ id: "failed", label: "All failures" }, { id: "queued", label: "Queued" }, ...["Pending", "Success", "DomainFailure", "Denied", "Cancelled", "TimedOut", "ProviderError", "Unknown"].map((id) => ({ id, label: outcomeFilterLabel(id) }))], "All outcomes", state.route.outcome);
   for (const node of document.querySelectorAll("[data-page]")) node.addEventListener("click", () => navigate({ page: node.dataset.page }));
   for (const node of document.querySelectorAll("[data-view]")) node.addEventListener("click", () => navigate({ view: node.dataset.view }));
   for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).addEventListener("click", () => { void prepareRerun(mode); });
@@ -2250,15 +2367,10 @@
   $("runs-next").addEventListener("click", () => { if (state.nextCursor) navigate({ cursor: state.nextCursor }); });
   $("compare-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ other: $("compare-other").value.trim(), view: "compare" }); });
   $("evidence-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ page: "evidence", run: $("evidence-run").value.trim() }); });
-  for (const name of ["activity", "automation", "operations"]) $("refresh-" + name).addEventListener("click", readAction(loadPage));
-  $("refresh-cobs").addEventListener("click", readAction(loadPage));
-  $("refresh-sources").addEventListener("click", readAction(loadPage));
-  $("refresh-reviews").addEventListener("click", readAction(loadPage));
   $("source-select").addEventListener("change", (event) => { if (state.session) navigate({ src: event.target.value, rev: "", spath: "", sfile: "", sq: "" }); });
   $("source-filter").addEventListener("input", (event) => { if (state.session) navigate({ sq: event.target.value }); });
   $("source-up").addEventListener("click", () => { if (state.session && state.route.spath) navigate({ spath: state.route.spath.split("/").slice(0, -1).join("/"), sfile: "", sq: "" }); });
   $("source-form").addEventListener("submit", (event) => { event.preventDefault(); if (state.session) navigate({ src: $("source-select").value, rev: "", spath: "", sfile: "", sq: "" }); });
-  $("refresh-workers").addEventListener("click", readAction(loadPage));
   $("worker-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ worker_q: $("worker-search").value.trim(), worker_status: $("worker-status").value }); });
   $("worker-reset").addEventListener("click", () => navigate({ worker_q: "", worker_status: "" }));
   $("cob-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ cob_repository: $("cob-repository").value, cob_type: $("cob-type").value, cob_q: $("cob-search").value.trim(), cob_cursor: "" }); });
@@ -2291,10 +2403,11 @@
   });
   $("logout").addEventListener("click", () => logout());
   $("refresh-all").addEventListener("click", readAction(refreshAll));
-  $("refresh-projects").addEventListener("click", readAction(loadProjects));
-  $("refresh-runs").addEventListener("click", readAction(loadRuns));
-  $("refresh-detail").addEventListener("click", readAction(loadDetail));
-  $("refresh-artifacts").addEventListener("click", () => { void loadArtifacts(); });
+  $("account-button").addEventListener("click", () => setAccountMenu($("account-menu").hidden));
+  $("account-settings").addEventListener("click", () => { setAccountMenu(false); navigate({ page: "settings" }); });
+  document.addEventListener("click", (event) => { if (!$("account-menu").hidden && !(event.target instanceof Element && event.target.closest(".account"))) setAccountMenu(false); });
+  document.addEventListener("focusin", (event) => { if (!$("account-menu").hidden && !(event.target instanceof Element && event.target.closest(".account"))) setAccountMenu(false); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("account-menu").hidden) { event.preventDefault(); setAccountMenu(false, true); } });
   $("available-project").addEventListener("change", projectDescriptions);
   $("enrolled-project").addEventListener("change", () => { projectDescriptions(); void readAction(loadRefs)(); });
   $("run-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ q: $("run-search").value.trim(), project: $("run-filter").value, outcome: $("run-outcome").value, source: $("run-source").value.trim(), order: $("run-order").value, cursor: "" }); });

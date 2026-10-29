@@ -16,6 +16,7 @@
   const split = value => [...new Set(String(value || "").split(/[,\n]/).map(s => s.trim()).filter(Boolean))];
   const title = value => String(value || "").replaceAll("_", " ").replace(/^./, s => s.toUpperCase());
   const date = value => value == null ? "Not scheduled" : new Date(value).toLocaleString();
+  const shortDate = value => value == null ? "Not scheduled" : new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   const identity = () => bridge()?.session()?.principal || "";
   const valid = (generation, principal) => state.generation === generation && identity() === principal && !!principal;
   const writable = () => state.configured && state.canWrite && !!bridge()?.session()?.can_write && identity() === state.principal;
@@ -24,6 +25,31 @@
   const pathFor = id => `/api/work/objects/${encodeURIComponent(id)}`;
   const errorText = error => error?.message || String(error);
   function report(error) { if (identity()) bridge().notice(errorText(error)); }
+  // r[impl kiln.web.readable_observations]
+  // Presentation only: KilnUi formats lazily at render time; exact values stay in title/datetime.
+  const kui = () => window.KilnUi;
+  const WORK_STATUS = { completed: "success", started: "running", backlog: "queued", triage: "pending", snoozed: "pending", cancelled: "cancelled", duplicate: "cancelled" };
+  const icon = name => kui()?.icon?.(name) || null;
+  function when(value, missing = "Not recorded") {
+    if (value == null) return el("span", missing, "meta");
+    if (typeof kui()?.timeElement === "function") return kui().timeElement(value);
+    const instant = new Date(value);
+    if (Number.isNaN(instant.getTime())) return el("span", "Not recorded", "meta");
+    const node = el("time", instant.toLocaleString()); node.dateTime = instant.toISOString(); return node;
+  }
+  function workStatus(status) {
+    const kind = WORK_STATUS[status] || "unknown", pill = el("span", undefined, "status-pill"); pill.dataset.status = kind;
+    const glyph = icon(kind === "pending" ? "queued" : kind); if (glyph) pill.append(glyph);
+    pill.append(el("span", status ? title(status) : "Not set")); pill.title = `Status: ${status || "not set"}`;
+    return pill;
+  }
+  function priorityTag(priority) { const node = el("span", PRIORITIES[priority] || "No priority", "work-priority"); node.dataset.priority = String(priority || 0); return node; }
+  function srOnly(text) { return el("span", text, "sr-only"); }
+  function loading(text, rows = 3) {
+    const wrap = el("div", undefined, "work-loading"), note = el("p", text, "meta"); note.setAttribute("role", "status"); wrap.append(note);
+    for (let index = 0; index < rows; index++) { const bar = el("div", undefined, "skeleton work-skeleton-row"); bar.setAttribute("aria-hidden", "true"); wrap.append(bar); }
+    return wrap;
+  }
   function button(text, action, cls, write = false) {
     const node = el("button", text, cls); node.type = "button";
     node.disabled = write && !writable();
@@ -31,14 +57,27 @@
     node.addEventListener("click", () => { Promise.resolve().then(action).catch(report); });
     return node;
   }
+  function iconButton(label, name, action, write = false, cls = "") {
+    const node = button(undefined, action, `icon-button quiet ${cls}`.trim(), write); node.setAttribute("aria-label", label);
+    if (!node.disabled) node.title = label;
+    const glyph = icon(name); if (glyph) node.append(glyph); else node.textContent = label;
+    return node;
+  }
+  function footer(form, save, close) {
+    const actions = el("div", undefined, "work-actions work-dialog-footer"); actions.append(button("Cancel", close, "quiet"), save); form.append(actions); return actions;
+  }
   function section(parent, heading, cls = "work-card") { const node = el("section", undefined, cls); node.append(el("h3", heading)); parent.append(node); return node; }
   function disclosure(parent, heading) {
     const details = el("details", undefined, "work-disclosure"); details.append(el("summary", heading));
     const body = el("div", undefined, "work-form-section"); details.append(body); parent.append(details); return body;
   }
-  function facts(parent, pairs) {
-    const dl = el("dl", undefined, "work-facts");
-    for (const [key, value] of pairs) { dl.append(el("dt", key), el("dd", value == null || value === "" ? "Not recorded" : value)); }
+  function facts(parent, pairs, cls = "") {
+    const dl = el("dl", undefined, `work-facts ${cls}`.trim());
+    for (const [key, value] of pairs) {
+      const dd = el("dd");
+      if (value instanceof Node) dd.append(value); else dd.textContent = value == null || value === "" ? "Not recorded" : String(value);
+      dl.append(el("dt", key), dd);
+    }
     parent.append(dl);
   }
   function field(parent, label, type = "text", value = "", options) {
@@ -85,7 +124,7 @@
     const dialog = el("dialog", undefined, "work-dialog");
     const header = el("div", undefined, "work-dialog-heading"); const h = el("h2", heading); h.id = `work-dialog-${crypto.randomUUID()}`; dialog.setAttribute("aria-labelledby", h.id);
     const close = () => { dialog.close(); dialog.remove(); state.dialogs.delete(dialog); };
-    header.append(h, button("Close", close)); dialog.append(header);
+    header.append(h, iconButton("Close", "close", close, false, "work-dialog-close")); dialog.append(header);
     dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
     state.dialogs.add(dialog); document.body.append(dialog); dialog.showModal(); return { dialog, close };
   }
@@ -140,7 +179,7 @@
     state.parent = parent; state.route = { ...route }; state.principal = principal;
     if (!sameParent) { state.generation++; state.detail++; }
     if (sameParent && state.configured) { draw(false); return; }
-    parent.replaceChildren(el("p", "Loading signed work records…", "small")); await refresh();
+    parent.replaceChildren(loading("Loading signed work records…")); await refresh();
   }
   function personalRecord() { return state.records.filter(record => record.kind === "personal" && record.fields.owner === state.principal).sort((a, b) => a.created_at_ms - b.created_at_ms || a.id.localeCompare(b.id))[0]; }
   function personal() { return personalRecord()?.fields.personal || { watched: [], read: {}, favorites: [], reminders: {} }; }
@@ -188,7 +227,9 @@
   function navigation(parent) {
     const nav = el("nav", undefined, "work-favorites"); nav.setAttribute("aria-label", "Saved work views and favorites");
     for (const record of state.records.filter(record => record.kind === "view" || personal().favorites.includes(record.id))) {
-      nav.append(button(`${record.kind === "view" ? record.fields.view?.shared ? "Shared: " : "Private: " : "★ "}${record.fields.title}`, () => record.kind === "view" ? bridge().navigate({ page: "work", work_view: record.id, work_id: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_sort: "", work_group: "", work_layout: "" }) : open(record.id)));
+      const link = button(`${record.kind === "view" ? record.fields.view?.shared ? "Shared: " : "Private: " : "★ "}${record.fields.title}`, () => record.kind === "view" ? bridge().navigate({ page: "work", work_view: record.id, work_id: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_sort: "", work_group: "", work_layout: "" }) : open(record.id), "work-favorite");
+      if (record.id === state.route.work_view || record.id === state.route.work_id) link.setAttribute("aria-current", "true");
+      nav.append(link);
     }
     if (nav.childElementCount) parent.append(nav);
   }
@@ -202,22 +243,34 @@
   }
   const kindLabel = kind => kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind;
   function toolbar(parent, config) {
-    const kind = creationKind(), top = el("div", undefined, "work-toolbar");
-    top.append(button(`New ${kindLabel(kind)}`, () => create(kind), "primary", true));
-    const more = el("details", undefined, "work-create-more"); more.append(el("summary", "Create something else"));
-    const choices = el("div", undefined, "work-actions");
-    for (const other of KINDS.filter(value => value !== kind)) choices.append(button(`New ${kindLabel(other)}`, () => { more.open = false; create(other); }, undefined, true));
-    more.append(choices); top.append(more, button("Refresh", refresh)); parent.append(top);
+    const kind = creationKind(), top = el("div", undefined, "work-toolbar"), start = el("div", undefined, "work-create");
+    start.append(button(`New ${kindLabel(kind)}`, () => create(kind), "primary", true));
+    const more = el("details", undefined, "work-create-more"), summary = el("summary"); summary.append(el("span", "Create something else"));
+    const chevron = icon("chevron"); if (chevron) summary.append(chevron);
+    more.append(summary);
+    more.addEventListener("keydown", event => { if (event.key === "Escape" && more.open) { event.preventDefault(); event.stopPropagation(); more.open = false; summary.focus(); } });
+    const choices = el("div", undefined, "work-actions work-create-menu"); choices.setAttribute("role", "group"); choices.setAttribute("aria-label", "Other work types");
+    for (const other of KINDS.filter(value => value !== kind)) choices.append(button(`New ${kindLabel(other)}`, () => { more.open = false; create(other); }, "quiet", true));
+    more.append(choices); start.append(more); top.append(start);
+    if (state.route.page === "inbox") {
+      const prefs = personalRecord(), tools = el("div", undefined, "work-actions work-toolbar-end");
+      tools.append(button("Attention preferences", () => prefs ? edit(prefs.id) : create("personal"), "quiet", true), button("Browse my private preferences", () => bridge().navigate({ page: "work", work_kind: "personal", work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" }), "quiet"));
+      top.append(tools);
+    }
+    parent.append(top);
     if (state.route.page === "planning") {
       const categories = el("nav", undefined, "work-categories"); categories.setAttribute("aria-label", "Planning categories");
       for (const [value, label] of [["", "All planning"], ...PLANNING.map(value => [value, `${title(value)}s`])]) {
-        const tab = button(label, () => bridge().navigate({ work_kind: value, work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" }));
+        const tab = button(label, () => bridge().navigate({ work_kind: value, work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" }), "work-category");
         if ((config.filters.kind || "") === value) tab.setAttribute("aria-current", "page"); categories.append(tab);
       }
       parent.append(categories);
     }
     const form = el("form", undefined, "work-search"), inputs = {};
+    form.setAttribute("role", "search"); form.setAttribute("aria-label", "Search and filter work");
     inputs.q = field(form, "Search", "search", config.filters.q || ""); inputs.q.placeholder = "Title, description or label…";
+    const searchField = inputs.q.closest(".work-field"); searchField.classList.add("work-search-field"); searchField.firstElementChild.classList.add("sr-only");
+    const glass = icon("search"); if (glass) { glass.classList.add("work-search-icon"); searchField.insertBefore(glass, inputs.q); }
     const search = el("button", "Search"); search.type = "submit"; form.append(search);
     const details = el("details", undefined, "work-filter-disclosure");
     const active = Object.entries(config.filters).filter(([key, value]) => key !== "q" && value).length;
@@ -231,13 +284,40 @@
     const group = field(filters, "Group by", "select", config.group_by, ["none", "status", "assignee", "project", "priority", "team"]);
     const sort = field(filters, "Sort by", "select", config.sort, ["updated", "created", "priority", "title", "due"]);
     const actions = el("div", undefined, "work-actions"); const submit = el("button", "Apply filters"); submit.type = "submit"; actions.append(submit);
-    actions.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" })), button("Save current view", () => editor("view", null, { view: { ...config, shared: false } }), undefined, true));
-    if (state.route.work_view) actions.append(button("Clear saved view", () => bridge().navigate({ work_view: "" })));
+    actions.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" }), "quiet"), button("Save current view", () => editor("view", null, { view: { ...config, shared: false } }), "quiet", true));
     filters.append(actions);
     form.addEventListener("submit", event => { event.preventDefault(); const patch = { work_layout: layout.value, work_group: group.value, work_sort: sort.value }; for (const [key, input] of Object.entries(inputs)) patch[ROUTE_FILTERS[key]] = input.value.trim(); bridge().navigate(patch); });
     parent.append(form);
-    if (state.route.work_view && !activeView()) parent.append(el("p", "Selected saved view is unavailable. No alternative view was selected.", "warning"));
-    if (activeView()) parent.append(el("p", `Saved view: ${nameFor(state.route.work_view)} · ${Object.entries(config.filters).filter(([, v]) => v).map(([k, v]) => `${title(k)}: ${nameFor(v)}`).join(" · ") || "No filters"}`, "small"));
+    if (state.route.work_view && !activeView()) {
+      const missing = el("div", undefined, "error-state work-unavailable");
+      missing.append(el("p", "Selected saved view is unavailable. No alternative view was selected.", "warning"), button("Clear saved view", () => bridge().navigate({ work_view: "" }), "quiet"));
+      parent.append(missing);
+    }
+    const chips = activeChips(config); if (chips) parent.append(chips);
+  }
+  function filterValue(key, value) {
+    if (key === "kind") return title(kindLabel(value));
+    if (key === "status") return title(value);
+    if (key === "priority") return PRIORITIES[value] || value;
+    return nameFor(value);
+  }
+  function chip(text, removeLabel, remove, hint) {
+    const node = el("span", undefined, "chip work-chip"); node.append(el("span", text)); if (hint) node.title = hint;
+    if (remove) node.append(iconButton(removeLabel, "close", remove, false, "work-chip-remove"));
+    return node;
+  }
+  // Saved-view filters are shown but only URL overrides are removable, preserving saved-view precedence.
+  function activeChips(config) {
+    const row = el("div", undefined, "work-chips"); row.setAttribute("role", "group"); row.setAttribute("aria-label", "Active filters");
+    const saved = activeView();
+    if (saved) { const name = nameFor(state.route.work_view); row.append(chip(`Saved view: ${name}`, `Clear saved view ${name}`, () => bridge().navigate({ work_view: "" }), saved.shared ? "Shared saved view" : "Private saved view")); }
+    for (const [key, value] of Object.entries(config.filters)) {
+      if (!value || (state.route.page === "planning" && key === "kind")) continue;
+      const route = ROUTE_FILTERS[key], text = `${key === "q" ? "Search" : key === "kind" ? "Type" : title(key)}: ${filterValue(key, value)}`;
+      row.append(route && state.route[route] === value ? chip(text, `Remove filter ${text}`, () => bridge().navigate({ [route]: "" })) : chip(text, null, null, "From the saved view"));
+    }
+    if (saved && row.childElementCount === 1) row.append(el("span", "No filters", "meta"));
+    return row.childElementCount ? row : null;
   }
   function statuses() { return [...new Set([...STATUSES, ...state.records.filter(record => record.kind === "team").flatMap(record => record.fields.workflow || [])])]; }
   function members(record) {
@@ -249,23 +329,30 @@
     const children = members(record); const done = children.filter(child => child.fields.status === "completed").length;
     const row = el("div", undefined, "work-progress");
     const meter = el("progress"); meter.max = Math.max(children.length, 1); meter.value = done; meter.setAttribute("aria-label", `${done} of ${children.length} linked records completed`);
-    row.append(meter, el("span", `${done}/${children.length} linked completed${children.length ? ` · ${Math.round(done / children.length * 100)}%` : " · no linked scope"}`, "small")); parent.append(row);
+    row.append(meter, el("span", `${done}/${children.length} linked completed${children.length ? ` · ${Math.round(done / children.length * 100)}%` : " · no linked scope"}`, "meta")); parent.append(row);
   }
   function workRow(record, parent) {
-    const row = el("article", undefined, "work-row"); row.dataset.workId = record.id; row.tabIndex = 0;
-    row.setAttribute("aria-label", `${title(record.kind)}: ${record.fields.title}`);
+    const f = record.fields, row = el("article", undefined, "work-row"); row.dataset.workId = record.id; row.tabIndex = 0;
+    row.setAttribute("aria-label", `${title(record.kind)}: ${f.title}`);
     if (state.route.work_id === record.id) row.setAttribute("aria-current", "true");
-    const main = button(record.fields.title || "Untitled", () => open(record.id), "work-row-title");
+    const main = button(f.title || "Untitled", () => open(record.id), "work-row-title");
+    const updated = el("span", undefined, "work-row-updated meta"); updated.append(srOnly("Updated "), when(record.updated_at_ms));
     const meta = el("div", undefined, "work-row-meta");
-    meta.append(el("span", title(record.kind), "work-kind"), el("span", title(record.fields.status)), el("span", PRIORITIES[record.fields.priority] || "No priority"));
-    if (record.fields.assignees?.length) meta.append(el("span", `Assigned: ${record.fields.assignees.join(", ")}`));
-    if (record.fields.team) meta.append(el("span", nameFor(record.fields.team)));
-    if (record.fields.project) meta.append(el("span", nameFor(record.fields.project)));
-    if (record.fields.labels?.length) meta.append(el("span", record.fields.labels.join(" · ")));
-    if (state.route.page === "inbox") meta.append(el("span", attention(record).join(" · ")));
-    if (personal().favorites.includes(record.id)) meta.append(el("span", "★ Favorite"));
-    if (record.fields.due_at_ms != null) meta.append(el("span", `Due ${date(record.fields.due_at_ms)}`));
-    row.append(main, meta);
+    meta.append(workStatus(f.status));
+    if (record.kind !== "issue") meta.append(el("span", title(kindLabel(record.kind)), "work-kind"));
+    if (f.priority) meta.append(priorityTag(f.priority));
+    if (f.assignees?.length) meta.append(el("span", `Assigned: ${f.assignees.join(", ")}`, "work-assignees"));
+    if (f.team) meta.append(el("span", nameFor(f.team)));
+    if (f.project) meta.append(el("span", nameFor(f.project)));
+    for (const label of f.labels || []) meta.append(el("span", label, "work-label"));
+    if (state.route.page === "inbox") for (const reason of attention(record)) meta.append(el("span", reason, "work-attention"));
+    if (personal().favorites.includes(record.id)) meta.append(el("span", "★ Favorite", "work-favorite-mark"));
+    if (f.due_at_ms != null) {
+      const due = el("span", undefined, "work-due"); due.append("Due ", when(f.due_at_ms));
+      if (f.due_at_ms < Date.now() && !["completed", "cancelled", "duplicate"].includes(f.status)) due.dataset.overdue = "true";
+      meta.append(due);
+    }
+    row.append(main, updated, meta);
     if (PLANNING.includes(record.kind)) progress(row, record);
     parent.append(row);
   }
@@ -275,33 +362,38 @@
     for (const record of records) {
       const raw = groupBy === "none" ? "Items" : groupBy === "assignee" ? record.fields.assignees?.join(", ") || "Unassigned" : groupBy === "priority" ? PRIORITIES[record.fields.priority] : record.fields[groupBy] || "Not set";
       const label = ["project", "team"].includes(groupBy) ? nameFor(raw) : title(raw);
-      if (!groups.has(label)) groups.set(label, []); groups.get(label).push(record);
+      if (!groups.has(label)) groups.set(label, { raw, rows: [] }); groups.get(label).rows.push(record);
     }
     if (!records.length) {
-      const empty = el("section", undefined, "work-empty"), page = state.route.page;
+      const empty = el("section", undefined, "work-empty empty-state"), page = state.route.page;
       const filtered = state.route.work_view || Object.entries(config.filters).some(([key, value]) => value && !(page === "planning" && key === "kind"));
       const heading = page === "inbox" ? "You're all caught up" : filtered ? "No matching items" : page === "planning" ? `No ${state.route.work_kind ? `${state.route.work_kind}s` : "plans"} yet` : page === "triage" ? "No requests to triage" : page === "workviews" ? "Keep a useful view" : "Start with an issue";
       const help = page === "inbox" ? "Your unread assignments, mentions, watched changes and due reminders appear here. Opening an item never marks it read automatically." : filtered ? "Try a different search or reset filters. This list covers the current bounded snapshot." : page === "planning" ? "Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work." : page === "triage" ? "Capture a request with its original source, then accept, decline, snooze or route it." : page === "workviews" ? "Save filters and a list or board layout so you can return to them later." : "Capture something to do. Add a title and description now; ownership, planning and CI links can come later.";
-      empty.append(el("h2", heading), el("p", help));
-      if (page !== "inbox" && writable()) empty.append(button(`New ${kindLabel(creationKind())}`, () => create(creationKind()), "primary", true));
+      empty.append(el("h2", heading, "empty-state-title"), el("p", help, "empty-state-text"));
+      if (page !== "inbox" && writable()) empty.append(button(`New ${kindLabel(creationKind())}`, () => create(creationKind()), undefined, true));
       parent.append(empty);
     }
     parent.dataset.layout = config.layout;
-    for (const [label, rows] of groups) { const group = el("section", undefined, "work-group"); group.append(el("h3", `${label} · ${rows.length}`)); for (const record of rows) workRow(record, group); parent.append(group); }
+    for (const [label, { raw, rows }] of groups) {
+      const group = el("section", undefined, "work-group"), heading = el("h3");
+      heading.append(groupBy === "status" && raw !== "Not set" ? workStatus(raw) : el("span", label), el("span", String(rows.length), "work-count"));
+      group.append(heading); for (const record of rows) workRow(record, group); parent.append(group);
+    }
   }
   function roadmap(parent, records) {
     const plans = records.filter(record => PLANNING.includes(record.kind));
     const scheduled = plans.filter(record => record.fields.start_at_ms != null || record.fields.due_at_ms != null);
     const details = el("details", undefined, "work-roadmap"); details.open = true; details.append(el("summary", "Roadmap · scheduled planning records"));
-    if (!scheduled.length) details.append(el("p", "No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.", "small"));
+    if (!scheduled.length) details.append(el("p", "No dated planning records in the current scope. Set start and due dates in a planning record to schedule it.", "meta"));
     const times = scheduled.flatMap(record => [record.fields.start_at_ms, record.fields.due_at_ms]).filter(value => value != null);
     const min = Math.min(...times), max = Math.max(...times), span = Math.max(max - min, 86400000);
     for (const record of scheduled.sort((a, b) => (a.fields.start_at_ms ?? a.fields.due_at_ms) - (b.fields.start_at_ms ?? b.fields.due_at_ms))) {
-      const row = el("div", undefined, "work-roadmap-row"); row.append(button(record.fields.title, () => open(record.id)));
+      const row = el("div", undefined, "work-roadmap-row"); row.append(button(record.fields.title, () => open(record.id), "quiet"));
       const track = el("div", undefined, "work-roadmap-track"), bar = el("div", undefined, "work-roadmap-bar");
       const start = record.fields.start_at_ms ?? record.fields.due_at_ms, end = record.fields.due_at_ms ?? start;
       bar.style.marginLeft = `${(start - min) / span * 90}%`; bar.style.width = `${Math.max(2, (end - start) / span * 90)}%`; track.append(bar);
-      row.append(track, el("span", `${date(record.fields.start_at_ms)} → ${date(record.fields.due_at_ms)}`, "small")); details.append(row);
+      const range = el("span", `${shortDate(record.fields.start_at_ms)} → ${shortDate(record.fields.due_at_ms)}`, "meta"); range.title = `${date(record.fields.start_at_ms)} → ${date(record.fields.due_at_ms)}`;
+      row.append(track, range); details.append(row);
     }
     parent.append(details);
   }
@@ -310,15 +402,18 @@
     if (preserveScroll) saveScroll();
     const focused = document.activeElement?.closest("[data-work-id]")?.dataset.workId;
     const parent = state.parent; parent.replaceChildren(); parent.classList.add("work-workspace");
-    if (state.error) { parent.append(el("p", `Work storage unavailable: ${state.error}. No empty or demo data has been substituted.`, "warning"), button("Reconnect", refresh)); return; }
-    if (!state.configured) { parent.append(el("p", "Native work storage is not configured. Configure an explicit signed work COB store on the server to enable this workspace. No records or private preferences are stored in this browser.", "work-empty")); return; }
-    if (!writable()) parent.append(el("p", "Read-only work workspace. Creating, editing, commenting and personal preferences require an admitted work writer and writable native store. CI operator authority is separate.", "small"));
-    navigation(parent); const config = configuration(); toolbar(parent, config);
-    if (state.route.page === "inbox") {
-      const prefs = personalRecord(), tools = el("div", undefined, "work-actions");
-      tools.append(button("Attention preferences", () => prefs ? edit(prefs.id) : create("personal"), undefined, true), button("Browse my private preferences", () => bridge().navigate({ page: "work", work_kind: "personal", work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" })));
-      parent.append(tools);
+    if (state.error) {
+      const failure = el("section", undefined, "error-state work-error"); failure.setAttribute("role", "alert");
+      failure.append(el("h2", "Work storage unavailable", "empty-state-title"), el("p", `${state.error}. No empty or demo data has been substituted.`, "empty-state-text"), button("Reconnect", refresh));
+      parent.append(failure); return;
     }
+    if (!state.configured) {
+      const missing = el("section", undefined, "work-empty empty-state");
+      missing.append(el("h2", "Work storage is not configured", "empty-state-title"), el("p", "Native work storage is not configured. Configure an explicit signed work COB store on the server to enable this workspace. No records or private preferences are stored in this browser.", "empty-state-text"));
+      parent.append(missing); return;
+    }
+    if (!writable()) { const notice = el("p", "Read-only work workspace. Creating, editing, commenting and personal preferences require an admitted work writer and writable native store. CI operator authority is separate.", "work-banner meta"); notice.dataset.tone = "info"; parent.append(notice); }
+    navigation(parent); const config = configuration(); toolbar(parent, config);
     const records = visibleRows(config);
     if (state.route.page === "planning") roadmap(parent, records);
     const layout = el("div", undefined, "work-columns"); const list = el("div", undefined, "work-list-scroll"); list.setAttribute("aria-label", "Work records");
@@ -334,7 +429,7 @@
     const generation = state.generation, principal = identity(), request = preview ? (previewRequests.get(parent) || 0) + 1 : ++state.detail;
     if (preview) previewRequests.set(parent, request);
     const current = () => valid(generation, principal) && parent.isConnected && (preview ? request === previewRequests.get(parent) : request === state.detail && state.route.work_id === id);
-    parent.replaceChildren(el("p", "Reading exact signed record…", "small"));
+    parent.replaceChildren(loading("Reading exact signed record…", 2));
     try {
       const record = await bridge().api(pathFor(id));
       if (!current()) return;
@@ -352,15 +447,25 @@
       } catch (error) { if (current()) body.replaceChildren(el("p", `Linked evidence unavailable: ${errorText(error)}`, "warning")); }
     } catch (error) { if (current()) parent.replaceChildren(el("p", `Selected object unavailable: ${errorText(error)}. No alternate record was selected.`, "warning")); }
   }
+  // r[impl kiln.web.readable_observations]
+  // Linked CI observations: canonical outcomes, durations and instants become readable while title/datetime keep exact values.
+  function observed(key, value, owner) {
+    const ui = kui();
+    if (key === "outcome" && typeof value === "string" && typeof ui?.statusPill === "function") return ui.statusPill(value, typeof owner?.phase === "string" ? owner.phase : undefined);
+    if (typeof value === "number" && /(^|_)duration_ms$|^elapsed_ms$/.test(key) && typeof ui?.durationElement === "function") return ui.durationElement(value);
+    if (typeof value === "number" && /_at_ms$/.test(key)) return when(value);
+    return null;
+  }
   function recorded(parent, value, depth = 0) {
-    if (value == null) { parent.append(el("span", "Unavailable (not recorded)")); return; }
+    if (value == null) { parent.append(el("span", "Unavailable (not recorded)", "meta")); return; }
     if (typeof value !== "object") { parent.append(el("span", value === "" ? "(empty)" : value, "work-text")); return; }
     if (depth > 7) { parent.append(el("pre", JSON.stringify(value, null, 2), "work-text")); return; }
-    if (Array.isArray(value)) { if (!value.length) parent.append(el("p", "No linked observations in this category.", "small")); for (const item of value) { const row = el("div", undefined, "work-observation"); recorded(row, item, depth + 1); parent.append(row); } return; }
+    if (Array.isArray(value)) { if (!value.length) parent.append(el("p", "No linked observations in this category.", "meta")); for (const item of value) { const row = el("div", undefined, "work-observation"); recorded(row, item, depth + 1); parent.append(row); } return; }
     const dl = el("dl", undefined, "work-facts");
     for (const [key, item] of Object.entries(value)) {
-      const dd = el("dd");
-      if (item && typeof item === "object") {
+      const dd = el("dd"), readable = observed(key, item, value);
+      if (readable) dd.append(readable);
+      else if (item && typeof item === "object") {
         const details = el("details");
         details.append(el("summary", `${title(key)}${Array.isArray(item) ? ` · ${item.length}` : " · exact observation"}`));
         recorded(details, item, depth + 1);
@@ -370,46 +475,62 @@
     }
     parent.append(dl);
   }
+  function messageHeading(tag, message) {
+    const heading = el(tag, undefined, "work-message-heading");
+    heading.append(el("strong", message.author), " · ", when(message.recorded_at_ms));
+    if (message.edited_at_ms) heading.append(" · edited ", when(message.edited_at_ms));
+    return heading;
+  }
   function renderDetail(record, parent, preview) {
-    const f = record.fields; const heading = el("div", undefined, "work-detail-heading"); heading.append(el("span", title(record.kind), "work-kind"), el("h2", f.title));
-    heading.append(button(preview ? "Open full record" : "Close detail", () => open(preview ? record.id : ""))); parent.append(heading);
-    parent.append(el("p", f.description || "No description recorded.", "work-text"));
-    facts(parent, [["Status", f.status], ["Priority", PRIORITIES[f.priority]], ["Owner", f.owner], ["Assignees", f.assignees?.join(", ")], ["Labels", f.labels?.join(", ")], ["Start", date(f.start_at_ms)], ["Due / snooze until", date(f.due_at_ms)], ["Customer (original intake)", f.customer], ["Source (original intake)", f.source_url], ["Created by", record.created_by], ["Created", date(record.created_at_ms)], ["Updated", date(record.updated_at_ms)]]);
+    const f = record.fields, heading = el("div", undefined, "work-detail-heading"), eyebrow = el("div", undefined, "work-detail-eyebrow");
+    eyebrow.append(el("span", title(kindLabel(record.kind)), "work-kind"), workStatus(f.status), priorityTag(f.priority));
+    heading.append(eyebrow, preview ? button("Open full record", () => open(record.id), "quiet") : iconButton("Close detail", "close", () => open("")), el("h2", f.title));
+    parent.append(heading);
+    parent.append(el("p", f.description || "No description recorded.", f.description ? "work-text" : "work-text meta"));
+    facts(parent, [["Owner", f.owner], ["Assignees", f.assignees?.join(", ")], ["Labels", f.labels?.join(", ")], ["Start", when(f.start_at_ms, "Not scheduled")], ["Due / snooze until", when(f.due_at_ms, "Not scheduled")], ["Customer (original intake)", f.customer], ["Source (original intake)", f.source_url], ["Created by", record.created_by], ["Created", when(record.created_at_ms)], ["Updated", when(record.updated_at_ms)]]);
     const relations = section(parent, "Relationships");
-    for (const [key, label] of [["parent", "Parent"], ["team", "Team"], ["project", "Project"], ["milestone", "Milestone"], ["cycle", "Cycle"], ["initiative", "Initiative"], ["duplicate_of", "Duplicate of"]]) if (f[key]) { const line = el("div", undefined, "work-relation"); line.append(el("span", `${label}: `), button(nameFor(f[key]), () => open(f[key]))); relations.append(line); }
-    for (const id of f.blocked_by || []) relations.append(button(`Blocked by: ${nameFor(id)}`, () => open(id)));
-    for (const child of state.records.filter(other => other.fields.parent === record.id)) relations.append(button(`${record.kind === "issue" ? "Sub-issue" : "Child " + record.kind}: ${child.fields.title}`, () => open(child.id)));
-    for (const other of state.records.filter(other => other.fields.blocked_by?.includes(record.id))) relations.append(button(`Blocks: ${other.fields.title}`, () => open(other.id)));
-    if (!relations.querySelector("button")) relations.append(el("p", "No typed relationships recorded.", "small"));
-    if (PLANNING.includes(record.kind)) { const scope = section(parent, "Scope & progress"); progress(scope, record); for (const child of members(record)) scope.append(button(`${child.fields.title} · ${child.fields.status}`, () => open(child.id))); }
+    for (const [key, label] of [["parent", "Parent"], ["team", "Team"], ["project", "Project"], ["milestone", "Milestone"], ["cycle", "Cycle"], ["initiative", "Initiative"], ["duplicate_of", "Duplicate of"]]) if (f[key]) { const line = el("div", undefined, "work-relation"); line.append(el("span", `${label}: `, "meta"), button(nameFor(f[key]), () => open(f[key]), "quiet")); relations.append(line); }
+    for (const id of f.blocked_by || []) relations.append(button(`Blocked by: ${nameFor(id)}`, () => open(id), "quiet work-relation-link"));
+    for (const child of state.records.filter(other => other.fields.parent === record.id)) relations.append(button(`${record.kind === "issue" ? "Sub-issue" : "Child " + record.kind}: ${child.fields.title}`, () => open(child.id), "quiet work-relation-link"));
+    for (const other of state.records.filter(other => other.fields.blocked_by?.includes(record.id))) relations.append(button(`Blocks: ${other.fields.title}`, () => open(other.id), "quiet work-relation-link"));
+    if (!relations.querySelector("button")) relations.append(el("p", "No typed relationships recorded.", "meta"));
+    if (PLANNING.includes(record.kind)) {
+      const scope = section(parent, "Scope & progress"); progress(scope, record);
+      for (const child of members(record)) { const link = button(child.fields.title, () => open(child.id), "quiet work-relation-link"); link.append(workStatus(child.fields.status)); scope.append(link); }
+    }
     if (record.kind === "team") facts(parent, [["Workflow", f.workflow?.join(" → ")]]);
     if (record.kind === "view") {
       const view = section(parent, f.view?.shared ? "Shared saved view" : "Private saved view"); recorded(view, f.view);
       if (!preview) {
         view.append(button("Use this view", () => bridge().navigate({ page: "work", work_view: record.id, work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_sort: "", work_group: "", work_layout: "", work_id: "" })));
-        view.append(button(f.view?.shared ? "Create private copy" : "Create shared copy", () => editor("view", null, { ...clone(f), title: `${f.title} (${f.view?.shared ? "private" : "shared"} copy)`, owner: state.principal, view: { ...clone(f.view), shared: !f.view?.shared } }), undefined, true));
+        view.append(button(f.view?.shared ? "Create private copy" : "Create shared copy", () => editor("view", null, { ...clone(f), title: `${f.title} (${f.view?.shared ? "private" : "shared"} copy)`, owner: state.principal, view: { ...clone(f.view), shared: !f.view?.shared } }), "quiet", true));
       }
     }
     if (record.kind === "personal") { const privateSection = section(parent, "Private attention choices"); recorded(privateSection, f.personal); }
     const links = section(parent, "Exact external identity links");
-    for (const link of f.links || []) { const row = el("p", `${title(link.kind)}: ${link.id}`, "work-text"); if (link.kind === "run") row.append(" ", bridge().runLink(link.id, "Inspect exact run")); links.append(row); }
-    if (!f.links?.length) links.append(el("p", "No linked identities.", "small"));
+    for (const link of f.links || []) {
+      const row = el("p", undefined, "work-link-identity"); row.append(el("span", title(link.kind), "work-kind"), el("code", link.id, "mono"));
+      if (link.kind === "run") row.append(" ", bridge().runLink(link.id, "Inspect exact run"));
+      links.append(row);
+    }
+    if (!f.links?.length) links.append(el("p", "No linked identities.", "meta"));
     if (!preview) {
-      const actions = el("div", undefined, "work-actions"); actions.append(button("Edit metadata", () => editor(record.kind, record), undefined, true));
-      if (record.kind === "issue") actions.append(button("Add sub-issue", () => editor("issue", null, { parent: record.id, team: f.team, project: f.project }), undefined, true));
+      const actions = el("div", undefined, "work-actions work-detail-actions"); actions.append(button("Edit metadata", () => editor(record.kind, record), undefined, true));
+      if (record.kind === "issue") actions.append(button("Add sub-issue", () => editor("issue", null, { parent: record.id, team: f.team, project: f.project }), "quiet", true));
       if (record.kind !== "personal") {
-        const p = personal();
-        actions.append(button(p.watched.includes(record.id) ? "Unwatch" : "Watch", () => preference("watch", [record.id]), undefined, true), button(p.favorites.includes(record.id) ? "Remove favorite" : "Favorite", () => preference("favorite", [record.id]), undefined, true), button(p.read[record.id] === record.head ? "Mark unread" : "Mark read", () => preference("read", [record.id], p.read[record.id] !== record.head), undefined, true), button("Set reminder", () => reminder(record.id), undefined, true));
-        if (p.reminders[record.id] != null) actions.append(button("Clear reminder", () => preference("reminder", [record.id], null), undefined, true));
+        const p = personal(), attentionTools = el("div", undefined, "work-actions work-attention-actions"); attentionTools.setAttribute("role", "group"); attentionTools.setAttribute("aria-label", "My attention");
+        attentionTools.append(button(p.watched.includes(record.id) ? "Unwatch" : "Watch", () => preference("watch", [record.id]), "quiet", true), button(p.favorites.includes(record.id) ? "Remove favorite" : "Favorite", () => preference("favorite", [record.id]), "quiet", true), button(p.read[record.id] === record.head ? "Mark unread" : "Mark read", () => preference("read", [record.id], p.read[record.id] !== record.head), "quiet", true), button("Set reminder", () => reminder(record.id), "quiet", true));
+        if (p.reminders[record.id] != null) attentionTools.append(button("Clear reminder", () => preference("reminder", [record.id], null), "quiet", true));
+        actions.append(attentionTools);
       }
       parent.append(actions);
       if (record.kind === "request") triage(record, parent);
       discussion(record, parent, "comments", false);
       if (["project", "team"].includes(record.kind)) discussion(record, parent, "updates", true);
     } else {
-      for (const message of [...(record.comments || []), ...(record.updates || [])]) { const card = section(parent, `${message.author} · ${date(message.recorded_at_ms)}`); card.append(el("p", message.body, "work-text")); }
+      for (const message of [...(record.comments || []), ...(record.updates || [])]) { const card = el("section", undefined, "work-card"); card.append(messageHeading("h3", message), el("p", message.body, "work-text")); parent.append(card); }
     }
-    const identitySection = el("details"); identitySection.append(el("summary", "Signed record identity")); facts(identitySection, [["Object", record.id], ["Exact head", record.head], ["Authenticated application principal", record.created_by]]); identitySection.append(el("p", "The application signature attests the authenticated principal, not an end-user Radicle identity.", "small")); parent.append(identitySection);
+    const identitySection = el("details", undefined, "work-identity"); identitySection.append(el("summary", "Signed record identity")); facts(identitySection, [["Object", record.id], ["Exact head", record.head], ["Authenticated application principal", record.created_by]], "work-facts-mono"); identitySection.append(el("p", "The application signature attests the authenticated principal, not an end-user Radicle identity.", "meta")); parent.append(identitySection);
   }
   async function edit(id) { const generation = state.generation, principal = identity(); const record = await bridge().api(pathFor(id)); if (valid(generation, principal)) editor(record.kind, record); }
   function create(kind = "issue") { if (!KINDS.includes(kind)) throw new Error("Unsupported work kind."); if (!writable()) throw new Error("Creation requires an admitted writable store."); return editor(kind); }
@@ -443,12 +564,12 @@
     const linkSection = disclosure(form, "CI & source links");
     linkSection.append(el("p", "Links are inert identities, not provider permissions. Source: repository@revision; patch/Cairn: repository|nativeType|object; review: receiptName; run: exact run ID; artifact: runID|artifactID. Unresolvable links remain explicitly unavailable.", "small"));
     const linkRows = el("div", undefined, "work-link-editor"); linkSection.append(linkRows);
-    const addLink = (link = { kind: "run", id: "" }) => { const row = el("div", undefined, "work-link-row"); const type = field(row, "Link kind", "select", link.kind, LINK_KINDS), id = field(row, "Exact identity", "text", link.id); row.readLink = () => ({ kind: type.value, id: id.value.trim() }); row.append(button("Remove link", () => row.remove())); linkRows.append(row); };
-    for (const link of f.links) addLink(link); linkSection.append(button("Add link", () => addLink()));
+    const addLink = (link = { kind: "run", id: "" }) => { const row = el("div", undefined, "work-link-row"); const type = field(row, "Link kind", "select", link.kind, LINK_KINDS), id = field(row, "Exact identity", "text", link.id); row.readLink = () => ({ kind: type.value, id: id.value.trim() }); row.append(button("Remove link", () => row.remove(), "quiet")); linkRows.append(row); };
+    for (const link of f.links) addLink(link); linkSection.append(button("Add link", () => addLink(), "quiet"));
     const readView = kind === "view" ? viewEditor(form, f.view, !!record) : null;
     const readPersonal = kind === "personal" ? personalEditor(form, f.personal) : null;
-    const status = el("p", "Changes persist only after explicit confirmation.", "small"); status.setAttribute("role", "status"); form.append(status);
-    const actions = el("div", undefined, "work-actions"), save = el("button", record ? "Save changes" : `Create ${kindLabel(kind)}`, "primary"); save.type = "submit"; actions.append(save, button("Cancel", close)); form.append(actions);
+    const status = el("p", "Changes persist only after explicit confirmation.", "small work-dialog-status"); status.setAttribute("role", "status"); form.append(status);
+    const save = el("button", record ? "Save changes" : `Create ${kindLabel(kind)}`, "primary"); save.type = "submit"; footer(form, save, close);
     form.addEventListener("submit", async event => {
       event.preventDefault(); if (!valid(generation, principal)) { close(); return; }
       const fields = clone(f);
@@ -488,8 +609,8 @@
     panel.append(el("p", "This native record is visible only to its authenticated owner. Read heads are captured from the current visible snapshot; no record is marked read on page load.", "small"));
     const kinds = KINDS.filter(k => k !== "personal"), watched = relation(panel, "Watched records", kinds, p.watched, true), favorites = relation(panel, "Favorite records", kinds, p.favorites, true), read = relation(panel, "Read records (retains saved head; new selections use current head)", kinds, Object.keys(p.read || {}), true);
     const reminders = el("div", undefined, "work-reminder-editor"); panel.append(reminders);
-    const add = (id = "", at = null) => { const row = el("div", undefined, "work-link-row"); const target = relation(row, "Reminder record", kinds, id), when = field(row, "Remind at (local time)", "datetime-local", datetime(at)); row.readReminder = () => target.value && when.value ? [target.value, timestamp(when)] : null; row.append(button("Remove reminder", () => row.remove())); reminders.append(row); };
-    for (const [id, at] of Object.entries(p.reminders || {})) add(id, at); panel.append(button("Add reminder", () => add()));
+    const add = (id = "", at = null) => { const row = el("div", undefined, "work-link-row"); const target = relation(row, "Reminder record", kinds, id), when = field(row, "Remind at (local time)", "datetime-local", datetime(at)); row.readReminder = () => target.value && when.value ? [target.value, timestamp(when)] : null; row.append(button("Remove reminder", () => row.remove(), "quiet")); reminders.append(row); };
+    for (const [id, at] of Object.entries(p.reminders || {})) add(id, at); panel.append(button("Add reminder", () => add(), "quiet"));
     return () => ({ watched: selected(watched), favorites: selected(favorites), read: Object.fromEntries(selected(read).map(id => [id, p.read?.[id] || recordFor(id)?.head]).filter(([, head]) => head)), reminders: Object.fromEntries(Array.from(reminders.children).map(row => row.readReminder()).filter(Boolean)) });
   }
   async function preference(type, ids, active) {
@@ -510,47 +631,47 @@
     return submitCaptured([{ record, action: record ? { type: "edit", fields } : { type: "create", kind: "personal", fields } }], `Persist private ${type} choice for ${ids.map(nameFor).join(", ")}`);
   }
   function reminder(id) {
-    const { dialog, close } = modal(`Reminder: ${nameFor(id)}`); const form = el("form"); const when = field(form, "Remind at (local time)", "datetime-local", datetime(personal().reminders[id])); when.required = true;
-    const save = el("button", "Persist private reminder", "primary"); save.type = "submit"; form.append(save); dialog.append(form);
+    const { dialog, close } = modal(`Reminder: ${nameFor(id)}`); const form = el("form", undefined, "work-dialog-form"); const when = field(form, "Remind at (local time)", "datetime-local", datetime(personal().reminders[id])); when.required = true;
+    const save = el("button", "Persist private reminder", "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
     form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { if (await preference("reminder", [id], timestamp(when))) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
   }
   function triage(record, parent) {
     const panel = section(parent, "Request triage"); panel.append(el("p", "Decisions update this request's status without replacing its original customer or source. Edit metadata to route to an assignee, team or project.", "small"));
     const actions = el("div", undefined, "work-actions");
-    actions.append(button("Accept to backlog", () => bulk({ type: "edit", fields: { status: "backlog", duplicate_of: null } }, [record.id]), undefined, true), button("Decline", () => bulk({ type: "edit", fields: { status: "cancelled" } }, [record.id]), undefined, true), button("Snooze", () => triageForm(record, "snooze"), undefined, true), button("Mark duplicate", () => triageForm(record, "duplicate"), undefined, true), button("Route / edit request", () => editor(record.kind, record), undefined, true)); panel.append(actions);
+    actions.append(button("Accept to backlog", () => bulk({ type: "edit", fields: { status: "backlog", duplicate_of: null } }, [record.id]), undefined, true), button("Decline", () => bulk({ type: "edit", fields: { status: "cancelled" } }, [record.id]), "quiet", true), button("Snooze", () => triageForm(record, "snooze"), "quiet", true), button("Mark duplicate", () => triageForm(record, "duplicate"), "quiet", true), button("Route / edit request", () => editor(record.kind, record), "quiet", true)); panel.append(actions);
   }
   function triageForm(record, type) {
-    const { dialog, close } = modal(`${title(type)} request: ${record.fields.title}`); const form = el("form");
+    const { dialog, close } = modal(`${title(type)} request: ${record.fields.title}`); const form = el("form", undefined, "work-dialog-form");
     const input = type === "snooze" ? field(form, "Snooze until (local time)", "datetime-local", datetime(record.fields.due_at_ms)) : relation(form, "Duplicate of", ["issue", "request"], record.fields.duplicate_of, false, record.id); input.required = true;
-    const save = el("button", `Persist ${type}`, "primary"); save.type = "submit"; form.append(save); dialog.append(form);
+    const save = el("button", `Persist ${type}`, "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
     form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { const fields = type === "snooze" ? { status: "snoozed", due_at_ms: timestamp(input) } : { status: "duplicate", duplicate_of: input.value }; if (await bulk({ type: "edit", fields }, [record.id])) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
   }
   function discussion(record, parent, key, update) {
     const panel = section(parent, update ? "Project / team updates" : "Discussion");
     for (const message of record[key] || []) {
-      const card = el("article", undefined, "work-message"); card.append(el("h4", `${message.author} · ${date(message.recorded_at_ms)}${message.edited_at_ms ? ` · edited ${date(message.edited_at_ms)}` : ""}`), el("p", message.body, "work-text"));
-      if (message.mentions?.length) card.append(el("p", `Mentions: ${message.mentions.join(", ")}`, "small"));
-      const reactions = el("div", undefined, "work-actions");
-      for (const [emoji, actors] of Object.entries(message.reactions || {})) reactions.append(button(`${emoji} ${actors.length} · ${actors.join(", ")}`, () => messageAction(record, { type: "react", comment: message.id, emoji, active: !actors.includes(state.principal) }, `Toggle reaction ${emoji} on message by ${message.author}`), actors.includes(state.principal) ? "work-active" : "", true));
-      if (message.author === state.principal) reactions.append(button(update ? "Edit update" : "Edit comment", () => commentEditor(record, message, update), undefined, true));
-      reactions.append(button("React", () => reactionEditor(record, message), undefined, true)); card.append(reactions); panel.append(card);
+      const card = el("article", undefined, "work-message"); card.append(messageHeading("h4", message), el("p", message.body, "work-text"));
+      if (message.mentions?.length) card.append(el("p", `Mentions: ${message.mentions.join(", ")}`, "meta"));
+      const reactions = el("div", undefined, "work-actions work-reactions");
+      for (const [emoji, actors] of Object.entries(message.reactions || {})) reactions.append(button(`${emoji} ${actors.length} · ${actors.join(", ")}`, () => messageAction(record, { type: "react", comment: message.id, emoji, active: !actors.includes(state.principal) }, `Toggle reaction ${emoji} on message by ${message.author}`), actors.includes(state.principal) ? "work-reaction work-active" : "work-reaction", true));
+      if (message.author === state.principal) reactions.append(button(update ? "Edit update" : "Edit comment", () => commentEditor(record, message, update), "quiet", true));
+      reactions.append(button("React", () => reactionEditor(record, message), "quiet", true)); card.append(reactions); panel.append(card);
     }
-    if (!record[key]?.length) panel.append(el("p", update ? "No updates recorded." : "No comments recorded.", "small"));
+    if (!record[key]?.length) panel.append(el("p", update ? "No updates recorded." : "No comments recorded.", "meta"));
     const form = el("form", undefined, "work-discussion-form"), body = field(form, update ? "New update" : "New comment", "textarea"), mentionsInput = field(form, "Mention exact principal IDs (comma separated)", "text"); body.required = true;
-    const save = el("button", update ? "Post update" : "Post comment", "primary"); save.type = "submit"; save.disabled = !writable(); form.append(save); panel.append(form);
+    const save = el("button", update ? "Post update" : "Post comment"); save.type = "submit"; save.disabled = !writable(); form.append(save); panel.append(form);
     form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { await messageAction(record, { type: update ? "update" : "comment", body: body.value.trim(), mentions: split(mentionsInput.value) }, `Post ${update ? "update" : "comment"} to ${record.fields.title}`); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
   }
   function messageAction(record, action, label) { return submitCaptured([{ record, action }], label); }
   function commentEditor(record, message, update = false) {
     const label = update ? "update" : "comment";
-    const { dialog, close } = modal(`Edit your ${label}`), form = el("form");
+    const { dialog, close } = modal(`Edit your ${label}`), form = el("form", undefined, "work-dialog-form");
     const body = field(form, title(label), "textarea", message.body), mentionsInput = field(form, "Mention exact principal IDs (comma separated)", "text", message.mentions.join(", ")); body.required = true;
-    const save = el("button", `Save ${label}`, "primary"); save.type = "submit"; form.append(save); dialog.append(form);
+    const save = el("button", `Save ${label}`, "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
     form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { if (await messageAction(record, { type: "edit_comment", comment: message.id, body: body.value.trim(), mentions: split(mentionsInput.value) }, `Edit ${label} ${message.id} in ${record.fields.title}`)) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
   }
   function reactionEditor(record, message) {
-    const { dialog, close } = modal("React to message"), form = el("form"), emoji = field(form, "Reaction emoji or short label", "text", "👍"); emoji.required = true; emoji.maxLength = 32;
-    const active = field(form, "Add my reaction (uncheck to remove)", "checkbox", true), save = el("button", "Persist reaction", "primary"); save.type = "submit"; form.append(save); dialog.append(form);
+    const { dialog, close } = modal("React to message"), form = el("form", undefined, "work-dialog-form"), emoji = field(form, "Reaction emoji or short label", "text", "👍"); emoji.required = true; emoji.maxLength = 32;
+    const active = field(form, "Add my reaction (uncheck to remove)", "checkbox", true), save = el("button", "Persist reaction", "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
     form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { if (await messageAction(record, { type: "react", comment: message.id, emoji: emoji.value.trim(), active: active.checked }, `Change reaction on message ${message.id} in ${record.fields.title}`)) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
   }
   async function bulk(action, ids) {
@@ -577,5 +698,9 @@
   async function preview(id, parent) { if (!identity()) return; return loadDetail(id, parent, true); }
   window.KilnWorkUI = { render, clear, objects, refresh, open, bulk, preview, create };
   window.addEventListener("kiln-session-changed", () => { if (!identity() || state.principal && identity() !== state.principal) clear(); });
+  // The shell's single page-level Refresh (#refresh-all) re-renders from cache; re-read the bounded snapshot too.
+  document.addEventListener("click", event => {
+    if (event.target instanceof Element && event.target.closest("#refresh-all") && state.parent?.isConnected && !state.parent.closest("[hidden]")) void refresh().catch(report);
+  });
   window.dispatchEvent(new CustomEvent("kiln-work-ready"));
 })();

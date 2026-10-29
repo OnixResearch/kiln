@@ -1194,6 +1194,13 @@
                 python3 -m unittest discover -s scripts -p test_dashboard_refresh.py
                 touch "$out"
               '';
+          live-console-ui =
+            pkgs.runCommand "kiln-live-console-ui" { nativeBuildInputs = [ pkgs.nodejs ]; }
+              ''
+                ${copySource}
+                node --test tests/live-console-ui.test.mjs
+                touch "$out"
+              '';
           # Property-based terminal rail for the operator dashboard. The
           # tool is separately executed and never linked into a Kiln package.
           # r[impl kiln.observe.dashboard.property_rail.cohort]

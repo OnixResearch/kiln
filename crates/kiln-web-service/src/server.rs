@@ -768,6 +768,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         // r[impl kiln.dashboard.cobs.view.scenario.cleared]
         let (content_type, bytes): (&'static str, &[u8]) = match path {
             "/" => ("text/html; charset=utf-8", include_bytes!("web.html")),
+            "/ui.js" => ("text/javascript; charset=utf-8", include_bytes!("ui.js")),
             "/web.js" => ("text/javascript; charset=utf-8", include_bytes!("web.js")),
             "/web.css" => ("text/css; charset=utf-8", include_bytes!("web.css")),
             "/work.js" => ("text/javascript; charset=utf-8", include_bytes!("work.js")),

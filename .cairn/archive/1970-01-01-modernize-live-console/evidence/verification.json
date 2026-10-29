@@ -1,0 +1,27 @@
+{
+  "schema": "kiln.live-console-redesign.verification.v1",
+  "date": "2026-10-29",
+  "maintenance_owner": "Kiln web-service maintainers",
+  "direction": "Operator chose 'Modernize, keep Kiln palette'.",
+  "method": "Real Chromium against the live tailnet service's real retained data. The candidate's local assets were served in place of the live HTML/CSS/JS through request interception. This proves candidate presentation only; the live executable was not redeployed.",
+  "screenshots": {
+    "before": ["before-overview-desktop.png", "before-run-logs-desktop.png", "before-issues-desktop.png", "before-planning-desktop.png", "before-code-review-desktop.png", "before-overview-320.png"],
+    "after": ["after-overview-desktop.png", "after-run-logs-desktop.png", "after-run-pipeline-desktop.png", "after-issues-desktop.png", "after-code-review-desktop.png", "after-overview-320.png", "after-runs-320.png", "after-issues-320.png", "after-code-review-320.png", "after-overview-dark.png", "after-runs-compact-dark-reduced.png"]
+  },
+  "observations": [
+    "Every candidate page loaded with zero page errors and zero document-level horizontal overflow, at 1440px and at 320px.",
+    "Readable observations: a pill reads 'Passed' with aria-label 'Outcome: Passed (Success)'; failed runs read 'Failed'. Duration reads '4m 33s', with title and exact text '273,357 ms'. Times are relative ('2d ago'), with a datetime attribute plus local and UTC in the title. Runs without timing read 'Not recorded'.",
+    "At 320px on the runs page, no visible interactive control is shorter than 44px.",
+    "Dark appearance with compact density and reduced motion: color-scheme dark, density compact, --motion 0ms.",
+    "Keyboard: the palette opens from the trigger, the first Escape clears typed text and the second closes it (same as the live build), and focus returns to the trigger. The account menu opens with Enter, exposes Clear session, closes with Escape and returns focus to its button.",
+    "Fixed after the first browser pass: run titles truncated to one line, the filter select was truncated, the issue empty state was misaligned, and an empty notification pager was always shown."
+  ],
+  "checks": [
+    {"command": "cargo fmt -- --check; cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings; cargo test --locked -p kiln-web-service", "result": "passed"},
+    {"command": "node --test tests/live-console-ui.test.mjs", "result": "2 passed. A mutation that renders missing duration as 0.0s fails the unknown-timing test."},
+    {"command": "nix flake check path:. --no-write-lock-file -L --builders '' --option substituters https://cache.nixos.org", "result": "all x86_64-linux checks passed, including the new live-console-ui check; aarch64-linux omitted"},
+    {"command": "cairn validate", "result": "valid"},
+    {"command": "cairn traceability coverage (accepted-only default)", "result": "fails only on dangling kiln.web.readable_observations IDs, which are defined by this active change and resolve on acceptance"}
+  ],
+  "non_claims": ["Not deployed to the live service", "No lifecycle acceptance", "Contrast reviewed visually, not measured exhaustively for every token pair"]
+}

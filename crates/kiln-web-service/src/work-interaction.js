@@ -6,6 +6,7 @@
   const MAX_RESULTS = 80;
   const WORK_ROOTS = "#work-content, #planning-content, #inbox-content, #triage-content, #workviews-content";
   const KINDS = ["issue", "project", "milestone", "cycle", "initiative", "team", "request", "view", "personal"];
+  const PRIORITIES = ["No priority", "Urgent", "High", "Normal", "Low"];
   const selected = new Set();
   let generation = 0;
   let peekGeneration = 0;
@@ -37,6 +38,7 @@
   const visible = (element) => element.isConnected && !element.closest("[hidden], [inert]") && element.getClientRects().length > 0;
   const rows = () => [...document.querySelectorAll("[data-work-id]")].filter((row) => row.closest(WORK_ROOTS) && visible(row));
   const notify = (error) => bridge()?.notice(errorText(error));
+  const icon = (name) => window.KilnUi?.icon?.(name) || null;
 
   function button(label, action, className) {
     const result = node("button", label, className);
@@ -50,13 +52,22 @@
     return result;
   }
 
+  function iconButton(label, name, action, className = "") {
+    const result = button("", action, `icon-button quiet ${className}`.trim());
+    result.setAttribute("aria-label", label);
+    result.title = label;
+    const glyph = icon(name);
+    if (glyph) result.append(glyph); else result.textContent = label;
+    return result;
+  }
+
   function dialog(title, className) {
     const result = node("dialog", undefined, `work-interaction-dialog ${className}`);
     const heading = node("h2", title);
     heading.id = `${className}-title`;
     result.setAttribute("aria-labelledby", heading.id);
     const header = node("header", undefined, "work-interaction-header");
-    header.append(heading, button("Close", () => result.close(), "work-interaction-close"));
+    header.append(heading, iconButton("Close", "close", () => result.close(), "work-interaction-close"));
     result.append(header);
     // Native modal dialogs make the background inert; keep keyboard focus inside
     // even on browsers whose dialog Tab behavior reaches browser chrome.
@@ -82,7 +93,7 @@
   function ensurePalette() {
     if (palette) return palette;
     const shell = dialog("Search and commands", "work-command-palette");
-    const label = node("label", "Search work, CI projects, runs and retained reviews");
+    const label = node("label", "Search work, CI projects, runs and retained reviews", "work-command-label");
     const input = node("input");
     input.id = "work-command-query";
     input.type = "search";
@@ -102,7 +113,11 @@
     const help = node("p", "Ctrl/Cmd+K: search · ↑/↓: choose · Enter: open · Escape: close. Work rows: j/k or ↑/↓ to move, Enter to open, Space to peek, x to select, Shift+↑/↓ to select a range, Shift+F10 for actions. Selection checkboxes support bulk updates.", "work-interaction-help");
     help.id = "work-command-help";
     input.setAttribute("aria-describedby", help.id);
-    shell.append(label, input, status, list, help);
+    const field = node("div", undefined, "work-command-field");
+    const glass = icon("search");
+    if (glass) field.append(glass);
+    field.append(input);
+    shell.append(label, field, status, list, help);
     const value = { shell, input, status, list, results: [], active: -1 };
     input.addEventListener("input", () => scheduleSearch());
     shell.addEventListener("keydown", (event) => {
@@ -226,9 +241,11 @@
         const projects = new Map([...data.available, ...data.enrolled].map((project) => [project.id, project]));
         return [...projects.values()].filter((project) => matches(query, project.id, project.label, project.reference)).map((project) => ({ label: project.label || project.id, detail: `CI project · ${project.id}`, run: () => bridge().navigate({ page: "runs", project: project.id, q: "", cursor: "", run: "" }) }));
       }],
+      // r[impl kiln.web.readable_observations]
       ["CI runs", `/api/runs?${new URLSearchParams({ limit: "25", order: "desc", ...(query ? { q: query } : {}) })}`, (data) => {
         if (!Array.isArray(data.runs)) throw new Error("Invalid run inventory");
-        return data.runs.map((run) => ({ label: `${run.project_id} · ${run.outcome}`, detail: `CI run · ${run.id} · ${run.source_revision || ""}`, run: () => bridge().navigate({ page: "runs", run: run.id, node: "" }) }));
+        const readable = typeof window.KilnUi?.statusPill === "function";
+        return data.runs.map((run) => ({ label: readable ? run.project_id : `${run.project_id} · ${run.outcome}`, outcome: run.outcome ?? null, phase: run.phase, at: run.created_at_ms, detail: `CI run · ${run.id} · ${run.source_revision || ""}`, run: () => bridge().navigate({ page: "runs", run: run.id, node: "" }) }));
       }],
       ["Retained reviews", "/api/reviews", (data) => {
         if (!Array.isArray(data.receipts)) throw new Error("Invalid review inventory");
@@ -252,7 +269,12 @@
       option.setAttribute("role", "option");
       option.setAttribute("aria-selected", "false");
       option.tabIndex = -1;
-      option.append(node("strong", result.label), node("span", result.detail));
+      const head = node("span", undefined, "work-command-result-head");
+      head.append(node("strong", result.label));
+      if ("outcome" in result && typeof window.KilnUi?.statusPill === "function") head.append(window.KilnUi.statusPill(result.outcome, result.phase));
+      const detail = node("span", result.detail, "work-command-result-detail");
+      if (result.at != null && typeof window.KilnUi?.timeElement === "function") detail.append(" · ", window.KilnUi.timeElement(result.at));
+      option.append(head, detail);
       option.addEventListener("click", () => runResult(result));
       option.addEventListener("focus", () => choose(index));
       option.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); runResult(result); } });
@@ -270,7 +292,9 @@
     const shell = dialog("Quick peek", "work-quick-peek");
     peek = shell;
     const content = node("div", "Loading persisted work object…", "work-quick-peek-content");
-    shell.append(content, button("Open full detail", () => { shell.close(); return ui().open(id); }));
+    const footer = node("div", undefined, "work-interaction-footer");
+    footer.append(button("Open full detail", () => { shell.close(); return ui().open(id); }));
+    shell.append(content, footer);
     shell.addEventListener("close", () => { if (peek === shell) { peekGeneration += 1; peek = null; } shell.remove(); restoreFocus(returnTarget); });
     shell.showModal();
     try {
@@ -329,7 +353,7 @@
     const priorityLabel = node("label", "Priority ");
     const priority = node("select");
     priority.setAttribute("aria-label", "Bulk priority");
-    for (let value = 0; value <= 4; value += 1) { const option = node("option", String(value)); option.value = String(value); priority.append(option); }
+    for (let value = 0; value <= 4; value += 1) { const option = node("option", `${value} · ${PRIORITIES[value]}`); option.value = String(value); priority.append(option); }
     priorityLabel.append(priority);
     const assigneeLabel = node("label", "Assignee ");
     const assignee = node("input");
@@ -339,7 +363,9 @@
     const actions = node("div", undefined, "work-selection-fields");
     actions.dataset.mutationControls = "true";
     actions.append(statusLabel, button("Set status…", () => { if (!status.value.trim()) throw new Error("Enter an exact admitted status first."); return bulk({ type: "status", status: status.value.trim() }); }), priorityLabel, button("Set priority…", () => bulk({ type: "priority", priority: Number(priority.value) })), assigneeLabel, button("Set assignee…", () => bulk({ type: "assign", assignee: assignee.value.trim() })));
-    toolbar.append(count, actions, button("Clear selection", () => { selected.clear(); syncRows(); }));
+    const header = node("div", undefined, "work-selection-header");
+    header.append(count, button("Clear selection", () => { selected.clear(); syncRows(); }, "quiet"));
+    toolbar.append(header, actions);
     toolbar.append(node("p", "Updates require confirmation of each object's exact head. Partial results remain selected for inspection; no automatic retry.", "work-interaction-help"));
     document.body.append(toolbar);
     updateToolbar();
@@ -362,9 +388,10 @@
     const record = ui()?.objects().find((item) => item.id === id);
     shell.append(node("p", record?.fields?.title || id, "work-context-title"));
     const act = (action) => () => { shell.close(); return action(); };
-    shell.append(button("Open detail", act(() => ui().open(id))), button("Quick peek", act(() => showPeek(id, row))), button(selected.has(id) ? "Remove from selection" : "Add to selection", act(() => toggleSelection(row))));
+    const item = (label, action) => button(label, act(action), "quiet work-menu-item");
+    shell.append(item("Open detail", () => ui().open(id)), item("Quick peek", () => showPeek(id, row)), item(selected.has(id) ? "Remove from selection" : "Add to selection", () => toggleSelection(row)));
     if (writable()) {
-      shell.append(button("Toggle watch…", act(() => bulk({ type: "watch" }, [id]))), button("Toggle favorite…", act(() => bulk({ type: "favorite" }, [id]))), button("Mark current head read…", act(() => bulk({ type: "read" }, [id]))));
+      shell.append(item("Toggle watch…", () => bulk({ type: "watch" }, [id])), item("Toggle favorite…", () => bulk({ type: "favorite" }, [id])), item("Mark current head read…", () => bulk({ type: "read" }, [id])));
       shell.append(node("p", "Metadata changes for selected objects are available in the selection bar. Every mutation requires exact-head confirmation.", "work-interaction-help"));
     }
     shell.addEventListener("close", () => { if (menu === shell) menu = null; shell.remove(); restoreFocus(row); });
@@ -392,7 +419,7 @@
       checkbox.checked = selected.has(id);
       row.classList.toggle("work-row-selected", selected.has(id));
       if (!row.querySelector("[data-work-menu]")) {
-        const control = button("Actions", () => showMenu(row), "work-row-menu");
+        const control = iconButton("Actions", "more", () => showMenu(row), "work-row-menu");
         control.dataset.workMenu = id;
         control.setAttribute("aria-haspopup", "dialog");
         control.setAttribute("aria-label", `Actions for ${id}`);
