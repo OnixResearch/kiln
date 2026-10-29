@@ -193,9 +193,8 @@ pub fn accept_invitation(
         return Err("invalid invitation identity".into());
     }
     let now = timestamp(now_ms)?;
-    let tx = db
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(storage)?;
+    // Nest inside the service's request transaction when accepting through RPC.
+    let tx = db.savepoint().map_err(storage)?;
     let row: Option<(String,String,String,i64,String,i64,i64)> = tx.query_row("SELECT peer,role,projects,expires,inviter,inviter_revision,consumed FROM hosted_invitations WHERE organization=?1 AND id=?2",params![org,input.invitation],|r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?))).optional().map_err(storage)?;
     let (intended, role, projects, expires, inviter, inviter_revision, consumed) =
         row.ok_or("invitation unavailable")?;

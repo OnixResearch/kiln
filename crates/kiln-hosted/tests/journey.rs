@@ -930,3 +930,170 @@ fn organization_owner_without_host_authority_cannot_create_whole_service_backup(
                 && member.get("active").unwrap_or(&Value::Null) == true)
     );
 }
+
+#[test]
+fn rejected_enrollment_does_not_consume_effect_replay_capacity() {
+    let fixture = Fixture::new();
+    let stranger = fixture.peer("stranger");
+    let mut service = Service::open(fixture.profile.clone())
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    for id in ["invalid-invitation-a", "invalid-invitation-b"] {
+        let mut attempt = request(id, "accounts.accept", json!({"invitation":"absent"}));
+        attempt.organization = "never-enrolled".into();
+        assert_eq!(
+            service.handle(&stranger, attempt).error.as_deref(),
+            Some("invitation unavailable")
+        );
+    }
+    drop(service);
+    let mut service = Service::open(fixture.profile.clone())
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    for table in ["hosted_requests", "hosted_audit"] {
+        let count: i64 = service
+            .db
+            .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))
+            .unwrap_or_else(|error| unreachable!("retained state unavailable: {error:?}"));
+        assert_eq!(
+            count, 0,
+            "rejected unaffiliated requests retained in {table}"
+        );
+    }
+    let info = call(
+        &mut service,
+        &fixture.owner,
+        "owner-after-invalid",
+        "system.info",
+        json!({}),
+    );
+    assert_eq!(info.get("organization").and_then(Value::as_str), Some(ORG));
+}
+
+#[test]
+fn issuer_metadata_reads_preserve_replay_capacity_and_current_authority() {
+    let mut fixture = Fixture::new();
+    let key = fixture.directory.path().join("issuer.seed");
+    fs::write(&key, [17u8; 32])
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    fs::set_permissions(&key, fs::Permissions::from_mode(0o600))
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    fixture.profile.secrets = Some(kiln_hosted::secrets::Config {
+        issuer: "https://issuer.example.test".into(),
+        signing_key_path: key,
+        audiences: vec!["https://resource.example.test".into()],
+        token_lifetime_seconds: 120,
+        resolvers: Vec::new(),
+    });
+    let guest = fixture.peer("metadata-reader");
+    let mut service = Service::open(fixture.profile.clone())
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    enroll(&mut service, &fixture.owner, &guest, "viewer");
+    let before: i64 = service
+        .db
+        .query_row("SELECT COUNT(*) FROM hosted_requests", [], |r| r.get(0))
+        .unwrap_or_else(|error| unreachable!("retained state unavailable: {error:?}"));
+    for id in ["metadata-a", "metadata-b"] {
+        let discovery = call(&mut service, &guest, id, "secrets.discovery", json!({}));
+        assert_eq!(
+            discovery.get("issuer").and_then(Value::as_str),
+            Some("https://issuer.example.test")
+        );
+        let keys = call(
+            &mut service,
+            &guest,
+            &format!("{id}-jwks"),
+            "secrets.jwks",
+            json!({}),
+        );
+        assert_eq!(
+            keys.pointer("/keys/0/kty").and_then(Value::as_str),
+            Some("OKP")
+        );
+    }
+    let after: i64 = service
+        .db
+        .query_row("SELECT COUNT(*) FROM hosted_requests", [], |r| r.get(0))
+        .unwrap_or_else(|error| unreachable!("retained state unavailable: {error:?}"));
+    assert_eq!(
+        after, before,
+        "read-only metadata consumed effect replay capacity"
+    );
+    change_membership(
+        &mut service,
+        &fixture.owner,
+        &guest,
+        1,
+        "viewer",
+        &["alpha"],
+        false,
+    );
+    rejected(service.handle(&guest, request("metadata-a", "secrets.jwks", json!({}))));
+}
+
+#[test]
+fn enrollment_receipt_failure_rolls_back_membership_and_invitation_consumption() {
+    let fixture = Fixture::new();
+    let guest = fixture.peer("atomic-guest");
+    let mut service = Service::open(fixture.profile.clone())
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    let invitation = call(
+        &mut service,
+        &fixture.owner,
+        "atomic-invite",
+        "accounts.invite",
+        json!({
+            "peer": guest, "role": "viewer", "projects": ["alpha"],
+            "expires_at_ms": kiln_hosted::now_ms().unwrap_or_else(|error| unreachable!("clock unavailable: {error:?}")) + 60_000,
+            "nonce": "atomic-invitation"
+        }),
+    );
+    let invitation_id = invitation
+        .get("invitation")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("invitation identity missing"));
+    let acceptance = request(
+        "atomic-accept",
+        "accounts.accept",
+        json!({"invitation": invitation_id}),
+    );
+    service.db.execute_batch("CREATE TRIGGER deny_acceptance_audit BEFORE INSERT ON hosted_audit WHEN NEW.action='accounts.accept' BEGIN SELECT RAISE(ABORT,'fixture audit failure'); END;")
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    rejected(service.handle(&guest, acceptance.clone()));
+    drop(service);
+    let mut service = Service::open(fixture.profile.clone())
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    assert!(kiln_hosted::accounts::authorize(&service.db, &guest, ORG).is_err());
+    let consumed: i64 = service
+        .db
+        .query_row(
+            "SELECT consumed FROM hosted_invitations WHERE id=?1",
+            [invitation_id],
+            |r| r.get(0),
+        )
+        .unwrap_or_else(|error| unreachable!("retained invitation unavailable: {error:?}"));
+    assert_eq!(consumed, 0);
+    let retained: i64 = service
+        .db
+        .query_row(
+            "SELECT COUNT(*) FROM hosted_requests WHERE request_id='atomic-accept'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or_else(|error| unreachable!("retained request unavailable: {error:?}"));
+    assert_eq!(retained, 0);
+    service
+        .db
+        .execute_batch("DROP TRIGGER deny_acceptance_audit")
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    let original = accepted(service.handle(&guest, acceptance.clone()));
+    assert_eq!(original.get("revision").and_then(Value::as_u64), Some(1));
+    drop(service);
+    let mut service = Service::open(fixture.profile)
+        .unwrap_or_else(|error| unreachable!("journey prerequisite failed: {error:?}"));
+    assert_eq!(accepted(service.handle(&guest, acceptance)), original);
+    assert_eq!(
+        kiln_hosted::accounts::authorize(&service.db, &guest, ORG)
+            .unwrap_or_else(|error| unreachable!("accepted membership unavailable: {error:?}"))
+            .role,
+        "viewer"
+    );
+}

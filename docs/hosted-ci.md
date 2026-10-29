@@ -147,12 +147,21 @@ kiln-hosted rpc --profile "$HOME/kiln-hosted-local/client.json" --request reques
 `rpc` prints the response envelope and exits nonzero for an application error.
 `organization` must equal the client profile; it selects a scope, not authority.
 The authenticated QUIC peer's **current** durable membership authorizes each
-request, including retained replies. Reuse the identical request identity and
-input to recover an interrupted exchange. A conflicting input under the same
-ID fails. An uncertain retained request is not permission to generate a new ID
-and repeat a possible external effect. New intentional operations need new IDs.
-The server retains replay protection with finite request capacity; it does not
-automatically prune it to regain space.
+request, including retained replies. For effect-capable RPCs, reuse the identical
+request identity and input to recover an interrupted exchange. A conflicting
+input under the same ID fails. An uncertain retained request is not permission
+to generate a new ID and repeat a possible external effect. New intentional
+operations need new IDs. The server retains effect replay protection with finite
+request capacity; it does not automatically prune it to regain space. Rejected
+invitation acceptance retains no replay quota: membership, invitation consumption,
+successful response and audit commit atomically. Issuer discovery/JWKS are current
+authorized reads, not permanently retained effect requests; repeated metadata
+GETs cannot consume that replay capacity.
+The [2026-10-29 security regression and real transport exercise](../.cairn/changes/add-iroh-hosted-ci/evidence/replay-capacity-20261029.json)
+records failing-before/passing-after capacity cases, injected audit failure,
+same-request acceptance after rollback, restart replay and actual HTTP metadata
+reads without permanent replay allocation. This is scoped local evidence, not
+independent whole-system or hostile-isolation certification.
 
 Browser-local scripted RPC, while `connect` runs, has this exact surface:
 
@@ -675,6 +684,16 @@ same development shell. The provider rail uses isolated source/status fixtures,
 not a new live GitHub run. The procedures above supply the typed inputs for a
 separate operator-owned runtime cohort; temporary smoke keys and workspaces are
 not deployment configuration.
+
+The [2026-10-29 publication and desktop deployment receipt](../.cairn/changes/add-iroh-hosted-ci/evidence/deployment-20261029.json)
+records source `9e837966fe9927c5b27b72ebc0f2a1753d65de07` on canonical
+Radicle and its GitHub projection, and activation of the rebuilt existing
+desktop web service. TLS-verified health/assets, actual desktop/mobile browser
+navigation, retained logs and unchanged state/credentials bound that deployment.
+This did not activate the separate hosted listener or grant writable review
+provider capabilities: neither has an installed, separately admitted profile.
+The hosted executable was built and published; commercial and hostile-isolation
+qualification remain separate from this desktop deployment.
 
 All nine areas above have bounded callable/local procedures, not a universal
 production acceptance certificate. Keep observed native Iroh/browser,

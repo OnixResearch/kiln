@@ -20,6 +20,13 @@ Choice: add a separate hosted composition reusing existing adapter ports and web
 
 Rationale: a new UI or transport must not create a second CI state machine or erase replay protection.
 
+Invitation acceptance commits membership, invitation consumption, successful
+replay receipt and audit in one SQLite transaction. Any rejection or receipt
+failure rolls back the whole acceptance, so an unaffiliated peer cannot spend
+permanent global replay capacity. Issuer discovery/JWKS are current authorized
+reads outside the effect-replay ledger; successful and uncertain effects retain
+their existing replay protection. Neither path prunes retained obligations.
+
 ### Decision: Accountable implementation boundaries
 
 Choice: independently implement accounts/connections, finance, pipeline compilation/migration, execution/fleet, secrets/workload identity and operations. Each slice must have a real callable shell and integration consumer, not an unused model. Parent owns manifests, common dispatch, Iroh and browser integration. Runtime profiles carry exact backend inputs; unsupported provider features fail before effects. No shims implying unsupported Actions compatibility.

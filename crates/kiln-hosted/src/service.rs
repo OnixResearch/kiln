@@ -347,6 +347,26 @@ impl Service {
         }
     }
     fn dispatch(&mut self, peer: &str, request: &Request) -> Result<Value, String> {
+        if request.action != "accounts.accept" {
+            return self.dispatch_request(peer, request);
+        }
+        // Enrollment is not membership-authorized. Commit its invitation, membership,
+        // replay receipt and audit together; rejected peers retain no global quota.
+        self.db
+            .execute_batch("SAVEPOINT hosted_invitation_request")
+            .map_err(|_| "invitation request transaction unavailable")?;
+        let result = self.dispatch_request(peer, request);
+        let finish = if result.is_ok() {
+            "RELEASE hosted_invitation_request"
+        } else {
+            "ROLLBACK TO hosted_invitation_request; RELEASE hosted_invitation_request"
+        };
+        self.db
+            .execute_batch(finish)
+            .map_err(|_| "invitation request durability unknown")?;
+        result
+    }
+    fn dispatch_request(&mut self, peer: &str, request: &Request) -> Result<Value, String> {
         request.admit()?;
         let now = crate::now_ms()?;
         // Authorization is refreshed before cached responses, including after revocation.
@@ -368,6 +388,21 @@ impl Service {
                     &["owner", "admin", "member", "viewer", "billing"],
                 )?;
             }
+        }
+        // Issuer metadata is a current authorized read, not an effect-replay entry.
+        // Public metadata GETs must not consume permanent service-wide capacity.
+        if matches!(
+            request.action.as_str(),
+            "secrets.discovery" | "secrets.jwks"
+        ) {
+            if self.profile.secrets.is_none() {
+                return Err("operator secret policy unavailable".into());
+            }
+            return if request.action == "secrets.jwks" {
+                crate::secrets::jwks(&self.db)
+            } else {
+                crate::secrets::discovery(&self.db)
+            };
         }
         let authority = if let Some(actor) = &actor {
             let revision:i64=self.db.query_row("SELECT revision FROM hosted_memberships WHERE organization=?1 AND peer=?2 AND active=1",params![actor.organization,actor.peer],|r|r.get(0)).map_err(|_|"current authority unavailable")?;

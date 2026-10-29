@@ -1,0 +1,54 @@
+{
+  "schema": "kiln.hosted.replay-capacity-smoke.v1",
+  "scope": "Disposable local CLI, authenticated Iroh and actual loopback metadata HTTP; no production activation",
+  "observations": [
+    {
+      "kind": "invalid-unaffiliated-invitations",
+      "requests": 2,
+      "durableReplayRows": 0,
+      "auditRows": 0
+    },
+    {
+      "kind": "atomic-enrollment",
+      "auditFailure": "membership, consumed invitation and replay receipt rolled back",
+      "retry": "same request accepted after fault removal",
+      "restartReplay": "identical successful result"
+    },
+    {
+      "kind": "actual-bridge-metadata-http",
+      "requests": 4,
+      "status": 200,
+      "replayRowsBeforeAfter": 2
+    }
+  ],
+  "ownedProcessesStopped": true,
+  "temporaryKeysAndStateRemoved": true,
+  "binaryBlake3": "72ae4994406b23206e17841136a3e22bdd596a715566f37543999c72884b5d25",
+  "sourceBlake3": {
+    "crates/kiln-hosted/src/service.rs": "970a51adc7f50116c72c614713ef607e9a975a44fda5957bea4d27a142a055b1",
+    "crates/kiln-hosted/src/accounts.rs": "ad5bab01983187d39fd04f9a3dd4ec83fb4c985362060277947c4c58c90d542e",
+    "crates/kiln-hosted/tests/journey.rs": "4dcabfeb6f845190d47f4cc46c9ff268f9a391974664b170194bba37b646d4d1"
+  },
+  "regressionBefore": {
+    "command": "nix develop path:. --command cargo test --locked -p kiln-hosted --test journey capacity -- --nocapture",
+    "result": "both regressions failed: rejected enrollment retained 2 rows instead of 0; four metadata reads increased effect replay rows from 2 to 6"
+  },
+  "regressionAfter": {
+    "command": "nix develop path:. --command cargo test --locked -p kiln-hosted",
+    "result": "44 unit tests and 9 journey tests passed, including invitation/audit rollback, successful restart replay, metadata nonallocation and revoked-reader denial"
+  },
+  "clippy": {
+    "command": "nix develop path:. --command cargo clippy --locked -p kiln-hosted --all-targets -- -D warnings",
+    "result": "passed after replacing unchecked JSON indexing in new tests; cargo build -p kiln-hosted also passed"
+  },
+  "integratedQualification": {
+    "command": "nix flake check path:. --no-write-lock-file -L --builders '' --option substituters https://cache.nixos.org",
+    "result": "All x86_64-linux checks passed; aarch64-linux omitted. Includes packaged workspace/regression tests, Clippy, formatting, Nickel, Octet, browser/property and deployment VM rails.",
+    "frozenSource": "/nix/store/f2np8zikbpy0skmdrxn5pbndn45g6034-source",
+    "packageDerivation": "/nix/store/rsyp9v2yayq7bcqnrf6xybz39wf1ssyx-kiln-0.1.0.drv",
+    "packageOutput": "/nix/store/8cfqp0hj734xyb9823rgdk30bp89j69b-kiln-0.1.0",
+    "snapshotBoundary": "Final evidence-only qualification fields are not present in the frozen Nix source; security implementation and regression assertions are unchanged.",
+    "otherChecks": "Maintained cargo fmt check, hosted proposal/design/tasks gates and cairn validate passed. All 36 local references in the two updated operator/launch documents resolved."
+  },
+  "releaseClaim": false
+}
