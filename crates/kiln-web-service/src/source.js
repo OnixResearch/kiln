@@ -8,12 +8,11 @@
 // never parsed as markup. Nothing is selected unless the URL or the reader selects it.
 // r[impl kiln.dashboard.source.view]
 // r[impl kiln.dashboard.source.navigation]
+// r[impl kiln.highlight.render] File and Changes views request highlight=1 and draw the service's
+// tokens through KilnUi.highlightLines; there is no client tokenizer.
 (() => {
   // Revisions requested per /api/sources/<id>/log page (the service admits 1..=100).
   const LOG_PAGE_LIMIT = 30;
-  // Presentation-only highlighting stops above these bounds; the file then renders plain.
-  const HIGHLIGHT_MAX_BYTES = 200_000;
-  const HIGHLIGHT_MAX_LINES = 5_000;
   // Typing in the entry filter narrows the list at once and commits it to the URL after this pause.
   const FILTER_COMMIT_MS = 350;
   const FILTER_MAX_CHARS = 256;
@@ -82,147 +81,10 @@
     return { lines, finalNewline };
   }
 
-  const LANGUAGE_NAMES = Object.freeze({ rust: "Rust", javascript: "JavaScript/TypeScript", python: "Python", nix: "Nix", nickel: "Nickel", toml: "TOML", json: "JSON", yaml: "YAML", css: "CSS", html: "HTML", shell: "Shell", markdown: "Markdown" });
-  const EXTENSIONS = Object.freeze({
-    rs: "rust", js: "javascript", mjs: "javascript", cjs: "javascript", jsx: "javascript", ts: "javascript", tsx: "javascript", mts: "javascript", cts: "javascript",
-    py: "python", pyi: "python", nix: "nix", ncl: "nickel", toml: "toml", json: "json", yaml: "yaml", yml: "yaml", css: "css",
-    html: "html", htm: "html", sh: "shell", bash: "shell", zsh: "shell", md: "markdown", markdown: "markdown",
-  });
-  const FILENAMES = Object.freeze({ "Cargo.lock": "toml", "flake.lock": "json", ".envrc": "shell" });
-  function languageFor(path) {
-    const name = String(path ?? "").split("/").pop();
-    if (Object.hasOwn(FILENAMES, name)) return FILENAMES[name];
-    const dot = name.lastIndexOf(".");
-    if (dot <= 0) return null;
-    const extension = name.slice(dot + 1).toLowerCase();
-    return Object.hasOwn(EXTENSIONS, extension) ? EXTENSIONS[extension] : null;
-  }
-  // Whether a file is highlighted: a known language within both bounds; otherwise why not.
-  function highlightPlan(path, bytes, lineCount) {
-    const language = languageFor(path);
-    if (!language) return { language: null, skipped: "language" };
-    if (!Number.isSafeInteger(bytes) || bytes > HIGHLIGHT_MAX_BYTES) return { language, skipped: "bytes" };
-    if (!Number.isSafeInteger(lineCount) || lineCount > HIGHLIGHT_MAX_LINES) return { language, skipped: "lines" };
-    return { language, skipped: null };
-  }
-
-  const words = (list) => new Set(list.split(" "));
-  const DOUBLE = Object.freeze({ open: "\"", close: "\"", escape: true, multiline: false });
-  const SINGLE = Object.freeze({ open: "'", close: "'", escape: true, multiline: false });
-  const IDENTIFIER = /[A-Za-z_][\w]*/y;
-  const HYPHEN_IDENTIFIER = /[A-Za-z_-][\w-]*/y;
-  const NUMBER = /\d[\w.]*/y;
-  const CHAR_LITERAL = /'(?:\\(?:x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\}|.)|[^\\'])'/uy;
-  const STRING_PREFIX = /(?:^|\W)[rRbBfFuU]{1,2}$/;
-  const LANGUAGES = Object.freeze({
-    rust: { line: ["//"], block: [["/*", "*/"]], strings: [{ ...DOUBLE, multiline: true }], charLiteral: true, keywords: words("as async await break const continue crate dyn else enum extern false fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait true type unsafe use where while") },
-    javascript: { line: ["//"], block: [["/*", "*/"]], strings: [DOUBLE, SINGLE, { open: "`", close: "`", escape: true, multiline: true }], keywords: words("async await break case catch class const continue debugger default delete do else enum export extends false finally for from function if implements import in instanceof interface let new null of private protected public readonly return static super switch this throw true try type typeof undefined var void while with yield") },
-    python: { line: ["#"], strings: [{ open: "\"\"\"", close: "\"\"\"", escape: true, multiline: true }, { open: "'''", close: "'''", escape: true, multiline: true }, DOUBLE, SINGLE], stringPrefix: STRING_PREFIX, keywords: words("and as assert async await break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass raise return True try while with yield") },
-    nix: { line: ["#"], block: [["/*", "*/"]], strings: [{ open: "''", close: "''", escape: false, multiline: true }, { ...DOUBLE, multiline: true }], keywords: words("assert else false if import in inherit let null or rec then true with") },
-    nickel: { line: ["#"], strings: [{ open: "m%\"", close: "\"%", escape: false, multiline: true }, DOUBLE], keywords: words("default doc else false fun forall if import in let match null optional rec then true") },
-    toml: { line: ["#"], strings: [{ open: "\"\"\"", close: "\"\"\"", escape: true, multiline: true }, { open: "'''", close: "'''", escape: false, multiline: true }, DOUBLE, { ...SINGLE, escape: false }], keywords: words("true false") },
-    json: { strings: [DOUBLE], keywords: words("true false null") },
-    yaml: { line: ["#"], spacedComment: true, strings: [DOUBLE, { ...SINGLE, escape: false }], keywords: words("true false null yes no on off") },
-    css: { block: [["/*", "*/"]], strings: [DOUBLE, SINGLE], identifier: HYPHEN_IDENTIFIER, keywords: words("important inherit initial unset none auto") },
-    html: { block: [["<!--", "-->"]], strings: [DOUBLE], identifier: HYPHEN_IDENTIFIER, tags: true, keywords: words("") },
-    shell: { line: ["#"], spacedComment: true, strings: [{ ...DOUBLE, multiline: true }, { ...SINGLE, escape: false, multiline: true }], keywords: words("case do done elif else esac export fi for function if in local readonly return set then until while") },
-    markdown: { headings: true },
-  });
-
-  // Index just past `close`, honouring backslash escapes when the construct has them; -1 if open.
-  function findClose(line, from, state) {
-    for (let index = from; index < line.length; index += 1) {
-      if (state.escape && line[index] === "\\") { index += 1; continue; }
-      if (line.startsWith(state.close, index)) return index + state.close.length;
-    }
-    return -1;
-  }
-  // An apostrophe opens a string only at a word boundary (or after a Python string prefix), so prose
-  // such as "don't" stays plain.
-  function quoteOpens(line, index, string, spec) {
-    if (string.open !== "'" || index === 0 || !/\w/.test(line[index - 1])) return true;
-    return Boolean(spec.stringPrefix?.test(line.slice(Math.max(0, index - 3), index)));
-  }
-  function sticky(pattern, line, index) { pattern.lastIndex = index; return pattern.exec(line)?.[0] || ""; }
-  function tokenizeLine(line, spec, carried) {
-    const tokens = [];
-    const push = (text, kind) => {
-      if (!text) return;
-      const last = tokens[tokens.length - 1];
-      if (last && last.kind === kind) last.text += text;
-      else tokens.push({ text, kind });
-    };
-    if (spec.headings) { push(line, /^#{1,6}(?:\s|$)/.test(line) ? "heading" : null); return { tokens, carry: null }; }
-    let index = 0;
-    if (carried) {
-      const end = findClose(line, 0, carried);
-      if (end < 0) { push(line, carried.kind); return { tokens, carry: carried }; }
-      push(line.slice(0, end), carried.kind);
-      index = end;
-    }
-    while (index < line.length) {
-      const block = spec.block?.find(([open]) => line.startsWith(open, index));
-      if (block) {
-        const state = { kind: "comment", close: block[1], escape: false };
-        const end = findClose(line, index + block[0].length, state);
-        if (end < 0) { push(line.slice(index), "comment"); return { tokens, carry: state }; }
-        push(line.slice(index, end), "comment");
-        index = end;
-        continue;
-      }
-      if (spec.line?.some((open) => line.startsWith(open, index)) && (!spec.spacedComment || index === 0 || /\s/.test(line[index - 1]))) {
-        push(line.slice(index), "comment");
-        break;
-      }
-      const string = spec.strings?.find((candidate) => line.startsWith(candidate.open, index) && quoteOpens(line, index, candidate, spec));
-      if (string) {
-        const state = { kind: "string", close: string.close, escape: string.escape };
-        const end = findClose(line, index + string.open.length, state);
-        if (end < 0) { push(line.slice(index), "string"); return { tokens, carry: string.multiline ? state : null }; }
-        push(line.slice(index, end), "string");
-        index = end;
-        continue;
-      }
-      const character = line[index];
-      if (spec.charLiteral && character === "'") {
-        const literal = sticky(CHAR_LITERAL, line, index);
-        if (literal) { push(literal, "string"); index += literal.length; continue; }
-      }
-      if (/\d/.test(character) && (index === 0 || !/[\w$]/.test(line[index - 1]))) {
-        const number = sticky(NUMBER, line, index);
-        push(number, "number");
-        index += number.length;
-        continue;
-      }
-      const word = /[A-Za-z_]/.test(character) || (spec.identifier === HYPHEN_IDENTIFIER && character === "-") ? sticky(spec.identifier || IDENTIFIER, line, index) : "";
-      if (word) {
-        const tag = spec.tags && (line[index - 1] === "<" || (line[index - 1] === "/" && line[index - 2] === "<"));
-        push(word, tag || spec.keywords.has(word) ? "keyword" : null);
-        index += word.length;
-        continue;
-      }
-      push(character, null);
-      index += 1;
-    }
-    return { tokens, carry: null };
-  }
-  // Tokens per line. Tokens only partition each line: their concatenated text is the line exactly.
-  // Multi-line comments and strings carry their state to the following lines.
-  function tokenizeLines(lines, language) {
-    const source = Array.isArray(lines) ? lines : [];
-    const spec = Object.hasOwn(LANGUAGES, language) ? LANGUAGES[language] : null;
-    if (!spec) return source.map((line) => (line ? [{ text: line, kind: null }] : []));
-    let carry = null;
-    return source.map((line) => {
-      const result = tokenizeLine(String(line), spec, carry);
-      carry = result.carry;
-      return result.tokens;
-    });
-  }
-
   // r[impl kiln.dashboard.source.navigation.scenario.changes] A unified diff, per file: paths,
   // status, +/- counts and hunks whose lines carry old and new numbers. Every input line is kept
   // verbatim (as a header, hunk header or hunk line); lines that fit no form stay as context.
+  // Hunk lines also carry their index in the diff text, which server highlighting addresses.
   const HUNK_HEADER = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)$/;
   const BINARY_LINE = /^Binary files (.+) and (.+) differ$/;
   function diffPath(value, prefix) {
@@ -267,7 +129,7 @@
     let file = null;
     let hunk = null;
     let oldLine = 0; let newLine = 0; let oldLeft = 0; let newLeft = 0;
-    for (const line of lines) {
+    for (const [index, line] of lines.entries()) {
       if (line.startsWith("diff --git ")) {
         const [oldPath, newPath] = gitHeaderPaths(line);
         file = { oldPath, newPath, added: false, deleted: false, renamed: false, binary: false, headers: [line], hunks: [], truncated: false };
@@ -288,11 +150,11 @@
       if (!hunk) { file.headers.push(line); applyFileHeader(file, line); continue; }
       const marker = line[0];
       const open = oldLeft > 0 || newLeft > 0;
-      if (marker === "\\") hunk.lines.push({ kind: "no-newline", text: line, oldLine: null, newLine: null });
-      else if (open && marker === " " && oldLeft > 0 && newLeft > 0) { hunk.lines.push({ kind: "context", text: line, oldLine, newLine }); oldLine += 1; newLine += 1; oldLeft -= 1; newLeft -= 1; }
-      else if (open && marker === "+" && newLeft > 0) { hunk.lines.push({ kind: "add", text: line, oldLine: null, newLine }); newLine += 1; newLeft -= 1; }
-      else if (open && marker === "-" && oldLeft > 0) { hunk.lines.push({ kind: "delete", text: line, oldLine, newLine: null }); oldLine += 1; oldLeft -= 1; }
-      else hunk.lines.push({ kind: "context", text: line, oldLine: null, newLine: null, unparsed: true });
+      if (marker === "\\") hunk.lines.push({ kind: "no-newline", text: line, oldLine: null, newLine: null, index });
+      else if (open && marker === " " && oldLeft > 0 && newLeft > 0) { hunk.lines.push({ kind: "context", text: line, oldLine, newLine, index }); oldLine += 1; newLine += 1; oldLeft -= 1; newLeft -= 1; }
+      else if (open && marker === "+" && newLeft > 0) { hunk.lines.push({ kind: "add", text: line, oldLine: null, newLine, index }); newLine += 1; newLeft -= 1; }
+      else if (open && marker === "-" && oldLeft > 0) { hunk.lines.push({ kind: "delete", text: line, oldLine, newLine: null, index }); oldLine += 1; oldLeft -= 1; }
+      else hunk.lines.push({ kind: "context", text: line, oldLine: null, newLine: null, unparsed: true, index });
     }
     if (options.truncated && files.length) files[files.length - 1].truncated = true;
     const parsed = files.map((entry) => {
@@ -440,10 +302,10 @@
     };
     if (route.sview === "files") {
       reads.tree = cached("tree", key("tree", route.spath), () => ctx.api(`/api/sources/${id}/tree?${query({ revision: route.rev, path: route.spath })}`), (value) => Array.isArray(value?.entries));
-      if (route.sfile) reads.file = cached("file", key("file", route.sfile), () => ctx.api(`/api/sources/${id}/file?${query({ revision: route.rev, path: route.sfile })}`), (value) => value?.binary === true || typeof value?.text === "string");
+      if (route.sfile) reads.file = cached("file", key("file", route.sfile), () => ctx.api(`/api/sources/${id}/file?${query({ revision: route.rev, path: route.sfile, highlight: "1" })}`), (value) => value?.binary === true || typeof value?.text === "string");
     }
     if (route.sview === "changes" && route.rev && historical) {
-      reads.diff = cached("diff", key("diff"), () => ctx.api(`/api/sources/${id}/diff?${query({ revision: route.rev })}`), (value) => typeof value?.diff === "string");
+      reads.diff = cached("diff", key("diff"), () => ctx.api(`/api/sources/${id}/diff?${query({ revision: route.rev, highlight: "1" })}`), (value) => typeof value?.diff === "string");
     }
     const names = Object.keys(reads).filter((name) => reads[name]);
     const results = await Promise.all(names.map((name) => reads[name]));
@@ -640,6 +502,12 @@
     if (!navigator.clipboard?.writeText) { report("Copying is unavailable in this browser context."); return; }
     navigator.clipboard.writeText(value).then(() => report(done), () => report("Copying was refused by the browser; nothing was copied."));
   }
+  // The view's highlighting state: the language when highlighted, else one explicit note.
+  function highlightNote(plan, tag) {
+    const node = element(tag, plan.note ?? ui().languageLabel(plan.language), "src-highlight");
+    node.dataset.highlight = plan.state;
+    return node;
+  }
   function lineCountLabel(count, finalNewline) { return `${plural(count, "line")}${count && !finalNewline ? " · no final newline" : ""}`; }
   function fileViewer(ctx, route, file) {
     const view = element("section", undefined, "src-file");
@@ -648,7 +516,7 @@
     const binary = file.binary === true || typeof file.text !== "string";
     const { lines, finalNewline } = binary ? { lines: [], finalNewline: false } : splitLines(file.text);
     const bytes = Number.isSafeInteger(file.bytes) ? file.bytes : binary ? null : utf8Length(file.text);
-    const plan = binary ? { language: null, skipped: "language" } : highlightPlan(file.path, bytes, lines.length);
+    const plan = binary ? null : ui().highlightLines(file.highlight, lines);
     const selection = binary ? (route.sline ? { state: "invalid", value: route.sline } : { state: "none" }) : parseLineSelection(route.sline, lines.length);
 
     const bar = element("div", undefined, "src-file-bar");
@@ -659,7 +527,7 @@
     if (bytes !== null) size.title = `${bytes.toLocaleString("en-US")} bytes`;
     meta.append(size, element("span", binary ? "binary" : lineCountLabel(lines.length, finalNewline)));
     if (file.oid) { const oid = exactId(file.oid); oid.title = `Object ${file.oid}`; meta.append(oid); }
-    if (!binary) meta.append(element("span", plan.skipped === "bytes" ? `Highlighting skipped: larger than ${HIGHLIGHT_MAX_BYTES.toLocaleString("en-US")} bytes` : plan.skipped === "lines" ? `Highlighting skipped: longer than ${HIGHLIGHT_MAX_LINES.toLocaleString("en-US")} lines` : plan.language ? LANGUAGE_NAMES[plan.language] : "Plain text", plan.skipped && plan.skipped !== "language" ? "src-highlight-skipped" : ""));
+    if (plan) meta.append(highlightNote(plan, "span"));
     if (file.revision_scope && file.revision_scope !== "revision") meta.append(element("span", "tracked working copy", "chip"));
     title.append(path, meta);
 
@@ -732,7 +600,7 @@
     const table = element("table", undefined, "src-code");
     table.setAttribute("role", "presentation");
     const body = element("tbody");
-    const tokens = plan.skipped ? null : tokenizeLines(lines, plan.language);
+    const fragments = plan.fragments;
     const selected = selection.state === "ok" ? selection : null;
     lines.forEach((line, index) => {
       const number = index + 1;
@@ -747,7 +615,7 @@
       link.setAttribute("aria-label", `Line ${number}`);
       gutter.append(link);
       const code = element("td", undefined, "src-lc");
-      if (tokens) for (const token of tokens[index]) code.append(token.kind ? element("span", token.text, `tok-${token.kind}`) : document.createTextNode(token.text));
+      if (fragments) ui().appendFragments(code, fragments[index]);
       else code.textContent = line;
       if (selected && number >= selected.start && number <= selected.end) {
         row.classList.add("is-selected");
@@ -878,12 +746,19 @@
     if (file.status === "renamed" && file.oldPath && file.newPath && file.oldPath !== file.newPath) return `${file.oldPath} → ${file.newPath}`;
     return file.path || "path not recorded";
   }
+  // A cell's content is text, or highlighted fragments that concatenate to that text.
   function diffRow(cells, className) {
     const row = element("tr", undefined, className);
-    for (const [text, cellClass, span] of cells) { const cell = element("td", text, cellClass); if (span) cell.colSpan = span; row.append(cell); }
+    for (const [content, cellClass, span] of cells) {
+      const cell = element("td", Array.isArray(content) ? undefined : content, cellClass);
+      if (Array.isArray(content)) ui().appendFragments(cell, content);
+      if (span) cell.colSpan = span;
+      row.append(cell);
+    }
     return row;
   }
-  function diffTable(file) {
+  // `fragments` holds one fragment list per diff text line (indexed by line.index), or is null.
+  function diffTable(file, fragments) {
     const scroller = element("div", undefined, "src-code-scroll");
     const table = element("table", undefined, "src-diff");
     table.setAttribute("aria-label", `Changes to ${file.path}`);
@@ -894,10 +769,11 @@
       body.append(diffRow([[hunk.header, "src-hunk-text", 4]], "src-hunk"));
       for (const line of hunk.lines) {
         const number = (value) => (value === null ? "" : String(value));
+        const highlighted = fragments?.[line.index] ?? null;
         if (line.kind === "no-newline") { body.append(diffRow([["", "src-dn"], ["", "src-dn"], [line.text, "src-dc src-note", 2]], "src-d-note")); continue; }
-        if (line.unparsed) { body.append(diffRow([["", "src-dn"], ["", "src-dn"], ["", "src-dm"], [line.text, "src-dc"]], "src-d-context is-unparsed")); continue; }
+        if (line.unparsed) { body.append(diffRow([["", "src-dn"], ["", "src-dn"], ["", "src-dm"], [highlighted ?? line.text, "src-dc"]], "src-d-context is-unparsed")); continue; }
         // The marker cell keeps the original +, - or space, so marker and code concatenate to the diff line.
-        body.append(diffRow([[number(line.oldLine), "src-dn"], [number(line.newLine), "src-dn"], [line.text[0], "src-dm"], [line.text.slice(1), "src-dc"]], `src-d-${line.kind}`));
+        body.append(diffRow([[number(line.oldLine), "src-dn"], [number(line.newLine), "src-dn"], [line.text[0], "src-dm"], [highlighted ? ui().fragmentsFrom(highlighted, 1) : line.text.slice(1), "src-dc"]], `src-d-${line.kind}`));
       }
     }
     table.append(head, body);
@@ -905,7 +781,7 @@
     return scroller;
   }
   const ROUTINE_HEADER = /^(?:diff --git |index |--- |\+\+\+ )/;
-  function diffFileSection(ctx, route, diff, file, index) {
+  function diffFileSection(ctx, route, diff, file, index, fragments) {
     const section = element("section", undefined, "src-diff-file");
     section.id = `src-diff-${index}`;
     const details = element("details");
@@ -923,7 +799,7 @@
     const extra = file.headers.filter((line) => !ROUTINE_HEADER.test(line));
     if (extra.length) { const meta = element("ul", undefined, "src-diff-meta mono"); for (const line of extra) meta.append(element("li", line)); body.append(meta); }
     if (file.truncated) body.append(element("p", "This file's diff is incomplete: the read stopped at its byte bound. Missing lines are not reconstructed.", "warning"));
-    if (file.hunks.length) body.append(diffTable(file));
+    if (file.hunks.length) body.append(diffTable(file, fragments));
     else if (file.binary) body.append(element("p", "Binary content has no textual diff; nothing is decoded.", "small"));
     else if (!file.truncated) body.append(element("p", "No line changes (mode, rename or empty-file change only).", "small"));
     details.append(body);
@@ -945,6 +821,7 @@
     if (!reads.diff?.ok) { view.append(errorState(`Changes unavailable: ${explain(reads.diff?.error)} Nothing was substituted.`)); return view; }
     const diff = reads.diff.value;
     const parsed = parseDiff(diff.diff, { truncated: diff.truncated === true });
+    const plan = ui().highlightLines(diff.highlight, splitLines(diff.diff).lines);
     const entry = logEntries(reads.log).find((row) => row.id === diff.revision);
     const card = element("section", undefined, "card src-change-summary");
     const heading = element("h2", entry ? firstLine(entry.summary) || "No message recorded" : `Revision ${shortId(diff.revision)}`, "card-title");
@@ -960,6 +837,7 @@
     stats.append(element("strong", plural(total, "file") + " changed"), element("span", `+${diff.insertions ?? "?"}`, "src-plus"), element("span", `−${diff.deletions ?? "?"}`, "src-minus"));
     card.append(stats);
     if (diff.truncated) card.append(element("p", `This diff is truncated at its read bound: ${parsed.files.length} of ${plural(total, "changed file")} are shown and the last shown file is incomplete. Missing files and lines are not reconstructed.`, "warning"));
+    if (plan.note) card.append(highlightNote(plan, "p"));
     view.append(card);
     if (!parsed.files.length) {
       view.append(element("p", parsed.preamble.length ? "The diff text has no per-file sections; it is shown as returned." : total ? "No file sections were returned within the read bound." : "This revision changes no files.", "small"));
@@ -990,7 +868,7 @@
     });
     index.append(list);
     view.append(index);
-    parsed.files.forEach((file, position) => view.append(diffFileSection(ctx, route, diff, file, position)));
+    parsed.files.forEach((file, position) => view.append(diffFileSection(ctx, route, diff, file, position, plan.fragments)));
     return view;
   }
 
@@ -1012,7 +890,7 @@
     const details = element("details", undefined, "about-view");
     const body = element("div", undefined, "about-view-body");
     body.append(element("p", "Read-only local repository inspection for Git, Jujutsu and Pijul. Git and Jujutsu views resolve an exact commit in the repository's Git object store; Pijul views cover its current channel state and working copy. No fetch, checkout, mutation, signing or publication."));
-    body.append(element("p", "Listings, files, history pages and diffs are bounded reads. Highlighting is presentation only: the rendered, copied and downloaded text is the retained text."));
+    body.append(element("p", "Listings, files, history pages and diffs are bounded reads. Syntax highlighting comes from the service's grammars and is presentation only: the rendered, copied and downloaded text is the retained text. Unsupported, oversized or malformed highlighting renders plain with a note."));
     details.append(ui().disclosureSummary("About this view", "info"), body);
     return details;
   }
@@ -1121,7 +999,6 @@
 
   window.KilnSource = Object.freeze({
     load, clear,
-    humanBytes, sortEntries, parseLineSelection, splitLines, languageFor, highlightPlan, tokenizeLines, parseDiff,
-    HIGHLIGHT_MAX_BYTES, HIGHLIGHT_MAX_LINES,
+    humanBytes, sortEntries, parseLineSelection, splitLines, parseDiff,
   });
 })();

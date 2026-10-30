@@ -1437,3 +1437,94 @@ fn path_owner_auto_request_is_enforced_by_real_service_source_observations() -> 
     );
     Ok(())
 }
+
+// r[verify kiln.highlight.api]
+#[test]
+fn review_diff_highlighting_is_opt_in_row_aligned_and_rejects_other_values() -> Result {
+    let fixture = Fixture::new()?;
+    let repository = Repository::open_bare(&fixture.profile.provider.repository_path)?;
+    let patch = commit(
+        &repository,
+        Some(Oid::from_str(&fixture.base)?),
+        "rust",
+        &[
+            ("file.txt", "one\ntwo\n"),
+            ("lib.rs", "// é😀\nfn main() { let s = \"x\"; }\n"),
+        ],
+    )?;
+    let workspace = fixture.workspace()?;
+    let created = accepted(post(
+        &workspace,
+        &global(
+            "create-rust",
+            json!({"type":"create","commit":patch.to_string(),"target_ref":MAIN,"title":"Rust","description":"","wip":false}),
+        ),
+        ALICE,
+        &[],
+    )?)?;
+    let route = format!(
+        "/api/code-review/changes/{}/diff",
+        text(&created, "/change/id")?
+    );
+    let plain = get(&workspace, &route, BOB, &[]);
+    let plain_value = accepted(get(&workspace, &route, BOB, &[]))?;
+    assert_eq!(plain_value.get("highlight"), None);
+    let highlighted = accepted(get(&workspace, &format!("{route}?highlight=1"), BOB, &[]))?;
+    let mut stripped = highlighted.clone();
+    if let Some(object) = stripped.as_object_mut() {
+        object.remove("highlight");
+    }
+    assert_eq!(stripped, plain_value);
+    assert_eq!(serde_json::to_vec(&stripped)?, plain.body);
+    assert_eq!(
+        field(&highlighted, "/highlight/schema")?,
+        &json!("kiln.highlight.v1")
+    );
+    assert_eq!(
+        field(&highlighted, "/highlight/status")?,
+        &json!("highlighted")
+    );
+    let rows: Vec<&Value> = field(&highlighted, "/files")?
+        .as_array()
+        .ok_or("files")?
+        .iter()
+        .filter_map(|file| file.get("hunks").and_then(Value::as_array))
+        .flatten()
+        .filter_map(|hunk| hunk.get("lines").and_then(Value::as_array))
+        .flatten()
+        .collect();
+    let lines = field(&highlighted, "/highlight/lines")?
+        .as_array()
+        .ok_or("lines")?;
+    assert_eq!(lines.len(), rows.len());
+    let texts: Vec<&str> = rows
+        .iter()
+        .filter_map(|row| row.get("text").and_then(Value::as_str))
+        .collect();
+    let comment = texts
+        .iter()
+        .position(|text| text.starts_with("// é😀"))
+        .ok_or("comment row")?;
+    // "// é😀" is six UTF-16 units; offsets are relative to the unprefixed text.
+    assert_eq!(
+        field(&highlighted, &format!("/highlight/lines/{comment}"))?,
+        &json!([[0, 6, "comment"]])
+    );
+    let code = texts
+        .iter()
+        .position(|text| text.starts_with("fn main"))
+        .ok_or("code row")?;
+    assert_eq!(
+        field(&highlighted, &format!("/highlight/lines/{code}/0"))?,
+        &json!([0, 2, "keyword"])
+    );
+    for bad in ["2", "true", "", "yes"] {
+        let response = get(&workspace, &format!("{route}?highlight={bad}"), BOB, &[]);
+        assert_eq!(response.status, 400, "{bad}");
+        assert_eq!(
+            field(&value(&response)?, "/code")?,
+            &json!("review_query_invalid")
+        );
+    }
+    Ok(())
+}

@@ -2117,6 +2117,53 @@ the current channel state and Pijul files describe the tracked working copy;
   actually contain one exact commit, so a recorded Radicle patch can be opened
   as a real diff. Sources that lack the object are omitted, never guessed.
 
+Syntax highlighting is an opt-in addition to three reads. Add `highlight=1` to
+`/api/sources/KEY/file`, `/api/sources/KEY/diff` or the code-review diff
+`/api/code-review/changes/ID/diff`, and the response gains one `highlight`
+field. Without the parameter, the response bytes do not change. Any other value
+is a malformed query: `400 query_invalid` for Source reads and
+`400 review_query_invalid` for code review. Highlighting runs after the bounded
+read and never alters the text, `truncated` or any other field.
+
+```json
+{"schema":"kiln.highlight.v1","language":"rust","status":"highlighted","reason":null,
+ "lines":[[[0,2,"keyword"],[3,7,"function"]],[]]}
+```
+
+- Each token is `[start, end, class]`. Offsets are UTF-16 code units within one
+  line. Tokens are sorted, non-overlapping and inside the line.
+- `class` is one of `keyword`, `string`, `comment`, `number`, `constant`,
+  `type`, `function`, `macro`, `attribute`, `property`, `variable`, `operator`,
+  `punctuation`, `tag`, `escape`, `heading` or `link`.
+- **File:** `lines[i]` covers line `i` of `text` split on `\n`; a trailing
+  `\n` starts no extra line. `language` is detected from the path.
+- **Source diff:** `lines[i]` covers line `i` of `diff`, split the same way.
+  Content offsets include the one-character `+`, `-` or space prefix. Header,
+  hunk and `\ No newline` lines carry `[]`. `language` is `null`.
+- **Code-review diff:** `lines` has one entry per row of
+  `files[].hunks[].lines[]`, in order, after any `file=` filter. Offsets are
+  relative to the row's `text`, and never cover its trailing `\n`. `language`
+  is `null`.
+- In a diff, each file takes its language from its old and new paths
+  (`/dev/null` is an absent side). The old and new sides of each hunk are
+  highlighted separately as context-free fragments; context rows use the new
+  side. Rows of binary or unsupported files carry `[]`. A truncated diff still
+  highlights its incomplete last file.
+- `status` is `skipped` with `lines: []` and a `reason` when nothing is
+  highlighted: `unsupported_language`, `binary` (NUL or non-UTF-8 bytes),
+  `too_large`, `parse_error` or `truncated_input`. A diff is skipped when none of
+  its files can be highlighted (the first file's reason is reported). Input
+  over 512 KiB or 20,000 lines, more than 1,024 tokens on one line or 131,072
+  in one result, or a response that would pass its 4 MiB bound is `too_large`.
+  A diff of more than 256 files is `truncated_input`. A failure is reported as
+  a skip, never as an error response.
+
+The grammars are pinned Tree-sitter crates for Rust, JavaScript, TypeScript and
+TSX, Python, Nix, Nickel, TOML, JSON, YAML, CSS, HTML, Bash, Markdown, C and Go
+(see [LICENSES.md](../LICENSES.md)). Embedded languages are highlighted inside
+Markdown (inline markup and fenced code), HTML (`<script>`, `<style>`) and Nix
+(shell strings). Tree-sitter's WebAssembly feature is not enabled.
+
 The page (`source.js`/`source.css`) has a repository picker, a revision bar and
 three views selected by `sview`:
 
@@ -2126,16 +2173,21 @@ three views selected by `sview`:
   is not a repository-wide search. The file viewer shows the path, size, line
   count and object id, Copy path, Copy link, Download (the retained text, byte
   for byte) and Wrap lines. Line numbers are links; Shift extends a range and
-  Go to line selects one by keyboard or touch. Syntax highlighting is
-  presentation only and is skipped above 200,000 bytes or 5,000 lines.
+  Go to line selects one by keyboard or touch. Syntax highlighting comes from
+  the service's pinned Tree-sitter grammars (the console requests
+  `highlight=1`) and is presentation only. The file line names the language,
+  or says why nothing is highlighted (unsupported language, binary, over the
+  highlighting bound, parse failure); malformed token data renders the file
+  plain with "Highlighting unavailable".
 - **History** lists bounded revision pages (More revisions) with author name,
   relative time and short id; the head and the pinned revision are marked.
   Choosing a revision opens its Changes; Browse files pins it for Files.
 - **Changes** shows the pinned revision against its first parent: totals, a
   changed-files list with status and +/- counts, and collapsible per-file hunks
-  with old and new line numbers and +/- markers. Truncation is stated at the top
-  and on the incomplete file. Without a pinned revision the view says how to pin
-  one; for Pijul it states that historical changes are not readable.
+  with old and new line numbers and +/- markers, highlighted by the same
+  service grammars (a note says when they are not). Truncation is stated at the
+  top and on the incomplete file. Without a pinned revision the view says how
+  to pin one; for Pijul it states that historical changes are not readable.
 
 The URL keeps every selection: `src`, `rev`, `spath`, `sfile`, `sq`, `sview`
 and `sline` (a line `12` or a range `12-20`). A reload restores exactly that
@@ -2912,10 +2964,13 @@ kiln-web-service ci --profile "$DEVELOPER_PROFILE" --identity "$DEVELOPER_IDENTI
   --title 'Review this contribution' --description 'Exact committed branch'
 ```
 
-Markdown uses DOM text nodes, safe inline formatting and fenced code; supplied
-HTML does not execute. Local bounded syntax highlighting needs no CDN or remote
-grammar. The whitespace selector changes the provider comparison while retaining
-exact original line coordinates and URL-restored selection.
+Markdown uses DOM text nodes, safe inline formatting and fenced code (shown
+plain); supplied HTML does not execute. The diff is highlighted by the
+service's pinned Tree-sitter grammars (`highlight=1` on the diff read); no
+grammar runs in the browser and no CDN is used. Unsupported, oversized or
+malformed highlighting renders plain with a note. The whitespace selector
+changes the provider comparison while retaining exact original line
+coordinates and URL-restored selection.
 
 A published comment may contain one complete `suggestion` fence, with optional
 surrounding prose. Its exact inclusive revision-side path/range supplies the

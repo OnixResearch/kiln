@@ -18,7 +18,7 @@
   const active = (epoch, id) => epoch === state.epoch && (!id || id === selected()) && !!state.container?.isConnected;
   const writable = () => state.snapshot?.can_write === true && !state.pending;
   const short = value => String(value || "").length > 20 ? `${String(value).slice(0, 12)}…${String(value).slice(-6)}` : String(value || "");
-  const RENDER_LIMIT = 65536, TOKEN_LIMIT = 4096, LINE_LIMIT = 16384;
+  const RENDER_LIMIT = 65536, TOKEN_LIMIT = 4096;
   const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" };
   // r[impl kiln.web.readable_observations]
   // Presentation only: KilnUi (loaded before this script) humanizes times; exact instants stay in title/datetime.
@@ -89,23 +89,6 @@
   function safeLink(value) {
     try { const url = new URL(value); return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password ? url.href : null; } catch { return null; }
   }
-  function highlighted(text, filename = "") {
-    const code = node("code", null, "cr-highlight"); text = String(text ?? "");
-    // A deliberately conservative lexer: no HTML parser, grammar downloads or code execution.
-    if (text.length > LINE_LIMIT) { code.textContent = text; return code; }
-    const hashComments = /(?:\.(?:py|sh|bash|nix|ncl|yaml|yml|toml|rb)|(?:Dockerfile|Makefile))$/i.test(filename);
-    const pattern = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|#[^\n]*|\b(?:0x[\da-fA-F]+|\d+(?:\.\d+)?)\b|\b[A-Za-z_]\w*\b)/g;
-    const keywords = new Set(["as", "async", "await", "break", "case", "class", "const", "continue", "def", "else", "enum", "export", "false", "fn", "for", "from", "function", "if", "impl", "import", "in", "let", "match", "mod", "mut", "None", "null", "pub", "return", "self", "Some", "static", "struct", "super", "switch", "then", "throw", "trait", "true", "try", "type", "use", "var", "while"]);
-    let offset = 0, count = 0;
-    for (const match of text.matchAll(pattern)) {
-      if (++count > TOKEN_LIMIT) break;
-      const value = match[0], comment = value.startsWith("//") || (hashComments && value.startsWith("#"));
-      code.append(document.createTextNode(text.slice(offset, match.index)));
-      const kind = comment ? "comment" : /^["'`]/.test(value) ? "string" : /^\d/.test(value) ? "number" : keywords.has(value) ? "keyword" : "";
-      code.append(kind ? node("span", value, `cr-token-${kind}`) : document.createTextNode(value)); offset = match.index + value.length;
-    }
-    code.append(document.createTextNode(text.slice(offset))); return code;
-  }
   function mentionText(parent, text) {
     const pattern = /(^|[\s(])(@\{[^{}\s]+\}|@[A-Za-z0-9][A-Za-z0-9_.:@/-]*)/g; let offset = 0;
     for (const match of text.matchAll(pattern)) { parent.append(document.createTextNode(text.slice(offset, match.index) + match[1]), node("span", match[2], "cr-mention")); offset = match.index + match[0].length; }
@@ -138,7 +121,7 @@
       if (fence) {
         flush(); const body = []; let closed = false;
         while (++i < lines.length) { if (lines[i].trim().startsWith(fence[1]) && /^[`~]+$/.test(lines[i].trim())) { closed = true; break; } body.push(lines[i]); }
-        const pre = node("pre"); pre.tabIndex = 0; pre.setAttribute("aria-label", fence[2] ? `${fence[2]} code block` : "Code block"); pre.append(highlighted(body.join("\n"), `code.${fence[2]}`)); content.append(pre);
+        const pre = node("pre"); pre.tabIndex = 0; pre.setAttribute("aria-label", fence[2] ? `${fence[2]} code block` : "Code block"); pre.append(node("code", body.join("\n"), "cr-code-text")); content.append(pre);
         if (!closed && i < lines.length) i--; continue;
       }
       const heading = line.match(/^(#{1,6})\s+(.+)$/), item = line.match(/^\s*(?:([-+*])|\d+\.)\s+(.+)$/), quote = line.match(/^>\s?(.*)$/);
@@ -150,7 +133,8 @@
     }
     flush(); if (text.length > RENDER_LIMIT) content.append(node("p", "Rendered preview is bounded; remaining source follows as plain text.", "cr-muted"), node("pre", text.slice(RENDER_LIMIT))); return content;
   }
-  function codeCell(text, filename) { const td = node("td", null, "cr-code"); td.append(highlighted(text, filename)); return td; }
+  // r[impl kiln.highlight.render] Diff text is drawn from the service's tokens (fragments) or plain.
+  function codeCell(text, fragments) { const td = node("td", null, "cr-code"), code = node("code", null, "cr-code-text"); if (fragments) ui().appendFragments(code, fragments); else code.textContent = String(text ?? ""); td.append(code); return td; }
   function contribution() {
     const sources = arr(state.snapshot.contribution_sources);
     if (!sources.length) throw new Error("No contribution branches are admitted for this principal.");
@@ -237,7 +221,7 @@
     if (!threads.length) return;
     const card = section(root, "Published suggestions"), chosen = [];
     about(card, "About applying suggestions", "A complete fenced suggestion comment replaces its exact inclusive revision-side line range. Only the current change owner may apply it. Batch ranges must not overlap; stale or mismatched source text fails closed in the service. Applying never rewrites an existing revision or advances the target.");
-    for (const thread of threads) { const article = node("article", null, "cr-operation"), a = thread.anchor; article.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a))); const pre = node("pre", null, "cr-suggestion"); pre.append(highlighted(suggestionText(thread), a.file)); article.append(pre); facts(disclosure(article, "Exact suggestion identities"), [["Thread", thread.id], ["Revision", a.revision], ["Comparison base", a.base_commit], ["Exact path", a.file], ["Inclusive replacement range", `${a.start_line}–${a.end_line}`]]); const input = field(article, "Select this suggestion", "checkbox", false, [], `suggestion-${thread.id}`); input.disabled = c.owner !== state.context.principal || revision() !== current()?.id; chosen.push({ thread, input }); card.append(article); }
+    for (const thread of threads) { const article = node("article", null, "cr-operation"), a = thread.anchor; article.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a))); const pre = node("pre", null, "cr-suggestion"); pre.append(node("code", suggestionText(thread), "cr-code-text")); article.append(pre); facts(disclosure(article, "Exact suggestion identities"), [["Thread", thread.id], ["Revision", a.revision], ["Comparison base", a.base_commit], ["Exact path", a.file], ["Inclusive replacement range", `${a.start_line}–${a.end_line}`]]); const input = field(article, "Select this suggestion", "checkbox", false, [], `suggestion-${thread.id}`); input.disabled = c.owner !== state.context.principal || revision() !== current()?.id; chosen.push({ thread, input }); card.append(article); }
     if (c.owner !== state.context.principal || revision() !== current()?.id) { card.append(node("p", "Select the current revision as its authenticated owner to apply suggestions.", "cr-muted")); return; }
     card.append(writeButton("Apply selected suggestions…", async () => {
       requireCurrent(); const selected = chosen.filter(s => s.input.checked).map(s => s.thread); if (!selected.length) throw new Error("Select at least one published suggestion.");
@@ -721,7 +705,7 @@
     const epoch = state.epoch, id = selected(), rev = revision(), base = state.route.review_base || "base", request = ++state.diffRequest;
     if (!arr(state.detail?.change?.revisions).some(r => r.id === rev)) return;
     try {
-      const diff = await state.context.api(`${path(id)}/diff?${new URLSearchParams({ revision: rev, base, whitespace: state.route.review_whitespace || "exact" })}`);
+      const diff = await state.context.api(`${path(id)}/diff?${new URLSearchParams({ revision: rev, base, whitespace: state.route.review_whitespace || "exact", highlight: "1" })}`);
       if (!active(epoch, id) || request !== state.diffRequest || rev !== revision()) return;
       const selectedRevision = arr(state.detail.change.revisions).find(r => r.id === rev);
       const expectedOld = base === "base" ? selectedRevision?.base : arr(state.detail.change.revisions).find(r => r.id === base)?.commit;
@@ -743,6 +727,11 @@
     facts(host, [["Old commit", comparison.old_commit], ["New commit", comparison.new_commit]]).classList.add("cr-facts-compact");
     if (!exactWhitespace) host.append(node("p", "Whitespace-filtered comparison: omitted changes are not reviewed. Displayed line numbers and saved anchors remain exact provider coordinates; switch to exact to inspect all whitespace.", "cr-notice"));
     if (comparison.truncated) host.append(node("p", "The provider bounded this diff. Not all files or lines are shown; omitted content is not implicitly reviewed.", "cr-notice"));
+    // Server tokens address every DiffLine in order (files → hunks → lines), relative to its text.
+    const diffLines = comparison.files.flatMap(f => arr(f.hunks).flatMap(h => arr(h.lines)));
+    const highlight = ui().highlightLines(comparison.highlight, diffLines.map(line => typeof line?.text === "string" ? line.text : ""));
+    const fragmentsOf = new Map(highlight.fragments ? diffLines.map((line, index) => [line, highlight.fragments[index]]) : []);
+    if (highlight.note) { const note = node("p", highlight.note, highlight.state === "invalid" ? "cr-notice" : "cr-muted"); note.dataset.highlight = highlight.state; host.append(note); }
     const mine = file => arr(state.detail.change.reviewed).some(m => m.actor === state.context.principal && m.revision === revision() && m.file === filePath(file));
     const files = node("nav", null, "cr-files"), list = node("ul", null, "cr-file-list"), shownFile = state.route.review_file || filePath(comparison.files[0] || {}); files.setAttribute("aria-label", "Changed files");
     files.append(node("p", `${comparison.files.length} changed file${comparison.files.length === 1 ? "" : "s"} · ${comparison.files.filter(mine).length} marked reviewed by you`, "cr-files-head cr-muted"));
@@ -777,8 +766,9 @@
       const marker = node("tr", null, "cr-hunk"); const title = node("th", hunk.header || `@@ -${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@`); title.colSpan = 4; marker.append(title); body.append(marker);
       for (const line of arr(hunk.lines)) {
         const tr = node("tr", null, `cr-diff-${line.kind}`);
-        if (state.mode === "split") { tr.append(coordinate(line.old_line, "base"), codeCell(line.old_line == null ? "" : line.text, filePath(file)), coordinate(line.new_line, "revision"), codeCell(line.new_line == null ? (line.kind === "no_newline" ? line.text : "") : line.text, filePath(file))); }
-        else tr.append(coordinate(line.old_line, "base"), coordinate(line.new_line, "revision"), node("td", ({ addition: "+", deletion: "−", context: " ", no_newline: "\\" })[line.kind] || "", "cr-diff-sign"), codeCell(line.text, filePath(file)));
+        const fragments = fragmentsOf.get(line) || null;
+        if (state.mode === "split") { tr.append(coordinate(line.old_line, "base"), line.old_line == null ? codeCell("") : codeCell(line.text, fragments), coordinate(line.new_line, "revision"), line.new_line == null && line.kind !== "no_newline" ? codeCell("") : codeCell(line.text, fragments)); }
+        else tr.append(coordinate(line.old_line, "base"), coordinate(line.new_line, "revision"), node("td", ({ addition: "+", deletion: "−", context: " ", no_newline: "\\" })[line.kind] || "", "cr-diff-sign"), codeCell(line.text, fragments));
         body.append(tr);
       }
     }

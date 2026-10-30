@@ -200,13 +200,20 @@ impl Browser {
         };
         let allowed: &[&str] = match leaf {
             "log" => &["limit", "cursor"],
-            "tree" | "file" => &["revision", "path"],
-            "diff" => &["revision"],
+            "tree" => &["revision", "path"],
+            "file" => &["revision", "path", "highlight"],
+            "diff" => &["revision", "highlight"],
             _ => return error(404, "route_missing"),
         };
         if values.keys().any(|key| !allowed.contains(&key.as_str())) {
             return error(400, "query_invalid");
         }
+        // r[impl kiln.highlight.api]
+        let highlight = match values.get("highlight").map(String::as_str) {
+            None => false,
+            Some("1") => true,
+            Some(_) => return error(400, "query_invalid"),
+        };
         let Some(profile) = &self.profile else {
             return error(404, "source_missing");
         };
@@ -216,8 +223,8 @@ impl Browser {
         match leaf {
             "log" => self.log(policy, &values),
             "tree" => self.tree(policy, &values),
-            "diff" => self.diff(policy, &values),
-            _ => self.file(policy, &values),
+            "diff" => self.diff(policy, &values, highlight),
+            _ => self.file(policy, &values, highlight),
         }
     }
 
@@ -327,11 +334,12 @@ impl Browser {
         &self,
         policy: &SourcePolicy,
         values: &BTreeMap<String, String>,
+        highlight: bool,
     ) -> Result<ApiResponse, String> {
         let revision = values.get("revision").map_or("", String::as_str);
         match policy.kind.as_str() {
             "pijul" => error(400, "source_diff_unsupported"),
-            _ => git_diff(policy, revision),
+            _ => git_diff(policy, revision, highlight),
         }
     }
 
@@ -339,6 +347,7 @@ impl Browser {
         &self,
         policy: &SourcePolicy,
         values: &BTreeMap<String, String>,
+        highlight: bool,
     ) -> Result<ApiResponse, String> {
         let revision = values.get("revision").map_or("", String::as_str);
         let path = values.get("path").map_or("", String::as_str);
@@ -350,8 +359,8 @@ impl Browser {
             return error(400, "source_path_invalid");
         }
         match policy.kind.as_str() {
-            "pijul" => pijul_file(policy, revision, &components),
-            _ => git_file(policy, revision, &components),
+            "pijul" => pijul_file(policy, revision, &components, highlight),
+            _ => git_file(policy, revision, &components, highlight),
         }
     }
 }
@@ -667,6 +676,7 @@ fn git_file(
     policy: &SourcePolicy,
     revision: &str,
     components: &[&str],
+    highlight: bool,
 ) -> Result<ApiResponse, String> {
     let repository = match open_git(policy) {
         Ok(repository) => repository,
@@ -725,14 +735,24 @@ fn git_file(
     if let Some(object) = response.as_object_mut() {
         object.insert("non_claims".into(), json!(NON_CLAIMS));
     }
-    json_response(200, response)
+    let path = components.join("/");
+    respond(
+        response,
+        highlight.then(|| {
+            kiln_highlight::highlight(
+                kiln_highlight::language_for_path(&path),
+                content,
+                &kiln_highlight::Bounds::DEFAULT,
+            )
+        }),
+    )
 }
 
 struct PijulRun {
     stdout: Vec<u8>,
 }
 
-fn git_diff(policy: &SourcePolicy, revision: &str) -> Result<ApiResponse, String> {
+fn git_diff(policy: &SourcePolicy, revision: &str, highlight: bool) -> Result<ApiResponse, String> {
     let repository = match open_git(policy) {
         Ok(repository) => repository,
         Err(_) => return error(503, "source_unavailable"),
@@ -790,8 +810,9 @@ fn git_diff(policy: &SourcePolicy, revision: &str) -> Result<ApiResponse, String
         return error(503, "source_unavailable");
     }
     let text = String::from_utf8_lossy(&buffer).into_owned();
-    json_response(
-        200,
+    let highlighted =
+        highlight.then(|| kiln_highlight::highlight_diff(&text, &kiln_highlight::Bounds::DEFAULT));
+    respond(
         json!({
             "source": policy.id,
             "kind": policy.kind,
@@ -806,7 +827,35 @@ fn git_diff(policy: &SourcePolicy, revision: &str) -> Result<ApiResponse, String
             "diff": text,
             "non_claims": NON_CLAIMS,
         }),
+        highlighted,
     )
+}
+
+/// Encode a read, adding a requested `highlight` object after the bounded
+/// read so the other fields are never altered. A highlight that would push
+/// the response past its byte bound becomes an explicit `too_large` skip.
+fn respond(
+    mut response: Value,
+    highlight: Option<kiln_highlight::Highlight>,
+) -> Result<ApiResponse, String> {
+    let Some(highlight) = highlight else {
+        return json_response(200, response);
+    };
+    let language = highlight.language();
+    let encoded = serde_json::to_value(highlight).map_err(|error| error.to_string())?;
+    if let Some(object) = response.as_object_mut() {
+        object.insert("highlight".into(), encoded);
+    }
+    let answer = json_response(200, &response)?;
+    if answer.body.len() <= MAX_RESPONSE_BYTES {
+        return Ok(answer);
+    }
+    let skipped = kiln_highlight::Highlight::skipped(language, kiln_highlight::Reason::TooLarge);
+    let encoded = serde_json::to_value(skipped).map_err(|error| error.to_string())?;
+    if let Some(object) = response.as_object_mut() {
+        object.insert("highlight".into(), encoded);
+    }
+    json_response(200, response)
 }
 
 fn pijul_run(policy: &SourcePolicy, args: Vec<String>) -> Result<PijulRun, &'static str> {
@@ -1014,6 +1063,7 @@ fn pijul_file(
     policy: &SourcePolicy,
     revision: &str,
     components: &[&str],
+    highlight: bool,
 ) -> Result<ApiResponse, String> {
     if !revision.is_empty() {
         return error(400, "source_revision_unsupported");
@@ -1049,6 +1099,13 @@ fn pijul_file(
         Err(_) => return error(503, "source_unavailable"),
     };
     let binary = content.contains(&0) || std::str::from_utf8(&content).is_err();
+    let highlighted = highlight.then(|| {
+        kiln_highlight::highlight(
+            kiln_highlight::language_for_path(&relative),
+            &content,
+            &kiln_highlight::Bounds::DEFAULT,
+        )
+    });
     let mut response = json!({
         "source": policy.id,
         "kind": policy.kind,
@@ -1071,7 +1128,7 @@ fn pijul_file(
     if let Some(object) = response.as_object_mut() {
         object.insert("non_claims".into(), json!(NON_CLAIMS));
     }
-    json_response(200, response)
+    respond(response, highlighted)
 }
 
 /// Parse one UTC RFC 3339 timestamp into milliseconds since the Unix epoch.

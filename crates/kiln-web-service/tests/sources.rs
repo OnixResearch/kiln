@@ -692,3 +692,170 @@ fn source_routes_reject_writes_workers_and_unconfigured_policies() {
     let unknown = browser.response("GET", "/api/sources/kiln/blob", &[], Role::Viewer);
     assert_eq!(unknown.status, 404);
 }
+
+fn without_highlight(value: &Value) -> Value {
+    let mut value = value.clone();
+    if let Some(object) = value.as_object_mut() {
+        object.remove("highlight");
+    }
+    value
+}
+
+/// The first token of the line at `index`, as `[start, end, class]`.
+fn first_token(value: &Value, index: usize) -> Option<&Value> {
+    value.pointer(&format!("/highlight/lines/{index}/0"))
+}
+
+// r[verify kiln.highlight.api]
+#[test]
+fn source_file_and_diff_highlighting_is_opt_in_and_additive() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let (_repository, _first, second) = git_fixture(root.path());
+    let browser = browser(vec![policy("kiln", "git", &root.path().join("work"))]);
+
+    for route in [
+        "/api/sources/kiln/file?path=src/main.rs".to_owned(),
+        format!("/api/sources/kiln/diff?revision={second}"),
+    ] {
+        let plain = browser.response("GET", &route, &[], Role::Viewer);
+        assert_eq!(plain.status, 200, "{route}");
+        let plain_value = value(&plain);
+        assert_eq!(plain_value.get("highlight"), None, "{route}");
+        let highlighted = get(&browser, &format!("{route}&highlight=1"));
+        let stripped = without_highlight(&highlighted);
+        assert_eq!(stripped, plain_value, "{route}: other fields unchanged");
+        assert_eq!(
+            serde_json::to_vec(&stripped).unwrap_or_default(),
+            plain.body,
+            "{route}: the plain response is the same object, byte for byte"
+        );
+        assert_eq!(
+            highlighted.pointer("/highlight/schema"),
+            Some(&json!("kiln.highlight.v1"))
+        );
+        assert_eq!(
+            highlighted.pointer("/highlight/status"),
+            Some(&json!("highlighted")),
+            "{route}"
+        );
+    }
+
+    let file = get(
+        &browser,
+        "/api/sources/kiln/file?path=src/main.rs&highlight=1",
+    );
+    assert_eq!(file.pointer("/highlight/language"), Some(&json!("rust")));
+    assert_eq!(first_token(&file, 0), Some(&json!([0, 2, "keyword"])));
+    assert_eq!(
+        file.pointer("/highlight/lines")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(1),
+        "a trailing newline starts no extra line"
+    );
+
+    let diff = get(
+        &browser,
+        &format!("/api/sources/kiln/diff?revision={second}&highlight=1"),
+    );
+    let text = diff.get("diff").and_then(Value::as_str).unwrap_or_default();
+    let rows: Vec<&str> = text
+        .strip_suffix('\n')
+        .unwrap_or(text)
+        .split('\n')
+        .collect();
+    assert_eq!(diff.pointer("/highlight/language"), Some(&Value::Null));
+    assert_eq!(
+        diff.pointer("/highlight/lines")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(rows.len())
+    );
+    for (index, row) in rows.iter().enumerate() {
+        if row.starts_with("+fn main") || row.starts_with("-fn main") {
+            assert_eq!(
+                first_token(&diff, index),
+                Some(&json!([1, 3, "keyword"])),
+                "{row}"
+            );
+        }
+        if row.starts_with("diff --git") || row.starts_with("@@") || row.starts_with("+++") {
+            assert_eq!(
+                diff.pointer(&format!("/highlight/lines/{index}")),
+                Some(&json!([])),
+                "{row}"
+            );
+        }
+    }
+
+    for bad in ["2", "true", "", "01", "1%00"] {
+        rejects(
+            &browser,
+            &format!("/api/sources/kiln/file?path=src/main.rs&highlight={bad}"),
+            400,
+            "query_invalid",
+        );
+        rejects(
+            &browser,
+            &format!("/api/sources/kiln/diff?highlight={bad}"),
+            400,
+            "query_invalid",
+        );
+    }
+    rejects(
+        &browser,
+        "/api/sources/kiln/tree?highlight=1",
+        400,
+        "query_invalid",
+    );
+    rejects(
+        &browser,
+        "/api/sources/kiln/log?highlight=1",
+        400,
+        "query_invalid",
+    );
+}
+
+// r[verify kiln.highlight.api]
+#[test]
+fn unsupported_and_binary_source_files_report_explicit_skips() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let repository = Repository::init(root.path().join("work"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let head = commit(
+        &repository,
+        &[("notes.txt", "plain words\n"), ("logo.rs", "fn\0binary")],
+        "Skips",
+        None,
+    );
+    repository
+        .reference("refs/heads/main", head, true, "fixture")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    repository
+        .set_head("refs/heads/main")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let browser = browser(vec![policy("skips", "git", &root.path().join("work"))]);
+
+    let notes = get(
+        &browser,
+        "/api/sources/skips/file?path=notes.txt&highlight=1",
+    );
+    assert_eq!(notes.get("text"), Some(&json!("plain words\n")));
+    assert_eq!(
+        notes.get("highlight"),
+        Some(
+            &json!({"schema":"kiln.highlight.v1","language":null,"status":"skipped","reason":"unsupported_language","lines":[]})
+        )
+    );
+    let binary = get(&browser, "/api/sources/skips/file?path=logo.rs&highlight=1");
+    assert_eq!(binary.get("binary"), Some(&json!(true)));
+    assert_eq!(binary.get("text"), None);
+    assert_eq!(
+        binary.get("highlight"),
+        Some(
+            &json!({"schema":"kiln.highlight.v1","language":"rust","status":"skipped","reason":"binary","lines":[]})
+        )
+    );
+}

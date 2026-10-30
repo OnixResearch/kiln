@@ -268,6 +268,95 @@
     return Object.freeze({ key: dayKey, label });
   }
 
-  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay });
+  // r[impl kiln.highlight.render] Server syntax highlighting (kiln.highlight.v1) becomes inert
+  // fragments. Tokens are [start, end, class] in UTF-16 code units; their fragments, with the plain
+  // gaps between them, concatenate to the line exactly. Anything malformed renders plain with a note.
+  const HIGHLIGHT_SCHEMA = "kiln.highlight.v1";
+  const TOKEN_CLASSES = new Set(["keyword", "string", "comment", "number", "constant", "type", "function", "macro", "attribute", "property", "variable", "operator", "punctuation", "tag", "escape", "heading", "link"]);
+  const SKIP_REASONS = Object.freeze({
+    unsupported_language: "language not supported",
+    binary: "binary content",
+    too_large: "larger than the highlighting bound",
+    parse_error: "the grammar could not parse it",
+    truncated_input: "the input was truncated",
+  });
+  const LANGUAGE_LABELS = Object.freeze({ rust: "Rust", javascript: "JavaScript", typescript: "TypeScript", tsx: "TSX", python: "Python", nix: "Nix", nickel: "Nickel", toml: "TOML", json: "JSON", yaml: "YAML", css: "CSS", html: "HTML", bash: "Bash", markdown: "Markdown", c: "C", go: "Go" });
+  const isHighSurrogate = (code) => code >= 0xd800 && code <= 0xdbff;
+  const isLowSurrogate = (code) => code >= 0xdc00 && code <= 0xdfff;
+  // An offset between the two code units of one astral character would split it.
+  const splitsCharacter = (text, offset) => offset > 0 && offset < text.length && isHighSurrogate(text.charCodeAt(offset - 1)) && isLowSurrogate(text.charCodeAt(offset));
+  // One line: { fragments: [{ text, kind }] } or { problem } when the tokens are not sorted,
+  // non-overlapping, non-empty, in-range integer spans of a known class.
+  function tokenFragments(line, tokens) {
+    const text = typeof line === "string" ? line : "";
+    if (!Array.isArray(tokens)) return { problem: "its tokens are not a list" };
+    const fragments = [];
+    let offset = 0;
+    for (const token of tokens) {
+      if (!Array.isArray(token) || token.length !== 3) return { problem: "a token is not [start, end, class]" };
+      const [start, end, kind] = token;
+      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end)) return { problem: "a token offset is not an integer" };
+      if (start < offset) return { problem: "tokens overlap or are out of order" };
+      if (end <= start || end > text.length) return { problem: "a token is empty or outside the line" };
+      if (splitsCharacter(text, start) || splitsCharacter(text, end)) return { problem: "a token splits a character" };
+      if (typeof kind !== "string" || !TOKEN_CLASSES.has(kind)) return { problem: "a token class is unknown" };
+      if (start > offset) fragments.push({ text: text.slice(offset, start), kind: null });
+      fragments.push({ text: text.slice(start, end), kind });
+      offset = end;
+    }
+    if (offset < text.length) fragments.push({ text: text.slice(offset), kind: null });
+    return { fragments };
+  }
+  // A whole view: `lines` are the texts the highlight's token lines address, in order.
+  // state "highlighted" carries one fragment list per line; "skipped" and "invalid" carry a note and
+  // no fragments, so the view renders every line plain.
+  function highlightLines(highlight, lines) {
+    const texts = Array.isArray(lines) ? lines : [];
+    const invalid = (reason) => ({ state: "invalid", language: null, note: `Highlighting unavailable: ${reason}.`, fragments: null });
+    if (!highlight || typeof highlight !== "object") return invalid("the response carried no highlighting");
+    if (highlight.schema !== HIGHLIGHT_SCHEMA) return invalid("the highlighting schema is not recognised");
+    const language = highlight.language ?? null;
+    if (language !== null && typeof language !== "string") return invalid("the highlighting language is malformed");
+    if (highlight.status === "skipped") {
+      if (!Object.hasOwn(SKIP_REASONS, highlight.reason)) return invalid("the skip reason is not recognised");
+      if (!Array.isArray(highlight.lines) || highlight.lines.length) return invalid("skipped highlighting carried tokens");
+      return { state: "skipped", language, note: `Not highlighted: ${SKIP_REASONS[highlight.reason]}.`, fragments: null };
+    }
+    if (highlight.status !== "highlighted") return invalid("the highlighting status is not recognised");
+    if (!Array.isArray(highlight.lines)) return invalid("the token lines are not a list");
+    if (highlight.lines.length !== texts.length) return invalid(`${highlight.lines.length} token lines do not match ${texts.length} text lines`);
+    const fragments = [];
+    for (let index = 0; index < texts.length; index++) {
+      const result = tokenFragments(texts[index], highlight.lines[index]);
+      if (result.problem) return invalid(`on line ${index + 1}, ${result.problem}`);
+      fragments.push(result.fragments);
+    }
+    return { state: "highlighted", language, note: null, fragments };
+  }
+  // The fragments of the same text from UTF-16 offset `from` on (a diff line without its marker).
+  function fragmentsFrom(fragments, from) {
+    const result = [];
+    let offset = 0;
+    for (const fragment of Array.isArray(fragments) ? fragments : []) {
+      const end = offset + fragment.text.length;
+      if (end > from) result.push(offset >= from ? fragment : { text: fragment.text.slice(from - offset), kind: fragment.kind });
+      offset = end;
+    }
+    return result;
+  }
+  function languageLabel(language) { return typeof language === "string" && language ? LANGUAGE_LABELS[language] || language : "Plain text"; }
+  // Appends fragments as text nodes and tok-<class> spans; text is only ever textContent.
+  function appendFragments(parent, fragments) {
+    for (const fragment of fragments) {
+      if (!fragment.kind) { parent.append(document.createTextNode(fragment.text)); continue; }
+      const span = document.createElement("span");
+      span.className = `tok-${fragment.kind}`;
+      span.textContent = fragment.text;
+      parent.append(span);
+    }
+    return parent;
+  }
+
+  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();

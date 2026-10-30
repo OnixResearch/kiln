@@ -236,7 +236,7 @@
 .cr-dialog > .cr-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .cr-dialog > .cr-dialog-actions { justify-content: flex-end; padding-top: var(--space-4); border-top: 1px solid var(--border); }
 
-/* Markdown and highlighting */
+/* Markdown and code text (syntax tokens are the shared tok-* rules in web.css) */
 /* r[impl kiln.review.parity.ergonomics] */
 .cr-markdown { min-width: 0; overflow-wrap: anywhere; font-size: var(--text-sm); line-height: 1.65; }
 .cr-markdown > * + * { margin-top: var(--space-2); }
@@ -245,11 +245,7 @@
 .cr-markdown blockquote { margin: 0; padding: .35rem .85rem; border-left: 3px solid var(--border-emphasis); color: var(--muted-foreground); white-space: pre-wrap; }
 .cr-markdown pre, .cr-suggestion { max-width: 100%; min-width: 0; margin: 0; padding: var(--space-3); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); white-space: pre; tab-size: 4; font: var(--text-xs)/1.65 var(--mono); }
 .cr-markdown :not(pre) > code { padding: .1rem .3rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--muted); font: .82em var(--mono); white-space: pre-wrap; }
-.cr-highlight { font: inherit; color: inherit; }
-.cr-token-keyword { color: var(--foreground); font-weight: 750; }
-.cr-token-string { color: var(--syntax-string); }
-.cr-token-number { color: var(--syntax-number); }
-.cr-token-comment { color: var(--muted-foreground); font-style: italic; }
+.cr-code-text { font: inherit; color: inherit; }
 .cr-mention { font-weight: 650; text-decoration: underline dotted; text-underline-offset: .2em; }
 
 /* Density, wide-screen compaction, mobile targets and containment */

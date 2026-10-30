@@ -282,68 +282,94 @@ test("retained text splits into lines that rejoin to the exact text", () => {
   assert.deepEqual(plain(source.splitLines(null)), { lines: [], finalNewline: false });
 });
 
-// r[verify kiln.dashboard.source.navigation]
-test("languages come from the file name; highlighting is skipped beyond its byte and line bounds", () => {
-  const languages = { "flake.nix": "nix", "crates/kiln-web-service/src/ui.js": "javascript", "src/main.rs": "rust", "a/B.RS": "rust", "Cargo.lock": "toml", "Cargo.toml": "toml", "flake.lock": "json", "config/web-sources.ncl": "nickel", "x.py": "python", "x.yml": "yaml", "web.css": "css", "web.html": "html", "run.sh": "shell", ".envrc": "shell", "README.md": "markdown", "x.tsx": "javascript" };
-  for (const [path, language] of Object.entries(languages)) assert.equal(source.languageFor(path), language, path);
-  for (const path of ["Makefile", "LICENSE", ".gitignore", "image.png", "", null, "dir.rs/", "archive.tar.gz"]) assert.equal(source.languageFor(path), null, String(path));
-  assert.deepEqual(plain(source.highlightPlan("a.rs", source.HIGHLIGHT_MAX_BYTES, source.HIGHLIGHT_MAX_LINES)), { language: "rust", skipped: null });
-  assert.deepEqual(plain(source.highlightPlan("a.rs", source.HIGHLIGHT_MAX_BYTES + 1, 1)), { language: "rust", skipped: "bytes" });
-  assert.deepEqual(plain(source.highlightPlan("a.rs", 10, source.HIGHLIGHT_MAX_LINES + 1)), { language: "rust", skipped: "lines" });
-  assert.deepEqual(plain(source.highlightPlan("a.rs", null, 1)), { language: "rust", skipped: "bytes" });
-  assert.deepEqual(plain(source.highlightPlan("LICENSE", 10, 1)), { language: null, skipped: "language" });
-  assert.equal(source.HIGHLIGHT_MAX_BYTES, 200_000);
-  assert.equal(source.HIGHLIGHT_MAX_LINES, 5_000);
+// Server highlighting (kiln.highlight.v1) as the service returns it.
+const served = (lines, extra = {}) => ({ schema: "kiln.highlight.v1", language: "rust", status: "highlighted", reason: null, lines, ...extra });
+const rejoined = (fragments) => fragments.map((fragment) => fragment.text).join("");
+
+// r[verify kiln.highlight.render]
+test("server tokens render as fragments that rejoin to each line, addressed in UTF-16 code units", () => {
+  // "\u{1F600}" is one astral character: two UTF-16 code units before the string's closing quote.
+  const line = "const x = \"\u{1F600}a\"; // \u{1F600}";
+  const result = ui.tokenFragments(line, [[0, 5, "keyword"], [10, 15, "string"], [17, 22, "comment"]]);
+  assert.deepEqual(plain(result.fragments), [
+    { text: "const", kind: "keyword" }, { text: " x = ", kind: null }, { text: "\"\u{1F600}a\"", kind: "string" }, { text: "; ", kind: null }, { text: "// \u{1F600}", kind: "comment" },
+  ]);
+  assert.equal(rejoined(result.fragments), line);
+  const lines = ["fn main() {", "", "    let é = 1; // naïve", "}"];
+  const plan = ui.highlightLines(served([[[0, 2, "keyword"], [3, 7, "function"], [7, 8, "punctuation"], [8, 9, "punctuation"]], [], [[4, 7, "keyword"], [12, 13, "number"], [15, 23, "comment"]], [[0, 1, "punctuation"]]]), lines);
+  assert.equal(plan.state, "highlighted");
+  assert.equal(plan.note, null);
+  assert.equal(plan.language, "rust");
+  assert.deepEqual(plain(plan.fragments.map(rejoined)), lines);
+  assert.deepEqual(plain(plan.fragments[2].filter((fragment) => fragment.kind)), [{ text: "let", kind: "keyword" }, { text: "1", kind: "number" }, { text: "// naïve", kind: "comment" }]);
+  assert.deepEqual(plain(plan.fragments[1]), [], "an empty line has no fragments");
+  // Diff lines: tokens include the one-unit marker; the code cell starts after it.
+  const added = "+let \u{1F600} = 1;";
+  const diffPlan = ui.highlightLines(served([[], [[1, 4, "keyword"], [10, 11, "number"]], [[0, 4, "keyword"]]], { language: null }), ["@@ -1 +1 @@", added, "-let"]);
+  assert.equal(diffPlan.state, "highlighted");
+  assert.equal(rejoined(ui.fragmentsFrom(diffPlan.fragments[1], 1)), added.slice(1));
+  assert.deepEqual(plain(ui.fragmentsFrom(diffPlan.fragments[1], 1)[0]), { text: "let", kind: "keyword" });
+  assert.deepEqual(plain(ui.fragmentsFrom(diffPlan.fragments[2], 1)), [{ text: "let", kind: "keyword" }], "a token over the marker is cut at it");
+  assert.deepEqual(plain(ui.highlightLines(served([]), []).fragments), []);
+  assert.equal(ui.languageLabel("rust"), "Rust");
+  assert.equal(ui.languageLabel(null), "Plain text");
 });
 
-// r[verify kiln.dashboard.source.navigation]
-test("highlighting only wraps substrings: every language rejoins to the exact lines", () => {
-  const samples = {
-    rust: ["// a line comment", "fn main() -> Result<(), &'static str> {", "    let s = \"multi", "line \\\" still\";", "    let c = '\\n'; let d = 'x'; /* block", "   still */ 0x1F_u8", "}"],
-    javascript: ["const a = `template", "${b} line`; // trailing", "if (x) return 'it\\'s'; /* c */ let n = 1.5e3;"],
-    python: ["def f(x):", "    s = f'{x}' + \"\"\"doc", "still doc\"\"\"  # comment", "    return None"],
-    nix: ["{ pkgs, ... }: let", "  x = ''", "    multi ${y}", "  ''; # comment", "in /* c */ x"],
-    nickel: ["let x = m%\"", "  text \"%", "in x # comment"],
-    toml: ["[package]", "name = \"kiln\" # c", "s = '''", "raw'''", "n = 1_000"],
-    json: ["{\"a\": [1, 2.5, true, null], \"b\": \"x\\\"y\"}"],
-    yaml: ["key: don't # comment", "url: http://x#frag", "'quoted': \"yes\""],
-    css: ["/* a", "b */ .x { --y-z: 1.5rem !important; }", "a::after { content: 'q'; }"],
-    html: ["<!-- a", "b --> <div class=\"x\">it's</div>"],
-    shell: ["echo \"${#arr}\" # comment", "x='multi", "line' && done"],
-    markdown: ["# Heading", "#not heading", "text with `code`", "###### Six"],
+// r[verify kiln.highlight.render]
+test("malformed server tokens fall back to plain text with one explicit note", () => {
+  const line = "let a = \"\u{1F600}\";";
+  const malformed = {
+    overlap: [[0, 3, "keyword"], [2, 5, "variable"]],
+    unsorted: [[4, 5, "variable"], [0, 3, "keyword"]],
+    "past the end": [[0, line.length + 1, "string"]],
+    negative: [[-1, 3, "keyword"]],
+    empty: [[2, 2, "keyword"]],
+    reversed: [[3, 1, "keyword"]],
+    fractional: [[0, 1.5, "keyword"]],
+    "string offset": [["0", 3, "keyword"]],
+    "unknown class": [[0, 3, "bogus"]],
+    "inherited name": [[0, 3, "constructor"]],
+    "missing class": [[0, 3]],
+    "object token": [{ start: 0, end: 3, class: "keyword" }],
+    "split astral character": [[8, 10, "string"]],
+    "not a list": "keyword",
   };
-  for (const [language, lines] of Object.entries(samples)) {
-    const tokens = source.tokenizeLines(lines, language);
-    assert.equal(tokens.length, lines.length, language);
-    tokens.forEach((line, index) => assert.equal(line.map((token) => token.text).join(""), lines[index], `${language} line ${index + 1}`));
-    for (const line of tokens) for (const token of line) assert.ok([null, "comment", "string", "number", "keyword", "heading"].includes(token.kind), `${language}: ${token.kind}`);
+  for (const [name, tokens] of Object.entries(malformed)) {
+    assert.ok(typeof ui.tokenFragments(line, tokens).problem === "string", name);
+    const plan = ui.highlightLines(served([[], tokens]), ["", line]);
+    assert.equal(plan.state, "invalid", name);
+    assert.equal(plan.fragments, null, name);
+    assert.match(plan.note, /^Highlighting unavailable: on line 2, .+\.$/, name);
   }
-  const kinds = (language, lines) => plain(source.tokenizeLines(lines, language)).map((line) => line.map((token) => [token.kind, token.text]));
-  const rust = kinds("rust", samples.rust);
-  assert.deepEqual(rust[0], [["comment", "// a line comment"]]);
-  assert.deepEqual(rust[1][0], ["keyword", "fn"]);
-  assert.ok(!rust[1].some(([kind]) => kind === "string"), "a lifetime is not a character literal");
-  assert.deepEqual(rust[3][0], ["string", "line \\\" still\""], "a Rust string carries across lines and honours escapes");
-  assert.deepEqual(rust[5][0], ["comment", "   still */"], "a block comment carries across lines");
-  assert.deepEqual(rust[5][2], ["number", "0x1F_u8"]);
-  const yaml = kinds("yaml", samples.yaml);
-  assert.ok(yaml[0].every(([kind, text]) => kind !== "string" || !text.includes("don")), "an apostrophe in prose opens no string");
-  assert.deepEqual(yaml[0].at(-1), ["comment", "# comment"]);
-  assert.ok(!yaml[1].some(([kind]) => kind === "comment"), "a # inside a word is not a YAML comment");
-  assert.ok(!kinds("shell", samples.shell)[0].some(([kind, text]) => kind === "comment" && text.includes("arr")), "${#x} is not a shell comment");
-  assert.deepEqual(kinds("python", samples.python)[2][0], ["string", "still doc\"\"\""]);
-  assert.deepEqual(kinds("markdown", samples.markdown).map((line) => line[0]?.[0] ?? null), ["heading", null, null, "heading"]);
-  assert.ok(kinds("html", samples.html)[1].some(([kind, text]) => kind === "keyword" && text === "div"));
-  // Unknown languages and empty lines stay plain; deterministic noise still rejoins exactly.
-  assert.deepEqual(kinds(null, ["a 'b' // c", ""]), [[[null, "a 'b' // c"]], []]);
-  let seed = 7;
-  const random = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
-  const alphabet = ["'", "\"", "`", "/", "*", "#", "\\", "-", "<", "!", "m%\"", "\"%", "''", "\"\"\"", "fn", " ", "1", "x", "é", "\u{1F600}", "$", "{", "}", "\t", "\r"];
-  for (const language of [...Object.keys(samples), null]) {
-    const lines = Array.from({ length: 60 }, () => Array.from({ length: Math.floor(random() * 30) }, () => alphabet[Math.floor(random() * alphabet.length)]).join(""));
-    source.tokenizeLines(lines, language).forEach((line, index) => assert.equal(line.map((token) => token.text).join(""), lines[index], `${language} noise ${index}`));
+  assert.equal(ui.tokenFragments(line, [[8, 11, "string"]]).problem, undefined, "a whole astral character is a valid span");
+  const responses = {
+    "missing highlight": undefined,
+    "wrong schema": served([[]], { schema: "kiln.highlight.v2" }),
+    "unknown status": served([[]], { status: "partial" }),
+    "too few token lines": served([]),
+    "too many token lines": served([[], []]),
+    "lines not a list": served(null),
+    "malformed language": served([[]], { language: 7 }),
+  };
+  for (const [name, highlight] of Object.entries(responses)) {
+    const plan = ui.highlightLines(highlight, [line]);
+    assert.equal(plan.state, "invalid", name);
+    assert.equal(plan.fragments, null, name);
+    assert.match(plan.note, /^Highlighting unavailable: .+\.$/, name);
   }
-  assert.deepEqual(plain(source.tokenizeLines(null, "rust")), []);
+});
+
+// r[verify kiln.highlight.render]
+test("skipped highlighting renders plain and names the reason", () => {
+  const reasons = { unsupported_language: "language not supported", binary: "binary content", too_large: "larger than the highlighting bound", parse_error: "the grammar could not parse it", truncated_input: "the input was truncated" };
+  for (const [reason, label] of Object.entries(reasons)) {
+    const plan = ui.highlightLines(served([], { status: "skipped", reason, language: null }), ["plain text"]);
+    assert.deepEqual(plain(plan), { state: "skipped", language: null, note: `Not highlighted: ${label}.`, fragments: null });
+  }
+  assert.equal(ui.highlightLines(served([], { status: "skipped", reason: "too_large" }), ["x"]).language, "rust", "a skipped file still names its language");
+  assert.equal(ui.highlightLines(served([[]], { status: "skipped", reason: "too_large" }), ["x"]).state, "invalid", "a skip must carry no tokens");
+  assert.equal(ui.highlightLines(served([], { status: "skipped", reason: "tired" }), ["x"]).state, "invalid", "an unknown reason is not invented");
+  assert.equal(ui.highlightLines(served([], { status: "skipped", reason: null }), ["x"]).state, "invalid");
 });
 
 // r[verify kiln.dashboard.source.navigation.scenario.changes]
@@ -437,6 +463,9 @@ test("unified diffs parse per file with status, counts and old/new numbers, keep
   // Every input line survives, in order, as a header, a hunk header or a hunk line.
   const rebuilt = [...parsed.preamble, ...parsed.files.flatMap((file) => [...file.headers, ...file.hunks.flatMap((hunk) => [hunk.header, ...hunk.lines.map((line) => line.text)])])];
   assert.equal(rebuilt.join("\n") + (parsed.finalNewline ? "\n" : ""), diff);
+  // Each hunk line names its line in the diff text, which server highlighting addresses.
+  const diffLines = source.splitLines(diff).lines;
+  for (const file of parsed.files) for (const hunk of file.hunks) for (const line of hunk.lines) assert.equal(diffLines[line.index], line.text);
   // A diff that is not truncated marks no file incomplete.
   assert.ok(plain(source.parseDiff(diff).files).every((file) => !file.truncated));
 });

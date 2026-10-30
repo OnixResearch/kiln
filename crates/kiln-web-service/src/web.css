@@ -31,9 +31,14 @@
  * --olive                 link                         --link
  *                         progress.bar.background      --progress-bar
  *                         syntax string                --syntax-string
- *                         syntax keyword               --syntax-keyword (Source file viewer)
- *                         syntax comment               --syntax-comment (Source file viewer)
  * --accent                syntax number                --syntax-number
+ *                         Kiln extension               --syntax-<class> for every server token class
+ *                                                      (kiln.highlight.v1): keyword string comment number
+ *                                                      constant type function macro attribute property
+ *                                                      variable operator punctuation tag escape heading
+ *                                                      link; drawn as .tok-<class> spans, each at least
+ *                                                      4.5:1 on the code surface and diff rows.
+ *                         Kiln extension               --code-selection-tint (selected source lines)
  * --status-success[-bg]   success[.background]         --success, --success-background
  * --status-failure[-bg]   danger[.background]          --danger, --danger-background
  * --status-warning[-bg]   warning[.background]         --warning, --warning-background
@@ -70,10 +75,24 @@
   --sidebar: #f2f2ed;
   --link: #226743;
   --progress-bar: #226743;
-  --syntax-string: #226743;
-  --syntax-number: #b2382f;
   --syntax-keyword: #6c3fb0;
+  --syntax-string: #226743;
   --syntax-comment: #6b6e63;
+  --syntax-number: #b2382f;
+  --syntax-constant: #9a4400;
+  --syntax-type: #0e6670;
+  --syntax-function: #1f5aa6;
+  --syntax-macro: #8a2d78;
+  --syntax-attribute: #6b5a1e;
+  --syntax-property: #3e5873;
+  --syntax-variable: #3a3b34;
+  --syntax-operator: #555a4d;
+  --syntax-punctuation: #5f6159;
+  --syntax-tag: #9b2f5c;
+  --syntax-escape: #8c5a00;
+  --syntax-heading: #6c3fb0;
+  --syntax-link: #226743;
+  --code-selection-tint: 22%;
   --primary: #e9f64a;
   --primary-hover: #dce93a;
   --primary-foreground: #20220e;
@@ -123,10 +142,24 @@
     --sidebar: #1a1c18;
     --link: #9ad6aa;
     --progress-bar: #9ad6aa;
-    --syntax-string: #9ad6aa;
-    --syntax-number: #f4a18c;
     --syntax-keyword: #c4a5f2;
-    --syntax-comment: #8f9585;
+    --syntax-string: #9ad6aa;
+    --syntax-comment: #a3a998;
+    --syntax-number: #f4a18c;
+    --syntax-constant: #f2c46d;
+    --syntax-type: #7fd0d6;
+    --syntax-function: #93b9f0;
+    --syntax-macro: #eaa0d8;
+    --syntax-attribute: #d6c78e;
+    --syntax-property: #b4c6dc;
+    --syntax-variable: #dcdfd3;
+    --syntax-operator: #c9cdbf;
+    --syntax-punctuation: #b3b8aa;
+    --syntax-tag: #f39bb8;
+    --syntax-escape: #f0b46a;
+    --syntax-heading: #c4a5f2;
+    --syntax-link: #9ad6aa;
+    --code-selection-tint: 12%;
     --editor-background: #0f100e;
     --success: #8ed3a2; --success-background: #1c3024;
     --danger: #f4a08c; --danger-background: #3a2420;
@@ -161,10 +194,24 @@
   --sidebar: #1a1c18;
   --link: #9ad6aa;
   --progress-bar: #9ad6aa;
-  --syntax-string: #9ad6aa;
-  --syntax-number: #f4a18c;
   --syntax-keyword: #c4a5f2;
-  --syntax-comment: #8f9585;
+  --syntax-string: #9ad6aa;
+  --syntax-comment: #a3a998;
+  --syntax-number: #f4a18c;
+  --syntax-constant: #f2c46d;
+  --syntax-type: #7fd0d6;
+  --syntax-function: #93b9f0;
+  --syntax-macro: #eaa0d8;
+  --syntax-attribute: #d6c78e;
+  --syntax-property: #b4c6dc;
+  --syntax-variable: #dcdfd3;
+  --syntax-operator: #c9cdbf;
+  --syntax-punctuation: #b3b8aa;
+  --syntax-tag: #f39bb8;
+  --syntax-escape: #f0b46a;
+  --syntax-heading: #c4a5f2;
+  --syntax-link: #9ad6aa;
+  --code-selection-tint: 12%;
   --editor-background: #0f100e;
   --success: #8ed3a2; --success-background: #1c3024;
   --danger: #f4a08c; --danger-background: #3a2420;
@@ -808,6 +855,26 @@ a.count-chip:hover { border-color: var(--border-emphasis); background: var(--acc
 .terminal-panel .log-output { font-family: var(--mono); }
 .terminal-panel .log-footer { background: var(--secondary); }
 .terminal-panel .meta, .terminal-panel .small { color: var(--muted-foreground); }
+
+/* ---------- Syntax tokens ---------- */
+/* r[impl kiln.highlight.render] Server token classes; each span wraps unchanged text. */
+.tok-keyword { color: var(--syntax-keyword); }
+.tok-string { color: var(--syntax-string); }
+.tok-comment { color: var(--syntax-comment); font-style: italic; }
+.tok-number { color: var(--syntax-number); }
+.tok-constant { color: var(--syntax-constant); }
+.tok-type { color: var(--syntax-type); }
+.tok-function { color: var(--syntax-function); }
+.tok-macro { color: var(--syntax-macro); }
+.tok-attribute { color: var(--syntax-attribute); }
+.tok-property { color: var(--syntax-property); }
+.tok-variable { color: var(--syntax-variable); }
+.tok-operator { color: var(--syntax-operator); }
+.tok-punctuation { color: var(--syntax-punctuation); }
+.tok-tag { color: var(--syntax-tag); }
+.tok-escape { color: var(--syntax-escape); }
+.tok-heading { color: var(--syntax-heading); font-weight: 700; }
+.tok-link { color: var(--syntax-link); text-decoration: underline; text-underline-offset: .15em; }
 
 /* ---------- Density ---------- */
 :root[data-density="compact"] .app-main { padding-top: var(--space-4); }

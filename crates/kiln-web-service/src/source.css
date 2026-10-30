@@ -71,7 +71,8 @@ a.button { text-decoration: none; }
 .src-file-title { display: grid; gap: .15rem; flex: 1 1 16rem; min-width: 0; }
 .src-file-path { margin: 0; font-size: var(--text-md); font-weight: 650; overflow-wrap: anywhere; }
 .src-file-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .6rem; margin: 0; color: var(--muted-foreground); font-size: var(--text-xs); }
-.src-highlight-skipped { color: var(--warning); }
+p.src-highlight { margin: 0; color: var(--muted-foreground); font-size: var(--text-sm); }
+.src-highlight[data-highlight="invalid"] { color: var(--warning); }
 .src-file-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .src-button { min-height: 2.25rem; padding: .3rem .6rem; box-shadow: none; }
 .src-button .icon { width: 1rem; height: 1rem; }
@@ -94,16 +95,9 @@ a.button { text-decoration: none; }
 .src-code tr:last-child td { padding-bottom: var(--space-2); }
 .src-file.is-wrapped .src-lc { white-space: pre-wrap; overflow-wrap: anywhere; }
 .src-file.is-wrapped .src-code { width: 100%; }
-tr.is-selected > .src-lc { background: color-mix(in srgb, var(--primary) 22%, var(--group-box)); }
+tr.is-selected > .src-lc { background: color-mix(in srgb, var(--primary) var(--code-selection-tint), var(--group-box)); }
 tr.is-selected > .src-ln { background: var(--primary); color: var(--primary-foreground); font-weight: 650; }
 .src-line-note { margin: var(--space-3) var(--space-4) 0; }
-
-/* Presentation-only syntax tokens; every token is a span around unchanged text. */
-.tok-comment { color: var(--syntax-comment); font-style: italic; }
-.tok-string { color: var(--syntax-string); }
-.tok-number { color: var(--syntax-number); }
-.tok-keyword { color: var(--syntax-keyword); }
-.tok-heading { color: var(--syntax-keyword); font-weight: 700; }
 
 /* History */
 .src-history { display: grid; gap: var(--space-2); }

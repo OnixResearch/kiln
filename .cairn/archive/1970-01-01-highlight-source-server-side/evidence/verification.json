@@ -1,0 +1,34 @@
+{
+  "schema": "kiln.syntax-highlighting.verification.v1",
+  "date": "2026-10-30",
+  "maintenance_owner": "Kiln maintainers (kiln-highlight); Kiln web-service maintainers (API and console)",
+  "operator_decision": "Server-side Tree-sitter, chosen over vendored highlight.js and over extending the client tokenizer.",
+  "pins": "tree-sitter =0.26.13, tree-sitter-highlight =0.26.13, tree-sitter-language 0.1.7. Version 0.27 needs Rust 1.90 and the repo is pinned to 1.88. Grammars: rust 0.24.2, javascript 0.25.0, typescript 0.23.2, python 0.25.0, nix 0.3.0, nickel 0.5.0, toml-ng 0.7.0, json 0.24.8, yaml 0.7.2, css 0.25.0, html 0.23.2, bash 0.25.1, md 0.5.4, c 0.24.2, go 0.25.0. WASM feature off.",
+  "licenses": "All MIT. Six crate archives (html, json, md, nickel, toml-ng, typescript) lack LICENSE files; their upstream notices are retained verbatim in LICENSES/tree-sitter-grammars/ from the commit each archive records in .cargo_vcs_info.json.",
+  "binary_size": { "before_bytes": 20071240, "after_bytes": 31444856, "note": "+56.7%, mostly grammar parse tables" },
+  "real_data_checks": {
+    "candidate": "/nix/store/7fwnvkqcv1cxxh85wxw68x0cn0plivc6-kiln-web-service-0.1.0, run on isolated ports with private state; only GET requests reached real sources",
+    "source_file": {
+      "path": "crates/kiln-web-service/src/server.rs",
+      "language": "rust",
+      "status": "highlighted",
+      "token_lines": 1108,
+      "text_lines": 1108,
+      "classes": "keyword, string, comment, type, function, macro, attribute, property, constant, escape, operator, punctuation, variable"
+    },
+    "opt_in": "Without the parameter there is no highlight field; highlight=2 returns 400 query_invalid",
+    "source_changes": "Revision 29c23d39 diff is highlighted: 2669 token lines for 2670 split diff lines, the last being the trailing empty segment. The browser rendered 29,278 token spans.",
+    "code_review": "Disposable instance with its own SQLite database and fixture Git repository; the live review database was never written. Review diff tokens are row-aligned. On the line '    let mut map = BTreeMap::new(); // héllo 🦀', every token addresses its exact characters, including comment '// héllo 🦀'. Unified and side-by-side layouts both render tokens.",
+    "browser": "0 page errors, 0 document overflow at 1440 and 320, light and dark"
+  },
+  "tests": [
+    "kiln-highlight: 15 tests covering each language, UTF-16 offsets on non-ASCII and astral text, sorted/non-overlapping/in-bounds invariants, every skip reason at and over each bound, and diff mapping for add, delete, rename, binary and mixed diffs",
+    "kiln-web-service: source and code-review opt-in tests (no parameter gives identical bytes; other values are rejected); full suite passed",
+    "tests/live-console-ui.test.mjs: 20 passed, including token rendering, fallback on invalid tokens and skipped-status notes",
+    "cargo fmt --check and clippy --workspace --all-targets -D warnings passed"
+  ],
+  "known_tradeoffs": [
+    "Fenced code in review comments and suggestion previews now renders plain: the client lexer was removed and the server does not highlight comment text.",
+    "Diff fragments are highlighted without surrounding file context and can misparse, for example inside a block comment that started before the hunk. This is cosmetic only."
+  ]
+}

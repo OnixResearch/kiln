@@ -741,6 +741,12 @@ impl Workspace {
         change: &domain::Change,
         query: &BTreeMap<String, String>,
     ) -> Result<ApiResponse, Failure> {
+        // r[impl kiln.highlight.api]
+        let highlight = match query.get("highlight").map(String::as_str) {
+            None => false,
+            Some("1") => true,
+            Some(_) => return reject(400, "review_query_invalid"),
+        };
         let revision = match query.get("revision") {
             Some(id) => change
                 .revisions
@@ -779,8 +785,62 @@ impl Workspace {
                 return reject(404, "review_file_missing");
             }
         }
-        response(serde_json::to_value(diff).map_err(|_| Failure::Unavailable)?)
+        let mut value = serde_json::to_value(&diff).map_err(|_| Failure::Unavailable)?;
+        if !highlight {
+            return response(value);
+        }
+        let attach = |value: &mut Value, highlighted: kiln_highlight::Highlight| {
+            let encoded = serde_json::to_value(highlighted).map_err(|_| Failure::Unavailable)?;
+            if let Some(object) = value.as_object_mut() {
+                object.insert("highlight".into(), encoded);
+            }
+            Ok::<(), Failure>(())
+        };
+        attach(&mut value, highlight_comparison(&diff))?;
+        let answer = json_response(200, &value).map_err(Failure::from)?;
+        if answer.body.len() <= MAX_RESPONSE {
+            return Ok(answer);
+        }
+        // Highlighting never turns a bounded diff into an unavailable response.
+        attach(
+            &mut value,
+            kiln_highlight::Highlight::skipped(None, kiln_highlight::Reason::TooLarge),
+        )?;
+        response(value)
     }
+}
+
+/// Highlight a comparison: `lines[i]` is the `i`-th row of every hunk of
+/// every returned file, in order, with offsets relative to the row's `text`.
+fn highlight_comparison(diff: &CommitComparison) -> kiln_highlight::Highlight {
+    let files: Vec<kiln_highlight::DiffFile<'_>> = diff
+        .files
+        .iter()
+        .map(|file| kiln_highlight::DiffFile {
+            old_path: file.old_path.as_deref(),
+            new_path: file.new_path.as_deref(),
+            binary: file.binary,
+            hunks: file
+                .hunks
+                .iter()
+                .map(|hunk| {
+                    hunk.lines
+                        .iter()
+                        .map(|line| kiln_highlight::DiffRow {
+                            side: match line.kind {
+                                DiffLineKind::Context => kiln_highlight::DiffSide::Both,
+                                DiffLineKind::Deletion => kiln_highlight::DiffSide::Old,
+                                DiffLineKind::Addition => kiln_highlight::DiffSide::New,
+                                DiffLineKind::NoNewline => kiln_highlight::DiffSide::Neither,
+                            },
+                            text: &line.text,
+                        })
+                        .collect()
+                })
+                .collect(),
+        })
+        .collect();
+    kiln_highlight::highlight_diff_files(&files, &kiln_highlight::Bounds::DEFAULT)
 }
 
 fn source_fact(

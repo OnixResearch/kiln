@@ -1,0 +1,44 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-30",
+  "authority": "Operator asked to add syntax highlighting and chose server-side Tree-sitter. The established flow after each accepted change is to deploy and push; the previous turn explicitly requested push and deploy.",
+  "package": "/nix/store/s0jh60km2qv3cp6zxwiacg1cr5sc8bcs-kiln-web-service-0.1.0",
+  "executable_blake3": "4c3eb032cdeef844e21182e61e8d9eeeb10ab71f4de99b3f986490cc172134c4",
+  "executable_bytes": 30342488,
+  "previous_package": "/nix/store/m5q3qwsxigydkaqqqp0s74gwa85y6bn8-kiln-web-service-0.1.0",
+  "gates": "nix flake check: all x86_64-linux checks passed; cairn validate valid, traceability 1101/1101, release-readiness valid",
+  "verification": {
+    "assets_identical": 16,
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "retained_runs": 19,
+    "rust_file": {
+      "language": "rust",
+      "status": "highlighted"
+    },
+    "nix_file": {
+      "language": "nix",
+      "status": "highlighted"
+    },
+    "no_opt_in_has_highlight": false,
+    "browser": {
+      "rust": {
+        "tokens": 5334,
+        "label": "Rust",
+        "overflow": 0
+      },
+      "nix": {
+        "tokens": 6643,
+        "label": "Nix",
+        "overflow": 0
+      },
+      "changes_tokens": 29278
+    },
+    "js_errors": 0
+  },
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}
