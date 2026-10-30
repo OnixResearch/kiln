@@ -632,6 +632,52 @@ test("change detail labels declared authorship as self-declared and absent as un
   assert.equal(reviewAuthorship.label({ kind: "agent", harness: "omp" }), "Agent · harness omp");
 });
 
+// r[verify kiln.review.keyboard] r[verify kiln.review.keyboard.navigation] r[verify kiln.review.keyboard.actions]
+const reviewKeys = reviewContext.window.KilnCodeReview.keys;
+const shortcut = (key, extra = {}) => ({ key, shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, isComposing: false, ...extra });
+const shortcutBindings = [
+  ["j", false, "next-file"], ["ArrowDown", false, "next-file"],
+  ["k", false, "previous-file"], ["ArrowUp", false, "previous-file"],
+  ["n", false, "next-hunk"], ["p", false, "previous-hunk"],
+  ["t", false, "next-thread"], ["T", true, "previous-thread"],
+  ["u", false, "next-unviewed"], ["U", true, "previous-unviewed"],
+  ["m", false, "toggle-layout"],
+  ["v", false, "toggle-hunk-viewed"], ["V", true, "toggle-file-viewed"],
+  ["d", false, "start-draft"], ["P", true, "publish"],
+  ["s", false, "requirements"], ["?", true, "help"],
+];
+
+// r[verify kiln.review.keyboard.scenario.inert]
+test("review shortcuts bind their documented keys and yield to typing, dialogs, modifiers and composition", () => {
+  for (const [key, shift, id] of shortcutBindings) assert.equal(reviewKeys.resolve(shortcut(key, { shiftKey: shift })), id, `${key}`);
+  // Shift is the discriminator: a shifted lowercase-only binding stays inert, while an uppercase key
+  // without shift (Caps Lock) resolves the unshifted command rather than inventing a second one.
+  for (const key of ["J", "K", "N", "M", "D", "S"]) assert.equal(reviewKeys.resolve(shortcut(key, { shiftKey: true })), null, `${key} shift=true`);
+  for (const [key, id] of [["T", "next-thread"], ["U", "next-unviewed"], ["V", "toggle-hunk-viewed"], ["P", "previous-hunk"]]) assert.equal(reviewKeys.resolve(shortcut(key)), id, key);
+  // Typing, overlays, IME composition and command modifiers always suppress the layer.
+  assert.equal(reviewKeys.resolve(shortcut("j"), { editable: true }), null);
+  assert.equal(reviewKeys.resolve(shortcut("j"), { dialogOpen: true }), null);
+  assert.equal(reviewKeys.resolve(shortcut("j", { isComposing: true })), null);
+  for (const modifier of ["ctrlKey", "metaKey", "altKey"]) assert.equal(reviewKeys.resolve(shortcut("j", { [modifier]: true })), null, modifier);
+  for (const value of [null, undefined, {}, { key: "" }]) assert.equal(reviewKeys.resolve(value), null);
+  // Help accepts the produced "?" key or layout-independent Shift+/ and needs no shift flag on "?" itself.
+  assert.equal(reviewKeys.resolve(shortcut("?")), "help");
+  assert.equal(reviewKeys.resolve(shortcut("/", { shiftKey: true })), "help");
+  assert.equal(reviewKeys.resolve(shortcut("/")), null);
+  // Unknown keys stay unbound rather than falling through to a neighbour.
+  for (const key of ["q", "x", "Enter", " ", "Escape"]) assert.equal(reviewKeys.resolve(shortcut(key)), null, key);
+});
+
+test("the shortcut help lists every bound command once, in table order", () => {
+  const commands = plain(reviewKeys.commands);
+  const ids = shortcutBindings.map(([, , id]) => id).filter((id, index, all) => all.indexOf(id) === index);
+  assert.deepEqual(commands.map((command) => command.id), ids);
+  for (const command of commands) {
+    assert.ok(command.keys, `${command.id} keys`);
+    assert.ok(command.description, `${command.id} description`);
+  }
+});
+
 // r[verify kiln.monorepo.console]
 test("projects sharing one repository key group together; single projects and keyless records stay alone", () => {
   const shape = (groups) => [...groups].map((group) => ({ key: group.key, label: group.label, shared: group.shared, ids: [...group.projects].map((project) => project.id) }));
@@ -712,4 +758,54 @@ test("review CI rows list affected projects with state and run; skipped projects
   const decisions = plain(ui.affectedDecisions({ identity: "id", decisions: [{ project_id: "api", outcome: "affected", reasons: [{ kind: "unscoped" }] }, { project_id: "web", outcome: "skipped", reason: "no_changes_in_scope" }, { project_id: "x" }] }));
   assert.deepEqual(decisions.rows.map((row) => [row.projectId, row.affected]), [["api", true], ["web", false]]);
   for (const value of [undefined, null, { identity: "id" }, { decisions: {} }]) assert.equal(ui.affectedDecisions(value), null);
+});
+
+// r[verify kiln.untrusted.console]
+test("untrusted gates show state, reason, approver, approved commit and counting; trusted or malformed runs show none", () => {
+  const commit = "a".repeat(40);
+  const blocked = plain(ui.untrustedSummary({ state: "awaiting_approval", reason: "fork", pull_request: 7, head_repository: "outside/fork", source_commit: commit, approved_by: null, approved_by_id: null, approved_commit: null, approved_at_ms: null, counts_for_required_ci: false, superseded_by: null }));
+  assert.deepEqual([blocked.stateLabel, blocked.tone, blocked.awaitingApproval, blocked.reasonText, blocked.pullRequest, blocked.sourceCommit, blocked.approvedBy, blocked.countsForRequiredCi], ["Awaiting approval", "queued", true, "The pull request comes from a fork.", 7, commit, null, false]);
+  const approved = plain(ui.untrustedSummary({ state: "approved", reason: "author_without_push_access", pull_request: 7, head_repository: "o/r", source_commit: commit, approved_by: "Operator", approved_by_id: "local:operator", approved_commit: commit, approved_at_ms: 5, counts_for_required_ci: true }));
+  assert.deepEqual([approved.stateLabel, approved.tone, approved.awaitingApproval, approved.approvedBy, approved.approvedById, approved.approvedCommit, approved.approvedAtMs, approved.countsForRequiredCi], ["Approved to run untrusted", "success", false, "Operator", "local:operator", commit, 5, true]);
+  // Unknown reasons and non-boolean counting never read as recognised or counting.
+  const superseded = plain(ui.untrustedSummary({ state: "superseded", reason: "future", pull_request: 0, superseded_by: "web-run-2", counts_for_required_ci: "yes" }));
+  assert.deepEqual([superseded.stateLabel, superseded.tone, superseded.reasonText, superseded.pullRequest, superseded.supersededBy, superseded.countsForRequiredCi], ["Superseded by a newer commit", "cancelled", "No recognised reason was recorded.", null, "web-run-2", false]);
+  assert.equal(ui.untrustedSummary({ state: "future_state" }).tone, "unknown");
+  for (const value of [undefined, null, "approved", [], {}, { state: "" }]) assert.equal(ui.untrustedSummary(value), null);
+  assert.deepEqual({ ...ui.outcomeStatus("Pending", "awaiting_approval") }, { status: "queued", label: "Awaiting approval" });
+});
+
+// r[verify kiln.review.structural.scenario.anchors]
+test("structural and line modes create equal anchors; an interdiff's rebased side has none", () => {
+  const comparison = reviewContext.window.KilnCodeReview.comparison;
+  const revision = { id: "r2", commit: "c2", base: "b2" };
+  const line = { old_commit: "b2", new_commit: "c2", files: [] };
+  const structural = { ...line, structural: { files: [{ path: "lib.rs", status: "structural" }] } };
+  assert.deepEqual(plain(comparison.anchorFor(structural, revision, "lib.rs", "revision", 4, 4)), plain(comparison.anchorFor(line, revision, "lib.rs", "revision", 4, 4)));
+  assert.deepEqual(plain(comparison.anchorFor(structural, revision, "lib.rs", "base", 2, 3)), { revision: "r2", base_commit: "b2", file: "lib.rs", side: "base", start_line: 2, end_line: 3 });
+  const exact = { old_commit: "c1", new_commit: "c2", interdiff: { status: "exact" } };
+  assert.equal(comparison.anchorFor(exact, revision, "f", "base", 1, 1), null);
+  assert.equal(comparison.anchorBaseFor(exact, revision, "revision"), "b2");
+  assert.equal(comparison.anchorBaseFor({ ...exact, interdiff: { status: "unavailable" } }, revision, "base"), "c1");
+  const range = { old_commit: "m", new_commit: "c2", commit_range: { from: "m", to: "c2" } };
+  assert.equal(comparison.anchorBaseFor(range, revision, "base"), null);
+  assert.equal(comparison.anchorBaseFor(range, revision, "revision"), "b2");
+  assert.equal(comparison.anchorBaseFor({ ...range, old_commit: "b2" }, revision, "base"), "b2");
+  assert.equal(comparison.anchorBaseFor({ old_commit: "b2", new_commit: "m", commit_range: { from: "b2", to: "m" } }, revision, "revision"), null);
+});
+
+// r[verify kiln.review.interdiff.route]
+test("diff identity admits only the requested base, interdiff or commit range", () => {
+  const { diffMatches } = reviewContext.window.KilnCodeReview.comparison;
+  const r1 = { id: "r1", commit: "c1", base: "b1" }, r2 = { id: "r2", commit: "c2", base: "b2" };
+  assert.equal(diffMatches({ old_commit: "b2", new_commit: "c2" }, r2, null, null, null), true);
+  assert.equal(diffMatches({ old_commit: "c1", new_commit: "c2" }, r2, null, null, r1), true);
+  assert.equal(diffMatches({ old_commit: "b1", new_commit: "c2" }, r2, null, null, null), false);
+  assert.equal(diffMatches({ old_commit: "c1", new_commit: "c2", interdiff: { from: "r1", to: "r2" } }, r2, r1, null, null), true);
+  assert.equal(diffMatches({ old_commit: "c1", new_commit: "c2", interdiff: { from: "r0", to: "r2" } }, r2, r1, null, null), false);
+  assert.equal(diffMatches({ old_commit: "x", new_commit: "y", interdiff: { from: "r1", to: "r2", change: "k" } }, r2, r1, null, null), true);
+  assert.equal(diffMatches({ old_commit: "c1", new_commit: "c2" }, r2, r1, null, null), false);
+  assert.equal(diffMatches({ old_commit: "m", new_commit: "c2" }, r2, null, { from: "m", to: "c2" }, null), true);
+  assert.equal(diffMatches({ old_commit: "b2", new_commit: "c2" }, r2, null, { from: "m", to: "c2" }, null), false);
+  assert.equal(diffMatches({ old_commit: "b2", new_commit: "c2" }, undefined, null, null, null), false);
 });

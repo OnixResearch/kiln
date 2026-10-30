@@ -36,6 +36,13 @@ pub enum HostMessage {
         deadline_ms: u64,
         steps: Vec<GuestStep>,
     },
+    /// One debug command for a held VM whose single run failed.
+    Debug {
+        nonce: String,
+        /// Command deadline relative to receipt of this frame.
+        deadline_ms: u64,
+        step: GuestStep,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,6 +73,11 @@ pub enum GuestMessage {
         nonce: String,
         /// Set when the source snapshot or request could not be admitted.
         admission_error: Option<String>,
+    },
+    /// The report of one debug command.
+    Debug {
+        nonce: String,
+        report: StepReport,
     },
 }
 
@@ -118,26 +130,41 @@ fn decode<T: DeserializeOwned>(body: &[u8], schema: impl Fn(&T) -> &str) -> Resu
 
 pub fn decode_host(body: &[u8]) -> Result<HostFrame, String> {
     let frame = decode(body, |f: &HostFrame| f.schema.as_str())?;
-    if let HostMessage::Run {
-        steps, entropy_hex, ..
-    } = &frame.message
-    {
-        if steps.is_empty() || steps.len() > MAX_STEPS {
-            return Err("microVM run step count outside bound".into());
+    match &frame.message {
+        HostMessage::Run {
+            steps, entropy_hex, ..
+        } => {
+            if steps.is_empty() || steps.len() > MAX_STEPS {
+                return Err("microVM run step count outside bound".into());
+            }
+            if entropy_hex.len() != ENTROPY_BYTES * 2 || hex_bytes(entropy_hex).is_none() {
+                return Err("microVM entropy seed rejected".into());
+            }
+            if steps.iter().any(|s| !step_admitted(s)) {
+                return Err("microVM step rejected".into());
+            }
         }
-        if entropy_hex.len() != ENTROPY_BYTES * 2 || hex_bytes(entropy_hex).is_none() {
-            return Err("microVM entropy seed rejected".into());
+        // r[impl kiln.hosted.microvm.debug_hold.relay]
+        HostMessage::Debug {
+            step, deadline_ms, ..
+        } => {
+            if !step_admitted(step)
+                || step.output_limit > crate::debug_hold::DEBUG_OUTPUT_BYTES
+                || *deadline_ms > crate::debug_hold::DEBUG_COMMAND_TIMEOUT_MS
+            {
+                return Err("microVM debug request rejected".into());
+            }
         }
-        if steps.iter().any(|s| {
-            !inside_workspace(&s.working_directory)
-                || !s.program.starts_with('/')
-                || s.output_limit == 0
-                || s.output_limit > MAX_FRAME_BYTES / 4
-        }) {
-            return Err("microVM step rejected".into());
-        }
+        HostMessage::Ping { .. } => {}
     }
     Ok(frame)
+}
+
+fn step_admitted(step: &GuestStep) -> bool {
+    inside_workspace(&step.working_directory)
+        && step.program.starts_with('/')
+        && step.output_limit != 0
+        && step.output_limit <= MAX_FRAME_BYTES / 4
 }
 
 pub fn decode_guest(body: &[u8]) -> Result<GuestFrame, String> {
@@ -320,7 +347,7 @@ mod tests {
     fn run_requests_reject_escaping_or_unbounded_steps() {
         let mut steps = match run() {
             HostMessage::Run { steps, .. } => steps,
-            HostMessage::Ping { .. } => unreachable!(),
+            _ => unreachable!(),
         };
         let valid = steps.pop().unwrap_or_else(|| unreachable!());
         for (step, entropy) in [
@@ -405,5 +432,69 @@ mod tests {
         assert_eq!(hex_bytes("00ff10"), Some(vec![0, 255, 16]));
         assert_eq!(hex(&[0, 255, 16]), "00ff10");
         assert_eq!(hex_bytes("0"), None);
+    }
+
+    // r[verify kiln.hosted.microvm.debug_hold.relay]
+    #[test]
+    fn debug_frames_round_trip_and_reject_unbounded_requests() {
+        let step = crate::debug_hold::debug_step("/bin/bash", "id")
+            .unwrap_or_else(|e| unreachable!("{e}"));
+        let debug = host_frame(HostMessage::Debug {
+            nonce: "d".into(),
+            deadline_ms: crate::debug_hold::DEBUG_COMMAND_TIMEOUT_MS,
+            step: step.clone(),
+        });
+        let encoded = encode(&debug).unwrap_or_default();
+        assert_eq!(decode_host(body(&encoded)), Ok(debug));
+        for (step, deadline_ms) in [
+            (
+                step.clone(),
+                crate::debug_hold::DEBUG_COMMAND_TIMEOUT_MS + 1,
+            ),
+            (
+                GuestStep {
+                    output_limit: crate::debug_hold::DEBUG_OUTPUT_BYTES + 1,
+                    ..step.clone()
+                },
+                1,
+            ),
+            (
+                GuestStep {
+                    working_directory: "/".into(),
+                    ..step.clone()
+                },
+                1,
+            ),
+            (
+                GuestStep {
+                    program: "sh".into(),
+                    ..step.clone()
+                },
+                1,
+            ),
+        ] {
+            let frame = host_frame(HostMessage::Debug {
+                nonce: "d".into(),
+                deadline_ms,
+                step,
+            });
+            assert!(decode_host(&serde_json::to_vec(&frame).unwrap_or_default()).is_err());
+        }
+        let report = guest_frame(GuestMessage::Debug {
+            nonce: "d".into(),
+            report: StepReport {
+                index: 0,
+                exit_code: Some(0),
+                signal: None,
+                timed_out: false,
+                stdout: "uid=1000\n".into(),
+                stderr: String::new(),
+                stdout_truncated: false,
+                stderr_truncated: false,
+                elapsed_ms: 3,
+            },
+        });
+        let encoded = encode(&report).unwrap_or_default();
+        assert_eq!(decode_guest(body(&encoded)), Ok(report));
     }
 }

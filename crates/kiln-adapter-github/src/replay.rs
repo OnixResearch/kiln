@@ -156,13 +156,13 @@ impl SqliteStore {
         let delivery = transaction
             .query_row(
                 "SELECT body_identity, run_identity FROM github_deliveries WHERE delivery_id=?1",
-                params![event.delivery_id],
+                params![event.delivery_id()],
                 |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
             )
             .optional()
             .map_err(|_| storage_error("github_delivery_read"))?;
         if let Some((body, run)) = delivery {
-            if body != event.body_identity.as_str() || run != record.run_identity.as_str() {
+            if body != event.body_identity().as_str() || run != record.run_identity.as_str() {
                 return Err(domain(
                     "github_delivery_conflict",
                     "github.delivery",
@@ -216,7 +216,7 @@ impl SqliteStore {
                 true
             }
         };
-        transaction.execute("INSERT INTO github_deliveries (delivery_id,body_identity,run_identity) VALUES (?1,?2,?3)", params![event.delivery_id, event.body_identity.as_str(), record.run_identity.as_str()]).map_err(|_| storage_error("github_delivery_insert"))?;
+        transaction.execute("INSERT INTO github_deliveries (delivery_id,body_identity,run_identity) VALUES (?1,?2,?3)", params![event.delivery_id(), event.body_identity().as_str(), record.run_identity.as_str()]).map_err(|_| storage_error("github_delivery_insert"))?;
         transaction
             .commit()
             .map_err(|_| storage_error("github_store_commit"))?;

@@ -67,6 +67,10 @@ pub fn run_job(
     let source = source::prepare(profile, context)?;
     let service = client::ServiceClient::new(profile)?;
     let binding = service.await_binding(profile, &source.resolution, cancellation)?;
+    // r[impl kiln.untrusted.execution]
+    if binding.is_untrusted() && !profile.untrusted_capable {
+        return Err("untrusted run refused: worker is not declared untrusted-capable".into());
+    }
     let directory = source::project_directory(&source.checkout, binding.project_root.as_deref())?;
     let mut total_artifact_bytes = 0usize;
     let mut total_report_bytes = 0usize;
@@ -86,20 +90,21 @@ pub fn run_job(
             .checked_add(1)
             .ok_or("worker telemetry sequence exhausted")?;
         let mut cache_observations = Vec::new();
-        let cache_key = if let Some(config) = &step.cache {
-            let (key, observation) = cache::restore(
-                &service,
-                profile,
-                &binding,
-                &step.node_id,
-                config,
-                &source.checkout,
-            )?;
-            cache_observations.push(observation);
-            Some(key)
-        } else {
-            None
-        };
+        let cache_key =
+            if let Some(config) = step.cache.as_ref().filter(|_| !binding.is_untrusted()) {
+                let (key, observation) = cache::restore(
+                    &service,
+                    profile,
+                    &binding,
+                    &step.node_id,
+                    config,
+                    &source.checkout,
+                )?;
+                cache_observations.push(observation);
+                Some(key)
+            } else {
+                None
+            };
         let clock = telemetry::StepClock::start()?;
         let output = process::execute_streamed(
             profile,

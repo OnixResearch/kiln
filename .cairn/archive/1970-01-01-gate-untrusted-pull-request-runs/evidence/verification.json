@@ -1,0 +1,81 @@
+{
+  "change": "gate-untrusted-pull-request-runs",
+  "status": "complete",
+  "date": "2026-10-30",
+  "issue": "https://github.com/OnixResearch/kiln/issues/12",
+  "maintenance_owner": "Kiln maintainers (kiln_core::untrusted, GitHub adapter); web-service maintainers (intake, approval, dispatch, review, console); hosted maintainers (runner declaration, credential/cache suppression)",
+  "commands": [
+    {
+      "command": "nix develop path:. -c cargo test --locked --no-fail-fast -p kiln-core -p kiln-adapter-github -p kiln-hosted -p kiln-web-service -- untrusted fork",
+      "result": "pass: kiln-core 8 (7 untrusted::tests + change_review untrusted checklist test), kiln-adapter-github 1 (forks_require_explicit_policy_and_retain_exact_source_facts), kiln-hosted 2 (untrusted_attempts_and_retries_get_no_secrets_token_or_cache, untrusted_runs_need_a_declared_untrusted_capable_microvm_runner), kiln-web-service worker 1, engine 1"
+    },
+    {
+      "command": "nix develop path:. -c cargo test --locked -p kiln-web-service --test engine -- untrusted fork approval",
+      "result": "pass: fork_pull_request_waits_for_operator_approval_of_its_exact_commit, approval_needs_an_untrusted_capable_project_runner"
+    },
+    {
+      "command": "regression check: the same engine test with supersede_untrusted's retry filter removed",
+      "result": "fails as expected (an exact retry of the older approved commit superseded the newer commit's blocked run: phase terminal); passes with the filter restored"
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs",
+      "result": "pass: 36 tests, including untrusted gate normalization and the awaiting-approval status label"
+    },
+    {
+      "command": "nickel 1.17.0 (dev shell): typecheck web-automation, github-contracts, github-ci, web-service, web-worker and hosted-service; export the four new positive fixtures; export every new negative fixture",
+      "result": "pass: typechecks and positives succeed; negative-web-automation-untrusted-policy, -untrusted-counting, -fork-allowed, negative-github-ci-untrusted-approve, negative-web-service-untrusted-capable, negative-web-worker-untrusted-capable and negative-hosted-service-firecracker-untrusted-capable are rejected by the intended contract; the github negative's deny control exports"
+    },
+    {
+      "command": "deny byte identity: nickel export --format json before and after the contract change for web-automation-positive, web-service-positive, web-service-monorepo-positive, web-worker-positive, hosted-service-positive and fixtures/github/service-profile.ncl",
+      "result": "pass: all six exports byte-identical (cmp); web-service-positive and github-service-profile also equal the baseline retained before any untrusted change"
+    },
+    {
+      "command": "nix build --no-link -L --option builders '' path:.#checks.x86_64-linux.nickel",
+      "result": "pass (includes the new positive exports and every config/fixtures/negative-*.ncl)"
+    },
+    {
+      "command": "nix develop path:. -c cargo test --locked --workspace --no-fail-fast",
+      "result": "pass: 1201 passed, 0 failed, 4 ignored across 139 test binaries"
+    },
+    {
+      "command": "disposable-instance browser check (throwaway scratch outside the repository: isolated CA/leaf, exact jj source, approve trigger, untrusted-capable project, code review with noise rules; kiln-web-service serve on 127.0.0.1 without Lattice; headless Chromium)",
+      "result": "pass: signed fork pull_request (author_association NONE) created run phase awaiting_approval; run detail showed 'Untrusted pull request · Awaiting approval' with reason, #7, head repository, exact commit, 'Not approved' and 'Counts for required CI: No'; operator-only 'Approve run…' opened the shared dialog (title 'Approve untrusted run …', facts incl. exact commit and 'Review effect: None', focus on 'Keep blocked'); dismissing kept awaiting_approval; confirming recorded 'Approved to run untrusted' by Local operator (local:operator) for the exact commit; dispatch then failed closed at the absent workflow socket (provider_unavailable, phase unknown); the change-review ci item stayed Unmet and listed the untrusted run (state, PR, approver, commit, 'does not count for required CI', run link) and the Canonical CI card showed the same; approvals stayed Unmet"
+    },
+    {
+      "command": "nix develop path:. -c cargo clippy --locked --workspace --all-targets --keep-going -- -D warnings",
+      "result": "pass after replacing serde_json Value indexing in test code (workspace lint indexing_slicing = deny)"
+    },
+    {
+      "command": "nix develop path:. -c cargo test --locked -p kiln-web-service -p kiln-adapter-github --no-fail-fast (after the lint fixes)",
+      "result": "pass: 354 passed, 0 failed across 25 test binaries"
+    },
+    {
+      "command": "nix flake check",
+      "result": "nix flake check path:. --no-write-lock-file --keep-going --option builders '' --max-jobs 4 on the final source tree: all checks passed (every exported check, including tests, clippy, format, nickel, live-console-ui, github-protocol-fixtures, octet, no-std, boundaries, cohort and package checks); the check omits incompatible aarch64-linux systems by default"
+    }
+  ],
+  "acceptance": {
+    "1 deny byte-identical": "forks_require_explicit_policy_and_retain_exact_source_facts (legacy EventPolicy JSON round-trips byte-identically; fork refused github_fork_denied under deny even for OWNER); serde-default omitted fields on EventPolicy, TriggerProfile, ProjectProfile, RunRecord, SourceRecord, CiFact, Backend::Firecracker, PipelineRequest, WorkerProfile; Nickel deny exports byte-identical before and after the contract change",
+    "2 blocked until approval; new commit re-blocks": "fork_pull_request_waits_for_operator_approval_of_its_exact_commit (awaiting_approval, zero dispatches, new commit supersedes with untrusted_superseded, approval of the old commit rejected untrusted_run_superseded, state replays after restart); disposable browser check",
+    "3 no secrets/token/cache on approved runs and retries": "hosted untrusted_attempts_and_retries_get_no_secrets_token_or_cache and untrusted_runs_need_a_declared_untrusted_capable_microvm_runner; web engine: approved run and its exact retry both answer untrusted_run_cache_denied, latest retry refused untrusted_retry_requires_exact_source, undeclared project refused untrusted_runner_unavailable before dispatch; worker skips cache and refuses untrusted bindings unless declared",
+    "4 unauthorized approval rejected; checklist never flips": "engine test (viewer 403 viewer_read_only from the shell's read-only rule, automation:trigger principal 403 untrusted_approval_unauthorized, stale commit untrusted_approval_stale_commit; the run stays awaiting_approval with zero dispatches); core only_an_operator_approves_the_exact_commit_once; change_review untrusted_approval_never_flips_checklist_items_and_counts_only_by_policy; browser check: approvals and ci stayed Unmet after approval",
+    "5 docs": "docs/operator.md 'Untrusted pull requests' (policy, classification, blocked runs, approval, execution, retries, review independence, display) and the standalone GitHub adapter text; docs/hosted-ci.md 'Untrusted pull-request runs' and the Firecracker untrusted_capable field"
+  },
+  "fixes_during_verification": [
+    "kiln-adapter-github fork test inserted author_association with get_mut on a fixture without the field; it now inserts the field",
+    "an exact retry of an older approved commit superseded the newer commit's blocked run; supersession now applies only to new intake runs, never to retries",
+    "untrusted engine tests and the GitHub fork test indexed serde_json Values, which the workspace indexing_slicing lint denies; they now read through Value::pointer helpers with unchanged assertions",
+    "the unauthorized-approval scenario named untrusted_approval_unauthorized for viewers, but the shell refuses every viewer write with viewer_read_only before any approval decision; the scenario, design note and operator guide now name both layered codes, and the engine test asserts the viewer code and the unchanged awaiting_approval state"
+  ],
+  "trade_offs": [
+    "MEMBER author_association is treated as push access; absent association fails closed",
+    "untrusted_capable is an operator declaration; hosted checks the Firecracker kind, web execution target isolation is not verifiable",
+    "standalone kiln-github and hosted GitHub connections admit only deny (no approval surface)",
+    "superseded runs are Cancelled with error_code untrusted_superseded",
+    "the browser check ran without Lattice, so the approved run's dispatch ended provider_unavailable; real untrusted execution in a microVM was not exercised here"
+  ],
+  "not_run": [
+    "live GitHub delivery",
+    "KVM-gated microVM execution of an approved untrusted run"
+  ]
+}

@@ -75,6 +75,7 @@ fn fixture() -> (
             maximum_chunks: 4,
         },
         project_root: None,
+        untrusted: None,
     };
     checked(super::admit_binding(&profile, &source, &binding));
     (root, profile, source, binding)

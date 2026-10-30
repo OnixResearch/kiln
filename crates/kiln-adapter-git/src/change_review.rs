@@ -21,8 +21,14 @@ const MAX_TARGET_REFS: usize = 64;
 const MAX_REF_BYTES: usize = 1_024;
 const MAX_IDENTITY_BYTES: usize = 256;
 const MAX_PATH_BYTES: usize = 4_096;
-const CAPABILITY_COUNT: usize = 9;
+const CAPABILITY_COUNT: usize = 10;
 const MAX_SUGGESTIONS: usize = 1_024;
+/// Priority above every on-disk object backend, so in-memory rebase objects never persist.
+const MEMPACK_PRIORITY: i32 = 1_000;
+/// Old base, old commit, new base and new commit.
+const INTERDIFF_COMMITS: usize = 4;
+/// Longest commit summary returned for a revision range.
+const MAX_SUMMARY_CHARS: usize = 200;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -274,6 +280,27 @@ impl LocalGitReviewProvider {
                 commit(repo, id)?;
                 commit(repo, expected_target)?;
             }
+            // r[impl kiln.review.queue.speculative.provider]
+            ReviewOperation::BuildSpeculativeIntegration {
+                commit: id,
+                expected_target,
+                predecessor,
+                ..
+            } => {
+                commit(repo, id)?;
+                let expected = commit(repo, expected_target)?;
+                let assumed = commit(repo, predecessor)?;
+                if assumed.id() == expected.id()
+                    || !repo
+                        .graph_descendant_of(assumed.id(), expected.id())
+                        .map_err(storage)?
+                {
+                    return Err(failure(
+                        ReviewErrorKind::Conflict,
+                        "speculative predecessor must strictly descend from the exact expected target",
+                    ));
+                }
+            }
         }
         Ok(())
     }
@@ -332,6 +359,23 @@ impl LocalGitReviewProvider {
                 });
                 (
                     "build_integration",
+                    commit.as_str(),
+                    expected_target.as_str(),
+                )
+            }
+            ReviewOperation::BuildSpeculativeIntegration {
+                commit,
+                expected_target,
+                predecessor,
+                strategy,
+            } => {
+                text.push_str(match strategy {
+                    IntegrationStrategy::Merge => "merge\n",
+                    IntegrationStrategy::Rebase => "rebase\n",
+                });
+                text.push_str(&format!("{}:{}\n", predecessor.len(), predecessor));
+                (
+                    "build_speculative_integration",
                     commit.as_str(),
                     expected_target.as_str(),
                 )
@@ -470,12 +514,18 @@ impl LocalGitReviewProvider {
             }
             ReviewOperation::BuildIntegration {
                 commit: id,
-                expected_target,
+                expected_target: onto,
                 strategy,
+            }
+            | ReviewOperation::BuildSpeculativeIntegration {
+                commit: id,
+                predecessor: onto,
+                strategy,
+                ..
             } => {
                 if *strategy == IntegrationStrategy::Merge {
                     let source = commit(repo, id)?;
-                    let parent = commit(repo, expected_target)?;
+                    let parent = commit(repo, onto)?;
                     let mut index = repo
                         .merge_commits(&parent, &source, None)
                         .map_err(|e| failure(ReviewErrorKind::Conflict, e.message()))?;
@@ -487,15 +537,23 @@ impl LocalGitReviewProvider {
                     }
                     let tree_id = index.write_tree_to(repo).map_err(storage)?;
                     let tree = repo.find_tree(tree_id).map_err(storage)?;
-                    let message = format!(
-                        "Kiln integration\n\nKiln-Source: {id}\nKiln-Target: {expected_target}\nKiln-Operation: {}\n",
-                        request.operation_id
-                    );
+                    let message = match &request.operation {
+                        ReviewOperation::BuildSpeculativeIntegration {
+                            expected_target, ..
+                        } => format!(
+                            "Kiln integration\n\nKiln-Source: {id}\nKiln-Target: {expected_target}\nKiln-Predecessor: {onto}\nKiln-Operation: {}\n",
+                            request.operation_id
+                        ),
+                        _ => format!(
+                            "Kiln integration\n\nKiln-Source: {id}\nKiln-Target: {onto}\nKiln-Operation: {}\n",
+                            request.operation_id
+                        ),
+                    };
                     return repo
                         .commit(None, &sig, &sig, &message, &tree, &[&parent, &source])
                         .map_err(storage);
                 }
-                (id, expected_target, "rebase")
+                (id, onto, "rebase")
             }
             ReviewOperation::Rebase { commit, onto } => (commit, onto, "rebase"),
             ReviewOperation::Revert { commit, onto } => (commit, onto, "revert"),
@@ -603,19 +661,7 @@ impl ChangeReviewPort for LocalGitReviewProvider {
     }
     fn compare(&self, request: &CompareRequest) -> ReviewResult<CommitComparison> {
         self.require(ReviewCapability::Compare)?;
-        let limits = request.limits;
-        if limits.max_files == 0
-            || limits.max_files > MAX_FILES
-            || limits.max_lines == 0
-            || limits.max_lines > MAX_LINES
-            || limits.max_bytes == 0
-            || limits.max_bytes > MAX_BYTES
-        {
-            return Err(failure(
-                ReviewErrorKind::InvalidRequest,
-                "diff bounds must be positive and within provider limits",
-            ));
-        }
+        admit_limits(request.limits)?;
         let repo = self.repository()?;
         let old_tree = commit(&repo, &request.old_commit)?
             .tree()
@@ -623,139 +669,128 @@ impl ChangeReviewPort for LocalGitReviewProvider {
         let new_tree = commit(&repo, &request.new_commit)?
             .tree()
             .map_err(storage)?;
-        let mut options = DiffOptions::new();
-        options
-            .context_lines(3)
-            .max_size(i64::from(limits.max_bytes));
-        match request.whitespace {
-            WhitespaceMode::Exact => {}
-            WhitespaceMode::IgnoreAll => {
-                options.ignore_whitespace(true);
-            }
-            WhitespaceMode::IgnoreChange => {
-                options.ignore_whitespace_change(true);
-            }
-            WhitespaceMode::IgnoreEol => {
-                options.ignore_whitespace_eol(true);
-            }
-        }
-        let mut diff = repo
+        let mut options = diff_options(request.limits, request.whitespace);
+        let diff = repo
             .diff_tree_to_tree(Some(&old_tree), Some(&new_tree), Some(&mut options))
             .map_err(storage)?;
-        let mut find = DiffFindOptions::new();
-        find.renames(true).rename_limit(MAX_FILES as usize);
-        diff.find_similar(Some(&mut find)).map_err(storage)?;
-        let mut result = CommitComparison {
-            repository_id: self.profile.repository_id.clone(),
-            old_commit: request.old_commit.clone(),
-            new_commit: request.new_commit.clone(),
-            files: Vec::new(),
-            truncated: false,
+        comparison_of(
+            &self.profile.repository_id,
+            &repo,
+            diff,
+            (&request.old_commit, &request.new_commit),
+            request.limits,
+        )
+    }
+    // r[impl kiln.review.interdiff]
+    fn interdiff(&self, request: &InterdiffRequest) -> ReviewResult<Interdiff> {
+        self.require(ReviewCapability::Compare)?;
+        admit_limits(request.limits)?;
+        let repo = self.repository()?;
+        let mut trees = Vec::with_capacity(INTERDIFF_COMMITS);
+        for id in [
+            &request.old_base,
+            &request.old_commit,
+            &request.new_base,
+            &request.new_commit,
+        ] {
+            match commit(&repo, id) {
+                Ok(found) => trees.push(found.tree().map_err(storage)?),
+                Err(error) if error.kind == ReviewErrorKind::NotFound => {
+                    return Ok(Interdiff::Unavailable {
+                        reason: InterdiffUnavailable::MissingCommit,
+                        message: format!("commit {id} is not in the provider repository"),
+                    });
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        let [old_base, old_commit, new_base, new_commit] = trees.as_slice() else {
+            return Err(failure(ReviewErrorKind::Storage, "interdiff trees missing"));
         };
-        let mut remaining_lines = limits.max_lines;
-        let mut remaining_bytes = limits.max_bytes as usize;
-        for (position, delta) in diff.deltas().enumerate() {
-            if result.files.len() >= limits.max_files as usize {
-                result.truncated = true;
+        // The rebase runs in memory: merged blobs and the rebased tree go to a
+        // highest-priority mempack backend that is dropped with this handle.
+        let odb = repo.odb().map_err(storage)?;
+        odb.add_new_mempack_backend(MEMPACK_PRIORITY)
+            .map_err(storage)?;
+        let mut rebased = repo
+            .merge_trees(old_base, new_base, old_commit, None)
+            .map_err(storage)?;
+        if rebased.has_conflicts() {
+            return Ok(Interdiff::Unavailable {
+                reason: InterdiffUnavailable::ConflictedRebase,
+                message: "the earlier revision does not rebase cleanly onto the later base".into(),
+            });
+        }
+        let rebased = repo
+            .find_tree(rebased.write_tree_to(&repo).map_err(storage)?)
+            .map_err(storage)?;
+        let mut options = diff_options(request.limits, request.whitespace);
+        let diff = repo
+            .diff_tree_to_tree(Some(&rebased), Some(new_commit), Some(&mut options))
+            .map_err(storage)?;
+        Ok(Interdiff::Exact {
+            comparison: comparison_of(
+                &self.profile.repository_id,
+                &repo,
+                diff,
+                (&request.old_commit, &request.new_commit),
+                request.limits,
+            )?,
+        })
+    }
+    // r[impl kiln.review.commit_range]
+    fn revision_commits(
+        &self,
+        base: &str,
+        head: &str,
+        limit: usize,
+    ) -> ReviewResult<RevisionCommits> {
+        self.require(ReviewCapability::Compare)?;
+        let repo = self.repository()?;
+        let base_oid = commit(&repo, base)?.id();
+        let mut cursor = commit(&repo, head)?;
+        let mut commits = Vec::new();
+        let mut incomplete = true;
+        for _ in 0..limit.min(MAX_REVISION_COMMITS) {
+            if cursor.id() == base_oid {
+                incomplete = false;
                 break;
             }
-            let old = delta.old_file();
-            let new = delta.new_file();
-            let old_exists = delta.status() != Delta::Added;
-            let new_exists = delta.status() != Delta::Deleted;
-            let mut file = DiffFile {
-                old_path: if old_exists {
-                    exact_path(old.path_bytes())?
-                } else {
-                    None
-                },
-                new_path: if new_exists {
-                    exact_path(new.path_bytes())?
-                } else {
-                    None
-                },
-                old_blob: if old_exists {
-                    Some(old.id().to_string())
-                } else {
-                    None
-                },
-                new_blob: if new_exists {
-                    Some(new.id().to_string())
-                } else {
-                    None
-                },
-                old_line_count: None,
-                new_line_count: None,
-                renamed: delta.status() == Delta::Renamed,
-                binary: false,
-                truncated: false,
-                hunks: Vec::new(),
+            commits.push(RevisionCommit {
+                commit: cursor.id().to_string(),
+                parents: cursor.parent_ids().map(|p| p.to_string()).collect(),
+                summary: String::from_utf8_lossy(cursor.summary_bytes().unwrap_or_default())
+                    .chars()
+                    .take(MAX_SUMMARY_CHARS)
+                    .collect(),
+                change_id: change_id_header(&cursor),
+            });
+            let Ok(parent) = cursor.parent(0) else {
+                break;
             };
-            let old_facts = if old.mode() == git2::FileMode::Commit {
-                (None, true, false)
-            } else {
-                blob_facts(&repo, old.id(), limits.max_bytes)?
-            };
-            let new_facts = if new.mode() == git2::FileMode::Commit {
-                (None, true, false)
-            } else {
-                blob_facts(&repo, new.id(), limits.max_bytes)?
-            };
-            file.old_line_count = old_facts.0;
-            file.new_line_count = new_facts.0;
-            file.binary = old_facts.1 || new_facts.1;
-            if old_facts.2 || new_facts.2 || remaining_lines == 0 || remaining_bytes == 0 {
-                file.truncated = true;
-            } else if !file.binary {
-                if let Some(patch) = Patch::from_diff(&diff, position).map_err(storage)? {
-                    for h in 0..patch.num_hunks() {
-                        let (header, count) = patch.hunk(h).map_err(storage)?;
-                        let header_bytes = header.header();
-                        if header_bytes.len() > remaining_bytes {
-                            file.truncated = true;
-                            break;
-                        }
-                        remaining_bytes -= header_bytes.len();
-                        let mut hunk = DiffHunk {
-                            old_start: header.old_start(),
-                            old_lines: header.old_lines(),
-                            new_start: header.new_start(),
-                            new_lines: header.new_lines(),
-                            header: String::from_utf8_lossy(header_bytes).into_owned(),
-                            lines: Vec::new(),
-                        };
-                        for l in 0..count {
-                            let line = patch.line_in_hunk(h, l).map_err(storage)?;
-                            if remaining_lines == 0 || line.content().len() > remaining_bytes {
-                                file.truncated = true;
-                                break;
-                            }
-                            remaining_lines -= 1;
-                            remaining_bytes -= line.content().len();
-                            let kind = match line.origin() {
-                                '+' => DiffLineKind::Addition,
-                                '-' => DiffLineKind::Deletion,
-                                ' ' => DiffLineKind::Context,
-                                _ => DiffLineKind::NoNewline,
-                            };
-                            hunk.lines.push(DiffLine {
-                                kind,
-                                old_line: line.old_lineno(),
-                                new_line: line.new_lineno(),
-                                text: String::from_utf8_lossy(line.content()).into_owned(),
-                            });
-                        }
-                        file.hunks.push(hunk);
-                        if file.truncated {
-                            break;
-                        }
-                    }
-                }
-            }
-            result.truncated |= file.truncated;
-            result.files.push(file);
+            cursor = parent;
         }
-        Ok(result)
+        if incomplete && cursor.id() == base_oid {
+            incomplete = false;
+        }
+        commits.reverse();
+        Ok(RevisionCommits {
+            base: base.into(),
+            head: head.into(),
+            commits,
+            incomplete,
+        })
+    }
+    fn blob(&self, id: &str, max_bytes: u32) -> ReviewResult<Option<Vec<u8>>> {
+        self.require(ReviewCapability::Compare)?;
+        let repo = self.repository()?;
+        let blob = repo
+            .find_blob(oid(id)?)
+            .map_err(|e| failure(ReviewErrorKind::NotFound, e.message()))?;
+        if blob.size() > max_bytes as usize {
+            return Ok(None);
+        }
+        Ok(Some(blob.content().to_vec()))
     }
     fn execute(&self, request: &ReviewOperationRequest) -> ReviewResult<ReviewEffect> {
         let repo = self.repository()?;
@@ -770,6 +805,9 @@ impl ChangeReviewPort for LocalGitReviewProvider {
                     expected_target, ..
                 }
                 | ReviewOperation::BuildIntegration {
+                    expected_target, ..
+                }
+                | ReviewOperation::BuildSpeculativeIntegration {
                     expected_target, ..
                 } = &request.operation
                 {
@@ -797,6 +835,9 @@ impl ChangeReviewPort for LocalGitReviewProvider {
         }
         let result = self.derived_commit(&repo, request)?;
         if let ReviewOperation::BuildIntegration {
+            expected_target, ..
+        }
+        | ReviewOperation::BuildSpeculativeIntegration {
             expected_target, ..
         } = &request.operation
         {
@@ -863,6 +904,175 @@ impl ChangeReviewPort for LocalGitReviewProvider {
         self.validate(&repo, request, false)?;
         self.observed(&repo, request)
     }
+}
+
+fn admit_limits(limits: DiffLimits) -> ReviewResult<()> {
+    if limits.max_files == 0
+        || limits.max_files > MAX_FILES
+        || limits.max_lines == 0
+        || limits.max_lines > MAX_LINES
+        || limits.max_bytes == 0
+        || limits.max_bytes > MAX_BYTES
+    {
+        return Err(failure(
+            ReviewErrorKind::InvalidRequest,
+            "diff bounds must be positive and within provider limits",
+        ));
+    }
+    Ok(())
+}
+
+fn diff_options(limits: DiffLimits, whitespace: WhitespaceMode) -> DiffOptions {
+    let mut options = DiffOptions::new();
+    options
+        .context_lines(3)
+        .max_size(i64::from(limits.max_bytes));
+    match whitespace {
+        WhitespaceMode::Exact => {}
+        WhitespaceMode::IgnoreAll => {
+            options.ignore_whitespace(true);
+        }
+        WhitespaceMode::IgnoreChange => {
+            options.ignore_whitespace_change(true);
+        }
+        WhitespaceMode::IgnoreEol => {
+            options.ignore_whitespace_eol(true);
+        }
+    }
+    options
+}
+
+/// A Jujutsu `change-id` commit header admitted by the core validator; any
+/// other value is not a change identity.
+// r[impl kiln.review.interdiff.scenario.narrowed]
+pub fn change_id_header(commit: &git2::Commit<'_>) -> Option<String> {
+    let value = commit.header_field_bytes("change-id").ok()?;
+    let value = std::str::from_utf8(&value).ok()?.trim_end_matches('\n');
+    kiln_core::source::valid_jujutsu_change_id(value).then(|| value.to_owned())
+}
+
+/// Bounded exact rows of `diff`, with exact blob coordinates on both sides.
+fn comparison_of(
+    repository_id: &str,
+    repo: &Repository,
+    mut diff: git2::Diff<'_>,
+    (old_commit, new_commit): (&str, &str),
+    limits: DiffLimits,
+) -> ReviewResult<CommitComparison> {
+    let mut find = DiffFindOptions::new();
+    find.renames(true).rename_limit(MAX_FILES as usize);
+    diff.find_similar(Some(&mut find)).map_err(storage)?;
+    let mut result = CommitComparison {
+        repository_id: repository_id.into(),
+        old_commit: old_commit.into(),
+        new_commit: new_commit.into(),
+        files: Vec::new(),
+        truncated: false,
+    };
+    let mut remaining_lines = limits.max_lines;
+    let mut remaining_bytes = limits.max_bytes as usize;
+    for (position, delta) in diff.deltas().enumerate() {
+        if result.files.len() >= limits.max_files as usize {
+            result.truncated = true;
+            break;
+        }
+        let old = delta.old_file();
+        let new = delta.new_file();
+        let old_exists = delta.status() != Delta::Added;
+        let new_exists = delta.status() != Delta::Deleted;
+        let mut file = DiffFile {
+            old_path: if old_exists {
+                exact_path(old.path_bytes())?
+            } else {
+                None
+            },
+            new_path: if new_exists {
+                exact_path(new.path_bytes())?
+            } else {
+                None
+            },
+            old_blob: if old_exists {
+                Some(old.id().to_string())
+            } else {
+                None
+            },
+            new_blob: if new_exists {
+                Some(new.id().to_string())
+            } else {
+                None
+            },
+            old_line_count: None,
+            new_line_count: None,
+            renamed: delta.status() == Delta::Renamed,
+            binary: false,
+            truncated: false,
+            hunks: Vec::new(),
+        };
+        let old_facts = if old.mode() == git2::FileMode::Commit {
+            (None, true, false)
+        } else {
+            blob_facts(repo, old.id(), limits.max_bytes)?
+        };
+        let new_facts = if new.mode() == git2::FileMode::Commit {
+            (None, true, false)
+        } else {
+            blob_facts(repo, new.id(), limits.max_bytes)?
+        };
+        file.old_line_count = old_facts.0;
+        file.new_line_count = new_facts.0;
+        file.binary = old_facts.1 || new_facts.1;
+        if old_facts.2 || new_facts.2 || remaining_lines == 0 || remaining_bytes == 0 {
+            file.truncated = true;
+        } else if !file.binary {
+            if let Some(patch) = Patch::from_diff(&diff, position).map_err(storage)? {
+                for h in 0..patch.num_hunks() {
+                    let (header, count) = patch.hunk(h).map_err(storage)?;
+                    let header_bytes = header.header();
+                    if header_bytes.len() > remaining_bytes {
+                        file.truncated = true;
+                        break;
+                    }
+                    remaining_bytes -= header_bytes.len();
+                    let mut hunk = DiffHunk {
+                        old_start: header.old_start(),
+                        old_lines: header.old_lines(),
+                        new_start: header.new_start(),
+                        new_lines: header.new_lines(),
+                        header: String::from_utf8_lossy(header_bytes).into_owned(),
+                        lines: Vec::new(),
+                    };
+                    for l in 0..count {
+                        let line = patch.line_in_hunk(h, l).map_err(storage)?;
+                        if remaining_lines == 0 || line.content().len() > remaining_bytes {
+                            file.truncated = true;
+                            break;
+                        }
+                        remaining_lines -= 1;
+                        remaining_bytes -= line.content().len();
+                        let kind = match line.origin() {
+                            '+' => DiffLineKind::Addition,
+                            '-' => DiffLineKind::Deletion,
+                            ' ' => DiffLineKind::Context,
+                            _ => DiffLineKind::NoNewline,
+                        };
+                        hunk.lines.push(DiffLine {
+                            kind,
+                            old_line: line.old_lineno(),
+                            new_line: line.new_lineno(),
+                            text: String::from_utf8_lossy(line.content()).into_owned(),
+                        });
+                    }
+                    file.hunks.push(hunk);
+                    if file.truncated {
+                        break;
+                    }
+                }
+            }
+        }
+        result.truncated |= file.truncated;
+        result.files.push(file);
+    }
+    Ok(result)
 }
 
 fn validate_suggestions(suggestions: &[SuggestionEdit]) -> ReviewResult<()> {

@@ -20,9 +20,13 @@ radicle-cob.workspace = true
 radicle-crypto.workspace = true
 radicle-oid.workspace = true
 hmac = "0.12.1"
+# Calendar schedules: exact pin with only the bundled IANA tzdb (jiff-tzdb
+# 0.1.8, tzdb 2026c); host zoneinfo is never read. See LICENSES.md.
+jiff = { version = "=0.2.35", default-features = false, features = ["std", "tzdb-bundle-always"] }
 kiln-adapter-git.workspace = true
 kiln-adapter-github = { path = "../kiln-adapter-github" }
 kiln-adapter-http-observe.workspace = true
+kiln-adapter-jj.workspace = true
 kiln-adapter-lattice.workspace = true
 kiln-adapter-webhook.workspace = true
 kiln-build-graph.workspace = true
@@ -47,6 +51,11 @@ sha2 = "0.10.9"
 signal-hook = "0.3.18"
 tempfile = "3.27.0"
 zeroize.workspace = true
+
+[features]
+# Change-ID intake tests over fixture repositories built by a real `jj`
+# (KILN_JJ_EXE, else `jj` on PATH).
+jj-fixtures = ["kiln-adapter-jj/jj-fixtures"]
 
 [dev-dependencies]
 parking_lot = "0.12.5"

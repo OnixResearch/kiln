@@ -5,6 +5,7 @@ pub mod accounts;
 pub mod bridge;
 pub mod cache;
 pub mod connections;
+pub mod debug_hold;
 pub mod execution;
 pub mod finance;
 pub mod fleet;

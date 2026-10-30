@@ -540,6 +540,22 @@ pub enum JujutsuBackend {
     Other,
 }
 
+/// Exact length of a full jj change ID as displayed by jj for the Git backend:
+/// 16 bytes in jj's reverse-hex alphabet (`z` for 0 through `k` for 15).
+pub const JUJUTSU_CHANGE_ID_LENGTH: usize = 32;
+const JUJUTSU_ROOT_CHANGE_DIGIT: u8 = b'z';
+
+/// Admit only a full, exact jj change ID. Prefixes, revsets, other alphabets
+/// and the all-`z` root change are refused so a change ID can never select
+/// more than the one change it names.
+// r[impl kiln.review.jj_intake]
+#[must_use]
+pub fn valid_jujutsu_change_id(value: &str) -> bool {
+    value.len() == JUJUTSU_CHANGE_ID_LENGTH
+        && value.bytes().all(|byte| (b'k'..=b'z').contains(&byte))
+        && value.bytes().any(|byte| byte != JUJUTSU_ROOT_CHANGE_DIGIT)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct JujutsuFacts {
     pub backend: JujutsuBackend,
@@ -549,6 +565,15 @@ pub struct JujutsuFacts {
     pub resolved_commits: Vec<ExternalRef>,
     pub conflicted_bookmark: bool,
     pub divergent_change: bool,
+    /// The resolved commit itself records unresolved jj conflicts. Omitted when
+    /// false so facts serialized before this field keep identical bytes.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub conflicted_commit: bool,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -635,6 +660,14 @@ pub fn admit_jujutsu_facts(facts: &JujutsuFacts) -> CoreResult<&ExternalRef> {
             "divergent_change",
             "jujutsu.change_id",
             "Jujutsu change is divergent",
+        ));
+    }
+    // r[impl kiln.review.jj_intake.admission]
+    if facts.conflicted_commit {
+        return Err(Diagnostic::new(
+            "conflicted_commit",
+            "jujutsu.resolved_commits",
+            "Jujutsu commit has unresolved conflicts",
         ));
     }
     if facts.resolved_commits.len() != 1 {
@@ -751,6 +784,7 @@ mod tests {
                 resolved_commits: alloc::vec![commit],
                 conflicted_bookmark: false,
                 divergent_change: false,
+                conflicted_commit: false,
             }),
         };
         assert_eq!(validate_resolution(&resolution), Ok(()));
@@ -1094,7 +1128,52 @@ mod tests {
             resolved_commits: alloc::vec![first.clone(), second],
             conflicted_bookmark: false,
             divergent_change: true,
+            conflicted_commit: false,
         };
         assert!(validate_jujutsu(&facts, &first).is_err());
+    }
+
+    // r[verify kiln.review.jj_intake]
+    #[test]
+    fn jujutsu_change_id_admits_only_full_exact_ids() {
+        assert!(valid_jujutsu_change_id("wnloytsvxwxwxtpqyuwxutmotlmslszv"));
+        for rejected in [
+            "",
+            "wnloytsv",
+            "wnloytsvxwxwxtpqyuwxutmotlmslszvk",
+            "WNLOYTSVXWXWXTPQYUWXUTMOTLMSLSZV",
+            "wnloytsvxwxwxtpqyuwxutmotlmslsza",
+            "change_id(wnloytsvxwxwxtpqyuwxut)",
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+        ] {
+            assert!(!valid_jujutsu_change_id(rejected), "{rejected}");
+        }
+    }
+
+    // r[verify kiln.review.jj_intake.admission]
+    #[test]
+    fn conflicted_commit_is_refused_and_omitted_when_false() {
+        let commit = external("jj", "commit", "a");
+        let mut facts = JujutsuFacts {
+            backend: JujutsuBackend::Git,
+            operation_identity: external("jj", "operation", "op"),
+            change_id: external("jj", "change", "change"),
+            bookmark: None,
+            resolved_commits: alloc::vec![commit.clone()],
+            conflicted_bookmark: false,
+            divergent_change: false,
+            conflicted_commit: false,
+        };
+        assert_eq!(admit_jujutsu_facts(&facts), Ok(&commit));
+        let encoded = serde_json::to_string(&facts).unwrap_or_default();
+        assert!(!encoded.contains("conflicted_commit"));
+        let decoded: JujutsuFacts =
+            serde_json::from_str(&encoded).unwrap_or_else(|_| unreachable!());
+        assert_eq!(decoded, facts);
+        facts.conflicted_commit = true;
+        assert_eq!(
+            admit_jujutsu_facts(&facts).map_err(|error| error.code),
+            Err("conflicted_commit".into())
+        );
     }
 }

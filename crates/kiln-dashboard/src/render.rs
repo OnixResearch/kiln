@@ -379,6 +379,8 @@ fn render_events(out: &mut String, painter: &Painter, report: &DashboardReport) 
 
 /// The fixed statement attached to every rendered authorship class.
 pub(crate) const AUTHORSHIP_BASIS_TEXT: &str = "authorship is self-declared and unverified";
+/// The fixed statement attached to every rendered advisory approval count.
+pub(crate) const ADVISORY_NON_BINDING_TEXT: &str = "non-binding; never counted as approvals";
 
 /// Operator label of one self-declared authorship class.
 pub(crate) fn authorship_label(class: AuthorshipClass) -> &'static str {
@@ -464,6 +466,15 @@ fn render_review_friction(out: &mut String, painter: &Painter, review: &ReviewVi
                 class.suggestions_per_change.total,
                 distribution_value(class.suggestions_per_change.median),
                 distribution_value(class.suggestions_per_change.max)
+            ),
+        );
+        // r[impl kiln.observe.review.advisory]
+        push_pair(
+            out,
+            "  advisory",
+            &format!(
+                "approvals {}   changes {}   ({ADVISORY_NON_BINDING_TEXT})",
+                class.advisory_approvals, class.advised_changes
             ),
         );
     }

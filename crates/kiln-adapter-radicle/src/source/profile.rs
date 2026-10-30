@@ -138,6 +138,9 @@ pub struct RadicleSourceSelection {
     pub signed_reference: String,
     pub profile_id: String,
     pub limits: SnapshotLimits,
+    /// Canonical delegate-quorum mode; absent keeps single-signer admission.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canonical: Option<kiln_radicle_source_contract::CanonicalRequest>,
 }
 
 // r[impl kiln.radicle_ci.source]
@@ -154,6 +157,7 @@ impl RadicleSourceSelection {
                 expected_sigrefs_commit: sigrefs,
                 expected_revision: revision,
                 limits: self.limits.clone(),
+                canonical: self.canonical.clone(),
             },
         )
     }

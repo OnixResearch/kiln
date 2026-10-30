@@ -214,6 +214,19 @@ pub fn inputs(projects: &[&ProjectProfile]) -> Result<Vec<ProjectInput>, String>
         .collect()
 }
 
+/// Exact changed paths between two commits of the repository at
+/// `repository_path`; an unreadable repository is a `read_error` fallback.
+pub fn changed_files_at(
+    repository_path: &Path,
+    base: Option<&str>,
+    candidate: &str,
+) -> ChangedFiles {
+    match git2::Repository::open(repository_path) {
+        Ok(repository) => changed_files(&repository, base, candidate, CHANGED_BOUNDS),
+        Err(_) => ChangedFiles::Fallback(ChangedFallback::ReadError),
+    }
+}
+
 // r[impl kiln.monorepo.dispatch]
 /// One affected set for (repository, base, candidate, scope configuration).
 /// Unreadable repositories never skip: facts fall back and every scoped
@@ -224,19 +237,40 @@ pub fn evaluate(
     base: Option<&str>,
     candidate: &str,
 ) -> Result<Evaluation, String> {
+    let repository = git2::Repository::open(repository_path).ok();
+    let changed = match &repository {
+        Some(repository) => changed_files(repository, base, candidate, CHANGED_BOUNDS),
+        None => ChangedFiles::Fallback(ChangedFallback::ReadError),
+    };
+    evaluate_with(repository.as_ref(), projects, &changed, candidate)
+}
+
+/// [`evaluate`] over changed files the caller already computed, so trigger
+/// path filters and project scopes share one diff.
+pub fn evaluate_changed(
+    repository_path: &Path,
+    projects: &[&ProjectProfile],
+    changed: &ChangedFiles,
+    candidate: &str,
+) -> Result<Evaluation, String> {
+    let repository = git2::Repository::open(repository_path).ok();
+    evaluate_with(repository.as_ref(), projects, changed, candidate)
+}
+
+fn evaluate_with(
+    repository: Option<&git2::Repository>,
+    projects: &[&ProjectProfile],
+    changed: &ChangedFiles,
+    candidate: &str,
+) -> Result<Evaluation, String> {
     let inputs = inputs(projects)?;
     let kinds: BTreeSet<GraphKind> = inputs
         .iter()
         .filter_map(|input| input.scope.as_ref())
         .flat_map(|scope| scope.graphs().iter().copied())
         .collect();
-    let repository = git2::Repository::open(repository_path).ok();
-    let changed = match &repository {
-        Some(repository) => changed_files(repository, base, candidate, CHANGED_BOUNDS),
-        None => ChangedFiles::Fallback(ChangedFallback::ReadError),
-    };
-    let graphs = graph_facts(repository.as_ref(), candidate, &kinds);
-    let set = kiln_core::monorepo::affected(&inputs, &changed, &graphs);
+    let graphs = graph_facts(repository, candidate, &kinds);
+    let set = kiln_core::monorepo::affected(&inputs, changed, &graphs);
     Ok(Evaluation {
         changed: changed.summary(),
         set,

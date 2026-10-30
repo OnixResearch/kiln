@@ -49,9 +49,25 @@ pub struct CiFact {
     /// The run reached a terminal outcome; `false` means still pending.
     #[serde(default = "terminal_default")]
     pub terminal: bool,
+    /// Untrusted pull-request run gate projection; absent for trusted runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub untrusted: Option<crate::untrusted::UntrustedSummary>,
 }
 fn terminal_default() -> bool {
     true
+}
+impl CiFact {
+    // r[impl kiln.untrusted.review]
+    /// A successful run satisfies required CI; an untrusted one only for its
+    /// exact approved commit and only when its reviewed policy says so.
+    pub fn satisfies_required(&self) -> bool {
+        self.success
+            && self.untrusted.as_ref().is_none_or(|untrusted| {
+                untrusted.counts_for_required_ci
+                    && untrusted.approved_commit.as_deref() == Some(self.revision.as_str())
+                    && untrusted.source_commit == self.revision
+            })
+    }
 }
 /// Required CI for one affected project of the review repository, computed by
 /// the shell from the monorepo affected decision for the revision.
@@ -103,6 +119,9 @@ pub struct Anchor {
 }
 /// Named byte bound for a declared agent harness or model.
 pub const MAX_AUTHORSHIP_TEXT_BYTES: usize = 128;
+/// Named bound on advisory approvals of one revision; matches the shell's
+/// read-principal bound, so every reader can advise once.
+pub const MAX_ADVISORY_PER_REVISION: usize = 128;
 
 /// Self-declared authorship of one patch set. Kiln never infers or verifies it;
 /// `Undeclared` is the default and older journals replay as `Undeclared`.
@@ -273,6 +292,25 @@ pub struct ReviewedFile {
     pub revision: String,
     pub file: String,
 }
+/// Private, principal-owned viewed preference for one normalized hunk of an
+/// exact revision. The shell computes `hunk_digest` (BLAKE3 over path, removed
+/// and added lines, no line numbers); it never counts as approval.
+// r[impl kiln.review.hunks]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewedHunk {
+    pub actor: String,
+    pub revision: String,
+    pub file: String,
+    pub hunk_digest: String,
+}
+/// Trusted shell fact: one normalized hunk of a revision's exact base comparison.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HunkFact {
+    pub file: String,
+    pub digest: String,
+}
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Dependency {
@@ -322,6 +360,16 @@ pub struct MaintenanceOutcome {
     pub actor: String,
     pub created_ms: i64,
 }
+/// Non-binding "looks good to me" bound to one exact revision. Kept apart from
+/// `Change.votes` so no vote admission or checklist filter can ever count it.
+// r[impl kiln.review.advisory]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdvisoryApproval {
+    pub actor: String,
+    pub revision: String,
+    pub created_ms: i64,
+}
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Change {
     pub id: String,
@@ -338,11 +386,21 @@ pub struct Change {
     pub votes: Vec<Vote>,
     pub threads: Vec<Thread>,
     pub reviewed: Vec<ReviewedFile>,
+    /// Omitted when empty so documents written before hunk markers keep identical bytes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reviewed_hunks: Vec<ReviewedHunk>,
+    /// Each principal's latest revision with a positive viewed mark (private).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub last_viewed: BTreeMap<String, String>,
     pub attention: BTreeSet<String>,
     pub dependencies: Vec<Dependency>,
     pub candidate: Option<Candidate>,
     pub submission: Option<SubmitOutcome>,
     pub maintenance: Vec<MaintenanceOutcome>,
+    /// Advisory approvals, current and historical; omitted when empty so
+    /// documents written before advisory approvals keep identical bytes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub advisory: Vec<AdvisoryApproval>,
 }
 impl Change {
     pub fn current(&self) -> ReviewResult<&Revision> {
@@ -366,6 +424,10 @@ pub struct SearchQuery {
     pub kind: SearchKind,
     pub text: String,
     pub status: Option<ChangeStatus>,
+    /// `Some(true)`: at least one current-revision advisory approval;
+    /// `Some(false)`: none. Omitted when unset so saved views keep their bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub advisory: Option<bool>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -409,7 +471,16 @@ pub struct Policy {
     pub require_ci: bool,
     #[serde(default)]
     pub ownership: OwnershipPolicy,
+    /// Required checks that may be absent when every exactly known changed
+    /// file lies in the declared paths (a pipeline filtered by `paths`).
+    /// Without a rule a filtered required check leaves CI unmet.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub optional_ci: Vec<OptionalCi>,
 }
+
+#[path = "change_review_optional_ci.rs"]
+mod optional_ci;
+pub use optional_ci::{MAX_OPTIONAL_CI_PATTERNS, MAX_OPTIONAL_CI_RULES, OptionalCi};
 
 /// All matching rules apply cumulatively; each needs one expanded owner approval.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -484,6 +555,10 @@ pub struct Facts {
     /// project; an empty list means every project was skipped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ci_required: Option<Vec<CiRequirement>>,
+    /// Every normalized hunk of the current (or uploaded) revision's exact base
+    /// comparison. `None` means the shell did not observe them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hunks: Option<Vec<HunkFact>>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ChecklistItem {
@@ -590,6 +665,14 @@ pub enum Command {
         file: String,
         reviewed: bool,
     },
+    /// Toggle one normalized hunk; the digest must be a current shell fact.
+    MarkHunk {
+        change: String,
+        expected_revision: String,
+        file: String,
+        hunk_digest: String,
+        reviewed: bool,
+    },
     SetAttention {
         change: String,
         expected_revision: String,
@@ -628,6 +711,16 @@ pub enum Command {
         expected_revision: String,
         outcome: MaintenanceOutcome,
     },
+    /// Non-binding approval of the exact current revision; never a vote.
+    AdvisoryApprove {
+        change: String,
+        expected_revision: String,
+    },
+    /// Withdraw the actor's advisory approval of the exact current revision.
+    AdvisoryWithdraw {
+        change: String,
+        expected_revision: String,
+    },
 }
 
 pub fn project<'a>(state: &'a ReviewState, actor: &str) -> Projection<'a> {
@@ -659,6 +752,86 @@ pub fn reviewed<'a>(change: &'a Change, actor: &'a str) -> impl Iterator<Item = 
         .filter(move |marker| marker.actor == actor)
 }
 
+/// Actor-owned hunk preferences, filtered like [`reviewed`].
+pub fn reviewed_hunks<'a>(
+    change: &'a Change,
+    actor: &'a str,
+) -> impl Iterator<Item = &'a ReviewedHunk> {
+    change
+        .reviewed_hunks
+        .iter()
+        .filter(move |marker| marker.actor == actor)
+}
+
+/// Whether `actor` viewed the hunk `(file, digest)` on `revision`: an exact hunk
+/// marker, or a legacy file marker, which keeps its meaning on its own revision.
+#[must_use]
+pub fn hunk_viewed(change: &Change, actor: &str, revision: &str, file: &str, digest: &str) -> bool {
+    change
+        .reviewed
+        .iter()
+        .any(|marker| marker.actor == actor && marker.revision == revision && marker.file == file)
+        || change.reviewed_hunks.iter().any(|marker| {
+            marker.actor == actor
+                && marker.revision == revision
+                && marker.file == file
+                && marker.hunk_digest == digest
+        })
+}
+
+fn file_hunks_of<'a>(facts: &'a Facts, file: &'a str) -> impl Iterator<Item = String> + 'a {
+    facts
+        .hunks
+        .iter()
+        .flatten()
+        .filter(move |hunk| hunk.file == file)
+        .map(|hunk| hunk.digest.clone())
+}
+
+/// Digests of `file` in the current revision; fails closed without hunk facts.
+fn file_hunks(change: &Change, file: &str, facts: &Facts) -> ReviewResult<BTreeSet<String>> {
+    if !change.current()?.files.iter().any(|path| path == file) {
+        return fail("invalid_file", "file is not in the current revision");
+    }
+    if facts.hunks.is_none() {
+        return fail(
+            "hunks_unavailable",
+            "current revision hunks were not observed",
+        );
+    }
+    let digests: BTreeSet<String> = file_hunks_of(facts, file).collect();
+    if digests.is_empty() {
+        return fail("invalid_file", "file has no observed hunks");
+    }
+    Ok(digests)
+}
+
+// r[impl kiln.review.hunks.scenario.carry_forward]
+/// Rebind to `next` exactly the markers on `previous` whose normalized hunk is
+/// present unchanged in the uploaded revision; drop every other hunk marker.
+fn carry_forward(change: &mut Change, previous: &str, next: &str, facts: &Facts) {
+    let present: BTreeSet<&HunkFact> = facts.hunks.iter().flatten().collect();
+    let mut carried: Vec<ReviewedHunk> = Vec::new();
+    for marker in core::mem::take(&mut change.reviewed_hunks) {
+        let fact = HunkFact {
+            file: marker.file,
+            digest: marker.hunk_digest,
+        };
+        if marker.revision == previous && present.contains(&fact) {
+            let moved = ReviewedHunk {
+                actor: marker.actor,
+                revision: next.into(),
+                file: fact.file,
+                hunk_digest: fact.digest,
+            };
+            if !carried.contains(&moved) {
+                carried.push(moved);
+            }
+        }
+    }
+    change.reviewed_hunks = carried;
+}
+
 pub fn search<'a>(state: &'a ReviewState, actor: &str, query: &SearchQuery) -> Vec<&'a Change> {
     let text = query.text.to_lowercase();
     state
@@ -669,6 +842,12 @@ pub fn search<'a>(state: &'a ReviewState, actor: &str, query: &SearchQuery) -> V
                 return false;
             };
             if query.status.is_some_and(|status| status != change.state) {
+                return false;
+            }
+            if query
+                .advisory
+                .is_some_and(|wanted| wanted != current_advisory(change).next().is_some())
+            {
                 return false;
             }
             if !text.is_empty()
@@ -809,6 +988,7 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
             );
         }
     }
+    optional_ci::validate(policy)?;
     Ok(())
 }
 
@@ -1001,6 +1181,77 @@ fn voter(change: &Change, actor: &str, facts: &Facts) -> ReviewResult<()> {
             "ineligible_vote",
             "votes require an eligible requested non-author reviewer",
         );
+    }
+    Ok(())
+}
+/// Advisory approvals of the change's current revision.
+pub fn current_advisory(change: &Change) -> impl Iterator<Item = &AdvisoryApproval> {
+    let current = change.revisions.last().map(|revision| revision.id.as_str());
+    change
+        .advisory
+        .iter()
+        .filter(move |advice| Some(advice.revision.as_str()) == current)
+}
+/// The owner and every revision author may not advise on their own change.
+// r[impl kiln.review.advisory.scenario.forbidden]
+fn advisory_admissible(change: &Change, actor: &str) -> ReviewResult<()> {
+    open(change)?;
+    if actor == change.owner
+        || change
+            .revisions
+            .iter()
+            .any(|revision| revision.author == actor)
+    {
+        return fail(
+            "advisory_forbidden",
+            "owners and authors may not advise on their own change",
+        );
+    }
+    Ok(())
+}
+/// Record or withdraw one advisory approval of the exact current revision.
+/// Touches no vote, attention, candidate, reviewer or inbox state, so no
+/// checklist item, candidate or delivery recipient can change.
+// r[impl kiln.review.advisory.authority]
+fn advise(
+    state: &mut ReviewState,
+    actor: &str,
+    change_id: &str,
+    expected_revision: &str,
+    approve: bool,
+    facts: &Facts,
+) -> ReviewResult<()> {
+    let current = get(state, change_id, expected_revision)?;
+    advisory_admissible(current, actor)?;
+    let held = current_advisory(current).any(|advice| advice.actor == actor);
+    if !approve && !held {
+        return fail(
+            "advisory_missing",
+            "no advisory approval of the current revision to withdraw",
+        );
+    }
+    if approve && !held && current_advisory(current).count() >= MAX_ADVISORY_PER_REVISION {
+        return fail(
+            "advisory_bound",
+            "advisory approvals of this revision exceed their named bound",
+        );
+    }
+    let change = state
+        .changes
+        .get_mut(change_id)
+        .ok_or_else(|| ReviewError {
+            code: "invalid_state".into(),
+            message: "validated change".into(),
+        })?;
+    change
+        .advisory
+        .retain(|advice| advice.actor != actor || advice.revision != expected_revision);
+    if approve {
+        change.advisory.push(AdvisoryApproval {
+            actor: actor.into(),
+            revision: expected_revision.into(),
+            created_ms: facts.now_ms,
+        });
     }
     Ok(())
 }
@@ -1229,7 +1480,12 @@ fn checklist_at(
     let (latest, required_ok) = match &facts.ci_required {
         None => {
             let latest = latest_for(&change.project, None);
-            (latest, latest.is_some_and(|ci| ci.success))
+            (
+                latest,
+                latest.is_some_and(CiFact::satisfies_required)
+                    || (latest.is_none()
+                        && optional_ci::waived(policy, &change.project, change, revision, facts)),
+            )
         }
         Some(required) => {
             let mut all = true;
@@ -1240,7 +1496,16 @@ fn checklist_at(
                     &requirement.project,
                     Some(requirement.scope_identity.as_deref()),
                 );
-                all &= latest.is_some_and(|ci| ci.success);
+                // r[impl kiln.triggers.required]
+                all &= latest.is_some_and(CiFact::satisfies_required)
+                    || (latest.is_none()
+                        && optional_ci::waived(
+                            policy,
+                            &requirement.project,
+                            change,
+                            revision,
+                            facts,
+                        ));
                 first = first.or(latest);
                 if requirement.project == change.project {
                     primary = latest;
@@ -1458,11 +1723,14 @@ pub fn apply(
                 votes: Vec::new(),
                 threads: Vec::new(),
                 reviewed: Vec::new(),
+                reviewed_hunks: Vec::new(),
+                last_viewed: BTreeMap::new(),
                 attention: BTreeSet::new(),
                 dependencies: Vec::new(),
                 candidate: None,
                 submission: None,
                 maintenance: Vec::new(),
+                advisory: Vec::new(),
             };
             revision_valid(state, &change, &revision, actor, facts)?;
             let reviewers = automatic_reviewers(&change, &revision, facts)?;
@@ -1499,13 +1767,16 @@ pub fn apply(
                 code: "invalid_state".into(),
                 message: "validated change".into(),
             })?;
+            let new_revision = revision.id.clone();
             current.revisions.push(revision);
             current.reviewers.extend(
                 reviewers
                     .into_iter()
                     .map(|actor| (actor, ReviewerRole::Reviewer)),
             );
+            // Legacy file markers keep their meaning on their own revision only.
             current.reviewed.clear();
+            carry_forward(current, &expected_revision, &new_revision, facts);
             current.candidate = None;
             current.attention = current
                 .reviewers
@@ -1934,6 +2205,8 @@ pub fn apply(
             handoff_attention(current, actor);
             notification = Some((change, "review_published"));
         }
+        // r[impl kiln.review.hunks]
+        // File-level "mark all": writes or removes a marker for every hunk fact of the file.
         Command::MarkReviewed {
             change,
             expected_revision,
@@ -1941,9 +2214,7 @@ pub fn apply(
             reviewed,
         } => {
             let current = get(state, &change, &expected_revision)?;
-            if !current.current()?.files.contains(&file) {
-                return fail("invalid_file", "file is not in the current revision");
-            }
+            let digests = file_hunks(current, &file, facts)?;
             let current = state.changes.get_mut(&change).ok_or_else(|| ReviewError {
                 code: "invalid_state".into(),
                 message: "validated change".into(),
@@ -1953,12 +2224,68 @@ pub fn apply(
                     && marker.revision == expected_revision
                     && marker.file == file)
             });
+            current.reviewed_hunks.retain(|marker| {
+                !(marker.actor == actor
+                    && marker.revision == expected_revision
+                    && marker.file == file)
+            });
             if reviewed {
-                current.reviewed.push(ReviewedFile {
+                for hunk_digest in digests {
+                    current.reviewed_hunks.push(ReviewedHunk {
+                        actor: actor.into(),
+                        revision: expected_revision.clone(),
+                        file: file.clone(),
+                        hunk_digest,
+                    });
+                }
+                current.last_viewed.insert(actor.into(), expected_revision);
+            }
+            notification = None;
+        }
+        Command::MarkHunk {
+            change,
+            expected_revision,
+            file,
+            hunk_digest,
+            reviewed,
+        } => {
+            let current = get(state, &change, &expected_revision)?;
+            if !file_hunks(current, &file, facts)?.contains(&hunk_digest) {
+                return fail("invalid_hunk", "hunk is not in the current revision");
+            }
+            let current = state.changes.get_mut(&change).ok_or_else(|| ReviewError {
+                code: "invalid_state".into(),
+                message: "validated change".into(),
+            })?;
+            let legacy = current.reviewed.iter().position(|marker| {
+                marker.actor == actor && marker.revision == expected_revision && marker.file == file
+            });
+            if let Some(index) = legacy {
+                // Unmarking one hunk of a legacy whole-file marker keeps the others viewed.
+                current.reviewed.remove(index);
+                for other in file_hunks_of(facts, &file) {
+                    current.reviewed_hunks.push(ReviewedHunk {
+                        actor: actor.into(),
+                        revision: expected_revision.clone(),
+                        file: file.clone(),
+                        hunk_digest: other,
+                    });
+                }
+            }
+            current.reviewed_hunks.retain(|marker| {
+                !(marker.actor == actor
+                    && marker.revision == expected_revision
+                    && marker.file == file
+                    && marker.hunk_digest == hunk_digest)
+            });
+            if reviewed {
+                current.reviewed_hunks.push(ReviewedHunk {
                     actor: actor.into(),
-                    revision: expected_revision,
+                    revision: expected_revision.clone(),
                     file,
+                    hunk_digest,
                 });
+                current.last_viewed.insert(actor.into(), expected_revision);
             }
             notification = None;
         }
@@ -2282,6 +2609,20 @@ pub fn apply(
                 .push(outcome);
             notification = Some((change, "maintenance_registered"));
         }
+        Command::AdvisoryApprove {
+            change,
+            expected_revision,
+        } => {
+            advise(state, actor, &change, &expected_revision, true, facts)?;
+            notification = None;
+        }
+        Command::AdvisoryWithdraw {
+            change,
+            expected_revision,
+        } => {
+            advise(state, actor, &change, &expected_revision, false, facts)?;
+            notification = None;
+        }
     }
     state.used_ids.insert(facts.event_id.clone());
     if let Some((change, kind)) = notification {
@@ -2289,6 +2630,14 @@ pub fn apply(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "change_review_hunks_tests.rs"]
+mod hunks_tests;
+
+#[cfg(test)]
+#[path = "change_review_advisory_tests.rs"]
+mod advisory_tests;
 
 #[cfg(test)]
 mod tests {
@@ -2324,6 +2673,7 @@ mod tests {
                 minimum_approvals: 1,
                 require_ci: true,
                 ownership: OwnershipPolicy::default(),
+                optional_ci: Vec::new(),
             }),
             source: Some(SourceFact {
                 project: "project".into(),
@@ -2349,6 +2699,7 @@ mod tests {
                 clean: true,
                 scope_identity: None,
                 terminal: true,
+                untrusted: None,
             }],
             anchors: vec![Anchor {
                 revision: "c-r1".into(),
@@ -2360,6 +2711,7 @@ mod tests {
             }],
             integration: None,
             ci_required: None,
+            hunks: None,
         }
     }
     fn send(
@@ -2990,6 +3342,59 @@ mod tests {
         Ok(())
     }
 
+    // r[verify kiln.untrusted.review]
+    // r[verify kiln.untrusted.review.scenario.checklist]
+    #[test]
+    fn untrusted_approval_never_flips_checklist_items_and_counts_only_by_policy() -> ReviewResult<()>
+    {
+        let (state, mut facts) = setup()?;
+        let met = |facts: &Facts, key: &str| -> ReviewResult<bool> {
+            Ok(checklist(&state, "c", facts)?
+                .items
+                .iter()
+                .find(|item| item.key == key)
+                .required()?
+                .satisfied)
+        };
+        let commit = facts.ci.first().required()?.revision.clone();
+        let trusted_ci = met(&facts, "ci")?;
+        assert!(trusted_ci, "trusted exact success satisfies CI");
+        assert!(!met(&facts, "approvals")?);
+        let summary = |counts: bool, approved: Option<&str>| crate::untrusted::UntrustedSummary {
+            state: if approved.is_some() {
+                crate::untrusted::UntrustedState::Approved
+            } else {
+                crate::untrusted::UntrustedState::AwaitingApproval
+            },
+            reason: crate::untrusted::UntrustedReason::Fork,
+            pull_request: 7,
+            head_repository: "outside/source".into(),
+            source_commit: commit.clone(),
+            approved_by: approved.map(|_| "Operator".into()),
+            approved_by_id: approved.map(|_| "operator".into()),
+            approved_commit: approved.map(Into::into),
+            approved_at_ms: approved.map(|_| 1),
+            counts_for_required_ci: counts,
+            superseded_by: None,
+        };
+        // Approved, successful, exact commit, but policy does not count it.
+        facts.ci.first_mut().required()?.untrusted = Some(summary(false, Some(&commit)));
+        assert!(!met(&facts, "ci")?);
+        assert!(!met(&facts, "approvals")?);
+        assert!(!checklist(&state, "c", &facts)?.ready);
+        // A projection claiming to count without an exact approval never does.
+        facts.ci.first_mut().required()?.untrusted = Some(summary(true, None));
+        assert!(!met(&facts, "ci")?);
+        facts.ci.first_mut().required()?.untrusted = Some(summary(true, Some("other-commit")));
+        assert!(!met(&facts, "ci")?);
+        // Policy counts the exact approved commit: CI only; approvals stay unmet.
+        facts.ci.first_mut().required()?.untrusted = Some(summary(true, Some(&commit)));
+        assert!(met(&facts, "ci")?);
+        assert!(!met(&facts, "approvals")?);
+        assert!(!checklist(&state, "c", &facts)?.ready);
+        Ok(())
+    }
+
     #[test]
     fn overlapping_ownership_rules_each_require_their_owner() -> ReviewResult<()> {
         let mut facts = owned_facts()?;
@@ -3013,6 +3418,10 @@ mod tests {
     #[test]
     fn immutable_upload_invalidates_current_approvals_and_actor_file_markers() -> ReviewResult<()> {
         let (mut state, mut facts) = setup()?;
+        facts.hunks = Some(vec![HunkFact {
+            file: "src/lib.rs".into(),
+            digest: "hunk-1".into(),
+        }]);
         vote(&mut state, &mut facts, "bob", VoteValue::Approve).required()?;
         send(
             &mut state,
@@ -3027,14 +3436,20 @@ mod tests {
         )
         .required()?;
         assert_eq!(
-            reviewed(state.changes.get("c").required()?, "bob")
+            reviewed_hunks(state.changes.get("c").required()?, "bob")
                 .next()
                 .required()?
                 .revision,
             "c-r1"
         );
         assert!(
-            reviewed(state.changes.get("c").required()?, "alice")
+            reviewed(state.changes.get("c").required()?, "bob")
+                .next()
+                .is_none()
+        );
+        facts.hunks = None;
+        assert!(
+            reviewed_hunks(state.changes.get("c").required()?, "alice")
                 .next()
                 .is_none()
         );
@@ -3066,6 +3481,7 @@ mod tests {
         assert_eq!(state.changes.get("c").required()?.revisions.len(), 2);
         assert!(state.changes.get("c").required()?.candidate.is_none());
         assert!(state.changes.get("c").required()?.reviewed.is_empty());
+        assert!(state.changes.get("c").required()?.reviewed_hunks.is_empty());
         assert!(!checklist(&state, "c", &facts).required()?.ready);
         let before = state.clone();
         assert_eq!(
@@ -3129,7 +3545,8 @@ mod tests {
                 &SearchQuery {
                     kind: SearchKind::OwnedNeedsRevision,
                     text: String::new(),
-                    status: None
+                    status: None,
+                    advisory: None,
                 }
             )
             .first()
@@ -3663,6 +4080,7 @@ mod tests {
                 kind: SearchKind::AwaitingReview,
                 text: "review".into(),
                 status: Some(ChangeStatus::Open),
+                advisory: None,
             },
         };
         send(

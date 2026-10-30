@@ -766,6 +766,26 @@
               touch "$out"
             '';
           };
+          # r[impl kiln.radicle.canonical.provenance] r[impl kiln.radicle.canonical.rail]
+          # r[verify kiln.radicle.canonical.rail.scenario.tests]
+          # r[verify kiln.radicle.canonical.provenance.scenario.refresh]
+          # Vendored heartwood canonical computation: its own workspace, exact
+          # upstream files plus documented shims, and its own lock file.
+          heartwood-canonical = rustPlatform.buildRustPackage {
+            pname = "heartwood-canonical";
+            version = "0.1.0";
+            src = ./vendor/heartwood-canonical;
+            cargoLock.lockFile = ./vendor/heartwood-canonical/Cargo.lock;
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+            ];
+            buildInputs = [
+              pkgs.zlib
+              pkgs.openssl
+            ];
+            doCheck = true;
+          };
           github-protocol-fixtures = rustPlatform.buildRustPackage {
             pname = "kiln-github-protocol-fixtures";
             version = "0.1.0";
@@ -836,6 +856,63 @@
               pkgs.runCommand "kiln-pijul-native-fixtures-unsupported" { } ''
                 touch "$out"
               '';
+          # Change-ID intake over fixture repositories built by the pinned jj.
+          # r[verify kiln.review.jj_intake.read_only]
+          jj-native-fixtures = rustPlatform.buildRustPackage {
+            pname = "kiln-jj-native-fixtures";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+            ];
+            buildInputs = [
+              pkgs.zlib
+              pkgs.openssl
+            ];
+            buildPhase = ''
+              runHook preBuild
+              export KILN_JJ_EXE=${pkgs.jujutsu}/bin/jj
+              cargo test -p kiln-adapter-jj --features jj-fixtures --offline
+              cargo test -p kiln-web-service --features jj-fixtures --lib jj_intake --offline
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
+          # Exact Git acquisition (SHA-1 and SHA-256) and the loopback spindle flow.
+          # r[verify kiln.tangled.source]
+          tangled-git-fixtures = rustPlatform.buildRustPackage {
+            pname = "kiln-tangled-git-fixtures";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+            ];
+            buildInputs = [
+              pkgs.zlib
+              pkgs.openssl
+            ];
+            buildPhase = ''
+              runHook preBuild
+              export KILN_GIT_EXE=${pkgs.git}/bin/git
+              cargo test -p kiln-adapter-tangled --features git-fixtures --offline
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
           pijul-cohort =
             if pijulSupported then
               pkgs.runCommand "kiln-pijul-cohort"
@@ -1184,7 +1261,9 @@
               nickel typecheck "$profile"
             done
             nickel export config/hosted-pipeline-example.ncl >/dev/null
+            nickel export config/fixtures/hosted-pipeline-triggers-positive.ncl >/dev/null
             nickel export config/fixtures/hosted-service-positive.ncl >/dev/null
+            nickel export config/fixtures/hosted-service-untrusted-positive.ncl >/dev/null
             nickel export config/fixtures/hosted-client-positive.ncl >/dev/null
             nickel typecheck config/web-service.ncl
             nickel typecheck config/web-worker.ncl
@@ -1205,6 +1284,7 @@
             nickel typecheck config/web-cobs.ncl
             nickel export config/fixtures/web-access-positive.ncl >/dev/null
             nickel export config/fixtures/web-automation-positive.ncl >/dev/null
+            nickel export config/fixtures/web-automation-untrusted-positive.ncl >/dev/null
             nickel export config/fixtures/web-cobs-positive.ncl >/dev/null
             nickel typecheck config/web-work.ncl
             nickel export config/fixtures/web-work-positive.ncl >/dev/null
@@ -1216,6 +1296,9 @@
             done
             nickel typecheck config/web-code-review.ncl
             nickel export config/fixtures/web-code-review-positive.ncl >/dev/null
+            nickel export config/fixtures/web-code-review-jujutsu-positive.ncl >/dev/null
+            nickel export config/fixtures/web-code-review-speculative-positive.ncl >/dev/null
+            nickel export config/fixtures/web-code-review-noise-positive.ncl >/dev/null
             for fixture in config/fixtures/negative-web-code-review-*.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then
                 echo "negative code review fixture passed: $fixture" >&2
@@ -1241,6 +1324,7 @@
             done
             nickel export config/fixtures/web-service-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-monorepo-positive.ncl >/dev/null
+            nickel export config/fixtures/web-service-untrusted-positive.ncl >/dev/null
             for fixture in config/fixtures/negative-web-service-*.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then
                 echo "negative web service fixture passed: $fixture" >&2
@@ -1282,6 +1366,17 @@
             nickel typecheck config/github-job.ncl
             nickel export --format json fixtures/github/service-profile.ncl >/dev/null
             nickel export --format json fixtures/github/job-profile.ncl >/dev/null
+            nickel typecheck config/tangled-contracts.ncl
+            nickel typecheck config/tangled-spindle.ncl
+            nickel format --check config/tangled-contracts.ncl config/tangled-spindle.ncl config/fixtures/*tangled*.ncl
+            nickel export --format json config/fixtures/tangled-spindle-positive.ncl > tangled-spindle-profile.json
+            cmp tangled-spindle-profile.json fixtures/tangled/spindle-profile.json
+            for fixture in config/fixtures/negative-tangled-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative Tangled fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel export config/radicle-source-profile.ncl >/dev/null
             nickel export config/radicle-status-profile.ncl >/dev/null
             nickel export config/radicle-mutation-profile.ncl >/dev/null
@@ -1321,6 +1416,8 @@
             nickel export config/fixtures/radicle-nix-provider-positive.ncl >/dev/null
             nickel export config/fixtures/cairn-cob-external.ncl >/dev/null
             nickel export fixtures/radicle-source-contract/positive/receipt.ncl >/dev/null
+            # r[verify kiln.radicle.canonical_source.evidence.scenario.links]
+            nickel export fixtures/radicle-source-contract/positive/canonical-receipt.ncl >/dev/null
             for fixture in fixtures/radicle-source-contract/negative/*.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then
                 echo "negative Radicle source contract fixture passed: $fixture" >&2

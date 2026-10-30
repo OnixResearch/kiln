@@ -52,8 +52,11 @@ pub fn cpu_template() -> Value {
     })
 }
 // r[impl kiln.hosted.microvm.plan]
+// r[impl kiln.hosted.microvm.network.nongoal]
 /// Firecracker `--config-file` document. There is deliberately no
-/// `network-interfaces` member: the guest has loopback only.
+/// `network-interfaces` member: the guest has loopback only. The decision, the
+/// acceptable host-mediated egress design and the coupled escape suite are
+/// recorded in `docs/hosted-ci.md#guest-networking-non-goal`.
 pub fn vm_config(paths: &VmPaths<'_>, policy: &MachinePolicy<'_>) -> Value {
     json!({
         "boot-source": {

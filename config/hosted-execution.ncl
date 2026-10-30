@@ -64,6 +64,15 @@ let Backend = {
   # Snapshot/restore warm pool: a private 0700 directory outside work_root and
   # at most 16 slots, never more than maximum_concurrent (checked in Rust).
   warm_pool | Dyn | optional,
+  # Opt-in debug hold of failed jobs: grace at most 900 s, at most 16 held VMs
+  # and never more than maximum_concurrent (checked in Rust). Omit to disable.
+  debug_hold
+    | {
+      enabled | Bool,
+      grace_seconds | Positive 900,
+      max_concurrent | Positive 16,
+    }
+    | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
   qualification_identity | Dyn | optional,

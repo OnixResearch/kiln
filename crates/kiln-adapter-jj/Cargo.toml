@@ -7,10 +7,21 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
+bounded-exec.workspace = true
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+
+[features]
+# Integration tests that build fixture repositories with a real `jj` binary
+# named by KILN_JJ_EXE (the dev shell and the jj-native-fixtures check set it).
+jj-fixtures = []
 
 [lints]
 workspace = true
+
+[[test]]
+name = "jj_fixtures"
+required-features = ["jj-fixtures"]

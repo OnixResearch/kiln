@@ -368,6 +368,9 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                     | "--authorship"
                     | "--agent-harness"
                     | "--agent-model"
+                    | "--jj-change"
+                    | "--stack"
+                    | "--change-id-header"
             ),
             "watch" => key == "--run",
             "logs" => matches!(key, "--run" | "--follow"),
@@ -377,10 +380,10 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
         if !allowed {
             return Err("developer command or option invalid".into());
         }
-        if options.contains_key(key) && !matches!(key, "--include" | "--delete") {
+        if options.contains_key(key) && !matches!(key, "--include" | "--delete" | "--jj-change") {
             return Err("developer duplicate option".into());
         }
-        let value = if matches!(key, "--follow" | "--wip") {
+        let value = if matches!(key, "--follow" | "--wip" | "--stack" | "--change-id-header") {
             "true".to_owned()
         } else {
             let value = arguments.next().ok_or("developer option value missing")?;
@@ -400,45 +403,7 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
     };
     let client = Client::new(profile)?;
     if command == "review-submit" {
-        let request_id = required("--request-id")?;
-        let source_ref = required("--source-ref")?;
-        let title = required("--title")?;
-        let expected_commit = options
-            .get("--expected-commit")
-            .and_then(|values| values.first());
-        if !crate::profile::identifier(request_id)
-            || !source_ref.starts_with("refs/heads/")
-            || !git2::Reference::is_valid_name(source_ref)
-            || expected_commit.is_some_and(|commit| !crate::snapshot::hex(commit, 20))
-        {
-            return Err("developer review source or request identity invalid".into());
-        }
-        let first = |key| {
-            options
-                .get(key)
-                .and_then(|values| values.first())
-                .map(String::as_str)
-        };
-        let description = first("--description").unwrap_or("");
-        let authorship = review_authorship(
-            first("--authorship"),
-            first("--agent-harness"),
-            first("--agent-model"),
-        )?;
-        let mut action = json!({"type":"contribute","source_ref":source_ref,
-            "expected_commit":expected_commit,"title":title,"description":description,
-            "wip":options.contains_key("--wip")});
-        if !authorship.is_undeclared()
-            && let Some(map) = action.as_object_mut()
-        {
-            map.insert(
-                "authorship".into(),
-                serde_json::to_value(&authorship).map_err(|_| "developer authorship encoding")?,
-            );
-        }
-        let body = json!({
-            "request_id":request_id,"change_id":null,"expected_version":null,"action":action
-        });
+        let body = review_submit_body(&options)?;
         print_json(&client.request(
             reqwest::Method::POST,
             "/api/code-review/commands",
@@ -581,9 +546,176 @@ pub fn review_authorship(
     Ok(authorship)
 }
 
+/// Pure: build the `review-submit` command body. `--jj-change` (repeatable,
+/// bottom to top) or `--source-ref … --change-id-header` select change-ID
+/// intake; titles then come from commit messages, never from flags.
+// r[impl kiln.review.jj_intake.surface]
+fn review_submit_body(options: &BTreeMap<&str, Vec<String>>) -> Result<Value, String> {
+    let first = |key| {
+        options
+            .get(key)
+            .and_then(|values| values.first())
+            .map(String::as_str)
+    };
+    let request_id =
+        first("--request-id").ok_or("developer required option --request-id missing")?;
+    if !crate::profile::identifier(request_id) {
+        return Err("developer review source or request identity invalid".into());
+    }
+    let authorship = review_authorship(
+        first("--authorship"),
+        first("--agent-harness"),
+        first("--agent-model"),
+    )?;
+    let wip = options.contains_key("--wip");
+    let stack = options.contains_key("--stack");
+    let header = options.contains_key("--change-id-header");
+    let change_ids = options.get("--jj-change");
+    let source_ref = first("--source-ref");
+    if source_ref.is_some_and(|source| {
+        !source.starts_with("refs/heads/") || !git2::Reference::is_valid_name(source)
+    }) {
+        return Err("developer review source or request identity invalid".into());
+    }
+    let mut action = if change_ids.is_some() || header {
+        if ["--title", "--description", "--expected-commit"]
+            .iter()
+            .any(|key| options.contains_key(key))
+        {
+            return Err("developer change-ID intake takes titles from commit messages".into());
+        }
+        match (change_ids, source_ref, header) {
+            (Some(ids), None, false) => {
+                if ids
+                    .iter()
+                    .any(|id| !kiln_core::source::valid_jujutsu_change_id(id))
+                {
+                    return Err("developer --jj-change requires full exact jj change IDs".into());
+                }
+                if ids.len() > 1 && !stack {
+                    return Err("developer several --jj-change values require --stack".into());
+                }
+                json!({"type":"jj_contribute","change_ids":ids,"stack":stack,"wip":wip})
+            }
+            (None, Some(source), true) => {
+                json!({"type":"jj_contribute","source_ref":source,"stack":stack,"wip":wip})
+            }
+            _ => {
+                return Err(
+                    "developer use either --jj-change or --source-ref with --change-id-header"
+                        .into(),
+                );
+            }
+        }
+    } else {
+        if stack {
+            return Err("developer --stack requires change-ID intake".into());
+        }
+        let source_ref = source_ref.ok_or("developer required option --source-ref missing")?;
+        let title = first("--title").ok_or("developer required option --title missing")?;
+        let expected_commit = first("--expected-commit");
+        if expected_commit.is_some_and(|commit| !crate::snapshot::hex(commit, 20)) {
+            return Err("developer review source or request identity invalid".into());
+        }
+        json!({"type":"contribute","source_ref":source_ref,
+            "expected_commit":expected_commit,"title":title,
+            "description":first("--description").unwrap_or(""),"wip":wip})
+    };
+    if !authorship.is_undeclared()
+        && let Some(map) = action.as_object_mut()
+    {
+        map.insert(
+            "authorship".into(),
+            serde_json::to_value(&authorship).map_err(|_| "developer authorship encoding")?,
+        );
+    }
+    Ok(json!({
+        "request_id":request_id,"change_id":null,"expected_version":null,"action":action
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // r[verify kiln.review.jj_intake.surface]
+    #[test]
+    fn review_submit_builds_change_id_intake_and_rejects_misuse() {
+        const A: &str = "wnloytsvxwxwxtpqyuwxutmotlmslszv";
+        const B: &str = "kvpqzqvnyrywpssxpqtmuvqxuvvkpqnt";
+        let build = |pairs: &[(&'static str, &[&str])]| {
+            let options: BTreeMap<&str, Vec<String>> = pairs
+                .iter()
+                .map(|(key, values)| (*key, values.iter().map(|v| (*v).to_owned()).collect()))
+                .collect();
+            review_submit_body(&options)
+        };
+        let single = build(&[("--request-id", &["r1"]), ("--jj-change", &[A])]);
+        assert_eq!(
+            single
+                .ok()
+                .and_then(|body| body.pointer("/action").cloned()),
+            Some(json!({"type":"jj_contribute","change_ids":[A],"stack":false,"wip":false}))
+        );
+        let stack = build(&[
+            ("--request-id", &["r2"]),
+            ("--jj-change", &[A, B]),
+            ("--stack", &["true"]),
+        ]);
+        assert_eq!(
+            stack
+                .ok()
+                .and_then(|body| body.pointer("/action/change_ids").cloned()),
+            Some(json!([A, B]))
+        );
+        let header = build(&[
+            ("--request-id", &["r3"]),
+            ("--source-ref", &["refs/heads/review/x"]),
+            ("--change-id-header", &["true"]),
+            ("--stack", &["true"]),
+        ]);
+        assert_eq!(
+            header
+                .ok()
+                .and_then(|body| body.pointer("/action/source_ref").cloned()),
+            Some(json!("refs/heads/review/x"))
+        );
+        let branch = build(&[
+            ("--request-id", &["r4"]),
+            ("--source-ref", &["refs/heads/review/x"]),
+            ("--title", &["T"]),
+        ]);
+        assert_eq!(
+            branch
+                .ok()
+                .and_then(|body| body.pointer("/action/type").cloned()),
+            Some(json!("contribute"))
+        );
+        for bad in [
+            build(&[("--request-id", &["r"]), ("--jj-change", &["wnloyt"])]),
+            build(&[("--request-id", &["r"]), ("--jj-change", &["@-"])]),
+            build(&[("--request-id", &["r"]), ("--jj-change", &[A, B])]),
+            build(&[
+                ("--request-id", &["r"]),
+                ("--jj-change", &[A]),
+                ("--title", &["T"]),
+            ]),
+            build(&[
+                ("--request-id", &["r"]),
+                ("--jj-change", &[A]),
+                ("--source-ref", &["refs/heads/review/x"]),
+            ]),
+            build(&[("--request-id", &["r"]), ("--change-id-header", &["true"])]),
+            build(&[
+                ("--request-id", &["r"]),
+                ("--source-ref", &["refs/heads/review/x"]),
+                ("--title", &["T"]),
+                ("--stack", &["true"]),
+            ]),
+        ] {
+            assert!(bad.is_err());
+        }
+    }
 
     // r[verify kiln.review.authorship.scenario.declared]
     // r[verify kiln.review.authorship.scenario.invalid]

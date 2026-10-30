@@ -1,0 +1,67 @@
+{
+  "schema": "kiln.rebase-aware-interdiff.verification.v1",
+  "date": "2026-10-30",
+  "issue": "OnixResearch/kiln#5 (including the Tangled extension)",
+  "maintenance_owner": "Kiln maintainers (kiln_core::change_review hunk markers, kiln-provider-api interdiff port); Kiln web-service maintainers (kiln-adapter-git interdiff, code_review hunks/views shell, console)",
+  "commands": [
+    {
+      "command": "cargo test --locked -p kiln-core --lib change_review",
+      "result": "34 passed (5 new hunk tests in change_review_hunks_tests.rs, 1 updated upload test)"
+    },
+    {
+      "command": "cargo test --locked -p kiln-adapter-git",
+      "result": "all suites ok; tests/change_review_interdiff.rs 3 passed (rebased delta, unavailable reasons, commit listing with change-id headers)"
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service --test code_review_interdiff",
+      "result": "6 passed"
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs",
+      "result": "35 passed, 0 failed"
+    },
+    {
+      "command": "cargo clippy --locked -p kiln-core -p kiln-provider-api -p kiln-adapter-git -p kiln-highlight --all-targets -D warnings",
+      "result": "no findings in this change's files; remaining findings are in peers' in-progress files (change_review_advisory_tests.rs, untrusted/tests.rs, kiln-adapter-jj cli.rs)"
+    },
+    {
+      "command": "rustfmt --edition 2024 --check on every touched file",
+      "result": "clean for this change's code; code_review.rs mod-declaration ordering (shared by several agents) left to the final cargo fmt"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib / tests/code_review.rs",
+      "result": "not runnable at report time: blocked by peers' in-progress compile errors (noise.rs tests, CiFact.untrusted, Profile.review literals); hunks.rs and views.rs unit tests compile with the lib"
+    }
+  ],
+  "browser_check": {
+    "instance": "disposable kiln-web-service on https://localhost:9561, fixture repository with a two-commit revision 1, target moved, revision 2 uploaded",
+    "observed": [
+      "Revision 1: file rows 'N of M hunks viewed'; file 'Viewed' mark-all → '2 of 2 hunks viewed'; KilnCodeReview.hunks.toggle(digest) unmarked one hunk → '1 of 2'; per-hunk .cr-hunk-mark click re-marked → '2 of 2'",
+      "After moving main and uploading revision 2: file.txt '1 of 2 hunks viewed · 1 new since revision 1' with a 'New since revision 1' chip; lib.rs '1 of 1' carried forward; markers rebound to revision 2",
+      "Compare against offered 'Changes since revision 1'; selecting it showed only author-15 → author-15-edited and l19 → author-19 (target movement on other.txt and line 9 absent) with the exact interdiff notice; base-side lines rendered as plain numbers",
+      "URL review_interdiff=<r1>..<r2> reopened after reload restored the same view and selector; back returned to the base view, forward restored the interdiff",
+      "Structural mode on the interdiff showed the explicit 'not exact comparison' fallback; no document overflow at 1440"
+    ],
+    "screenshots": "none retained (repository disk budget)"
+  },
+  "acceptance": {
+    "1 rebased fixture shows only author's delta; plain comparison unchanged": "adapter rebased_revision_interdiff_shows_only_the_authors_delta_and_writes_nothing; service interdiff_shows_only_the_authors_delta_and_falls_back_explicitly; browser check",
+    "2 unchanged hunks keep viewed state; edited, moved-with-edit, new do not": "core upload_carries_forward_only_unchanged_hunks_per_principal; service upload_carries_forward_only_unchanged_hunks_and_reports_progress; browser check",
+    "3 uncomputable interdiff reports unavailable and falls back explicitly": "adapter conflicted_rebase_missing_commit_and_disabled_compare_are_explicit; service conflicted_rebase + no_change_ids + change_missing fallbacks",
+    "4 pre-change journals replay byte-identically": "core legacy_file_markers_replay_byte_identically_and_bind_their_revision; service legacy_file_markers_in_stored_state_replay_byte_identically (SQLite document)",
+    "5 browser rails cover mark/unmark, carry-forward, selector": "disposable-instance browser check above; node tests for anchorBaseFor/diffMatches",
+    "ext 1 interdiff URL restores from/to (+change); back/forward": "web.js readRoute keys review_interdiff/review_interdiff_change/review_commits; browser check reload/back/forward",
+    "ext 2 narrowed interdiff shows only that change's delta; no change IDs → unavailable": "service narrowed_interdiff_shows_only_that_changes_delta; views::tests narrowing_*; service no_change_ids fallback",
+    "commit-range view": "service commit_ranges_inside_a_revision_are_exact_and_bounded_to_its_commits; adapter revision_commits test"
+  },
+  "trade_offs": [
+    "A git hunk that merges with a nearby edit gets a new digest, so its marker drops (conservative).",
+    "Renames change every digest because the path is part of the normalized hunk.",
+    "Binary and truncated files cannot be marked viewed.",
+    "The interdiff's rebased side is an in-memory tree: only revision-side comments are offered; narrowed views and ranges ending before the head disable commenting.",
+    "Narrowing reads the git change-id header, plus JjIntake's observation of a revision head commit when the header is absent."
+  ],
+  "fixes_during_verification": [
+    "workspace clippy (-D clippy::indexing_slicing via workspace lints) rejected serde_json Value indexing in tests/code_review_interdiff.rs; reads now use Value::pointer or a null-defaulting `at` helper, with no assertion changed"
+  ]
+}

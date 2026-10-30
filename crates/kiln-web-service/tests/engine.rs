@@ -1355,6 +1355,8 @@ mod dashboard;
 mod monorepo;
 #[path = "engine/reports.rs"]
 mod reports;
+#[path = "engine/triggers.rs"]
+mod triggers;
 
 #[path = "engine/workers.rs"]
 mod workers;

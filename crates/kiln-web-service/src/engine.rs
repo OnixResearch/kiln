@@ -26,6 +26,7 @@ mod telemetry;
 mod worker_status;
 pub use worker_status::WorkerStatusProfile;
 mod change_review;
+pub(crate) mod untrusted;
 mod workers;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
@@ -55,6 +56,8 @@ pub struct Engine {
     worker_status: Option<worker_status::Store>,
     /// Affected decision handed from automation dispatch to the run it starts.
     automation_affected: Option<crate::monorepo::RunAffected>,
+    /// Untrusted gate handed from automation dispatch or retry to its new run.
+    pending_untrusted: Option<kiln_core::untrusted::UntrustedGate>,
     _lock: storage::StateLock,
 }
 
@@ -122,6 +125,7 @@ impl Engine {
             cache_store: None,
             worker_status: None,
             automation_affected: None,
+            pending_untrusted: None,
             _lock: lock,
         })
     }
@@ -145,7 +149,7 @@ impl Engine {
             .state
             .runs
             .iter()
-            .filter(|(_, r)| !r.outcome().is_terminal() && r.phase != "queued")
+            .filter(|(_, r)| !r.outcome().is_terminal() && !r.waiting())
             .map(|(id, _)| id.clone())
             .collect();
         for id in ids {
@@ -157,7 +161,7 @@ impl Engine {
     // r[impl kiln.web.lifecycle]
     fn refresh(&mut self, id: &str) -> Result<(), String> {
         let record = self.state.runs.get(id).ok_or("run missing")?;
-        if record.outcome().is_terminal() || record.phase == "queued" {
+        if record.outcome().is_terminal() || record.waiting() {
             return Ok(());
         }
         let plan = record.plan.clone();

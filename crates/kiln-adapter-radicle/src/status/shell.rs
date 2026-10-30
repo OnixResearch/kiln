@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use cob_git2 as git2;
@@ -86,15 +86,51 @@ pub enum StatusDispatch {
     Unknown(StatusUnknownObservation),
 }
 
-struct OpenedRepository {
+pub(crate) struct OpenedRepository {
     repository: git2::Repository,
     _commit_config: tempfile::NamedTempFile,
 }
 
 impl OpenedRepository {
-    const fn repository(&self) -> &git2::Repository {
+    pub(crate) const fn repository(&self) -> &git2::Repository {
         &self.repository
     }
+}
+
+pub(crate) fn open_repository(
+    storage_root: &Path,
+    repository: &ExternalRef,
+    author_name: &str,
+    author_email: &str,
+) -> PortResult<OpenedRepository> {
+    let rid = repository.native_id.as_str().trim_start_matches("rad:");
+    let path = storage_root.join(rid);
+    let repository = git2::Repository::open(&path).map_err(|error| {
+        PortFailure::Infrastructure(InfrastructureFailure {
+            code: "radicle_storage_unavailable".to_string(),
+            message: format!("local Radicle repository could not be opened: {error}"),
+        })
+    })?;
+    let commit_config = tempfile::NamedTempFile::new().map_err(|error| {
+        PortFailure::Infrastructure(InfrastructureFailure {
+            code: "radicle_commit_config_failed".to_string(),
+            message: format!("temporary COB commit configuration failed: {error}"),
+        })
+    })?;
+    let mut config = git2::Config::open(commit_config.path()).map_err(commit_config_failure)?;
+    config
+        .set_str("user.name", author_name)
+        .map_err(commit_config_failure)?;
+    config
+        .set_str("user.email", author_email)
+        .map_err(commit_config_failure)?;
+    repository
+        .set_config(&config)
+        .map_err(commit_config_failure)?;
+    Ok(OpenedRepository {
+        repository,
+        _commit_config: commit_config,
+    })
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -390,34 +426,12 @@ impl RadicleStatusShell {
     }
 
     fn open_repository(&self, repository: &ExternalRef) -> PortResult<OpenedRepository> {
-        let rid = repository.native_id.as_str().trim_start_matches("rad:");
-        let path = self.storage_root.join(rid);
-        let repository = git2::Repository::open(&path).map_err(|error| {
-            PortFailure::Infrastructure(InfrastructureFailure {
-                code: "radicle_storage_unavailable".to_string(),
-                message: format!("local Radicle repository could not be opened: {error}"),
-            })
-        })?;
-        let commit_config = tempfile::NamedTempFile::new().map_err(|error| {
-            PortFailure::Infrastructure(InfrastructureFailure {
-                code: "radicle_commit_config_failed".to_string(),
-                message: format!("temporary ci-job commit configuration failed: {error}"),
-            })
-        })?;
-        let mut config = git2::Config::open(commit_config.path()).map_err(commit_config_failure)?;
-        config
-            .set_str("user.name", COMMIT_AUTHOR_NAME)
-            .map_err(commit_config_failure)?;
-        config
-            .set_str("user.email", COMMIT_AUTHOR_EMAIL)
-            .map_err(commit_config_failure)?;
-        repository
-            .set_config(&config)
-            .map_err(commit_config_failure)?;
-        Ok(OpenedRepository {
+        open_repository(
+            &self.storage_root,
             repository,
-            _commit_config: commit_config,
-        })
+            COMMIT_AUTHOR_NAME,
+            COMMIT_AUTHOR_EMAIL,
+        )
     }
 }
 
@@ -610,7 +624,7 @@ fn storage_failure(error: GitCobStoreError) -> PortFailure {
 fn commit_config_failure(error: git2::Error) -> PortFailure {
     PortFailure::Infrastructure(InfrastructureFailure {
         code: "radicle_commit_config_failed".to_string(),
-        message: format!("deterministic ci-job commit metadata could not be configured: {error}"),
+        message: format!("deterministic COB commit metadata could not be configured: {error}"),
     })
 }
 

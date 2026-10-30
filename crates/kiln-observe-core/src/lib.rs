@@ -30,9 +30,10 @@ pub use profile::{
 };
 pub use projection::project_observation;
 pub use review::{
-    AnchorPageInfo, AuthorshipBasis, AuthorshipFrictionView, Distribution, PER_MILLE,
-    ReviewApprovalFact, ReviewChangeFact, ReviewFrictionView, ReviewSuggestionFact, ReviewWindow,
-    SuggestionAnchorView, SuggestionAnchorsView, admit_review_window, review_window,
+    AnchorPageInfo, AuthorshipBasis, AuthorshipFrictionView, Distribution,
+    MAX_REVIEW_ADVISORY_PER_CHANGE, PER_MILLE, ReviewApprovalFact, ReviewChangeFact,
+    ReviewFrictionView, ReviewSuggestionFact, ReviewWindow, SuggestionAnchorView,
+    SuggestionAnchorsView, admit_review_window, review_window,
 };
 
 // r[impl kiln.observe.nonclaims]

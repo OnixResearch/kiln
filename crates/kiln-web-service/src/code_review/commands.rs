@@ -42,6 +42,9 @@ pub(super) enum Completion {
     },
     Integration {
         queue_id: String,
+        /// Speculative chain this build assumed; serial builds omit it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        chain: Option<String>,
     },
 }
 
@@ -75,6 +78,9 @@ impl Workspace {
                 return reject(409, "review_request_conflict");
             }
             return replay(&journal, true);
+        }
+        if matches!(request.action, Action::JjContribute { .. }) {
+            return self.jj_contribute(context, store, state, request, request_context);
         }
         let private = domain::project(&state.review, actor);
         match &request.action {
@@ -116,6 +122,7 @@ impl Workspace {
             anchors: Vec::new(),
             integration: None,
             ci_required: None,
+            hunks: None,
         };
         let mut contribution = None;
         if let Action::Contribute {
@@ -175,6 +182,13 @@ impl Workspace {
                 }
             }
         }
+        if let Some(item) = jj_intake::lower(
+            &mut request.action,
+            &mut request.change_id,
+            &mut request.expected_version,
+        ) {
+            contribution = Some(item);
+        }
         let global = matches!(
             &request.action,
             Action::Create { .. }
@@ -221,7 +235,9 @@ impl Workspace {
         let mut effect: Option<(ReviewOperation, Completion, String, String)> = None;
         let mut result_change = current.as_ref().map(|c| c.id.clone());
         let command = match request.action {
-            Action::Contribute { .. } => return Err(Failure::Unavailable),
+            Action::Contribute { .. } | Action::JjContribute { .. } | Action::JjMember { .. } => {
+                return Err(Failure::Unavailable);
+            }
             Action::Subscribe { subscribed } => {
                 let mut next = state.clone();
                 delivery::subscribe(
@@ -416,6 +432,15 @@ impl Workspace {
                 expected_revision: revision_id,
                 value,
             },
+            // r[impl kiln.review.advisory]
+            Action::AdvisoryApprove {} => domain::Command::AdvisoryApprove {
+                change: change_id.clone(),
+                expected_revision: revision_id,
+            },
+            Action::AdvisoryWithdraw {} => domain::Command::AdvisoryWithdraw {
+                change: change_id.clone(),
+                expected_revision: revision_id,
+            },
             Action::StartThread {
                 anchor,
                 body,
@@ -505,6 +530,17 @@ impl Workspace {
                 change: change_id.clone(),
                 expected_revision: revision_id,
                 file,
+                reviewed,
+            },
+            Action::MarkHunk {
+                file,
+                hunk_digest,
+                reviewed,
+            } => domain::Command::MarkHunk {
+                change: change_id.clone(),
+                expected_revision: revision_id,
+                file,
+                hunk_digest,
                 reviewed,
             },
             Action::SetAttention {
@@ -1149,15 +1185,26 @@ impl Workspace {
                 bump(&mut next, &change)?;
                 result_change = change;
             }
-            Completion::Integration { queue_id } => {
+            Completion::Integration { queue_id, chain } => {
                 let entry = next
                     .queue
                     .iter_mut()
                     .find(|entry| entry.id == queue_id)
                     .ok_or(Failure::Unavailable)?;
-                entry.candidate_commit = Some(commit.clone());
-                entry.status = "waiting_ci".into();
-                entry.detail = "Exact integration candidate awaits canonical CI".into();
+                // r[impl kiln.review.queue.speculative.chain]
+                // A late build for a superseded chain or an ejected entry is
+                // recorded as an applied provider operation but never becomes
+                // the entry's candidate.
+                let current = chain.as_deref().is_none_or(|chain| {
+                    speculation::completion_current(entry.chain.as_ref(), chain)
+                        && !entry.superseded_chains.iter().any(|id| id == chain)
+                        && matches!(entry.status.as_str(), "preparing" | "uncertain")
+                });
+                if current {
+                    entry.candidate_commit = Some(commit.clone());
+                    entry.status = "waiting_ci".into();
+                    entry.detail = "Exact integration candidate awaits canonical CI".into();
+                }
                 result_change = entry.change.clone();
             }
         }
@@ -1189,6 +1236,7 @@ fn operation_kind(operation: &ReviewOperation) -> &'static str {
         ReviewOperation::CherryPick { .. } => "cherry_pick",
         ReviewOperation::ApplySuggestions { .. } => "apply_suggestions",
         ReviewOperation::BuildIntegration { .. } => "build_integration",
+        ReviewOperation::BuildSpeculativeIntegration { .. } => "build_speculative_integration",
     }
 }
 fn command_result(
@@ -1257,6 +1305,13 @@ fn validate_action(action: &Action) -> Result<(), Failure> {
         }
         Action::Revert { title, .. } | Action::CherryPick { title, .. } => {
             valid_text(title, MAX_TITLE_BYTES)
+        }
+        // r[impl kiln.review.hunks] Shell digests are 64 lowercase hexadecimal digits.
+        Action::MarkHunk { hunk_digest, .. } => {
+            hunk_digest.len() == 64
+                && hunk_digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
         }
         _ => true,
     };

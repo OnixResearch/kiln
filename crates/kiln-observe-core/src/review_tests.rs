@@ -189,6 +189,8 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_changes: 2,
             merged_without_suggestion: 1,
             merged_without_suggestion_per_mille: Some(500),
+            advisory_approvals: 0,
+            advised_changes: 0,
         },
         AuthorshipFrictionView {
             authorship: AuthorshipClass::Agent,
@@ -200,6 +202,8 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_changes: 2,
             merged_without_suggestion: 1,
             merged_without_suggestion_per_mille: Some(500),
+            advisory_approvals: 0,
+            advised_changes: 0,
         },
         AuthorshipFrictionView {
             authorship: AuthorshipClass::Mixed,
@@ -211,6 +215,8 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_changes: 0,
             merged_without_suggestion: 0,
             merged_without_suggestion_per_mille: None,
+            advisory_approvals: 0,
+            advised_changes: 0,
         },
         AuthorshipFrictionView {
             authorship: AuthorshipClass::Undeclared,
@@ -222,6 +228,8 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_changes: 0,
             merged_without_suggestion: 0,
             merged_without_suggestion_per_mille: None,
+            advisory_approvals: 0,
+            advised_changes: 0,
         },
     ];
     assert_eq!(view.classes, expected);
@@ -708,3 +716,197 @@ fn malformed_authorship_documents_are_rejected() {
         );
     }
 }
+
+fn advisory_window() -> ReviewWindow {
+    serde_json::from_str(include_str!(
+        "../../../fixtures/observation/review-window-advisory-v1.json"
+    ))
+    .unwrap_or_else(|_| unreachable!())
+}
+
+/// Replay a journal that adds advisory approvals across two revisions.
+fn advisory_state() -> ReviewState {
+    let (_, mut state) = replay_fixture_journal();
+    let mut ids: Vec<String> = state.changes.keys().cloned().collect();
+    ids.sort();
+    let first = ids.first().cloned().unwrap_or_else(|| unreachable!());
+    let change = state
+        .changes
+        .get_mut(&first)
+        .unwrap_or_else(|| unreachable!());
+    let latest = change
+        .revisions
+        .last()
+        .map(|revision| (revision.id.clone(), revision.created_ms))
+        .unwrap_or_else(|| unreachable!());
+    let earlier = change.revisions.first().map(|revision| revision.id.clone());
+    for (actor, revision, created_ms) in [
+        ("dave", latest.0.clone(), latest.1 + 1),
+        ("erin", latest.0.clone(), latest.1 + 2),
+        // After the window end: excluded.
+        ("frank", latest.0.clone(), i64::MAX - 1),
+    ] {
+        change
+            .advisory
+            .push(kiln_core::change_review::AdvisoryApproval {
+                actor: actor.into(),
+                revision,
+                created_ms,
+            });
+    }
+    if let Some(earlier) = earlier.filter(|earlier| *earlier != latest.0) {
+        // Historical: bound to an earlier revision, never counted.
+        change
+            .advisory
+            .push(kiln_core::change_review::AdvisoryApproval {
+                actor: "gina".into(),
+                revision: earlier,
+                created_ms: latest.1,
+            });
+    }
+    state
+}
+
+// r[verify kiln.observe.review.advisory]
+#[test]
+fn review_window_exports_current_advisory_counts_only() {
+    let (fixture, _) = replay_fixture_journal();
+    let state = advisory_state();
+    let window = review_window(
+        &state,
+        Some(&fixture.ownership),
+        fixture.start_ms,
+        fixture.end_ms,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let counts: Vec<u32> = window
+        .changes
+        .iter()
+        .map(|change| change.advisory_approvals)
+        .collect();
+    assert_eq!(counts.first().copied(), Some(2));
+    assert!(counts.iter().skip(1).all(|count| *count == 0));
+    // Advisory approvals never become approval facts.
+    let (_, plain) = replay_fixture_journal();
+    let baseline = review_window(
+        &plain,
+        Some(&fixture.ownership),
+        fixture.start_ms,
+        fixture.end_ms,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    for (with, without) in window.changes.iter().zip(&baseline.changes) {
+        assert_eq!(with.approval, without.approval);
+    }
+    let encoded = serde_json::to_value(&window).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        encoded.pointer("/changes/0/advisory_approvals"),
+        Some(&serde_json::json!(2))
+    );
+    assert!(encoded.pointer("/changes/1/advisory_approvals").is_none());
+}
+
+// r[verify kiln.observe.review.advisory]
+#[test]
+fn friction_reports_advisory_totals_per_class_and_bounds_them() {
+    let view = friction(advisory_window());
+    let totals: Vec<(AuthorshipClass, u64, u64)> = view
+        .classes
+        .iter()
+        .map(|class| {
+            (
+                class.authorship,
+                class.advisory_approvals,
+                class.advised_changes,
+            )
+        })
+        .collect();
+    assert_eq!(
+        totals,
+        vec![
+            (AuthorshipClass::Human, 3, 1),
+            (AuthorshipClass::Agent, 3, 2),
+            (AuthorshipClass::Mixed, 1, 1),
+            (AuthorshipClass::Undeclared, 0, 0),
+        ]
+    );
+    // Advisory counts change nothing else in the view.
+    let plain = friction(fixture_window());
+    for (with, without) in view.classes.iter().zip(&plain.classes) {
+        let mut stripped = with.clone();
+        stripped.advisory_approvals = 0;
+        stripped.advised_changes = 0;
+        assert_eq!(&stripped, without);
+    }
+    assert_eq!(
+        violation(|window| change(window, "change-a2").advisory_approvals =
+            MAX_REVIEW_ADVISORY_PER_CHANGE + 1),
+        Some(String::from("review_window_advisory_bound"))
+    );
+    assert_eq!(
+        violation(|window| change(window, "change-a2").advisory_approvals =
+            MAX_REVIEW_ADVISORY_PER_CHANGE),
+        None
+    );
+}
+
+// r[verify kiln.review.advisory.legacy]
+// r[verify kiln.observe.review.advisory]
+#[test]
+fn advisory_free_windows_keep_bytes_and_identities() {
+    // The v1 fixture predates advisory approvals: it round-trips byte-identically.
+    let raw = include_str!("../../../fixtures/observation/review-window-v1.json");
+    let parsed: serde_json::Value = serde_json::from_str(raw).unwrap_or_else(|_| unreachable!());
+    let window = fixture_window();
+    assert_eq!(
+        serde_json::to_value(&window).unwrap_or_else(|_| unreachable!()),
+        parsed
+    );
+    let profile = profile();
+    let friction_view = project(
+        &profile,
+        ViewRequest::ReviewFriction,
+        &ObservationWindow::review(fixture_window()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let anchors_view = project(
+        &profile,
+        ViewRequest::SuggestionAnchors {
+            cursor: 0,
+            limit: 2,
+        },
+        &ObservationWindow::review(fixture_window()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    // Identities computed by the pre-advisory encoder for the same inputs.
+    assert_eq!(friction_view.identity.as_str(), LEGACY_FRICTION_IDENTITY);
+    assert_eq!(anchors_view.identity.as_str(), LEGACY_ANCHORS_IDENTITY);
+    // Non-zero advisory counts are bound into the identity.
+    let advised = project(
+        &profile,
+        ViewRequest::ReviewFriction,
+        &ObservationWindow::review(advisory_window()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_ne!(advised.identity, friction_view.identity);
+    let mut other = advisory_window();
+    change(&mut other, "change-a1").advisory_approvals = 1;
+    change(&mut other, "change-a3").advisory_approvals = 2;
+    let swapped = project(
+        &profile,
+        ViewRequest::ReviewFriction,
+        &ObservationWindow::review(other),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        classes(&swapped),
+        classes(&advised),
+        "same per-class totals"
+    );
+    assert_ne!(swapped.identity, advised.identity, "window facts differ");
+}
+
+const LEGACY_FRICTION_IDENTITY: &str =
+    "9608269f3ef060dd0be8de580ddd4e6cc3090271f705bf021bfc6f6969b822d7";
+const LEGACY_ANCHORS_IDENTITY: &str =
+    "6dd4a50aa7e4f071011219a29c126ccf2c9a2578fdfdee5d0af987fd31774531";

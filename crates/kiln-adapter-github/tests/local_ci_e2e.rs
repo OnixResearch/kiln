@@ -576,6 +576,7 @@ impl Fixture {
                 repository: REPOSITORY.to_string(),
                 repository_id: REPOSITORY_ID,
                 allow_fork_pull_requests: false,
+                untrusted_pull_requests: Default::default(),
             },
             listen_address,
             webhook_path: "/github/webhook".to_string(),

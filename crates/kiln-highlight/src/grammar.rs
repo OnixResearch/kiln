@@ -319,6 +319,15 @@ pub(crate) fn all_configured() -> Vec<(String, bool)> {
         .collect()
 }
 
+/// The parser grammar of a public language, shared with highlighting.
+///
+/// `None` when the language's grammar failed to configure.
+pub(crate) fn parser_language(language: Language) -> Option<tree_sitter::Language> {
+    REGISTRY
+        .entry(Grammar::Public(language))
+        .map(|entry| entry.language.clone())
+}
+
 /// Highlight a whole text, returning `count` lines of tokens.
 pub(crate) fn highlight_lines(
     language: Language,

@@ -13,6 +13,7 @@ fn policy() -> EventPolicy {
         repository: "Project".to_owned(),
         repository_id: 42,
         allow_fork_pull_requests: false,
+        untrusted_pull_requests: Default::default(),
     }
 }
 
@@ -102,23 +103,23 @@ fn hmac_matches_rfc4231_vector_and_rejects_modified_bytes() {
 #[test]
 fn push_retains_native_facts_but_dispatches_exact_sha_and_canonical_repository() {
     let event = run(admit(&policy(), "push", &push()));
-    assert_eq!(event.revision, SHA);
-    assert_eq!(event.repository, "example/project");
-    assert_eq!(event.repository_id, 42);
-    assert_eq!(event.native_repository.owner, "Example");
-    assert_eq!(event.native_repository.name, "Project");
-    assert_eq!(event.delivery_id, DELIVERY);
+    assert_eq!(event.revision(), SHA);
+    assert_eq!(event.repository(), "example/project");
+    assert_eq!(event.repository_id(), 42);
+    assert_eq!(event.native_repository().owner, "Example");
+    assert_eq!(event.native_repository().name, "Project");
+    assert_eq!(event.delivery_id(), DELIVERY);
     assert_eq!(
-        event.selector,
-        EventSelector::Push {
+        event.selector(),
+        &EventSelector::Push {
             reference: "refs/heads/main".to_owned()
         }
     );
     let body = serde_json::to_vec(&push())
         .unwrap_or_else(|error| unreachable!("invalid event fixture: {error:?}"));
     assert_eq!(
-        event.body_identity,
-        ContentId::from_blake3_hex(blake3::hash(&body).to_hex().to_string())
+        event.body_identity(),
+        &ContentId::from_blake3_hex(blake3::hash(&body).to_hex().to_string())
             .unwrap_or_else(|error| unreachable!("fixture body identity is valid: {error:?}"))
     );
 }
@@ -132,10 +133,10 @@ fn all_selected_pr_actions_use_head_not_base_or_merge_sha() {
             .get_mut("action")
             .unwrap_or_else(|| unreachable!("event fixture field exists")) = json!(action);
         let event = run(admit(&policy(), "pull_request", &payload));
-        assert_eq!(event.revision, SHA);
+        assert_eq!(event.revision(), SHA);
         assert_eq!(
-            event.selector,
-            EventSelector::PullRequest {
+            event.selector(),
+            &EventSelector::PullRequest {
                 number: 7,
                 head_repository: NativeRepository {
                     owner: "Example".to_owned(),
@@ -358,7 +359,7 @@ fn pr_base_number_and_head_repository_consistency_are_enforced() {
             .pointer_mut(pointer)
             .unwrap_or_else(|| unreachable!("event fixture pointer exists")) = json!(99);
         let mut enabled = policy();
-        enabled.allow_fork_pull_requests = true;
+        enabled.untrusted_pull_requests = kiln_core::untrusted::UntrustedPullRequests::Approve;
         assert!(admit(&enabled, "pull_request", &payload).is_err());
     }
     let mut payload = pull_request();
@@ -379,8 +380,12 @@ fn pr_base_number_and_head_repository_consistency_are_enforced() {
 }
 
 // r[verify kiln.github.events]
+// r[verify kiln.untrusted.policy]
+// r[verify kiln.untrusted.policy.scenario.deny]
+// r[verify kiln.untrusted.classification]
 #[test]
 fn forks_require_explicit_policy_and_retain_exact_source_facts() {
+    use kiln_core::untrusted::{UntrustedPullRequests, UntrustedReason};
     let mut payload = pull_request();
     *payload
         .get_mut("pull_request")
@@ -390,16 +395,27 @@ fn forks_require_explicit_policy_and_retain_exact_source_facts() {
         "id": 99, "name": "Fork", "full_name": "Contributor/Fork",
         "owner": {"login": "Contributor"}
     });
+    // Deny (default): refused exactly as before, even from an owner.
     assert_eq!(
         code(admit(&policy(), "pull_request", &payload)),
         "github_fork_denied"
     );
+    associate(&mut payload, "OWNER");
+    assert_eq!(
+        code(admit(&policy(), "pull_request", &payload)),
+        "github_fork_denied"
+    );
+    // The retired constant can no longer grant trusted fork execution.
+    let mut retired = policy();
+    retired.allow_fork_pull_requests = true;
+    assert!(admit(&retired, "pull_request", &payload).is_err());
     let mut enabled = policy();
-    enabled.allow_fork_pull_requests = true;
+    enabled.untrusted_pull_requests = UntrustedPullRequests::Approve;
     let event = run(admit(&enabled, "pull_request", &payload));
-    assert_eq!(event.repository, "example/project");
-    assert_eq!(event.revision, SHA);
-    match event.selector {
+    assert_eq!(event.untrusted(), Some(UntrustedReason::Fork));
+    assert_eq!(event.repository(), "example/project");
+    assert_eq!(event.revision(), SHA);
+    match event.selector() {
         EventSelector::PullRequest {
             head_repository, ..
         } => {
@@ -409,11 +425,72 @@ fn forks_require_explicit_policy_and_retain_exact_source_facts() {
         }
         _ => unreachable!("expected pull request selector"),
     }
+    // The untrusted marker never changes the candidate identity.
+    let deny_same = run(admit(&policy(), "pull_request", &pull_request()));
+    assert_eq!(deny_same.untrusted(), None);
+    let mut collaborator = pull_request();
+    associate(&mut collaborator, "COLLABORATOR");
+    let approve_same = run(admit(&enabled, "pull_request", &collaborator));
+    assert_eq!(approve_same.untrusted(), None);
+    assert_eq!(
+        approve_same.candidate_identity(),
+        deny_same.candidate_identity()
+    );
+    // Same repository without signed push-access evidence is untrusted.
+    for association in [None, Some("CONTRIBUTOR"), Some("NONE")] {
+        let mut outsider = pull_request();
+        if let Some(value) = association {
+            associate(&mut outsider, value);
+        }
+        let event = run(admit(&enabled, "pull_request", &outsider));
+        assert_eq!(
+            event.untrusted(),
+            Some(UntrustedReason::AuthorWithoutPushAccess)
+        );
+        assert_eq!(event.candidate_identity(), deny_same.candidate_identity());
+    }
+    // Deny ignores the association for same-repository branches (today).
+    let mut outsider = pull_request();
+    associate(&mut outsider, "NONE");
+    assert_eq!(
+        run(admit(&policy(), "pull_request", &outsider)).untrusted,
+        None
+    );
+    // Wire compatibility: deny policies serialize exactly as before.
     let decoded: EventPolicy = serde_json::from_value(json!({
         "owner": "Example", "repository": "Project", "repository_id": 42
     }))
     .unwrap_or_else(|error| unreachable!("invalid event fixture: {error:?}"));
     assert!(!decoded.allow_fork_pull_requests);
+    assert!(decoded.untrusted_pull_requests.is_deny());
+    let legacy = r#"{"owner":"Example","repository":"Project","repository_id":42,"allow_fork_pull_requests":false}"#;
+    let replayed: EventPolicy = serde_json::from_str(legacy)
+        .unwrap_or_else(|error| unreachable!("invalid event fixture: {error:?}"));
+    assert_eq!(serde_json::to_string(&replayed).unwrap_or_default(), legacy);
+    assert_eq!(
+        serde_json::to_value(&enabled)
+            .unwrap_or_default()
+            .get("untrusted_pull_requests"),
+        Some(&json!("approve"))
+    );
+    assert!(
+        serde_json::from_value::<EventPolicy>(json!({
+            "owner": "Example", "repository": "Project", "repository_id": 42,
+            "untrusted_pull_requests": "allow"
+        }))
+        .is_err()
+    );
+    // The admitted type is intentionally not serializable; trusted events carry
+    // no untrusted marker, which the field assertion above already proves.
+}
+
+/// Sets the signed `pull_request.author_association` fact of a fixture event.
+fn associate(payload: &mut Value, association: &str) {
+    payload
+        .pointer_mut("/pull_request")
+        .and_then(Value::as_object_mut)
+        .unwrap_or_else(|| unreachable!("event fixture field exists"))
+        .insert("author_association".to_owned(), json!(association));
 }
 
 // r[verify kiln.github.authentication]
@@ -469,22 +546,28 @@ fn delivery_and_incidental_payload_changes_do_not_change_semantic_candidate() {
     let mut headers = signed("push", &bytes);
     headers.delivery = "82d3162e-cc78-11e3-81ab-4c9367dc0958".to_owned();
     let second = run(admit_event(&policy(), &headers, &bytes, SECRET, 64 * 1024));
-    assert_ne!(first.delivery_id, second.delivery_id);
-    assert_ne!(first.body_identity, second.body_identity);
-    assert_eq!(first.candidate_identity, second.candidate_identity);
+    assert_ne!(first.delivery_id(), second.delivery_id());
+    assert_ne!(first.body_identity(), second.body_identity());
+    assert_eq!(first.candidate_identity(), second.candidate_identity());
 
     let mut payload = push();
     *payload
         .get_mut("ref")
         .unwrap_or_else(|| unreachable!("event fixture field exists")) = json!("refs/heads/other");
     let other_branch = run(admit(&policy(), "push", &payload));
-    assert_ne!(first.candidate_identity, other_branch.candidate_identity);
+    assert_ne!(
+        first.candidate_identity(),
+        other_branch.candidate_identity()
+    );
     let mut payload = push();
     *payload
         .get_mut("after")
         .unwrap_or_else(|| unreachable!("event fixture field exists")) = json!(BASE_SHA);
     let other_revision = run(admit(&policy(), "push", &payload));
-    assert_ne!(first.candidate_identity, other_revision.candidate_identity);
+    assert_ne!(
+        first.candidate_identity(),
+        other_revision.candidate_identity()
+    );
 }
 
 // r[verify kiln.github.replay]
@@ -496,7 +579,7 @@ fn pr_action_redelivery_deduplicates_but_distinct_prs_and_event_kinds_do_not() {
         .get_mut("action")
         .unwrap_or_else(|| unreachable!("event fixture field exists")) = json!("synchronize");
     let second = run(admit(&policy(), "pull_request", &payload));
-    assert_eq!(first.candidate_identity, second.candidate_identity);
+    assert_eq!(first.candidate_identity(), second.candidate_identity());
     *payload
         .get_mut("number")
         .unwrap_or_else(|| unreachable!("event fixture field exists")) = json!(8);
@@ -505,9 +588,9 @@ fn pr_action_redelivery_deduplicates_but_distinct_prs_and_event_kinds_do_not() {
         .and_then(|value| value.get_mut("number"))
         .unwrap_or_else(|| unreachable!("event fixture field exists")) = json!(8);
     let other_pr = run(admit(&policy(), "pull_request", &payload));
-    assert_ne!(first.candidate_identity, other_pr.candidate_identity);
+    assert_ne!(first.candidate_identity(), other_pr.candidate_identity());
     let push = run(admit(&policy(), "push", &push()));
-    assert_ne!(first.candidate_identity, push.candidate_identity);
+    assert_ne!(first.candidate_identity(), push.candidate_identity());
 }
 
 // r[verify kiln.github.replay]
@@ -533,10 +616,10 @@ fn case_normalization_preserves_native_spelling_without_dedup_bypass() {
     let mut headers = signed("push", &bytes);
     headers.delivery = DELIVERY.to_ascii_uppercase();
     let second = run(admit_event(&policy(), &headers, &bytes, SECRET, 64 * 1024));
-    assert_eq!(first.delivery_id, second.delivery_id);
-    assert_eq!(first.candidate_identity, second.candidate_identity);
-    assert_eq!(second.native_repository.owner, "EXAMPLE");
-    assert_eq!(second.native_repository.name, "PROJECT");
+    assert_eq!(first.delivery_id(), second.delivery_id());
+    assert_eq!(first.candidate_identity(), second.candidate_identity());
+    assert_eq!(second.native_repository().owner, "EXAMPLE");
+    assert_eq!(second.native_repository().name, "PROJECT");
 }
 
 // r[verify kiln.github.events]
@@ -561,4 +644,73 @@ fn repository_policy_respects_core_native_identity_boundary() {
         )),
         "github_event_policy"
     );
+}
+
+fn closed_pull_request(merged: bool) -> Value {
+    let mut payload = pull_request();
+    *payload
+        .get_mut("action")
+        .unwrap_or_else(|| unreachable!("event fixture field exists")) = json!("closed");
+    let pull = payload
+        .get_mut("pull_request")
+        .and_then(Value::as_object_mut)
+        .unwrap_or_else(|| unreachable!("event fixture field exists"));
+    pull.insert("state".into(), json!("closed"));
+    pull.insert("merged".into(), json!(merged));
+    payload
+}
+
+fn admit_closed(body: &Value) -> PortResult<Option<VerifiedEvent>> {
+    let body = serde_json::to_vec(body)
+        .unwrap_or_else(|error| unreachable!("invalid event fixture: {error:?}"));
+    admit_event_with(
+        &policy(),
+        &signed("pull_request", &body),
+        &body,
+        SECRET,
+        64 * 1024,
+        EventAdmission {
+            closed_pull_requests: true,
+        },
+    )
+}
+
+// r[verify kiln.triggers.evaluate]
+// r[verify kiln.triggers.replay]
+#[test]
+fn closed_and_merged_pull_requests_are_opt_in_with_distinct_candidates() {
+    use kiln_core::trigger_filter::PullRequestType;
+    // Default admission is unchanged: closed pull requests are ignored.
+    assert!(matches!(
+        admit(&policy(), "pull_request", &closed_pull_request(true)),
+        Ok(None)
+    ));
+    let opened = run(admit(&policy(), "pull_request", &pull_request()));
+    assert_eq!(opened.pull_request_action(), Some(PullRequestType::Opened));
+    // Opting in admits them with the exact head and the merged flag.
+    let merged = run(admit_closed(&closed_pull_request(true)));
+    let closed = run(admit_closed(&closed_pull_request(false)));
+    assert_eq!(merged.pull_request_action(), Some(PullRequestType::Merged));
+    assert_eq!(closed.pull_request_action(), Some(PullRequestType::Closed));
+    assert_eq!(merged.revision(), SHA);
+    // Closing candidates never replay the opened candidate of the same head.
+    assert_ne!(merged.candidate_identity(), opened.candidate_identity());
+    assert_ne!(merged.candidate_identity(), closed.candidate_identity());
+    assert_ne!(closed.candidate_identity(), opened.candidate_identity());
+    // Opening actions keep their identity whether or not closing is admitted.
+    let reopened_default = run(admit(&policy(), "pull_request", &pull_request()));
+    let opened_opt_in = run(admit_closed(&pull_request()));
+    assert_eq!(
+        opened_opt_in.candidate_identity(),
+        reopened_default.candidate_identity()
+    );
+    // A closed action whose payload still claims an open state is malformed.
+    let mut inconsistent = closed_pull_request(true);
+    if let Some(pull) = inconsistent
+        .get_mut("pull_request")
+        .and_then(Value::as_object_mut)
+    {
+        pull.insert("state".into(), json!("open"));
+    }
+    assert_eq!(code(admit_closed(&inconsistent)), "github_event_payload");
 }

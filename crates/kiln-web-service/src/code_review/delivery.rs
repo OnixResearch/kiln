@@ -246,7 +246,9 @@ fn mentions(body: &str, principal: &str) -> bool {
 }
 
 fn public_changed(before: &domain::Change, after: &domain::Change) -> bool {
-    // Deliberately omit actor-owned file-read preferences.
+    // Deliberately omit actor-owned file-read preferences and non-binding
+    // advisory approvals (r[impl kiln.review.advisory.authority]): neither
+    // adds a delivery or a recipient.
     before.title != after.title
         || before.description != after.description
         || before.state != after.state

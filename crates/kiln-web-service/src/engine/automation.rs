@@ -4,13 +4,15 @@ use crate::automation::{
     AutomationProfile, DeliveryRecord, HttpsRuntime, NotificationProfile, RegistrationState,
     SourceRecord, external, now_ms, secret,
 };
-use kiln_adapter_github::events::{DeliveryHeaders, EventSelector, admit_event};
+use kiln_adapter_github::events::{DeliveryHeaders, EventSelector, admit_event_with};
 use kiln_adapter_webhook::{WebhookAdapter, project_notification};
 use kiln_core::domain::{NotificationIntent, Outcome};
 use kiln_core::types::{EffectId, RunId};
 use kiln_provider_api::{NotificationOutcome, NotificationPort, NotificationRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+
+mod schedule;
 
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -37,6 +39,7 @@ fn settings(enabled: bool, ordinal: u64) -> RegistrationState {
         on_failure: false,
         notification_after_ordinal: ordinal,
         last_status: None,
+        last_fired_ms: None,
     }
 }
 fn key(kind: &str, id: &str) -> String {
@@ -74,19 +77,7 @@ fn sibling_triggers(
         let Some(state) = settings.get(&key("trigger", &trigger.id)) else {
             continue;
         };
-        let matches = match selector {
-            EventSelector::Push { reference } => state.push && &trigger.reference == reference,
-            EventSelector::PullRequest {
-                head_reference,
-                base_reference,
-                ..
-            } => {
-                state.pull_request
-                    && trigger.reference.strip_prefix("refs/heads/")
-                        == Some(head_reference.as_str())
-                    && trigger.pull_request_base.as_ref() == Some(base_reference)
-            }
-        };
+        let matches = crate::automation::filters::selects(trigger, state, selector);
         if state.enabled
             && matches
             && trigger.repository == registration.repository
@@ -196,7 +187,8 @@ enum SelectedEffect {
     Schedule {
         index: usize,
         due: u64,
-        interval: u64,
+        /// `None` for cron schedules.
+        interval: Option<u64>,
     },
     Notification {
         index: usize,
@@ -290,7 +282,11 @@ fn next_effect(
                     SelectedEffect::Schedule {
                         index: *schedule_index,
                         due,
-                        interval: setting.interval_ms.ok_or("schedule interval missing")?,
+                        interval: if registration.cron.is_some() {
+                            None
+                        } else {
+                            Some(setting.interval_ms.ok_or("schedule interval missing")?)
+                        },
                     },
                 )));
             }
@@ -399,8 +395,16 @@ impl Engine {
             }
             for p in &profile.schedules {
                 let mut value = settings(p.enabled, ordinal);
-                value.interval_ms = Some(p.interval_ms);
-                value.next_due_ms = p.next_due_ms;
+                value.interval_ms = p.interval_ms;
+                // A cron schedule starts at its next occurrence after now.
+                value.next_due_ms = match crate::automation::filters::cron(p)? {
+                    Some(cron) if p.enabled => Some(
+                        cron.next_after(now_ms()?)
+                            .ok_or("cron schedule has no occurrence")?,
+                    ),
+                    Some(_) => None,
+                    None => p.next_due_ms,
+                };
                 self.state
                     .automation
                     .settings
@@ -440,6 +444,7 @@ impl Engine {
             if (s.push && !p.push)
                 || (s.pull_request && !p.pull_request)
                 || s.interval_ms.is_some()
+                || s.last_fired_ms.is_some()
                 || s.next_due_ms.is_some()
                 || s.on_success
                 || s.on_failure
@@ -454,8 +459,15 @@ impl Engine {
                 .settings
                 .get(&key("schedule", &p.id))
                 .ok_or("retained schedule missing")?;
-            if s.interval_ms
-                .is_none_or(|v| !(p.min_interval_ms..=p.max_interval_ms).contains(&v))
+            let cadence_valid = match p.cron {
+                Some(_) => s.interval_ms.is_none(),
+                None => {
+                    s.last_fired_ms.is_none()
+                        && s.interval_ms
+                            .is_some_and(|v| (p.min_interval_ms..=p.max_interval_ms).contains(&v))
+                }
+            };
+            if !cadence_valid
                 || (s.enabled && s.next_due_ms.is_none())
                 || s.push
                 || s.pull_request
@@ -477,6 +489,7 @@ impl Engine {
                 || s.push
                 || s.pull_request
                 || s.interval_ms.is_some()
+                || s.last_fired_ms.is_some()
                 || s.next_due_ms.is_some()
             {
                 return Err("retained notification exceeds registered authority".into());
@@ -549,11 +562,12 @@ impl Engine {
         let triggers: Vec<_> = profile.triggers.iter().map(|p| {
             let s = get("trigger", &p.id)?;
             let scope = self.profile.projects.iter().find(|project| project.id == p.project_id).map(|project| project.scope_view()).transpose()?.unwrap_or(Value::Null);
-            Ok(json!({"id":p.id,"project_id":p.project_id,"reference":p.reference,"enabled":s.enabled,"push":s.push,"pull_request":s.pull_request,"allow_push":p.push,"allow_pull_request":p.pull_request,"last_status":s.last_status,"scope":scope}))
+            Ok(json!({"id":p.id,"project_id":p.project_id,"reference":p.reference,"enabled":s.enabled,"push":s.push,"pull_request":s.pull_request,"allow_push":p.push,"allow_pull_request":p.pull_request,"last_status":s.last_status,"scope":scope,"filter":p.filter}))
         }).collect::<Result<_, String>>()?;
         let schedules: Vec<_> = profile.schedules.iter().map(|p| {
             let s = get("schedule", &p.id)?;
-            Ok(json!({"id":p.id,"project_id":p.project_id,"reference":p.reference,"enabled":s.enabled,"interval_ms":s.interval_ms,"min_interval_ms":p.min_interval_ms,"max_interval_ms":p.max_interval_ms,"next_due_ms":s.next_due_ms,"last_status":s.last_status}))
+            let resolved = crate::automation::filters::cron(p)?.map(|cron| cron.resolved().to_string());
+            Ok(json!({"id":p.id,"project_id":p.project_id,"reference":p.reference,"enabled":s.enabled,"interval_ms":s.interval_ms,"cron":p.cron,"resolved_cron":resolved,"min_interval_ms":p.min_interval_ms,"max_interval_ms":p.max_interval_ms,"next_due_ms":s.next_due_ms,"last_fired_ms":s.last_fired_ms,"last_status":s.last_status}))
         }).collect::<Result<_, String>>()?;
         let notifications: Vec<_> = profile.notifications.iter().map(|p| {
             let s = get("notification", &p.id)?;
@@ -561,7 +575,7 @@ impl Engine {
         }).collect::<Result<_, String>>()?;
         let mut sources: Vec<_> = self.state.automation.sources.values().collect();
         sources.sort_by_key(|r| (std::cmp::Reverse(r.received_at_ms), &r.id));
-        let sources: Vec<_> = sources.into_iter().take(profile.status_limit).map(|r| json!({"id":r.id,"kind":r.kind,"registration_id":r.registration_id,"project_id":r.project_id,"received_at_ms":r.received_at_ms,"status":r.status,"run_id":r.run_id,"error_code":r.error_code,"affected":r.affected,"changed":r.changed})).collect();
+        let sources: Vec<_> = sources.into_iter().take(profile.status_limit).map(|r| json!({"id":r.id,"kind":r.kind,"registration_id":r.registration_id,"project_id":r.project_id,"received_at_ms":r.received_at_ms,"status":r.status,"run_id":r.run_id,"error_code":r.error_code,"affected":r.affected,"changed":r.changed,"filter":r.filter,"source_revision":r.source_revision})).collect();
         let mut deliveries: Vec<_> = self.state.automation.deliveries.values().collect();
         deliveries.sort_by_key(|r| (std::cmp::Reverse(r.reserved_at_ms), &r.id));
         let deliveries: Vec<_> = deliveries.into_iter().take(profile.status_limit).collect();
@@ -639,20 +653,36 @@ impl Engine {
                 else {
                     return error(404, "automation_registration_missing");
                 };
-                updated.interval_ms = request.interval_ms.or(updated.interval_ms);
-                updated.next_due_ms = request.next_due_ms.or(updated.next_due_ms);
                 let now = now_ms()?;
-                request.push.is_none()
-                    && request.pull_request.is_none()
-                    && request.on_success.is_none()
-                    && request.on_failure.is_none()
-                    && updated.interval_ms.is_some_and(|v| {
-                        (registration.min_interval_ms..=registration.max_interval_ms).contains(&v)
-                    })
-                    && (!updated.enabled || updated.next_due_ms.is_some())
-                    && request
-                        .next_due_ms
-                        .is_none_or(|v| v >= now && v <= now.saturating_add(31_536_000_000))
+                if let Some(cron) = crate::automation::filters::cron(registration)? {
+                    // Operators only enable or disable a reviewed calendar;
+                    // enabling resumes at the next occurrence, never a missed one.
+                    if updated.enabled && !previous.enabled {
+                        updated.next_due_ms = cron.next_after(now);
+                    }
+                    request.push.is_none()
+                        && request.pull_request.is_none()
+                        && request.on_success.is_none()
+                        && request.on_failure.is_none()
+                        && request.interval_ms.is_none()
+                        && request.next_due_ms.is_none()
+                        && (!updated.enabled || updated.next_due_ms.is_some())
+                } else {
+                    updated.interval_ms = request.interval_ms.or(updated.interval_ms);
+                    updated.next_due_ms = request.next_due_ms.or(updated.next_due_ms);
+                    request.push.is_none()
+                        && request.pull_request.is_none()
+                        && request.on_success.is_none()
+                        && request.on_failure.is_none()
+                        && updated.interval_ms.is_some_and(|v| {
+                            (registration.min_interval_ms..=registration.max_interval_ms)
+                                .contains(&v)
+                        })
+                        && (!updated.enabled || updated.next_due_ms.is_some())
+                        && request
+                            .next_due_ms
+                            .is_none_or(|v| v >= now && v <= now.saturating_add(31_536_000_000))
+                }
             }
             "notification" => {
                 let Some(registration) = profile.notifications.iter().find(|p| p.id == request.id)
@@ -749,12 +779,13 @@ impl Engine {
             return error(409, "trigger_disabled");
         }
         let mut credential = secret(&registration.secret_file)?;
-        let result = admit_event(
+        let result = admit_event_with(
             &registration.repository,
             headers,
             body,
             &credential,
             profile.max_event_bytes,
+            crate::automation::filters::admission(&profile.triggers, &registration.repository),
         );
         credential.fill(0);
         let event = match result {
@@ -774,22 +805,11 @@ impl Engine {
         let mut group = vec![registration.clone()];
         let mut evaluation = None;
         let mut head = None;
+        let mut untrusted_event = None;
+        let mut decisions = Vec::new();
         if let Some(event) = event {
-            let selected = match &event.selector {
-                EventSelector::Push { reference } => {
-                    state.push && reference == &registration.reference
-                }
-                EventSelector::PullRequest {
-                    head_reference,
-                    base_reference,
-                    ..
-                } => {
-                    state.pull_request
-                        && registration.reference.strip_prefix("refs/heads/")
-                            == Some(head_reference.as_str())
-                        && registration.pull_request_base.as_ref() == Some(base_reference)
-                }
-            };
+            let selected =
+                crate::automation::filters::selects(&registration, state, event.selector());
             if !selected {
                 return error(403, "trigger_source_unregistered");
             }
@@ -805,7 +825,7 @@ impl Engine {
                 .revparse_single(&registration.reference)
                 .and_then(|v| v.peel_to_commit())
                 .map_err(|_| "automation reference unavailable")?;
-            if current.id().to_string() != event.revision.to_ascii_lowercase() {
+            if current.id().to_string() != event.revision().to_ascii_lowercase() {
                 return error(409, "trigger_source_stale");
             }
             let exact = current.id().to_string();
@@ -814,7 +834,7 @@ impl Engine {
                 &self.state.automation.settings,
                 &self.profile.projects,
                 &registration,
-                &event.selector,
+                event.selector(),
             )?);
             let projects = group
                 .iter()
@@ -826,7 +846,7 @@ impl Engine {
                         .ok_or("automation project missing")
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            let base = match &event.selector {
+            let base = match event.selector() {
                 EventSelector::Push { reference } => {
                     let key = head_key(project, reference);
                     let base = self.state.automation.heads.get(&key).cloned();
@@ -837,17 +857,61 @@ impl Engine {
                     pull_request_base(&repository, &exact, base_reference)
                 }
             };
+            // One diff serves project scopes and trigger path filters.
+            let scoped = projects.iter().any(|p| p.scope.is_some());
+            let changed = if scoped || crate::automation::filters::needs_changed_files(&group) {
+                crate::monorepo::changed_files(
+                    &repository,
+                    base.as_deref(),
+                    &exact,
+                    crate::monorepo::CHANGED_BOUNDS,
+                )
+            } else {
+                kiln_core::monorepo::ChangedFiles::Exact(Default::default())
+            };
             // Repositories without scoped projects keep today's behaviour exactly.
-            if projects.iter().any(|p| p.scope.is_some()) {
-                evaluation = Some(crate::monorepo::evaluate(
+            if scoped {
+                evaluation = Some(crate::monorepo::evaluate_changed(
                     &project.repository_path,
                     &projects,
-                    base.as_deref(),
+                    &changed,
                     &exact,
                 )?);
             }
-            candidate = Some(event.candidate_identity.as_str().to_string());
-            revision = Some(event.revision);
+            // r[impl kiln.triggers.evaluate]
+            // Filters decide before any run, skip record or untrusted gate.
+            decisions = group
+                .iter()
+                .map(|trigger| {
+                    crate::automation::filters::decide(
+                        trigger,
+                        event.selector(),
+                        event.pull_request_action(),
+                        &changed,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            candidate = Some(event.candidate_identity().as_str().to_string());
+            // r[impl kiln.untrusted.blocked]
+            // Untrusted pull requests reach here only after trigger selection;
+            // their runs are created blocked, bound to the exact commit.
+            if let (
+                Some(reason),
+                EventSelector::PullRequest {
+                    number,
+                    head_repository,
+                    ..
+                },
+            ) = (event.untrusted(), event.selector())
+            {
+                untrusted_event = Some((
+                    reason,
+                    *number,
+                    format!("{}/{}", head_repository.owner, head_repository.name),
+                    exact.clone(),
+                ));
+            }
+            revision = Some(event.revision().to_owned());
         }
         if self
             .state
@@ -873,15 +937,36 @@ impl Engine {
                 .as_ref()
                 .and_then(|e: &crate::monorepo::Evaluation| e.set.decision(&trigger.project_id))
                 .map(kiln_core::monorepo::ProjectDecision::is_affected);
+            // r[impl kiln.triggers.record]
+            let decision = decisions.get_mut(index).and_then(Option::take);
+            let filtered = matches!(
+                decision,
+                Some(kiln_core::trigger_filter::FilterDecision::Skip { .. })
+            );
             let status = if revision.is_none() {
                 "ignored"
+            } else if filtered {
+                "filtered"
             } else if affected == Some(false) {
                 "skipped"
             } else {
                 reserved.push(id.clone());
                 "reserved"
             };
-            if index > 0 || status == "skipped" {
+            let untrusted = match (&untrusted_event, status) {
+                (Some((reason, number, head_repository, exact)), "reserved") => Some(
+                    kiln_core::untrusted::UntrustedGate::new(
+                        *reason,
+                        *number,
+                        head_repository.clone(),
+                        exact.clone(),
+                        trigger.untrusted_results_satisfy_required_ci,
+                    )
+                    .map_err(|_| "untrusted pull request gate invalid")?,
+                ),
+                _ => None,
+            };
+            if index > 0 || status == "skipped" || status == "filtered" {
                 if let Some(settings) = self
                     .state
                     .automation
@@ -907,6 +992,8 @@ impl Engine {
                     candidate_identity: candidate.clone(),
                     affected: evaluation.as_ref().map(|e| e.set.clone()),
                     changed: evaluation.as_ref().map(|e| e.changed),
+                    untrusted,
+                    filter: decision,
                 },
             );
         }
@@ -956,6 +1043,7 @@ impl Engine {
             .run_affected(&reservation.project_id),
             _ => None,
         };
+        self.pending_untrusted = reservation.untrusted.clone();
         let response = self.api_as(
             "POST",
             "/api/runs",
@@ -963,6 +1051,7 @@ impl Engine {
             &principal,
         );
         self.automation_affected = None;
+        self.pending_untrusted = None;
         let response = response?;
         let value: Value = serde_json::from_slice(&response.body)
             .map_err(|_| "automation run response invalid")?;
@@ -973,7 +1062,12 @@ impl Engine {
             .get_mut(id)
             .ok_or("automation source reservation missing")?;
         record.run_id = value.get("id").and_then(Value::as_str).map(str::to_string);
-        record.status = if record.run_id.is_some() {
+        record.status = if record.run_id.is_some()
+            && value.get("phase").and_then(Value::as_str)
+                == Some(super::untrusted::AWAITING_APPROVAL)
+        {
+            super::untrusted::AWAITING_APPROVAL
+        } else if record.run_id.is_some() {
             "queued"
         } else if response.status >= 500 {
             "ambiguous"
@@ -1026,6 +1120,11 @@ impl Engine {
                         .schedules
                         .get(index)
                         .ok_or("schedule registration missing")?;
+                    let Some(interval) = interval else {
+                        let schedule = schedule.clone();
+                        self.reserve_cron(&schedule, due, now, next)?;
+                        continue;
+                    };
                     let reservation = digest(&("schedule", &schedule.id, due))?;
                     // Skip missed intervals; persist advance and rotation before dispatch.
                     let next_due = due
@@ -1059,6 +1158,8 @@ impl Engine {
                             candidate_identity: None,
                             affected: None,
                             changed: None,
+                            untrusted: None,
+                            filter: None,
                         });
                     self.state.automation.next_registration = next;
                     self.persist()?;

@@ -4,7 +4,9 @@
 //! answers `ping`, and runs at most one job per boot: it sets the clock, mixes
 //! the host seed into the entropy pool, extracts the read-only source drive into
 //! tmpfs and runs each step as an unprivileged user with no new privileges in
-//! its own process group, under a deadline and output bounds.
+//! its own process group, under a deadline and output bounds. After a failed
+//! run it keeps the session open and runs host-relayed debug commands the same
+//! way, for an opt-in debug hold.
 //!
 //! `probe` subcommands exist only for the guest-escape suite: they exit 0 when
 //! the attempted connection is denied and 1 when it succeeds.
@@ -21,7 +23,7 @@ use kiln_microvm::protocol::{
     self, GuestMessage, GuestStep, HostMessage, StepReport, decode_host, encode, frame_length,
     guest_frame,
 };
-use kiln_microvm::{AGENT_PORT, GUEST_GID, GUEST_UID, GUEST_WORKSPACE, HOST_CID};
+use kiln_microvm::{AGENT_PORT, GUEST_GID, GUEST_UID, GUEST_WORKSPACE, HOST_CID, debug_hold};
 use nix::sys::signal::{Signal, killpg};
 use nix::sys::socket::{AddressFamily, SockFlag, SockType, VsockAddr, connect, socket};
 use nix::unistd::Pid;
@@ -109,10 +111,11 @@ fn serve(source: &str, busybox: &str) -> ExitCode {
         return ExitCode::FAILURE;
     }
     let mut ran = false;
+    let mut debuggable = false;
     loop {
         match vsock_stream(HOST_CID, AGENT_PORT) {
             Ok(stream) => {
-                if let Err(error) = session(stream, source, busybox, &mut ran) {
+                if let Err(error) = session(stream, source, busybox, &mut ran, &mut debuggable) {
                     eprintln!("kiln guest session ended: {error}");
                 }
             }
@@ -140,6 +143,7 @@ fn session(
     source: &str,
     busybox: &str,
     ran: &mut bool,
+    debuggable: &mut bool,
 ) -> Result<(), String> {
     loop {
         let frame = decode_host(&read_frame(&mut stream)?)?;
@@ -164,33 +168,57 @@ fn session(
                 }
                 *ran = true;
                 if let Err(error) = prepare(clock_unix_ms, &entropy_hex, source, busybox) {
-                    return send(
+                    *debuggable = true;
+                    send(
                         &mut stream,
                         GuestMessage::Done {
                             nonce,
                             admission_error: Some(error),
                         },
-                    );
+                    )?;
+                    continue;
                 }
                 let deadline = received + Duration::from_millis(deadline_ms);
+                let mut failed = false;
                 for (index, step) in steps.iter().enumerate() {
                     let report = run_step(index, step, deadline);
-                    let success = report.exit_code == Some(0)
-                        && !report.timed_out
-                        && !report.stdout_truncated
-                        && !report.stderr_truncated;
+                    let success = debug_hold::step_succeeded(&report);
                     send(&mut stream, GuestMessage::Step(report))?;
                     if !success {
+                        failed = true;
                         break;
                     }
                 }
-                return send(
+                // The session stays open: only a failed run may be debugged.
+                *debuggable = failed;
+                send(
                     &mut stream,
                     GuestMessage::Done {
                         nonce,
                         admission_error: None,
                     },
-                );
+                )?;
+            }
+            HostMessage::Debug {
+                nonce,
+                deadline_ms,
+                step,
+            } => {
+                if !*debuggable {
+                    send(
+                        &mut stream,
+                        GuestMessage::Done {
+                            nonce,
+                            admission_error: Some(
+                                "debug requires a failed run in this microVM".into(),
+                            ),
+                        },
+                    )?;
+                    continue;
+                }
+                let deadline = Instant::now() + Duration::from_millis(deadline_ms);
+                let report = run_step(0, &step, deadline);
+                send(&mut stream, GuestMessage::Debug { nonce, report })?;
             }
         }
     }

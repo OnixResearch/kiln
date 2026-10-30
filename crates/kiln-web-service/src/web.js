@@ -477,6 +477,8 @@
   function isFailedRun(run) { return runStatus(run) === "failure"; }
   function isRunningRun(run) { return runStatus(run) === "running"; }
   const FAILED_NODE_STATE = /^(failed|error)$/i;
+  // Phases without a provider execution; cancel removes the exact request before dispatch.
+  const WAITING_PHASES = new Set(["queued", "awaiting_approval"]);
   function livePill(outcome, phase) {
     const pill = ui.statusPill(outcome, phase);
     if (pill.dataset.status === "running") pill.classList.add("is-live");
@@ -548,6 +550,7 @@
     const affected = ui.affectedSummary(run.affected);
     addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ...(affected?.identity ? [["Affected-set BLAKE3", affected.identity]] : [])]);
     renderWhy(affected);
+    renderUntrusted(run);
     $("execution-identity").textContent = text(run.execution);
     renderLiveProgress(run);
     const defaults = failureDefaults(run);
@@ -590,6 +593,33 @@
     if (affected.changed) target.append(element("p", affected.changed, "meta"));
     target.append(affected.reasons.length ? ui.reasonList(affected.reasons) : element("p", "No reason was recorded for this run.", "small"));
   }
+  // r[impl kiln.untrusted.console] An untrusted pull-request run's gate: state, reason, approver, approved commit and
+  // whether its result counts for required CI. Trusted runs carry no gate and show nothing here.
+  function renderUntrusted(run) {
+    const target = $("run-untrusted");
+    const gate = ui.untrustedSummary(run.untrusted);
+    target.hidden = !gate;
+    if (!gate) { target.replaceChildren(); return; }
+    const heading = element("h3", "Untrusted pull request");
+    heading.id = "run-untrusted-title";
+    const head = element("div", undefined, "run-untrusted-head");
+    head.append(heading, statePill(gate.tone, gate.stateLabel, gate.state));
+    const approver = gate.approvedBy === null ? "Not approved" : gate.approvedById && gate.approvedById !== gate.approvedBy ? `${gate.approvedBy} (${gate.approvedById})` : gate.approvedBy;
+    const facts = element("dl", undefined, "facts");
+    addFacts(facts, [
+      ["Why untrusted", gate.reasonText],
+      ["Pull request", gate.pullRequest === null ? null : `#${gate.pullRequest}`],
+      ["Head repository", gate.headRepository],
+      ["Exact commit", gate.sourceCommit],
+      ["Approved by", approver],
+      ["Approved commit", gate.approvedCommit ?? "Not approved"],
+      ["Approved", gate.approvedAtMs === null ? "Not approved" : timestamp(gate.approvedAtMs)],
+      ["Counts for required CI", gate.countsForRequiredCi ? "Yes, for this exact commit only" : "No"],
+      ...(gate.supersededBy ? [["Superseded by", workspaceLink({ page: "runs", run: gate.supersededBy, node: "", stream: "", view: "pipeline" }, gate.supersededBy)]] : []),
+    ]);
+    const note = gate.awaitingApproval ? "Nothing runs until an operator approves this exact commit; a new commit needs a new approval." : "Approved untrusted runs and their retries run only on untrusted-capable runners, without secrets, workload token or cache.";
+    target.replaceChildren(head, facts, element("p", `${note} Approving a run is not a code-review approval.`, "small"));
+  }
   function renderStepTelemetry(run) {
     const target = $("step-telemetry");
     target.replaceChildren();
@@ -614,11 +644,17 @@
   function updateControlButtons() {
     const run = state.run;
     const fresh = state.connected && Date.now() - state.observedAt < CONTROL_FRESHNESS_MS;
-    for (const action of ["cancel", "pause", "resume"]) $("control-" + action).disabled = !canOperate() || state.mutation || !fresh || !(exactIdentity(run) || (action === "cancel" && run?.phase === "queued")) || run.controls?.[action] !== true;
-    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "failed" && !run.nodes?.some((node) => FAILED_NODE_STATE.test(node.state)));
-    $("control-note").textContent = !canOperate() ? "Read-only principal. Execution mutations are disabled." : run?.phase === "queued" ? "Queued work has no provider execution yet. Cancel removes this exact queued request before dispatch." : !run ? "Select a run to inspect controls." : !exactIdentity(run) ? "Exact control identity unavailable. No approximate identity will be sent." : !fresh ? "Snapshot stale or live observation disconnected. Refresh before control." : "Only advertised capabilities are enabled. Fresh reads and confirmation bind controls to the exact execution.";
+    const waiting = WAITING_PHASES.has(run?.phase);
+    const gate = ui.untrustedSummary(run?.untrusted);
+    for (const action of ["cancel", "pause", "resume"]) $("control-" + action).disabled = !canOperate() || state.mutation || !fresh || !(exactIdentity(run) || (action === "cancel" && waiting)) || run.controls?.[action] !== true;
+    // Untrusted runs retry only their exact approved commit; the service refuses latest-source retries.
+    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "latest" && Boolean(gate)) || (mode === "failed" && !run.nodes?.some((node) => FAILED_NODE_STATE.test(node.state)));
+    $("control-note").textContent = !canOperate() ? "Read-only principal. Execution mutations are disabled." : gate?.awaitingApproval ? "This untrusted pull-request run waits for an operator to approve its exact commit. Nothing has executed. Cancel removes it before dispatch." : run?.phase === "queued" ? "Queued work has no provider execution yet. Cancel removes this exact queued request before dispatch." : !run ? "Select a run to inspect controls." : !exactIdentity(run) ? "Exact control identity unavailable. No approximate identity will be sent." : !fresh ? "Snapshot stale or live observation disconnected. Refresh before control." : "Only advertised capabilities are enabled. Fresh reads and confirmation bind controls to the exact execution.";
     // r[impl kiln.web.failure_first_run] Header shortcuts mirror the disclosure controls: same enablement, same confirmation.
     const operate = canOperate() && Boolean(run);
+    // r[impl kiln.untrusted.console] Approval is offered to operators only, while the run still awaits it.
+    $("header-approve").hidden = !(operate && gate?.awaitingApproval && gate.sourceCommit);
+    $("header-approve").disabled = state.mutation || !fresh;
     $("header-cancel").hidden = !(operate && run.controls?.cancel === true);
     $("header-cancel").disabled = $("control-cancel").disabled;
     $("header-rerun").hidden = !(operate && !["running", "queued"].includes(runStatus(run)));
@@ -735,14 +771,31 @@
     try {
       const freshRun = await loadDetail();
       const run = state.run;
-      const queuedCancel = action === "cancel" && run?.phase === "queued";
+      const queuedCancel = action === "cancel" && WAITING_PHASES.has(run?.phase);
       if (!freshRun || state.selected !== id || (!queuedCancel && !exactIdentity(run)) || run.controls?.[action] !== true || !state.connected) throw new Error("This exact execution no longer advertises the requested control. Nothing was sent.");
       const identity = queuedCancel ? { action } : structuredClone({ action, attempt_id: run.attempt_id, expected_revision: run.revision, expected_sequence: run.sequence, execution: run.execution });
       state.confirm = { id, identity };
       const subject = `"${text(projectLabel(run.project_id))}"`;
-      const wording = { cancel: [`Cancel run ${subject}?`, "Cancel run", queuedCancel ? "Keep queued" : "Keep running"], pause: [`Pause run ${subject}?`, "Pause run", "Keep running"], resume: [`Resume run ${subject}?`, "Resume run", "Keep paused"] }[action];
+      const wording = { cancel: [`Cancel run ${subject}?`, "Cancel run", queuedCancel ? (run.phase === "awaiting_approval" ? "Keep awaiting approval" : "Keep queued") : "Keep running"], pause: [`Pause run ${subject}?`, "Pause run", "Keep running"], resume: [`Resume run ${subject}?`, "Resume run", "Keep paused"] }[action];
       confirmWording(...wording, action === "cancel");
       addFacts($("confirm-facts"), [["Run", id], ["Source", run.source_revision], ["Attempt", identity.attempt_id], ["Revision", identity.expected_revision], ["Sequence", identity.expected_sequence], ["Execution", identity.execution]]);
+      $("control-dialog").showModal();
+      $("dismiss-control").focus();
+    } catch (error) { if (!isAborted(error)) notice(explain(error)); }
+  }
+  // r[impl kiln.untrusted.console] Approval goes through the shared confirmation dialog and binds the exact commit
+  // shown; the service rechecks the interactive operator, the commit and the untrusted-capable runner.
+  async function prepareApprove() {
+    if (!canOperate()) return;
+    const id = state.selected;
+    try {
+      const freshRun = await loadDetail();
+      const run = state.run;
+      const gate = ui.untrustedSummary(run?.untrusted);
+      if (!freshRun || state.selected !== id || !gate?.awaitingApproval || !gate.sourceCommit || !state.connected) throw new Error("This run no longer awaits approval of an exact commit. Nothing was sent.");
+      state.confirm = { id, approve: { source_commit: gate.sourceCommit } };
+      confirmWording(`Approve untrusted run "${text(projectLabel(run.project_id))}"?`, "Approve and run", "Keep blocked", false);
+      addFacts($("confirm-facts"), [["Run", id], ["Pull request", gate.pullRequest === null ? null : `#${gate.pullRequest}`], ["Head repository", gate.headRepository], ["Exact commit", gate.sourceCommit], ["Why untrusted", gate.reasonText], ["Execution", "Untrusted-capable runner only, without secrets, workload token or cache, including retries"], ["Review effect", "None. This is not a code-review approval"]]);
       $("control-dialog").showModal();
       $("dismiss-control").focus();
     } catch (error) { if (!isAborted(error)) notice(explain(error)); }
@@ -987,7 +1040,7 @@
     stopLiveTicker();
     state.runSort = null; state.failureFirst = null; state.followDeclined = ""; state.startProject = "";
     $("run-progress").hidden = true;
-    for (const id of ["header-cancel", "header-rerun"]) $(id).hidden = true;
+    for (const id of ["header-approve", "header-cancel", "header-rerun"]) $(id).hidden = true;
     for (const id of ["work-content", "planning-content", "inbox-content", "triage-content", "workviews-content"]) $(id).replaceChildren();
     window.dispatchEvent(new Event("kiln-session-changed"));
     for (const controller of state.requests) controller.abort();
@@ -1012,7 +1065,7 @@
     state.detailGeneration++;
     state.artifactsGeneration++;
     resetLogs();
-    for (const id of ["run-list", "run-title", "run-facts", "run-exact-facts", "retained-run-options", "run-badges", "run-warning", "run-why", "execution-identity", "node-list", "step-telemetry", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
+    for (const id of ["run-list", "run-title", "run-facts", "run-exact-facts", "retained-run-options", "run-badges", "run-warning", "run-why", "run-untrusted", "execution-identity", "node-list", "step-telemetry", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
     for (const id of ["available-project", "enrolled-project", "run-filter", "log-node"]) $(id).replaceChildren();
     state.principal = null;
     state.permissions = {};
@@ -1177,7 +1230,13 @@
       review_change: (params.get("review_change") || "").slice(0, 128), review_revision: (params.get("review_revision") || "").slice(0, 128), review_base: (params.get("review_base") || "").slice(0, 128),
       review_file: (params.get("review_file") || "").slice(0, 1024), review_side: ["base", "revision"].includes(params.get("review_side")) ? params.get("review_side") : "", review_line: (params.get("review_line") || "").slice(0, 16),
       review_whitespace: ["exact", "ignore_all", "ignore_change", "ignore_eol"].includes(params.get("review_whitespace")) ? params.get("review_whitespace") : "",
+      // r[impl kiln.review.interdiff.route] Interdiff (<from>..<to> revision ids, optional jj change id), commit range and comparison mode.
+      review_interdiff: /^[0-9a-f]{64}\.\.[0-9a-f]{64}$/.test(params.get("review_interdiff") || "") ? params.get("review_interdiff") : "",
+      review_interdiff_change: /^[k-z]{32}$/.test(params.get("review_interdiff_change") || "") ? params.get("review_interdiff_change") : "",
+      review_commits: /^[0-9a-f]{40}\.\.[0-9a-f]{40}$/.test(params.get("review_commits") || "") ? params.get("review_commits") : "",
+      review_mode: params.get("review_mode") === "structural" ? "structural" : "",
       review_q: (params.get("review_q") || "").slice(0, 256), review_view: ["all", "awaiting_review", "owned_needs_revision", "unresolved"].includes(params.get("review_view")) ? params.get("review_view") : "", review_status: ["open", "abandoned", "submitted"].includes(params.get("review_status")) ? params.get("review_status") : "",
+      review_advisory: ["with", "without"].includes(params.get("review_advisory")) ? params.get("review_advisory") : "",
       review_offset: /^[0-9]{1,8}$/.test(params.get("review_offset") || "") ? params.get("review_offset") : "",
       review_notification_offset: /^[0-9]{1,8}$/.test(params.get("review_notification_offset") || "") ? params.get("review_notification_offset") : "",
       review_operation_offset: /^[0-9]{1,8}$/.test(params.get("review_operation_offset") || "") ? params.get("review_operation_offset") : "",
@@ -3033,6 +3092,7 @@
   // r[impl kiln.web.failure_first_run] Header Rerun/Cancel reuse the exact confirmation flows of the disclosure buttons.
   $("header-cancel").addEventListener("click", () => { void prepareControl("cancel"); });
   $("header-rerun").addEventListener("click", () => { void prepareRerun("exact"); });
+  $("header-approve").addEventListener("click", () => { void prepareApprove(); });
   $("log-jump-error").addEventListener("click", jumpToFirstError);
   $("dismiss-control").addEventListener("click", dismissControl);
   $("control-dialog").addEventListener("cancel", dismissControl);
@@ -3041,7 +3101,8 @@
     const pending = state.confirm;
     if (!pending || state.mutation) return;
     dismissControl();
-    if (pending.mode) await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" }); });
+    if (pending.approve) await mutate(`${pathFor(pending.id)}/approve`, pending.approve, "Approval admitted for this exact commit. Observe the run for dispatch and its outcome; no success is inferred.");
+    else if (pending.mode) await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" }); });
     else await mutate(`${pathFor(pending.id)}/control`, pending.identity, "Control response received. Observe admitted state for its result; no success is inferred.");
     if (state.session && pending.id === state.selected) await readAction(loadDetail)();
   });

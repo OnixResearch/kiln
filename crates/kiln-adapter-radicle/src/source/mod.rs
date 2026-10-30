@@ -1,3 +1,4 @@
+mod canonical;
 mod error;
 mod profile;
 mod protocol;

@@ -416,7 +416,7 @@ impl Engine {
             .values()
             .filter(|run| {
                 projects.contains(run.project_id.as_str())
-                    && run.phase != "queued"
+                    && !run.waiting()
                     && !run.outcome().is_terminal()
             })
             .count();

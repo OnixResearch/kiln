@@ -28,6 +28,17 @@ pub struct RunBinding {
     /// Scoped project root jobs start in; absent for unscoped projects.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_root: Option<String>,
+    /// Untrusted pull-request gate projection; absent for trusted runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub untrusted: Option<Value>,
+}
+impl RunBinding {
+    // r[impl kiln.untrusted.execution]
+    /// Untrusted bindings run only on declared workers and never restore or
+    /// publish cache entries.
+    pub fn is_untrusted(&self) -> bool {
+        self.untrusted.is_some()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

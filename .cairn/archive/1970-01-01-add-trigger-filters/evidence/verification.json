@@ -1,0 +1,57 @@
+{
+  "schema": "kiln.trigger-filters.verification.v1",
+  "date": "2026-10-30",
+  "issue": "https://github.com/OnixResearch/kiln/issues/13",
+  "maintenance_owner": "Kiln maintainers (kiln_core::trigger_filter, change_review optional_ci); hosted maintainers (pipelines triggers, migrate, execution trigger gate); web-service maintainers (automation filters, GitHub adapter action admission)",
+  "commands": [
+    {
+      "command": "CARGO_TARGET_DIR=~/.cargo-target/Triggers nix develop path:. --command cargo test --offline -p kiln-core --lib -- trigger_filter optional_ci",
+      "result": "7 passed, 0 failed"
+    },
+    {
+      "command": "cargo test --offline -p kiln-adapter-github --lib events",
+      "result": "17 passed, 0 failed (includes closed_and_merged_pull_requests_are_opt_in_with_distinct_candidates)"
+    },
+    {
+      "command": "cargo test --offline -p kiln-hosted --lib pipelines",
+      "result": "11 passed, 0 failed (4 new trigger tests + 7 existing unchanged)"
+    },
+    {
+      "command": "cargo test --offline -p kiln-web-service --test engine -- triggers automation monorepo",
+      "result": "17 passed, 0 failed (existing automation/monorepo replay tests pass with filter-free profiles)"
+    },
+    {
+      "command": "cargo clippy --offline -p kiln-core -p kiln-adapter-github -p kiln-web-service -p kiln-hosted --all-targets --keep-going -- -D warnings",
+      "result": "no findings in this change's files; remaining findings are in peers' in-progress files (change_review_advisory_tests.rs, untrusted/tests.rs, events/tests.rs untrusted region, tests/engine/automation.rs untrusted region)"
+    },
+    {
+      "command": "cargo fmt --check (scoped)",
+      "result": "this change's hunks formatted; other diffs belong to peers"
+    },
+    {
+      "command": "nickel typecheck config/web-automation.ncl config/hosted-*.ncl config/web-code-review.ncl; nickel export positive fixtures; negative fixtures",
+      "result": "typecheck ok; web-automation-positive, hosted-pipeline-triggers-positive, web-code-review-positive export; 5 negative-web-automation-* and 5 negative-hosted-pipeline-* fixtures rejected; nickel format --check config/hosted-*.ncl config/fixtures/*hosted*.ncl ok"
+    },
+    {
+      "command": "nix flake check",
+      "result": "nix flake check path:. --no-write-lock-file --keep-going --option builders '' --max-jobs 4 on the final source tree: all checks passed (every exported check, including tests, clippy, format, nickel, live-console-ui, github-protocol-fixtures, octet, no-std, boundaries, cohort and package checks); the check omits incompatible aarch64-linux systems by default"
+    }
+  ],
+  "acceptance": {
+    "1_existing_replay_unchanged": "TriggerFilter/optional_ci/filter/pull_request_action/event fields are serde-default and omitted when empty; unfiltered_triggers_keep_plan_bytes_and_filtered_objects_round_trip (bare string triggers, no schedules key), empty_filters_serialize_to_nothing_and_unknown_keys_fail, optional_ci_rules_are_bounded_unique_and_omitted_when_empty; existing engine automation/monorepo suites and hosted review test pass unchanged; opened/reopened/synchronize candidate identities unchanged (adapter test)",
+    "2_fixtures_match_non_match_unknown": "branch_tag_type_and_path_filters_match_and_exclude, unknown_changed_files_run_with_the_fallback_reason, hosted_selection_records_match_or_exclusions_and_unknown_files_run, engine path_filter_runs_on_unknown_files_and_records_exclusion_without_a_run; Nickel positive/negative fixtures",
+    "3_required_check_unmet_unless_optional": "filtered_required_check_is_unmet_unless_policy_covers_every_changed_path (no rule unmet; covered exact paths waived; one outside path unmet; unknown/incomplete files unmet; failed run blocks; other required projects still required)",
+    "4_migrate_round_trip": "migrate_maps_actions_filters_and_round_trips (push branches+paths, pull_request branches+types incl. closed->closed+merged; serialize+compile equals migrated plan; *-ignore, ! negation, unknown types rejected with paths)",
+    "record_on_runs_and_non_runs": "web: SourceRecord.filter Run{reasons}/Skip{excluded_by} with status 'filtered' and no run (engine test); hosted: execution trigger_gate stores 'skipped' attempt with excluded list and adds trigger{index,event,reasons} to run results"
+  },
+  "trade_offs": [
+    "Hosted source events and changed files describe the customer workspace; they decide hosted plan execution, not review CI.",
+    "Web registrations keep one exact head reference; branches widen pull-request bases and restrict pushes.",
+    "Sibling selection still takes the first registration per project; its filter decides that project's record.",
+    "Matched reasons are recorded on the automation source record linked by run_id, not duplicated into RunRecord, to avoid changing the shared enqueue path."
+  ],
+  "not_run": [
+    "disposable-instance HTTP smoke on 127.0.0.1:9565",
+    "hosted execution trigger_gate dedicated unit test (covered by compile + select tests; run_pipeline needs operator execution config)"
+  ]
+}

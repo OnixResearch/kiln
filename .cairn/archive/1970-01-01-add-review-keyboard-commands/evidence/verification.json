@@ -1,0 +1,45 @@
+{
+  "schema": "kiln.review-keyboard.verification.v1",
+  "date": "2026-10-31",
+  "issue": "https://github.com/OnixResearch/kiln/issues/9",
+  "maintenance_owner": "Kiln web-service maintainers (code-review.js keyboard layer, help overlay, console CSS); console test maintainers (tests/live-console-ui.test.mjs)",
+  "commands": [
+    {
+      "command": "node --test tests/live-console-ui.test.mjs",
+      "result": "pass: 38 tests, including the new resolution/suppression test and the command-table/help test"
+    },
+    {
+      "command": "nix develop path:. -c cargo test --locked -p kiln-web-service --lib",
+      "result": "pass: 134 passed, 1 ignored"
+    },
+    {
+      "command": "nix build --no-link --option builders '' path:.#checks.x86_64-linux.live-console-ui path:.#checks.x86_64-linux.format path:.#checks.x86_64-linux.clippy path:.#checks.x86_64-linux.tests",
+      "result": "pass on the final tree: live-console-ui 38 tests; format and clippy built clean; workspace tests 1201 passed, 0 failed across 139 binaries"
+    },
+    {
+      "command": "disposable-instance browser check (throwaway scratch: isolated CA/leaf, exact jj source with a.txt changed at lines 2 and 30 and b.txt, one revision, one published unresolved blocking thread; code review write principal local:operator; kiln-web-service serve on 127.0.0.1; headless Chromium)",
+      "result": "pass: every shortcut exercised against the real served page"
+    }
+  ],
+  "acceptance": {
+    "1 navigation": "j selected b.txt and k returned to a.txt through the existing file links; n focused the first hunk mark and n again the second, p returned to the first; u focused the next unviewed hunk and U the previous one (wrapping, following the focused hunk); t routed to the unresolved thread's exact line (review_line=2 with the selected line marked) and T the previous one; m switched table cr-unified to cr-split and back; s focused the submit requirements heading; ? opened 'Keyboard shortcuts' with 15 rows and Escape closed it",
+    "2 actions": "v toggled the focused hunk's viewed marker (one command POST; the marker became viewed); V toggled every hunk of the displayed file (one POST; both viewed) and toggled back; v with no focused hunk did nothing and sent nothing; d opened the anchored draft drawer with a.txt, lines 2-2 and focus on the comment field, sending nothing; P opened 'Publish review on \"Keyboard review\"?' with principal, change, vote revision/commit and anchored drafts, and Cancel closed it with zero POSTs",
+    "3 inert": "typing 'jnvm?u' in the draft comment kept the text, changed no file, layout or marker and sent nothing; Shift+P inside the field inserted 'p' instead of opening the confirmation; Control+j was inert both inside the field and outside it; the node test covers editable targets, open dialogs, IME composition, Control/Meta/Alt, unknown keys and letter shift-state",
+    "4 same confirmation and request identity as pointer": "the keyboard layer never calls command(): v/V/P/m invoke the existing buttons, d only seeds and focuses the existing fields, and navigation invokes the existing links. The publish confirmation and its request identity therefore come from the pointer path; cancellation sent no request"
+  },
+  "design_notes": [
+    "The command table drives both the key handler and the help overlay, so the documented keys cannot drift from the bound ones (node test compares both).",
+    "Discussion threads render data-resolved for a stable unresolved-thread selector; the visible pill and accessible names are unchanged.",
+    "Help accepts the produced '?' key and layout-independent Shift+/; Shift is the discriminator for letter bindings, so Caps Lock resolves the unshifted command."
+  ],
+  "trade_offs": [
+    "File and thread shortcuts route like their links, so focus returns to the document after the redraw; consecutive presses derive the target from aria-current or the routed line.",
+    "Hunk navigation clamps at the ends; unviewed navigation wraps.",
+    "Toggling a viewed marker redraws the diff and drops focus, as the pointer path already does."
+  ],
+  "not_run": [
+    "whole nix flake check (the affected checks were built individually)",
+    "live deployment check",
+    "no committed browser-automation rail: the shortcut target mapping is documented in docs/operator.md and observed in the recorded disposable browser check, not re-run by a repository test"
+  ]
+}

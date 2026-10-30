@@ -56,7 +56,7 @@ pub(super) fn reference_target(repository: &Repository, reference: &str) -> Port
         })
 }
 
-fn read_blob(
+pub(super) fn read_blob(
     repository: &Repository,
     commit: &git2::Commit<'_>,
     path: &str,
@@ -74,7 +74,7 @@ fn read_blob(
     Ok(blob.content().to_vec())
 }
 
-fn parse_refs(
+pub(super) fn parse_refs(
     profile: &RadicleSourceProfile,
     bytes: &[u8],
 ) -> PortResult<(BTreeMap<String, Oid>, Vec<u8>)> {

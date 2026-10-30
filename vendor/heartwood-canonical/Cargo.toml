@@ -1,0 +1,30 @@
+[package]
+name = "heartwood-canonical"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Vendored Radicle canonical-reference computation (heartwood 71a91042)"
+
+[lib]
+name = "heartwood_canonical"
+path = "src/lib.rs"
+
+[dependencies]
+git2 = { version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
+indexmap = { version = "2", default-features = false, features = ["serde", "std"] }
+log = "0.4"
+fast-glob = "0.3"
+nonempty = { version = "=0.9.0", features = ["serialize"] }
+radicle-crypto = { version = "=0.19.0", default-features = false, features = ["ssh", "alloc", "multibase", "std", "radicle-git-ref-format"] }
+radicle-git-ref-format = { version = "=0.2.0", default-features = false, features = ["serde"] }
+radicle-oid = { version = "=0.2.2", default-features = false, features = ["git2", "serde", "sha1", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"

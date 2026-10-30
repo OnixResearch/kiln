@@ -17,10 +17,16 @@ mod classes;
 mod diff;
 mod grammar;
 mod lines;
+mod structural;
 
 use serde::{Serialize, Serializer};
 
 pub use diff::{DiffFile, DiffRow, DiffSide, highlight_diff, highlight_diff_files};
+pub use structural::{
+    MAX_STRUCTURAL_BYTES, MAX_STRUCTURAL_NODES, MAX_STRUCTURAL_STEPS, MovedBlock, RowSide,
+    STRUCTURAL_CONTEXT_LINES, StructuralBounds, StructuralFallback, StructuralFile, StructuralHunk,
+    StructuralOutcome, StructuralRow, structural_diff,
+};
 
 /// Schema identifier carried by every serialized [`Highlight`].
 pub const SCHEMA: &str = "kiln.highlight.v1";
@@ -344,5 +350,7 @@ fn textual(bytes: &[u8]) -> Option<&str> {
     std::str::from_utf8(bytes).ok()
 }
 
+#[cfg(test)]
+mod structural_tests;
 #[cfg(test)]
 mod tests;

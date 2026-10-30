@@ -286,15 +286,17 @@ impl Store {
             }
         }
         for run in state.runs.values() {
+            super::untrusted::validate_stored(run)?;
             if !matches!(
                 run.phase.as_str(),
                 "queued"
+                    | super::untrusted::AWAITING_APPROVAL
                     | "dispatch_reserved"
                     | "control_reserved"
                     | "active"
                     | "unknown"
                     | "terminal"
-            ) || run.phase == "queued"
+            ) || (run.phase == "queued" || run.phase == super::untrusted::AWAITING_APPROVAL)
                 && (run.observation.is_some()
                     || run.outcome() != kiln_core::domain::Outcome::Pending
                     || !run.artifacts.is_empty()

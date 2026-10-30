@@ -126,8 +126,30 @@ impl RadicleStatusProfile {
         signer: SecretSpecDeclaration,
         executable: PinnedSecretSpecExecutable,
     ) -> Self {
+        Self::pinned_for(
+            PINNED_PROFILE_ID,
+            CI_JOB_TYPE_NAME,
+            &REQUIRED_NON_CLAIMS,
+            allowed_rids,
+            signer_identity,
+            signer,
+            executable,
+        )
+    }
+
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn pinned_for(
+        profile_id: &str,
+        object_type: &str,
+        non_claims: &[&str],
+        allowed_rids: BTreeSet<String>,
+        signer_identity: ExternalRef,
+        signer: SecretSpecDeclaration,
+        executable: PinnedSecretSpecExecutable,
+    ) -> Self {
         Self {
-            id: ProviderProfileId::new(PINNED_PROFILE_ID).unwrap_or_else(|_| unreachable!()),
+            id: ProviderProfileId::new(profile_id).unwrap_or_else(|_| unreachable!()),
             platform: PINNED_PLATFORM.to_string(),
             radicle_cohort: PINNED_RADICLE_COHORT.to_string(),
             radicle_cob_version: PINNED_RADICLE_COB_VERSION.to_string(),
@@ -147,7 +169,7 @@ impl RadicleStatusProfile {
             secretspec_license: PINNED_SECRETSPEC_LICENSE.to_string(),
             radicle_license: PINNED_RADICLE_LICENSE.to_string(),
             allowed_rids,
-            allowed_object_type: CI_JOB_TYPE_NAME.to_string(),
+            allowed_object_type: object_type.to_string(),
             max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
             max_objects_scanned: DEFAULT_MAX_OBJECTS_SCANNED,
             signer_identity,
@@ -156,7 +178,7 @@ impl RadicleStatusProfile {
             allow_network_peers: false,
             allow_merge_authority: false,
             allow_canonical_state_mutation: false,
-            non_claims: REQUIRED_NON_CLAIMS.map(str::to_string).to_vec(),
+            non_claims: non_claims.iter().map(ToString::to_string).collect(),
         }
     }
 }
@@ -214,24 +236,39 @@ fn rid_is_admitted(rid: &str) -> bool {
 // r[impl kiln.radicle.status_signer]
 // r[impl kiln.radicle.status_allowlist]
 pub fn admit_profile(profile: &RadicleStatusProfile) -> PortResult<BTreeSet<String>> {
-    admit_profile_with_executable_policy(profile, true)
+    admit_profile_for(
+        profile,
+        PINNED_PROFILE_ID,
+        CI_JOB_TYPE_NAME,
+        &REQUIRED_NON_CLAIMS,
+        true,
+    )
 }
 
 #[cfg(feature = "status-native-fixtures")]
 pub(crate) fn admit_fixture_profile(
     profile: &RadicleStatusProfile,
 ) -> PortResult<BTreeSet<String>> {
-    admit_profile_with_executable_policy(profile, false)
+    admit_profile_for(
+        profile,
+        PINNED_PROFILE_ID,
+        CI_JOB_TYPE_NAME,
+        &REQUIRED_NON_CLAIMS,
+        false,
+    )
 }
 
-fn admit_profile_with_executable_policy(
+pub(crate) fn admit_profile_for(
     profile: &RadicleStatusProfile,
+    expected_id: &str,
+    expected_object_type: &str,
+    expected_non_claims: &[&str],
     require_production_executable: bool,
 ) -> PortResult<BTreeSet<String>> {
     let production_executable = profile.executable.path
         == PathBuf::from(PINNED_SECRETSPEC_EXECUTABLE_PATH)
         && profile.executable.blake3 == PINNED_SECRETSPEC_EXECUTABLE_BLAKE3;
-    if profile.id.as_str() != PINNED_PROFILE_ID
+    if profile.id.as_str() != expected_id
         || profile.platform != PINNED_PLATFORM
         || profile.radicle_cohort != PINNED_RADICLE_COHORT
         || profile.radicle_cob_version != PINNED_RADICLE_COB_VERSION
@@ -252,7 +289,7 @@ fn admit_profile_with_executable_policy(
         || profile.signer_identity.provider_namespace.as_str() != "radicle"
         || profile.signer_identity.native_kind.as_str() != "node"
         || radicle_crypto::PublicKey::from_str(profile.signer_identity.native_id.as_str()).is_err()
-        || profile.allowed_object_type != CI_JOB_TYPE_NAME
+        || profile.allowed_object_type != expected_object_type
         || profile.allowed_rids.is_empty()
         || profile.allowed_rids.len() > ABSOLUTE_MAX_RIDS
         || !profile.allowed_rids.iter().all(|rid| rid_is_admitted(rid))
@@ -263,7 +300,7 @@ fn admit_profile_with_executable_policy(
         || !declaration_is_admitted(&profile.signer)
         || !executable_is_admitted(&profile.executable)
         || (require_production_executable && !production_executable)
-        || profile.non_claims != REQUIRED_NON_CLAIMS.map(str::to_string)
+        || profile.non_claims != expected_non_claims
     {
         return Err(Diagnostic::new(
             "radicle_status_profile",

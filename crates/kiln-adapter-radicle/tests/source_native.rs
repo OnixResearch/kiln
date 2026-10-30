@@ -149,6 +149,7 @@ fn request(rid: RepoId, signer: &SigningKey, sigrefs: Oid, revision: Oid) -> Sou
             max_file_bytes: MAX_FILE_BYTES,
             max_total_bytes: MAX_TOTAL_BYTES,
         },
+        canonical: None,
     }
 }
 
@@ -211,6 +212,7 @@ fn selection(profile: &RadicleSourceProfile) -> RadicleSourceSelection {
         signed_reference: profile.request.signed_reference.clone(),
         profile_id: profile.request.profile_id.clone(),
         limits: profile.request.limits.clone(),
+        canonical: profile.request.canonical.clone(),
     }
 }
 

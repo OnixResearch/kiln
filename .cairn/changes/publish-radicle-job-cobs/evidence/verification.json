@@ -1,0 +1,72 @@
+{
+  "schema": "kiln.radicle.job-cobs.verification.v1",
+  "date": "2026-10-31",
+  "issue": "https://github.com/OnixResearch/kiln/issues/17",
+  "maintainer_owner": "kiln-adapter-radicle",
+  "profile": {
+    "id": "radicle-job-v1",
+    "type_name": "xyz.radworks.job",
+    "cohort": "radicle-cob-0.21.1-crypto-0.19.0-oid-0.2.2-ref-format-0.2.0-git2-0.21.0",
+    "storage": "onix-radicle-cob-git-store 0.2.0",
+    "signer": "SecretSpec 0.19.0 declared RADICLE_SIGNER_SEED"
+  },
+  "commands": [
+    {
+      "command": "nix develop path:$PWD -c cargo test -p kiln-adapter-radicle --features status-native-fixtures",
+      "result": "83 passed, 0 failed (8 job unit, 10 job native, 49 lib, 16 status native, 6 mutation native, 2 binary)"
+    },
+    {
+      "command": "nix develop path:$PWD -c cargo test -p kiln-web-service --test cobs",
+      "result": "11 passed, 0 failed"
+    },
+    {
+      "command": "nix develop path:$PWD -c env TMPDIR=/var/tmp cargo test --workspace",
+      "result": "1213 passed, 0 failed, 1 ignored"
+    },
+    {
+      "command": "nix develop path:$PWD -c env TMPDIR=/var/tmp cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop path:$PWD -c cargo clippy -p kiln-adapter-radicle --all-targets --features status-native-fixtures -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop path:$PWD -c cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop path:$PWD -c cargo check --locked --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "{\"valid\":true,\"issues\":0}"
+    },
+    {
+      "command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "missing=0; dangling lists the 11 new kiln.radicle.job* requirement ids because coverage only loads accepted .cairn/specs requirements; validate resolves the active change"
+    }
+  ],
+  "behavioral_cases": {
+    "fresh": "Request, Run and Finished are written as three signed entries under the Kiln namespace; the reducer reads the exact commit, UUID, log URL and Succeeded reason",
+    "replay": "The same plan returns the same object and head without a fourth entry",
+    "start_then_finish": "A started run appends one Finished entry; conflicting reason, log and start-after-finish fail closed",
+    "extension": "A job created and signed by another node for the same commit is extended; the foreign namespace head is unchanged and the Kiln entry descends from it",
+    "multi_writer": "Two independently signed divergent heads are both parents of the Kiln entry; all three runs reduce",
+    "mismatch": "An explicit object bound to another commit fails before write",
+    "authority": "Foreign repository and resolved signer mismatch fail before signer/storage effects",
+    "bounds": "Malformed root/history fails closed; log, payload, scan and per-node run bounds are enforced",
+    "console": "The read-only COB browser lists a job object and preserves its Request, Run and Finished action values",
+    "malformed_branch": "A malformed Run on a valid root is rejected by the reducer and pruned by the pinned change graph; the reduced object has no runs and the root still reads."
+  },
+  "environment_note": "The first full workspace run hit one transient AddrInUse in kiln-web-service engine fixture; the isolated test and the full 68-test engine binary passed on rerun. /tmp was full, so TMPDIR=/var/tmp was used for workspace runs.",
+  "non_claims": [
+    "local job writes do not prove peer convergence, remote visibility or node availability",
+    "the job object does not complete a Kiln attempt or change CI state",
+    "the browser fixture does not verify signatures, actor authority or reduce job state",
+    "the job profile grants no merge, identity, delegation, cache, network or release authority",
+    "traceability coverage lists active-change requirement ids as dangling until acceptance; this is not a behavioral failure"
+  ],
+  "shared_fixture": "fixtures/radicle/job-actions.json is deserialized by the adapter wire-schema test and used unchanged by the COB browser fixture test"
+}

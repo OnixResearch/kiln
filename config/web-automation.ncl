@@ -15,6 +15,75 @@ let Reference =
     && std.string.is_match "^refs/heads/[^ ~^:?*\\\\]+$" value
   )
 in
+# Trigger filter globs: `*` and `?` within one `/` segment and whole-segment
+# `**`; no negation, classes or alternation. Rust admission is authoritative.
+let FilterPattern =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value >= 1
+    && std.string.length value <= 256
+    && !(std.string.is_match "^!|[\\[\\]{}+\\\\]|(^|/)\\.{0,2}(/|$)|[^/]\\*\\*|\\*\\*[^/]" value)
+  )
+in
+let FilterPatterns =
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= 32
+  )
+in
+let PullRequestType =
+  std.contract.from_predicate (fun value =>
+    std.array.elem value ["opened", "reopened", "synchronize", "closed", "merged"]
+  )
+in
+# Optional per-trigger filter; registrations bind refs/heads, so no tags.
+let TriggerFilter = {
+  branches | FilterPatterns | Array FilterPattern | optional,
+  types | Array PullRequestType | optional,
+  paths | FilterPatterns | Array FilterPattern | optional,
+}
+in
+let Cron = {
+  expression | c.NonEmpty,
+  timezone | c.NonEmpty | default = "UTC",
+}
+in
+# Exactly one cadence: an interval, or a cron calendar whose next occurrence
+# is computed (next_due_ms stays null).
+let Cadences =
+  std.contract.from_predicate (fun schedules =>
+    std.array.all
+      (fun value =>
+        if std.record.has_field "cron" value then
+          !(std.record.has_field "interval_ms" value) && value.next_due_ms == null
+        else
+          std.record.has_field "interval_ms" value
+      )
+      schedules
+  )
+in
+# r[impl kiln.untrusted.policy] Reviewed untrusted pull-request policy. `deny`
+# (also when omitted) refuses forks exactly as before; `approve` holds untrusted
+# pull requests in a blocked run until an operator approves the exact commit.
+let UntrustedPolicy =
+  std.contract.from_predicate (fun value => std.array.elem value ["deny", "approve"])
+in
+# Untrusted results may count for required CI only under `approve`.
+let UntrustedCounting =
+  std.contract.from_predicate (fun triggers =>
+    std.array.all
+      (fun trigger =>
+        !(
+          std.record.has_field "untrusted_results_satisfy_required_ci" trigger
+          && trigger.untrusted_results_satisfy_required_ci
+        )
+        || (
+          std.record.has_field "untrusted_pull_requests" trigger.repository
+          && trigger.repository.untrusted_pull_requests == "approve"
+        )
+      )
+      triggers
+  )
+in
 fun input =>
   let settings =
     input
@@ -29,25 +98,32 @@ fun input =>
                 owner | c.NonEmpty,
                 repository | c.NonEmpty,
                 repository_id | c.Positive,
+                # Retired: readable, and only `false` is admitted.
                 allow_fork_pull_requests | std.contract.from_predicate (fun value => value == false),
+                untrusted_pull_requests | UntrustedPolicy | optional,
               },
             secret_file | c.AbsolutePath,
             enabled | Bool,
             push | Bool,
             pull_request | Bool,
             pull_request_base | c.Nullable String,
-          },
+            untrusted_results_satisfy_required_ci | Bool | optional,
+            filter | TriggerFilter | optional,
+          }
+          | UntrustedCounting,
         schedules
           | Array {
             id | Identifier,
             project_id | Identifier,
             reference | Reference,
             enabled | Bool,
-            interval_ms | c.BoundedInteger 1000 31536000000,
+            interval_ms | c.BoundedInteger 1000 31536000000 | optional,
+            cron | Cron | optional,
             min_interval_ms | c.BoundedInteger 1000 31536000000,
             max_interval_ms | c.BoundedInteger 1000 31536000000,
             next_due_ms | c.Nullable (c.BoundedInteger 0 9007199254740991),
-          },
+          }
+          | Cadences,
         notifications
           | Array {
             id | Identifier,

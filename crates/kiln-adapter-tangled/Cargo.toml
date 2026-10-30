@@ -1,0 +1,37 @@
+[package]
+name = "kiln-adapter-tangled"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[features]
+default = []
+# Tests that drive the Git CLI against local fixture repositories. They need a
+# `git` executable: `KILN_GIT_EXE`, or `git` on PATH.
+git-fixtures = []
+
+[dependencies]
+kiln-core.workspace = true
+kiln-provider-api.workspace = true
+kiln-codec.workspace = true
+bounded-exec.workspace = true
+rusqlite.workspace = true
+blake3.workspace = true
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml = "0.9"
+hmac = "0.12.1"
+sha2 = "0.10.9"
+bs58 = "0.5.1"
+k256 = { version = "0.13.4", default-features = false, features = ["ecdsa", "std"] }
+p256 = { version = "0.13.2", default-features = false, features = ["ecdsa", "std"] }
+ureq = { version = "=2.12.1", default-features = false, features = ["tls"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

@@ -939,6 +939,7 @@ fn monorepo_queue_tests_every_affected_project_at_its_current_scope() -> Result 
             clean: true,
             scope_identity: scope,
             terminal: true,
+            untrusted: None,
         }
     };
     let primary_id = text(primary, "/id")?;

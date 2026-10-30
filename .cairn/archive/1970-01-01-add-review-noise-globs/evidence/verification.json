@@ -1,0 +1,28 @@
+{
+  "schema": "kiln.review-noise.verification.v1",
+  "date": "2026-10-30",
+  "maintenance_owner": "Kiln web-service maintainers (code_review/noise.rs, console); Kiln config maintainers (config/web-code-review.ncl)",
+  "commands": [
+    "cargo test --locked -p kiln-web-service --lib noise: 9 passed, 0 failed",
+    "nickel typecheck config/web-code-review.ncl: ok",
+    "nickel export config/fixtures/web-code-review-positive.ncl and web-code-review-noise-positive.ncl: ok (legacy export has no review key)",
+    "nickel export config/fixtures/negative-web-code-review-noise-{pattern,class,bound,duplicate,length,field}.ncl: all rejected by the noise contracts",
+    "kiln-web-service check on disposable profile with noise rules: exit 0; with a '..' noise pattern: exit 1 'review noise rule needs a unique id, a bounded valid path glob and a bounded reason'",
+    "node --test tests/live-console-ui.test.mjs: 35 passed; node --check code-review.js web.js: ok",
+    "disposable-instance browser check (throwaway scratch outside the repository: isolated CA/leaf, exact jj source with src/lib.rs, Cargo.lock and vendor/dep/lib.rs changes contributed as one change, code review profile with lockfiles and vendor noise rules, operator and viewer:native-reader principals; kiln-web-service serve on 127.0.0.1; headless Chromium): pass"
+  ],
+  "acceptance": {
+    "1 fixture with lockfile, vendored and source changes shows only source expanded, count and rule ids": "noise_advisory_tests::noise_fixture_annotates_lockfile_and_vendored_files_only + noise::tests::lockfile_and_vendored_files_are_annotated_and_source_is_not; browser check: '3 changed files', src/lib.rs listed and its diff selected, one collapsed group '2 noise files hidden · lockfiles, vendor'; one click expanded it to Cargo.lock (lockfiles) and vendor/dep/lib.rs (vendor), each 'Noise · shown as viewed', with the display-only note and the rules identity",
+    "2 ownership over a noise path still blocks submit without owner vote": "noise_advisory_tests::ownership_over_a_noise_path_still_blocks_submit_without_the_owner_vote; browser check: ownership rule all-source (\"**\", covering both noise paths) stayed Unmet and 'Submission is blocked by the listed requirements'",
+    "3 invalid or unbounded patterns rejected at check": "noise::tests::invalid_or_unbounded_rules_are_rejected, noise_advisory_tests::check_rejects_invalid_noise_rules_and_keeps_legacy_profiles_unchanged (Profile::load), real kiln-web-service check exit 1, Nickel negative fixtures",
+    "4 docs/operator.md documents display-only boundary": "docs/operator.md review.noise profile bullet and 'Display-only noise files' paragraph",
+    "identity visible and attributable": "noise::tests::identity_tracks_every_rule_field; noise.identity in summary, detail and diff",
+    "legacy profiles unchanged": "check_rejects_invalid_noise_rules_and_keeps_legacy_profiles_unchanged (serialization, binding and effective policy identical)"
+  },
+  "trade_offs": [
+    "Noise identity is published but deliberately not folded into the store binding or effective policy id, so rule edits never brick journals or queue entries."
+  ],
+  "fixes_during_verification": [
+    "workspace clippy (-D clippy::indexing_slicing via workspace lints) rejected indexing in code_review/noise.rs tests and noise_advisory_tests.rs; reads now use get/pointer/first and the profile edit inserts through the object map, with no assertion changed"
+  ]
+}

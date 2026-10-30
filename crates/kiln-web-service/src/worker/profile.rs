@@ -40,6 +40,10 @@ pub struct WorkerProfile {
     pub execution: Option<crate::execution::IsolationPolicy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub heartbeat: Option<super::heartbeat::HeartbeatProfile>,
+    /// Operator declaration that this worker runs inside a per-job microVM
+    /// without credentials or cache; only then may it execute untrusted runs.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub untrusted_capable: bool,
     pub steps: Vec<Step>,
 }
 

@@ -1,0 +1,15 @@
+[
+  {"Request": {"oid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+  {
+    "Run": {
+      "uuid": "11111111-1111-1111-1111-111111111111",
+      "log": "https://ci.example.invalid/runs/1"
+    }
+  },
+  {
+    "Finished": {
+      "uuid": "11111111-1111-1111-1111-111111111111",
+      "reason": "Succeeded"
+    }
+  }
+]

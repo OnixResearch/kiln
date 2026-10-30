@@ -170,6 +170,9 @@ pub struct RunRecord {
     /// Scope identity and root bound into a scoped project's run identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope: Option<crate::monorepo::RunScope>,
+    /// Untrusted pull-request gate bound to this run's exact source commit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub untrusted: Option<kiln_core::untrusted::UntrustedGate>,
     #[serde(skip)]
     pub state: State,
 }
@@ -218,6 +221,8 @@ pub struct RunView {
     pub project_root: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub untrusted: Option<kiln_core::untrusted::UntrustedSummary>,
 }
 impl RunRecord {
     pub fn restore(&mut self) -> Result<(), String> {
@@ -246,6 +251,11 @@ impl RunRecord {
         }
         super::telemetry::validate(self)?;
         Ok(())
+    }
+    /// Never dispatched: queued, or blocked awaiting untrusted-run approval.
+    /// Waiting runs hold no project slot and are never observed or recovered.
+    pub fn waiting(&self) -> bool {
+        self.phase == "queued" || self.phase == super::untrusted::AWAITING_APPROVAL
     }
     pub fn outcome(&self) -> Outcome {
         self.state
@@ -318,7 +328,9 @@ impl RunRecord {
             && self.error_code.is_none();
         let state = self.observation.as_ref().map(|o| o.state);
         WorkflowControls {
-            cancel: self.phase == "queued" || available && self.plan.controls.cancel,
+            cancel: self.phase == "queued"
+                || self.phase == super::untrusted::AWAITING_APPROVAL
+                || available && self.plan.controls.cancel,
             pause: available && self.plan.controls.pause && state == Some(WorkflowState::Running),
             resume: available && self.plan.controls.resume && state == Some(WorkflowState::Paused),
         }
@@ -360,11 +372,15 @@ impl RunRecord {
                         .as_ref()
                         .and_then(|o| o.nodes.iter().find(|v| v.node_id == n.id))
                         .map(|v| v.state)
-                        .unwrap_or(if self.phase == "queued" {
-                            WorkflowNodeState::Pending
-                        } else {
-                            WorkflowNodeState::Unknown
-                        }),
+                        .unwrap_or(
+                            if self.phase == "queued"
+                                || self.phase == super::untrusted::AWAITING_APPROVAL
+                            {
+                                WorkflowNodeState::Pending
+                            } else {
+                                WorkflowNodeState::Unknown
+                            },
+                        ),
                 })
                 .collect(),
             controls: self.capabilities(),
@@ -383,6 +399,10 @@ impl RunRecord {
             affected: self.affected.clone(),
             project_root: self.scope.as_ref().map(|scope| scope.root.clone()),
             scope_identity: self.scope.as_ref().map(|scope| scope.identity.clone()),
+            untrusted: self
+                .untrusted
+                .as_ref()
+                .map(kiln_core::untrusted::UntrustedGate::summary),
             log_bounds: LogBounds {
                 maximum_chunk_bytes: self.plan.bounds.max_log_read_bytes,
                 maximum_total_bytes: self.plan.bounds.max_total_log_bytes,

@@ -12,6 +12,7 @@ use kiln_provider_api::{
     PortResult, SourceRepositoryBackend, SourceRepositoryObservation, SourceRepositoryPort,
     SourceResolutionObservation,
 };
+use kiln_radicle_source_contract::CanonicalEvidence;
 use kiln_radicle_source_contract::{
     CONTRACT_SCHEMA_VERSION, FeatureLevel, SignedRefsObservation, SnapshotEvidence, SourceReceipt,
     Verification, admit_receipt,
@@ -132,6 +133,13 @@ impl RadicleSourceShell {
         )
     }
 
+    fn canonical(&self, repository: &Repository) -> PortResult<Option<CanonicalEvidence>> {
+        if self.profile.request.canonical.is_none() {
+            return Ok(None);
+        }
+        super::canonical::verify_canonical(&self.profile, repository, self.repository_id).map(Some)
+    }
+
     fn execute(
         &self,
         materializable: bool,
@@ -141,6 +149,7 @@ impl RadicleSourceShell {
         let repository = self.open()?;
         self.inspect_repository(&repository)?;
         let verified = self.verify(&repository)?;
+        let canonical = self.canonical(&repository)?;
         let snapshot = acquire_snapshot(
             &self.profile,
             &repository,
@@ -153,6 +162,13 @@ impl RadicleSourceShell {
         // Revalidate signed branch, namespace, RID and exact sigrefs after acquisition
         // and any writes. Immutable blobs already acquired need not be read again.
         let after = self.verify(&repository)?;
+        if self.canonical(&repository)? != canonical {
+            return Err(domain(
+                "radicle_source_canonical_moved",
+                "radicle_source.reference",
+                "Canonical delegate agreement changed during source acquisition",
+            ));
+        }
         let observed_after = after.sigrefs_commit;
         if observed_after != verified.sigrefs_commit {
             return Err(domain(
@@ -190,6 +206,7 @@ impl RadicleSourceShell {
                 entry_count: snapshot.entry_count,
                 total_bytes: snapshot.total_bytes,
             },
+            canonical,
         };
         admit_receipt(&receipt).map_err(|_| {
             domain(

@@ -203,6 +203,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             max_file_bytes: MAX_FILE_BYTES as u64,
             max_total_bytes: MAX_TOTAL_BYTES as u64,
         },
+        canonical: None,
     };
     selection.admit().map_err(|error| format!("{error:?}"))?;
     println!(

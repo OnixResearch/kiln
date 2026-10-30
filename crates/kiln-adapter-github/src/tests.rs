@@ -44,6 +44,7 @@ fn config(root: &TempDir) -> GithubConfig {
             repository: "hello-world".into(),
             repository_id: 1296269,
             allow_fork_pull_requests: false,
+            untrusted_pull_requests: Default::default(),
         },
         listen_address: "127.0.0.1:19091".parse().unwrap_or_else(|_| unreachable!()),
         webhook_path: "/github/webhook".into(),

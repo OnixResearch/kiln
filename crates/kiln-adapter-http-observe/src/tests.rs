@@ -1411,6 +1411,86 @@ fn server_serves_review_views_identical_to_direct_projection() {
     server.stop();
 }
 
+fn advisory_window() -> ReviewWindow {
+    serde_json::from_str(include_str!(
+        "../../../fixtures/observation/review-window-advisory-v1.json"
+    ))
+    .unwrap_or_else(|_| unreachable!())
+}
+
+/// Per-class advisory totals of the advisory fixture, asserted identically by
+/// the HTTPS shell, the iroh shell and the dashboard.
+const ADVISORY_TOTALS: [(&str, u64, u64); 4] = [
+    ("human", 3, 1),
+    ("agent", 3, 2),
+    ("mixed", 1, 1),
+    ("undeclared", 0, 0),
+];
+
+// r[verify kiln.observe.review.advisory.scenario.parity]
+// r[verify kiln.observe.review.advisory]
+#[test]
+fn server_serves_advisory_counts_identical_to_direct_projection() {
+    let profile = profile();
+    let source = Arc::new(MemoryObservationSource::new(
+        snapshot().with_review(advisory_window()),
+    ));
+    let live = Arc::new(LiveEventBuffer::new(4));
+    let mut server = start_server(profile.clone(), source, live);
+    let max_view = usize::try_from(profile.content.max_view_bytes).unwrap_or(usize::MAX);
+    let target = "/v1/views/review-friction";
+    let authorization = auth_header(target, 1, "nonce-advisory");
+    let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+    assert_eq!(status(&response), 200);
+    let direct = project_observation(
+        &profile.core,
+        &fixture_state(),
+        &ObservationRequest {
+            state_revision: 1,
+            view: ViewRequest::ReviewFriction,
+        },
+        &ObservationWindow::review(advisory_window()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        response_body(&response),
+        encode_view(&direct, max_view)
+            .unwrap_or_else(|_| unreachable!())
+            .as_slice()
+    );
+    assert_eq!(
+        header_value(&response, "X-Kiln-View-Identity").as_deref(),
+        Some(direct.identity.as_str())
+    );
+    assert_ne!(
+        direct.identity,
+        direct_review_view(&profile, ViewRequest::ReviewFriction).identity
+    );
+    let body: serde_json::Value =
+        serde_json::from_slice(response_body(&response)).unwrap_or_else(|_| unreachable!());
+    let classes = body
+        .pointer("/body/classes")
+        .or_else(|| body.pointer("/body/review_friction/classes"))
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| unreachable!("friction classes in {body}"));
+    let totals: Vec<(String, u64, u64)> = classes
+        .iter()
+        .map(|class| {
+            (
+                class["authorship"].as_str().unwrap_or_default().to_owned(),
+                class["advisory_approvals"].as_u64().unwrap_or(0),
+                class["advised_changes"].as_u64().unwrap_or(0),
+            )
+        })
+        .collect();
+    let expected: Vec<(String, u64, u64)> = ADVISORY_TOTALS
+        .iter()
+        .map(|(class, approvals, changes)| (String::from(*class), *approvals, *changes))
+        .collect();
+    assert_eq!(totals, expected);
+    server.stop();
+}
+
 // r[verify kiln.observe.review.parity]
 // r[verify kiln.observe.review.window.scenario.violation]
 #[test]

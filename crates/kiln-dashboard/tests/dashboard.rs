@@ -1362,8 +1362,8 @@ fn review_views_equal_the_accepted_projection_and_render_every_surface() {
     let html = kiln_dashboard::render::html::render_html(&html_report);
     assert!(html.contains("<h2 id=\"review-friction-heading\">Review friction</h2>"));
     assert!(html.contains("authorship is self-declared and unverified"));
-    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td></tr>"));
-    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td></tr>"));
     assert!(html.contains("<h2 id=\"suggestion-anchors-heading\">Suggestion anchors</h2>"));
     assert!(html.contains("<tr><td class=\"mono\">src/lib.rs</td><td class=\"mono\">core</td><td>3</td><td>2</td></tr>"));
     assert!(html.contains("<tr><td class=\"mono\">README.md</td><td class=\"mono\">unowned</td><td>1</td><td>1</td></tr>"));
@@ -1390,6 +1390,66 @@ fn review_views_equal_the_accepted_projection_and_render_every_surface() {
     );
     assert!(!html.contains("Review friction"));
     assert!(!html.contains("review_friction"));
+}
+
+const ADVISORY_WINDOW_DOCUMENT: &str =
+    include_str!("../../../fixtures/observation/review-window-advisory-v1.json");
+
+// r[verify kiln.observe.review.advisory.scenario.parity]
+// r[verify kiln.observe.review.advisory]
+#[test]
+fn advisory_counts_equal_the_projection_and_render_on_every_surface() {
+    let window = kiln_dashboard::shell::parse_review_window(ADVISORY_WINDOW_DOCUMENT.as_bytes())
+        .unwrap_or_else(|_| unreachable!());
+    let journal = reviewed(window.clone());
+    let profile = dashboard_profile();
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let review = report
+        .views
+        .review
+        .as_ref()
+        .unwrap_or_else(|| unreachable!());
+    let direct = project_observation(
+        &profile.observation,
+        &journal.state,
+        &ObservationRequest {
+            state_revision: journal.state.revision,
+            view: ViewRequest::ReviewFriction,
+        },
+        &ObservationWindow::review(window),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(review.friction, direct);
+    assert_eq!(review.friction.identity, direct.identity);
+    let plain = build_report(
+        &profile,
+        &reviewed(review_window()),
+        &DashboardSelection::default(),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_ne!(
+        plain
+            .views
+            .review
+            .as_ref()
+            .map(|views| &views.friction.identity),
+        Some(&direct.identity)
+    );
+    let text = render_report(&report, RenderStyle::Plain);
+    assert!(text.contains(
+        "    suggestions       total 1   median 0   max 1\n    advisory          approvals 3   changes 1   (non-binding; never counted as approvals)\n"
+    ));
+    assert!(text.contains("    advisory          approvals 3   changes 2   (non-binding; never counted as approvals)\n"));
+    assert!(text.contains("    advisory          approvals 0   changes 0   (non-binding; never counted as approvals)\n"));
+    let html_report = build_html_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(html_report.report.views.review, report.views.review);
+    let html = kiln_dashboard::render::html::render_html(&html_report);
+    assert!(html.contains("<th scope=\"col\">advisory approvals (non-binding)</th><th scope=\"col\">advised changes</th>"));
+    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td><td>3</td><td>1</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>3</td><td>2</td></tr>"));
+    assert!(html.contains("Advisory approvals are non-binding; never counted as approvals."));
 }
 
 #[test]

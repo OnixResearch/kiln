@@ -23,7 +23,8 @@ use bounded_exec::{ExecutionOutput, Input, RunError};
 use fs2::FileExt;
 use kiln_microvm::admission::MachinePolicy;
 use kiln_microvm::archive::{self, EntryKind, SourceEntry};
-use kiln_microvm::lifecycle::{Event, Lifecycle};
+use kiln_microvm::debug_hold::{self as hold_policy, DebugHoldPolicy, Grants, HoldFacts};
+use kiln_microvm::lifecycle::{Event, Lifecycle, State};
 use kiln_microvm::plan::{self, VmPaths};
 use kiln_microvm::protocol::{
     self, GuestMessage, GuestStep, HostMessage, StepReport, decode_guest, encode, frame_length,
@@ -73,6 +74,7 @@ pub(crate) struct Runner<'a> {
     pub(crate) initrd: &'a Image,
     pub(crate) policy: MachinePolicy<'a>,
     pub(crate) warm_pool: Option<&'a WarmPool>,
+    pub(crate) debug_hold: Option<&'a DebugHoldPolicy>,
 }
 
 impl<'a> Runner<'a> {
@@ -82,6 +84,7 @@ impl<'a> Runner<'a> {
             kernel,
             initrd,
             warm_pool,
+            debug_hold,
             ..
         } = backend
         else {
@@ -93,6 +96,7 @@ impl<'a> Runner<'a> {
             initrd,
             policy: machine_policy(backend)?,
             warm_pool: warm_pool.as_ref(),
+            debug_hold: debug_hold.as_ref(),
         })
     }
 }
@@ -166,12 +170,16 @@ pub(crate) fn verify_pool_directory(directory: &Path) -> Result<(), String> {
 /// One job to run in its own microVM.
 pub(crate) struct Job<'a> {
     pub(crate) organization: &'a str,
+    pub(crate) project: &'a str,
     pub(crate) attempt: &'a str,
     pub(crate) job: &'a str,
+    pub(crate) runner: &'a str,
     pub(crate) workspace: &'a Path,
     pub(crate) steps: &'a [(String, GuestStep)],
     pub(crate) unit: &'a str,
     pub(crate) timeout_ms: u64,
+    /// Credential and trust facts that rule out a debug hold.
+    pub(crate) grants: Grants,
 }
 
 pub(crate) struct JobOutcome {
@@ -724,6 +732,10 @@ struct Session {
     ready_ms: Option<u64>,
     restore_api_ms: Option<u64>,
     session_ms: Option<u64>,
+    /// Cancellation as observed when a debug hold began; the journaled
+    /// result never depends on a cancellation that arrives while held.
+    cancel_at_hold: Option<bool>,
+    debug_hold: Option<Value>,
 }
 
 /// The not-yet-connected guest of a VM that is starting or restoring.
@@ -735,7 +747,8 @@ struct PendingGuest<'a> {
     job_deadline: Instant,
 }
 
-/// Serve the guest session of a VM that is starting or restoring.
+/// Serve the guest session of a VM that is starting or restoring. The
+/// accepted stream is returned for a possible debug hold.
 fn drive_guest(
     session: &mut Session,
     lifecycle: &mut Lifecycle,
@@ -743,7 +756,7 @@ fn drive_guest(
     vmm: &Vmm<'_>,
     job: &Job<'_>,
     cancellation: &AtomicBool,
-) -> Result<(), String> {
+) -> Result<UnixStream, String> {
     let PendingGuest {
         listener,
         listener_path,
@@ -790,11 +803,207 @@ fn drive_guest(
                 lifecycle.advance(Event::GuestDone)?;
                 session.admission_error = admission_error;
                 session.session_ms = Some(millis(started));
-                return Ok(());
+                return Ok(stream);
             }
             _ => return Err("unexpected guest message".into()),
         }
     }
+}
+
+/// The running VM and job a debug hold applies to.
+struct HoldScope<'a, 'scope> {
+    db: &'a Connection,
+    policy: &'a DebugHoldPolicy,
+    runner: &'a Runner<'a>,
+    job: &'a Job<'a>,
+    vmm: &'a Vmm<'scope>,
+    cancellation: &'a AtomicBool,
+}
+
+// r[impl kiln.hosted.microvm.debug_hold.lifecycle]
+// r[impl kiln.hosted.microvm.debug_hold.end]
+// r[impl kiln.hosted.microvm.debug_hold.relay]
+/// Debug hold of a journaled job whose runner enables it. The VM stays up,
+/// and this thread relays queued debug sessions over the already accepted
+/// guest stream until the pure hold decision ends it; the lifecycle is then
+/// left in `Destroying` for normal destruction. Returns the receipt record.
+fn hold(
+    scope: &HoldScope<'_, '_>,
+    guest: Option<&mut UnixStream>,
+    lifecycle: &mut Lifecycle,
+    session: &mut Session,
+) -> Value {
+    let HoldScope {
+        db,
+        policy,
+        runner,
+        job,
+        vmm,
+        cancellation,
+    } = *scope;
+    let held = crate::debug_hold::HeldJob {
+        organization: job.organization,
+        project: job.project,
+        attempt: job.attempt,
+        job: job.job,
+        runner: job.runner,
+    };
+    let failed = hold_policy::job_failed(
+        job.steps.len(),
+        &session.reports,
+        session.admission_error.as_deref(),
+    );
+    let facts = |current: u32| HoldFacts {
+        enabled: policy.enabled,
+        failed,
+        grants: job.grants,
+        held: current,
+        max_concurrent: policy.max_concurrent,
+    };
+    let Some(stream) = guest else {
+        let reason = hold_policy::eligibility(&facts(0))
+            .err()
+            .map_or("session_incomplete", hold_policy::Refusal::as_str);
+        return json!({"outcome": "not_held", "reason": reason});
+    };
+    let cancel_at_hold = cancellation.load(Ordering::Acquire);
+    let begun = crate::debug_hold::begin(db, &held, facts, policy.grace_ms(), |facts| {
+        lifecycle.advance(Event::Hold(facts)).map(|_| ())
+    });
+    let (started_ms, expires_ms) = match begun {
+        Ok(crate::debug_hold::Begin::Held {
+            started_ms,
+            expires_ms,
+        }) => (started_ms, expires_ms),
+        Ok(crate::debug_hold::Begin::Refused(reason)) => return not_held(lifecycle, reason),
+        Err(error) => return not_held(lifecycle, &error),
+    };
+    session.cancel_at_hold = Some(cancel_at_hold);
+    let mut signals = hold_policy::HoldSignals {
+        storage_failed: journal(db, job, "held", None).is_err(),
+        ..hold_policy::HoldSignals::default()
+    };
+    let mut sessions = 0_u64;
+    let end = loop {
+        let now = crate::now_ms().unwrap_or(u64::MAX);
+        match crate::debug_hold::signals(db, &held, started_ms) {
+            Ok((released, pressure)) => {
+                signals.released = released;
+                signals.capacity_pressure = pressure;
+            }
+            Err(_) => signals.storage_failed = true,
+        }
+        signals.vmm_exited = vmm.is_finished();
+        signals.cancelled = cancellation.load(Ordering::Acquire);
+        if let Some(end) = hold_policy::hold_end(now, expires_ms, signals) {
+            break end;
+        }
+        match crate::debug_hold::next_request(db, &held) {
+            Ok(Some((ordinal, command))) => {
+                sessions += 1;
+                match relay(
+                    db,
+                    stream,
+                    runner.policy.guest_shell,
+                    (ordinal, &command),
+                    expires_ms,
+                    cancellation,
+                ) {
+                    Ok(in_sync) => {
+                        signals.guest_lost = !in_sync && !cancellation.load(Ordering::Acquire);
+                    }
+                    Err(_) => signals.storage_failed = true,
+                }
+            }
+            Ok(None) => std::thread::sleep(crate::debug_hold::HOLD_POLL),
+            Err(_) => signals.storage_failed = true,
+        }
+    };
+    let recorded = crate::debug_hold::end(db, &held, end);
+    let ended_ms = crate::now_ms().unwrap_or(expires_ms);
+    // `Held` accepts `HoldEnded` unconditionally; the journaled result is
+    // never touched after the hold began.
+    let _destroying = lifecycle.advance(Event::HoldEnded);
+    json!({
+        "outcome": "held",
+        "grace_seconds": policy.grace_seconds,
+        "started_ms": started_ms,
+        "expires_ms": expires_ms,
+        "end_reason": end.as_str(),
+        "held_ms": ended_ms.saturating_sub(started_ms),
+        "sessions": crate::debug_hold::session_count(db, &held).unwrap_or(sessions),
+        "record": if recorded.is_ok() { "durable" } else { "storage_failed" },
+        "connect": hold_policy::connection_instructions(job.project, job.attempt, job.job, expires_ms),
+    })
+}
+
+/// A refused hold; a lifecycle that already entered `Held` (the reservation
+/// did not commit) ends it at once for normal destruction.
+fn not_held(lifecycle: &mut Lifecycle, reason: &str) -> Value {
+    if lifecycle.state == State::Held {
+        // `Held` accepts `HoldEnded` unconditionally.
+        let _destroying = lifecycle.advance(Event::HoldEnded);
+    }
+    json!({"outcome": "not_held", "reason": reason})
+}
+
+/// Relay one queued debug command and record its bounded report. Returns
+/// whether the guest session is still in sync for another command; an error
+/// means the session record could not be written.
+fn relay(
+    db: &Connection,
+    stream: &mut UnixStream,
+    shell: &str,
+    (ordinal, command): (i64, &str),
+    expires_ms: u64,
+    cancellation: &AtomicBool,
+) -> Result<bool, String> {
+    let step = match hold_policy::debug_step(shell, command) {
+        Ok(step) => step,
+        Err(error) => {
+            crate::debug_hold::finish_request(db, ordinal, false, &json!({"error": error}))?;
+            return Ok(true);
+        }
+    };
+    let deadline_ms =
+        hold_policy::command_deadline_ms(crate::now_ms().unwrap_or(u64::MAX), expires_ms);
+    let nonce = format!("debug-{ordinal}");
+    let outcome = write_host(
+        stream,
+        HostMessage::Debug {
+            nonce: nonce.clone(),
+            deadline_ms,
+            step,
+        },
+    )
+    .and_then(|()| {
+        read_guest(
+            stream,
+            Instant::now()
+                + Duration::from_millis(
+                    deadline_ms.saturating_add(crate::debug_hold::GUEST_REPLY_MARGIN_MS),
+                ),
+            cancellation,
+        )
+    })
+    .and_then(|message| match message {
+        GuestMessage::Debug {
+            nonce: answered,
+            report,
+        } if answered == nonce => Ok(report),
+        GuestMessage::Done {
+            admission_error: Some(error),
+            ..
+        } => Err(error),
+        _ => Err("unexpected guest message".into()),
+    });
+    let in_sync = outcome.is_ok();
+    let result = match outcome {
+        Ok(report) => json!(report),
+        Err(error) => json!({"error": error}),
+    };
+    crate::debug_hold::finish_request(db, ordinal, in_sync, &result)?;
+    Ok(in_sync)
 }
 
 // r[impl kiln.hosted.microvm.lifecycle]
@@ -812,6 +1021,16 @@ pub(crate) fn run_job(
     let job_deadline = started + Duration::from_millis(job.timeout_ms);
     let mut lifecycle = Lifecycle::new(job.steps.len());
     let mut session = Session::default();
+    // Zero unless the runner enables holds and the job could ever be held;
+    // only then does the unit outlive the job deadline by the grace.
+    let hold_reserve_ms = hold_policy::reserve_ms(runner.debug_hold, job.grants);
+    let unit_timeout_ms = if hold_reserve_ms == 0 {
+        job.timeout_ms
+    } else {
+        job.timeout_ms
+            .saturating_add(hold_reserve_ms)
+            .saturating_add(crate::debug_hold::HOLD_UNIT_MARGIN_MS)
+    };
     // r[impl kiln.hosted.microvm.claims]
     let mut vm = json!({
         "backend": "firecracker",
@@ -923,9 +1142,9 @@ pub(crate) fn run_job(
             let stop = AtomicBool::new(false);
             std::thread::scope(|scope| -> Result<(), String> {
                 let spawned = Instant::now();
-                let vmm = spawn_vmm(scope, config, job.unit, job.timeout_ms, arguments, &stop)?;
+                let vmm = spawn_vmm(scope, config, job.unit, unit_timeout_ms, arguments, &stop)?;
                 lifecycle.advance(Event::Spawned)?;
-                let served = (|| -> Result<(), String> {
+                let served = (|| -> Result<UnixStream, String> {
                     if let Some(held) = &slot {
                         api(
                             &api_socket,
@@ -958,10 +1177,15 @@ pub(crate) fn run_job(
                         cancellation,
                     )
                 })();
-                if let Err(error) = served {
-                    session.failure = Some(error);
-                    lifecycle.advance(Event::Failed)?;
-                }
+                // Without a possible hold the session ends here, as before.
+                let mut guest = match served {
+                    Ok(stream) => (hold_reserve_ms > 0).then_some(stream),
+                    Err(error) => {
+                        session.failure = Some(error);
+                        lifecycle.advance(Event::Failed)?;
+                        None
+                    }
+                };
                 // Journal before destruction; the VM is stopped either way.
                 let record = json!({
                     "reports": session.reports,
@@ -978,6 +1202,23 @@ pub(crate) fn run_job(
                         lifecycle.advance(Event::JournalFailed)?;
                     }
                 }
+                if let Some(policy) = runner.debug_hold.filter(|policy| policy.enabled) {
+                    let record = if lifecycle.state == State::Journaled {
+                        let scope = HoldScope {
+                            db,
+                            policy,
+                            runner,
+                            job,
+                            vmm: &vmm,
+                            cancellation,
+                        };
+                        hold(&scope, guest.as_mut(), &mut lifecycle, &mut session)
+                    } else {
+                        json!({"outcome": "not_held", "reason": "not_journaled"})
+                    };
+                    session.debug_hold = Some(record);
+                }
+                drop(guest);
                 let (clean, output) = destroy(config, job.unit, vmm, &stop);
                 cleaned = clean;
                 console = output;
@@ -1018,6 +1259,10 @@ pub(crate) fn run_job(
         observe("admission_error", json!(session.admission_error));
         observe("console_tail", json!(tail(&console)));
     }
+    if let Some(debug_hold) = session.debug_hold.take() {
+        // Last, so the job's VM record ends with how to connect.
+        observe("debug_hold", debug_hold);
+    }
     JobOutcome {
         steps: observations(job, &session, cleaned, cancellation),
         vm,
@@ -1038,7 +1283,9 @@ fn observations(
             .as_deref()
             .or(session.admission_error.as_deref()),
         cleaned,
-        cancellation.load(Ordering::Acquire),
+        session
+            .cancel_at_hold
+            .unwrap_or_else(|| cancellation.load(Ordering::Acquire)),
     )
 }
 

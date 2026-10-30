@@ -38,6 +38,10 @@ let Limits = {
   max_file_bytes | Positive,
   max_total_bytes | Positive,
 } in
+let CanonicalRequest = {
+  identity_commit | Sha1,
+  reference | Branch,
+} in
 let Request = {
   schema_version | std.contract.from_predicate (fun value => value == 1),
   profile_id | NonEmpty,
@@ -47,6 +51,7 @@ let Request = {
   expected_sigrefs_commit | Sha1,
   expected_revision | Sha1,
   limits | Limits,
+  canonical | CanonicalRequest | optional,
 } in
 let Observation = {
   schema_version | std.contract.from_predicate (fun value => value == 1),
@@ -74,11 +79,26 @@ let Snapshot = {
   entry_count | NonNegative,
   total_bytes | NonNegative,
 } in
+let CanonicalObservation = {
+  delegate | NonEmpty,
+  object | Sha1,
+} in
+let CanonicalEvidence = {
+  identity_commit | Sha1,
+  identity_root | Sha1,
+  threshold | Positive,
+  delegates | Array NonEmpty,
+  reference | Branch,
+  object | Sha1,
+  object_kind | std.contract.from_predicate (fun value => value == "commit" || value == "tag"),
+  observations | Array CanonicalObservation,
+} in
 let Receipt = {
   schema_version | std.contract.from_predicate (fun value => value == 1),
   request | Request,
   observation | Observation,
   snapshot | Snapshot,
+  canonical | CanonicalEvidence | optional,
 } in
 let LinkedReceipt = std.contract.from_predicate (fun value =>
   value.request.limits.max_file_bytes <= value.request.limits.max_total_bytes
@@ -95,6 +115,19 @@ let LinkedReceipt = std.contract.from_predicate (fun value =>
   && value.snapshot.revision == value.request.expected_revision
   && value.snapshot.entry_count <= value.request.limits.max_entries
   && value.snapshot.total_bytes <= value.request.limits.max_total_bytes
+  && (if std.record.has_field "canonical" value.request then
+      std.record.has_field "canonical" value
+      && value.canonical.identity_commit == value.request.canonical.identity_commit
+      && value.canonical.reference == value.request.canonical.reference
+      && value.canonical.reference == value.request.signed_reference
+      && value.canonical.object == value.request.expected_revision
+      && std.array.length value.canonical.delegates > 0
+      && std.array.all
+        (fun delegate => std.array.elem delegate value.canonical.delegates)
+        (std.array.map (fun observation => observation.delegate) value.canonical.observations)
+      && value.canonical.threshold <= std.array.length value.canonical.delegates
+    else
+      !(std.record.has_field "canonical" value))
 ) in
 {
   sha1 = Sha1,

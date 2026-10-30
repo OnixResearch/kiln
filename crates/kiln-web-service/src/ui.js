@@ -40,7 +40,8 @@
   function outcomeStatus(outcome, phase) {
     if ((outcome === null || outcome === undefined || outcome === "") && phase === "queued") return { status: "queued", label: "Queued" };
     if (outcome === null || outcome === undefined || outcome === "") return { status: "unknown", label: NOT_RECORDED };
-    if (outcome === "Pending") return phase === "active" ? { status: "running", label: "Running" } : { status: "queued", label: "Queued" };
+    // r[impl kiln.untrusted.console] A blocked untrusted pull-request run is waiting on an operator, not a worker.
+    if (outcome === "Pending") return phase === "active" ? { status: "running", label: "Running" } : phase === "awaiting_approval" ? { status: "queued", label: "Awaiting approval" } : { status: "queued", label: "Queued" };
     if (typeof outcome === "string" && Object.hasOwn(OUTCOMES, outcome)) {
       const [status, label] = OUTCOMES[outcome];
       return { status, label };
@@ -497,6 +498,40 @@
     }
     return Object.freeze(result);
   }
+  // r[impl kiln.untrusted.console] An untrusted pull-request run's gate: state, reason, pull request, exact and
+  // approved commits, approver, approval time, required-CI counting and the superseding run. Null when absent or
+  // malformed: trusted runs carry no gate and show nothing.
+  const UNTRUSTED_STATES = Object.freeze({
+    awaiting_approval: ["Awaiting approval", "queued"],
+    approved: ["Approved to run untrusted", "success"],
+    superseded: ["Superseded by a newer commit", "cancelled"],
+  });
+  const UNTRUSTED_REASONS = Object.freeze({
+    fork: "The pull request comes from a fork.",
+    author_without_push_access: "The author has no recorded push access to the repository.",
+  });
+  function untrustedSummary(gate) {
+    if (!isRecord(gate) || typeof gate.state !== "string" || !gate.state) return null;
+    const textOf = (value) => (typeof value === "string" && value ? value : null);
+    const [stateLabel, tone] = Object.hasOwn(UNTRUSTED_STATES, gate.state) ? UNTRUSTED_STATES[gate.state] : [`Recorded state “${gate.state}” is not recognised by this console`, "unknown"];
+    return Object.freeze({
+      state: gate.state,
+      stateLabel,
+      tone,
+      awaitingApproval: gate.state === "awaiting_approval",
+      reason: textOf(gate.reason),
+      reasonText: typeof gate.reason === "string" && Object.hasOwn(UNTRUSTED_REASONS, gate.reason) ? UNTRUSTED_REASONS[gate.reason] : "No recognised reason was recorded.",
+      pullRequest: Number.isSafeInteger(gate.pull_request) && gate.pull_request > 0 ? gate.pull_request : null,
+      headRepository: textOf(gate.head_repository),
+      sourceCommit: textOf(gate.source_commit),
+      approvedBy: textOf(gate.approved_by),
+      approvedById: textOf(gate.approved_by_id),
+      approvedCommit: textOf(gate.approved_commit),
+      approvedAtMs: Number.isSafeInteger(gate.approved_at_ms) && gate.approved_at_ms >= 0 ? gate.approved_at_ms : null,
+      countsForRequiredCi: gate.counts_for_required_ci === true,
+      supersededBy: textOf(gate.superseded_by),
+    });
+  }
   // A delivery's recorded decision set: { identity, rows } or null when absent or malformed. Rows that
   // are not objects with a project id and a known outcome are ignored.
   function affectedDecisions(affected) {
@@ -536,6 +571,6 @@
     return list;
   }
 
-  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, affectedDecisions, reasonList });
+  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();

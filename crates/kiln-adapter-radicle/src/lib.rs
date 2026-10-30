@@ -1,4 +1,5 @@
 pub mod defelo;
+pub mod job;
 pub mod mutation;
 mod profile;
 mod replay;

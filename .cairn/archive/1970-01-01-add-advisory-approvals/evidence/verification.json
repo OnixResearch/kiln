@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.advisory-approvals.verification.v1",
+  "date": "2026-10-30",
+  "maintenance_owner": "Kiln maintainers (kiln-core change_review, kiln-observe-core); Kiln web-service maintainers (shell, console); observation adapter and dashboard maintainers",
+  "commands": [
+    "cargo test --locked -p kiln-core --lib advisory_tests: 7 passed",
+    "cargo test --locked -p kiln-observe-core: 29 passed (3 advisory)",
+    "cargo test --locked -p kiln-web-service --lib noise: 9 passed (includes advisory shell tests)",
+    "cargo test --locked -p kiln-adapter-http-observe advisory: 1 passed",
+    "cargo test --locked -p kiln-adapter-iroh-observe -p kiln-dashboard advisory: 2 passed",
+    "cargo test --locked -p kiln-dashboard review: 5 passed",
+    "node --test tests/live-console-ui.test.mjs: 35 passed",
+    "disposable-instance browser check (throwaway scratch outside the repository: isolated CA/leaf, exact jj source with src/lib.rs, Cargo.lock and vendor/dep/lib.rs changes contributed as one change, code review profile with lockfiles and vendor noise rules, operator and viewer:native-reader principals; kiln-web-service serve on 127.0.0.1; headless Chromium): pass",
+    "node --test tests/live-console-ui.test.mjs (after integration): 36 passed"
+  ],
+  "acceptance": {
+    "1 advisory approval cannot change any checklist item from unmet to met": "change_review_advisory_tests::advisory_approvals_never_change_any_checklist_item (1200-case property enumeration) + advisory_approval_never_satisfies_approvals_or_ownership_alone",
+    "2 eligible reviewers' votes behave exactly as before": "eligible_votes_behave_exactly_as_without_advisory_approvals",
+    "3 review-window export and identical rendering over HTTPS, iroh and dashboard": "review_window_exports_current_advisory_counts_only, noise_advisory_tests::review_window_export_counts_advisory_and_legacy_documents_stay_clean, server_serves_advisory_counts_identical_to_direct_projection, advisory_counts_over_iroh_equal_the_direct_projection, advisory_counts_equal_the_projection_and_render_on_every_surface (shared ADVISORY_TOTALS)",
+    "owner/author forbidden, read-only principals only advisory": "owners_authors_and_closed_changes_cannot_advise, read_principals_may_advise_but_never_vote_and_checklist_is_unchanged",
+    "historical after new revision": "advisory_binds_the_current_revision_and_becomes_historical",
+    "old journals replay byte-identically": "pre_advisory_documents_replay_byte_identically, advisory_free_windows_keep_bytes_and_identities (identities pinned with the pre-advisory encoder), legacy document check in shell test",
+    "browser": "viewer:native-reader (read-only) saw 'Advisory approvals (non-binding)' with an enabled 'Advise approval…' while write actions stayed disabled; the confirmation named the principal, change, exact current revision and the non-binding effect; after confirming, the list showed 'viewer:native-reader · Advises approval' with 'Withdraw advisory approval…', the requirements stayed '7 of 10 met' and Approvals stayed Unmet; the owner/author operator saw the same list with 'Advise approval…' disabled; the list filter review_advisory=with showed the change with chip '1 advisory (non-binding)' and review_advisory=without showed the empty state"
+  },
+  "trade_offs": [
+    "Advisory actions bump the change version like votes.",
+    "Authors of any revision (not just current) are rejected.",
+    "Identity encoder flags advisory counts via bit 2 of the trailing option tag to keep zero-advisory encodings byte-identical."
+  ],
+  "fixes_during_verification": [
+    "workspace clippy (-D clippy::indexing_slicing via workspace lints) rejected indexing in noise_advisory_tests.rs; reads now use the file's pointer helper and changes.first(), with no assertion changed"
+  ]
+}

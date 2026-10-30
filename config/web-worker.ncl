@@ -133,6 +133,10 @@ fun input =>
             slots | Integer 256,
           }
           | optional,
+        # r[impl kiln.untrusted.execution] Declares that this worker runs inside a
+        # per-job microVM without credentials or cache; only then does it accept
+        # untrusted run bindings. Omitted means it refuses them.
+        untrusted_capable | Bool | optional,
         steps | Array Step,
       }
   in
@@ -160,3 +164,4 @@ fun input =>
   }
   & (if std.record.has_field "execution" settings then { execution = settings.execution } else {})
   & (if std.record.has_field "heartbeat" settings then { heartbeat = settings.heartbeat } else {})
+  & (if std.record.has_field "untrusted_capable" settings then { untrusted_capable = settings.untrusted_capable } else {})

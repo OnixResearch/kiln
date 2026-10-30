@@ -1,0 +1,40 @@
+{
+  "schema": "kiln.jj-change-intake.verification.v1",
+  "date": "2026-10-30",
+  "issue": "OnixResearch/kiln#6 (including the Tangled stacking extension)",
+  "maintenance_owner": "Kiln web-service maintainers (code_review::jj_intake, CLI, console); Kiln maintainers (kiln_core::source jj facts, kiln-adapter-jj cli)",
+  "commands": [
+    {"command": "cargo test --offline -p kiln-adapter-jj --features jj-fixtures (jj 0.45.1 and pinned nixpkgs jj 0.43.0 via KILN_JJ_EXE)", "result": "5 unit + 3 real-jj fixture tests passed on both jj versions"},
+    {"command": "cargo test --offline -p kiln-web-service --features jj-fixtures --lib -- jj_intake review_submit review_authorship", "result": "9 passed (4 real-jj fixture scenarios, 3 pure planner/admission/compat tests, 2 CLI tests); jj_intake set also passed with jj 0.43.0"},
+    {"command": "cargo test --offline -p kiln-web-service --lib -- code_review:: developer::", "result": "37 passed (existing branch intake/authorship tests unchanged)"},
+    {"command": "cargo test --offline -p kiln-core --lib jujutsu", "result": "3 passed"},
+    {"command": "cargo clippy --offline -p kiln-adapter-jj -p kiln-web-service --all-targets --features kiln-adapter-jj/jj-fixtures,kiln-web-service/jj-fixtures -- -D warnings", "result": "clean for all files of this change; remaining errors were in peers' in-progress files (noise.rs, noise_advisory_tests.rs, tests/code_review*.rs, kiln-core advisory/untrusted tests)"},
+    {"command": "rustfmt --edition 2024 on every file of this change", "result": "clean"},
+    {"command": "nickel typecheck config/web-code-review.ncl; nickel export of positive fixtures; negative-web-code-review-jujutsu-{relative,half,disabled,stack-bound,unknown-field}.ncl", "result": "typecheck ok; positives export (absent jujutsu exports nothing); all 5 new negatives refused by the jujutsu contract"},
+    {"command": "node --test tests/live-console-ui.test.mjs; node --check code-review.js", "result": "35 passed; syntax ok"},
+    {"command": "nix eval path:.#checks.x86_64-linux.jj-native-fixtures.name", "result": "kiln-jj-native-fixtures-0.1.0 (check not built here; parent runs flake check)"},
+    {"command": "disposable kiln-web-service on 127.0.0.1:9562 over a scratch colocated jj repo (HTTPS POST/GET with operator token)", "result": "3-change stack -> created x3; edit middle + resubmit [A,B] -> unchanged, appended, removed=[C]; 12-char prefix -> 400 review_jj_change_id_invalid; detail jj_evolog 2 rows with interdiff link and predecessor_matches_previous=true, jj_stack position 2 removed=false; overview jj_intake flags published"}
+  ],
+  "acceptance": {
+    "one change rewritten three times -> one change, three revisions, correct predecessors": "jj_intake_tests::rewritten_change_gives_one_change_with_three_revisions_and_predecessors",
+    "divergent and conflicted refused with stable diagnostics": "jj_intake_tests::divergent_conflicted_and_malformed_inputs_are_refused_before_any_effect (review_jj_operation_divergent, review_jj_divergent_change, review_jj_conflicted_bookmark, review_jj_conflicted_commit; state document None and no refs/kiln after refusals) + adapter jj_fixtures tests",
+    "duplicate submissions append nothing": "rewritten test: new request id -> unchanged, same id -> replayed, same id different body -> review_request_conflict; still 3 revisions",
+    "docs state boundary and provider facts": "docs/operator.md '#### Jujutsu change-ID intake' + intake.jujutsu profile bullet",
+    "extension: 4-change stack creates 4 with dependency chain; replay creates nothing": "jj_intake_tests::four_change_stack_maps_by_change_id_across_edit_reorder_and_removal",
+    "extension: editing 2 changes appends exactly 2": "same test (C and D rewritten -> revisions [1,1,2,2]; D's edge rebound to C's new revision)",
+    "extension: reorder updates deps; removed id flagged not abandoned": "same test (jj rebase --insert-before -> D->B, C->D; dropping C -> jj_stack.removed=true, state open; re-adding clears flag)",
+    "extension: git change-id header": "jj_intake_tests::change_id_header_branch_maps_to_the_same_changes_without_jj",
+    "read-only toward jj": "fingerprint (op_heads, op_store, working_copy, git refs excl. refs/kiln, working files) byte-identical across observations incl. refusals, in adapter and web-service tests",
+    "byte-identical replay of old state/profiles/requests": "jj_intake::tests::absent_jj_fields_keep_state_profile_and_requests_byte_identical; JujutsuFacts conflicted_commit omission test in kiln-core"
+  },
+  "known_tradeoffs": [
+    "Revisions are exact-commit bound for CAS submission, so a descendant that jj rebased after an edit below it also gains a revision; the acceptance edit rewrites the top two changes.",
+    "Multi-member intake is resumable but not atomic: every member is admitted before the first effect, each member effect is separately journaled under a derived request id, and a retried request resumes.",
+    "jj may populate its derived index cache when loading the pinned operation; no operation, ref, bookmark or working copy is written.",
+    "Stack intake owns the dependency edges of its members and replaces manually set edges on them.",
+    "jj-dependent tests are behind the jj-fixtures feature (KILN_JJ_EXE or jj on PATH) and run in the new jj-native-fixtures flake check with pinned jj 0.43.0; the dev shell itself does not ship jj (it comes from the user PATH)."
+  ],
+  "not_done": [
+    "No browser screenshot of the console dialog/evolog panel (run budget); console code is covered by node --check and the existing console test suite, and the HTTP surface by the disposable-instance smoke."
+  ]
+}

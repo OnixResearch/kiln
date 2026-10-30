@@ -1,0 +1,54 @@
+{
+  "package": "heartwood-canonical",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "source_package": "radicle 0.25.1 (crates.io)",
+  "source_commit": "71a91042d96bb994c4cd4311d85f5cd1a6311b4e",
+  "upstream_paths": {
+    "src/git/canonical.rs": "crates/radicle/src/git/canonical.rs",
+    "src/git/canonical/convergence.rs": "crates/radicle/src/git/canonical/convergence.rs",
+    "src/git/canonical/effects.rs": "crates/radicle/src/git/canonical/effects.rs",
+    "src/git/canonical/error.rs": "crates/radicle/src/git/canonical/error.rs",
+    "src/git/canonical/protect.rs": "crates/radicle/src/git/canonical/protect.rs",
+    "src/git/canonical/quorum.rs": "crates/radicle/src/git/canonical/quorum.rs",
+    "src/git/canonical/rules.rs": "crates/radicle/src/git/canonical/rules.rs",
+    "src/git/canonical/symbolic.rs": "crates/radicle/src/git/canonical/symbolic.rs",
+    "src/git/canonical/voting.rs": "crates/radicle/src/git/canonical/voting.rs",
+    "src/identity/did.rs": "crates/radicle/src/identity/did.rs"
+  },
+  "derived_files": {
+    "src/git/canonical.rs": "2c079f4ae01396d72a0177148176d017ae368adc776155d924980a146e2aca1e",
+    "src/git/canonical/convergence.rs": "deab147731d8d96c41d6034b2e4dad39ef11ed68a48df683a98c6845961f7918",
+    "src/git/canonical/effects.rs": "371db47b908bda32f3a58a76db4f0beca5adbcc52a3a3da705f390e75d0a1d24",
+    "src/git/canonical/error.rs": "5202b895797fe10f8a430928c8be5562519cf597875e80722dd3601ad91276ce",
+    "src/git/canonical/protect.rs": "3b5e52db10f48d7b6a15bf7ccff78fa160ce186b01d2d56a88a5b90270c8f0bd",
+    "src/git/canonical/quorum.rs": "9dc6a062198753beac4ecccacd9d06e4de23fb210d7818f241534399b0807e8d",
+    "src/git/canonical/rules.rs": "bdeae180d7e7926741cf7c9709e32a47e1af2220f3956457536c78173855998c",
+    "src/git/canonical/symbolic.rs": "2d2c3b92154c9d2afc83069a11520188e2136c875736b6fd472aa3186455003a",
+    "src/git/canonical/voting.rs": "becd96bbb3f138d262243affa823a6b4482f1750c317cbbad9a4c0a697dbc60e",
+    "src/identity/did.rs": "6eeaad8006492529a3291df7af6ca870608b8c9216d7541ebd86cbf918cad2a7"
+  },
+  "stripped_test_modules": [
+    "src/git/canonical.rs: inline `#[cfg(test)] mod tests` that builds storage fixtures",
+    "src/git/canonical/rules.rs: `#[cfg(test)] mod test` that imports the node storage and radicle-cob fixtures",
+    "src/git/canonical/symbolic.rs: inline order-dependent test module; its exact-order deserialization requires serde_json's preserve_order feature, which unifies globally and changes JSON map ordering across Kiln"
+  ],
+  "shim_files": [
+    "src/lib.rs",
+    "src/git.rs",
+    "src/git/raw.rs",
+    "src/identity.rs",
+    "src/identity/doc.rs"
+  ],
+  "shim_notes": [
+    "src/lib.rs reproduces the crate root, the crypto re-export and the upstream `assert_matches` macro used by retained tests",
+    "src/git.rs re-exports radicle_oid::Oid and radicle_git_ref_format as fmt and carries the minimal `refs::branch` helper",
+    "src/git/raw.rs carries the git2 re-exports and the ErrorExt trait",
+    "src/identity.rs and src/identity/doc.rs carry the DID wrapper and the validated Delegates/Threshold types adapted from the upstream identity document",
+    "src/lib.rs defines an always-validating `refname!` because upstream's macro skips validation outside debug assertions, which the retained symbolic tests depend on",
+    "serde_json uses default features: preserve_order was removed because enabling it changes JSON map ordering for every crate in the workspace, and the symbolic-reference module is outside the canonical quorum path"
+  ],
+  "importer": "scripts/import-heartwood-canonical.sh",
+  "excluded_upstream": "The rest of the radicle crate is not imported: it links the `sqlite` crate, whose native sqlite3 link collides with the workspace's rusqlite/libsqlite3-sys",
+  "nonclaims": "These digests identify the imported bytes only. They do not establish upstream review of this extraction, remote source authority, or that the shimmed module paths preserve every upstream behaviour outside canonical reference computation."
+}

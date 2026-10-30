@@ -1,0 +1,86 @@
+{
+  "database_path": "/var/lib/kiln/tangled/tangled.sqlite",
+  "engines": [
+    {
+      "adapter_kind": "microvm",
+      "engine": "microvm",
+      "images": [
+        "nixos"
+      ],
+      "packages": [
+        "go",
+        "nodejs"
+      ],
+      "platform": "linux-x86_64"
+    }
+  ],
+  "git_program": "/run/current-system/sw/bin/git",
+  "limits": {
+    "acquisition_timeout_ms": 120000,
+    "clock_skew_seconds": 60,
+    "key_cache_seconds": 300,
+    "maximum_active_runs": 4,
+    "maximum_body_bytes": 1048576,
+    "maximum_changed_path_bytes": 524288,
+    "maximum_changed_paths": 8192,
+    "maximum_did_document_bytes": 65536,
+    "maximum_header_bytes": 16384,
+    "maximum_pipelines": 4096,
+    "maximum_record_bytes": 1048576,
+    "maximum_token_lifetime_seconds": 300,
+    "maximum_tokens": 65536,
+    "maximum_workflow_bytes": 65536,
+    "maximum_workflow_files": 50,
+    "maximum_workflow_polls": 3600,
+    "read_timeout_ms": 3000,
+    "resolver_timeout_ms": 5000,
+    "worker_poll_interval_ms": 1000,
+    "write_timeout_ms": 2000
+  },
+  "listen_address": "127.0.0.1:6555",
+  "non_claims": [
+    "Tangled admission proves a verified knot or actor signature, not source trust",
+    "Tangled workflow files run only through the reviewed Kiln mapping",
+    "Tangled status deliveries are Kiln projections, not Tangled records"
+  ],
+  "plc_directory_url": "https://plc.directory",
+  "repositories": [
+    {
+      "approvers": [
+        "did:plc:approver234567abcdefghij"
+      ],
+      "clone_url": "https://knot.example.com/did:plc:abcdefghijklmnopqrstuvwx",
+      "knot_did": "did:web:knot.example.com",
+      "repo_did": "did:plc:abcdefghijklmnopqrstuvwx",
+      "trusted_actors": [
+        "did:plc:trustedactor234567abcdef"
+      ]
+    }
+  ],
+  "schema": "kiln.tangled-spindle.v1",
+  "source_directory": "/var/lib/kiln/tangled/sources",
+  "spindle_did": "did:web:spindle.example.com",
+  "status": {
+    "endpoint": "https://status.example.com/kiln/tangled",
+    "maximum_attempts": 10,
+    "secret_path": "/run/credentials/kiln-tangled/status-secret",
+    "timeout_ms": 10000
+  },
+  "workflow": {
+    "bounds": {
+      "max_edges": 4,
+      "max_log_read_bytes": 65536,
+      "max_log_references": 16,
+      "max_nodes": 4,
+      "max_total_log_bytes": 1048576
+    },
+    "controls": {
+      "cancel": true,
+      "pause": false,
+      "resume": false
+    },
+    "policy_id": "tangled-trusted-v1",
+    "provider_profile_id": "lattice-v1",
+    "untrusted_policy_id": "tangled-untrusted-v1"
+  }
+}

@@ -511,9 +511,9 @@ fn ingest_admitted(
         return Ok(json!({"accepted":false,"ignored":true}));
     };
     let record = plan_event(admitted, &event).map_err(provider)?;
-    let prior:Option<(String,i64,String)>=db.query_row("SELECT body_identity,generation,run_identity FROM hosted_source_deliveries WHERE organization=?1 AND project=?2 AND connection=?3 AND delivery=?4",params![org,project,connection,event.delivery_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(storage)?;
+    let prior:Option<(String,i64,String)>=db.query_row("SELECT body_identity,generation,run_identity FROM hosted_source_deliveries WHERE organization=?1 AND project=?2 AND connection=?3 AND delivery=?4",params![org,project,connection,event.delivery_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(storage)?;
     if let Some((body, prior_generation, run)) = prior {
-        if body != event.body_identity.as_str()
+        if body != event.body_identity().as_str()
             || prior_generation != generation
             || run != record.run_identity.as_str()
         {
@@ -535,8 +535,8 @@ fn ingest_admitted(
                 org,
                 project,
                 connection,
-                event.delivery_id,
-                event.body_identity.as_str(),
+                event.delivery_id(),
+                event.body_identity().as_str(),
                 generation,
                 record.run_identity.as_str()
             ],
@@ -549,7 +549,7 @@ fn ingest_admitted(
         .map_err(provider)?
         .reserve(&event, record)
         .map_err(provider)?;
-    db.execute("UPDATE hosted_source_deliveries SET state='admitted' WHERE organization=?1 AND project=?2 AND connection=?3 AND delivery=?4",params![org,project,connection,event.delivery_id]).map_err(storage)?;
+    db.execute("UPDATE hosted_source_deliveries SET state='admitted' WHERE organization=?1 AND project=?2 AND connection=?3 AND delivery=?4",params![org,project,connection,event.delivery_id()]).map_err(storage)?;
     Ok(
         json!({"accepted":true,"run":reservation.run_identity.as_str(),"inserted":reservation.inserted,"generation":generation}),
     )

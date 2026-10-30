@@ -17,6 +17,9 @@ pub enum ReviewCapability {
     CherryPick,
     ApplySuggestions,
     BuildIntegration,
+    /// Builds an integration on an assumed predecessor candidate that strictly
+    /// descends from the exact target (speculative merge queues).
+    SpeculativeIntegration,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -221,6 +224,17 @@ pub enum ReviewOperation {
         expected_target: String,
         strategy: IntegrationStrategy,
     },
+    /// Builds a speculative candidate of `commit` on `predecessor`, an assumed
+    /// earlier candidate that must strictly descend from `expected_target`.
+    /// The exact target is still compared before and after construction; the
+    /// result fast-forwards the target only after every predecessor has landed.
+    // r[impl kiln.review.queue.speculative.provider]
+    BuildSpeculativeIntegration {
+        commit: String,
+        expected_target: String,
+        predecessor: String,
+        strategy: IntegrationStrategy,
+    },
 }
 impl ReviewOperation {
     #[must_use]
@@ -233,6 +247,7 @@ impl ReviewOperation {
             Self::CherryPick { .. } => ReviewCapability::CherryPick,
             Self::ApplySuggestions { .. } => ReviewCapability::ApplySuggestions,
             Self::BuildIntegration { .. } => ReviewCapability::BuildIntegration,
+            Self::BuildSpeculativeIntegration { .. } => ReviewCapability::SpeculativeIntegration,
         }
     }
 }
@@ -262,6 +277,68 @@ pub enum ReviewEffect {
     },
 }
 
+/// Most commits a provider lists for one revision range.
+pub const MAX_REVISION_COMMITS: usize = 256;
+
+/// Interdiff of two revisions with base movement removed: the old change
+/// (`old_base..old_commit`) is rebased onto `new_base` and compared with
+/// `new_commit`. New-side coordinates are exact `new_commit` blob lines.
+// r[impl kiln.review.interdiff]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InterdiffRequest {
+    pub old_base: String,
+    pub old_commit: String,
+    pub new_base: String,
+    pub new_commit: String,
+    pub limits: DiffLimits,
+    #[serde(default)]
+    pub whitespace: WhitespaceMode,
+}
+/// Why an exact interdiff cannot be produced; the shell falls back explicitly.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InterdiffUnavailable {
+    Unsupported,
+    ConflictedRebase,
+    MissingCommit,
+    NoChangeIds,
+    ChangeMissing,
+    ChangeAmbiguous,
+}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
+pub enum Interdiff {
+    Exact {
+        comparison: CommitComparison,
+    },
+    Unavailable {
+        reason: InterdiffUnavailable,
+        message: String,
+    },
+}
+/// One commit of a revision range; `change_id` is a provider observation
+/// (e.g. a Jujutsu `change-id` commit header), never a Kiln identity.
+// r[impl kiln.review.commit_range]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevisionCommit {
+    pub commit: String,
+    pub parents: Vec<String>,
+    pub summary: String,
+    pub change_id: Option<String>,
+}
+/// First-parent commits of `base..head`, oldest first.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevisionCommits {
+    pub base: String,
+    pub head: String,
+    pub commits: Vec<RevisionCommit>,
+    /// `base` is not a first-parent ancestor of `head`, or the bound was hit.
+    pub incomplete: bool,
+}
+
 /// Authorization/policy belongs to the shell. Every mutation requires its
 /// durable exact request; providers must reject identity reuse and fail closed.
 pub trait ChangeReviewPort {
@@ -270,4 +347,29 @@ pub trait ChangeReviewPort {
     fn compare(&self, request: &CompareRequest) -> ReviewResult<CommitComparison>;
     fn execute(&self, request: &ReviewOperationRequest) -> ReviewResult<ReviewEffect>;
     fn reconcile(&self, request: &ReviewOperationRequest) -> ReviewResult<ReviewEffect>;
+    /// Providers without an exact interdiff report it as unavailable.
+    fn interdiff(&self, _request: &InterdiffRequest) -> ReviewResult<Interdiff> {
+        Ok(Interdiff::Unavailable {
+            reason: InterdiffUnavailable::Unsupported,
+            message: "provider does not compute interdiffs".into(),
+        })
+    }
+    fn revision_commits(
+        &self,
+        _base: &str,
+        _head: &str,
+        _limit: usize,
+    ) -> ReviewResult<RevisionCommits> {
+        Err(ReviewError {
+            kind: ReviewErrorKind::Unsupported,
+            message: "provider does not list revision commits".into(),
+        })
+    }
+    /// Exact blob bytes, or `None` when the blob exceeds `max_bytes`.
+    fn blob(&self, _id: &str, _max_bytes: u32) -> ReviewResult<Option<Vec<u8>>> {
+        Err(ReviewError {
+            kind: ReviewErrorKind::Unsupported,
+            message: "provider does not read blobs".into(),
+        })
+    }
 }

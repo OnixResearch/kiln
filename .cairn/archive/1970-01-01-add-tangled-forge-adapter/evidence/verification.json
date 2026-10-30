@@ -1,0 +1,46 @@
+{
+  "schema": "kiln.tangled-forge-adapter.verification.v1",
+  "date": "2026-10-30",
+  "issue": "OnixResearch/kiln#14",
+  "maintenance_owner": "Kiln adapter maintainers (crates/kiln-adapter-tangled, config/tangled-*.ncl, fixtures/tangled, docs/tangled-integration.md)",
+  "sources_read": {
+    "documentation_fetched": "2026-10-30: tangled.org/docs/api/spindle, /docs/spindles, /docs/spindles/writing-workflows, /docs/spindles/workflows, /docs/spindles/secrets, /docs/self-hosting/spindle, /docs/spindles/self-hosting, /docs/reference/identifiers, /docs/reference/records, /docs/api/knot",
+    "source": "tangled.org/tangled.org/core at 203809e6f0e061febbf5cb56e8ca135e279c63ee (2026-10-30T22:10:16+02:00): lexicons/org/tangled/{event,ci,webhook}, spindle notify_event.go, xrpc/*, webhook/webhook.go, models/webhook.go, xrpc/serviceauth, knot2 knot-xrpc outbox.rs, knot-atproto {lib,jwt,auth,resolve}.rs, knot-runtime signer.rs"
+  },
+  "commands": [
+    {"command": "cairn gate proposal|design|tasks add-tangled-forge-adapter --root . --policy cairn-policy/generated/cairn-policy.json", "result": "PASS (all three, before implementation)"},
+    {"command": "CARGO_TARGET_DIR=~/.cargo-target/Tangled nix develop path:. --command cargo fmt -p kiln-adapter-tangled --check", "result": "clean"},
+    {"command": "cargo clippy --locked -p kiln-adapter-tangled --all-targets -- -D warnings", "result": "clean"},
+    {"command": "cargo clippy --locked -p kiln-adapter-tangled --all-targets --features git-fixtures -- -D warnings", "result": "clean"},
+    {"command": "cargo test --locked -p kiln-adapter-tangled", "result": "29 passed, 0 failed; the test binary also passed with env -i PATH=/nonexistent (no git needed)"},
+    {"command": "KILN_GIT_EXE=$(command -v git) cargo test --locked -p kiln-adapter-tangled --features git-fixtures", "result": "31 passed, 0 failed (adds exact SHA-1/SHA-256 acquisition and the Git-backed loopback flow)"},
+    {"command": "nickel typecheck config/tangled-contracts.ncl && nickel typecheck config/tangled-spindle.ncl", "result": "ok"},
+    {"command": "nickel format --check config/tangled-contracts.ncl config/tangled-spindle.ncl config/fixtures/*tangled*.ncl", "result": "ok"},
+    {"command": "nickel export --format json config/fixtures/tangled-spindle-positive.ncl | cmp - fixtures/tangled/spindle-profile.json", "result": "identical; the Rust test exported_nickel_profile_is_admitted admits it"},
+    {"command": "nickel export config/fixtures/negative-tangled-{clone-url,spindle-did,zero-bound}.ncl", "result": "all three refused by contracts"},
+    {"command": "nix-instantiate --parse flake.nix; nix eval path:.#checks.x86_64-linux.tangled-git-fixtures.drvPath", "result": "parses; new check evaluates (not built here; parent runs nix flake check)"}
+  ],
+  "acceptance": {
+    "design note merged, read vs needs verification": "docs/tangled-integration.md: Sources table with URLs, dates and the core commit; 'Read versus needs verification' section with an explicit 'Not established' list",
+    "fixture knot event -> exact-revision Kiln run": "tests::e2e::fixture_knot_push_over_http_publishes_status_back and (git-fixtures) fixture_knot_push_with_git_acquisition_runs_exact_revision: an ES256K knot token posts notifyEvent over loopback HTTP; the dispatched WorkflowEffectPlan.source.revision equals the pushed SHA-256 commit; tests::pipeline::knot_push_runs_exact_revision_publishes_status_and_dedupes_replay",
+    "status published back": "the e2e tests wait for a delivery at a local fixture endpoint whose X-Tangled-Signature-256 verifies and whose view shows success at the exact commit; getPipeline serves the same view; tests::shell::status_publisher_signs_deliveries_and_reports_uncertainty",
+    "replay does not duplicate": "a redelivered push under a fresh token returns the same pipeline id, one pipeline, one run, one dispatch (unit and e2e); reusing a token is refused with 401 tangled_auth_replay; tests::shell::store_dedupes_replay_keys_and_tokens_durably covers durability across reopen and token expiry",
+    "untrusted PR events follow #12": "tests::pipeline::untrusted_pull_request_is_blocked_until_an_approver_approves and the e2e: a fork pull request is blocked (status blocked, nothing dispatched); a trusted non-approver gets 403; the approver releases it via kiln_core::untrusted::decide_approval; a second approval gets PipelineNotBlocked; the run and its retry use the untrusted policy id",
+    "bad signature": "tests::auth::signature_and_claim_failures_are_refused (rogue key, tampered claims, high-S, wrong aud/lxm, expired, over-long, missing jti, key-type mismatch); e2e 401; HMAC verification negatives in webhook_signatures_verify_in_constant_time_form",
+    "unknown repo DID": "tests::events::unknown_repositories_foreign_issuers_and_malformed_pushes_are_refused, malformed_xrpc_and_unknown_repositories_create_nothing, e2e: 404 RepoNotFound, nothing fetched or created",
+    "malformed XRPC": "malformed_xrpc_and_unknown_repositories_create_nothing (400 InvalidRequest, 422 for non-hex SHAs, 501 unknown method, 405 wrong method, duplicate query); e2e 411 for chunked or missing Content-Length",
+    "unsupported when keys": "tests::workflows::unsupported_fields_and_when_keys_fail_with_their_path: schedule, unknown when key, tag on pull_request, types on push, push without branch/tag, filtered manual, release-** and ? globs, cache, runs_on, audience, services, registry, submodules: true, undeclared dependencies or image"
+  },
+  "deviations": [
+    "Pull request intake uses org.tangled.ci.triggerPipeline with an org.tangled.event.pullRequest trigger. Tangled itself starts pull request runs from Jetstream records, which Kiln does not consume.",
+    "Kiln does not take Tangled webhooks as input, because their payloads lack the repository DID. The HMAC format signs and verifies Kiln's status projection only.",
+    "The knot and approver identities are pinned in the profile. They are not resolved from the repository DID document or from collaborator records.",
+    "No deployment binary or Lattice WorkflowPort wiring is included; server::serve takes a caller-supplied WorkflowPort."
+  ],
+  "known_tradeoffs": [
+    "Workflow statuses for an unknown outcome are reported as pending with an error, because Tangled has no unknown status.",
+    "Pipeline ids are kiln- plus 32 hex digits of a BLAKE3 identity, not TIDs. The knot accepts them; whether the app view does is unverified.",
+    "The #12 gate number of a Tangled pull request is derived from the BLAKE3 hash of its AT-URI.",
+    "Tangled schedules are refused, because the H-field hash seeds differ."
+  ]
+}

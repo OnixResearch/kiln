@@ -27,6 +27,28 @@ pub(super) enum Action {
         #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
         authorship: Authorship,
     },
+    /// Change-ID intake: exact jj change IDs (bottom to top) observed through
+    /// the configured jj workspace, or an admitted branch whose commits carry
+    /// the git `change-id` header. Exactly one source is admitted.
+    // r[impl kiln.review.jj_intake]
+    JjContribute {
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        change_ids: Vec<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        source_ref: Option<String>,
+        #[serde(default)]
+        stack: bool,
+        #[serde(default)]
+        wip: bool,
+        #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
+        authorship: Authorship,
+    },
+    /// Internal, service-planned member step of a change-ID intake. Never
+    /// deserialized, so clients cannot bypass jj admission with it.
+    #[serde(skip_deserializing)]
+    JjMember {
+        member: Box<super::jj_intake::Member>,
+    },
     ApplySuggestions {
         thread_ids: Vec<String>,
     },
@@ -98,6 +120,11 @@ pub(super) enum Action {
         file: String,
         reviewed: bool,
     },
+    MarkHunk {
+        file: String,
+        hunk_digest: String,
+        reviewed: bool,
+    },
     SetAttention {
         principal: String,
         attention: bool,
@@ -133,4 +160,15 @@ pub(super) enum Action {
         target_ref: String,
         title: String,
     },
+    /// Non-binding approval of the current revision; admitted for read principals.
+    AdvisoryApprove {},
+    AdvisoryWithdraw {},
+}
+
+impl Action {
+    /// The only actions a read-only principal may send.
+    // r[impl kiln.review.advisory.scenario.forbidden]
+    pub(super) fn read_admitted(&self) -> bool {
+        matches!(self, Self::AdvisoryApprove {} | Self::AdvisoryWithdraw {})
+    }
 }

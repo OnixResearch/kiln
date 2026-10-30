@@ -573,6 +573,7 @@ fn review_window_export_is_bounded_and_read_only() -> TestResult {
                 created_ms: 1100,
             }],
             merged_ms: None,
+            advisory_approvals: 0,
         }
     );
     let human_fact = parsed

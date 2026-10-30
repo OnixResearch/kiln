@@ -91,7 +91,7 @@ documents, unknown fields, and unknown authorship classes before projection.
 
 | Panel | Request |
 |---|---|
-| review friction | `review_friction` over the review window: per authorship class, changes, approved changes, approval latency and patch sets before approval (min, median, max), suggestions per change (total, median, max), merged changes, merged without suggestion, and its per-mille share |
+| review friction | `review_friction` over the review window: per authorship class, changes, approved changes, approval latency and patch sets before approval (min, median, max), suggestions per change (total, median, max), merged changes, merged without suggestion, its per-mille share, and non-binding advisory approvals and advised changes (never counted as approvals) |
 | suggestion anchors | `suggestion_anchors` with cursor `0` and the profile's `max_page_items`: anchor path, owning rule or `unowned`, suggestions, and changes, with the page facts `total`, `more`, and `next` |
 
 Both requests go through `project_observation` unchanged, so their content and

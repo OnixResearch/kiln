@@ -585,7 +585,7 @@ fn single_effect_budget_cannot_starve_later_schedule_or_pending_notification() {
     automation.max_tick_effects = 1;
     let schedule = checked(automation.schedules.first_mut().ok_or("schedule"));
     schedule.enabled = true;
-    schedule.interval_ms = 1000;
+    schedule.interval_ms = Some(1000);
     schedule.next_due_ms = Some(1);
     let mut later = schedule.clone();
     later.id = "later".into();
@@ -703,4 +703,315 @@ fn restart_never_resends_reserved_notification_and_rejects_stale_completion() {
             .unwrap_or(&serde_json::Value::Null),
         "restart_after_reservation"
     );
+}
+
+fn approve(
+    engine: &mut Engine,
+    run: &str,
+    commit: &str,
+    id: &str,
+    role: Role,
+    key: &str,
+) -> ApiResponse {
+    let body = checked(serde_json::to_vec(
+        &json!({"request_id": key, "source_commit": commit}),
+    ));
+    checked(engine.api_as(
+        "POST",
+        &format!("/api/runs/{run}/approve"),
+        &body,
+        &kiln_web_service::access::Principal {
+            id: id.into(),
+            label: id.into(),
+            role,
+        },
+    ))
+}
+fn fork_pull_request(revision: &str) -> Vec<u8> {
+    let fork =
+        json!({"id":99,"name":"Fork","full_name":"outside/Fork","owner":{"login":"outside"}});
+    checked(serde_json::to_vec(
+        &json!({"action":"synchronize","repository":repository(),"number":7,
+        "pull_request":{"number":7,"state":"open","author_association":"NONE",
+        "head":{"ref":"main","sha":revision,"repo":fork},"base":{"ref":"main","sha":revision,"repo":repository()}}}),
+    ))
+}
+fn advance(profile: &ServiceProfile, message: &str) -> String {
+    let project = checked(profile.projects.first().ok_or("project"));
+    let repository = checked(git2::Repository::open(&project.repository_path));
+    let parent = checked(checked(repository.revparse_single("refs/heads/main")).peel_to_commit());
+    let signature = checked(git2::Signature::now("test", "test@example.invalid"));
+    checked(repository.commit(
+        Some("refs/heads/main"),
+        &signature,
+        &signature,
+        message,
+        &checked(parent.tree()),
+        &[&parent],
+    ))
+    .to_string()
+}
+/// The JSON value at `pointer`, or null when absent.
+fn at(value: &Value, pointer: &str) -> Value {
+    value.pointer(pointer).cloned().unwrap_or(Value::Null)
+}
+fn run_id(response: &ApiResponse) -> String {
+    at(&value(response), "/run_id")
+        .as_str()
+        .map(str::to_string)
+        .unwrap_or_default()
+}
+
+// r[verify kiln.untrusted.blocked]
+// r[verify kiln.untrusted.blocked.scenario.new_commit]
+// r[verify kiln.untrusted.approval]
+// r[verify kiln.untrusted.approval.scenario.unauthorized]
+// r[verify kiln.untrusted.execution]
+// r[verify kiln.untrusted.execution.scenario.retry]
+#[test]
+fn fork_pull_request_waits_for_operator_approval_of_its_exact_commit() {
+    let (root, mut profile, revision) = fixture();
+    checked(profile.projects.first_mut().ok_or("project")).untrusted_capable = true;
+    let mut automation = policy(root.path());
+    checked(automation.triggers.first_mut().ok_or("trigger"))
+        .repository
+        .untrusted_pull_requests = kiln_core::untrusted::UntrustedPullRequests::Approve;
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation.clone()));
+    let body = fork_pull_request(&revision);
+    let response = checked(engine.automation_trigger(
+        "github",
+        &signed(
+            "00000000-0000-4000-8000-0000000000a1",
+            "pull_request",
+            &body,
+        ),
+        &body,
+    ));
+    assert_eq!(response.status, 202);
+    assert_eq!(at(&value(&response), "/status"), "awaiting_approval");
+    let first = run_id(&response);
+    let run = value(&get(
+        &mut engine,
+        &format!("/api/runs/{first}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&run, "/phase"), "awaiting_approval");
+    assert_eq!(at(&run, "/untrusted/state"), "awaiting_approval");
+    assert_eq!(at(&run, "/untrusted/reason"), "fork");
+    assert_eq!(backend.lock().dispatches, 0);
+    // Viewers, automation principals and stale commits never release it.
+    let viewer = approve(
+        &mut engine,
+        &first,
+        &revision,
+        "viewer:x",
+        Role::Viewer,
+        "a1",
+    );
+    assert_eq!(viewer.status, 403);
+    assert_eq!(at(&value(&viewer), "/code"), "viewer_read_only");
+    let automated = approve(
+        &mut engine,
+        &first,
+        &revision,
+        "automation:trigger:github",
+        Role::Operator,
+        "a2",
+    );
+    assert_eq!(automated.status, 403);
+    assert_eq!(
+        at(&value(&automated), "/code"),
+        "untrusted_approval_unauthorized"
+    );
+    let stale = approve(
+        &mut engine,
+        &first,
+        &"b".repeat(40),
+        "local:operator",
+        Role::Operator,
+        "a3",
+    );
+    assert_eq!(
+        at(&value(&stale), "/code"),
+        "untrusted_approval_stale_commit"
+    );
+    assert_eq!(backend.lock().dispatches, 0);
+    let still = value(&get(
+        &mut engine,
+        &format!("/api/runs/{first}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&still, "/phase"), "awaiting_approval");
+    assert_eq!(at(&still, "/untrusted/state"), "awaiting_approval");
+    // A new commit returns the pull request to blocked and supersedes the old run.
+    let next = advance(&profile, "next");
+    let body = fork_pull_request(&next);
+    let response = checked(engine.automation_trigger(
+        "github",
+        &signed(
+            "00000000-0000-4000-8000-0000000000a2",
+            "pull_request",
+            &body,
+        ),
+        &body,
+    ));
+    assert_eq!(at(&value(&response), "/status"), "awaiting_approval");
+    let second = run_id(&response);
+    let old = value(&get(
+        &mut engine,
+        &format!("/api/runs/{first}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&old, "/error_code"), "untrusted_superseded");
+    assert_eq!(at(&old, "/untrusted/state"), "superseded");
+    let superseded = approve(
+        &mut engine,
+        &first,
+        &revision,
+        "local:operator",
+        Role::Operator,
+        "a4",
+    );
+    assert_eq!(at(&value(&superseded), "/code"), "untrusted_run_superseded");
+    assert_eq!(backend.lock().dispatches, 0);
+    // The interactive operator approves the exact new commit: it dispatches.
+    let approved = approve(
+        &mut engine,
+        &second,
+        &next,
+        "local:operator",
+        Role::Operator,
+        "a5",
+    );
+    assert_eq!(approved.status, 200);
+    assert_eq!(at(&value(&approved), "/untrusted/state"), "approved");
+    assert_eq!(
+        at(&value(&approved), "/untrusted/approved_commit"),
+        next.as_str()
+    );
+    assert_eq!(
+        at(&value(&approved), "/untrusted/counts_for_required_ci"),
+        false
+    );
+    assert_eq!(backend.lock().dispatches, 1);
+    // Untrusted runs never touch cache, and state replays across restart.
+    let cache = call(
+        &mut engine,
+        "POST",
+        &format!("/api/runs/{second}/cache/restore"),
+        json!({}),
+        Role::Worker,
+    );
+    assert_eq!(at(&value(&cache), "/code"), "untrusted_run_cache_denied");
+    drop(engine);
+    let mut engine = open(profile.clone(), backend.clone());
+    let replayed = value(&get(
+        &mut engine,
+        &format!("/api/runs/{second}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&replayed, "/untrusted/approved_by_id"), "local:operator");
+    // Retries stay untrusted at the exact approved commit: no latest-source
+    // retry, and an exact retry never supersedes a newer commit's gate.
+    {
+        let mut state = backend.lock();
+        state.terminal = true;
+        state.sequence += 1;
+    }
+    poll(&mut engine);
+    let rerun = |engine: &mut Engine, key: &str, mode: &str| {
+        call(
+            engine,
+            "POST",
+            &format!("/api/runs/{second}/rerun"),
+            json!({"request_id": key, "mode": mode}),
+            Role::Operator,
+        )
+    };
+    assert_eq!(
+        at(&value(&rerun(&mut engine, "r1", "latest")), "/code"),
+        "untrusted_retry_requires_exact_source"
+    );
+    let third = advance(&profile, "third");
+    let body = fork_pull_request(&third);
+    checked(engine.configure_automation(automation));
+    let pending = run_id(&checked(engine.automation_trigger(
+        "github",
+        &signed(
+            "00000000-0000-4000-8000-0000000000a3",
+            "pull_request",
+            &body,
+        ),
+        &body,
+    )));
+    let retry = value(&rerun(&mut engine, "r2", "exact"));
+    assert_eq!(at(&retry, "/untrusted/state"), "approved");
+    assert_eq!(at(&retry, "/untrusted/approved_commit"), next.as_str());
+    assert_eq!(backend.lock().dispatches, 2);
+    let retry_id = at(&retry, "/id")
+        .as_str()
+        .map(str::to_string)
+        .unwrap_or_default();
+    let cache = call(
+        &mut engine,
+        "POST",
+        &format!("/api/runs/{retry_id}/cache/publish"),
+        json!({}),
+        Role::Worker,
+    );
+    assert_eq!(at(&value(&cache), "/code"), "untrusted_run_cache_denied");
+    let pending = value(&get(
+        &mut engine,
+        &format!("/api/runs/{pending}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&pending, "/phase"), "awaiting_approval");
+    assert_eq!(at(&pending, "/untrusted/state"), "awaiting_approval");
+}
+
+// r[verify kiln.untrusted.execution]
+#[test]
+fn approval_needs_an_untrusted_capable_project_runner() {
+    let (root, profile, revision) = fixture();
+    let mut automation = policy(root.path());
+    checked(automation.triggers.first_mut().ok_or("trigger"))
+        .repository
+        .untrusted_pull_requests = kiln_core::untrusted::UntrustedPullRequests::Approve;
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let body = fork_pull_request(&revision);
+    let run = run_id(&checked(engine.automation_trigger(
+        "github",
+        &signed(
+            "00000000-0000-4000-8000-0000000000b1",
+            "pull_request",
+            &body,
+        ),
+        &body,
+    )));
+    let refused = approve(
+        &mut engine,
+        &run,
+        &revision,
+        "local:operator",
+        Role::Operator,
+        "b1",
+    );
+    assert_eq!(refused.status, 409);
+    assert_eq!(
+        at(&value(&refused), "/code"),
+        "untrusted_runner_unavailable"
+    );
+    let blocked = value(&get(
+        &mut engine,
+        &format!("/api/runs/{run}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&blocked, "/phase"), "awaiting_approval");
+    assert_eq!(backend.lock().dispatches, 0);
 }

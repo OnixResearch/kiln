@@ -128,6 +128,16 @@ pub struct AdmittedGithubConfig {
 // r[impl kiln.github.nonclaims]
 pub fn admit_config(config: GithubConfig) -> PortResult<AdmittedGithubConfig> {
     admit_event_policy(&config.event_policy)?;
+    // r[impl kiln.untrusted.policy]
+    // This service has no durable approval surface; untrusted pull requests
+    // are refused here exactly as before. Web automation owns `approve`.
+    if !config.event_policy.untrusted_pull_requests.is_deny() {
+        return Err(crate::domain(
+            "github_untrusted_approval_unsupported",
+            "event_policy.untrusted_pull_requests",
+            "standalone GitHub CI admits only the deny untrusted pull request policy",
+        ));
+    }
     admit_status_config(&config.status)?;
     admit_secret_reference(&config.webhook_secret)?;
     admit_secret_reference(&config.status_secret)?;

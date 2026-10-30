@@ -629,6 +629,12 @@ button.account-button[aria-expanded="true"], #app-menu-toggle[aria-expanded="tru
 .run-header details[open] > * + * { margin-top: .7rem; }
 .run-exact-identity h3 { font-size: var(--text-sm); }
 .run-actions .control-bar { padding-top: .7rem; }
+/* r[impl kiln.untrusted.console] Untrusted pull-request gate in run detail; shared tokens only. */
+.run-untrusted { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border)); border-radius: var(--radius); background: var(--warning-background); }
+.run-untrusted[hidden] { display: none; }
+.run-untrusted > * { margin: 0; }
+.run-untrusted-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
+.run-untrusted-head > h3 { margin: 0; font-size: var(--text-sm); font-weight: 650; }
 .run-picker { font: var(--text-sm) var(--mono); }
 .run-picker + .small { margin-top: .4rem; }
 .facts { display: grid; grid-template-columns: minmax(6rem, 10rem) minmax(0, 1fr); gap: .45rem 1rem; font-size: var(--text-sm); margin: 0; }

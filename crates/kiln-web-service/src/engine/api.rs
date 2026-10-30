@@ -407,6 +407,9 @@ impl Engine {
             match (method, resource, artifact) {
                 ("GET", None, None) if params.is_empty() => return json_response(200, run.view()),
                 ("POST", Some("rerun"), None) if params.is_empty() => return self.rerun(id, body),
+                ("POST", Some("approve"), None) if params.is_empty() => {
+                    return self.approve_untrusted(id, body, principal);
+                }
                 ("POST", Some("telemetry"), None) if params.is_empty() => {
                     return self.upload_telemetry(id, body);
                 }
@@ -416,6 +419,9 @@ impl Engine {
                 ("POST", Some("cache"), Some(operation @ ("restore" | "publish")))
                     if params.is_empty() =>
                 {
+                    if let Some(denied) = self.untrusted_cache_denied(id) {
+                        return denied;
+                    }
                     return self.cache_request(role, &principal.id, id, operation, body);
                 }
                 ("POST", Some("reports"), None) if params.is_empty() => {
@@ -453,7 +459,7 @@ impl Engine {
             v.get("attempt_id").is_none()
                 && v.get("action").and_then(Value::as_str) == Some("cancel")
         });
-        if self.state.runs.get(id).is_some_and(|r| r.phase == "queued") || queued_action {
+        if self.state.runs.get(id).is_some_and(|r| r.waiting()) || queued_action {
             return self.cancel_queued(id, body);
         }
         let req: ControlRequest = match serde_json::from_slice(body) {

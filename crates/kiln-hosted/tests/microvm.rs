@@ -300,6 +300,11 @@ fn equivalence_pipeline() -> Value {
 }
 
 /// Each probe must find its tool, attempt the escape, and print `denied`.
+///
+// r[verify kiln.hosted.microvm.network.nongoal.scenario.escape]
+/// The guide names these TCP targets (`1.1.1.1:443`, `10.0.2.2:80`,
+/// `169.254.169.254:80`) and vsock ports as the check coupled to any
+/// guest-networking change.
 fn escape_pipeline(host_boot_id: &str, host_name: &str, host_path: &str) -> Value {
     let namespaces = r#"command -v unshare >/dev/null; [[ "$(id -u)" == 1000 ]]
 for flags in -U -m -n "-p -f" -i -u; do
@@ -475,6 +480,8 @@ fn same_pipeline_matches_on_namespaces_and_firecracker_and_the_guest_denies_esca
             assert_eq!(at(vm, "/destroyed"), true, "{label}: {vm:#}");
             assert_eq!(at(vm, "/journaled"), true, "{label}: {vm:#}");
             assert_eq!(at(vm, "/network"), "none");
+            // r[verify kiln.hosted.microvm.debug_hold.policy.scenario.disabled]
+            assert!(vm.get("debug_hold").is_none(), "{label}: {vm:#}");
             let expected = if label.starts_with("cold") {
                 "cold"
             } else {
@@ -530,4 +537,228 @@ fn same_pipeline_matches_on_namespaces_and_firecracker_and_the_guest_denies_esca
         );
     }
     evidence("escape", &receipt);
+}
+
+/// The hold grace of the host test: long enough for one relayed command.
+const HOLD_GRACE_SECONDS: u64 = 15;
+
+fn held_pipeline() -> Value {
+    json!({
+        "schema": "kiln.hosted.pipeline.v1", "name": "Held", "triggers": ["manual"],
+        "jobs": {"check": {"runner": "linux", "timeout_ms": 60_000, "steps": [
+            {"kind": "run", "name": "fails", "run": "printf 'state-from-job\\n' > \"$TMPDIR/marker\"; printf 'failing\\n'; exit 7"}
+        ]}}
+    })
+}
+
+fn respond(service: &mut Service, peer: &str, id: &str, action: &str, input: Value) -> Response {
+    service.handle(peer, request(id, action, input))
+}
+
+fn millis(since: std::time::Instant) -> u64 {
+    u64::try_from(since.elapsed().as_millis()).unwrap_or(u64::MAX)
+}
+
+// r[verify kiln.hosted.microvm.debug_hold.relay]
+// r[verify kiln.hosted.microvm.debug_hold.relay.scenario.host]
+// r[verify kiln.hosted.microvm.debug_hold.capability.scenario.single_use]
+// r[verify kiln.hosted.microvm.debug_hold.end.scenario.expiry]
+// r[verify kiln.hosted.microvm.debug_hold.sessions]
+#[test]
+fn failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry() {
+    let host = match prerequisites() {
+        Ok(host) => host,
+        Err(reason) => {
+            assert!(
+                std::env::var_os("KILN_MICROVM_REQUIRED").is_none(),
+                "microVM host test required but unavailable: {reason}"
+            );
+            eprintln!("SKIP microVM debug hold test: {reason}");
+            return;
+        }
+    };
+    let mut backend = firecracker(&host, None);
+    if let Some(fields) = backend.as_object_mut() {
+        fields.insert(
+            "debug_hold".into(),
+            json!({"enabled": true, "grace_seconds": HOLD_GRACE_SECONDS, "max_concurrent": 1}),
+        );
+    }
+    let deployment = Deployment::new(&host, backend, &held_pipeline());
+    let mut service =
+        Service::open(deployment.profile.clone()).unwrap_or_else(|e| fail("service open", e));
+    let mut debugger = service.fork().unwrap_or_else(|e| fail("fork", e));
+    let owner = deployment.owner.clone();
+    let run_input = json!({
+        "project": PROJECT, "pipeline_id": deployment.plan, "attempt_id": "held-1",
+        "price_id": deployment.price, "class": "linux", "workspace": WORKSPACE, "trust": "trusted"
+    });
+    let started = std::time::Instant::now();
+    let runner_owner = owner.clone();
+    let run = std::thread::spawn(move || {
+        call(
+            &mut service,
+            &runner_owner,
+            "held-1",
+            "execution.run",
+            run_input,
+        )
+    });
+    let target = json!({"project": PROJECT, "attempt_id": "held-1", "job": "check[0]"});
+    let attempt = json!({"project": PROJECT, "attempt_id": "held-1"});
+    // The attempt's log ends with how to connect once the VM is held.
+    let mut polls = 0_u32;
+    let connect = loop {
+        polls += 1;
+        let got = respond(
+            &mut debugger,
+            &owner,
+            &format!("get-{polls}"),
+            "execution.get",
+            attempt.clone(),
+        );
+        if let Some(connect) = got
+            .result
+            .as_ref()
+            .and_then(|r| r.pointer("/debug_holds/0/connect"))
+            .and_then(Value::as_str)
+        {
+            break connect.to_owned();
+        }
+        assert!(!run.is_finished(), "run ended without a hold: {got:?}");
+        assert!(started.elapsed().as_secs() < 90, "no hold observed");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    };
+    let held_after_ms = millis(started);
+    assert!(connect.contains("execution.debug_issue"), "{connect}");
+    let journaled = || -> (String, String) {
+        let db =
+            rusqlite::Connection::open(deployment.directory.path().join("state/hosted.sqlite"))
+                .unwrap_or_else(|e| fail("database", e));
+        db.query_row(
+            "SELECT lifecycle,result FROM hosted_microvm_job WHERE attempt='held-1'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap_or_else(|e| fail("journal row", e))
+    };
+    let (lifecycle_while_held, result_while_held) = journaled();
+    assert_eq!(lifecycle_while_held, "held");
+
+    let issue_started = std::time::Instant::now();
+    let issued = call(
+        &mut debugger,
+        &owner,
+        "issue-1",
+        "execution.debug_issue",
+        target.clone(),
+    );
+    let issue_ms = millis(issue_started);
+    let capability = at(&issued, "/capability")
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    assert_eq!(capability.len(), 64);
+    let mut exec_input = target.clone();
+    if let Some(fields) = exec_input.as_object_mut() {
+        fields.insert("capability".into(), json!(capability));
+        fields.insert(
+            "command".into(),
+            json!("cat \"$TMPDIR/marker\"; id -u; ls /sys/class/net; pwd"),
+        );
+    }
+    let exec_started = std::time::Instant::now();
+    let session = call(
+        &mut debugger,
+        &owner,
+        "exec-1",
+        "execution.debug_exec",
+        exec_input.clone(),
+    );
+    let exec_ms = millis(exec_started);
+    println!("KILN_MICROVM_DEBUG_SESSION {session}");
+    assert_eq!(at(&session, "/state"), "completed", "{session:#}");
+    assert_eq!(at(&session, "/peer"), json!(owner));
+    assert_eq!(at(&session, "/result/exit_code"), 0, "{session:#}");
+    assert_eq!(
+        at(&session, "/result/stdout"),
+        "state-from-job\n1000\nlo\n/work\n",
+        "{session:#}"
+    );
+    let second = respond(
+        &mut debugger,
+        &owner,
+        "exec-2",
+        "execution.debug_exec",
+        exec_input,
+    );
+    assert_eq!(
+        second.error.as_deref(),
+        Some("debug capability already used"),
+        "{second:?}"
+    );
+
+    let receipt = run
+        .join()
+        .unwrap_or_else(|_| fail("run thread", "panicked"));
+    let total_ms = millis(started);
+    println!("KILN_MICROVM_RECEIPT held {receipt}");
+    let check = job(&receipt, "check");
+    assert_eq!(at(check, "/state"), "failed");
+    assert_eq!(at(check, "/steps/0/exit_code"), 7);
+    let vm = at(check, "/microvm");
+    assert_eq!(at(&vm, "/debug_hold/outcome"), "held", "{vm:#}");
+    assert_eq!(at(&vm, "/debug_hold/end_reason"), "expired", "{vm:#}");
+    assert_eq!(at(&vm, "/debug_hold/sessions"), 1);
+    assert_eq!(at(&vm, "/destroyed"), true);
+    assert_eq!(at(&vm, "/journaled"), true);
+    assert_eq!(at(&vm, "/network"), "none");
+    assert_eq!(at(&vm, "/lifecycle"), "Destroyed { journaled: true }");
+    let held_ms = at(&vm, "/debug_hold/held_ms").as_u64().unwrap_or_default();
+    assert!(
+        held_ms >= HOLD_GRACE_SECONDS * 1000,
+        "the hold lasts its grace: {held_ms}"
+    );
+    let (lifecycle_after, result_after) = journaled();
+    assert_eq!(lifecycle_after, "destroyed");
+    assert_eq!(
+        result_after, result_while_held,
+        "journaled result never changes"
+    );
+    assert_eq!(
+        deployment.vm_rows(),
+        [("held-1/check[0]".to_owned(), "destroyed".to_owned())]
+    );
+    let late = respond(
+        &mut debugger,
+        &owner,
+        "issue-2",
+        "execution.debug_issue",
+        target,
+    );
+    assert_eq!(
+        late.error.as_deref(),
+        Some("no active debug hold for this job")
+    );
+    let listed = call(
+        &mut debugger,
+        &owner,
+        "list-1",
+        "execution.debug_list",
+        attempt,
+    );
+    assert_eq!(at(&listed, "/holds/0/end_reason"), "expired");
+    assert_eq!(at(&listed, "/sessions/0/state"), "completed");
+    assert_eq!(at(&listed, "/authority"), "none");
+    println!(
+        "KILN_MICROVM_DEBUG_HOLD {}",
+        json!({
+            "grace_seconds": HOLD_GRACE_SECONDS, "held_after_ms": held_after_ms, "issue_ms": issue_ms,
+            "exec_ms": exec_ms, "guest_command_ms": at(&session, "/result/elapsed_ms"),
+            "session_duration_ms": at(&session, "/duration_ms"), "held_ms": held_ms,
+            "ready_ms": at(&vm, "/ready_ms"), "session_ms": at(&vm, "/session_ms"),
+            "job_ms": at(&vm, "/job_ms"), "attempt_total_ms": total_ms,
+            "end_reason": at(&vm, "/debug_hold/end_reason"), "destroyed": at(&vm, "/destroyed"),
+        })
+    );
 }

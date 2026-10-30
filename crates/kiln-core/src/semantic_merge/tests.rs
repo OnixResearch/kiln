@@ -474,6 +474,7 @@ fn ambiguous_or_unavailable_lineage_is_refused() {
             resolved_commits: vec![exact],
             conflicted_bookmark: false,
             divergent_change: false,
+            conflicted_commit: false,
         }),
     };
     expect(

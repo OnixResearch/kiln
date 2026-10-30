@@ -13,6 +13,8 @@ use kiln_core::types::ExternalRef;
 use kiln_provider_api::{InfrastructureFailure, NotificationRequest};
 use serde::{Deserialize, Serialize};
 
+pub(crate) mod filters;
+
 pub const AUTOMATION_SCHEMA: &str = "kiln.web-automation.v1";
 const MAX_POLICY_BYTES: usize = 1_048_576;
 
@@ -40,6 +42,17 @@ pub struct TriggerProfile {
     pub push: bool,
     pub pull_request: bool,
     pub pull_request_base: Option<String>,
+    /// Reviewed policy: may an approved untrusted run's result satisfy required
+    /// CI (exact commit only). Valid only with `untrusted_pull_requests = approve`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub untrusted_results_satisfy_required_ci: bool,
+    /// Optional bounded filters (`branches`, `types`, `paths`); empty is
+    /// omitted, so unfiltered profiles keep their fingerprint.
+    #[serde(
+        default,
+        skip_serializing_if = "kiln_core::trigger_filter::TriggerFilter::is_empty"
+    )]
+    pub filter: kiln_core::trigger_filter::TriggerFilter,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,7 +61,12 @@ pub struct ScheduleProfile {
     pub project_id: String,
     pub reference: String,
     pub enabled: bool,
-    pub interval_ms: u64,
+    /// Interval schedules; exactly one of `interval_ms` and `cron` is set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_ms: Option<u64>,
+    /// Calendar schedule in an IANA time zone with `H` spreading.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cron: Option<crate::schedule::CronSchedule>,
     pub min_interval_ms: u64,
     pub max_interval_ms: u64,
     pub next_due_ms: Option<u64>,
@@ -90,7 +108,13 @@ impl AutomationProfile {
         profile.admit()?;
         Ok(profile)
     }
+    /// Admit against the shell clock: cron minimum intervals are checked over
+    /// a bounded horizon starting now.
     pub fn admit(&self) -> Result<(), String> {
+        self.admit_at(now_ms()?)
+    }
+    /// Pure admission with an explicit cron check start.
+    pub fn admit_at(&self, now_ms: u64) -> Result<(), String> {
         if self.schema != AUTOMATION_SCHEMA
             || self.max_records == 0
             || self.max_records > 100_000
@@ -131,25 +155,44 @@ impl AutomationProfile {
         for p in &self.triggers {
             kiln_adapter_github::events::admit_event_policy(&p.repository)
                 .map_err(|_| "automation repository invalid")?;
+            // r[impl kiln.untrusted.policy]
             if p.repository.allow_fork_pull_requests
+                || (p.untrusted_results_satisfy_required_ci
+                    && p.repository.untrusted_pull_requests.is_deny())
                 || !crate::profile::absolute(&p.secret_file)
                 || (p.pull_request
                     && p.pull_request_base
                         .as_ref()
-                        .is_none_or(|v| !valid_reference(&format!("refs/heads/{v}"))))
+                        .map_or(p.filter.branches.is_empty(), |v| {
+                            !valid_reference(&format!("refs/heads/{v}"))
+                        }))
             {
                 return Err("automation trigger authority invalid".into());
             }
+            filters::admit_trigger(p)?;
         }
         for p in &self.schedules {
             if p.min_interval_ms < 1000
                 || p.max_interval_ms > 31_536_000_000
                 || p.min_interval_ms > p.max_interval_ms
-                || !(p.min_interval_ms..=p.max_interval_ms).contains(&p.interval_ms)
-                || (p.enabled && p.next_due_ms.is_none())
                 || p.next_due_ms.is_some_and(|due| due > 9_007_199_254_740_991)
             {
                 return Err("automation schedule bounds invalid".into());
+            }
+            match (&p.interval_ms, &p.cron) {
+                (Some(interval), None) => {
+                    if !(p.min_interval_ms..=p.max_interval_ms).contains(interval)
+                        || (p.enabled && p.next_due_ms.is_none())
+                    {
+                        return Err("automation schedule bounds invalid".into());
+                    }
+                }
+                (None, Some(_)) => filters::admit_cron(p, now_ms)?,
+                _ => {
+                    return Err(
+                        "automation schedule needs exactly one of interval_ms and cron".into(),
+                    );
+                }
             }
         }
         for p in &self.notifications {
@@ -305,6 +348,10 @@ pub struct RegistrationState {
     pub on_failure: bool,
     pub notification_after_ordinal: u64,
     pub last_status: Option<String>,
+    /// Last cron occurrence that reserved a run: the runtime minimum-interval
+    /// reference. Absent for interval schedules and other registrations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_fired_ms: Option<u64>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -326,6 +373,13 @@ pub struct SourceRecord {
     /// Changed-file summary behind `affected`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub changed: Option<kiln_core::monorepo::ChangedSummary>,
+    /// Blocked untrusted pull-request gate the reserved run is created with.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub untrusted: Option<kiln_core::untrusted::UntrustedGate>,
+    /// Filter decision of a filtered trigger: the matched reasons of a run, or
+    /// the filter that excluded the event (`status = "filtered"`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filter: Option<kiln_core::trigger_filter::FilterDecision>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

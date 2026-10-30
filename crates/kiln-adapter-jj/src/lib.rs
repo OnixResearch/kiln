@@ -1,3 +1,7 @@
+pub mod cli;
+#[cfg(feature = "jj-fixtures")]
+pub mod fixtures;
+
 use kiln_codec::identity_from_bytes;
 use kiln_core::source::{
     JujutsuBackend, JujutsuFacts, SourceNativeFacts, SourceResolution, admit_jujutsu_facts,
@@ -38,6 +42,7 @@ pub fn resolve_and_acquire<R: SourceRepositoryPort>(
         resolved_commits: resolved.exact_revisions,
         conflicted_bookmark: resolved.conflicted_alias,
         divergent_change: resolved.divergent_change,
+        conflicted_commit: false,
     };
     let commit = admit_jujutsu_facts(&jujutsu)
         .map_err(PortFailure::Domain)?

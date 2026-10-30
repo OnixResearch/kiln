@@ -15,6 +15,18 @@ make {
       push = true,
       pull_request = true,
       pull_request_base = "main",
+    },
+    {
+      id = "github-filtered-fixture",
+      project_id = "fixture",
+      reference = "refs/heads/main",
+      repository = { owner = "fixture", repository = "source", repository_id = 42, allow_fork_pull_requests = false },
+      secret_file = "/isolated-fixture/github.secret",
+      enabled = false,
+      push = true,
+      pull_request = true,
+      pull_request_base = null,
+      filter = { branches = ["main", "release/**"], types = ["opened", "synchronize", "merged"], paths = ["src/**", "*.md"] },
     }
   ],
   schedules = [
@@ -26,6 +38,16 @@ make {
       interval_ms = 60000,
       min_interval_ms = 1000,
       max_interval_ms = 3600000,
+      next_due_ms = null,
+    },
+    {
+      id = "nightly-fixture",
+      project_id = "fixture",
+      reference = "refs/heads/main",
+      enabled = false,
+      cron = { expression = "H 2 * * 1-5", timezone = "America/New_York" },
+      min_interval_ms = 300000,
+      max_interval_ms = 31536000000,
       next_due_ms = null,
     }
   ],

@@ -46,11 +46,14 @@ fn review() -> domain::ReviewState {
             votes: Vec::new(),
             threads: Vec::new(),
             reviewed: Vec::new(),
+            reviewed_hunks: Vec::new(),
+            last_viewed: BTreeMap::new(),
             attention: BTreeSet::new(),
             dependencies: Vec::new(),
             candidate: None,
             submission: None,
             maintenance: Vec::new(),
+            advisory: Vec::new(),
         },
     );
     state

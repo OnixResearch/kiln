@@ -656,6 +656,89 @@ async fn review_views_over_iroh_equal_the_direct_projection() {
     server.stop().await;
 }
 
+fn advisory_window() -> ReviewWindow {
+    serde_json::from_str(include_str!(
+        "../../../fixtures/observation/review-window-advisory-v1.json"
+    ))
+    .unwrap_or_else(|_| unreachable!())
+}
+
+/// Per-class advisory totals of the advisory fixture, asserted identically by
+/// the HTTPS shell, the iroh shell and the dashboard.
+const ADVISORY_TOTALS: [(&str, u64, u64); 4] = [
+    ("human", 3, 1),
+    ("agent", 3, 2),
+    ("mixed", 1, 1),
+    ("undeclared", 0, 0),
+];
+
+// r[verify kiln.observe.review.advisory.scenario.parity]
+// r[verify kiln.observe.review.advisory]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn advisory_counts_over_iroh_equal_the_direct_projection() {
+    let server_profile = profile(key(2), false);
+    let source = Arc::new(MemoryObservationSource::new(
+        snapshot().with_review(advisory_window()),
+    ));
+    let server = Server::start_with(
+        server_profile,
+        Arc::clone(&source) as Arc<dyn ObservationSource>,
+    )
+    .await;
+    let client_profile = profile(key(1), false);
+    let client = client(&client_profile).await;
+    let request = review_request(ViewRequest::ReviewFriction);
+    let response = exchange(&client, &server, &client_profile, &request).await;
+    let IrohResult::Ok { view, .. } = &response.result else {
+        unreachable!()
+    };
+    let iroh_view: &ObservationView = view;
+    let direct = project_observation(
+        &client_profile.core,
+        &fixture_state(),
+        &request,
+        &ObservationWindow::review(advisory_window()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    admit_equivalence(&direct, iroh_view).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        encode_view(&direct, 4_194_304).unwrap_or_else(|_| unreachable!()),
+        encode_view(iroh_view, 4_194_304).unwrap_or_else(|_| unreachable!())
+    );
+    let plain = project_observation(
+        &client_profile.core,
+        &fixture_state(),
+        &request,
+        &ObservationWindow::review(review_window()),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_ne!(direct.identity, plain.identity);
+    let ViewBody::ReviewFriction(friction) = &iroh_view.body else {
+        unreachable!()
+    };
+    let totals: Vec<(String, u64, u64)> = friction
+        .classes
+        .iter()
+        .map(|class| {
+            (
+                serde_json::to_value(class.authorship)
+                    .ok()
+                    .and_then(|value| value.as_str().map(String::from))
+                    .unwrap_or_default(),
+                class.advisory_approvals,
+                class.advised_changes,
+            )
+        })
+        .collect();
+    let expected: Vec<(String, u64, u64)> = ADVISORY_TOTALS
+        .iter()
+        .map(|(class, approvals, changes)| (String::from(*class), *approvals, *changes))
+        .collect();
+    assert_eq!(totals, expected);
+    client.close().await;
+    server.stop().await;
+}
+
 // r[verify kiln.observe.iroh.peer.scenario.denied]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn unknown_and_revoked_peers_are_denied() {

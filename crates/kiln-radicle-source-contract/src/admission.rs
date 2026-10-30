@@ -187,6 +187,29 @@ pub fn admit_request(request: &SourceRequest) -> Result<(), AdmissionError> {
         "request.expected_sigrefs_commit",
     )?;
     admit_oid(&request.expected_revision, "request.expected_revision")?;
+    if let Some(canonical) = &request.canonical {
+        admit_oid(
+            &canonical.identity_commit,
+            "request.canonical.identity_commit",
+        )?;
+        admit_text(
+            &canonical.reference,
+            request.limits.max_reference_bytes,
+            "request.canonical.reference",
+        )?;
+        if !canonical.reference.starts_with(BRANCH_REFERENCE_PREFIX)
+            || canonical.reference.contains("..")
+            || canonical.reference.contains('\\')
+        {
+            return Err(AdmissionError::Reference {
+                field: "request.canonical.reference",
+            });
+        }
+        require_link(
+            canonical.reference == request.signed_reference,
+            "request.canonical.reference",
+        )?;
+    }
     Ok(())
 }
 
@@ -313,6 +336,87 @@ pub fn admit_receipt(receipt: &SourceReceipt) -> Result<(), AdmissionError> {
         return Err(AdmissionError::SnapshotBound {
             field: "snapshot.total_bytes",
         });
+    }
+    // r[impl kiln.radicle.canonical_source.evidence]
+    require_link(
+        receipt.canonical.is_some() == request.canonical.is_some(),
+        "receipt.canonical",
+    )?;
+    if let (Some(evidence), Some(canonical)) = (&receipt.canonical, &request.canonical) {
+        admit_oid(
+            &evidence.identity_commit,
+            "receipt.canonical.identity_commit",
+        )?;
+        require_link(
+            evidence.identity_commit == canonical.identity_commit,
+            "receipt.canonical.identity_commit",
+        )?;
+        admit_oid(&evidence.identity_root, "receipt.canonical.identity_root")?;
+        admit_text(
+            &evidence.reference,
+            request.limits.max_reference_bytes,
+            "receipt.canonical.reference",
+        )?;
+        require_link(
+            evidence.reference == canonical.reference
+                && evidence.reference == request.signed_reference,
+            "receipt.canonical.reference",
+        )?;
+        admit_oid(&evidence.object, "receipt.canonical.object")?;
+        require_link(
+            evidence.object == request.expected_revision,
+            "receipt.canonical.object",
+        )?;
+        if evidence.object_kind != "commit" && evidence.object_kind != "tag" {
+            return Err(AdmissionError::Reference {
+                field: "receipt.canonical.object_kind",
+            });
+        }
+        if evidence.delegates.is_empty() {
+            return Err(AdmissionError::Empty {
+                field: "receipt.canonical.delegates",
+            });
+        }
+        if evidence.delegates.len() > 255 {
+            return Err(AdmissionError::IdentityBound {
+                field: "receipt.canonical.delegates",
+            });
+        }
+        let mut seen = alloc::collections::BTreeSet::new();
+        for delegate in &evidence.delegates {
+            admit_text(
+                delegate,
+                request.limits.max_identity_bytes,
+                "receipt.canonical.delegates",
+            )?;
+            if !seen.insert(delegate.as_str()) {
+                return Err(AdmissionError::Linkage {
+                    field: "receipt.canonical.delegates",
+                });
+            }
+        }
+        if evidence.threshold == 0
+            || usize::try_from(evidence.threshold)
+                .map_or(true, |threshold| threshold > evidence.delegates.len())
+        {
+            return Err(AdmissionError::Reference {
+                field: "receipt.canonical.threshold",
+            });
+        }
+        let mut observers = alloc::collections::BTreeSet::new();
+        for observation in &evidence.observations {
+            if !seen.contains(observation.delegate.as_str()) {
+                return Err(AdmissionError::Linkage {
+                    field: "receipt.canonical.observations",
+                });
+            }
+            if !observers.insert(observation.delegate.as_str()) {
+                return Err(AdmissionError::Linkage {
+                    field: "receipt.canonical.observations",
+                });
+            }
+            admit_oid(&observation.object, "receipt.canonical.observations.object")?;
+        }
     }
     Ok(())
 }

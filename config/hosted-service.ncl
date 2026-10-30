@@ -87,6 +87,20 @@ let Backend =
             }
             | default
             = null,
+          # Opt-in debug hold of failed jobs without secrets, workload tokens or
+          # untrusted trust (docs/hosted-ci.md). Omitted means disabled; Rust also
+          # requires max_concurrent <= maximum_concurrent.
+          debug_hold
+            | {
+              enabled | Bool,
+              grace_seconds | c.BoundedInteger 1 900,
+              max_concurrent | c.BoundedInteger 1 16,
+            }
+            | optional,
+          # r[impl kiln.untrusted.execution] Operator declaration that this runner
+          # may execute approved untrusted pull-request runs, always without
+          # secrets, workload token or cache. Omitted means it may not.
+          untrusted_capable | Bool | optional,
           qualification_identity | c.Nullable c.Blake3 | default = null,
         }
         label

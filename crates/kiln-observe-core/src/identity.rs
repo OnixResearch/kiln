@@ -317,9 +317,33 @@ fn encode_review_change(output: &mut Vec<u8>, change: &ReviewChangeFact) {
         });
         push_i64(output, suggestion.created_ms);
     }
-    push_option(output, change.merged_ms.as_ref(), |output, merged_ms| {
-        push_i64(output, *merged_ms);
-    });
+    encode_trailing_option(
+        output,
+        change.merged_ms.map(|merged_ms| merged_ms.to_be_bytes()),
+        &[u64::from(change.advisory_approvals)],
+    );
+}
+
+/// Bit set on a trailing option tag when non-zero advisory counts follow.
+const ADVISORY_TAG_BIT: u8 = 2;
+
+/// Encode the trailing option of a record, followed by advisory counts only
+/// when any is non-zero. The counts are flagged by `ADVISORY_TAG_BIT` on the
+/// option tag, so records without advisory approvals keep their exact
+/// pre-advisory encoding while non-zero counts stay injective.
+// r[impl kiln.observe.review.advisory]
+fn encode_trailing_option(output: &mut Vec<u8>, value: Option<[u8; 8]>, advisory: &[u64]) {
+    let advised = advisory.iter().any(|count| *count != 0);
+    let tag = u8::from(value.is_some()) | if advised { ADVISORY_TAG_BIT } else { 0 };
+    output.push(tag);
+    if let Some(bytes) = value {
+        output.extend_from_slice(&bytes);
+    }
+    if advised {
+        for count in advisory {
+            push_u64(output, *count);
+        }
+    }
 }
 
 fn encode_distribution(output: &mut Vec<u8>, value: &Distribution) {
@@ -341,10 +365,11 @@ fn encode_friction_row(output: &mut Vec<u8>, row: &AuthorshipFrictionView) {
     encode_distribution(output, &row.suggestions_per_change);
     push_u64(output, row.merged_changes);
     push_u64(output, row.merged_without_suggestion);
-    push_option(
+    encode_trailing_option(
         output,
-        row.merged_without_suggestion_per_mille.as_ref(),
-        |output, value| push_u64(output, *value),
+        row.merged_without_suggestion_per_mille
+            .map(|value| value.to_be_bytes()),
+        &[row.advisory_approvals, row.advised_changes],
     );
 }
 

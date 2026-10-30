@@ -1,0 +1,47 @@
+{
+  "schema": "kiln.cron-schedules.verification.v1",
+  "date": "2026-10-30",
+  "issue": "https://github.com/OnixResearch/kiln/issues/16",
+  "maintenance_owner": "web-service maintainers (kiln_web_service::schedule, automation cron shell); hosted maintainers (pipeline schedules entries and hosted_pipeline_schedules ledger)",
+  "dependency": "jiff =0.2.35 (default-features off; std + tzdb-bundle-always) bundling jiff-tzdb 0.1.8 = IANA tzdb 2026c; both Unlicense OR MIT, already present in Cargo.lock; recorded in LICENSES.md; lives in kiln-web-service (shell crate), not kiln-core. Chosen over chrono-tz for explicit gap/fold disambiguation and no host zoneinfo; TimeZoneDatabase::bundled() is used explicitly so feature unification can never route lookups to host zoneinfo.",
+  "commands": [
+    {
+      "command": "cargo test --offline -p kiln-web-service --lib schedule",
+      "result": "6 passed, 0 failed"
+    },
+    {
+      "command": "cargo test --offline -p kiln-hosted --lib pipelines",
+      "result": "11 passed, 0 failed (incl. hosted_schedule_reviews_interval_and_reserves_without_catch_up)"
+    },
+    {
+      "command": "cargo test --offline -p kiln-web-service --test engine -- triggers automation monorepo",
+      "result": "17 passed, 0 failed (incl. cron_restart_in_missed_window_never_catches_up_and_fire_binds_exact_revision; interval schedule tests unchanged)"
+    },
+    {
+      "command": "nickel export config/fixtures/web-automation-positive.ncl and negative-web-automation-cron-*.ncl; hosted-pipeline-triggers-positive.ncl and negative-hosted-pipeline-schedule-interval.ncl",
+      "result": "positive export; negatives rejected"
+    },
+    {
+      "command": "nix flake check",
+      "result": "nix flake check path:. --no-write-lock-file --keep-going --option builders '' --max-jobs 4 on the final source tree: all checks passed (every exported check, including tests, clippy, format, nickel, live-console-ui, github-protocol-fixtures, octet, no-std, boundaries, cohort and package checks); the check omits incompatible aarch64-linux systems by default"
+    }
+  ],
+  "acceptance": {
+    "1_hash_stable_restart_identity": "hash_spreading_is_stable_and_follows_only_identity: fresh compilations identical, pinned resolution '44 3 * * 5' for (project, nightly), changed project/schedule identity recomputes, H/15 keeps the step, H in day-of-month within 1-28",
+    "2_dst_once_per_occurrence": "new_york_transitions_fire_once_per_intended_occurrence: 2026-03-08 nonexistent 02:30 fires once at 03:30 EDT; 2026-11-01 repeated 01:30 fires once (EDT); collapsing civil times fire once; Lord Howe 30-minute gap ordering",
+    "3_min_interval_review_and_runtime": "minimum_interval_is_checked_across_the_horizon (check), hosted review rejects '*/5' with 10-minute minimum, reservation_fires_skips_missed_windows_and_rejects_close_runs (TooClose at runtime); engine records status schedule_min_interval",
+    "4_restart_no_catch_up": "engine cron_restart_in_missed_window_never_catches_up_and_fire_binds_exact_revision (missed, zero dispatches, next due after restart), hosted ledger 'missed' after 3-day gap, schedule decide Missed",
+    "hosted_schedule_trigger": "{event=schedule, schedule=id} referencing reviewed schedules entries; review checks interval with H of (org, project, pipeline, schedule); pipelines.schedule ledger initializes without firing, fires once, binds observed revision of the reviewed reference",
+    "default_branch_revision_at_due_time": "web: reservation resolves schedule reference to the exact commit and records source_revision (engine test asserts equality); hosted: binds the caller-observed revision (no hosted source port)",
+    "fairness": "cron fires are one effect each in the unchanged round-robin next_effect within max_tick_effects",
+    "interval_replay_unchanged": "interval_ms Option serialized only when present; last_fired_ms/cron omitted when absent; existing automation tests pass"
+  },
+  "trade_offs": [
+    "Review horizon 400 days / 200000 occurrences; later violations are caught at reservation as too-close.",
+    "An occurrence older than one minimum interval is missed; operators keep poll_interval_ms below min_interval_ms.",
+    "Hosted reservation trusts the caller's observed default-branch revision because hosted has no source observation port."
+  ],
+  "not_run": [
+    "disposable-instance smoke"
+  ]
+}

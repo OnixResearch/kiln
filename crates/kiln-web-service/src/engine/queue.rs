@@ -284,6 +284,18 @@ impl Engine {
         if req.mode == "latest" && prior.dirty_snapshot.is_some() {
             return error(409, "dirty_retry_requires_exact_source");
         }
+        // r[impl kiln.untrusted.execution]
+        // Retries of untrusted runs stay untrusted at the exact commit; there is
+        // no way to regain secrets, cache or trusted placement by retrying.
+        let untrusted = prior.untrusted.clone();
+        if let Some(gate) = &untrusted {
+            if req.mode == "latest" {
+                return error(409, "untrusted_retry_requires_exact_source");
+            }
+            if gate.state() == kiln_core::untrusted::UntrustedState::Superseded {
+                return error(409, "untrusted_run_superseded");
+            }
+        }
         let source = if req.mode == "latest" {
             match resolve_source(&project, &project.reference, None) {
                 Ok(v) => v,
@@ -311,7 +323,8 @@ impl Engine {
         } else {
             prior.affected.clone()
         };
-        self.enqueue(
+        self.pending_untrusted = untrusted;
+        let result = self.enqueue(
             &project,
             &req.request_id,
             fingerprint,
@@ -322,7 +335,9 @@ impl Engine {
             Some(id.to_owned()),
             selected.into_iter().collect(),
             affected,
-        )
+        );
+        self.pending_untrusted = None;
+        result
     }
     #[allow(clippy::too_many_arguments)]
     fn enqueue(
@@ -408,8 +423,10 @@ impl Engine {
             selected_nodes: selected,
             node_timing: BTreeMap::new(),
             reports: Vec::new(),
+            untrusted: None,
             state: State::default(),
         };
+        self.attach_untrusted(&mut record)?;
         record.apply(Command::StartRun {
             run_id: RunId::new(id.clone()).map_err(|_| "run identity invalid")?,
             attempt_id: plan.attempt_id.clone(),
@@ -417,6 +434,7 @@ impl Engine {
             effect_id: plan.effect_id.clone(),
         })?;
         self.state.runs.insert(id.clone(), record);
+        self.supersede_untrusted(&id)?;
         self.reserve_request(
             request_id.to_owned(),
             fingerprint,
@@ -425,7 +443,7 @@ impl Engine {
         )?;
         self.dispatch_queued()?;
         let run = self.state.runs.get(&id).ok_or("run missing")?;
-        let status = if run.phase == "queued" { 202 } else { 201 };
+        let status = if run.waiting() { 202 } else { 201 };
         self.finish_request(
             request_id,
             status,
@@ -437,7 +455,7 @@ impl Engine {
             .state
             .runs
             .values()
-            .filter(|r| !r.outcome().is_terminal() && r.phase != "queued")
+            .filter(|r| !r.outcome().is_terminal() && !r.waiting())
             .map(|r| r.project_id.clone())
             .collect();
         let mut queued: Vec<_> = self
@@ -449,6 +467,10 @@ impl Engine {
             .collect();
         queued.sort();
         for (_, id, project) in queued {
+            // r[impl kiln.untrusted.execution]
+            if !self.untrusted_dispatchable(self.state.runs.get(&id).ok_or("queued run missing")?) {
+                continue;
+            }
             if self.worker_capacity_available(&project, host_time_ms()?)? == Some(false) {
                 continue;
             }
@@ -491,7 +513,7 @@ impl Engine {
             return error(409, "request_retention");
         }
         let run = self.state.runs.get_mut(id).ok_or("run missing")?;
-        if run.phase != "queued" {
+        if !run.waiting() {
             return error(409, "queue_control_stale");
         }
         run.complete(Outcome::Cancelled, None)?;

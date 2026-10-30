@@ -80,6 +80,7 @@ fn fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
         maximum_artifacts: 4,
         execution: None,
         heartbeat: None,
+        untrusted_capable: false,
         steps: vec![Step {
             node_id: "build".into(),
             program: "/bin/sh".into(),
@@ -150,6 +151,7 @@ fn binding_fixture(
             maximum_chunks: 128,
         },
         project_root: None,
+        untrusted: None,
     }
 }
 

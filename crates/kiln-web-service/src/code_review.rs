@@ -17,11 +17,22 @@ use crate::engine::{ApiResponse, Role};
 mod authorship_tests;
 mod commands;
 pub mod delivery;
+mod hunks;
 pub mod intake;
+pub mod jj_intake;
+#[cfg(all(test, feature = "jj-fixtures"))]
+mod jj_intake_tests;
 mod model;
+pub mod noise;
+#[cfg(test)]
+mod noise_advisory_tests;
 pub mod queue;
+mod speculation;
 mod store;
+mod structural;
 mod suggestions;
+mod untrusted;
+mod views;
 use model::{Action, Request};
 
 const MAX_BODY: usize = 128 * 1024;
@@ -37,7 +48,7 @@ const MAX_COMMENT_BYTES: usize = 16 * 1024;
 const MAX_QUERY_BYTES: usize = 1024;
 const MAX_QUERY_FIELDS: usize = 16;
 const MAX_TARGETS: usize = 32;
-const REVIEW_CAPABILITY_COUNT: usize = 9;
+const REVIEW_CAPABILITY_COUNT: usize = 10;
 const MAX_REQUEST_TARGET_BYTES: usize = 8192;
 const MAX_DRAFTS: usize = 128;
 const MAX_SAVED_VIEWS: usize = 64;
@@ -75,6 +86,9 @@ pub struct Profile {
     pub delivery: Option<delivery::Profile>,
     #[serde(default)]
     pub queue: Option<queue::Profile>,
+    /// Display-only preferences (noise rules); never part of authority.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review: Option<noise::ReviewDisplay>,
 }
 
 impl Profile {
@@ -134,6 +148,9 @@ impl Profile {
         }
         if let Some(queue) = &self.queue {
             queue.admit(self)?;
+        }
+        if let Some(review) = &self.review {
+            review.admit()?;
         }
         store::preflight(&self.database)?;
         if !crate::profile::absolute(&self.provider.repository_path)
@@ -287,6 +304,12 @@ struct State {
     delivery: delivery::State,
     #[serde(default)]
     queue: Vec<queue::Entry>,
+    /// Current speculative window per target ref; absent means the profile ceiling.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    queue_windows: BTreeMap<String, usize>,
+    /// jj change-ID intake observations and stacks; absent when unused.
+    #[serde(default, skip_serializing_if = "jj_intake::JjState::is_empty")]
+    jj: jj_intake::JjState,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct OperationView {
@@ -525,14 +548,14 @@ impl Workspace {
             return reject(403, "review_read_denied");
         }
         let can_write = profile.write_principals.iter().any(|p| p == principal);
-        if command_route && !can_write {
-            return reject(403, "review_write_denied");
-        }
         let request: Option<Request> = if command_route {
-            Some(
-                serde_json::from_slice(body)
-                    .map_err(|_| Failure::Api(400, "review_command_invalid".into()))?,
-            )
+            let parsed = serde_json::from_slice::<Request>(body);
+            // r[impl kiln.review.advisory.scenario.forbidden]
+            // Read principals may send only advisory actions; all else needs write.
+            if !can_write && !parsed.as_ref().is_ok_and(|r| r.action.read_admitted()) {
+                return reject(403, "review_write_denied");
+            }
+            Some(parsed.map_err(|_| Failure::Api(400, "review_command_invalid".into()))?)
         } else {
             None
         };
@@ -636,8 +659,8 @@ impl Workspace {
                 "capabilities":provider.info().capabilities,"policy":profile.policy,"changes":changes,"total":total,"next_offset":next_offset,
                 "saved_views":projection.saved_queries,"notifications":notifications,"notifications_total":notifications_total,
                 "next_notification_offset":next_notification_offset,"operations":operations,"operations_total":pending.len(),"next_operation_offset":next_operation_offset,
-                "contribution_sources":intake::sources(profile,&state,principal)?,"intake_enabled":profile.intake.is_some(),
-                "queue":state.queue,"queue_enabled":profile.queue.is_some(),
+                "contribution_sources":intake::sources(profile,&state,principal)?,"intake_enabled":profile.intake.is_some(),"jj_intake":jj_intake::published(profile),
+                "queue":state.queue,"queue_enabled":profile.queue.is_some(),"noise":noise::published(profile.review.as_ref()),
                 "target_write_boundary":{"scope":"configured_provider_only","targets":profile.provider.target_refs,"unmanaged_writers":"Operator must restrict repository filesystem and other push credentials; service admission does not control external writers"},
                 "bounded":true,"non_claims":["External delivery reports receiver acceptance, not email receipt.","Provider-created commits use the service signature, not an attestation of the original author's identity.","Configured provider policy does not prevent unmanaged repository writers."]}),
             );
@@ -676,7 +699,7 @@ impl Workspace {
             .get(id)
             .ok_or_else(|| Failure::Api(404, "review_change_missing".into()))?;
         if diff {
-            return self.diff(&provider, change, &query);
+            return self.diff(&provider, change, &query, principal, &state);
         }
         let (facts, evaluation) =
             self.facts_evaluated(&context, &state, change, now_ms, ci, "observation")?;
@@ -703,6 +726,7 @@ impl Workspace {
                 item.insert("ci_projects".into(), projects);
             }
         }
+        untrusted::annotate_checklist(&mut checklist, ci, change, facts.integration.as_ref())?;
         let dependencies: Vec<_> = change
             .dependencies
             .iter()
@@ -754,7 +778,9 @@ impl Workspace {
         response(
             json!({"change":enriched(change,&state,principal),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
                 "subscribed":delivery::subscribed(&state.delivery,principal,id),"delivery_outcomes":delivery::outcomes(&state.delivery,principal,id),
-                "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some()}),
+                "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some(),
+                "noise":noise::published(profile.review.as_ref()),
+                "jj_evolog":jj_intake::evolog(&state,change),"jj_stack":jj_intake::stack_view(&state,change)}),
         )
     }
 
@@ -859,6 +885,7 @@ impl Workspace {
             anchors: Vec::new(),
             integration,
             ci_required,
+            hunks: None,
         };
         self.populate_changed_files(provider, revision, &mut facts)?;
         Ok((facts, evaluation))
@@ -930,6 +957,7 @@ impl Workspace {
             limits: DiffLimits::default(),
             whitespace: WhitespaceMode::Exact,
         })?;
+        facts.hunks = Some(hunks::facts(&comparison));
         let complete = !comparison.truncated && comparison.files.iter().all(|file| !file.truncated);
         let files = comparison
             .files
@@ -973,6 +1001,8 @@ impl Workspace {
         provider: &impl ChangeReviewPort,
         change: &domain::Change,
         query: &BTreeMap<String, String>,
+        principal: &str,
+        state: &State,
     ) -> Result<ApiResponse, Failure> {
         // r[impl kiln.highlight.api]
         let highlight = match query.get("highlight").map(String::as_str) {
@@ -988,29 +1018,36 @@ impl Workspace {
                 .ok_or_else(|| Failure::Api(404, "review_revision_missing".into()))?,
             None => change.current()?,
         };
-        let old = match query.get("base").map(String::as_str) {
-            None | Some("base") => &revision.base,
-            Some(id) => {
-                &change
-                    .revisions
-                    .iter()
-                    .find(|r| r.id == id)
-                    .ok_or_else(|| Failure::Api(404, "review_base_missing".into()))?
-                    .commit
-            }
+        let structural = match query.get("mode").map(String::as_str) {
+            None | Some("line") => false,
+            Some("structural") => true,
+            Some(_) => return reject(400, "review_mode_invalid"),
         };
-        let mut diff = provider.compare(&CompareRequest {
-            old_commit: old.clone(),
-            new_commit: revision.commit.clone(),
-            limits: DiffLimits::default(),
-            whitespace: match query.get("whitespace").map(String::as_str) {
-                None | Some("exact") => WhitespaceMode::Exact,
-                Some("ignore_all") => WhitespaceMode::IgnoreAll,
-                Some("ignore_change") => WhitespaceMode::IgnoreChange,
-                Some("ignore_eol") => WhitespaceMode::IgnoreEol,
-                _ => return reject(400, "review_whitespace_invalid"),
+        let views::View {
+            mut diff,
+            annotations,
+            exact_base,
+            exact_old_side,
+        } = views::select(
+            provider,
+            change,
+            revision,
+            query,
+            &|revision: &domain::Revision| {
+                // r[impl kiln.review.interdiff.scenario.narrowed] jj intake's provider observation of the exact head commit.
+                jj_intake::observation(state, &revision.id)
+                    .filter(|observed| observed.commit == revision.commit)
+                    .map(|observed| observed.change_id.clone())
             },
-        })?;
+        )?;
+        // r[impl kiln.review.hunks] Private progress of the requesting principal only.
+        let progress = hunks::review(
+            provider,
+            change,
+            revision,
+            principal,
+            exact_base.then_some(&diff),
+        )?;
         if let Some(file) = query.get("file") {
             diff.files
                 .retain(|f| f.new_path.as_ref() == Some(file) || f.old_path.as_ref() == Some(file));
@@ -1019,6 +1056,28 @@ impl Workspace {
             }
         }
         let mut value = serde_json::to_value(&diff).map_err(|_| Failure::Unavailable)?;
+        if let Some(object) = value.as_object_mut() {
+            object.extend(annotations);
+            object.insert("review_hunks".into(), progress);
+            object.insert("exact_old_side".into(), Value::Bool(exact_old_side));
+            if structural {
+                let filtered = query.get("whitespace").is_some_and(|w| w != "exact");
+                let note = if !exact_old_side {
+                    Some("not_exact_comparison")
+                } else {
+                    filtered.then_some("whitespace_filtered")
+                };
+                object.insert(
+                    "structural".into(),
+                    structural::files(provider, &diff, note)?,
+                );
+            }
+        }
+        // Display-only noise classification; never consulted for authority.
+        let noise = noise::annotate(self.profile.as_ref().and_then(|p| p.review.as_ref()), &diff);
+        if let (false, Some(object)) = (noise.is_null(), value.as_object_mut()) {
+            object.insert("noise".into(), noise);
+        }
         if !highlight {
             return response(value);
         }
@@ -1098,17 +1157,21 @@ fn source_fact(
 // r[impl kiln.review.authorship]
 fn enriched(change: &domain::Change, state: &State, principal: &str) -> Value {
     let reviewed: Vec<_> = domain::reviewed(change, principal).collect();
+    let reviewed_hunks: Vec<_> = domain::reviewed_hunks(change, principal).collect();
     json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),
         "project":change.project,"repository":change.repository,"target_ref":change.target_ref,
         "owner":change.owner,"title":change.title,"description":change.description,"state":change.state,
         "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"votes":change.votes,
-        "threads":change.threads,"reviewed":reviewed,"attention":change.attention,
+        "threads":change.threads,"reviewed":reviewed,"reviewed_hunks":reviewed_hunks,
+        "last_viewed":change.last_viewed.get(principal),"attention":change.attention,
         "dependencies":change.dependencies,"candidate":change.candidate,"submission":change.submission,
-        "maintenance":change.maintenance})
+        "maintenance":change.maintenance,
+        // r[impl kiln.review.advisory.view] Non-binding; separate from votes.
+        "advisory":change.advisory,"advisory_current":domain::current_advisory(change).count()})
 }
 fn summary(change: &domain::Change, state: &State) -> Value {
     let revision = change.revisions.last().map(|revision|json!({"id":revision.id,"number":revision.number,"commit":revision.commit,"base":revision.base,"author":revision.author,"created_ms":revision.created_ms}));
-    json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),"project":change.project,"repository":change.repository,"target_ref":change.target_ref,"owner":change.owner,"title":change.title,"state":change.state,"wip":change.wip,"authorship":domain::authorship_class(change),"revisions":revision.into_iter().collect::<Vec<_>>(),"reviewers":change.reviewers,"attention":change.attention,"unresolved":change.threads.iter().filter(|t| !t.resolved).count()})
+    json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),"project":change.project,"repository":change.repository,"target_ref":change.target_ref,"owner":change.owner,"title":change.title,"state":change.state,"wip":change.wip,"authorship":domain::authorship_class(change),"revisions":revision.into_iter().collect::<Vec<_>>(),"reviewers":change.reviewers,"attention":change.attention,"unresolved":change.threads.iter().filter(|t| !t.resolved).count(),"advisory_current":domain::current_advisory(change).count()})
 }
 fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery, Failure> {
     let kind = match query.get("view").map_or("all", String::as_str) {
@@ -1125,10 +1188,17 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
         Some("submitted") => Some(domain::ChangeStatus::Submitted),
         _ => return reject(400, "review_query_invalid"),
     };
+    let advisory = match query.get("advisory").map(String::as_str) {
+        None | Some("") => None,
+        Some("with") => Some(true),
+        Some("without") => Some(false),
+        _ => return reject(400, "review_query_invalid"),
+    };
     Ok(domain::SearchQuery {
         kind,
         text: query.get("q").cloned().unwrap_or_default(),
         status,
+        advisory,
     })
 }
 fn parse_target(target: &str) -> Result<(String, BTreeMap<String, String>), Failure> {

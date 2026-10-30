@@ -1,0 +1,49 @@
+{
+  "schema": "kiln.hosted-microvm-network-nongoal.verification.v1",
+  "date": "2026-10-31",
+  "issue": "https://github.com/OnixResearch/kiln/issues/23",
+  "maintenance_owner": "Kiln hosted maintainers (docs/hosted-ci.md Firecracker backend and the guest-escape suite)",
+  "commands": [
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "pass: 0 issues, 0 findings after archive"
+    },
+    {
+      "command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json",
+      "result": "pass: 0 missing, 0 dangling after archive"
+    },
+    {
+      "command": "cairn release-readiness --root .",
+      "result": "pass"
+    },
+    {
+      "command": "source review of docs/hosted-ci.md",
+      "result": "the subsection sits under the Firecracker backend, is linked from the isolation-claims paragraph as #guest-networking-non-goal (heading slug matches), and names the escape-suite TCP targets 1.1.1.1:443, 10.0.2.2:80 and 169.254.169.254:80 and its vsock probes 10240, 1024 and 22"
+    },
+    {
+      "command": "nix develop path:. -c cargo clippy --locked -p kiln-microvm -p kiln-hosted --all-targets -- -D warnings, plus rustfmt --check on the two touched files",
+      "result": "pass (comment-only edits)"
+    }
+  ],
+  "acceptance": {
+    "1 subsection and link": "### Guest networking (non-goal) under the Firecracker backend; the isolation-claims paragraph now reads 'there is no network device (see [Guest networking (non-goal)](#guest-networking-non-goal))'",
+    "2 escape-suite target list named": "the subsection names the retained guest-escape suite, its three TCP targets and its three vsock probes as the check that must change with any guest-networking change, alongside the isolation claim"
+  },
+  "source_review": [
+    "the absent interface claim matches crates/kiln-microvm/src/plan.rs (no network-interfaces member; one read-only drive, one vsock device, one entropy device)",
+    "the probe targets match crates/kiln-hosted/tests/microvm.rs escape_pipeline: TCP 1.1.1.1:443, 10.0.2.2:80, 169.254.169.254:80 and vsock ports 10240, 1024, 22",
+    "the debug-hold sentence matches the existing text: host-side relay over the guest's existing vsock session, no network device and no new listener",
+    "no code, configuration, receipt or isolation claim was edited"
+  ],
+  "trade_offs": [
+    "The prose names specific suite targets, so a future suite change should update this subsection; the requirement makes that coupling explicit.",
+    "Host-mediated egress is described as the preferred design, not implemented; the decision does not add egress."
+  ],
+  "not_run": [
+    "no test exercises documentation text; validation is source review plus the Cairn document checks"
+  ],
+  "traceability": {
+    "note": "docs/hosted-ci.md is not a Cairn traceability evidence root (the policy scans docs/operator.md, docs/hosting-and-recovery.md and docs/observation-dashboard.md). The requirement markers therefore sit where the decision is embodied: r[impl kiln.hosted.microvm.network.nongoal] on the network-free Firecracker config in crates/kiln-microvm/src/plan.rs, pointing at docs/hosted-ci.md#guest-networking-non-goal, and r[verify ...scenario.escape] on the retained escape pipeline in crates/kiln-hosted/tests/microvm.rs.",
+    "behavior": "both edits are comments only; no code, configuration, receipt or isolation claim changed"
+  }
+}

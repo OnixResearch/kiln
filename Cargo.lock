@@ -1407,6 +1407,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
+name = "fast-glob"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3afcf4effa2c44390b9912544582d5af29e10dc4c816c5dbebf748e1c7416faa"
+
+[[package]]
 name = "fastrand"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1835,6 +1841,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "heartwood-canonical"
+version = "0.1.0"
+dependencies = [
+ "fast-glob",
+ "git2 0.21.0",
+ "indexmap 2.14.0",
+ "log",
+ "nonempty",
+ "radicle-crypto",
+ "radicle-git-ref-format",
+ "radicle-oid",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2239,6 +2262,8 @@ checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
 dependencies = [
  "equivalent",
  "hashbrown 0.17.1",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -2507,6 +2532,7 @@ dependencies = [
  "defmt",
  "jiff-core",
  "jiff-static",
+ "jiff-tzdb",
  "jiff-tzdb-platform",
  "log",
  "portable-atomic",
@@ -2644,6 +2670,19 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "k256"
+version = "0.13.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6e3919bbaa2945715f0bb6d3934a173d1e9a59ac23767fbaaef277265a7411b"
+dependencies = [
+ "cfg-if",
+ "ecdsa",
+ "elliptic-curve",
+ "once_cell",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -2806,10 +2845,12 @@ dependencies = [
 name = "kiln-adapter-jj"
 version = "0.1.0"
 dependencies = [
+ "bounded-exec",
  "kiln-codec",
  "kiln-core",
  "kiln-provider-api",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2919,6 +2960,7 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "git2 0.21.0",
+ "heartwood-canonical",
  "kiln-adapter-aspen",
  "kiln-adapter-cob",
  "kiln-adapter-lattice",
@@ -2938,6 +2980,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "uuid",
  "zeroize",
 ]
 
@@ -2961,6 +3004,29 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "kiln-adapter-tangled"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "blake3",
+ "bounded-exec",
+ "bs58 0.5.1",
+ "hmac 0.12.1",
+ "k256",
+ "kiln-codec",
+ "kiln-core",
+ "kiln-provider-api",
+ "p256",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2 0.10.9",
+ "tempfile",
+ "ureq",
 ]
 
 [[package]]
@@ -3262,9 +3328,11 @@ dependencies = [
  "git2 0.20.4",
  "git2 0.21.0",
  "hmac 0.12.1",
+ "jiff",
  "kiln-adapter-git",
  "kiln-adapter-github",
  "kiln-adapter-http-observe",
+ "kiln-adapter-jj",
  "kiln-adapter-lattice",
  "kiln-adapter-webhook",
  "kiln-build-graph",
@@ -4566,6 +4634,7 @@ dependencies = [
  "cyphernet",
  "ed25519-dalek 2.2.0",
  "multibase",
+ "radicle-git-ref-format",
  "schemars",
  "serde",
  "ssh-agent-lib",
@@ -4599,6 +4668,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cd8067caf7de3c75f2736c24da52081b5fa9f9f2aa6357b8ad8d67ba5411ec6"
 dependencies = [
+ "serde",
  "thiserror 2.0.20",
 ]
 

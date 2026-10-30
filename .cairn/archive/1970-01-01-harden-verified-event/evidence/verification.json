@@ -1,0 +1,58 @@
+{
+  "schema": "kiln.github-event-proof.verification.v1",
+  "date": "2026-10-31",
+  "issue": "https://github.com/OnixResearch/kiln/issues/22",
+  "maintenance_owner": "Kiln maintainers (kiln-adapter-github events and replay); web-service automation maintainers (engine automation intake); hosted maintainers (repository connections)",
+  "commands": [
+    {
+      "command": "nix develop path:. -c cargo test --locked -p kiln-adapter-github -p kiln-hosted -p kiln-web-service --no-fail-fast",
+      "result": "pass: 429 passed, 0 failed across 31 test binaries, including doc tests and the local_ci_e2e real-binary suite"
+    },
+    {
+      "command": "nix develop path:. -c cargo test --locked -p kiln-adapter-github --doc",
+      "result": "pass: 1 positive getter example and 2 compile_fail examples (struct literal and JSON deserialization)"
+    },
+    {
+      "command": "temporary external-crate probe (created, compiled, removed): struct literal with all ten field names and correct types",
+      "result": "fails with E0451 naming all ten fields as private"
+    },
+    {
+      "command": "temporary external-crate probe (created, compiled, removed): serde_json::from_str::<VerifiedEvent>",
+      "result": "fails with E0277, VerifiedEvent does not implement Deserialize"
+    },
+    {
+      "command": "nix develop path:. -c cargo clippy --locked -p kiln-adapter-github -p kiln-hosted -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "rustfmt --edition 2024 --check on every touched Rust file",
+      "result": "pass (0 diffs)"
+    },
+    {
+      "command": "nix build --no-link --option builders '' path:.#checks.x86_64-linux.tests path:.#checks.x86_64-linux.clippy path:.#checks.x86_64-linux.format",
+      "result": "pass on the final tree: workspace tests 1204 passed, 0 failed across 140 binaries (including the three doctests); clippy and format clean"
+    },
+    {
+      "command": "after the sandbox checks, comment-only edits added the module audit note and the requirement markers; nix develop path:. -c cargo test -p kiln-adapter-github and cargo clippy -p kiln-adapter-github --all-targets -- -D warnings, plus rustfmt --check",
+      "result": "pass: doctests 1 positive + 2 compile_fail, adapter suites pass, clippy and formatting clean"
+    }
+  ],
+  "acceptance": {
+    "1 cannot build or deserialize outside events": "fields are private and readable only through getters; the type no longer derives Serialize or Deserialize. The external-crate probe confirms E0451 for the literal and E0277 for deserialization, and the two compile_fail doctests keep both failures in the test rail. admit_event and admit_event_with remain the only constructors.",
+    "2 existing tests pass apart from getter access": "adapter, replay, service, hosted and web-service tests pass; their reads use the getters. The one module assertion that serialized a trusted event was replaced by a comment: the field assertion directly above it already proves the trusted event carries no untrusted marker, and the type is intentionally no longer serializable.",
+    "3 helper not compiled outside tests": "no cfg(test) constructor was added because no test needs a VerifiedEvent that did not come from admit_event; the doctests carry the sealing proof instead of a test-only constructor. Nothing test-only exists in the type.",
+    "4 audit recorded": "design.md 'Audit, do not seal, the other Admitted* types' names AdmittedGithubConfig, AdmittedRadicleConfig, AdmittedAspenRuntimeProfile and AdmittedJournal as proofs to seal in separate changes, and AdmittedResult as a plain record because it is embedded in persisted semantic-merge state and is not the output of a check. The same audit is stated in the events module documentation with the traceability markers; none of those types changed."
+  },
+  "survey": {
+    "serialization": "no production path serializes a VerifiedEvent: plan_event returns a RunRecord, replay persists delivery ids and body identities as columns, and hosted writes its own delivery table. The only serialization was one module test.",
+    "wire_behaviour": "unchanged: no signature, replay, body-bound or selection logic was edited; only field visibility, derives and reader call sites changed."
+  },
+  "trade_offs": [
+    "Removing Serialize/Deserialize is a breaking API change; the workspace survey found no consumer outside tests.",
+    "EventSelector and NativeRepository remain public and deserializable because they are wire types parsed before authentication and carry no proof.",
+    "The struct-literal doctest names every field, so it would compile if a field became public; a renamed field would still fail to compile, which keeps the doctest conservative rather than exact."
+  ],
+  "not_run": [
+    "whole nix flake check (the affected tests, clippy and format checks were built on the final tree)"
+  ]
+}

@@ -635,9 +635,12 @@ and [GitHub App installation authentication](https://docs.github.com/en/apps/cre
 Kiln uses HMAC-SHA256 over original body bytes and pins the REST request version
 to `2022-11-28`; it publishes commit statuses, not Checks API check runs.
 Push deletion, closed PRs, and non-executable events do not start jobs. PR
-`opened`, `reopened`, and `synchronize` can start jobs; fork execution is denied
-by the supplied Nickel contract. A signature does not establish delivery
-freshness, source trust, or safety of executing repository contents.
+`opened`, `reopened`, and `synchronize` can start jobs. This standalone service
+has no approval surface, so it admits only `untrusted_pull_requests = "deny"`:
+fork pull requests are refused (`github_fork_denied`). The live web service's
+[untrusted pull request policy](#untrusted-pull-requests) can instead hold them
+for operator approval. A signature does not establish delivery freshness, source
+trust, or safety of executing repository contents.
 
 ### Reviewed job and exact Lattice route
 
@@ -728,8 +731,9 @@ updating Kiln's contract import alone cannot repair an older running producer.
    finite; credentials and inherited environment are not forwarded to the
    command. Bounds and temporary directories are **not a sandbox**. Run jobs
    under a separate worker identity and operator-provided host/container/VM
-   isolation. Even same-repository PR code may be hostile; enabling forks needs
-   a separately reviewed policy and stronger isolation, not a changed fixture.
+   isolation. Even same-repository PR code may be hostile. Fork and
+   outside-contributor runs need the live web service's reviewed `approve`
+   policy and an untrusted-capable runner, not a changed fixture.
 
 The service builder fixes loopback ingress, path, status context `kiln/ci`, denied
 forks, explicit non-claims, and conservative named bounds. Rust admission remains
@@ -1099,7 +1103,9 @@ The controller persists that exact intent before signing/publication. An
 interrupted or unknown publication uses read reconciliation, not a blind
 second write. Current status profiles/actions require the exact source revision;
 incompatible historical actions fail closed. See [status authority and
-compatibility](radicle-status.md). No command implicitly synchronizes peers.
+compatibility](radicle-status.md). Tangled/Radicle job objects use
+the separate [job publication](radicle-jobs.md) port. No command implicitly
+synchronizes peers.
 
 The worker imports unchanged acquired bytes through the measured Nix executable,
 registers its source root before log fsyncs and full store remeasurement, then
@@ -2818,6 +2824,56 @@ poll-delay bound in mind. Credentials/destinations never enter the page. No
 declared trigger or notification means no invented subscription or destination;
 the current operator owns enrollment and delivery policy.
 
+##### Trigger filters
+
+A trigger may add an optional `filter`:
+
+- `branches`: globs that match the pushed branch, or a pull request's base branch.
+- `types`: pull request actions (`opened`, `reopened`, `synchronize`, `closed` or `merged`). An empty list keeps today's `opened`/`reopened`/`synchronize`.
+- `paths`: globs that match any changed path, including a rename's old path.
+
+Globs use the shared review and scope matcher: `*` and `?` stay within one `/` segment, and a whole `**` segment spans directories. `tags`, negation, character classes and alternation are rejected, because registrations bind one exact `refs/heads` reference.
+
+With `branches`, a pull-request trigger may omit `pull_request_base` and admit every base that the globs match. Listing `closed` or `merged` admits closed pull requests for that repository; it is the only way they ever run.
+
+Changed files come from one bounded diff between the exact base and candidate. Projects scopes reuse the same diff. When changed files are unknown (no base, a truncated diff or a read error), the trigger runs, with reason `paths_unknown`.
+
+Monorepo project scopes still decide which projects are affected; trigger `paths` is a second, per-trigger filter. A source record shows what happened:
+
+- `filtered`: the trigger excluded the event, recorded with `filter.excluded_by`.
+- `skipped`: the project scope excluded the event.
+- A queued run records `filter.reasons` (matched patterns).
+
+A filtered run never satisfies required CI. A review policy may declare `optional_ci = [{ project, paths }]`; a missing required check is then waived only when every exact changed file of the change matches those paths. A failed run still blocks.
+
+##### Calendar schedules
+
+A schedule has either `interval_ms` (unchanged) or `cron = { expression, timezone = "UTC" }`, with `next_due_ms = null`.
+
+- **Expression:** five fields with numbers, ranges, lists, steps, and month or day names. `H`, `H(a-b)` and `H/n` resolve from a BLAKE3 hash of the project and schedule ids. They are stable across restarts and change only with those ids. The automation view shows the resolved expression.
+- **Time zones:** come from the pinned bundled IANA database (tzdb `2026c`), never from host zoneinfo.
+- **DST:** a nonexistent local time fires once, shifted by the gap. A repeated local time fires once, at its first instant.
+- **`min_interval_ms`:** must be at least 60000. Policy load rejects entries whose occurrences come closer than it within 400 days, and every reservation checks it again (status `schedule_min_interval`).
+- **Missed occurrences:** an occurrence that passed by more than its minimum interval, for example during downtime, is `missed`. It never runs; the schedule moves to the next occurrence after now. Keep the service poll interval below the minimum interval.
+- **Fired occurrences:** reserve durably, resolve the schedule reference to its exact revision at that moment, and record it on the source.
+
+Operators may only enable or disable a cron schedule; enabling resumes at the next occurrence.
+
+##### Untrusted pull requests
+
+<!-- r[impl kiln.untrusted.policy] r[impl kiln.untrusted.console] -->
+A trigger's `repository.untrusted_pull_requests` is `deny` (the default, also when omitted) or `approve`. `deny` refuses fork pull requests exactly as before (`github_fork_denied`) and trusts same-repository pull requests; existing profiles, fixtures and journals replay byte-identically. The retired `allow_fork_pull_requests` stays readable and must be `false`.
+
+With `approve`, a pull request is untrusted when its head repository is a fork (`fork`), or when its signed `author_association` is not `OWNER`, `MEMBER` or `COLLABORATOR` (`author_without_push_access`). An absent association is untrusted. `MEMBER` means organization membership, which usually but not always implies push access; keep `deny` where that matters.
+
+- **Blocked run:** after trigger filters and project scopes select it, an untrusted event creates a durable run in phase `awaiting_approval`, bound to its exact commit. Nothing dispatches. A new commit on the same pull request creates a new blocked run and supersedes older unapproved ones (`Cancelled` with `untrusted_superseded`). Cancel removes a blocked run before dispatch.
+- **Approval:** use **Approve run…** in the run header, which opens the shared confirmation dialog, or `POST /api/runs/{id}/approve` with `{request_id, source_commit}`. Only an interactive operator approves: the operator bearer token, or a network identity bound to the operator role. Viewers (`viewer_read_only`) and workers (`worker_scope`) are refused by the role rules; webhook and automation principals, which hold operator capabilities internally, get `untrusted_approval_unauthorized`. A commit other than the run's exact commit gets `untrusted_approval_stale_commit`; superseded and already approved runs are rejected.
+- **Execution:** approved runs dispatch only for projects declared `untrusted_capable = true` in the service profile (`untrusted_runner_unavailable` otherwise). The declaration states that the project's execution target runs each job in a microVM without credentials or cache; Kiln cannot verify that isolation. Workers receive the binding with `untrusted` and refuse it unless their profile also declares `untrusted_capable = true`. Untrusted runs never restore or publish cache: the cache endpoints answer `untrusted_run_cache_denied`, and workers skip cache steps.
+- **Retries:** exact and failed-node retries keep the gate and its approval, because the commit is unchanged; latest-source retries are refused (`untrusted_retry_requires_exact_source`). A retry never supersedes another commit's blocked run. There is no per-run override.
+- **Review:** approving a run is not a code-review approval. It never satisfies approvals, ownership, veto clearing or queue admission. An untrusted result satisfies required CI only for its exact approved commit, and only when the trigger sets `untrusted_results_satisfy_required_ci = true`, which is valid only with `approve`.
+
+Run detail and the change-review `ci` checklist item show the state (`awaiting_approval`, `approved`, `superseded`), reason, approver, approved commit and whether the result counts for required CI. The standalone [GitHub CI adapter](#github-ci-adapter) and hosted GitHub connections admit only `deny`.
+
 
 ### Internal developer loop
 
@@ -3024,8 +3080,9 @@ The exported `kiln.code-review-profile.v1` declares:
 - `provider.target_refs`: explicitly admitted `refs/heads/` targets, also present
   in the service project's admitted references. `capabilities` separately enables
   inspect, compare, register, submit, rebase, revert, cherry-pick,
-  `apply_suggestions` and `build_integration`. Unsupported operations fail before
-  provider effects.
+  `apply_suggestions`, `build_integration` and `speculative_integration`
+  (building a candidate on an assumed predecessor candidate that descends from
+  the exact target). Unsupported operations fail before provider effects.
 - `read_principals` and `write_principals`: exact authenticated IDs, such as
   `local:operator` and `viewer:reviewer`, not wildcard grants or display names.
   Application-review writes do not grant access to CI operator routes; Worker
@@ -3046,12 +3103,35 @@ The exported `kiln.code-review-profile.v1` declares:
   namespace with an admitted `default_target_ref`. Optional exact `mappings`
   bind other source refs to a target and authenticated principal. A protected
   target can never also be an intake source. Set `null` to disable intake.
+  Optional `intake.jujutsu` enables change-ID intake (see "Jujutsu change-ID
+  intake" below): `workspace_path` and `executable` (absolute, both or
+  neither), `change_id_header` (default `false`) and `max_stack` (1–32).
+  Absent exports nothing, so existing profiles stay byte-identical.
 - `delivery`: explicitly register HTTPS destinations and exact principal-to-
   recipient bindings, request/response bounds and retained-record/attempt limits.
   Set `null` for local inboxes only. See the delivery contract below.
 - `queue`: `kiln.review-queue.v1` with `max_entries` (1–1000) and
   `max_candidate_builds` (1–128). Requires `require_ci=true` and both
   `build_integration` and `submit` capabilities. Set `null` to disable automation.
+  Optional `mode` is `serial` (default when omitted) or `speculative`.
+  `speculative` requires `window` `{floor, ceiling, increase, decrease}`. The
+  bounds are `1 ≤ floor ≤ ceiling ≤ 16` and `ceiling ≤ max_entries`; `increase`
+  and `decrease` are each between 1 and `ceiling`. It also requires the
+  `speculative_integration` capability. `serial` rejects `window`. Omitted
+  fields are not exported, so existing profiles stay byte-identical.
+- `review.noise` (optional): display-only `{ id, pattern, reason }` path globs
+  for generated, vendored and lock files, for example
+  `{ id = "lockfiles", pattern = "**/Cargo.lock", reason = "Lockfile churn" }`.
+  Patterns use the ownership glob grammar (`kiln_core::paths`: `*` and `?` within
+  a segment, whole-segment `**`; no absolute, `.`/`..`, empty segments,
+  backslashes or character classes). Limits: at most 64 rules, patterns of at
+  most 256 bytes, unique ids of at most 128 bytes without whitespace, and
+  non-blank reasons of at most 256 bytes. `kiln-web-service check` and the
+  Nickel contract reject anything else. The rules' BLAKE3 display identity is
+  published with the review summary, change detail and diff, so a rule change is
+  visible and attributable; it deliberately does not change the review store
+  binding or the effective policy identity. Absent exports nothing, so existing
+  profiles stay byte-identical. See "Display-only noise files" below.
 
 Export the reviewed input to a private JSON file and supply it explicitly:
 
@@ -3074,8 +3154,67 @@ Create a change from an exact locally available commit and admitted target.
 Upload later exact commits on that same stable change. Revision and comparison
 selectors preserve exact identities; file navigation, line permalinks and unified
 or side-by-side diffs use provider observations. Binary/truncated content is
-explicit and cannot pretend to supply reviewable line anchors. Reviewed-file
-markers are private, revision-bound preferences, not approval evidence.
+explicit and cannot pretend to supply reviewable line anchors.
+
+Viewed markers are private hunk preferences, never approval evidence: they do
+not count toward approvals or ownership, and votes stay bound to the exact
+current revision. The service identifies each hunk of the revision's exact base
+comparison by BLAKE3 over its path and removed and added lines (no line numbers
+or context); a file without textual hunks is one whole-file hunk, and binary or
+truncated files cannot be marked. Each hunk header has a "Viewed" toggle and each
+file a "Viewed" mark-all toggle that writes one marker per hunk; files show
+"N of M hunks viewed" and how many hunks are new since your last viewed
+revision. Uploading a new revision carries a principal's markers forward only
+for hunks whose digest is unchanged; edited, moved-with-edit and new hunks start
+unviewed. File markers recorded before hunk markers keep their meaning on their
+original revision only and replay unchanged.
+
+"Changes since revision N" in the comparison selector is a rebase-aware
+interdiff: the provider rebases revision N onto the selected revision's base in
+memory (nothing is written to the repository) and diffs the result against the
+selected revision, so target movement disappears. A conflicted rebase, a missing
+commit or a provider without the capability reports the interdiff as
+unavailable with its reason, and the exact commit comparison is shown instead
+with a notice. The rebased side is not an exact revision coordinate, so only
+revision-side lines can be commented on there. The view is URL-addressable as
+`review_interdiff=<from revision id>..<to revision id>`, optionally narrowed with
+`review_interdiff_change=<jj change id>` to the one commit carrying that `change-id`
+header in each revision; a stack whose commits lack change IDs, or where the
+change is missing or duplicated, reports unavailable. For a revision with several
+commits, the commit-range selects compare any exact `review_commits=<from>..<to>`
+inside the revision; a range ending before the revision head cannot be
+commented on. Browser back and forward restore each view.
+
+<!-- r[impl kiln.review.noise.authority] -->
+**Display-only noise files.** A displayed file whose new or old path matches a
+`review.noise` rule (first rule in profile order) is listed in one collapsed
+group headed "N noise files hidden" with the matching rule ids; one click on the
+group expands it, and the first non-noise file is selected by default. Noise
+files are shown as viewed for every principal. That state is derived from the
+diff's `noise` annotation at display time and is never stored as a viewed
+marker. Selecting, expanding and commenting on a noise file work exactly as for
+any other file. The boundary is strict: noise rules never satisfy, skip or
+weaken ownership rules, required approvals, blocking threads, CI or queue
+admission. A file matching both a noise rule and an ownership rule still needs
+its owner's vote. Only declared globs are used; Kiln never infers "generated"
+content, and binary and truncated handling is unchanged.
+
+<!-- r[impl kiln.review.advisory.authority] -->
+**Advisory approvals.** Any read principal other than the change owner and
+revision authors may record one non-binding advisory approval of the exact
+current revision (`{"type":"advisory_approve"}`) and withdraw it
+(`{"type":"advisory_withdraw"}`). These two actions are the only commands a
+read-only principal may send; every other command still fails with
+`403 review_write_denied`. Owners and authors get `409 advisory_forbidden`, and
+withdrawing a missing record gets `409 advisory_missing`. At most 128 advisory
+approvals are kept per revision. They are stored apart from votes, so they never
+satisfy required approvals, ownership, veto clearing, CI or queue admission, and
+they never clear, create or transfer to a candidate. They add no attention, inbox
+event, delivery or recipient, and grant no write capability. A new revision makes
+them historical. The change detail lists them under "Advisory approvals
+(non-binding)", separately from votes. The change list shows the current count,
+and the search form's **Advisory approvals** filter (`advisory=with|without`) can
+be saved in personal views. Older journals and saved views replay unchanged.
 
 Line selection seeds a private draft with the revision, comparison-base commit,
 side, file and range. Save drafts before selecting them for atomic publication
@@ -3157,7 +3296,12 @@ Read principals can export the canonical review window with
 `GET /api/code-review/review-window?start_ms=<ms>&end_ms=<ms>`. The range is
 half-open, the span is at most 30 days, and no other query keys are allowed.
 The document feeds `kiln-dashboard --review` and the HTTPS and iroh review
-views. It is a read-only projection with no authority.
+views. It is a read-only projection with no authority. Each change carries
+`advisory_approvals` (advisory approvals of its latest admitted patch set, at
+most 128, omitted when zero). The review-friction view reports
+`advisory_approvals` and `advised_changes` per authorship class, rendered
+identically by both shells and the dashboard as non-binding counts. Windows and
+view identities without advisory approvals are byte-identical to earlier ones.
 
 Markdown uses DOM text nodes, safe inline formatting and fenced code (shown
 plain); supplied HTML does not execute. The diff is highlighted by the
@@ -3167,6 +3311,18 @@ malformed highlighting renders plain with a note. The whitespace selector
 changes the provider comparison while retaining exact original line
 coordinates and URL-restored selection.
 
+The "Comparison mode" select offers an opt-in structural (syntax-aware) view
+(`review_mode=structural`, `mode=structural` on the diff read). The service parses
+both blobs with the same pinned grammars, pairs unchanged and moved top-level
+items and diffs the remaining tokens, so pure reformatting shows no change and a
+moved, unchanged function is reported as moved. Rows keep exact blob line
+numbers, so comments created there equal line-mode anchors; moved regions are
+shown as a note without comment controls. Bounds are 256 KiB per side, 40,000
+tokens per side, a deterministic work budget and a two-second deadline per
+response. A missing grammar, binary or truncated content, a parse error, a hit
+bound, an interdiff's rebased side or a whitespace filter falls back to the
+line diff for that file with the named reason. The mode is display only.
+
 A published comment may contain one complete `suggestion` fence, with optional
 surrounding prose. Its exact inclusive revision-side path/range supplies the
 replacement. Select suggestions and confirm their exact identities as the change
@@ -3174,6 +3330,131 @@ owner. The provider rechecks blob bytes, modes, ranges and non-overlap; a stale,
 ambiguous, binary or unsafe-path replacement fails closed. Applying creates a
 new immutable revision, leaves the target untouched and invalidates old approval
 authority. Empty fences intentionally delete the anchored range.
+
+##### Keyboard commands
+
+<!-- r[impl kiln.review.keyboard] r[impl kiln.review.keyboard.navigation] r[impl kiln.review.keyboard.actions] -->
+<!-- r[verify kiln.review.keyboard.navigation.scenario.targets] r[verify kiln.review.keyboard.actions.scenario.cancel] -->
+The review page offers these shortcuts while it is open and no dialog is
+visible. Press `?` in the page for the same list.
+
+| Keys | Action |
+|---|---|
+| `j` / `↓`, `k` / `↑` | Next or previous changed file (the same route as its link) |
+| `n`, `p` | Next or previous hunk of the displayed file |
+| `t`, `T` | Next or previous unresolved thread (routes to its exact line) |
+| `u`, `U` | Next or previous unviewed hunk, following the focused hunk and wrapping |
+| `m` | Toggle unified and side-by-side layout |
+| `v`, `V` | Toggle viewed for the focused hunk, or for every hunk of the displayed file |
+| `d` | Open the anchored draft editor at the selected line and focus its comment |
+| `P` | Open the publish confirmation |
+| `s` | Jump to the submit requirements card |
+| `?` | Show the shortcut help |
+
+Shortcuts are inert while focus is in an input, textarea, select or editable
+region, while a dialog is open, during IME composition, and with Control, Meta
+or Alt held. They add no command or authority: each one invokes the same
+control as the pointer, so a write keeps its usual confirmation, request
+identity and disabled reason, and a cancelled confirmation sends nothing.
+
+#### Jujutsu change-ID intake
+
+<!-- r[impl kiln.review.jj_intake.surface] -->
+With `intake.jujutsu` configured, a write principal can contribute by exact jj
+change ID instead of a `review/` branch. One change ID maps to one Kiln change
+whose identity is BLAKE3 over the repository identity and the change ID. Each
+newly observed commit for that ID becomes the next revision. A commit that is
+already a revision appends nothing, so duplicate and replayed submissions are
+inert.
+
+```console
+# One change.
+kiln-web-service ci --profile "$DEVELOPER_PROFILE" --identity "$DEVELOPER_IDENTITY" \
+  review-submit --request-id "$REQUEST_ID" --jj-change "$(jj log --no-graph -r @- -T change_id)"
+# An ordered stack, bottom to top.
+kiln-web-service ci … review-submit --request-id "$REQUEST_ID" --stack \
+  --jj-change "$BOTTOM" --jj-change "$MIDDLE" --jj-change "$TOP"
+# A pushed branch whose commits carry jj's git `change-id` header (no jj needed).
+kiln-web-service ci … review-submit --request-id "$REQUEST_ID" --stack \
+  --source-ref refs/heads/review/my-stack --change-id-header
+```
+
+The console offers the same as **Contribute jj change…**. The command is
+`{"type":"jj_contribute","change_ids":[…],"stack":bool,"wip":bool}` or
+`{"type":"jj_contribute","source_ref":"refs/heads/…","stack":bool}`, with the
+optional `authorship` declaration. Titles and descriptions come from the
+commit message. A commit without a summary line is refused with
+`review_jj_title_missing`.
+
+**Boundary.** Kiln stays read-only toward jj and is not a jj forge:
+
+- It reads the single operation head from `.jj/repo/op_heads` on disk.
+- It runs only the configured jj executable, with `--ignore-working-copy`,
+  `--at-op <that head>`, a cleared environment (`JJ_CONFIG=/dev/null`),
+  fixed JSON templates, and a 15 s timeout and 1 MiB output bound.
+- It never snapshots, rebases, squashes, describes, pushes, merges operations
+  or moves bookmarks. jj may still populate its derived index cache.
+- Only full 32-character change IDs are keys. Prefixes, revsets and the root
+  change are refused.
+- The jj Git store must be the review repository. Every resolved commit must
+  exist there; when it carries a `change-id` header, the header must match.
+- A change ID grants no write authority. Target protection, compare-and-swap
+  submission, CI and approval rules are unchanged. Stack intake grants no
+  batch-merge authority: every change keeps its own approvals, CI and submit.
+
+**Fail-closed admission.** Every requested change goes through
+`JujutsuFacts` admission before any provider effect, reservation or state
+change. One refused member refuses the whole request. Stable codes:
+
+| Code | Meaning |
+| --- | --- |
+| `review_jj_operation_missing` | No operation head was found. |
+| `review_jj_operation_divergent` | More than one operation head exists. |
+| `review_jj_divergent_change` | The change ID resolves to more than one visible commit, or appears twice on a header branch. |
+| `review_jj_conflicted_bookmark` | A bookmark on the resolved commit is conflicted. |
+| `review_jj_conflicted_commit` | The commit has jj conflicts (jj `conflict`, or a `jj:trees` header). |
+| `review_jj_change_missing` | The change ID is not visible at the observed operation. |
+| `review_jj_commit_unreachable` | The resolved commit is absent from the review repository. |
+| `review_jj_header_mismatch` | The commit's `change-id` header disagrees with jj. |
+| `review_jj_store_mismatch` | The jj Git store is not the review repository. |
+| `review_jj_unsupported_backend` | The jj backend is not Git. |
+| `review_jj_stack_order` | Stack members are not listed bottom to top in ancestor order. |
+| `review_jj_header_missing`, `review_jj_header_merge` | A header branch has a commit without a valid header, or a merge commit. |
+| `review_jj_change_id_invalid`, `review_jj_change_duplicate`, `review_jj_stack_required`, `review_jj_stack_bound` (400) | Malformed request. |
+| `review_jj_execution_failed` (503) | jj could not be read within its bounds. |
+
+**Stacks.** `stack: true` creates or updates one change per change ID. Stack
+intake owns the dependency edges of its members: the bottom member has none,
+and each other member depends on the member below at that member's current
+revision. Resubmission maps by change ID:
+
+- A revision is appended only where the exact commit changed. jj rebases the
+  descendants of an edited change, and a rebased descendant has a new commit,
+  so it also gains a revision; revisions stay bound to exact commits for
+  compare-and-swap submission.
+- Unchanged members and already submitted members are left untouched.
+- Edges are rebound when the order or a bound revision changes.
+- An abandoned member is refused (`review_jj_change_abandoned`).
+- A change ID that disappears is listed in the response's `removed` and shown
+  as removed on its change. It is never abandoned; abandon it explicitly.
+
+Single-change requests never touch stack membership or dependencies.
+
+**Provider observations.** Each admitted revision records:
+
+- the source (`jj` or `git_change_id_header`);
+- the change ID and commit;
+- the observed jj operation, and the operation that created the commit;
+- the jj predecessor commits (from `evolog`);
+- the commit author.
+
+These are provider facts, never Kiln identities, and grant nothing. Change
+detail renders them as an **Evolog**: every revision with its predecessor,
+operation, author, declared authorship and a link to the interdiff from the
+previous revision (`review_interdiff=<from>..<to>`). It also shows stack
+position, or the removed flag. Header intake records no operation or
+predecessors. Branch intake is unchanged. Without jj intake, state and
+journals serialize exactly as before.
 
 #### Published attention and external delivery
 
@@ -3207,6 +3488,38 @@ An ambiguous provider operation is reconciled, not dispatched again. An owner
 or the authorizing submitter can cancel pending automation, not undo a completed
 target update. Active worker HTTPS ingress can fail when the service is killed;
 such CI failure blocks submission and is not silently retried or relabeled success.
+
+With `mode: speculative`, each target runs a Zuul-style window
+(`kiln_core::gating`):
+
+- **Building:** for the admitted positions (`admitted_candidate_indices`),
+  the queue builds candidate k as the exact merge of source k onto candidate
+  k-1, through the `BuildSpeculativeIntegration` provider operation. That
+  operation compares the exact target before and after construction. The
+  head's candidate is an ordinary integration onto the target.
+- **CI:** canonical CI is admitted for every exact candidate commit without
+  waiting for submissions. Engine dispatch remains bounded by the existing
+  per-project execution capacity.
+- **Submitting:** candidates are submitted strictly in queue order. Each one
+  passes the same fresh approval, owner, policy, dependency and full/clean-CI
+  admission and exact-target CAS as in serial mode. Source approvals never
+  transfer, and advisory approvals never count.
+- **Failures:** a failure is conclusive only at the head. The failing entry
+  alone is ejected (`blocked`), and the window shrinks through
+  `update_window`. Each later entry whose chain included it is superseded:
+  undispatched candidate runs are cancelled, results of dispatched runs are
+  ignored, and the entry is rebuilt with fresh CI.
+- **Window size:** a landed candidate grows the window up to `ceiling`. A
+  target without a recorded window starts at `ceiling`.
+- **Predecessor chain:** each entry durably records the root target, each
+  predecessor's queue entry, generation and candidate, and a BLAKE3 chain
+  identity (`chain`). It keeps up to 32 retired identities in
+  `superseded_chains`. Builds or CI results for a retired chain never become
+  the entry's candidate. A target moved by another writer supersedes every
+  chain on it.
+- **Restart:** the stored chains, candidates and runs are reused. CI
+  admission identities are derived from the entry, generation, chain and
+  project, so admission is replayed, not dispatched again.
 
 All Kiln target mutations pass current policy and exact CAS. This is **not OS or
 forge branch protection**: unmanaged repository writers can bypass the service.

@@ -28,13 +28,11 @@ type Strings = BTreeMap<String, String>;
 
 pub const MILLISECONDS_PER_MINUTE: u64 = 60_000;
 pub const ACTIONS_DEFAULT_TIMEOUT_MS: u64 = 360 * MILLISECONDS_PER_MINUTE;
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Trigger {
-    Manual,
-    Push,
-    PullRequest,
-}
+mod triggers;
+pub use triggers::{
+    DEFAULT_SCHEDULE_REFERENCE, MAX_SCHEDULES, MAX_TRIGGERS, ScheduleEntry, SourceEvent, Trigger,
+    select as select_trigger,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -124,6 +122,9 @@ pub struct Pipeline {
     pub schema: String,
     pub name: String,
     pub triggers: Vec<Trigger>,
+    /// Reviewed calendar entries named by `schedule` triggers.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub schedules: BTreeMap<String, ScheduleEntry>,
     #[serde(default)]
     pub parameters: Strings,
     #[serde(default)]
@@ -156,6 +157,9 @@ pub struct CompiledPipeline {
     pub identity: String,
     pub name: String,
     pub triggers: Vec<Trigger>,
+    /// Omitted when empty, so plans without schedules keep their identity.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub schedules: BTreeMap<String, ScheduleEntry>,
     /// Stable topological order. Dependencies name expanded job ids.
     pub jobs: Vec<CompiledJob>,
 }
@@ -369,16 +373,10 @@ pub fn compile(pipeline: &Pipeline) -> Result<CompiledPipeline, String> {
         return Err(fail("$.schema", "unsupported schema"));
     }
     bounded_text(&pipeline.name, MAX_VALUE_BYTES, "$.name")?;
-    if pipeline.name.trim().is_empty()
-        || pipeline.triggers.is_empty()
-        || pipeline.triggers.len() > 3
-    {
-        return Err(fail("$", "name and 1..3 distinct triggers are required"));
+    if pipeline.name.trim().is_empty() {
+        return Err(fail("$.name", "name is required"));
     }
-    let triggers: BTreeSet<_> = pipeline.triggers.iter().map(|t| format!("{t:?}")).collect();
-    if triggers.len() != pipeline.triggers.len() {
-        return Err(fail("$.triggers", "duplicate trigger"));
-    }
+    triggers::admit(&pipeline.triggers, &pipeline.schedules)?;
     strings(&pipeline.parameters, MAX_PARAMETERS, "$.parameters", false)?;
     strings(&pipeline.env, MAX_ENVIRONMENT, "$.env", true)?;
     if pipeline.jobs.is_empty()
@@ -640,6 +638,7 @@ pub fn compile(pipeline: &Pipeline) -> Result<CompiledPipeline, String> {
         identity: String::new(),
         name: pipeline.name.clone(),
         triggers: pipeline.triggers.clone(),
+        schedules: pipeline.schedules.clone(),
         jobs: ordered,
     };
     let bytes = serde_json::to_vec(&plan).map_err(|e| e.to_string())?;
@@ -706,17 +705,6 @@ fn string_list(value: &Value, path: &str) -> Result<Vec<String>, String> {
         .map(|v| text(v, path))
         .collect()
 }
-fn trigger(value: &str, path: &str) -> Result<Trigger, String> {
-    match value {
-        "workflow_dispatch" => Ok(Trigger::Manual),
-        "push" => Ok(Trigger::Push),
-        "pull_request" => Ok(Trigger::PullRequest),
-        _ => Err(fail(
-            path,
-            "only push, pull_request and workflow_dispatch without filters/inputs are supported",
-        )),
-    }
-}
 
 // r[impl kiln.hosted.pipelines]
 /// Fail-closed GitHub Actions shell-job importer. All jobs run only after all
@@ -733,22 +721,23 @@ pub fn migrate(yaml: &str) -> Result<Migration, String> {
     let events = source_obj
         .get("on")
         .ok_or_else(|| fail("$.on", "explicit triggers required"))?;
+    // Filters map explicitly; unmappable forms (`*-ignore`, negation) fail.
+    let mut trigger_notes = Vec::new();
     let triggers = if let Some(events) = events.as_object() {
         let mut triggers = vec![];
         for (event, config) in events {
-            if !config.is_null() && config.as_object().is_none_or(|v| !v.is_empty()) {
-                return Err(fail(
-                    &format!("$.on.{event}"),
-                    "trigger filters, activity types and inputs require an explicit native mapping",
-                ));
-            }
-            triggers.push(trigger(event, &format!("$.on.{event}"))?);
+            triggers.push(triggers::actions_trigger(
+                event,
+                Some(config),
+                &format!("$.on.{event}"),
+                &mut trigger_notes,
+            )?);
         }
         triggers
     } else {
         string_list(events, "$.on")?
             .iter()
-            .map(|v| trigger(v, "$.on"))
+            .map(|v| triggers::actions_trigger(v, None, "$.on", &mut trigger_notes))
             .collect::<Result<Vec<_>, _>>()?
     };
     let mut jobs = BTreeMap::new();
@@ -926,6 +915,7 @@ pub fn migrate(yaml: &str) -> Result<Migration, String> {
             .transpose()?
             .unwrap_or_else(|| "Migrated Actions workflow".into()),
         triggers,
+        schedules: BTreeMap::new(),
         parameters: Strings::new(),
         env: env_value(source_obj.get("env"), "$.env")?,
         templates: BTreeMap::new(),
@@ -937,7 +927,13 @@ pub fn migrate(yaml: &str) -> Result<Migration, String> {
     let value = serde_json::to_value(&pipeline).map_err(|e| e.to_string())?;
     reject_non_matrix_expressions(&value, "$")?;
     let compiled = compile(&pipeline)?;
-    Ok(Migration { pipeline, compiled, diagnostics: vec!["Runner labels and trigger names are preserved, not authorized: bind an exact reviewed source connection and isolation runner mapping before dispatch. Jobs require all dependencies to succeed; steps run sequentially with fresh shell processes in the acquired source tree. GitHub default environment/context and GITHUB_ENV/GITHUB_OUTPUT/step-output protocols are not supplied.".into()] })
+    let mut diagnostics = vec!["Runner labels and trigger names are preserved, not authorized: bind an exact reviewed source connection and isolation runner mapping before dispatch. Jobs require all dependencies to succeed; steps run sequentially with fresh shell processes in the acquired source tree. GitHub default environment/context and GITHUB_ENV/GITHUB_OUTPUT/step-output protocols are not supplied.".to_string()];
+    diagnostics.extend(trigger_notes);
+    Ok(Migration {
+        pipeline,
+        compiled,
+        diagnostics,
+    })
 }
 fn reject_non_matrix_expressions(value: &Value, path: &str) -> Result<(), String> {
     match value {
@@ -986,7 +982,8 @@ fn reject_non_matrix_expressions(value: &Value, path: &str) -> Result<(), String
 }
 
 pub fn init(db: &Connection) -> Result<(), String> {
-    db.execute_batch("CREATE TABLE IF NOT EXISTS hosted_pipelines (organization TEXT NOT NULL, project TEXT NOT NULL, name TEXT NOT NULL, revision INTEGER NOT NULL, identity TEXT NOT NULL, config TEXT NOT NULL, plan TEXT NOT NULL, reviewer TEXT NOT NULL, reviewed_ms INTEGER NOT NULL, PRIMARY KEY(organization,project,name)); CREATE INDEX IF NOT EXISTS hosted_pipeline_identity ON hosted_pipelines(organization,project,identity);").map_err(|e| e.to_string())
+    db.execute_batch("CREATE TABLE IF NOT EXISTS hosted_pipelines (organization TEXT NOT NULL, project TEXT NOT NULL, name TEXT NOT NULL, revision INTEGER NOT NULL, identity TEXT NOT NULL, config TEXT NOT NULL, plan TEXT NOT NULL, reviewer TEXT NOT NULL, reviewed_ms INTEGER NOT NULL, PRIMARY KEY(organization,project,name)); CREATE INDEX IF NOT EXISTS hosted_pipeline_identity ON hosted_pipelines(organization,project,identity);").map_err(|e| e.to_string())?;
+    triggers::init(db)
 }
 
 /// Load a currently reviewed exact plan. Never use an unreviewed compile result
@@ -1059,6 +1056,14 @@ pub fn handle(
             name(&input.project, "$.project")?;
             name(&input.name, "$.name")?;
             let plan = compile(&input.config)?;
+            // Minimum intervals with `H` resolved for this exact identity.
+            triggers::review(
+                &plan.schedules,
+                &actor.organization,
+                &input.project,
+                &input.name,
+                now_ms,
+            )?;
             let next = input
                 .expected_revision
                 .checked_add(1)
@@ -1117,6 +1122,7 @@ pub fn handle(
             let rows = statement.query_map(params![actor.organization, input.project], |row| Ok(json!({"name":row.get::<_,String>(0)?,"revision":crate::sqlite_u64(row,1)?,"identity":row.get::<_,String>(2)?,"reviewer":row.get::<_,String>(3)?,"reviewed_ms":crate::sqlite_u64(row,4)?}))).map_err(|e| e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e| e.to_string())?;
             Ok(json!({"pipelines":rows}))
         }
+        "schedule" => triggers::reserve(db, actor, input, now_ms),
         _ => Err(format!("unknown pipeline action {action}")),
     }
 }
@@ -1128,7 +1134,7 @@ pub fn examples() -> Value {
         "steps":{"greet":{"parameters":{"text":"hello"},"step":{"run":"printf '%s\\n' '${{ parameters.text }}'","shell":"bash"}}},
         "templates":{"check":{"runner":"linux-reviewed","steps":[{"kind":"use","step":"greet","parameters":{"text":"${{ parameters.message }}"}},{"kind":"run","run":"printf '%s\\n' '${{ matrix.version }}'","shell":"bash"}]}},
         "jobs":{"check":{"template":"check","matrix":{"version":["stable","next"]}},"finish":{"runner":"linux-reviewed","needs":["check"],"steps":[{"kind":"run","run":"printf 'checks succeeded\\n'","shell":"bash"}]}}
-    },"supported_actions_subset":{"triggers":["push","pull_request","workflow_dispatch"],"trigger_options":false,"steps":"explicit bash or sh run steps only","expressions":"simple matrix.KEY only","matrix":"Cartesian literal scalar axes; explicit fail-fast: false; no include/exclude/max-parallel","dependencies":"all expanded needs must succeed","environment":"workflow < job < step literal string maps","unsupported":["uses/actions","permissions","if/conditions","services","containers","secrets/context expressions","outputs","runner file-command protocols","implicit shell","job display names"]}})
+    },"supported_actions_subset":{"triggers":["push","pull_request","workflow_dispatch"],"trigger_options":{"push":["branches","tags","paths"],"pull_request":["branches","paths","types: opened, reopened, synchronize, closed (as closed and merged)"],"rejected":["branches-ignore","tags-ignore","paths-ignore","! negation","? + [] patterns","workflow_dispatch inputs"]},"steps":"explicit bash or sh run steps only","expressions":"simple matrix.KEY only","matrix":"Cartesian literal scalar axes; explicit fail-fast: false; no include/exclude/max-parallel","dependencies":"all expanded needs must succeed","environment":"workflow < job < step literal string maps","unsupported":["uses/actions","permissions","if/conditions","services","containers","secrets/context expressions","outputs","runner file-command protocols","implicit shell","job display names"]}})
 }
 
 #[cfg(test)]
@@ -1359,5 +1365,231 @@ mod tests {
         assert!(handle(&mut db,&scoped,"review",json!({"project":"project","name":"other","expected_revision":0,"config":example()}),2).is_err());
         ok(db.execute("UPDATE hosted_pipelines SET config='{}'", []));
         assert!(reviewed(&db, &actor, "project", identity).is_err());
+    }
+
+    // r[verify kiln.triggers.replay]
+    #[test]
+    fn unfiltered_triggers_keep_plan_bytes_and_filtered_objects_round_trip() {
+        let plan = ok(compile(&fixture()));
+        let encoded = ok(serde_json::to_value(&plan));
+        assert_eq!(encoded.get("triggers"), Some(&json!(["manual", "push"])));
+        assert!(encoded.get("schedules").is_none());
+        let stored = ok(serde_json::to_value(fixture()));
+        assert!(stored.get("schedules").is_none());
+        assert_eq!(stored.get("triggers"), Some(&json!(["manual", "push"])));
+        let mut config = example();
+        set(
+            &mut config,
+            "",
+            "triggers",
+            json!([{"event":"push","branches":["main"],"paths":["src/**"]},{"event":"pull_request"}]),
+        );
+        let filtered = ok(compile_value(config));
+        assert_eq!(
+            ok(serde_json::to_value(&filtered)).get("triggers"),
+            Some(&json!([{"event":"push","branches":["main"],"paths":["src/**"]},"pull_request"]))
+        );
+    }
+    // r[verify kiln.triggers.filter.scenario.invalid]
+    #[test]
+    fn invalid_trigger_filters_and_schedules_fail_before_execution() {
+        for (triggers, schedules) in [
+            (json!([{"event":"push","types":["opened"]}]), json!({})),
+            (json!([{"event":"manual","paths":["a"]}]), json!({})),
+            (json!([{"event":"push","paths":["!docs/**"]}]), json!({})),
+            (json!([{"event":"push","branch":["main"]}]), json!({})),
+            (json!(["push", {"event":"push","paths":["a"]}]), json!({})),
+            (json!(["schedule"]), json!({})),
+            (
+                json!([{"event":"schedule","schedule":"missing"}]),
+                json!({}),
+            ),
+            (json!(["push"]), json!({"orphan":{"cron":"0 2 * * *"}})),
+            (
+                json!([{"event":"schedule","schedule":"bad"}]),
+                json!({"bad":{"cron":"0 2 * *"}}),
+            ),
+        ] {
+            let mut config = example();
+            set(&mut config, "", "triggers", triggers.clone());
+            set(&mut config, "", "schedules", schedules);
+            assert!(compile_value(config).is_err(), "{triggers}");
+        }
+    }
+    const FILTERED_ACTIONS: &str = "name: Filtered\non:\n  push:\n    branches: [main, 'release/**']\n    paths: ['src/**']\n  pull_request:\n    branches: [main]\n    types: [opened, synchronize, closed]\njobs:\n  check:\n    runs-on: linux-reviewed\n    steps:\n      - run: echo ok\n        shell: bash\n";
+    // r[verify kiln.triggers.migrate]
+    // r[verify kiln.triggers.migrate.scenario.round_trip]
+    #[test]
+    fn migrate_maps_actions_filters_and_round_trips() {
+        use kiln_core::trigger_filter::{PullRequestType, TriggerFilter};
+        let migrated = ok(migrate(FILTERED_ACTIONS));
+        assert_eq!(
+            migrated.pipeline.triggers,
+            vec![
+                Trigger::PullRequest(TriggerFilter {
+                    branches: vec!["main".into()],
+                    types: vec![
+                        PullRequestType::Opened,
+                        PullRequestType::Synchronize,
+                        PullRequestType::Closed,
+                        PullRequestType::Merged
+                    ],
+                    ..TriggerFilter::default()
+                }),
+                Trigger::Push(TriggerFilter {
+                    branches: vec!["main".into(), "release/**".into()],
+                    paths: vec!["src/**".into()],
+                    ..TriggerFilter::default()
+                }),
+            ]
+        );
+        assert!(
+            migrated
+                .diagnostics
+                .iter()
+                .any(|d| d.contains("closed and merged"))
+        );
+        let round_trip = ok(compile_value(ok(serde_json::to_value(&migrated.pipeline))));
+        assert_eq!(round_trip, migrated.compiled);
+        for (input, path) in [
+            (
+                FILTERED_ACTIONS.replace("    paths: ['src/**']", "    paths-ignore: ['docs/**']"),
+                "paths-ignore",
+            ),
+            (
+                FILTERED_ACTIONS.replace(
+                    "branches: [main]\n    types",
+                    "branches-ignore: [main]\n    types",
+                ),
+                "branches-ignore",
+            ),
+            (FILTERED_ACTIONS.replace("'src/**'", "'!src/**'"), ".paths"),
+            (FILTERED_ACTIONS.replace("closed]", "edited]"), ".types"),
+        ] {
+            assert!(error(migrate(&input)).contains(path), "{path}");
+        }
+    }
+    // r[verify kiln.triggers.evaluate.scenario.unknown]
+    #[test]
+    fn hosted_selection_records_match_or_exclusions_and_unknown_files_run() {
+        use kiln_core::trigger_filter::{EventKind, Selection};
+        let mut config = example();
+        set(
+            &mut config,
+            "",
+            "triggers",
+            json!([{"event":"push","branches":["main"],"paths":["src/**"]}]),
+        );
+        let plan = ok(compile_value(config));
+        let workspace = std::path::Path::new("/nonexistent-kiln-workspace");
+        let event = |reference: &str, revisions: bool| SourceEvent {
+            kind: EventKind::Push,
+            reference: Some(reference.into()),
+            action: None,
+            base_branch: None,
+            base_revision: revisions.then(|| "a".repeat(40)),
+            revision: revisions.then(|| "b".repeat(40)),
+        };
+        // No base or an unreadable workspace: changed files are unknown, so it runs.
+        for revisions in [false, true] {
+            assert!(matches!(
+                ok(select_trigger(
+                    &plan,
+                    &event("refs/heads/main", revisions),
+                    workspace
+                )),
+                Selection::Matched { index: 0, .. }
+            ));
+        }
+        assert!(matches!(
+            ok(select_trigger(
+                &plan,
+                &event("refs/heads/dev", false),
+                workspace
+            )),
+            Selection::Excluded { .. }
+        ));
+        let mut bad = event("refs/heads/main", true);
+        bad.revision = Some("not-a-commit".into());
+        assert!(select_trigger(&plan, &bad, workspace).is_err());
+    }
+    // r[verify kiln.schedules.hosted]
+    // r[verify kiln.schedules.min_interval.scenario.reject]
+    // r[verify kiln.schedules.no_catch_up.scenario.restart]
+    #[test]
+    fn hosted_schedule_reviews_interval_and_reserves_without_catch_up() {
+        let mut db = ok(Connection::open_in_memory());
+        ok(init(&db));
+        ok(crate::accounts::init(&db));
+        let actor = crate::Actor {
+            peer: "a".repeat(64),
+            organization: "one".into(),
+            role: "owner".into(),
+        };
+        ok(crate::accounts::bootstrap(
+            &mut db,
+            &actor.peer,
+            &actor.organization,
+        ));
+        let mut config = example();
+        set(
+            &mut config,
+            "",
+            "triggers",
+            json!(["manual", {"event":"schedule","schedule":"nightly"}]),
+        );
+        set(
+            &mut config,
+            "",
+            "schedules",
+            json!({"nightly":{"cron":"*/5 * * * *","min_interval_ms":600000}}),
+        );
+        let now = 1_793_318_400_000_u64; // 2026-10-30T00:00:00Z
+        let review = |db: &mut Connection, config: &Value, revision: u64| {
+            handle(
+                db,
+                &actor,
+                "review",
+                json!({"project":"project","name":"nightly","expected_revision":revision,"config":config}),
+                now,
+            )
+        };
+        assert!(error(review(&mut db, &config, 0)).contains("closer than"));
+        set(
+            &mut config,
+            "",
+            "schedules",
+            json!({"nightly":{"cron":"0 2 * * *","timezone":"America/New_York"}}),
+        );
+        ok(review(&mut db, &config, 0));
+        let tick = |db: &mut Connection, at: u64| {
+            ok(handle(
+                db,
+                &actor,
+                "schedule",
+                json!({"project":"project","name":"nightly","schedule":"nightly","reference":"refs/heads/main","revision":"c".repeat(40)}),
+                at,
+            ))
+        };
+        let first = tick(&mut db, now);
+        assert_eq!(first.get("status"), Some(&json!("initialized")));
+        let due = some(first.get("next_due_ms").and_then(Value::as_u64));
+        assert_eq!(
+            tick(&mut db, due - 1).get("status"),
+            Some(&json!("not_due"))
+        );
+        let fired = tick(&mut db, due + 1_000);
+        assert_eq!(fired.get("status"), Some(&json!("reserved")));
+        assert_eq!(fired.get("revision"), Some(&json!("c".repeat(40))));
+        assert_eq!(
+            tick(&mut db, due + 2_000).get("status"),
+            Some(&json!("not_due"))
+        );
+        // Down across the next occurrence: it is missed, not caught up.
+        let next = some(fired.get("next_due_ms").and_then(Value::as_u64));
+        let restart = tick(&mut db, next + 3 * 86_400_000);
+        assert_eq!(restart.get("status"), Some(&json!("missed")));
+        assert!(some(restart.get("next_due_ms").and_then(Value::as_u64)) > next + 3 * 86_400_000);
+        assert!(handle(&mut db, &actor, "schedule", json!({"project":"project","name":"nightly","schedule":"nightly","reference":"refs/heads/other","revision":"c".repeat(40)}), now).is_err());
     }
 }

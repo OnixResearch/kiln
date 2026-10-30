@@ -268,7 +268,7 @@ impl Engine {
         let runs: Vec<_> = self.state.runs.values().collect();
         let projects:Vec<_>=self.profile.projects.iter().map(|p| {
             let latest=runs.iter().filter(|r|r.project_id==p.id).max_by_key(|r|r.ordinal);
-            let health=latest.map(|r|if r.phase=="queued" {"queued"}else if r.outcome()==Outcome::Success {"healthy"}else if failed(r.outcome()) {"failing"}else if r.outcome()==Outcome::Unknown {"unknown"}else if !r.outcome().is_terminal() {"active"}else{"cancelled"}).unwrap_or("unavailable");
+            let health=latest.map(|r|if r.waiting() {"queued"}else if r.outcome()==Outcome::Success {"healthy"}else if failed(r.outcome()) {"failing"}else if r.outcome()==Outcome::Unknown {"unknown"}else if !r.outcome().is_terminal() {"active"}else{"cancelled"}).unwrap_or("unavailable");
             Ok(json!({"id":p.id,"label":p.label,"health":health,"latest_run":latest.map(|r|r.view()),"scope":p.scope_view()?,"repository_key":p.repository_key()}))
         }).collect::<Result<_, String>>()?;
         let mut completed: Vec<_> = runs
@@ -279,7 +279,7 @@ impl Engine {
         let trend:Vec<_>=completed.iter().rev().take(100).map(|r|json!({"run_id":r.id,"project_id":r.project_id,"outcome":r.outcome(),"completed_at_ms":r.completed_at_ms,"duration_ms":duration(r.started_at_ms,r.completed_at_ms)})).collect();
         json_response(
             200,
-            json!({"totals":{"runs":runs.len(),"active":runs.iter().filter(|r|!r.outcome().is_terminal()&&r.phase!="queued").count(),"queued":runs.iter().filter(|r|r.phase=="queued").count(),"succeeded":runs.iter().filter(|r|r.outcome()==Outcome::Success).count(),"failed":runs.iter().filter(|r|failed(r.outcome())).count(),"cancelled":runs.iter().filter(|r|r.outcome()==Outcome::Cancelled).count(),"unknown":runs.iter().filter(|r|r.outcome()==Outcome::Unknown).count()},"projects":projects,"duration_trend":trend,"timing":{"recorded":completed.len(),"total":runs.len()}}),
+            json!({"totals":{"runs":runs.len(),"active":runs.iter().filter(|r|!r.outcome().is_terminal()&&!r.waiting()).count(),"queued":runs.iter().filter(|r|r.waiting()).count(),"succeeded":runs.iter().filter(|r|r.outcome()==Outcome::Success).count(),"failed":runs.iter().filter(|r|failed(r.outcome())).count(),"cancelled":runs.iter().filter(|r|r.outcome()==Outcome::Cancelled).count(),"unknown":runs.iter().filter(|r|r.outcome()==Outcome::Unknown).count()},"projects":projects,"duration_trend":trend,"timing":{"recorded":completed.len(),"total":runs.len()}}),
         )
     }
     pub(super) fn activity(
@@ -374,7 +374,7 @@ impl Engine {
         let mut positions = BTreeMap::<&str, usize>::new();
         let queue:Vec<_>=queue.iter().map(|r|{let position=positions.entry(&r.project_id).or_default();*position+=1;json!({"run_id":r.id,"project_id":r.project_id,"position":position,"created_at_ms":r.created_at_ms})}).collect();
         let providers:Vec<_>=self.profile.projects.iter().map(|p|{
-            let latest=self.state.runs.values().filter(|r|r.project_id==p.id&&r.phase!="queued").max_by_key(|r|r.ordinal);
+            let latest=self.state.runs.values().filter(|r|r.project_id==p.id&&!r.waiting()).max_by_key(|r|r.ordinal);
             json!({"project_id":p.id,"provider_profile_id":p.workflow.provider_profile_id,"status":latest.map(|r|if r.error_code.is_some()||r.phase=="unknown" {"unavailable"}else if r.observation.is_some(){"observed"}else{"unavailable"}).unwrap_or("unobserved"),"run_id":latest.map(|r|&r.id),"error_code":latest.and_then(|r|r.error_code.as_deref()),"sequence":latest.and_then(|r|r.observation.as_ref().map(|o|o.sequence))})
         }).collect();
         let artifact_bytes: usize = self
@@ -456,7 +456,7 @@ impl Engine {
             .state
             .runs
             .values()
-            .filter(|r| !r.outcome().is_terminal() && r.phase != "queued")
+            .filter(|r| !r.outcome().is_terminal() && !r.waiting())
             .count();
         json_response(
             200,

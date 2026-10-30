@@ -102,6 +102,11 @@ let Project = {
   source_limits | { max_entries | c.Positive, max_path_bytes | c.Positive, max_file_bytes | c.Positive, max_total_bytes | c.Positive },
   workflow | Workflow,
   scope | Scope | optional,
+  # r[impl kiln.untrusted.execution] Operator declaration that this project's
+  # execution target runs each job in a microVM without credentials or cache;
+  # only then are approved untrusted pull-request runs dispatched. Kiln cannot
+  # verify the target's isolation. Omitted means not untrusted-capable.
+  untrusted_capable | Bool | optional,
 }
 in
 fun input =>

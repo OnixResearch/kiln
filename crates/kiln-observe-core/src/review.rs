@@ -13,6 +13,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::profile::{ObservationProfile, ReviewBounds, ViewField, text_bound};
 
+/// Named bound on advisory approvals reported for one change; matches the
+/// review domain's per-revision advisory bound.
+pub const MAX_REVIEW_ADVISORY_PER_CHANGE: u32 = 128;
+
 /// Denominator of every reported share.
 pub const PER_MILLE: u64 = 1000;
 
@@ -37,6 +41,19 @@ pub struct ReviewChangeFact {
     pub approval: Option<ReviewApprovalFact>,
     pub suggestions: Vec<ReviewSuggestionFact>,
     pub merged_ms: Option<i64>,
+    /// Non-binding advisory approvals of the latest admitted patch set; omitted
+    /// when zero so windows written before advisory approvals keep their bytes.
+    // r[impl kiln.observe.review.advisory]
+    #[serde(default, skip_serializing_if = "is_zero_u32")]
+    pub advisory_approvals: u32,
+}
+
+fn is_zero_u32(value: &u32) -> bool {
+    *value == 0
+}
+
+fn is_zero_u64(value: &u64) -> bool {
+    *value == 0
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -87,6 +104,12 @@ pub struct AuthorshipFrictionView {
     pub merged_changes: u64,
     pub merged_without_suggestion: u64,
     pub merged_without_suggestion_per_mille: Option<u64>,
+    /// Total non-binding advisory approvals; never counted as approvals.
+    #[serde(default, skip_serializing_if = "is_zero_u64")]
+    pub advisory_approvals: u64,
+    /// Changes with at least one advisory approval.
+    #[serde(default, skip_serializing_if = "is_zero_u64")]
+    pub advised_changes: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -216,6 +239,15 @@ pub fn review_window(
                 .as_ref()
                 .map(|submission| submission.submitted_ms)
                 .filter(|merged_ms| *merged_ms < end_ms),
+            // r[impl kiln.observe.review.advisory] Non-binding; never an approval.
+            advisory_approvals: u32::try_from(
+                change
+                    .advisory
+                    .iter()
+                    .filter(|advice| advice.revision == latest.id && advice.created_ms < end_ms)
+                    .count(),
+            )
+            .unwrap_or(u32::MAX),
         });
     }
     Ok(ReviewWindow {
@@ -364,6 +396,12 @@ fn admit_change(
     {
         return Err(outside());
     }
+    if change.advisory_approvals > MAX_REVIEW_ADVISORY_PER_CHANGE {
+        return Err(window_error(
+            "review_window_advisory_bound",
+            "review change exceeds its named advisory approval bound",
+        ));
+    }
     Ok(())
 }
 
@@ -434,6 +472,16 @@ pub(crate) fn project_review_friction(window: &ReviewWindow) -> ReviewFrictionVi
                 merged_without_suggestion: count(merged_without_suggestion),
                 merged_without_suggestion_per_mille: (merged > 0)
                     .then(|| count(merged_without_suggestion) * PER_MILLE / count(merged)),
+                advisory_approvals: changes
+                    .iter()
+                    .map(|change| u64::from(change.advisory_approvals))
+                    .sum(),
+                advised_changes: count(
+                    changes
+                        .iter()
+                        .filter(|change| change.advisory_approvals > 0)
+                        .count(),
+                ),
             }
         })
         .collect();

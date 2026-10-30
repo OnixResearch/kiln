@@ -14,12 +14,56 @@
   const path = id => `${ROOT}/changes/${encodeURIComponent(id)}`;
   const selected = () => state.route.review_change || "";
   const current = () => arr(state.detail?.change?.revisions).at(-1);
-  const revision = () => state.route.review_revision || state.pinnedRevision || current()?.id || "";
+  // r[impl kiln.review.interdiff.route] `review_interdiff=<from>..<to>` names exact Kiln revision ids; `to` is the selected revision.
+  const interdiffRoute = () => { const m = /^([0-9a-f]{64})\.\.([0-9a-f]{64})$/.exec(state.route.review_interdiff || ""); return m ? { from: m[1], to: m[2] } : null; };
+  const commitsRoute = () => { const m = /^([0-9a-f]{40})\.\.([0-9a-f]{40})$/.exec(state.route.review_commits || ""); return m ? { from: m[1], to: m[2] } : null; };
+  const revision = () => interdiffRoute()?.to || state.route.review_revision || state.pinnedRevision || current()?.id || "";
+  // The comparison keys of the displayed view, so line permalinks and toggles keep interdiff/commit-range views.
+  const viewPatch = () => ({ review_revision: interdiffRoute() ? "" : revision(), review_base: interdiffRoute() || commitsRoute() ? "" : state.route.review_base || "base", review_interdiff: state.route.review_interdiff || "", review_interdiff_change: state.route.review_interdiff_change || "", review_commits: state.route.review_commits || "" });
   const active = (epoch, id) => epoch === state.epoch && (!id || id === selected()) && !!state.container?.isConnected;
   const writable = () => state.snapshot?.can_write === true && !state.pending;
+  // r[impl kiln.review.advisory] Advisory approve/withdraw are the only commands a read principal may send.
+  const sendable = readAdmitted => readAdmitted ? state.snapshot?.configured === true && !state.pending : writable();
   const short = value => String(value || "").length > 20 ? `${String(value).slice(0, 12)}…${String(value).slice(-6)}` : String(value || "");
+  // r[impl kiln.review.keyboard] r[impl kiln.review.keyboard.navigation] r[impl kiln.review.keyboard.actions]
+  // One table drives both the key handler and the help overlay, so documented commands cannot drift from bound ones.
+  const SHORTCUTS = Object.freeze([
+    Object.freeze({ id: "next-file", keys: ["j", "ArrowDown"], shift: false, description: "Next changed file" }),
+    Object.freeze({ id: "previous-file", keys: ["k", "ArrowUp"], shift: false, description: "Previous changed file" }),
+    Object.freeze({ id: "next-hunk", keys: ["n"], shift: false, description: "Next hunk" }),
+    Object.freeze({ id: "previous-hunk", keys: ["p"], shift: false, description: "Previous hunk" }),
+    Object.freeze({ id: "next-thread", keys: ["t"], shift: false, description: "Next unresolved thread" }),
+    Object.freeze({ id: "previous-thread", keys: ["T"], shift: true, description: "Previous unresolved thread" }),
+    Object.freeze({ id: "next-unviewed", keys: ["u"], shift: false, description: "Next unviewed hunk" }),
+    Object.freeze({ id: "previous-unviewed", keys: ["U"], shift: true, description: "Previous unviewed hunk" }),
+    Object.freeze({ id: "toggle-layout", keys: ["m"], shift: false, description: "Toggle unified / side-by-side layout" }),
+    Object.freeze({ id: "toggle-hunk-viewed", keys: ["v"], shift: false, description: "Toggle viewed for the focused hunk" }),
+    Object.freeze({ id: "toggle-file-viewed", keys: ["V"], shift: true, description: "Toggle viewed for the displayed file" }),
+    Object.freeze({ id: "start-draft", keys: ["d"], shift: false, description: "Start an anchored draft at the selected line" }),
+    Object.freeze({ id: "publish", keys: ["P"], shift: true, description: "Open the publish confirmation" }),
+    Object.freeze({ id: "requirements", keys: ["s"], shift: false, description: "Jump to submit requirements" }),
+    Object.freeze({ id: "help", keys: ["?"], shift: true, description: "Show these shortcuts" }),
+  ]);
+  const SHORTCUT_COMMANDS = Object.freeze(SHORTCUTS.map(s => Object.freeze({ id: s.id, keys: s.keys.join(" / "), description: s.description })));
+  // r[impl kiln.review.keyboard] Keys are inert while typing, in a dialog, during IME composition and with a command modifier held.
+  function resolveShortcut(event, { editable = false, dialogOpen = false } = {}) {
+    if (!event || typeof event.key !== "string" || !event.key) return null;
+    if (editable || dialogOpen || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return null;
+    const shifted = event.shiftKey === true;
+    for (const shortcut of SHORTCUTS) {
+      for (const key of shortcut.keys) {
+        if (key === "?") { if (event.key === "?" || (event.key === "/" && shifted)) return shortcut.id; continue; }
+        if (event.key.toLowerCase() !== key.toLowerCase()) continue;
+        // Letters bind case-sensitively in their documented shift state; named keys ignore shift.
+        if (/^[a-z]$/i.test(key) && shifted !== shortcut.shift) continue;
+        return shortcut.id;
+      }
+    }
+    return null;
+  }
+  const editableTarget = target => target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='textbox']"));
   const RENDER_LIMIT = 65536, TOKEN_LIMIT = 4096;
-  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" };
+  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_interdiff: "", review_interdiff_change: "", review_commits: "", review_file: "", review_side: "", review_line: "" };
   // r[impl kiln.web.readable_observations]
   // Presentation only: KilnUi (loaded before this script) humanizes times; exact instants stay in title/datetime.
   const ui = () => window.KilnUi;
@@ -52,6 +96,7 @@
       li.dataset.requirement = kind; li.dataset.satisfied = String(!!item.satisfied); li.dataset.status = tone;
       title.append(node("strong", text), ` · ${human(item.key)}`); body.append(title, node("p", item.detail, "cr-muted"));
       if (item.key === "ci" && Array.isArray(item.ci_projects)) body.append(ciProjectList(ui().ciProjects(item.ci_projects)));
+      if (item.key === "ci" && arr(item.untrusted_runs).length) body.append(untrustedRunList(item.untrusted_runs));
       li.append(toneIcon(tone), body); list.append(li);
     }
     return list;
@@ -70,6 +115,25 @@
         if (row.runId) { const run = node("a", `Inspect ${row.label} run`, "cr-ci-run"); run.href = `?${new URLSearchParams({ page: "runs", project: row.projectId, run: row.runId, view: "pipeline" })}`; li.append(run); }
       } else li.append(node("p", row.detail, "cr-muted"));
       list.append(li);
+    }
+    return list;
+  }
+  // r[impl kiln.untrusted.console] Untrusted pull-request runs of the evaluated commit: state, reason, approver,
+  // approved commit and whether policy counts the result for required CI. An approval never meets a requirement.
+  function untrustedNote(gate) {
+    const approval = gate.approvedBy ? `Approved by ${gate.approvedBy} for commit ${gate.approvedCommit || "not recorded"}.` : "Not approved; nothing has run.";
+    return `${gate.reasonText} ${approval} ${gate.countsForRequiredCi ? "Policy counts its result for required CI on this exact commit only." : "Its result does not count for required CI."}`;
+  }
+  function untrustedRunList(rows) {
+    const list = node("ul", null, "cr-ci-projects cr-untrusted-runs"); list.setAttribute("aria-label", "Untrusted pull-request runs");
+    for (const row of arr(rows)) {
+      const gate = ui().untrustedSummary(row?.untrusted);
+      if (!gate || typeof row.run_id !== "string" || !row.run_id) continue;
+      const li = node("li", null, "cr-ci-project"), head = node("p", null, "cr-ci-project-head"), run = node("a", "Inspect untrusted run", "cr-ci-run");
+      li.dataset.untrustedState = gate.state;
+      run.href = `?${new URLSearchParams({ page: "runs", run: row.run_id, view: "pipeline" })}`; run.setAttribute("aria-label", `Inspect untrusted run ${row.run_id}`);
+      head.append(pill(gate.state, "Untrusted run", gate.stateLabel, gate.tone), node("strong", gate.pullRequest === null ? "Untrusted pull request" : `Pull request #${gate.pullRequest}`));
+      li.append(head, node("p", untrustedNote(gate), "cr-muted"), run); list.append(li);
     }
     return list;
   }
@@ -216,6 +280,41 @@
     }, "primary"));
     source.focus();
   }
+  // r[impl kiln.review.jj_intake.surface] Change-ID intake: the service observes jj read-only and admits every member before any effect.
+  const JJ_CHANGE_ID = /^[k-z]{32}$/;
+  function jjContribution() {
+    const jj = state.snapshot.jj_intake; if (!jj) throw new Error("Change-ID intake is not configured.");
+    const { dialog, close } = modal("Contribute jj change for review");
+    dialog.append(node("p", "Kiln resolves exact full jj change IDs read-only at one jj operation, or reads git change-id headers from an admitted branch. It never rebases, pushes or moves bookmarks. Divergent or conflicted changes refuse the whole request before any effect.", "cr-muted"));
+    const sources = [...(jj.jj ? [["jj", "Exact jj change IDs"]] : []), ...(jj.change_id_header ? [["header", "Branch with git change-id headers"]] : [])];
+    const mode = field(dialog, "Source", "select", sources[0]?.[0] || "", sources, "jj-mode");
+    const ids = field(dialog, `Change IDs, bottom to top, one per line (at most ${jj.max_stack})`, "textarea", "", [], "jj-ids");
+    const ref = field(dialog, "Admitted branch", "text", "refs/heads/review/", [], "jj-ref");
+    for (const input of [ids, ref]) { input.classList.add("mono"); input.spellcheck = false; input.autocomplete = "off"; }
+    const stack = field(dialog, "Submit as an ordered stack", "checkbox", false, [], "jj-stack");
+    const wip = field(dialog, "Work in progress", "checkbox", true, [], "jj-wip");
+    const authorship = authorshipFields(dialog, "jj");
+    const sync = () => { ids.parentElement.hidden = mode.value !== "jj"; ref.parentElement.hidden = mode.value !== "header"; };
+    mode.addEventListener("change", sync); sync();
+    dialogActions(dialog, close).append(writeButton("Contribute jj change…", async () => {
+      const declared = authorship.value(); let action, source;
+      if (mode.value === "jj") {
+        const list = ids.value.split(/\s+/).filter(Boolean);
+        if (!list.length) throw new Error("Enter at least one full jj change ID.");
+        const bad = list.find(id => !JJ_CHANGE_ID.test(id)); if (bad) throw new Error(`"${bad}" is not a full 32-character jj change ID. Prefixes and revsets are not accepted.`);
+        if (new Set(list).size !== list.length) throw new Error("A change ID is listed twice.");
+        if (list.length > jj.max_stack) throw new Error(`At most ${jj.max_stack} change IDs are admitted.`);
+        if (list.length > 1 && !stack.checked) throw new Error("Several change IDs require an ordered stack submission.");
+        action = { type: "jj_contribute", change_ids: list, stack: stack.checked, wip: wip.checked }; source = ["Change IDs (bottom → top)", list.join("\n")];
+      } else {
+        const value = ref.value.trim(); if (!/^refs\/heads\/\S+$/.test(value)) throw new Error("Enter an exact refs/heads/… branch.");
+        action = { type: "jj_contribute", source_ref: value, stack: stack.checked, wip: wip.checked }; source = ["Branch (git change-id headers)", value];
+      }
+      const result = await command(withAuthorship(action, declared), null, { title: stack.checked ? "Contribute jj stack for review?" : "Contribute jj change for review?", verb: "Contribute", facts: [["Principal", state.context.principal], ["Repository", state.snapshot.repository], source, ["Stack", stack.checked ? "One change per ID with dependencies in the listed ancestor order. IDs missing from an earlier submission are flagged, never abandoned." : "Single change; dependencies and stack membership untouched"], ["Configured target", jj.target_ref], ["WIP", String(wip.checked)], authorshipFact(declared), ["Effect", "Register a revision only for changes whose exact commit changed. Grants no approval, CI or submit authority."]] });
+      if (result) { clearFields("jj-mode", "jj-ids", "jj-ref", "jj-stack", "jj-wip", ...authorship.keys); close(); if (result.change?.id) route({ review_change: result.change.id, review_revision: "" }); }
+    }, "primary"));
+    (mode.value === "jj" ? ids : ref).focus();
+  }
   // r[impl kiln.web.page_consistency]
   // Dialog footer: Cancel then the dialog's single primary action, right-aligned; form dialogs focus their first field.
   function dialogActions(dialog, close) { const actions = node("div", null, "cr-toolbar cr-dialog-actions"); actions.append(button("Cancel", close, "quiet")); dialog.append(actions); return actions; }
@@ -328,7 +427,9 @@
   }
   function clearFields(...keys) { for (const key of keys) state.forms.delete(memoryKey(key)); }
   function route(patch) {
-    if (["review_q", "review_view", "review_status"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_offset")) patch = { ...patch, review_offset: "" };
+    if (["review_q", "review_view", "review_status", "review_advisory"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_offset")) patch = { ...patch, review_offset: "" };
+    // Choosing a revision or base leaves any interdiff or commit-range view unless the patch names one.
+    if (["review_change", "review_revision", "review_base"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_interdiff")) patch = { review_interdiff: "", review_interdiff_change: "", review_commits: "", ...patch };
     if (Object.hasOwn(patch, "review_revision")) state.pinnedRevision = patch.review_revision || "";
     state.context.navigate(patch);
     // Also support hosts that update history without remounting this component.
@@ -359,12 +460,12 @@
       const actions = node("div", null, "cr-toolbar cr-dialog-actions"), keep = button(dismiss, () => finish(false), "quiet"); actions.append(keep, button(verb, () => finish(true), danger ? "danger" : "primary")); dialog.append(actions); keep.focus();
     });
   }
-  async function command(action, change = state.detail?.change, confirmation = null) {
-    if (!writable()) throw new Error("Review writes are not admitted for this principal, or another command is pending.");
+  async function command(action, change = state.detail?.change, confirmation = null, readAdmitted = false) {
+    if (!sendable(readAdmitted)) throw new Error("Review writes are not admitted for this principal, or another command is pending.");
     const epoch = state.epoch, id = selected(), context = state.context;
     const captured = change ? { id: change.id, version: change.version } : null;
     if (confirmation && !await confirmAction(confirmation)) return null;
-    if (!active(epoch, id) || context.principal !== state.context.principal || !writable()) throw new Error("Selection, identity or command availability changed before confirmation. No command was sent.");
+    if (!active(epoch, id) || context.principal !== state.context.principal || !sendable(readAdmitted)) throw new Error("Selection, identity or command availability changed before confirmation. No command was sent.");
     const requestId = crypto.randomUUID(); state.pending = requestId; state.error = ""; drawNotice();
     try {
       const result = await context.api(`${ROOT}/commands`, { method: "POST", body: { request_id: requestId, change_id: captured?.id || null, expected_version: captured?.version ?? null, action } });
@@ -384,13 +485,15 @@
     region.textContent = state.error || (state.pending ? "Recording command. Wait for an observed result." : ""); region.hidden = !region.textContent; region.dataset.kind = state.error ? "error" : "status";
     const slot = document.getElementById(HEADER_SLOT)?.querySelector("[data-cr-actions]");
     for (const scope of [state.container, ...state.dialogs, ...(slot ? [slot] : [])]) for (const b of scope.querySelectorAll("[data-cr-write]")) b.disabled = !writable() || b.dataset.crBlocked === "true";
+    if (state.container) for (const b of state.container.querySelectorAll("[data-cr-advisory]")) b.disabled = !sendable(true) || b.dataset.crBlocked === "true";
   }
   function writeButton(text, action, cls) { const b = button(text, action, cls, true); b.dataset.crWrite = "true"; return b; }
+  function advisoryButton(text, action, cls) { const b = button(text, action, cls); b.dataset.crAdvisory = "true"; b.disabled = !sendable(true); return b; }
   async function refresh() {
     if (!state.container?.isConnected || !state.context) return;
     const epoch = state.epoch, id = selected(), request = ++state.request, context = state.context;
     try {
-      const root = await context.api(`${ROOT}?${new URLSearchParams({ q: state.route.review_q || "", view: state.route.review_view || "all", offset: state.route.review_offset || "0", notification_offset: state.route.review_notification_offset || "0", operation_offset: state.route.review_operation_offset || "0", ...(state.route.review_status ? { status: state.route.review_status } : {}) })}`);
+      const root = await context.api(`${ROOT}?${new URLSearchParams({ q: state.route.review_q || "", view: state.route.review_view || "all", offset: state.route.review_offset || "0", notification_offset: state.route.review_notification_offset || "0", operation_offset: state.route.review_operation_offset || "0", ...(state.route.review_status ? { status: state.route.review_status } : {}), ...(state.route.review_advisory ? { advisory: state.route.review_advisory } : {}) })}`);
       if (!active(epoch, id) || request !== state.request) return;
       if (root?.schema !== "kiln.code-review.v1" || root.principal !== context.principal) throw new Error("Review snapshot schema or principal does not match this authenticated session.");
       state.snapshot = root;
@@ -434,9 +537,10 @@
     const group = node("div", null, "cr-header-actions cluster"); group.dataset.crActions = signature; build(group); slot.replaceChildren(group);
   }
   function listActions() {
-    const contributions = arr(state.snapshot.contribution_sources).length > 0;
-    headerActions(`list|${state.context.principal}|${state.snapshot.can_write === true}|${contributions}`, group => {
+    const contributions = arr(state.snapshot.contribution_sources).length > 0, jj = !!(state.snapshot.jj_intake?.jj || state.snapshot.jj_intake?.change_id_header);
+    headerActions(`list|${state.context.principal}|${state.snapshot.can_write === true}|${contributions}|${jj}`, group => {
       if (contributions) group.append(writeButton("Contribute branch…", contribution, "quiet"));
+      if (jj) group.append(writeButton("Contribute jj change…", jjContribution, "quiet"));
       group.append(writeButton("Create change…", createChange, "primary"));
     });
   }
@@ -489,8 +593,9 @@
     const search = node("form", null, "toolbar cr-toolbar cr-search"); search.setAttribute("role", "search"); search.setAttribute("aria-label", "Search changes");
     const q = field(search, "Search change text", "search", state.route.review_q || "", [], "search");
     const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], ["open", "Open"], ["abandoned", "Abandoned"], ["submitted", "Submitted"]]);
+    const advisory = field(search, "Advisory approvals", "select", state.route.review_advisory || "", [["", "Any advisory state"], ["with", "With advisory approvals"], ["without", "Without advisory approvals"]]);
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
-    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_change: "" }); }); list.append(search);
+    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_change: "" }); }); list.append(search);
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
     for (const [text, value] of [["All changes", "all"], ["Awaiting my review", "awaiting_review"], ["My changes needing revision", "owned_needs_revision"], ["Unresolved discussions", "unresolved"]]) { const b = button(text, () => { clearFields("search"); route({ review_view: value }); }); b.setAttribute("aria-pressed", String(value === kind)); group.append(b); }
     views.append(group);
@@ -498,13 +603,13 @@
     if (savedViews.length) {
       const list = node("ul", null, "cr-saved-views"); list.setAttribute("aria-label", "Saved personal views");
       for (const view of savedViews) {
-        const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "");
-        const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "" }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
+        const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "") && advisoryRoute(view.query.advisory) === (state.route.review_advisory || "");
+        const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "", review_advisory: advisoryRoute(view.query.advisory) }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
         li.append(apply, iconOnly(writeButton(`Delete view ${view.name}…`, () => command({ type: "delete_view", id: view.id }, null, { title: `Delete personal view "${view.name}"?`, verb: "Delete view", danger: true, facts: [["Name", view.name], ["Query", JSON.stringify(view.query)]] }), "quiet"), icon("x"))); list.append(li);
       }
       views.append(list);
     }
-    const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: { kind: state.route.review_view || "all", text: state.route.review_q || "", status: state.route.review_status || null } }, null); clearFields("view-name"); }));
+    const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: { kind: state.route.review_view || "all", text: state.route.review_q || "", status: state.route.review_status || null, ...(state.route.review_advisory ? { advisory: state.route.review_advisory === "with" } : {}) } }, null); clearFields("view-name"); }));
     disclosure(views, "Save current query as a personal view").append(save); list.append(views);
     const changes = arr(state.snapshot.changes), offset = Number(state.route.review_offset) || 0;
     if (changes.length) {
@@ -516,6 +621,7 @@
         const title = changeLink(change.id, change.title); title.classList.add("cr-change-title");
         const meta = node("p", null, "cr-muted cr-change-meta"); meta.append(exactId(change.id));
         if (change.unresolved) meta.append(chip(`${change.unresolved} unresolved`));
+        if (change.advisory_current) meta.append(chip(`${change.advisory_current} advisory (non-binding)`, "cr-chip-advisory"));
         const attention = arr(change.attention), others = attention.filter(p => p !== state.context.principal);
         if (others.length < attention.length) meta.append(chip("Needs your attention", "cr-chip-attention"));
         if (others.length) { const who = node("span", `${others.length < attention.length ? "Also" : "Attention"}: `); others.forEach((p, i) => who.append(...(i ? [", "] : []), principalNode(p))); meta.append(who); }
@@ -529,11 +635,11 @@
       table.append(body); wrap.append(table); list.append(wrap);
     } else {
       // r[impl kiln.web.page_consistency.scenario.states]
-      const filtered = !!(state.route.review_q || state.route.review_status || kind !== "all");
+      const filtered = !!(state.route.review_q || state.route.review_status || state.route.review_advisory || kind !== "all");
       const empty = filtered ? stateBox("No changes match this query", "Adjust the search text, state or personal view.")
         : offset ? stateBox("No changes on this page", "The retained list may have changed. Return to the previous page.")
         : stateBox("No changes yet", state.snapshot.can_write ? `Use Create change… to register an exact local commit for review.${state.snapshot.intake_enabled ? " Submitted contribution branches appear here too." : ""}` : "No change has been registered. Review writes are not admitted for this principal.");
-      if (filtered) empty.append(button("Clear filters", () => { clearFields("search"); route({ review_q: "", review_status: "", review_view: "" }); }, "quiet"));
+      if (filtered) empty.append(button("Clear filters", () => { clearFields("search"); route({ review_q: "", review_status: "", review_advisory: "", review_view: "" }); }, "quiet"));
       list.append(empty);
     }
     if (changes.length || offset) list.append(pager("Change pages", "Previous page", "Next page", `${changes.length ? offset + 1 : 0}–${offset + changes.length} of ${state.snapshot.total ?? changes.length} matching changes`, offset === 0, state.snapshot.next_offset == null, () => route({ review_offset: String(Math.max(0, offset - 25)) }), () => route({ review_offset: String(state.snapshot.next_offset) })));
@@ -594,7 +700,11 @@
       run.href = `?${new URLSearchParams({ page: "runs", run: fact.run_id, view: "pipeline" })}`; run.setAttribute("aria-label", `Inspect run ${fact.run_id}`);
       head.append(pill(`success=${fact.success === true}`, "Canonical CI", fact.success ? "Passed" : "Not passed or not terminal", fact.success ? "success" : "warning"), run, exactId(fact.run_id));
       tags.append(chip(fact.full_run ? "Full run" : "Partial run"), chip(fact.clean ? "Clean input" : "Dirty input"), chip(Number.isSafeInteger(fact.ordinal) ? `Ordinal ${fact.ordinal}` : "Ordinal outside exact browser integer range; service ordering retained"));
-      row.append(head, tags); card.append(row);
+      const gate = ui().untrustedSummary(fact.untrusted);
+      if (gate) tags.append(pill(gate.state, "Untrusted run", gate.stateLabel, gate.tone));
+      row.append(head, tags);
+      if (gate) row.append(node("p", untrustedNote(gate), "cr-muted"));
+      card.append(row);
     }
     if (!matching.length) card.append(node("p", "No canonical exact-source CI evidence is present in this retained response for the selected revision. Missing evidence is not success; inspect the checklist's exact blocked reason.", "cr-notice"));
   }
@@ -605,15 +715,20 @@
     const { main, aside } = layout(root, "Submit requirements and change details", "cr-detail-layout");
     const description = section(main, "Description"); description.append(String(c.description ?? "").trim() ? markdown(c.description) : node("p", "No description provided.", "cr-muted"));
     const diff = section(main, "Changed files and diff", "cr-diff-card"), controls = node("div", null, "toolbar cr-toolbar cr-diff-toolbar");
-    const base = field(controls, "Compare against", "select", state.route.review_base || "base", [["base", "Selected revision's base"], ...arr(c.revisions).filter(item => item.number < (r?.number || 0)).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}`])]);
-    base.dataset.crKey = "diff-base"; base.addEventListener("change", () => route({ review_base: base.value, review_file: "", review_side: "", review_line: "" }));
+    // r[impl kiln.review.interdiff.route] "Changes since revision N" removes base movement; the route restores it.
+    const earlier = arr(c.revisions).filter(item => item.number < (r?.number || 0)), inter = interdiffRoute();
+    const base = field(controls, "Compare against", "select", inter ? `interdiff:${inter.from}` : commitsRoute() ? "commits" : state.route.review_base || "base", [["base", "Selected revision's base"], ...earlier.map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}`]), ...earlier.map(item => [`interdiff:${item.id}`, `Changes since revision ${item.number}`]), ...(commitsRoute() ? [["commits", "Commit range (below)"]] : [])]);
+    base.dataset.crKey = "diff-base"; base.addEventListener("change", () => base.value.startsWith("interdiff:") ? route({ review_interdiff: `${base.value.slice(10)}..${revision()}`, review_interdiff_change: "", review_commits: "", review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" }) : route({ review_revision: revision(), review_base: base.value === "commits" ? "base" : base.value, review_file: "", review_side: "", review_line: "" }));
     const whitespace = field(controls, "Whitespace comparison", "select", state.route.review_whitespace || "exact", [["exact", "Show all changes (exact)"], ["ignore_all", "Ignore all whitespace"], ["ignore_change", "Ignore whitespace amount"], ["ignore_eol", "Ignore whitespace at end of line"]]);
     whitespace.dataset.crKey = "diff-whitespace"; whitespace.addEventListener("change", () => route({ review_whitespace: whitespace.value }));
+    // r[impl kiln.review.structural] Opt-in syntax-aware view; grammars run only in the service.
+    const comparisonMode = field(controls, "Comparison mode", "select", state.route.review_mode || "line", [["line", "Line diff"], ["structural", "Structural (syntax-aware)"]]);
+    comparisonMode.dataset.crKey = "diff-mode"; comparisonMode.addEventListener("change", () => route({ review_mode: comparisonMode.value === "line" ? "" : comparisonMode.value }));
     const modeField = node("div", null, "cr-field"), modeLabel = node("span", "Diff layout"), modes = node("div", null, "segmented"); modeLabel.id = `cr-${crypto.randomUUID()}`; modes.setAttribute("role", "group"); modes.setAttribute("aria-labelledby", modeLabel.id);
     for (const [value, text] of [["unified", "Unified"], ["split", "Side by side"]]) { const b = button(text, () => { state.mode = value; for (const other of modes.children) other.setAttribute("aria-pressed", String(other === b)); drawDiff(); }); b.setAttribute("aria-pressed", String(state.mode === value)); modes.append(b); }
     modeField.append(modeLabel, modes); controls.append(modeField); diff.append(controls, node("div", null, "cr-diff-host")); drawDiff();
     drawDiscussion(main); drawSuggestions(main);
-    drawApproval(aside); drawReviewers(aside); drawCi(aside); drawIdentity(aside); drawStack(aside);
+    drawApproval(aside); drawReviewers(aside); drawCi(aside); drawIdentity(aside); drawEvolog(aside); drawStack(aside);
     drawQueue(aside, Array.isArray(state.detail.queue) ? state.detail.queue : state.detail.queue ? [state.detail.queue] : arr(state.snapshot.queue).filter(e => e.change === c.id));
     drawSubscriptions(aside); drawOperations(aside); drawAuthorActions(aside);
   }
@@ -622,6 +737,29 @@
     facts(card, [["Stable change", c.id], ["State", `${label(c.state)}${c.wip ? " · Work in progress" : ""}`], ["Owner", c.owner], ["Project / repository", `${c.project} / ${c.repository}`], ["Target ref", c.target_ref], ["Observed target", state.detail.source?.current_target], ["Current revision", current()?.id], ["Current commit", current()?.commit], ["Authorship (self-declared, unverified)", authorshipClassLabel(c.authorship)]]);
     const log = node("ol", null, "cr-history");
     for (const item of arr(c.revisions)) { const li = node("li"), meta = node("span", null, "cr-muted"); if (item.id === revision()) li.setAttribute("aria-current", "true"); meta.append(`${item.author} · `, when(item.created_ms), ` · ${authorshipLabel(item.authorship)}`); li.append(link(`Revision ${item.number}`, { review_revision: item.id, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, node("code", item.commit)); log.append(li); }
+    card.append(log);
+  }
+  // r[impl kiln.review.jj_intake.evolog] jj facts are provider observations; each row links the interdiff from the previous revision.
+  function drawEvolog(root) {
+    const rows = state.detail.jj_evolog, membership = state.detail.jj_stack; if (!Array.isArray(rows) && !membership) return;
+    const removed = membership?.removed === true;
+    const card = panel(root, "jj evolog", "jj-evolog", removed, removed ? "Removed from stack" : Array.isArray(rows) ? `${rows.length}` : null);
+    about(card, "About jj observations", "Change IDs, operations, predecessors and authors are observed from jj or from git change-id headers. They are provider facts, never Kiln identities, and grant no authority.");
+    if (membership) facts(card, [["jj change ID", membership.jj_change_id], ["Stack", !membership.stack ? "Not part of a stack submission" : removed ? "Removed from its submitted stack. The change stays open; abandon it explicitly if it is no longer needed." : `Position ${membership.position} of ${membership.size}, bottom to top`]]);
+    if (!Array.isArray(rows)) return;
+    const log = node("ol", null, "cr-history");
+    for (const row of rows) {
+      const li = node("li"), meta = node("span", null, "cr-muted"), observed = row.jj; if (row.revision === revision()) li.setAttribute("aria-current", "true");
+      meta.append(observed ? `${observed.author_name} <${observed.author_email}> · ` : "", `${authorshipLabel(row.authorship)} · submitted by ${row.submitted_by} · `, when(row.created_ms));
+      li.append(link(`Revision ${row.number}`, { review_revision: row.revision, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, exactId(row.commit));
+      if (observed) {
+        const predecessors = node("span", null, "cr-tags"); for (const commit of arr(observed.predecessors)) predecessors.append(exactId(commit)); if (!arr(observed.predecessors).length) predecessors.append(observed.source === "jj" ? "None" : "Not carried by git headers");
+        facts(li, [["Source", observed.source === "jj" ? "jj" : "git change-id header"], ["jj predecessors", predecessors], ["Observed operation", observed.operation ? exactId(observed.operation) : null], ["Created by operation", observed.created_by_operation ? exactId(observed.created_by_operation) : null]]);
+      } else li.append(node("span", "No jj observation for this revision", "cr-muted"));
+      if (row.predecessor_matches_previous === false) li.append(chip("Previous revision is not a direct jj predecessor"));
+      if (row.interdiff) li.append(link("Interdiff from previous revision", { review_interdiff: row.interdiff, review_interdiff_change: "", review_commits: "", review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" }));
+      log.append(li);
+    }
     card.append(log);
   }
   function drawOperations(root) {
@@ -673,12 +811,31 @@
       votes.append(list);
     } else votes.append(node("p", "No votes recorded.", "cr-muted"));
     card.append(votes);
+    drawAdvisory(card, c);
     const rules = disclosure(card, "Review policy and ownership rules");
     facts(rules, [["Policy", policy?.id], ["Eligible reviewers", arr(policy?.eligible_reviewers).join(", ")], ["Required approvals", policy?.minimum_approvals], ["Required CI", policy ? String(policy.require_ci) : "Policy unavailable; submit is blocked"]]);
     if (arr(policy?.ownership?.rules).length) {
       rules.append(node("h4", "Configured ownership and protected target rules (checklist remains authority)"));
       for (const rule of policy.ownership.rules) { const article = node("article", null, "cr-operation"); facts(article, [["Rule", rule.id], ["Path patterns", arr(rule.paths).join(", ")], ["Protected targets", arr(rule.target_refs).join(", ") || "All admitted targets"], ["Owners", arr(rule.owners).join(", ")], ["Teams", arr(rule.teams).map(team => `${team}: ${arr(policy.ownership.teams?.[team]).join(", ")}`).join("; ")]]); rules.append(article); }
     }
+  }
+  const advisoryRoute = value => value === true ? "with" : value === false ? "without" : "";
+  // r[impl kiln.review.advisory.view] A separate, labelled, non-binding list; never part of the checklist above.
+  function drawAdvisory(card, c) {
+    const box = node("div", null, "cr-subsection cr-advisory"), live = current()?.id, records = arr(c.advisory), me = state.context.principal;
+    const now = records.filter(advice => advice.revision === live), historical = records.length - now.length;
+    box.append(node("h4", "Advisory approvals (non-binding)"), node("p", "Readers other than the owner and authors may advise. Advisory approvals never count toward required approvals, ownership, vetoes, CI or queue admission.", "cr-muted"));
+    if (now.length) { const list = node("ul", null, "cr-rows"); list.setAttribute("aria-label", "Advisory approvals of the current revision"); for (const advice of now) { const li = node("li", null, "list-row"); li.append(principalNode(advice.actor, "cr-row-title cr-principal"), chip("Advises approval", "cr-chip-advisory"), when(advice.created_ms)); list.append(li); } box.append(list); }
+    else box.append(node("p", "No advisory approvals on the current revision.", "cr-muted"));
+    if (historical) box.append(node("p", `${historical} historical advisory approval${historical === 1 ? "" : "s"} on earlier revisions; no current meaning.`, "cr-muted cr-advisory-history"));
+    if (c.state === "open") {
+      const mine = now.some(advice => advice.actor === me), own = me === c.owner || arr(c.revisions).some(r => r.author === me), verb = mine ? "Withdraw advisory approval" : "Advise approval";
+      const action = advisoryButton(`${verb}…`, () => { requireCurrent(); return command({ type: mine ? "advisory_withdraw" : "advisory_approve" }, c, { title: `${verb} on "${c.title}"?`, verb, facts: [["Principal", me], ["Change", c.id], ["Exact current revision", live], ["Effect", "Non-binding. Never counts toward required approvals, ownership, vetoes, CI or queue admission. A new revision makes it historical."]] }, true); }, "quiet");
+      action.prepend(icon("circle-check"));
+      if (own) { action.disabled = true; action.dataset.crBlocked = "true"; action.title = "Owners and authors may not advise on their own change."; }
+      box.append(action);
+    }
+    card.append(box);
   }
   function drawStack(root) {
     const c = state.detail.change, dependencies = arr(c.dependencies), dependents = arr(state.detail.stack?.dependents), card = panel(root, "Stack and exact dependencies", "stack", dependencies.length + dependents.length > 0);
@@ -766,18 +923,129 @@
     operation.addEventListener("change", () => { run.textContent = `${OPERATIONS[operation.value] || "Run"}…`; }); provider.append(run);
   }
   async function loadDiff() {
-    const epoch = state.epoch, id = selected(), rev = revision(), base = state.route.review_base || "base", request = ++state.diffRequest;
+    const epoch = state.epoch, id = selected(), rev = revision(), base = state.route.review_base || "base", inter = interdiffRoute(), range = commitsRoute(), request = ++state.diffRequest;
     if (!arr(state.detail?.change?.revisions).some(r => r.id === rev)) return;
     try {
-      const diff = await state.context.api(`${path(id)}/diff?${new URLSearchParams({ revision: rev, base, whitespace: state.route.review_whitespace || "exact", highlight: "1" })}`);
+      const params = { revision: rev, whitespace: state.route.review_whitespace || "exact", highlight: "1" };
+      if (inter) { params.interdiff = inter.from; if (state.route.review_interdiff_change) params.change = state.route.review_interdiff_change; }
+      else if (range) params.commits = `${range.from}..${range.to}`;
+      else params.base = base;
+      if (state.route.review_mode === "structural") params.mode = "structural";
+      const diff = await state.context.api(`${path(id)}/diff?${new URLSearchParams(params)}`);
       if (!active(epoch, id) || request !== state.diffRequest || rev !== revision()) return;
-      const selectedRevision = arr(state.detail.change.revisions).find(r => r.id === rev);
-      const expectedOld = base === "base" ? selectedRevision?.base : arr(state.detail.change.revisions).find(r => r.id === base)?.commit;
-      if (diff?.new_commit !== selectedRevision?.commit || diff?.old_commit !== expectedOld || !Array.isArray(diff.files)) throw new Error("Diff identity does not match the exact selected revision and comparison base.");
+      const revisions = arr(state.detail.change.revisions), selectedRevision = revisions.find(r => r.id === rev);
+      if (!Array.isArray(diff?.files) || !diffMatches(diff, selectedRevision, inter ? revisions.find(r => r.id === inter.from) : null, range, base === "base" ? null : revisions.find(r => r.id === base))) throw new Error("Diff identity does not match the exact selected revision and comparison base.");
       state.diff = diff; state.diffError = ""; draw();
     } catch (error) { if (active(epoch, id) && request === state.diffRequest) { state.diff = null; state.diffError = message(error); drawDiff(); } }
   }
+  // Pure: the response names exactly the requested comparison (narrowed interdiffs name their revisions instead of commits).
+  function diffMatches(diff, selectedRevision, from, range, earlier) {
+    if (!selectedRevision) return false;
+    if (from) return diff.interdiff?.from === from.id && diff.interdiff?.to === selectedRevision.id && (diff.interdiff.change ? true : diff.old_commit === from.commit && diff.new_commit === selectedRevision.commit);
+    if (range) return diff.old_commit === range.from && diff.new_commit === range.to;
+    return diff.new_commit === selectedRevision.commit && diff.old_commit === (earlier ? earlier.commit : selectedRevision.base);
+  }
+  // r[impl kiln.review.structural.scenario.anchors]
+  // Pure: the exact comparison base an anchor binds on `side`, or null where the view has no exact revision coordinates
+  // (the in-memory rebased old side of an interdiff, or a narrowed/ranged view that does not end at the revision).
+  // Line and structural modes share the displayed comparison, so their anchors are equal for the same lines.
+  function anchorBaseFor(diff, selectedRevision, side) {
+    if (!diff || !selectedRevision || diff.new_commit !== selectedRevision.commit) return null;
+    if (diff.interdiff?.status !== "exact" && !diff.commit_range) return diff.old_commit;
+    if (side === "revision") return selectedRevision.base;
+    return diff.commit_range && diff.old_commit === selectedRevision.base ? diff.old_commit : null;
+  }
+  function anchorFor(diff, selectedRevision, file, side, first, last) {
+    const base = anchorBaseFor(diff, selectedRevision, side);
+    return base == null ? null : { revision: selectedRevision.id, base_commit: base, file, side, start_line: first, end_line: last };
+  }
+  const selectedRevisionOf = () => arr(state.detail?.change?.revisions).find(r => r.id === revision());
+  // r[impl kiln.review.hunks] Private hunk progress of this principal for the displayed file.
+  const hunkEntry = file => arr(state.diff?.review_hunks?.files).find(entry => entry.path === filePath(file)) || null;
+  const hunkBlocked = file => revision() !== current()?.id ? "Select the current revision to change viewed hunks." : file.binary || file.truncated || state.diff?.truncated ? "Only complete textual files can be marked viewed." : !hunkEntry(file)?.total ? "This file has no observed hunks to mark." : "";
+  // Toggle exposed to keyboard shortcuts (#9): `.cr-hunk-mark[data-hunk-digest][data-file]`, `aria-pressed`.
+  function hunkToggle(file, index) {
+    const entry = hunkEntry(file); if (!state.diff?.review_hunks?.exact_base || !entry || entry.hunks.length !== arr(file.hunks).length) return null;
+    const hunk = entry.hunks[index], tools = node("span", null, "cr-hunk-tools"); if (!hunk) return null;
+    const mark = writeButton("Viewed", () => { requireCurrent(); return command({ type: "mark_hunk", file: filePath(file), hunk_digest: hunk.digest, reviewed: !hunk.viewed }); }, "quiet cr-hunk-mark");
+    mark.dataset.hunkDigest = hunk.digest; mark.dataset.file = filePath(file); mark.dataset.viewed = String(!!hunk.viewed); mark.setAttribute("aria-pressed", String(!!hunk.viewed)); mark.setAttribute("aria-label", `Viewed: hunk ${index + 1} of ${filePath(file)}`); mark.prepend(icon("circle-check"));
+    const blocked = hunkBlocked(file); if (blocked) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = blocked; }
+    tools.append(mark); if (hunk.new_since_viewed) tools.append(chip(`New since revision ${state.diff.review_hunks.last_viewed?.number ?? "?"}`, "cr-new-hunk"));
+    return tools;
+  }
+  const hunkApi = Object.freeze({
+    list: () => [...(state.container?.querySelectorAll(".cr-hunk-mark") || [])].map(b => ({ file: b.dataset.file, digest: b.dataset.hunkDigest, viewed: b.dataset.viewed === "true", enabled: !b.disabled })),
+    toggle: digest => { const b = [...(state.container?.querySelectorAll(".cr-hunk-mark") || [])].find(item => item.dataset.hunkDigest === digest); if (!b || b.disabled) return false; b.click(); return true; },
+  });
+  // r[impl kiln.review.interdiff] Interdiff and commit-range notices plus their narrowing controls.
+  function comparisonNotices(host, comparison) {
+    const listed = comparison.revision_commits, commits = arr(listed?.commits), inter = comparison.interdiff;
+    if (inter) {
+      const scope = inter.change ? ` narrowed to change ${inter.change}` : "";
+      const text = inter.status === "exact" ? `Changes since revision ${inter.from_number}${scope}: revision ${inter.from_number} was rebased onto revision ${inter.to_number}'s base in memory, so base movement is removed. Only revision-side lines can be commented on.` : `Interdiff unavailable (${label(inter.reason)}): ${inter.message || "the provider could not compute it exactly"}. Showing the exact commit comparison revision ${inter.from_number} → ${inter.to_number} instead; it includes base movement.`;
+      const notice = node("p", text, inter.status === "exact" ? "cr-muted" : "cr-notice"); notice.dataset.interdiff = inter.status; host.append(notice);
+      const ids = commits.filter(c => c.change_id);
+      if (ids.length || inter.change) {
+        const bar = node("div", null, "toolbar cr-toolbar"), narrow = field(bar, "Narrow to change", "select", inter.change || "", [["", "Whole revision"], ...ids.map(c => [c.change_id, `${c.change_id.slice(0, 12)} · ${c.summary || short(c.commit)}`]), ...(inter.change && !ids.some(c => c.change_id === inter.change) ? [[inter.change, inter.change]] : [])]);
+        narrow.dataset.crKey = "diff-narrow"; narrow.addEventListener("change", () => route({ ...viewPatch(), review_interdiff_change: narrow.value, review_file: "", review_side: "", review_line: "" })); host.append(bar);
+      }
+    }
+    if (comparison.commit_range) { const n = node("p", `Commit range ${short(comparison.commit_range.from)} → ${short(comparison.commit_range.to)} inside the selected revision.${comparison.commit_range.anchorable ? "" : " The range ends before the revision head, so comments are disabled here."}`, "cr-muted"); n.dataset.commitRange = "true"; host.append(n); }
+    // r[impl kiln.review.commit_range] Any exact from..to range of a multi-commit revision.
+    if (!inter && commits.length > 1) {
+      const r = selectedRevisionOf(), range = commitsRoute(), bar = node("div", null, "toolbar cr-toolbar cr-commit-range");
+      const starts = [[r?.base, `Revision base · ${short(r?.base)}`], ...commits.slice(0, -1).map((c, i) => [c.commit, `After commit ${i + 1} · ${c.summary || short(c.commit)}`])];
+      const ends = commits.map((c, i) => [c.commit, `Commit ${i + 1} · ${c.summary || short(c.commit)}`]);
+      const from = field(bar, "Commit range from", "select", range?.from || r?.base, starts), to = field(bar, "Commit range to", "select", range?.to || commits.at(-1).commit, ends);
+      const apply = () => { const fi = commits.findIndex(c => c.commit === from.value), ti = commits.findIndex(c => c.commit === to.value); const end = ti > fi ? to.value : commits[fi + 1].commit; route(end === r?.commit && from.value === r?.base ? { review_revision: revision(), review_base: "base", review_file: "", review_side: "", review_line: "" } : { review_revision: revision(), review_interdiff: "", review_interdiff_change: "", review_base: "", review_commits: `${from.value}..${end}`, review_file: "", review_side: "", review_line: "" }); };
+      from.addEventListener("change", apply); to.addEventListener("change", apply); host.append(bar);
+      if (listed?.incomplete) host.append(node("p", "The commit list of this revision is incomplete (non-linear history or the listing bound).", "cr-muted"));
+    }
+  }
+  // r[impl kiln.review.structural.scenario.fallback] A labelled line diff whenever the service could not match trees.
+  function structuralOf(host, file) {
+    if (state.route.review_mode !== "structural") return null;
+    const view = arr(state.diff?.structural?.files).find(f => f.path === filePath(file));
+    if (view?.status === "structural") return view;
+    const n = node("p", `Structural view unavailable for this file (${label(view?.reason || "not_computed")}); showing the plain line diff.`, "cr-notice"); n.dataset.structural = "fallback"; host.append(n); return null;
+  }
+  function novelCell(text, spans) {
+    const td = node("td", null, "cr-code"), code = node("code", null, "cr-code-text"), value = String(text ?? ""); let at = 0;
+    for (const [start, end] of arr(spans)) { if (start > at) code.append(value.slice(at, start)); code.append(node("mark", value.slice(start, end), "cr-novel")); at = end; }
+    code.append(value.slice(at)); td.append(code); return td;
+  }
+  function appendStructural(body, view, coordinate) {
+    const note = text => { const tr = node("tr", null, "cr-hunk cr-structural-note"), th = node("th", text); th.colSpan = 4; tr.append(th); body.append(tr); };
+    if (!arr(view.hunks).length && !arr(view.moved).length) note("No syntax changes: this file differs only in formatting or layout.");
+    for (const m of arr(view.moved)) note(`Moved without syntax changes: base lines ${m.old_start}–${m.old_end} → revision lines ${m.new_start}–${m.new_end}. Commenting is disabled for this region; switch to the line diff to comment on it.`);
+    for (const hunk of arr(view.hunks)) {
+      note("Structural changes");
+      for (const row of arr(hunk.rows)) {
+        const kind = { old: "deletion", new: "addition", both: "context" }[row.side] || "context", tr = node("tr", null, `cr-diff-${kind}`);
+        if (state.mode === "split") tr.append(coordinate(row.old_line, "base"), row.old_line == null ? codeCell("") : novelCell(row.text, row.side === "old" ? row.novel : []), coordinate(row.new_line, "revision"), row.new_line == null ? codeCell("") : novelCell(row.text, row.side === "new" ? row.novel : []));
+        else tr.append(coordinate(row.old_line, "base"), coordinate(row.new_line, "revision"), node("td", ({ addition: "+", deletion: "−", context: " " })[kind], "cr-diff-sign"), novelCell(row.text, row.novel));
+        body.append(tr);
+      }
+    }
+  }
   function filePath(file) { return file.new_path || file.old_path || ""; }
+  // r[impl kiln.review.noise.display] Display-only: the service names the first matching noise rule per displayed path.
+  // The pre-viewed state is derived here at display time and never stored or sent as a marker.
+  function noiseRule(file) { const id = state.diff?.noise?.files?.[filePath(file)]; return id ? arr(state.diff.noise.rules).find(rule => rule.id === id) || { id, reason: "" } : null; }
+  function defaultFile(comparison) { const first = arr(comparison.files).find(file => !noiseRule(file)); return first ? filePath(first) : ""; }
+  function noiseGroup(files, list, comparison) {
+    const rows = [...list.children], hidden = [];
+    arr(comparison.files).forEach((file, index) => { const rule = noiseRule(file); if (rule && rows[index]) hidden.push({ row: rows[index], rule, file }); });
+    if (!hidden.length) return;
+    const ids = [...new Set(hidden.map(item => item.rule.id))], key = `${comparison.old_commit}..${comparison.new_commit}`;
+    const group = node("details", null, "cr-noise"), noiseList = node("ul", null, "cr-file-list cr-noise-list"); noiseList.setAttribute("aria-label", "Noise files");
+    group.open = state.noiseOpen === key || hidden.some(item => filePath(item.file) === state.route.review_file);
+    group.addEventListener("toggle", () => { state.noiseOpen = group.open ? key : ""; });
+    group.append(ui().disclosureSummary(`${hidden.length} noise file${hidden.length === 1 ? "" : "s"} hidden · ${ids.join(", ")}`, "eye"));
+    for (const { row, rule } of hidden) { const tag = chip(rule.id, "cr-noise-rule"); tag.title = rule.reason ? `Noise rule ${rule.id}: ${rule.reason}` : `Noise rule ${rule.id}`; row.dataset.noise = rule.id; row.insertBefore(tag, row.children[1] || null); noiseList.append(row); }
+    const note = node("p", "Display only: shown as viewed for everyone. Ownership, approvals, threads, CI and queue admission are unchanged. Rules ", "cr-muted cr-noise-note"); note.append(exactId(state.diff.noise.identity));
+    group.append(note, noiseList); files.append(group);
+  }
   function anchorRoute(anchor) {
     const revisions = arr(state.detail?.change?.revisions), r = revisions.find(item => item.id === anchor.revision);
     const base = anchor.base_commit === r?.base ? "base" : revisions.find(item => item.commit === anchor.base_commit)?.id;
@@ -791,28 +1059,34 @@
     facts(host, [["Old commit", comparison.old_commit], ["New commit", comparison.new_commit]]).classList.add("cr-facts-compact");
     if (!exactWhitespace) host.append(node("p", "Whitespace-filtered comparison: omitted changes are not reviewed. Displayed line numbers and saved anchors remain exact provider coordinates; switch to exact to inspect all whitespace.", "cr-notice"));
     if (comparison.truncated) host.append(node("p", "The provider bounded this diff. Not all files or lines are shown; omitted content is not implicitly reviewed.", "cr-notice"));
+    comparisonNotices(host, comparison);
     // Server tokens address every DiffLine in order (files → hunks → lines), relative to its text.
     const diffLines = comparison.files.flatMap(f => arr(f.hunks).flatMap(h => arr(h.lines)));
     const highlight = ui().highlightLines(comparison.highlight, diffLines.map(line => typeof line?.text === "string" ? line.text : ""));
     const fragmentsOf = new Map(highlight.fragments ? diffLines.map((line, index) => [line, highlight.fragments[index]]) : []);
     if (highlight.note) { const note = node("p", highlight.note, highlight.state === "invalid" ? "cr-notice" : "cr-muted"); note.dataset.highlight = highlight.state; host.append(note); }
-    const mine = file => arr(state.detail.change.reviewed).some(m => m.actor === state.context.principal && m.revision === revision() && m.file === filePath(file));
-    const files = node("nav", null, "cr-files"), list = node("ul", null, "cr-file-list"), shownFile = state.route.review_file || filePath(comparison.files[0] || {}); files.setAttribute("aria-label", "Changed files");
-    files.append(node("p", `${comparison.files.length} changed file${comparison.files.length === 1 ? "" : "s"} · ${comparison.files.filter(mine).length} marked reviewed by you`, "cr-files-head cr-muted"));
+    const progress = file => hunkEntry(file), fullyViewed = file => (progress(file)?.total || 0) > 0 && progress(file).viewed === progress(file).total;
+    const preViewed = file => typeof noiseRule === "function" && !!noiseRule(file);
+    const files = node("nav", null, "cr-files"), list = node("ul", null, "cr-file-list"), shownFile = state.route.review_file || defaultFile(comparison); files.setAttribute("aria-label", "Changed files");
+    files.append(node("p", `${comparison.files.length} changed file${comparison.files.length === 1 ? "" : "s"} · ${comparison.files.filter(fullyViewed).length} fully viewed by you`, "cr-files-head cr-muted"));
     for (const file of comparison.files) {
       const name = filePath(file), row = node("li", null, "cr-file-row"); const a = link(`${file.renamed ? `${file.old_path} → ` : ""}${name}${file.binary ? " · binary" : ""}${file.truncated ? " · truncated" : ""}`, { review_file: name, review_side: "", review_line: "" });
       if (name === shownFile) a.setAttribute("aria-current", "true");
       // r[impl kiln.web.design_system] A toggle: constant label, persistent pressed state, file named in its accessible name.
-      const marked = mine(file), mark = writeButton("Reviewed", () => { requireCurrent(); return command({ type: "mark_reviewed", file: name, reviewed: !marked }); }, "quiet cr-mark");
-      mark.dataset.reviewed = String(marked); mark.setAttribute("aria-pressed", String(marked)); mark.setAttribute("aria-label", `Reviewed: ${name}`); mark.prepend(icon("circle-check"));
-      if (revision() !== current()?.id || file.binary || file.truncated || comparison.truncated || !exactWhitespace) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = "Only a complete exact (not whitespace-filtered) textual file on the current revision can be marked reviewed here."; }
-      row.append(a, mark); list.append(row);
+      // r[impl kiln.review.hunks] "Mark all" writes one private marker per hunk; the count is this principal's progress.
+      const entry = progress(file), marked = fullyViewed(file), mark = writeButton("Viewed", () => { requireCurrent(); return command({ type: "mark_reviewed", file: name, reviewed: !marked }); }, "quiet cr-mark");
+      mark.dataset.reviewed = String(marked); mark.dataset.hunksTotal = String(entry?.total ?? 0); mark.dataset.hunksViewed = String(entry?.viewed ?? 0); mark.setAttribute("aria-pressed", String(marked)); mark.setAttribute("aria-label", `Viewed, all hunks: ${name}`); mark.prepend(icon("circle-check"));
+      const blocked = hunkBlocked(file); if (blocked) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = blocked; }
+      const count = node("span", preViewed(file) ? "Noise · shown as viewed" : entry ? `${entry.viewed} of ${entry.total} hunk${entry.total === 1 ? "" : "s"} viewed${entry.new_since_viewed ? ` · ${entry.new_since_viewed} new since revision ${comparison.review_hunks?.last_viewed?.number ?? "?"}` : ""}` : "", "cr-muted cr-hunk-count");
+      row.append(a, count, mark); list.append(row);
     }
-    files.append(list); host.append(files);
+    files.append(list); noiseGroup(files, list, comparison); host.append(files);
     if (!comparison.files.length) { host.append(node("p", "The exact comparison contains no changed files.", "cr-muted")); return; }
-    const wantedFile = state.route.review_file || filePath(comparison.files[0]);
+    const wantedFile = state.route.review_file || defaultFile(comparison);
+    if (!wantedFile) { host.append(node("p", "Every changed file matches a display-only noise rule. Expand the noise group to view one.", "cr-muted")); return; }
     const file = comparison.files.find(f => f.new_path === wantedFile || f.old_path === wantedFile);
     if (!file) { host.append(node("p", "The requested file is not present in this exact comparison. Select a listed file.", "cr-notice")); return; }
+    const shownNoise = noiseRule(file); if (shownNoise) host.append(node("p", `Noise rule ${shownNoise.id}${shownNoise.reason ? `: ${shownNoise.reason}` : ""}. Expanded on request; it still counts for ownership, approvals, threads and CI.`, "cr-notice cr-noise-note"));
     host.append(node("h4", filePath(file), file.binary ? "cr-file-title" : "sr-only"), node("p", file.binary ? "Binary content: no textual line anchors are available." : "Line numbers are permalinks. Use the anchored draft editor below to discuss an exact line or range.", "cr-muted"));
     if (file.binary) return;
     const scroll = node("div", null, "cr-diff-scroll"); scroll.tabIndex = 0; scroll.setAttribute("role", "region"); scroll.setAttribute("aria-label", `${state.mode === "split" ? "Side-by-side" : "Unified"} diff for ${filePath(file)}`);
@@ -823,11 +1097,16 @@
     // The narrow sign column shows "±" visually; its accessible header stays "Change".
     const hr = node("tr"); for (const text of state.mode === "split" ? ["Base line", "Base content", "Revision line", "Revision content"] : ["Base line", "Revision line", "Change", "Content"]) { const th = node("th", text === "Change" ? null : text); if (text === "Change") { const sign = node("span", "±"); sign.setAttribute("aria-hidden", "true"); th.title = text; th.classList.add("cr-diff-sign"); th.append(sign, node("span", text, "sr-only")); } th.scope = "col"; hr.append(th); } head.append(hr); table.append(head);
     const body = node("tbody");
+    const selectedRev = selectedRevisionOf();
     const coordinate = (line, side) => {
-      const td = node("td", null, "cr-line-number"); if (line != null) { const a = link(line, { review_revision: revision(), review_base: state.route.review_base || "base", review_file: (side === "base" ? file.old_path : file.new_path) || filePath(file), review_side: side, review_line: String(line) }); a.setAttribute("aria-label", `${side} line ${line}`); if (state.route.review_side === side && Number(state.route.review_line) === line) { a.classList.add("cr-line-selected"); a.setAttribute("aria-current", "location"); } td.append(a); } return td;
+      const td = node("td", null, "cr-line-number"); if (line == null) return td;
+      // Lines without exact revision coordinates (in-memory rebased side) stay plain text: no anchor can be created.
+      if (anchorBaseFor(comparison, selectedRev, side) == null) { const span = node("span", line, "cr-line-plain"); span.title = "Not an exact revision coordinate in this view; switch to an exact comparison to comment."; td.append(span); return td; }
+      const a = link(line, { ...viewPatch(), review_file: (side === "base" ? file.old_path : file.new_path) || filePath(file), review_side: side, review_line: String(line) }); a.setAttribute("aria-label", `${side} line ${line}`); if (state.route.review_side === side && Number(state.route.review_line) === line) { a.classList.add("cr-line-selected"); a.setAttribute("aria-current", "location"); } td.append(a); return td;
     };
-    for (const hunk of arr(file.hunks)) {
-      const marker = node("tr", null, "cr-hunk"); const title = node("th", hunk.header || `@@ -${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@`); title.colSpan = 4; marker.append(title); body.append(marker);
+    const structuralView = structuralOf(host, file); if (structuralView) appendStructural(body, structuralView, coordinate);
+    for (const [index, hunk] of (structuralView ? [] : arr(file.hunks)).entries()) {
+      const marker = node("tr", null, "cr-hunk"), title = node("th"), heading = node("div", null, "cr-hunk-head"); heading.append(node("span", hunk.header || `@@ -${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@`)); const tools = hunkToggle(file, index); if (tools) heading.append(tools); title.append(heading); title.colSpan = 4; marker.append(title); body.append(marker);
       for (const line of arr(hunk.lines)) {
         const tr = node("tr", null, `cr-diff-${line.kind}`);
         const fragments = fragmentsOf.get(line) || null;
@@ -839,7 +1118,7 @@
     table.append(body); scroll.append(table); host.append(scroll);
     const target = host.querySelector(".cr-line-selected"); if (target) target.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (file.truncated) host.append(node("p", "This file is truncated. Missing text cannot be anchored, and this display cannot certify the whole file as reviewed.", "cr-notice"));
-    const related = arr(state.detail.change.threads).filter(thread => thread.anchor.revision === revision() && thread.anchor.base_commit === comparison.old_commit && [file.old_path, file.new_path].includes(thread.anchor.file));
+    const threadBases = [comparison.old_commit, anchorBaseFor(comparison, selectedRev, "revision")]; const related = arr(state.detail.change.threads).filter(thread => thread.anchor.revision === revision() && threadBases.includes(thread.anchor.base_commit) && [file.old_path, file.new_path].includes(thread.anchor.file));
     if (related.length) { const threads = node("ul", null, "cr-thread-links"); threads.setAttribute("aria-label", "Threads on this file"); for (const thread of related) { const line = thread.anchor.start_line, li = node("li"); const summary = link(`${thread.resolved ? "Resolved" : "Open"}${thread.blocking ? " blocking" : ""} thread · ${thread.anchor.side} ${line}–${thread.anchor.end_line}`, anchorRoute(thread.anchor)); summary.classList.add("cr-thread-link"); summary.dataset.resolved = String(!!thread.resolved); summary.dataset.blocking = String(!!thread.blocking && !thread.resolved); li.append(summary); threads.append(li); } host.append(threads); }
   }
   function drawDiscussion(root) {
@@ -847,6 +1126,8 @@
     const threads = arr(c.threads).filter(thread => thread.anchor.revision === revision());
     for (const thread of threads) {
       const article = node("article", null, "cr-thread"), a = thread.anchor, head = node("div", null, "cr-row-head");
+      // r[impl kiln.review.keyboard.navigation] Stable selector for unresolved-thread navigation; the pill keeps the visible state.
+      article.dataset.resolved = String(!!thread.resolved);
       // The exact file and range lead; side and comparison base follow as secondary metadata.
       const where = node("div", null, "cr-row-main"), anchorMeta = node("span", `${human(a.side)} side · base `, "cr-muted"); anchorMeta.append(exactId(a.base_commit)); where.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a), "cr-anchor"), anchorMeta);
       head.append(where, pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"), chip(thread.blocking ? "Blocking" : "Non-blocking")); article.append(head);
@@ -870,13 +1151,14 @@
     const body = field(compose, "Comment", "textarea", "", [], "draft-body"); const blocking = field(compose, "Blocks submission until resolved", "checkbox", true, [], "draft-blocking");
     const preview = node("div", null, "cr-preview"), composeActions = node("div", null, "cr-actions"); compose.append(composeActions, preview);
     composeActions.append(writeButton("Save private draft", async () => {
-      if (!state.diff || state.diff.new_commit !== arr(c.revisions).find(r => r.id === revision())?.commit) throw new Error("Wait for the exact comparison before saving an anchored draft.");
+      if (!state.diff || state.diff.new_commit !== arr(c.revisions).find(r => r.id === revision())?.commit) throw new Error("Wait for the exact comparison before saving an anchored draft. Views that end before the revision head cannot be commented on.");
       if (!body.value.trim()) throw new Error("Comment text is required.");
       const first = Number(start.value), last = Number(end.value); if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last) || first < 1 || last < first) throw new Error("A valid inclusive positive line range is required.");
       const comparisonFile = state.diff.files.find(f => [f.old_path, f.new_path].includes(file.value));
       const exactPath = side.value === "base" ? comparisonFile?.old_path : comparisonFile?.new_path;
       if (!exactPath || comparisonFile.binary || comparisonFile.truncated || state.diff.truncated) throw new Error("The selected side has no complete admitted text for this file. No draft was saved.");
-      const anchor = { revision: revision(), base_commit: state.diff.old_commit, file: exactPath, side: side.value, start_line: first, end_line: last };
+      const anchor = anchorFor(state.diff, arr(c.revisions).find(r => r.id === revision()), exactPath, side.value, first, last);
+      if (!anchor) throw new Error("This side of the displayed comparison has no exact revision coordinates (an interdiff's rebased side). Switch to an exact comparison to comment on it. No draft was saved.");
       const result = await command({ type: "save_draft", anchor, thread: null, body: body.value, blocking: blocking.checked }, c);
       if (result) { clearFields("draft-body"); draw(); }
     }), button("Preview Markdown", () => { preview.replaceChildren(markdown(body.value)); }, "quiet"));
@@ -914,7 +1196,96 @@
     state.error = ""; state.diffError = ""; state.route = {};
     headerActions(null, null, false);
   }
+  // r[impl kiln.review.keyboard] Keyboard actions locate the existing control and invoke it, so confirmation,
+  // request identity, disabled reasons and refresh behaviour stay single-sourced with pointer use.
+  const focusControl = element => { if (!element) return false; element.focus({ preventScroll: true }); element.scrollIntoView?.({ block: "nearest", inline: "nearest" }); return true; };
+  const fileLinks = () => [...(state.container?.querySelectorAll(".cr-file-list .cr-file-row > a") || [])];
+  const hunkMarks = () => [...(state.container?.querySelectorAll(".cr-hunk-mark") || [])];
+  const displayedFileLink = () => fileLinks().find(a => a.getAttribute("aria-current") === "true") || fileLinks()[0] || null;
+  const moveWithin = (list, from, delta) => list.length ? list[Math.max(0, Math.min(list.length - 1, from < 0 ? (delta > 0 ? 0 : list.length - 1) : from + delta))] : null;
+  function threadAnchors() {
+    return [...(state.container?.querySelectorAll('article.cr-thread[data-resolved="false"] .cr-anchor') || [])];
+  }
+  // The route a thread anchor points at, so consecutive presses advance instead of restarting.
+  function anchorIsRouted(anchor) {
+    let params;
+    try { params = new URLSearchParams(anchor.getAttribute("href") || ""); } catch { return false; }
+    return params.get("review_file") === (state.route.review_file || "") && params.get("review_side") === (state.route.review_side || "") && params.get("review_line") === (state.route.review_line || "");
+  }
+  function showShortcutHelp() {
+    const { dialog } = modal("Keyboard shortcuts");
+    dialog.append(node("p", "Shortcuts are inert while typing in a field, while a dialog is open, during IME composition and with Control, Meta or Alt held. They invoke the same controls as the pointer; a write still passes through its usual confirmation.", "cr-muted"));
+    const list = node("dl", null, "cr-keys"); list.setAttribute("aria-label", "Review keyboard shortcuts");
+    for (const command of SHORTCUT_COMMANDS) { list.append(node("dt", command.keys), node("dd", command.description)); }
+    dialog.append(list);
+  }
+  function startDraft() {
+    // Review fields carry their form-memory key as data-cr-key; they have no element ids.
+    const body = state.container?.querySelector('[data-cr-key="draft-body"]');
+    const disclosure = body?.closest("details");
+    if (!body || !disclosure) return false;
+    disclosure.open = true;
+    const set = (key, value) => { const field = state.container.querySelector(`[data-cr-key="${key}"]`); if (!field || value === undefined || value === null || value === "") return; field.value = String(value); field.dispatchEvent(new Event("input")); };
+    set("draft-file", state.route.review_file);
+    set("draft-side", state.route.review_side);
+    const line = Number(state.route.review_line);
+    if (Number.isSafeInteger(line) && line > 0) { set("draft-start", line); set("draft-end", line); }
+    body.focus({ preventScroll: true });
+    body.scrollIntoView({ block: "center" });
+    return true;
+  }
+  function keyboardAction(id) {
+    const focusedHunk = document.activeElement?.closest?.(".cr-hunk-mark") || null;
+    const marks = hunkMarks();
+    switch (id) {
+      case "next-file":
+      case "previous-file": {
+        const links = fileLinks();
+        const target = moveWithin(links, links.indexOf(displayedFileLink()), id === "next-file" ? 1 : -1);
+        if (!target) return false;
+        target.focus({ preventScroll: true });
+        target.click();
+        return true;
+      }
+      case "next-hunk": return focusControl(moveWithin(marks, marks.indexOf(focusedHunk), 1));
+      case "previous-hunk": return focusControl(moveWithin(marks, marks.indexOf(focusedHunk), -1));
+      case "next-unviewed":
+      case "previous-unviewed": {
+        if (!marks.length) return false;
+        const step = id === "next-unviewed" ? 1 : -1, start = focusedHunk ? marks.indexOf(focusedHunk) : -1;
+        for (let offset = 1; offset <= marks.length; offset += 1) {
+          const mark = marks[(((start + step * offset) % marks.length) + marks.length) % marks.length];
+          if (mark.dataset.viewed === "false" && !mark.disabled) return focusControl(mark);
+        }
+        return false;
+      }
+      case "next-thread": { const anchors = threadAnchors(); if (!anchors.length) return false; const at = anchors.findIndex(anchorIsRouted); const target = anchors[at + 1] || anchors[0]; target.click(); return true; }
+      case "previous-thread": { const anchors = threadAnchors(); if (!anchors.length) return false; const at = anchors.findIndex(anchorIsRouted); const target = at > 0 ? anchors[at - 1] : anchors[anchors.length - 1]; target.click(); return true; }
+      case "toggle-layout": { const group = state.container?.querySelector(".cr-diff-toolbar .segmented"); const next = [...(group?.querySelectorAll("button") || [])].find(button => button.getAttribute("aria-pressed") !== "true"); if (!next) return false; next.click(); next.focus({ preventScroll: true }); return true; }
+      case "toggle-hunk-viewed": if (!focusedHunk) return false; focusedHunk.click(); return true;
+      case "toggle-file-viewed": { const row = displayedFileLink()?.closest(".cr-file-row"); const toggle = row?.querySelector(".cr-mark"); if (!toggle) return false; toggle.click(); return true; }
+      case "start-draft": return startDraft();
+      case "publish": { const publish = state.container?.querySelector(".cr-publish button[data-cr-write]"); if (!publish) return false; publish.click(); return true; }
+      case "requirements": { const card = document.getElementById("cr-requirements"); if (!card) return false; card.scrollIntoView({ block: "start" }); card.firstElementChild?.focus({ preventScroll: true }); return true; }
+      case "help": showShortcutHelp(); return true;
+      default: return false;
+    }
+  }
+  function onKeydown(event) {
+    if (!state.container?.isConnected) return;
+    const id = resolveShortcut(event, { editable: editableTarget(event.target), dialogOpen: Boolean(document.querySelector("dialog[open]")) });
+    if (!id) return;
+    event.preventDefault();
+    keyboardAction(id);
+  }
+  let listening = false;
+  function listen() {
+    if (listening || typeof document === "undefined") return;
+    listening = true;
+    document.addEventListener("keydown", onKeydown);
+  }
   function load(container, context) {
+    listen();
     if (!container || typeof context?.api !== "function" || typeof context?.navigate !== "function") throw new Error("Code review requires a container and authenticated api/navigate callbacks.");
     const nextRoute = context.route instanceof URLSearchParams ? Object.fromEntries(context.route) : { ...(context.route || {}) };
     const changed = state.container !== container || state.context?.principal !== context.principal || JSON.stringify(state.route) !== JSON.stringify(nextRoute);
@@ -926,5 +1297,5 @@
     draw();
     return refresh();
   }
-  window.KilnCodeReview = Object.freeze({ load, refresh, clear, authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }) });
+  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }) });
 })();

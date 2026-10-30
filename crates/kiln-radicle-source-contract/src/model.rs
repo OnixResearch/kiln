@@ -1,4 +1,5 @@
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 pub const CONTRACT_SCHEMA_VERSION: u16 = 1;
@@ -59,6 +60,37 @@ pub struct SnapshotLimits {
     pub max_total_bytes: u64,
 }
 
+/// Canonical-mode inputs: the reviewed identity document revision and the
+/// reference whose delegate quorum must name the requested revision.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CanonicalRequest {
+    pub identity_commit: String,
+    pub reference: String,
+}
+
+/// One delegate's verified signed observation of the canonical reference.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CanonicalDelegateObservation {
+    pub delegate: String,
+    pub object: String,
+}
+
+/// Delegate-quorum evidence for a canonical-mode receipt.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CanonicalEvidence {
+    pub identity_commit: String,
+    pub identity_root: String,
+    pub threshold: u64,
+    pub delegates: Vec<String>,
+    pub reference: String,
+    pub object: String,
+    pub object_kind: String,
+    pub observations: Vec<CanonicalDelegateObservation>,
+}
+
 // r[impl kiln.radicle.source_contract.request]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -71,6 +103,9 @@ pub struct SourceRequest {
     pub expected_sigrefs_commit: String,
     pub expected_revision: String,
     pub limits: SnapshotLimits,
+    /// Absent keeps the single-signer mode and its exact receipt bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canonical: Option<CanonicalRequest>,
 }
 
 // r[impl kiln.radicle.source_contract.sigrefs]
@@ -115,6 +150,9 @@ pub struct SourceReceipt {
     pub request: SourceRequest,
     pub observation: SignedRefsObservation,
     pub snapshot: SnapshotEvidence,
+    /// Present only for a canonical-mode request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canonical: Option<CanonicalEvidence>,
 }
 
 #[must_use]
@@ -135,6 +173,7 @@ pub fn fixture_request() -> SourceRequest {
             max_file_bytes: FIXTURE_MAX_FILE_BYTES,
             max_total_bytes: FIXTURE_MAX_TOTAL_BYTES,
         },
+        canonical: None,
     }
 }
 
@@ -172,6 +211,7 @@ pub fn fixture_receipt() -> SourceReceipt {
             entry_count: FIXTURE_ENTRY_COUNT,
             total_bytes: FIXTURE_TOTAL_BYTES,
         },
+        canonical: None,
         request,
     }
 }

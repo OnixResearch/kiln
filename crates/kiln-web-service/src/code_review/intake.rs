@@ -7,7 +7,7 @@ use git2::{Repository, RepositoryOpenFlags};
 const SOURCE_PREFIX: &str = "refs/heads/review/";
 const MAX_SOURCE_REF_BYTES: usize = 1024;
 const MAX_SOURCE_MAPPINGS: usize = 128;
-const MAX_CONTRIBUTIONS: usize = MAX_CHANGES;
+pub(super) const MAX_CONTRIBUTIONS: usize = MAX_CHANGES;
 const MAX_SOURCE_ROWS: usize = 256;
 const MAX_SOURCE_SCAN: usize = 4096;
 
@@ -17,6 +17,10 @@ pub struct IntakeProfile {
     pub default_target_ref: String,
     #[serde(default)]
     pub mappings: Vec<SourceMapping>,
+    /// Optional change-ID intake; omitted when absent so existing profiles and
+    /// the store binding keep identical bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jujutsu: Option<super::jj_intake::JujutsuIntake>,
 }
 
 /// An operator-admitted exact branch/owner binding outside (or overriding) the
@@ -92,10 +96,13 @@ impl IntakeProfile {
                 );
             }
         }
+        if let Some(jujutsu) = &self.jujutsu {
+            jujutsu.admit(provider)?;
+        }
         Ok(())
     }
 
-    fn target<'a>(
+    pub(super) fn target<'a>(
         &'a self,
         provider: &LocalGitReviewProfile,
         actor: &str,
@@ -124,7 +131,7 @@ impl IntakeProfile {
     }
 }
 
-fn repository(provider: &LocalGitReviewProfile) -> Result<Repository, Failure> {
+pub(super) fn repository(provider: &LocalGitReviewProfile) -> Result<Repository, Failure> {
     let repository = Repository::open_ext(
         &provider.repository_path,
         RepositoryOpenFlags::NO_SEARCH,
@@ -150,7 +157,10 @@ fn repository(provider: &LocalGitReviewProfile) -> Result<Repository, Failure> {
 /// No revparse expressions, symbolic refs, remote URLs, fetches or shell commands
 /// are accepted. A moved ref after this observation cannot change the pinned
 /// commit carried into the existing provider operation journal.
-fn observe(provider: &LocalGitReviewProfile, source_ref: &str) -> Result<String, Failure> {
+pub(super) fn observe(
+    provider: &LocalGitReviewProfile,
+    source_ref: &str,
+) -> Result<String, Failure> {
     let repository = repository(provider)?;
     let reference = repository
         .find_reference(source_ref)

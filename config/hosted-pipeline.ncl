@@ -60,10 +60,64 @@ let Job = {
   timeout_ms | Nullable Timeout | default = null,
 }
 in
-let Trigger =
+# Filter globs: `*` and `?` within one `/` segment and whole-segment `**`;
+# no negation, classes or alternation. Rust admission is authoritative.
+let Pattern =
   std.contract.from_predicate (fun value =>
-    value == "manual" || value == "push" || value == "pull_request"
+    std.is_string value
+    && std.string.length value >= 1
+    && std.string.length value <= 256
+    && !(std.string.is_match "^!|[\\[\\]{}+\\\\]|(^|/)\\.{0,2}(/|$)|[^/]\\*\\*|\\*\\*[^/]" value)
   )
+in
+let Patterns = std.contract.from_predicate (fun value => std.is_array value && std.array.length value <= 32) in
+let PullRequestType =
+  std.contract.from_predicate (fun value =>
+    std.array.elem value ["opened", "reopened", "synchronize", "closed", "merged"]
+  )
+in
+let Event =
+  std.contract.from_predicate (fun value =>
+    std.array.elem value ["manual", "push", "pull_request", "schedule"]
+  )
+in
+# A bare name keeps today's unfiltered trigger; an object adds filters
+# (push: branches/tags/paths; pull_request: branches/types/paths) or names a
+# reviewed `schedules` entry (schedule).
+let TriggerObject = {
+  event | Event,
+  branches | Patterns | Array Pattern | optional,
+  tags | Patterns | Array Pattern | optional,
+  types | Array PullRequestType | optional,
+  paths | Patterns | Array Pattern | optional,
+  schedule | String | optional,
+}
+in
+let Trigger =
+  std.contract.custom (fun label value =>
+    if std.is_string value then
+      if std.array.elem value ["manual", "push", "pull_request"] then
+        'Ok value
+      else
+        'Error { message = "bare triggers are manual, push or pull_request" }
+    else
+      std.contract.check TriggerObject label value
+  )
+in
+let MinInterval =
+  std.contract.from_predicate (fun value =>
+    std.is_number value
+    && value >= 60000
+    && value <= 31536000000
+    && std.number.floor value == value
+  )
+in
+let ScheduleEntry = {
+  cron | String,
+  timezone | String | default = "UTC",
+  min_interval_ms | MinInterval | default = 300000,
+  reference | String | default = "refs/heads/main",
+}
 in
 fun input =>
   input
@@ -74,6 +128,7 @@ fun input =>
         = "kiln.hosted.pipeline.v1",
       name | String,
       triggers | Array Trigger,
+      schedules | { _ : ScheduleEntry } | optional,
       parameters | TextMap | default = {},
       env | TextMap | default = {},
       templates | { _ : JobTemplate } | default = {},

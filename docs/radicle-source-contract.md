@@ -56,6 +56,29 @@ The request carries `expected_sigrefs_commit`. A floating signed-reference tip i
 
 `SourceReceipt` links all three values. Pure admission rejects identity substitution, movement, feature downgrade, missing verification, malformed identities, and exceeded bounds.
 
+## Canonical delegate mode
+
+A request may carry `canonical = { identity_commit, reference }`, and `reference`
+must equal the requested signed branch. In this mode the shell additionally:
+
+1. reads the identity document at `identity_commit` (`embeds/radicle.json`);
+2. verifies every delegate's namespaced signed refs with the same signature,
+   RID, parent and namespace checks as the single-signer mode;
+3. requires each observing delegate's signed refs to embed identical
+   identity-document bytes;
+4. computes the canonical head with the vendored Radicle canonical
+   implementation (heartwood `71a91042d96bb994c4cd4311d85f5cd1a6311b4e`, see
+   [`vendor/heartwood-canonical.source.json`](../vendor/heartwood-canonical.source.json)),
+   using the identity document's `xyz.radicle.crefs` rule for the reference, or
+   the document's delegate threshold when no rule matches; and
+5. accepts the revision only when it equals that canonical head.
+
+`CanonicalEvidence` records the identity commit and root, threshold, delegate
+DIDs, the reference, the canonical object, and each delegate's verified
+observation. A delegate that publishes nothing or omits the reference has no
+vote; insufficient votes and diverging tips are refused. Requests and receipts
+without `canonical` keep their previous bytes.
+
 ## Consumer duties
 
 A consumer shell must:
@@ -85,3 +108,11 @@ An accepted receipt does not prove:
 - that equal trees have equal history or authority;
 - that a build is correct; or
 - that a release is ready.
+
+In canonical mode it also does not prove:
+
+- that the pinned identity document revision is the repository's current or
+  correct governance state; its history is an operator-reviewed input and is not
+  verified here; or
+- that a canonical head is authorized for any reference the identity document's
+  `xyz.radicle.crefs` rules do not cover.

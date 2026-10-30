@@ -80,6 +80,14 @@ Node-local filtering remains outside Kiln. Third-party status remains an externa
 
 Kiln does not execute `.radicle/native.yaml` by default. That file has no execution authority without an admitted import and provider policy.
 
+## Tangled spindle
+
+`kiln-adapter-tangled` serves the Tangled spindle XRPC surface. A knot notifies Kiln of a push with `org.tangled.event.notifyEvent`. Kiln checks the knot's service-auth signature and pins, fetches the exact pushed commit, and starts one Kiln run per matched reviewed workflow. It serves `getPipeline` and posts each changed pipeline view, HMAC-signed, to the profile's status endpoint.
+
+Repository DIDs, knots, trusted actors and approvers come from the reviewed profile `config/tangled-spindle.ncl`. Tangled identities remain provider facts.
+
+The adapter maps `.tangled/workflows` only through a reviewed subset, with `when` mapped onto trigger filters. Untrusted pull requests wait for `approvePipeline` under the untrusted-run rules. See [tangled-integration.md](tangled-integration.md) for the protocol notes and for what is not established.
+
 ## Radicle COBs
 
 The profile registry includes Radicle issue, patch, and CI job profiles. It also includes all six pinned Cairn profiles.

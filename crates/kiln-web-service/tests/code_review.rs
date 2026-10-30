@@ -80,6 +80,7 @@ impl Fixture {
                 minimum_approvals: 1,
                 require_ci: true,
                 ownership: Default::default(),
+                optional_ci: Vec::new(),
             },
             read_principals: vec![ALICE.into(), BOB.into(), CAROL.into()],
             write_principals: vec![ALICE.into(), BOB.into(), CAROL.into()],
@@ -88,6 +89,7 @@ impl Fixture {
             intake: None,
             delivery: None,
             queue: None,
+            review: None,
         };
         Ok(Self {
             _temp: temp,
@@ -112,6 +114,7 @@ impl Fixture {
             clean: true,
             scope_identity: None,
             terminal: true,
+            untrusted: None,
         }
     }
     fn target(&self, target: &str) -> Result<String> {
@@ -1152,11 +1155,16 @@ fn reviewed_file_preferences_are_private_and_new_revision_invalidates_them() -> 
         BOB,
         &[],
     )?;
-    assert_eq!(field(&marked, "/reviewed/0/actor")?, BOB);
+    // r[verify kiln.review.hunks] File-level "mark all" writes private hunk markers.
+    assert_eq!(field(&marked, "/reviewed_hunks/0/actor")?, BOB);
+    assert_eq!(field(&marked, "/reviewed")?, &json!([]));
     let author = detail(&workspace, &marked, ALICE, &[])?;
-    assert_eq!(field(&author, "/change/reviewed")?, &json!([]));
+    assert_eq!(field(&author, "/change/reviewed_hunks")?, &json!([]));
     let reviewer = detail(&workspace, &marked, BOB, &[])?;
-    assert_eq!(field(&reviewer, "/change/reviewed/0/file")?, "file.txt");
+    assert_eq!(
+        field(&reviewer, "/change/reviewed_hunks/0/file")?,
+        "file.txt"
+    );
     let uploaded = change_after(
         &workspace,
         "upload",
@@ -1166,7 +1174,8 @@ fn reviewed_file_preferences_are_private_and_new_revision_invalidates_them() -> 
         &[],
     )?;
     let reviewer = detail(&workspace, &uploaded, BOB, &[])?;
-    assert_eq!(field(&reviewer, "/change/reviewed")?, &json!([]));
+    // The only hunk was edited by the upload, so its marker is not carried forward.
+    assert_eq!(field(&reviewer, "/change/reviewed_hunks")?, &json!([]));
     Ok(())
 }
 

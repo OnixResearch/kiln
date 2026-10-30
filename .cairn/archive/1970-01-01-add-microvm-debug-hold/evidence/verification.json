@@ -1,0 +1,46 @@
+{
+  "change": "add-microvm-debug-hold",
+  "issue": "https://github.com/OnixResearch/kiln/issues/15",
+  "maintenance_owner": "Kiln hosted-composition maintainers (kiln-hosted debug_hold/microvm shell, Nickel contracts); Kiln maintainers (kiln-microvm core and guest agent)",
+  "environment": "x86_64 host with usable /dev/kvm and a systemd user manager. Concurrent peer edits break the live tree from time to time, so Rust builds ran in a private rsync snapshot of the workspace (~/.cargo-target/DebugHold/ws, taken once the peers' code compiled) with CARGO_TARGET_DIR=~/.cargo-target/DebugHold/wst. The guest was built from the same kind of snapshot with --builders '' because the remote build hook failed.",
+  "commands": [
+    {"command": "nix develop path:. --command cargo test --locked -p kiln-microvm", "observed": "24 passed: lifecycle (disabled transitions identical, Held reachability BFS, every hold ends in Destroyed/Abandoned), debug_hold core (policy bounds, eligibility order, failure classification, hold_end precedence, capability single use/expiry/principal/write access, debug step bounds), protocol (debug frames round trip, unbounded debug requests rejected)."},
+    {"command": "nix develop path:. --command cargo test --locked --release -p kiln-hosted --lib (snapshot)", "observed": "61 passed, including debug_hold::tests::{concurrent_holds_are_bounded_per_runner_and_end_closes_queued_sessions, capabilities_need_write_access_are_single_use_and_lapse_with_the_hold, expired_capabilities_are_refused, capacity_pressure_after_the_hold_started_ends_it} and execution::tests::debug_hold_is_bounded_and_absent_keeps_the_configuration_identity."},
+    {"command": "nix develop path:. --command cargo clippy --locked --release -p kiln-hosted -p kiln-microvm --all-targets -- -D warnings (snapshot)", "observed": "clean"},
+    {"command": "rustfmt --edition 2024 --check on every Rust file this change touched", "observed": "clean; execution.rs diffs remaining at the time belong to peer code"},
+    {"command": "nix build path:.#microvm-guest --no-link --print-out-paths --builders '' (snapshot)", "observed": "/nix/store/vh44pi87qk53dmayz5igpvmq5xbjp7gp-kiln-microvm-guest"},
+    {"command": "KILN_MICROVM_GUEST=/nix/store/vh44pi87qk53dmayz5igpvmq5xbjp7gp-kiln-microvm-guest KILN_MICROVM_REQUIRED=1 cargo test --locked --release -p kiln-hosted --test microvm -- --nocapture --test-threads 1 (snapshot)", "observed": "2 passed (two runs). The new test failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry passed: the failing job (exit 7) was held; execution.get carried the connection instructions; one command through a capability printed 'state-from-job\\n1000\\nlo\\n/work\\n' (job state survives, uid 1000, only lo, /work); the second use was refused with 'debug capability already used'; the hold ended 'expired' after 15011 ms; the VM was Destroyed { journaled: true }; the hosted_microvm_job.result bytes were identical during and after the hold; a later debug_issue was refused. The existing equivalence and escape test passed with no debug_hold key in disabled-runner receipts."},
+    {"command": "nix develop path:. --command nickel format --check config/hosted-*.ncl config/fixtures/*hosted*.ncl; nickel typecheck config/hosted-*.ncl; nickel export config/fixtures/hosted-service-positive.ncl; every config/fixtures/negative-hosted-service-firecracker-*.ncl", "observed": "Formatting and typecheck pass and the positive fixture exports with debug_hold. The negative fixtures were rejected: grace 901 (contract on grace_seconds) and the unknown allow_secrets field (extra field). A scratch hosted-execution.ncl profile with grace 300 exported and one with grace 0 was rejected."},
+    {"command": "cairn gate proposal|design|tasks add-microvm-debug-hold --root . --policy cairn-policy/generated/cairn-policy.json", "observed": "PASS (before implementation)"}
+  ],
+  "timings": {
+    "host": "this machine, release build, 1 vCPU, 256 MiB, cold boot, grace_seconds 15",
+    "runs": [
+      {"held_after_ms": 959, "ready_ms": 615, "session_ms": 80, "debug_issue_ms": 0, "debug_exec_round_trip_ms": 134, "guest_command_ms": 9, "session_duration_ms": 13, "held_ms": 15049, "job_ms": 15912, "attempt_total_ms": 16006, "end_reason": "expired", "destroyed": true},
+      {"held_after_ms": 917, "ready_ms": 604, "session_ms": 70, "debug_issue_ms": 0, "debug_exec_round_trip_ms": 60, "guest_command_ms": 10, "session_duration_ms": 11, "held_ms": 15011, "job_ms": 15872, "attempt_total_ms": 15910, "end_reason": "expired", "destroyed": true}
+    ]
+  },
+  "acceptance": {
+    "1 disabled option gives identical transitions": "lifecycle::tests::disabled_hold_keeps_todays_exact_transitions_and_effects (exact old traces; BFS over today's events never reaches Held; a disabled Hold is rejected without moving state); execution::tests::debug_hold_is_bounded_and_absent_keeps_the_configuration_identity (absent option never serialized, identity stable, zero reserve); the host equivalence test asserts no debug_hold key on disabled runners.",
+    "2 Held only after Journaled, only for failed jobs without secret/workload/untrusted grants": "lifecycle::tests::held_is_reachable_only_after_journaling_a_completed_failed_session_without_grants (BFS over every event, including Hold with each refusal fact); debug_hold::tests::eligibility_refuses_each_fact_in_fixed_order_without_override; execution::tests::debug_hold_is_bounded_and_absent_keeps_the_configuration_identity (hostile => untrusted => zero reserve); Untrusted's test asserts hold_grants(...).untrusted for approved untrusted runs.",
+    "3 capability is single-use, expires with the hold, refused without write access": "kiln-microvm debug_hold::tests::capabilities_are_single_use_bound_to_the_principal_and_expire_with_the_hold; kiln-hosted debug_hold::tests::capabilities_need_write_access_are_single_use_and_lapse_with_the_hold, expired_capabilities_are_refused; host test: second use refused, issue after expiry refused.",
+    "4 grace expiry always leads to destruction or Abandoned": "lifecycle::tests::every_hold_ends_in_destruction_or_abandoned (only HoldEnded is accepted while held, then Destroyed or Abandoned); debug_hold::tests::hold_end_has_fixed_precedence_and_always_expires; host test end_reason expired with Destroyed { journaled: true } and the row destroyed.",
+    "extension: real host test with timings": "failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry, KILN_MICROVM_DEBUG_HOLD lines above."
+  },
+  "requirements": {
+    "kiln.hosted.microvm.debug_hold.policy": "kiln-microvm debug_hold::admit, Backend::Firecracker.debug_hold, Nickel contracts and fixtures",
+    "kiln.hosted.microvm.debug_hold.lifecycle": "lifecycle State::Held/Event::Hold, debug_hold::eligibility, kiln-hosted debug_hold::begin (immediate transaction bounding max_concurrent)",
+    "kiln.hosted.microvm.debug_hold.end": "debug_hold::hold_end, microvm::hold loop, capacity pressure recorded on denied admission, execution.recover retires holds",
+    "kiln.hosted.microvm.debug_hold.capability": "debug_hold::issue/redeem, digest-only storage, conditional consume",
+    "kiln.hosted.microvm.debug_hold.relay": "protocol Debug frames, guest accepts debug only after a failed run, microvm::relay over the accepted stream with no new listener and no network device",
+    "kiln.hosted.microvm.debug_hold.sessions": "hosted_microvm_debug_session records, execution.debug_list, execution.get debug_holds[].connect, receipt microvm.debug_hold"
+  },
+  "trade_offs": [
+    "Each capability runs one non-interactive bash command (20 s maximum, 64 KiB per stream), not an interactive PTY, to stay inside the 30 s RPC exchange.",
+    "Hold time is attempt time: admission adds one grace to the reservation and to the unit RuntimeMaxSec (plus 2 s) only when a hold is possible.",
+    "Capacity pressure is detected from denied admissions: the denied caller retries once the held VM is destroyed.",
+    "The debug_issue response, including the token, is retained by request replay protection in the private service database; it is single-use and short-lived.",
+    "Guest images built before this change close the session after the run, so a debug command fails and the hold ends as guest_lost."
+  ],
+  "scratch_cleanup": "Snapshot workspace and target under ~/.cargo-target/DebugHold were removed after the runs. The failed namespace-step units of this run's equivalence test were cleared with systemctl --user reset-failed; unit kiln-hosted-214259… predates this work and was left alone."
+}

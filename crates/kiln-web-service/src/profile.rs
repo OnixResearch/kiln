@@ -53,6 +53,11 @@ pub struct ProjectProfile {
     /// Optional monorepo path scope; absent keeps repository-wide behaviour.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope: Option<ProjectScope>,
+    /// Operator declaration that this project's execution target runs each job
+    /// in a per-job microVM without secrets, workload tokens or cache. Approved
+    /// untrusted pull-request runs dispatch only to declared projects.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub untrusted_capable: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

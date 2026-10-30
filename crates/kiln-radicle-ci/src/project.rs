@@ -561,6 +561,7 @@ pub(crate) mod tests {
             signed_reference: receipt.request.signed_reference.clone(),
             profile_id: receipt.request.profile_id.clone(),
             limits: receipt.request.limits.clone(),
+            canonical: receipt.request.canonical.clone(),
         };
         let plan = DiscoveryEffectPlan {
             effect_id: EffectId::new("discovery-template").unwrap_or_else(|_| unreachable!()),

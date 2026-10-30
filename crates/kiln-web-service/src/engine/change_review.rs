@@ -10,9 +10,35 @@ impl Engine {
         self.state.runs.get(run_id).map(|run| {
             (
                 run.outcome().is_terminal(),
-                !self.storage_failed && run.outcome() == Outcome::Success,
+                !self.storage_failed
+                    && run.outcome() == Outcome::Success
+                    && run.untrusted.as_ref().is_none_or(|gate| {
+                        gate.satisfies_required_ci(run.source.exact_revision.native_id.as_str())
+                    }),
             )
         })
+    }
+
+    /// Cancel a superseded speculative review candidate run that has not been
+    /// dispatched yet. Dispatched runs are left alone: provider cancellation is
+    /// an ambiguous external effect, so the review queue ignores their results.
+    /// Returns whether the run was cancelled; repeated calls are no-ops.
+    // r[impl kiln.review.queue.speculative.failure]
+    pub(crate) fn cancel_review_candidate(&mut self, run_id: &str) -> Result<bool, String> {
+        if self.storage_failed {
+            return Err("durable_state_unavailable".into());
+        }
+        let Some(run) = self.state.runs.get_mut(run_id) else {
+            return Ok(false);
+        };
+        if run.phase != "queued" {
+            return Ok(false);
+        }
+        run.complete(Outcome::Cancelled, None)?;
+        run.phase = "terminal".into();
+        run.completed_at_ms = Some(super::host_time_ms()?);
+        self.persist()?;
+        Ok(true)
     }
 
     /// Export retained canonical run facts, not browser assertions or receipt votes.
@@ -35,6 +61,11 @@ impl Engine {
                 clean: run.dirty_snapshot.is_none(),
                 scope_identity: run.scope.as_ref().map(|scope| scope.identity.clone()),
                 terminal: run.outcome().is_terminal(),
+                // r[impl kiln.untrusted.review]
+                untrusted: run
+                    .untrusted
+                    .as_ref()
+                    .map(kiln_core::untrusted::UntrustedGate::summary),
             })
             .collect()
     }

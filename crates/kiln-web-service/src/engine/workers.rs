@@ -130,7 +130,7 @@ fn project_workers<'a>(
         let facts = projects
             .get_mut(run.project_id.as_str())
             .ok_or("run project missing")?;
-        if run.phase == "queued" {
+        if run.waiting() {
             facts.project.queued += 1;
             continue;
         }

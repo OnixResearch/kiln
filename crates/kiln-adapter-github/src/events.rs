@@ -1,3 +1,21 @@
+//! GitHub webhook event admission.
+//!
+//! `VerifiedEvent` is a construction proof: only this module's admission
+//! functions build one, every field is private, and the type is neither
+//! serializable nor deserializable.
+//!
+//! ## Admitted proof-type audit
+//!
+//! The other `Admitted*` types were audited with this change:
+//! `AdmittedGithubConfig`, `AdmittedRadicleConfig` and
+//! `AdmittedAspenRuntimeProfile` are proofs of reviewed profile admission, and
+//! `AdmittedJournal` is a proof that a journal document was admitted; each is to
+//! be sealed in a separate change. `AdmittedResult` is a plain record embedded
+//! in persisted semantic-merge state, not the output of a check, so it keeps its
+//! fields and deserialization.
+//!
+// r[impl kiln.github.event_proof.audit]
+// r[verify kiln.github.event_proof.audit.scenario.names]
 use hmac::{Hmac, Mac};
 use kiln_core::types::ContentId;
 use kiln_provider_api::PortResult;
@@ -18,8 +36,16 @@ pub struct EventPolicy {
     pub owner: String,
     pub repository: String,
     pub repository_id: u64,
+    /// Retired constant, kept only so existing profiles replay byte-identically.
+    /// It must stay `false`; `untrusted_pull_requests` is the reviewed policy.
     #[serde(default)]
     pub allow_fork_pull_requests: bool,
+    // r[impl kiln.untrusted.policy]
+    #[serde(
+        default,
+        skip_serializing_if = "kiln_core::untrusted::UntrustedPullRequests::is_deny"
+    )]
+    pub untrusted_pull_requests: kiln_core::untrusted::UntrustedPullRequests,
 }
 
 /// The HTTP boundary must reject repeated headers before constructing this type.
@@ -53,18 +79,103 @@ pub enum EventSelector {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+// r[impl kiln.github.event_proof]
+/// An admitted webhook event: signature, selection and identity checks passed.
+///
+/// Only [`admit_event`] and [`admit_event_with`] construct one. Every field is
+/// private, and the type implements neither `Serialize` nor `Deserialize`, so
+/// another crate cannot fabricate authentication with a struct literal or JSON.
+///
+/// ```
+/// # use kiln_adapter_github::events::VerifiedEvent;
+/// let read: fn(&VerifiedEvent) -> &str = VerifiedEvent::delivery_id;
+/// # let _ = read;
+/// ```
+///
+// r[verify kiln.github.event_proof.scenario.forgery]
+/// A struct literal fails because the fields are private:
+///
+/// ```compile_fail
+/// # use kiln_adapter_github::events::{EventSelector, NativeRepository, VerifiedEvent};
+/// let _ = VerifiedEvent {
+///     delivery_id: String::new(),
+///     body_identity: unreachable!(),
+///     candidate_identity: unreachable!(),
+///     repository: String::new(),
+///     repository_id: 0,
+///     revision: String::new(),
+///     native_repository: NativeRepository { owner: String::new(), name: String::new(), id: 0 },
+///     selector: EventSelector::Push { reference: String::new() },
+///     untrusted: None,
+///     pull_request_action: None,
+/// };
+/// ```
+///
+/// Deserialization fails because the type is not `Deserialize`:
+///
+/// ```compile_fail
+/// # use kiln_adapter_github::events::VerifiedEvent;
+/// let _ = serde_json::from_str::<VerifiedEvent>("{}");
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VerifiedEvent {
-    pub delivery_id: String,
-    pub body_identity: ContentId,
-    pub candidate_identity: ContentId,
+    delivery_id: String,
+    body_identity: ContentId,
+    candidate_identity: ContentId,
     /// Canonical target repository, not an unauthenticated header or branch URL.
-    pub repository: String,
-    pub repository_id: u64,
-    pub revision: String,
-    pub native_repository: NativeRepository,
-    pub selector: EventSelector,
+    repository: String,
+    repository_id: u64,
+    revision: String,
+    native_repository: NativeRepository,
+    selector: EventSelector,
+    /// Why an admitted pull request is untrusted; absent when trusted.
+    untrusted: Option<kiln_core::untrusted::UntrustedReason>,
+    /// The pull request action; absent for pushes. Closed and merged pull
+    /// requests appear only through [`admit_event_with`] when requested.
+    pull_request_action: Option<kiln_core::trigger_filter::PullRequestType>,
+}
+
+impl VerifiedEvent {
+    /// The authenticated delivery identity used by replay admission.
+    pub fn delivery_id(&self) -> &str {
+        &self.delivery_id
+    }
+    /// BLAKE3 of the original body bytes.
+    pub fn body_identity(&self) -> &ContentId {
+        &self.body_identity
+    }
+    /// Candidate identity of the selected source.
+    pub fn candidate_identity(&self) -> &ContentId {
+        &self.candidate_identity
+    }
+    /// Canonical target repository (`owner/name`).
+    pub fn repository(&self) -> &str {
+        &self.repository
+    }
+    /// Numeric repository id the policy admitted.
+    pub fn repository_id(&self) -> u64 {
+        self.repository_id
+    }
+    /// The selected exact revision.
+    pub fn revision(&self) -> &str {
+        &self.revision
+    }
+    /// The provider-native repository facts the event carried.
+    pub fn native_repository(&self) -> &NativeRepository {
+        &self.native_repository
+    }
+    /// The selected push or pull-request selector.
+    pub fn selector(&self) -> &EventSelector {
+        &self.selector
+    }
+    /// Why an admitted pull request is untrusted; absent when trusted.
+    pub fn untrusted(&self) -> Option<kiln_core::untrusted::UntrustedReason> {
+        self.untrusted
+    }
+    /// The pull request action; absent for pushes.
+    pub fn pull_request_action(&self) -> Option<kiln_core::trigger_filter::PullRequestType> {
+        self.pull_request_action
+    }
 }
 
 // These wire-only structs deliberately allow GitHub's unrelated fields. Serde's
@@ -110,6 +221,12 @@ struct PullRequest {
     state: String,
     head: PullRequestSide,
     base: PullRequestSide,
+    /// Signed push-access evidence; absent means no evidence (fail closed).
+    #[serde(default)]
+    author_association: Option<String>,
+    /// Whether a closed pull request was merged.
+    #[serde(default)]
+    merged: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -126,6 +243,7 @@ pub fn admit_event_policy(policy: &EventPolicy) -> PortResult<()> {
         || !valid_repository_name(&policy.repository)
         || policy.owner.len() + 1 + policy.repository.len() > kiln_core::types::DEFAULT_MAX_ID_BYTES
         || policy.repository_id == 0
+        || policy.allow_fork_pull_requests
     {
         return Err(domain(
             "github_event_policy",
@@ -136,6 +254,14 @@ pub fn admit_event_policy(policy: &EventPolicy) -> PortResult<()> {
     Ok(())
 }
 
+/// Which optional event classes a registration asked for. The default admits
+/// exactly what [`admit_event`] always admitted.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct EventAdmission {
+    /// Admit `closed` pull requests as `closed` or `merged` actions.
+    pub closed_pull_requests: bool,
+}
+
 // r[impl kiln.github.authentication]
 // r[impl kiln.github.events]
 pub fn admit_event(
@@ -144,6 +270,27 @@ pub fn admit_event(
     body: &[u8],
     secret: &[u8],
     maximum_body_bytes: usize,
+) -> PortResult<Option<VerifiedEvent>> {
+    admit_event_with(
+        policy,
+        headers,
+        body,
+        secret,
+        maximum_body_bytes,
+        EventAdmission::default(),
+    )
+}
+
+// r[impl kiln.github.authentication]
+// r[impl kiln.github.events]
+// r[impl kiln.triggers.evaluate]
+pub fn admit_event_with(
+    policy: &EventPolicy,
+    headers: &DeliveryHeaders,
+    body: &[u8],
+    secret: &[u8],
+    maximum_body_bytes: usize,
+    admission: EventAdmission,
 ) -> PortResult<Option<VerifiedEvent>> {
     admit_event_policy(policy)?;
     if maximum_body_bytes == 0 || body.is_empty() || body.len() > maximum_body_bytes {
@@ -163,6 +310,8 @@ pub fn admit_event(
     authenticate(&headers.signature, body, secret)?;
     // Authentication precedes all payload decoding and identity construction.
 
+    let mut untrusted = None;
+    let mut pull_request_action = None;
     let (repository, revision, selector) = match headers.event.as_str() {
         "push" => {
             let push: Push = decode(body)?;
@@ -191,22 +340,30 @@ pub fn admit_event(
         "pull_request" => {
             let envelope: PullRequestEnvelope = decode(body)?;
             admit_repository(policy, &envelope.repository)?;
-            if !matches!(
-                envelope.action.as_str(),
-                "opened" | "reopened" | "synchronize"
-            ) {
-                return Ok(None);
-            }
+            use kiln_core::trigger_filter::PullRequestType;
+            let action = match envelope.action.as_str() {
+                "opened" => PullRequestType::Opened,
+                "reopened" => PullRequestType::Reopened,
+                "synchronize" => PullRequestType::Synchronize,
+                "closed" if admission.closed_pull_requests => PullRequestType::Closed,
+                _ => return Ok(None),
+            };
+            let closing = action == PullRequestType::Closed;
             let event: PullRequestEvent = decode(body)?;
             let pr = event.pull_request;
             if event.number == 0 || event.number != pr.number {
                 return Err(invalid_payload());
             }
             admit_repository(policy, &pr.base.repo)?;
-            if pr.state == "closed" {
+            if pr.state == "closed" && !closing {
                 return Ok(None);
             }
-            if pr.state != "open"
+            pull_request_action = Some(if closing && pr.merged == Some(true) {
+                PullRequestType::Merged
+            } else {
+                action
+            });
+            if pr.state != if closing { "closed" } else { "open" }
                 || !valid_branch_reference(&pr.head.reference)
                 || !valid_branch_reference(&pr.base.reference)
                 || !nonzero_sha(&pr.head.sha)
@@ -220,12 +377,23 @@ pub fn admit_event(
             if same_id != same_name {
                 return Err(invalid_payload());
             }
-            if !same_id && !policy.allow_fork_pull_requests {
-                return Err(domain(
-                    "github_fork_denied",
-                    "pull_request.head.repo",
-                    "GitHub fork pull request execution is not permitted",
-                ));
+            // r[impl kiln.untrusted.classification]
+            match kiln_core::untrusted::classify(
+                policy.untrusted_pull_requests,
+                kiln_core::untrusted::PullRequestTrustFacts {
+                    same_repository: same_id,
+                    author_association: pr.author_association.as_deref(),
+                },
+            ) {
+                kiln_core::untrusted::TrustDecision::Trusted => {}
+                kiln_core::untrusted::TrustDecision::Refused => {
+                    return Err(domain(
+                        "github_fork_denied",
+                        "pull_request.head.repo",
+                        "GitHub fork pull request execution is not permitted",
+                    ));
+                }
+                kiln_core::untrusted::TrustDecision::Untrusted(reason) => untrusted = Some(reason),
             }
             (
                 event.repository,
@@ -250,8 +418,13 @@ pub fn admit_event(
         policy.owner.to_ascii_lowercase(),
         policy.repository.to_ascii_lowercase()
     );
-    let candidate_identity =
-        candidate_identity(&repository_key, policy.repository_id, &revision, &selector)?;
+    let candidate_identity = candidate_identity(
+        &repository_key,
+        policy.repository_id,
+        &revision,
+        &selector,
+        pull_request_action,
+    )?;
     Ok(Some(VerifiedEvent {
         delivery_id: headers.delivery.to_ascii_lowercase(),
         body_identity: content_identity(blake3::hash(body))?,
@@ -261,6 +434,8 @@ pub fn admit_event(
         revision,
         native_repository: native_repository(repository),
         selector,
+        untrusted,
+        pull_request_action,
     }))
 }
 
@@ -447,6 +622,7 @@ fn candidate_identity(
     repository_id: u64,
     revision: &str,
     selector: &EventSelector,
+    action: Option<kiln_core::trigger_filter::PullRequestType>,
 ) -> PortResult<ContentId> {
     let mut hash = blake3::Hasher::new();
     let mut field = |bytes: &[u8]| {
@@ -475,9 +651,29 @@ fn candidate_identity(
             field(head_repository.name.to_ascii_lowercase().as_bytes());
             field(head_reference.as_bytes());
             field(base_reference.as_bytes());
+            // Closing actions never replay the open/synchronize candidate of
+            // the same head; earlier identities stay unchanged.
+            if let Some(
+                action @ (kiln_core::trigger_filter::PullRequestType::Closed
+                | kiln_core::trigger_filter::PullRequestType::Merged),
+            ) = action
+            {
+                field(action_name(action));
+            }
         }
     }
     content_identity(hash.finalize())
+}
+
+fn action_name(action: kiln_core::trigger_filter::PullRequestType) -> &'static [u8] {
+    use kiln_core::trigger_filter::PullRequestType;
+    match action {
+        PullRequestType::Opened => b"opened",
+        PullRequestType::Reopened => b"reopened",
+        PullRequestType::Synchronize => b"synchronize",
+        PullRequestType::Closed => b"closed",
+        PullRequestType::Merged => b"merged",
+    }
 }
 
 #[cfg(test)]

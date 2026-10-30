@@ -1368,3 +1368,59 @@ fn nested_root_titles_and_metadata_fallback_remain_bounded() {
         );
     }
 }
+
+// r[verify kiln.radicle.job.console]
+#[test]
+fn kiln_published_job_history_is_visible() {
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let repository = Repository::init_bare(root.path().join("kiln-jobs.git"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let kind = "xyz.radworks.job";
+    let fixture: Vec<Value> =
+        serde_json::from_str(include_str!("../../../fixtures/radicle/job-actions.json"))
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let object = cob_operation(&repository, kind, "Kiln job\n", &fixture, &[]);
+    repository
+        .reference(
+            &format!("refs/cobs/{kind}/{object}"),
+            object,
+            false,
+            "fixture",
+        )
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let before = refs(&repository);
+    let browser = browser(vec![policy("onix", "rad:zNative", repository.path())]);
+
+    let inventory = get(&browser, "/api/cobs?type=xyz.radworks.job");
+    assert_eq!((*member(&inventory, "total")), 1);
+    let row = member(member(&inventory, "objects"), 0);
+    assert_eq!((*member(row, "type_name")), kind);
+    assert_eq!((*member(row, "object_id")), object.to_string());
+
+    let detail = get(&browser, &detail_target(kind, object));
+    let operations = member(member(&detail, "object"), "operations")
+        .as_array()
+        .unwrap_or_else(|| unreachable!("fixture value absent"));
+    assert_eq!(operations.len(), 1);
+    let operation = operations
+        .first()
+        .unwrap_or_else(|| unreachable!("fixture value absent"));
+    let actions = member(operation, "actions")
+        .as_array()
+        .unwrap_or_else(|| unreachable!("fixture value absent"));
+    let values: Vec<&Value> = actions
+        .iter()
+        .map(|action| member(action, "value"))
+        .collect();
+    assert_eq!(values, fixture.iter().collect::<Vec<_>>());
+    assert_eq!(
+        (*member(member(&detail, "object"), "signatures_verified")),
+        false
+    );
+    assert_eq!(
+        (*member(member(&detail, "object"), "reduced_state")),
+        Value::Null
+    );
+    assert_eq!(refs(&repository), before);
+}

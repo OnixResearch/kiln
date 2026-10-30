@@ -1,0 +1,56 @@
+{
+  "schema": "kiln.radicle-canonical-vendor.verification.v1",
+  "date": "2026-10-31",
+  "maintenance_owner": "Kiln maintainers (vendor/heartwood-canonical, scripts/import-heartwood-canonical.sh, the heartwood-canonical flake check)",
+  "consumer": "Issue #19 canonical Radicle source mode; #18, #20 and #21 depend on that computation",
+  "commands": [
+    {
+      "command": "nix develop path:. -c cargo test --manifest-path vendor/heartwood-canonical/Cargo.toml",
+      "result": "pass; the check's release-profile run reports 7 passed, 0 failed"
+    },
+    {
+      "command": "nix develop path:. -c cargo clippy --manifest-path vendor/heartwood-canonical/Cargo.toml --all-targets -- -D warnings",
+      "result": "pass; the check's release-profile run reports 7 passed, 0 failed"
+    },
+    {
+      "command": "rustfmt --edition 2024 --check on the vendored crate",
+      "result": "pass: upstream files already clean; the two shim files were formatted"
+    },
+    {
+      "command": "nix build --no-link -L --option builders '' path:.#checks.x86_64-linux.heartwood-canonical",
+      "result": "pass; the check's release-profile run reports 7 passed, 0 failed"
+    },
+    {
+      "command": "scripts/import-heartwood-canonical.sh /tmp/heartwood (twice)",
+      "result": "pass; the check's release-profile run reports 7 passed, 0 failed"
+    },
+    {
+      "command": "cargo tree in vendor/heartwood-canonical",
+      "result": "pass; the check's release-profile run reports 7 passed, 0 failed"
+    },
+    {
+      "command": "nix develop path:. -c cargo check --locked --workspace --all-targets",
+      "result": "pass: the Kiln workspace is unchanged by the vendoring"
+    }
+  ],
+  "acceptance": {
+    "provenance": "vendor/heartwood-canonical.source.json records commit 71a91042d96bb994c4cd4311d85f5cd1a6311b4e, the ten upstream-derived paths with SHA-256 digests, the two removed fixture-dependent test modules, the five shim files, the license and non-claims. Seven of the nine canonical files are byte-identical upstream; canonical.rs and rules.rs differ only by the recorded test-module removal.",
+    "refresh": "the importer extracts from pinned Git objects, applies the two documented test-module removals with exact anchors, verifies every derived digest and only then copies; it refuses when a shim is missing, and two consecutive runs produced identical files",
+    "rail": "the new heartwood-canonical flake check builds the crate in its own workspace and lock file and runs the retained tests in release profile; all 7 pass, including the quorum, reference-protection and DID tests"
+  },
+  "fixes_during_import": [
+    "the vendored manifest needed the upstream dependency features radicle-crypto `std` and `radicle-git-ref-format`, radicle-git-ref-format `serde`, nonempty `serialize`",
+    "upstream's `refname!` skips validation outside debug assertions, so the shim defines an always-validating macro; the release-profile check exposed this",
+    "serde_json `preserve_order` was briefly enabled for upstream's symbolic-reference tests, but it unifies globally and changed JSON map ordering for every workspace crate (a kiln-hosted migration test failed); it was removed and the symbolic test module is not run"
+  ],
+  "excluded_upstream": "The rest of the radicle crate is not imported: it depends on the sqlite crate, whose sqlite3-sys links the native sqlite3 library already linked by the workspace's rusqlite/libsqlite3-sys, and Cargo permits one links value per graph",
+  "trade_offs": [
+    "The five shim files are Kiln-maintained and must track upstream module-path changes",
+    "Two fixture-dependent test modules are removed; upstream storage/identity integration is not exercised here, only the canonical algorithm and its retained unit tests",
+    "Upstream fixes after 71a91042 require a recorded refresh rather than a version bump",
+    "No Kiln crate consumes the module yet; the canonical source mode of #19 is the named consumer"
+  ],
+  "not_run": [
+    "an end-to-end canonical source-mode integration (that is #19, not this change)"
+  ]
+}

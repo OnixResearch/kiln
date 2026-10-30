@@ -221,7 +221,7 @@ pub fn plan_event(admitted: &AdmittedGithubConfig, event: &VerifiedEvent) -> Por
         &(
             RUN_SCHEMA,
             &admitted.pipeline_identity,
-            &event.candidate_identity,
+            event.candidate_identity(),
         ),
         MAXIMUM_PROFILE_BYTES,
     )
@@ -234,21 +234,21 @@ pub fn plan_event(admitted: &AdmittedGithubConfig, event: &VerifiedEvent) -> Por
     })?;
     let source = WorkflowSourceContext {
         provider: Alias::new("github")?,
-        repository: ExternalRef::new("github", "repository", &event.repository)?,
-        revision: ExternalRef::new("github", "revision", &event.revision)?,
+        repository: ExternalRef::new("github", "repository", event.repository())?,
+        revision: ExternalRef::new("github", "revision", event.revision())?,
     };
     let plan = workflow_plan(
         &admitted.config.workflow,
         &identity,
         &admitted.pipeline_identity,
-        &event.candidate_identity,
+        event.candidate_identity(),
         Some(source),
     )?;
     let run_id = RunId::new(format!("github-run-{}", identity.as_str()))?;
     let immutable_identity = immutable_identity(&identity, &admitted.identity, &plan, &run_id)?;
     let pending = plan_status(
         &admitted.config.status,
-        &event.revision,
+        event.revision(),
         identity.clone(),
         StatusState::Pending,
     )?;

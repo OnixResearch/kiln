@@ -41,6 +41,7 @@ impl Fixture {
                 ReviewCapability::CherryPick,
                 ReviewCapability::ApplySuggestions,
                 ReviewCapability::BuildIntegration,
+                ReviewCapability::SpeculativeIntegration,
             ],
         }
     }
@@ -1424,6 +1425,219 @@ fn review_integration_refuses_conflicts_moved_targets_and_disabled_capabilities(
             .kind,
         ReviewErrorKind::Unsupported
     );
+}
+
+// r[verify kiln.review.queue.speculative.provider]
+// r[verify kiln.review.queue.speculative.provider.scenario.unrelated]
+#[test]
+fn speculative_integration_stacks_on_predecessor_and_fast_forwards_only_in_order() {
+    let f = Fixture::new("speculative");
+    let first = make_commit(
+        &f.repo,
+        &[f.base],
+        &[("file.txt", b"one\ntwo\nthree\n"), ("first", b"first\n")],
+        "first",
+    );
+    let second = make_commit(
+        &f.repo,
+        &[f.base],
+        &[("file.txt", b"one\ntwo\nthree\n"), ("second", b"second\n")],
+        "second",
+    );
+    let provider = f.provider();
+    let base = f.base.to_string();
+    let head = applied(
+        provider
+            .execute(&f.request(
+                190,
+                ReviewOperation::BuildIntegration {
+                    commit: first.to_string(),
+                    expected_target: base.clone(),
+                    strategy: IntegrationStrategy::Merge,
+                },
+            ))
+            .unwrap_or_else(|e| unreachable!("{e}")),
+    );
+    let request = f.request(
+        191,
+        ReviewOperation::BuildSpeculativeIntegration {
+            commit: second.to_string(),
+            expected_target: base.clone(),
+            predecessor: head.clone(),
+            strategy: IntegrationStrategy::Merge,
+        },
+    );
+    let stacked = applied(
+        provider
+            .execute(&request)
+            .unwrap_or_else(|e| unreachable!("{e}")),
+    );
+    assert_eq!(f.current(), f.base, "speculation never moves the target");
+    assert_eq!(
+        applied(
+            provider
+                .reconcile(&request)
+                .unwrap_or_else(|e| unreachable!("{e}"))
+        ),
+        stacked
+    );
+    let candidate = f
+        .repo
+        .find_commit(Oid::from_str(&stacked).unwrap_or_else(|e| unreachable!("{e}")))
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    assert_eq!(
+        candidate
+            .parent_id(0)
+            .unwrap_or_else(|e| unreachable!("{e}"))
+            .to_string(),
+        head
+    );
+    assert_eq!(
+        candidate
+            .parent_id(1)
+            .unwrap_or_else(|e| unreachable!("{e}")),
+        second
+    );
+    let tree = candidate.tree().unwrap_or_else(|e| unreachable!("{e}"));
+    for path in ["first", "second", "file.txt"] {
+        assert!(tree.get_name(path).is_some());
+    }
+    // The same identity with another predecessor is a different exact request.
+    let mut reused = request.clone();
+    if let ReviewOperation::BuildSpeculativeIntegration { predecessor, .. } = &mut reused.operation
+    {
+        *predecessor = first.to_string();
+    }
+    assert_eq!(
+        provider
+            .execute(&reused)
+            .err()
+            .unwrap_or_else(|| unreachable!())
+            .kind,
+        ReviewErrorKind::InvalidRequest
+    );
+    // The stacked candidate cannot skip its predecessor at submit.
+    let skip = f.request(
+        192,
+        ReviewOperation::Submit {
+            commit: stacked.clone(),
+            expected_target: base.clone(),
+        },
+    );
+    assert_eq!(
+        applied(
+            provider
+                .execute(&f.request(
+                    193,
+                    ReviewOperation::Submit {
+                        commit: head.clone(),
+                        expected_target: base.clone(),
+                    },
+                ))
+                .unwrap_or_else(|e| unreachable!("{e}"))
+        ),
+        head
+    );
+    assert_eq!(
+        provider
+            .execute(&skip)
+            .err()
+            .unwrap_or_else(|| unreachable!())
+            .kind,
+        ReviewErrorKind::TargetMoved
+    );
+    assert_eq!(
+        applied(
+            provider
+                .execute(&f.request(
+                    194,
+                    ReviewOperation::Submit {
+                        commit: stacked.clone(),
+                        expected_target: head.clone(),
+                    },
+                ))
+                .unwrap_or_else(|e| unreachable!("{e}"))
+        ),
+        stacked
+    );
+    assert_eq!(f.current().to_string(), stacked);
+}
+
+#[test]
+fn speculative_integration_refuses_unrelated_predecessor_moved_target_and_missing_capability() {
+    let f = Fixture::new("speculative-refusals");
+    let source = make_commit(&f.repo, &[f.base], &[("source", b"source\n")], "source");
+    let unrelated = make_commit(&f.repo, &[], &[("other", b"other\n")], "unrelated");
+    let provider = f.provider();
+    let journal_absent = |request: &ReviewOperationRequest| {
+        f.repo
+            .find_reference(&format!(
+                "refs/kiln/review-operations/{}/request",
+                request.operation_id
+            ))
+            .is_err()
+    };
+    for (number, predecessor) in [(200, unrelated), (201, f.base)] {
+        let request = f.request(
+            number,
+            ReviewOperation::BuildSpeculativeIntegration {
+                commit: source.to_string(),
+                expected_target: f.base.to_string(),
+                predecessor: predecessor.to_string(),
+                strategy: IntegrationStrategy::Merge,
+            },
+        );
+        assert_eq!(
+            provider
+                .execute(&request)
+                .err()
+                .unwrap_or_else(|| unreachable!())
+                .kind,
+            ReviewErrorKind::Conflict,
+            "predecessor must strictly descend from the exact target"
+        );
+        assert!(journal_absent(&request));
+    }
+    let predecessor = make_commit(&f.repo, &[f.base], &[("first", b"first\n")], "first");
+    let rival = make_commit(&f.repo, &[f.base], &[("rival", b"rival\n")], "rival");
+    f.repo
+        .reference("refs/heads/main", rival, true, "fixture move")
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    let moved = f.request(
+        202,
+        ReviewOperation::BuildSpeculativeIntegration {
+            commit: source.to_string(),
+            expected_target: f.base.to_string(),
+            predecessor: predecessor.to_string(),
+            strategy: IntegrationStrategy::Merge,
+        },
+    );
+    assert_eq!(
+        provider
+            .execute(&moved)
+            .err()
+            .unwrap_or_else(|| unreachable!())
+            .kind,
+        ReviewErrorKind::TargetMoved
+    );
+    assert!(journal_absent(&moved));
+    f.repo
+        .reference("refs/heads/main", f.base, true, "fixture restore")
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    let mut profile = f.profile();
+    profile
+        .capabilities
+        .retain(|cap| *cap != ReviewCapability::SpeculativeIntegration);
+    let disabled = LocalGitReviewProvider::open(profile).unwrap_or_else(|e| unreachable!("{e}"));
+    assert_eq!(
+        disabled
+            .execute(&moved)
+            .err()
+            .unwrap_or_else(|| unreachable!())
+            .kind,
+        ReviewErrorKind::Unsupported
+    );
+    assert!(journal_absent(&moved));
 }
 
 #[test]

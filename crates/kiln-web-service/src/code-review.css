@@ -227,6 +227,32 @@
 .cr-diff-deletion > .cr-line-number { background: color-mix(in srgb, var(--danger-background) 60%, var(--muted)); }
 .cr-split .cr-diff-addition > td:nth-child(-n+2), .cr-split .cr-diff-deletion > td:nth-child(n+3) { background: var(--muted); }
 .cr-diff.cr-split .cr-code { width: 40vw; min-width: 18rem; }
+/* Hunk viewed toggles, interdiff/structural display (tokens only). */
+.cr-hunk-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1) var(--space-3); white-space: normal; }
+.cr-hunk-head > span:first-child { white-space: pre; overflow-wrap: anywhere; }
+.cr-hunk-tools { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.cr-hunk-mark { min-height: 2.75rem; min-width: 2.75rem; font-size: var(--text-xs); }
+.cr-hunk-mark > svg { width: .875rem; height: .875rem; }
+.cr-hunk-mark[aria-pressed="false"] > svg { opacity: .35; }
+.cr-hunk-mark[aria-pressed="true"] { color: var(--success); }
+.chip.cr-new-hunk { border-color: color-mix(in srgb, var(--warning) 30%, transparent); background: var(--warning-background); color: var(--warning); }
+.cr-hunk-count { flex: 0 1 auto; }
+/* Display-only noise group (r[impl kiln.review.noise.display]): collapsed by default, one-click expand. */
+.cr-noise { min-width: 0; margin-top: var(--space-2); border: 1px dashed var(--border); border-radius: var(--radius); background: var(--secondary); }
+.cr-noise > summary { display: flex; align-items: center; gap: var(--space-2); min-height: 2.75rem; padding: var(--space-2) var(--space-3); color: var(--muted-foreground); font-size: var(--text-sm); font-weight: 550; cursor: pointer; overflow-wrap: anywhere; }
+.cr-noise > summary:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.cr-noise-note { margin: 0; padding: 0 var(--space-3) var(--space-2); overflow-wrap: anywhere; }
+.cr-noise-list { border-top: 1px solid var(--border); }
+.cr-noise-list > .cr-file-row > a { color: var(--muted-foreground); }
+.chip.cr-noise-rule { font-family: var(--mono); }
+/* Advisory approvals are non-binding (r[impl kiln.review.advisory.view]). */
+.chip.cr-chip-advisory { border-style: dashed; color: var(--muted-foreground); }
+.cr-advisory > button { justify-self: start; min-height: 2.75rem; }
+.cr-line-plain { display: inline-block; padding: 0 var(--space-2); color: var(--muted-foreground); }
+.cr-structural-note > th { white-space: normal; }
+.cr-diff mark.cr-novel { border-radius: var(--radius-sm); background: color-mix(in srgb, var(--warning) 30%, transparent); color: inherit; }
+.cr-diff-addition mark.cr-novel { background: color-mix(in srgb, var(--success) 30%, transparent); }
+.cr-diff-deletion mark.cr-novel { background: color-mix(in srgb, var(--danger) 30%, transparent); }
 
 /* Dialogs */
 .cr-dialog { width: min(46rem, calc(100vw - 2rem)); max-width: calc(100vw - 2rem); max-height: calc(100dvh - 2rem); overflow: auto; overscroll-behavior: contain; padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--popover); box-shadow: var(--shadow-overlay); }
@@ -301,3 +327,9 @@
 @media (max-width: 60rem) {
   .cr-ci-run { display: inline-flex; align-items: center; min-height: 2.75rem; }
 }
+
+/* r[impl kiln.review.keyboard] Shortcut help: a definition list of bound keys and their existing controls. */
+.cr-dialog .cr-keys { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-4); margin: 0; font-size: var(--text-sm); }
+.cr-dialog .cr-keys > dt { font-family: var(--mono); font-size: var(--text-xs); color: var(--foreground); white-space: nowrap; }
+.cr-dialog .cr-keys > dd { margin: 0; color: var(--muted-foreground); overflow-wrap: anywhere; }
+@media (max-width: 40rem) { .cr-dialog .cr-keys { grid-template-columns: minmax(0, 1fr); } }

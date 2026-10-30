@@ -383,6 +383,44 @@ environment protocols are rejected, not silently omitted. Provide an explicit
 native mapping and review changed semantics rather than deleting an erroring
 field to pretend compatibility.
 
+### Trigger filters and schedules
+
+A `triggers` entry is either a bare name (`"manual"`, `"push"` or `"pull_request"`; existing plans keep identical bytes and identities) or an object:
+
+- `{ event = "push", branches?, tags?, paths? }`
+- `{ event = "pull_request", branches?, types?, paths? }`, where `branches` match the base branch and `types` are `opened`, `reopened`, `synchronize`, `closed` or `merged`
+- `{ event = "schedule", schedule = "<id>" }`
+
+Globs use `kiln_core::paths::matches`, and each list holds at most 32 patterns. Admission applies these rules:
+
+- Each event kind appears once, and each schedule id once.
+- At most 8 triggers.
+- Unknown keys fail.
+
+`execution.run` may carry `event = { kind, reference?, action?, base_branch?, base_revision?, revision? }`:
+
+- **Changed files:** computed from the exact revisions in the workspace repository. Unknown changed files always run.
+- **Match:** the first matching trigger is recorded as `trigger { index, event, reasons }` on the run result.
+- **No match:** the attempt is stored as `skipped`, with every trigger's `excluded_by`. No finance or process is started.
+
+`migrate` maps Actions filters onto native ones:
+
+- `branches`, `tags`, `paths` and the `opened`, `reopened` and `synchronize` types map directly.
+- `closed` maps to `closed` plus `merged` (recorded in diagnostics).
+- `*-ignore` filters, `!` negation, and `?`, `+` and `[]` patterns are rejected.
+
+`schedules.<id> = { cron, timezone = "UTC", min_interval_ms = 300000, reference = "refs/heads/main" }` is reviewed with the pipeline:
+
+- **Review:** resolves `H` from BLAKE3 of organization, project, pipeline name and schedule id, and rejects occurrences closer than the minimum interval within 400 days.
+- **Reservation:** `pipelines.schedule { project, name, schedule, reference, revision }` reserves occurrences durably:
+  - The first call after a review only initializes the next occurrence.
+  - Due occurrences fire once (`attempt_id` is derived from the occurrence).
+  - Occurrences older than the minimum interval are `missed`, never caught up.
+  - Occurrences too close to the last run are `too_close`.
+  - The exact observed revision of the reviewed reference is bound.
+
+Hosted has no default-branch source port: the caller supplies the revision it observed at the due time.
+
 ## 6. Explicit isolation, resource limits and execution recovery
 
 A non-null service `execution` profile is required. `hosted-service.ncl` checks
@@ -434,6 +472,15 @@ Actual runner choices are:
     `maximum_concurrent`. The directory must be an existing short, private
     0700 path outside `work_root` and `/nix/store`.
   - Optional `qualification_identity`.
+  - Optional `debug_hold = {enabled, grace_seconds, max_concurrent}`: keep the
+    microVM of a failed job alive for a bounded grace so a project member can
+    debug it (see **Debug hold** below). `grace_seconds` is 1–900 and
+    `max_concurrent` is 1–16 and at most `maximum_concurrent`. Omitted or
+    `enabled = false` changes nothing: same transitions, unit limits,
+    reservations, configuration identity and receipts.
+  - Optional `untrusted_capable = true`: this runner may execute approved
+    untrusted pull-request runs (see **Untrusted pull-request runs** below).
+    Omitted keeps the configuration identity and refuses such runs.
 
   There is no network or jailer field. Cache policies naming a Firecracker
   runner are rejected.
@@ -496,8 +543,9 @@ behind KVM and a seccomp-confined VMM.
 As a result, a kernel exploit through unprivileged user namespaces or other
 host syscalls first lands in the guest kernel, not the host. Inside the guest,
 jobs run unprivileged, namespace creation and module loading are disabled, and
-there is no network device. The retained escape suite denied namespace
-creation, host `/proc`/`/sys` observation and IP or vsock egress.
+there is no network device (see [Guest networking (non-goal)](#guest-networking-non-goal)).
+The retained escape suite denied namespace creation, host `/proc`/`/sys`
+observation and IP or vsock egress.
 
 It does **not** claim:
 - hostile multi-tenant or production qualification;
@@ -517,6 +565,110 @@ receipt carries `canonical_outcome`: the BLAKE3 identity of the pipeline,
 per-job states and per-step name, state, exit code and stdout. It excludes
 timing, cleanup, signals, stderr (the namespace launcher writes `systemd-run`
 diagnostics there) and backend observations.
+
+### Guest networking (non-goal)
+
+<!-- r[impl kiln.hosted.microvm.network.nongoal] -->
+A job in the Firecracker backend gets no guest network interface: no TAP device,
+no virtio-net, no in-guest tunnel. This is a deliberate part of the isolation
+claim, not a missing feature. The guest's only channels are the read-only source
+drive, one vsock device and an entropy device.
+
+If egress is ever needed (for example, fetching dependencies), the preferred
+design is host-mediated: the guest asks over the existing vsock channel, a
+host-side component enforces a reviewed allowlist and size and time bounds, and
+every fetch is recorded in the job's receipt. The guest still never receives an
+IP path. The debug hold already follows this rule: its commands travel over the
+existing vsock session and it adds no network device.
+
+Rejected alternatives:
+
+- a guest NIC on a host bridge or NAT;
+- an in-guest or host-terminated L3 tunnel, including a userspace WireGuard
+  implementation such as sanstun.
+
+Both give the guest general IP reachability, and the escape suite would have to
+stop asserting no IP egress. Any change that adds guest networking must update
+the isolation claim and the escape suite in the same change.
+
+<!-- r[verify kiln.hosted.microvm.network.nongoal.scenario.escape] -->
+The coupled check is the retained guest-escape suite: inside the guest it probes
+TCP `1.1.1.1:443`, `10.0.2.2:80` and `169.254.169.254:80`, and vsock ports 10240,
+1024 and 22, and every probe must report `denied`.
+
+**Untrusted pull-request runs.** <!-- r[impl kiln.untrusted.execution] -->
+An `execution.run` request may carry
+`untrusted = {reason, source_commit, approver_id}`: the provenance of a fork or
+outside-contributor pull request whose exact commit an interactive operator
+approved (see the operator guide's untrusted pull request policy). Trusted
+requests omit it and keep their request identity. Before any reservation or
+effect, every job's runner must be `kind = "firecracker"` with
+`untrusted_capable = true`, and the provenance must name an exact 40- or 64-hex
+commit and a bounded approver; anything else is refused. Such an attempt, and
+every retry attempt that carries the same provenance, gets no workload policy:
+no secret environment and no `KILN_WORKLOAD_TOKEN`. Its cache is disabled with
+outcome `disabled_untrusted`, so no restore or publication receipt exists.
+There is no per-run override, and debug holds are never offered. Hosted GitHub
+connections admit only `untrusted_pull_requests = "deny"`, because this service
+records no approvals; the provenance comes from a control plane that did.
+
+**Debug hold.** With `debug_hold.enabled`, a job is held only when all of the
+following hold:
+- its guest session completed and the job failed (a non-zero exit, timeout,
+  truncated output or refused source);
+- it had no secret grant and no workload-token audience;
+- the attempt was trusted (hostile trust and approved untrusted pull-request
+  runs are never held; there is no override);
+- the runner has fewer than `max_concurrent` active holds.
+
+The result is journaled first and never changes afterwards. The lifecycle then
+goes `Journaled → Held → Destroying → Destroyed` (or `Abandoned` when teardown
+cannot be proven). A hold ends at the first of:
+- VMM exit;
+- loss of the guest session;
+- a storage failure;
+- attempt cancellation;
+- `execution.debug_release`;
+- capacity pressure (an `execution.run` refused for capacity while holds are
+  enabled);
+- grace expiry.
+
+A held VM keeps its attempt's `maximum_concurrent` slot (and its warm slot).
+For jobs that could be held, the unit's `RuntimeMaxSec` gains the grace plus
+2 s, and admission adds one grace to the attempt's maximum (hold time is billed
+as attempt time).
+
+Debugging goes through a host-side relay; there is no network device and no
+new vsock listener:
+1. `execution.debug_issue {project, attempt_id, job}` needs a write role
+   (`owner`, `admin`, `member`) on the project. It returns a fresh 32-byte
+   capability that is single-use, bound to the calling peer, and expires
+   after 120 s or with the hold. Only its BLAKE3 digest is stored. At most 16
+   capabilities are issued per hold.
+2. `execution.debug_exec {project, attempt_id, job, capability, command}`
+   re-checks write access, consumes the capability atomically and queues one
+   session. The job thread that owns the held VM relays the command over the
+   guest's existing vsock session. The guest accepts debug frames only after
+   its run failed. It runs `bash -c COMMAND` in `/work` as uid 1000 with
+   `no_new_privs`, the base environment (no step variables), a deadline of
+   20 s or the rest of the hold, and 64 KiB per output stream. The call
+   returns the report; a second use is refused.
+3. `execution.debug_release` (write role) ends the hold early.
+4. `execution.debug_list {project, attempt_id}` (any project role) lists
+   holds and sessions.
+
+Sessions record the peer, request, start and end times, duration, command
+BLAKE3 and the bounded output. They grant no source, CI or review authority.
+
+While a job is held, `execution.get` ends with `debug_holds[].connect`, the
+exact connection instructions. The receipt's `microvm.debug_hold` records the
+hold outcome (`held`, or `not_held` with the reason), end reason, held time,
+session count and the instructions that applied.
+
+Each command is one non-interactive shell invocation, not an interactive PTY,
+so it fits the 30 s RPC exchange. A guest image built before this feature
+closes its session after the run, so a debug command to it fails and ends the
+hold as `guest_lost`.
 
 Materialize only reviewed customer source under
 `work_root/acme/app/RELATIVE_WORKSPACE` (no symlink escape). This local execution

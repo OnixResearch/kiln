@@ -2,7 +2,7 @@
 
 Kiln can publish a local `xyz.radicle.ci-job` collaborative object. The object is a rebuildable projection of Kiln state.
 
-Kiln remains the source of CI state. A Radicle object cannot complete a run, authorize a merge, or change a release decision.
+Kiln remains the source of CI state. A Radicle object cannot complete a run, authorize a merge, or change a release decision. Tangled/Radicle job objects are a separate projection; see [job publication](radicle-jobs.md).
 
 The current contract is `radicle-status-v2`. Plans, signed COB projections,
 successful observations and unknown observations all carry the exact source

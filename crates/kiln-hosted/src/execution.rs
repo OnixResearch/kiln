@@ -67,7 +67,16 @@ pub enum Backend {
         boot_timeout_ms: u64,
         source_image_mib: u32,
         warm_pool: Option<crate::microvm::WarmPool>,
+        /// Opt-in debug hold of failed jobs; absent means disabled and keeps
+        /// the configuration identity of profiles without the option.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        debug_hold: Option<kiln_microvm::debug_hold::DebugHoldPolicy>,
         qualification_identity: Option<String>,
+        /// Operator declaration that this per-job microVM runner may execute
+        /// approved untrusted pull-request runs (never with credentials or
+        /// cache). Absent means not untrusted-capable and keeps identity.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        untrusted_capable: bool,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -320,6 +329,7 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
     let Backend::Firecracker {
         qualification_identity,
         warm_pool,
+        debug_hold,
         ..
     } = backend
     else {
@@ -343,6 +353,11 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
     if let Some(pool) = warm_pool {
         crate::microvm::admit_pool_path(&pool.directory, &config.work_root)?;
     }
+    // r[impl kiln.hosted.microvm.debug_hold.policy]
+    // r[impl kiln.hosted.microvm.debug_hold.policy.scenario.bounds]
+    if let Some(policy) = debug_hold {
+        kiln_microvm::debug_hold::admit(policy, config.maximum_concurrent)?;
+    }
     // Guest writes never reach the host workspace, so publication would cache
     // unchanged source; restoration would be invisible to the guest.
     if config
@@ -363,7 +378,8 @@ fn clean(p: &Path) -> bool {
 pub fn init(db: &Connection) -> Result<(), String> {
     db.execute_batch("CREATE TABLE IF NOT EXISTS hosted_execution_config(singleton INTEGER PRIMARY KEY CHECK(singleton=1),identity TEXT NOT NULL,config TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS hosted_execution(org TEXT NOT NULL,project TEXT NOT NULL,attempt TEXT NOT NULL,pipeline TEXT NOT NULL,request_identity TEXT NOT NULL,config_identity TEXT NOT NULL,unit TEXT NOT NULL,state TEXT NOT NULL,reserved_ms INTEGER NOT NULL,result TEXT,PRIMARY KEY(org,attempt));
-      CREATE TABLE IF NOT EXISTS hosted_microvm_job(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,lifecycle TEXT NOT NULL,result TEXT,PRIMARY KEY(org,attempt,job));") .map_err(|e|e.to_string())
+      CREATE TABLE IF NOT EXISTS hosted_microvm_job(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,lifecycle TEXT NOT NULL,result TEXT,PRIMARY KEY(org,attempt,job));") .map_err(|e|e.to_string())?;
+    crate::debug_hold::init(db)
 }
 /// Trusted startup only. Existing in-flight/unknown effects pin their configuration.
 pub fn configure(db: &mut Connection, config: &Config) -> Result<(), String> {
@@ -411,6 +427,15 @@ pub struct PipelineRequest {
     /// Relative to work_root/<organization>/<project>; only customer source here.
     pub workspace: String,
     pub trust: String,
+    /// Source event to evaluate against the plan's trigger filters; omitted
+    /// requests run unconditionally, exactly as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event: Option<crate::pipelines::SourceEvent>,
+    /// Approved untrusted pull-request run (or a retry of one): only
+    /// untrusted-capable microVM runners, no secrets, no workload token and no
+    /// cache. Omitted for trusted requests, keeping their request identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub untrusted: Option<kiln_core::untrusted::UntrustedProvenance>,
 }
 
 fn workspace(
@@ -457,6 +482,60 @@ fn admit_backend(backend: &Backend, trust: &str) -> Result<(), String> {
     }
 }
 
+/// The exact attempt a trigger decision is recorded against.
+struct Attempt<'a> {
+    organization: &'a str,
+    request: &'a PipelineRequest,
+    identity: &'a str,
+    config_identity: &'a str,
+    now_ms: u64,
+}
+
+// r[impl kiln.triggers.record]
+/// Evaluate a request's source event against the plan's trigger filters.
+/// `Ok(Some(..))` is the matched trigger and its reasons for the run record;
+/// `Ok(None)` means no event (unchanged behaviour). An event no trigger admits
+/// is recorded durably as a `skipped` attempt naming each excluding filter,
+/// with no finance reservation and no process, and returned as `Err(record)`.
+fn trigger_gate(
+    db: &Connection,
+    attempt: &Attempt<'_>,
+    plan: &crate::pipelines::CompiledPipeline,
+    workspace: &Path,
+) -> Result<Result<Option<Value>, Value>, String> {
+    let Some(event) = &attempt.request.event else {
+        return Ok(Ok(None));
+    };
+    match crate::pipelines::select_trigger(plan, event, workspace)? {
+        kiln_core::trigger_filter::Selection::Matched {
+            index,
+            event,
+            reasons,
+        } => Ok(Ok(Some(
+            json!({"index":index,"event":event,"reasons":reasons}),
+        ))),
+        kiln_core::trigger_filter::Selection::Excluded { exclusions } => {
+            let request = attempt.request;
+            let record = json!({"attempt_id":request.attempt_id,"pipeline":request.pipeline_id,"state":"skipped","excluded":exclusions});
+            db.execute(
+                "INSERT INTO hosted_execution VALUES(?1,?2,?3,?4,?5,?6,'','skipped',?7,?8)",
+                params![
+                    attempt.organization,
+                    request.project,
+                    request.attempt_id,
+                    request.pipeline_id,
+                    attempt.identity,
+                    attempt.config_identity,
+                    crate::sqlite_integer(attempt.now_ms)?,
+                    record.to_string()
+                ],
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(Err(record))
+        }
+    }
+}
+
 // r[impl kiln.hosted.execution]
 /// Real pipeline entry point. Compiled commands come only from the reviewed plan,
 /// finance reserves before the first child can start, and retries never rerun an
@@ -494,18 +573,31 @@ pub fn run_pipeline(
         }
         return result.map(|r|serde_json::from_str(&r).map_err(|e|e.to_string())).unwrap_or_else(||Ok(json!({"attempt_id":request.attempt_id,"state":state,"uncertain":true,"rerun":false})));
     }
+    let attempt = Attempt {
+        organization: &actor.organization,
+        request: &request,
+        identity: &identity,
+        config_identity: &config_id,
+        now_ms,
+    };
+    let trigger = match trigger_gate(db, &attempt, &plan, &work)? {
+        Ok(trigger) => trigger,
+        Err(skipped) => return Ok(skipped),
+    };
     if plan.jobs.is_empty() || plan.jobs.len() > 128 {
         return Err("pipeline execution size rejected".into());
     }
     let mut maximum_ms = 0_u64;
     let mut step_count = 0_usize;
     let mut operator_maximum = u64::MAX;
+    let mut hold_reserve_ms = 0_u64;
     for job in &plan.jobs {
         let backend = config
             .runners
             .get(&job.runner)
             .ok_or_else(|| format!("runner '{}' has no reviewed backend mapping", job.runner))?;
         admit_backend(backend, &request.trust)?;
+        admit_untrusted_runner(backend, request.untrusted.as_ref())?;
         if request.trust == "trusted"
             && !config
                 .trusted_projects
@@ -542,7 +634,16 @@ pub fn run_pipeline(
             .checked_add(job.timeout_ms)
             .and_then(|v| v.checked_add(20_000))
             .ok_or("pipeline deadline overflow")?;
+        // At most one job per attempt fails (later jobs are skipped), so one
+        // grace covers every hold; zero unless a hold is possible at all.
+        hold_reserve_ms = hold_reserve_ms.max(kiln_microvm::debug_hold::reserve_ms(
+            debug_hold_policy(backend),
+            hold_grants(&config, &actor.organization, &request, &job.runner),
+        ));
     }
+    maximum_ms = maximum_ms
+        .checked_add(hold_reserve_ms)
+        .ok_or("pipeline deadline overflow")?;
     if maximum_ms > 3_600_000 {
         return Err("pipeline admission exceeds one-hour capability boundary".into());
     }
@@ -562,7 +663,19 @@ pub fn run_pipeline(
             .ok_or("execution identity length invalid")?
     );
     let tx = db.transaction().map_err(|e| e.to_string())?;
-    check_capacity(&tx, config.maximum_concurrent)?;
+    if let Err(error) = check_capacity(&tx, config.maximum_concurrent) {
+        drop(tx);
+        // r[impl kiln.hosted.microvm.debug_hold.end]
+        // A denied admission is capacity pressure; held VMs give way.
+        if config
+            .runners
+            .values()
+            .any(|backend| debug_hold_policy(backend).is_some_and(|policy| policy.enabled))
+        {
+            crate::debug_hold::record_capacity_pressure(db)?;
+        }
+        return Err(error);
+    }
     tx.execute(
         "INSERT INTO hosted_execution VALUES(?1,?2,?3,?4,?5,?6,?7,'reserved',?8,NULL)",
         params![
@@ -632,11 +745,15 @@ pub fn run_pipeline(
         let bound_job = crate::identity(
             &json!({"attempt":request.attempt_id,"job":job.id,"organization":actor.organization,"project":request.project}),
         )?;
-        let policy = config.workload.iter().find(|p| {
-            p.organization == actor.organization
-                && p.project == request.project
-                && p.runner == job.runner
-        });
+        // r[impl kiln.untrusted.execution]
+        let grants = job_grants(
+            &config,
+            &actor.organization,
+            &request.project,
+            &job.runner,
+            request.untrusted.is_some(),
+        );
+        let policy = grants.workload;
         let job_identity = crate::identity(job)?;
         let cache_now_ms = now_ms
             .checked_add(
@@ -659,7 +776,10 @@ pub fn run_pipeline(
         let mut cache_observation = json!({"outcome":cache_outcome,"duration_ms":null});
         let credential_grants =
             policy.is_some_and(|p| p.audience.is_some() || !p.secrets.is_empty());
-        if credential_grants {
+        if !grants.cache {
+            cache_outcome = "disabled_untrusted";
+            cache_observation = json!({"outcome":cache_outcome,"duration_ms":null});
+        } else if credential_grants {
             cache_outcome = "disabled_secret_grants";
             cache_observation = json!({"outcome":cache_outcome,"duration_ms":null});
         } else if let Some(cache) = &config.cache {
@@ -791,18 +911,25 @@ pub fn run_pipeline(
                     state = "failed";
                     steps.push(json!({"state":"not_dispatched","reason":error}));
                 } else {
+                    let mut grants =
+                        hold_grants(&config, &actor.organization, &request, &job.runner);
+                    // Any delivered credential rules a hold out, whatever its source.
+                    grants.secrets |= !secret_environment.is_empty();
                     let outcome = crate::microvm::run_job(
                         db,
                         &config,
                         &runner,
                         &crate::microvm::Job {
                             organization: &actor.organization,
+                            project: &request.project,
                             attempt: &request.attempt_id,
                             job: &job.id,
+                            runner: &job.runner,
                             workspace: &work,
                             steps: &guest_steps,
                             unit: &unit,
                             timeout_ms: remaining,
+                            grants,
                         },
                         cancellation,
                     );
@@ -976,6 +1103,9 @@ pub fn run_pipeline(
         })
         .collect::<std::collections::BTreeSet<_>>();
     let mut result = json!({"attempt_id":request.attempt_id,"pipeline":request.pipeline_id,"state":state,"elapsed_ms":elapsed_ms,"cleaned":cleanup,"evidence":evidence,"jobs":jobs,"requested_trust":request.trust,"hostile_isolation_claim":false,"operator_qualification_references":qualification_references,"qualification_evidence":"external independent evidence required"});
+    if let (Some(trigger), Some(fields)) = (trigger, result.as_object_mut()) {
+        fields.insert("trigger".into(), trigger);
+    }
     let outcome = canonical_outcome(&result)?;
     if let Some(fields) = result.as_object_mut() {
         fields.insert("canonical_outcome".into(), json!(outcome));
@@ -1033,6 +1163,83 @@ fn reservation_units(maximum_ms: u64, unit_ms: u64, maximum_units: u64) -> Resul
         Err("bounded execution exceeds operator or exact price maximum units".into())
     } else {
         Ok(units)
+    }
+}
+fn debug_hold_policy(backend: &Backend) -> Option<&kiln_microvm::debug_hold::DebugHoldPolicy> {
+    match backend {
+        Backend::Firecracker { debug_hold, .. } => debug_hold.as_ref(),
+        _ => None,
+    }
+}
+/// Hostile trust and approved untrusted pull-request runs are untrusted runs.
+fn untrusted_run(request: &PipelineRequest) -> bool {
+    request.trust != "trusted" || request.untrusted.is_some()
+}
+// r[impl kiln.untrusted.execution]
+/// Untrusted runs dispatch only to declared untrusted-capable microVM runners,
+/// checked for every job before any reservation or effect.
+fn admit_untrusted_runner(
+    backend: &Backend,
+    untrusted: Option<&kiln_core::untrusted::UntrustedProvenance>,
+) -> Result<(), String> {
+    let Some(provenance) = untrusted else {
+        return Ok(());
+    };
+    if !provenance.admit() {
+        return Err("untrusted run provenance invalid".into());
+    }
+    match backend {
+        Backend::Firecracker {
+            untrusted_capable: true,
+            ..
+        } => Ok(()),
+        _ => Err("untrusted run requires an untrusted-capable microVM runner".into()),
+    }
+}
+/// Credentials and cache one job may receive.
+struct JobGrants<'a> {
+    /// Workload policy delivering secrets and `KILN_WORKLOAD_TOKEN`.
+    workload: Option<&'a WorkloadPolicy>,
+    /// Cache restore and publication.
+    cache: bool,
+}
+// r[impl kiln.untrusted.execution]
+/// Untrusted runs, and every retry attempt of one, get no workload policy (so
+/// no secret environment and no workload token) and no cache; there is no
+/// per-run override. Trusted jobs keep the reviewed workload lookup.
+fn job_grants<'a>(
+    config: &'a Config,
+    organization: &str,
+    project: &str,
+    runner: &str,
+    untrusted: bool,
+) -> JobGrants<'a> {
+    let grants = kiln_core::untrusted::execution_grants(untrusted);
+    let policy = config
+        .workload
+        .iter()
+        .find(|p| p.organization == organization && p.project == project && p.runner == runner);
+    JobGrants {
+        workload: policy.filter(|_| grants.secrets && grants.workload_token),
+        cache: grants.cache_restore && grants.cache_publish,
+    }
+}
+// r[impl kiln.hosted.microvm.debug_hold.lifecycle]
+/// Credential and trust facts that rule out a debug hold for one job; the
+/// same workload policy lookup that later delivers its credentials.
+fn hold_grants(
+    config: &Config,
+    organization: &str,
+    request: &PipelineRequest,
+    runner: &str,
+) -> kiln_microvm::debug_hold::Grants {
+    let policy = config.workload.iter().find(|p| {
+        p.organization == organization && p.project == request.project && p.runner == runner
+    });
+    kiln_microvm::debug_hold::Grants {
+        secrets: policy.is_some_and(|p| !p.secrets.is_empty()),
+        workload_token: policy.is_some_and(|p| p.audience.is_some()),
+        untrusted: untrusted_run(request),
     }
 }
 fn check_capacity(db: &Connection, maximum: u32) -> Result<(), String> {
@@ -1637,6 +1844,9 @@ pub fn handle(
             };
             Ok(json!({"attempts":rows,"next_after":next}))
         }
+        "debug_issue" | "debug_exec" | "debug_release" | "debug_list" => {
+            crate::debug_hold::handle(db, actor, action, input)
+        }
         "run" => run_pipeline(
             db,
             actor,
@@ -1660,9 +1870,14 @@ pub fn handle(
             crate::accounts::require_project(db, actor, &lookup.project, roles)?;
             let (state,unit,result):(String,String,Option<String>)=db.query_row("SELECT state,unit,result FROM hosted_execution WHERE org=?1 AND project=?2 AND attempt=?3",params![actor.organization,lookup.project,lookup.attempt_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|"execution attempt absent")?;
             if action == "get" {
-                return Ok(
-                    json!({"attempt_id":lookup.attempt_id,"state":state,"result":result.and_then(|r|serde_json::from_str::<Value>(&r).ok())}),
-                );
+                let mut got = json!({"attempt_id":lookup.attempt_id,"state":state,"result":result.and_then(|r|serde_json::from_str::<Value>(&r).ok())});
+                // r[impl kiln.hosted.microvm.debug_hold.sessions]
+                // While a job is held, the attempt's log ends with how to connect.
+                let holds = crate::debug_hold::active(db, &actor.organization, &lookup.attempt_id)?;
+                if let (false, Some(fields)) = (holds.is_empty(), got.as_object_mut()) {
+                    fields.insert("debug_holds".into(), json!(holds));
+                }
+                return Ok(got);
             }
             if !["reserved", "running", "unknown"].contains(&state.as_str()) {
                 return Err("no uncertain execution to recover".into());
@@ -1674,6 +1889,7 @@ pub fn handle(
                 // The owned unit held every VM of this attempt; its empty cgroup
                 // retires any VM whose destruction was not yet observed.
                 db.execute("UPDATE hosted_microvm_job SET lifecycle='reaped' WHERE org=?1 AND attempt=?2 AND lifecycle<>'destroyed'",params![actor.organization,lookup.attempt_id]).map_err(|e|e.to_string())?;
+                crate::debug_hold::end_attempt(db, &actor.organization, &lookup.attempt_id)?;
             }
             Ok(
                 json!({"attempt_id":lookup.attempt_id,"cleaned":cleaned,"state":if cleaned {"reaped_unknown"} else {"unknown"},"financial_obligation":"reserved","rerun":false}),
@@ -1830,6 +2046,64 @@ mod tests {
         assert!(unknown.is_err(), "unknown backend fields are rejected");
     }
 
+    // r[verify kiln.hosted.microvm.debug_hold.policy]
+    // r[verify kiln.hosted.microvm.debug_hold.policy.scenario.bounds]
+    // r[verify kiln.hosted.microvm.debug_hold.policy.scenario.disabled]
+    #[test]
+    fn debug_hold_is_bounded_and_absent_keeps_the_configuration_identity() {
+        let plain = firecracker_config(firecracker_backend(json!({})), None);
+        let reserialized: Config = serde_json::from_value(
+            serde_json::to_value(&plain).unwrap_or_else(|error| unreachable!("{error}")),
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let identity = crate::identity(&plain).unwrap_or_default();
+        assert_eq!(crate::identity(&reserialized).unwrap_or_default(), identity);
+        assert!(
+            !serde_json::to_string(&plain)
+                .unwrap_or_default()
+                .contains("debug_hold"),
+            "an absent option is never serialized"
+        );
+        let enabled =
+            json!({"debug_hold": {"enabled": true, "grace_seconds": 300, "max_concurrent": 2}});
+        let held = firecracker_config(firecracker_backend(enabled), None);
+        assert_eq!(admit(&held), Ok(()));
+        assert_ne!(crate::identity(&held).unwrap_or_default(), identity);
+        for rejected in [
+            json!({"debug_hold": {"enabled": true, "grace_seconds": 0, "max_concurrent": 1}}),
+            json!({"debug_hold": {"enabled": true, "grace_seconds": 901, "max_concurrent": 1}}),
+            json!({"debug_hold": {"enabled": true, "grace_seconds": 60, "max_concurrent": 0}}),
+            json!({"debug_hold": {"enabled": true, "grace_seconds": 60, "max_concurrent": 3}}),
+            json!({"debug_hold": {"enabled": false, "grace_seconds": 901, "max_concurrent": 1}}),
+        ] {
+            let config = firecracker_config(firecracker_backend(rejected.clone()), None);
+            assert!(admit(&config).is_err(), "{rejected}");
+        }
+        let override_field = serde_json::from_value::<Backend>(firecracker_backend(json!({
+            "debug_hold": {"enabled": true, "grace_seconds": 60, "max_concurrent": 1, "allow_secrets": true}
+        })));
+        assert!(override_field.is_err(), "no override field exists");
+        // Hold time is reserved only when a hold is possible at all.
+        let policy = debug_hold_policy(held.runners.get("vm").unwrap_or_else(|| unreachable!()));
+        let request: PipelineRequest = serde_json::from_value(json!({
+            "project": "app", "pipeline_id": "p", "attempt_id": "a", "price_id": "x",
+            "class": "c", "workspace": "w", "trust": "trusted",
+        }))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let grants = hold_grants(&held, "acme", &request, "vm");
+        assert_eq!(
+            kiln_microvm::debug_hold::reserve_ms(policy, grants),
+            300_000
+        );
+        let hostile = PipelineRequest {
+            trust: "hostile".into(),
+            ..request
+        };
+        let grants = hold_grants(&held, "acme", &hostile, "vm");
+        assert!(grants.untrusted);
+        assert_eq!(kiln_microvm::debug_hold::reserve_ms(policy, grants), 0);
+    }
+
     // r[verify kiln.hosted.qualification.scenario.nonclaims]
     #[test]
     fn firecracker_admits_hostile_only_with_an_operator_qualification_reference() {
@@ -1842,6 +2116,102 @@ mod tests {
         ))
         .unwrap_or_else(|error| unreachable!("{error}"));
         assert!(admit_backend(&qualified, "hostile").is_ok());
+    }
+
+    fn untrusted_request(attempt: &str) -> PipelineRequest {
+        serde_json::from_value(json!({
+            "project": "app", "pipeline_id": "ci", "attempt_id": attempt, "price_id": "standard",
+            "class": "small", "workspace": "pr-7", "trust": "hostile",
+            "untrusted": {"reason": "fork", "source_commit": "1".repeat(40), "approver_id": "local:operator"},
+        }))
+        .unwrap_or_else(|error| unreachable!("fixture request parses: {error}"))
+    }
+
+    // r[verify kiln.untrusted.execution]
+    // r[verify kiln.untrusted.execution.scenario.retry]
+    #[test]
+    fn untrusted_attempts_and_retries_get_no_secrets_token_or_cache() {
+        let mut config = firecracker_config(
+            firecracker_backend(json!({"untrusted_capable": true})),
+            Some("vm"),
+        );
+        config.workload = vec![WorkloadPolicy {
+            organization: "acme".into(),
+            project: "app".into(),
+            runner: "vm".into(),
+            audience: Some("https://registry.example".into()),
+            secrets: vec![SecretEnvironment {
+                environment: "DEPLOY_TOKEN".into(),
+                name: "deploy".into(),
+                revision: 1,
+            }],
+        }];
+        // Trusted jobs keep the reviewed workload grant (secrets, audience).
+        let trusted = job_grants(&config, "acme", "app", "vm", false);
+        assert!(
+            trusted
+                .workload
+                .is_some_and(|p| p.audience.is_some() && !p.secrets.is_empty())
+        );
+        assert!(trusted.cache);
+        // The approved run and its retry attempt: no workload policy means the
+        // credential step resolves no secret and mints no KILN_WORKLOAD_TOKEN,
+        // and no cache restore runs, so no publication receipt can exist.
+        for attempt in ["approved-1", "approved-1-retry-1"] {
+            let request = untrusted_request(attempt);
+            assert!(untrusted_run(&request));
+            let grants = job_grants(&config, "acme", "app", "vm", request.untrusted.is_some());
+            assert!(grants.workload.is_none(), "{attempt}");
+            assert!(!grants.cache, "{attempt}");
+            let hold = hold_grants(&config, "acme", &request, "vm");
+            assert!(hold.untrusted);
+        }
+    }
+
+    // r[verify kiln.untrusted.execution]
+    #[test]
+    fn untrusted_runs_need_a_declared_untrusted_capable_microvm_runner() {
+        let request = untrusted_request("approved-1");
+        let provenance = request.untrusted.as_ref();
+        let declared: Backend =
+            serde_json::from_value(firecracker_backend(json!({"untrusted_capable": true})))
+                .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(admit_untrusted_runner(&declared, provenance).is_ok());
+        let undeclared: Backend = serde_json::from_value(firecracker_backend(json!({})))
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(admit_untrusted_runner(&undeclared, provenance).is_err());
+        // Trusted requests are unaffected by the declaration.
+        assert!(admit_untrusted_runner(&undeclared, None).is_ok());
+        let e = Executable {
+            path: "/missing".into(),
+            blake3: "0".repeat(64),
+        };
+        let namespaces = Backend::Namespaces {
+            unshare: e.clone(),
+            python: e.clone(),
+            mount: e.clone(),
+            shell: e,
+            runtime_roots: vec!["/nix/store".into()],
+        };
+        assert!(admit_untrusted_runner(&namespaces, provenance).is_err());
+        let mut forged = untrusted_request("approved-1");
+        if let Some(untrusted) = forged.untrusted.as_mut() {
+            untrusted.source_commit = "HEAD".into();
+        }
+        assert!(admit_untrusted_runner(&declared, forged.untrusted.as_ref()).is_err());
+        // The declaration is omitted from configuration bytes when absent.
+        let encoded = serde_json::to_value(&undeclared).unwrap_or_default();
+        assert!(encoded.get("untrusted_capable").is_none());
+        let trusted: PipelineRequest = serde_json::from_value(json!({
+            "project": "app", "pipeline_id": "ci", "attempt_id": "a", "price_id": "standard",
+            "class": "small", "workspace": "w", "trust": "trusted",
+        }))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(!untrusted_run(&trusted));
+        assert_eq!(
+            serde_json::to_string(&trusted).unwrap_or_default(),
+            r#"{"project":"app","pipeline_id":"ci","attempt_id":"a","price_id":"standard","class":"small","workspace":"w","trust":"trusted"}"#
+        );
     }
 
     fn namespace_step(name: &str, exit_code: i32, stdout: &str, stderr: &str) -> StepObservation {

@@ -8,6 +8,7 @@
 
 pub mod admission;
 pub mod archive;
+pub mod debug_hold;
 pub mod lifecycle;
 pub mod plan;
 pub mod protocol;
