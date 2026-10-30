@@ -23,7 +23,8 @@
   // r[impl kiln.web.readable_observations]
   // Presentation only: KilnUi (loaded before this script) humanizes times; exact instants stay in title/datetime.
   const ui = () => window.KilnUi;
-  const icon = name => ui()?.icon(name) || document.createTextNode("");
+  const icon = name => ui().icon(name);
+  const toneIcon = tone => ui().statusIcon(tone);
   const human = value => { const text = label(value).trim(); return text ? text[0].toUpperCase() + text.slice(1) : "Not recorded"; };
   function when(ms) {
     const instant = ms == null || ms === "" ? NaN : Number(ms);
@@ -37,10 +38,10 @@
   function pill(value, kind = "State", text = human(value), tone = TONE[String(value)] || "unknown") {
     const span = node("span", null, "status-pill"); span.dataset.status = tone; span.setAttribute("role", "img");
     span.title = `${kind}: ${text} (${value == null || value === "" ? "not recorded" : String(value)})`; span.setAttribute("aria-label", span.title);
-    span.append(icon(tone), node("span", text, "status-pill-label")); return span;
+    span.append(toneIcon(tone), node("span", text, "status-pill-label")); return span;
   }
   const chip = (text, cls = "") => node("span", text, cls ? `chip ${cls}` : "chip");
-  function iconOnly(b, name) { const text = b.textContent; b.setAttribute("aria-label", text); if (!b.title) b.title = text; b.classList.add("icon-button"); b.replaceChildren(icon(name)); return b; }
+  function iconOnly(b, glyph) { const text = b.textContent; b.setAttribute("aria-label", text); if (!b.title) b.title = text; b.classList.add("icon-button"); b.replaceChildren(glyph); return b; }
   // Hard blockers cannot be cleared by review activity alone; other unmet items are outstanding work.
   const BLOCKING_REQUIREMENTS = new Set(["policy", "open", "vetoes", "ownership_files"]);
   function requirements(items) {
@@ -49,7 +50,7 @@
       const [kind, text, tone] = item.satisfied ? ["met", "Met", "success"] : BLOCKING_REQUIREMENTS.has(item.key) ? ["blocked", "Blocked", "failure"] : ["unmet", "Unmet", "warning"];
       const li = node("li", null, "cr-requirement"), body = node("div", null, "cr-requirement-body"), title = node("p", null, "cr-requirement-title");
       li.dataset.requirement = kind; li.dataset.satisfied = String(!!item.satisfied); li.dataset.status = tone;
-      title.append(node("strong", text), ` · ${human(item.key)}`); body.append(title, node("p", item.detail, "cr-muted")); li.append(icon(tone), body); list.append(li);
+      title.append(node("strong", text), ` · ${human(item.key)}`); body.append(title, node("p", item.detail, "cr-muted")); li.append(toneIcon(tone), body); list.append(li);
     }
     return list;
   }
@@ -58,7 +59,7 @@
   // Boundary and non-claim prose stays reachable behind the shared labelled "about" disclosure instead of dominating the data.
   // Each label is unique so draw() can restore its open state across redraws.
   function about(parent, summary, ...items) {
-    const d = node("details", null, "about-view"), body = node("div", null, "about-view-body"); d.append(node("summary", summary), body);
+    const d = node("details", null, "about-view"), body = node("div", null, "about-view-body"); d.append(ui().disclosureSummary(summary, "info"), body);
     for (const item of items) if (item instanceof Node) body.append(item); else if (item) body.append(node("p", item));
     parent.append(d); return d;
   }
@@ -153,7 +154,7 @@
   function contribution() {
     const sources = arr(state.snapshot.contribution_sources);
     if (!sources.length) throw new Error("No contribution branches are admitted for this principal.");
-    const { dialog, close } = modal("Submit a contribution branch for review");
+    const { dialog, close } = modal("Contribute branch for review");
     dialog.append(node("p", "Only configured source branches are admitted. The service resolves the exact immutable tip and configured target, without pushing or moving a real ref.", "cr-muted"));
     const source = field(dialog, "Configured contribution branch", "select", sources[0].source_ref, sources.map(s => [s.source_ref, `${s.source_ref} → ${s.target_ref} · ${short(s.commit)}`]), "contribution-source");
     // Narrow selects clip long option labels, so the selected branch's target and tip also read in full below it.
@@ -162,10 +163,10 @@
     const expected = field(dialog, "Expected exact source commit (clear to resolve branch tip at intake)", "text", sources.find(s => s.source_ref === source.value)?.commit || "", [], "contribution-commit"); expected.autocomplete = "off"; expected.spellcheck = false; expected.classList.add("mono");
     source.addEventListener("change", () => { expected.value = sources.find(s => s.source_ref === source.value)?.commit || ""; state.forms.set(memoryKey("contribution-commit"), expected.value); describe(); }); describe();
     const title = field(dialog, "Title", "text", "", [], "contribution-title"), description = field(dialog, "Description (Markdown supported)", "textarea", "", [], "contribution-description"), wip = field(dialog, "Work in progress", "checkbox", true, [], "contribution-wip");
-    dialogActions(dialog, close).append(writeButton("Confirm branch intake", async () => {
+    dialogActions(dialog, close).append(writeButton("Contribute branch…", async () => {
       if (!title.value.trim()) throw new Error("A contribution title is required.");
       const configured = sources.find(s => s.source_ref === source.value); if (!configured) throw new Error("Select an admitted contribution branch.");
-      const result = await command({ type: "contribute", source_ref: source.value, expected_commit: expected.value.trim() || null, title: title.value.trim(), description: description.value, wip: wip.checked }, null, ["Submit contribution branch", [["Principal", state.context.principal], ["Repository", state.snapshot.repository], ["Source branch", source.value], ["Expected source", expected.value.trim() || "Resolve the configured branch tip at intake; no exact commit precondition"], ["Configured target", configured.target_ref], ["Title", title.value.trim()], ["Description", description.value], ["WIP", String(wip.checked)], ["Effect", "Register review only; no target movement or remote publication"]]]);
+      const result = await command({ type: "contribute", source_ref: source.value, expected_commit: expected.value.trim() || null, title: title.value.trim(), description: description.value, wip: wip.checked }, null, { title: `Contribute branch "${source.value}" for review?`, verb: "Contribute branch", facts: [["Principal", state.context.principal], ["Repository", state.snapshot.repository], ["Source branch", source.value], ["Expected source", expected.value.trim() || "Resolve the configured branch tip at intake; no exact commit precondition"], ["Configured target", configured.target_ref], ["Title", title.value.trim()], ["Description", description.value], ["WIP", String(wip.checked)], ["Effect", "Register review only; no target movement or remote publication"]] });
       if (result) { clearFields("contribution-source", "contribution-commit", "contribution-title", "contribution-description", "contribution-wip"); close(); if (result.change?.id) route({ review_change: result.change.id, review_revision: "" }); }
     }, "primary"));
     source.focus();
@@ -191,19 +192,19 @@
     const c = state.detail?.change;
     if (!c || revision() !== current()?.id || !Array.isArray(state.snapshot?.queue)) return;
     const entry = entries.find(e => e.change === c.id && !["submitted", "cancelled"].includes(e.status));
-    if (entry) card.append(writeButton("Cancel queued automation", () => command({ type: "dequeue" }, c, ["Cancel merge queue entry", [["Principal", state.context.principal], ["Change", c.id], ["Queue entry", entry.id], ["State", entry.status], ["Effect", "Revoke pending automation; an already completed provider effect cannot be undone"]]])));
+    if (entry) card.append(writeButton("Cancel queue entry…", () => command({ type: "dequeue" }, c, { title: `Cancel merge queue entry for "${c.title}"?`, verb: "Cancel queue entry", dismiss: "Keep queued", danger: true, facts: [["Principal", state.context.principal], ["Change", c.id], ["Queue entry", entry.id], ["State", entry.status], ["Effect", "Revoke pending automation; an already completed provider effect cannot be undone"]] })));
     else if (c.state === "open" && state.snapshot?.queue_enabled === false) return;
-    else if (c.state === "open") card.append(writeButton("Authorize CI-bound merge automation", () => {
+    else if (c.state === "open") card.append(writeButton("Authorize merge automation…", () => {
       requireCurrent(); const expected = state.detail.source?.current_target; if (!expected) throw new Error("An exact target observation is required before queue authorization.");
-      return command({ type: "enqueue", expected_target: expected }, c, ["Authorize merge queue automation", [["Principal", state.context.principal], ["Repository", c.repository], ["Change", c.id], ["Exact source revision", current()?.id], ["Exact source commit", current()?.commit], ["Target ref", c.target_ref], ["Currently observed target", expected], ["Automation scope", "Construct a new merge candidate and run required CI on its exact resulting commit. Automatically submit only after all exact-candidate policy checks pass."], ["Target movement authorization", "If this same target ref moves, recompute a new merge candidate using this exact source revision and the new target, run fresh required CI, and submit the resulting merge commit by exact-target CAS. This authorizes those resulting commits, not a single pre-built commit."], ["Bounds", "No source revision change, target-ref change, policy bypass, or reuse of stale CI is authorized. Cancel the queue entry to revoke pending automation."]]]);
+      return command({ type: "enqueue", expected_target: expected }, c, { title: `Authorize merge automation for "${c.title}"?`, verb: "Authorize automation", facts: [["Principal", state.context.principal], ["Repository", c.repository], ["Change", c.id], ["Exact source revision", current()?.id], ["Exact source commit", current()?.commit], ["Target ref", c.target_ref], ["Currently observed target", expected], ["Automation scope", "Construct a new merge candidate and run required CI on its exact resulting commit. Automatically submit only after all exact-candidate policy checks pass."], ["Target movement authorization", "If this same target ref moves, recompute a new merge candidate using this exact source revision and the new target, run fresh required CI, and submit the resulting merge commit by exact-target CAS. This authorizes those resulting commits, not a single pre-built commit."], ["Bounds", "No source revision change, target-ref change, policy bypass, or reuse of stale CI is authorized. Cancel the queue entry to revoke pending automation."]] });
     }));
   }
   function drawSubscriptions(root) {
     if (typeof state.detail?.subscribed !== "boolean") return;
     const c = state.detail.change, deliveries = arr(state.detail.delivery_outcomes);
-    const card = panel(root, "Mentions, subscription and notification delivery", "subscriptions", false, state.detail.subscribed ? "Subscribed" : "Not subscribed");
+    const card = panel(root, "Subscription and delivery", "subscriptions", false, state.detail.subscribed ? "Subscribed" : "Not subscribed");
     about(card, "About mentions and delivery", `Subscription belongs only to authenticated principal ${state.context.principal}. Published @principal or @{principal} mentions request attention; private drafts do not send notifications. External recipients are configured by the operator, never entered here.`);
-    card.append(writeButton(state.detail.subscribed ? "Unsubscribe me" : "Subscribe me", () => command({ type: "subscribe", subscribed: !state.detail.subscribed }, c)));
+    card.append(writeButton(state.detail.subscribed ? "Unsubscribe" : "Subscribe", () => command({ type: "subscribe", subscribed: !state.detail.subscribed }, c)));
     for (const delivery of deliveries) {
       const article = node("article", null, "list-row cr-operation"), head = node("div", null, "cr-row-head"); head.append(pill(delivery.status, "Delivery status"), node("span", human(delivery.notification?.kind), "cr-row-title")); article.append(head);
       facts(article, [["Delivery", delivery.id], ["Notification", delivery.notification?.id], ["Kind", label(delivery.notification?.kind)], ["Actor", delivery.notification?.actor], ["Revision", delivery.notification?.revision], ["Observed status", label(delivery.status)]]);
@@ -234,13 +235,13 @@
     const c = state.detail.change;
     const threads = arr(c.threads).filter(t => t.anchor.revision === current()?.id && t.anchor.side === "revision" && !t.resolved && suggestionText(t) !== null);
     if (!threads.length) return;
-    const card = section(root, "Apply published suggestions as a new immutable revision"), chosen = [];
+    const card = section(root, "Published suggestions"), chosen = [];
     about(card, "About applying suggestions", "A complete fenced suggestion comment replaces its exact inclusive revision-side line range. Only the current change owner may apply it. Batch ranges must not overlap; stale or mismatched source text fails closed in the service. Applying never rewrites an existing revision or advances the target.");
     for (const thread of threads) { const article = node("article", null, "cr-operation"), a = thread.anchor; article.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a))); const pre = node("pre", null, "cr-suggestion"); pre.append(highlighted(suggestionText(thread), a.file)); article.append(pre); facts(disclosure(article, "Exact suggestion identities"), [["Thread", thread.id], ["Revision", a.revision], ["Comparison base", a.base_commit], ["Exact path", a.file], ["Inclusive replacement range", `${a.start_line}–${a.end_line}`]]); const input = field(article, "Select this suggestion", "checkbox", false, [], `suggestion-${thread.id}`); input.disabled = c.owner !== state.context.principal || revision() !== current()?.id; chosen.push({ thread, input }); card.append(article); }
     if (c.owner !== state.context.principal || revision() !== current()?.id) { card.append(node("p", "Select the current revision as its authenticated owner to apply suggestions.", "cr-muted")); return; }
-    card.append(writeButton("Confirm and apply selected suggestions", async () => {
+    card.append(writeButton("Apply selected suggestions…", async () => {
       requireCurrent(); const selected = chosen.filter(s => s.input.checked).map(s => s.thread); if (!selected.length) throw new Error("Select at least one published suggestion.");
-      const result = await command({ type: "apply_suggestions", thread_ids: selected.map(t => t.id) }, c, ["Apply suggestions", [["Author", state.context.principal], ["Change", c.id], ["Exact source revision", current()?.id], ["Exact source commit", current()?.commit], ["Replacements", selected.map(t => `${t.id}\n${t.anchor.file}:${t.anchor.start_line}–${t.anchor.end_line}\n${suggestionText(t)}`).join("\n\n")], ["Effect", "Create a new immutable current review revision. Existing votes and reviewed-file marks do not authorize the new revision; target ref remains unchanged."]]]);
+      const result = await command({ type: "apply_suggestions", thread_ids: selected.map(t => t.id) }, c, { title: `Apply ${selected.length} suggestion${selected.length === 1 ? "" : "s"} to "${c.title}"?`, verb: selected.length === 1 ? "Apply suggestion" : "Apply suggestions", facts: [["Author", state.context.principal], ["Change", c.id], ["Exact source revision", current()?.id], ["Exact source commit", current()?.commit], ["Replacements", selected.map(t => `${t.id}\n${t.anchor.file}:${t.anchor.start_line}–${t.anchor.end_line}\n${suggestionText(t)}`).join("\n\n")], ["Effect", "Create a new immutable current review revision. Existing votes and reviewed-file marks do not authorize the new revision; target ref remains unchanged."]] });
       if (result) { clearFields(...selected.map(t => `suggestion-${t.id}`)); route({ review_revision: "", review_base: "base", review_file: "", review_side: "", review_line: "" }); }
     }));
   }
@@ -258,10 +259,10 @@
   // Secondary panels collapse; their open state survives redraws through data-cr-section.
   function panel(parent, title, key, open = false, badge = null) {
     const d = node("details", null, "card cr-panel"), summary = node("summary"), body = node("div", null, "cr-panel-body"); d.dataset.crSection = key; d.open = open;
-    summary.append(node("h3", title)); if (badge) summary.append(chip(badge, "cr-count")); summary.append(icon("chevron")); summary.addEventListener("click", () => { d.dataset.crTouched = "true"; });
+    summary.append(node("h3", title)); if (badge) summary.append(chip(badge, "cr-count")); summary.append(icon("chevron-down")); summary.addEventListener("click", () => { d.dataset.crTouched = "true"; });
     d.append(summary, body); parent.append(d); return body;
   }
-  function disclosure(parent, title) { const d = node("details", null, "cr-disclosure"); d.append(node("summary", title)); const body = node("div", null, "cr-fields"); d.append(body); parent.append(d); return body; }
+  function disclosure(parent, title) { const d = node("details", null, "cr-disclosure"); d.append(ui().disclosureSummary(title)); const body = node("div", null, "cr-fields"); d.append(body); parent.append(d); return body; }
   function facts(parent, values) {
     const dl = node("dl", null, "cr-facts");
     for (const [key, value] of values) { const dd = node("dd"); if (value instanceof Node) dd.append(value); else dd.textContent = value == null || value === "" ? "Not recorded" : String(value); dl.append(node("dt", key), dd); }
@@ -290,30 +291,34 @@
     if (JSON.stringify(next) !== JSON.stringify(state.route)) load(state.container, { ...state.context, route: next });
   }
   function href(patch) { const q = new URLSearchParams(window.location.search); q.set("page", "code-review"); for (const [k, v] of Object.entries(patch)) v == null || v === "" ? q.delete(k) : q.set(k, String(v)); return `?${q}`; }
+  function backLink() { const a = link("All changes", ALL_CHANGES, "cr-back"); a.prepend(icon("arrow-left")); return a; }
   function link(text, patch, cls) { const a = node("a", text, cls); a.href = href(patch); a.addEventListener("click", event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); route(patch); } }); return a; }
   function changeLink(id, text = id) { return link(text, { review_change: id, review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" }); }
-  function modal(title) {
-    const dialog = node("dialog", null, "cr-dialog"); const heading = node("h2", title); heading.id = `cr-${crypto.randomUUID()}`; dialog.setAttribute("aria-labelledby", heading.id);
-    const opener = document.activeElement;
-    const close = () => { dialog.close(); dialog.remove(); state.dialogs.delete(dialog); const target = opener?.isConnected ? opener : state.container?.querySelector("button"); target?.focus({ preventScroll: true }); };
-    const header = node("div", null, "cr-toolbar cr-dialog-head"); header.append(heading, iconOnly(button("Close", close, "quiet"), "close")); dialog.append(header); dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
-    document.body.append(dialog); state.dialogs.add(dialog); dialog.showModal(); return { dialog, close };
+  // r[impl kiln.web.design_system]
+  // One overlay at a time: a confirmation hides the dialog that raised it and reopens it on dismissal, then focus returns to the trigger.
+  function modal(title, alert = false) {
+    const dialog = node("dialog", null, "cr-dialog"); const heading = node("h2", title); heading.id = `cr-${crypto.randomUUID()}`; dialog.setAttribute("aria-labelledby", heading.id); if (alert) dialog.setAttribute("role", "alertdialog");
+    const opener = document.activeElement, covered = Array.from(state.dialogs).at(-1);
+    const close = () => { dialog.close(); dialog.remove(); state.dialogs.delete(dialog); if (covered?.isConnected && !covered.open && state.dialogs.has(covered)) covered.showModal(); const target = opener?.isConnected ? opener : state.container?.querySelector("button"); target?.focus({ preventScroll: true }); };
+    const header = node("div", null, "cr-toolbar cr-dialog-head"); const closer = iconOnly(button("Close", close, "quiet"), icon("x")); closer.removeAttribute("title"); header.append(heading, closer); dialog.append(header); dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
+    document.body.append(dialog); state.dialogs.add(dialog); if (covered?.open) covered.close(); dialog.showModal(); return { dialog, close };
   }
-  async function confirmAction(title, values) {
+  // Confirmation names the object and the verb: the title asks the decision, the commit repeats the verb, the dismissal keeps the current state.
+  async function confirmAction({ title, verb, facts: values, dismiss = "Cancel", danger = false }) {
     return new Promise(resolve => {
-      const { dialog, close } = modal(title); facts(dialog, values);
-      dialog.append(node("p", "Confirm these exact values and the explicitly described authorization scope. Nothing outside that scope is authorized.", "cr-text"));
+      const { dialog, close } = modal(title, true); facts(dialog, values);
+      dialog.append(node("p", "Only these exact values and the scope they describe are authorized.", "cr-muted"));
       let settled = false;
       const finish = value => { if (settled) return; settled = true; close(); resolve(value); };
       dialog.addEventListener("close", () => { if (!settled) { settled = true; resolve(false); } });
-      const actions = node("div", null, "cr-toolbar cr-dialog-actions"); actions.append(button("Cancel", () => finish(false), "quiet"), button(`Confirm ${title.toLowerCase()}`, () => finish(true), "primary")); dialog.append(actions);
+      const actions = node("div", null, "cr-toolbar cr-dialog-actions"), keep = button(dismiss, () => finish(false), "quiet"); actions.append(keep, button(verb, () => finish(true), danger ? "danger" : "primary")); dialog.append(actions); keep.focus();
     });
   }
   async function command(action, change = state.detail?.change, confirmation = null) {
     if (!writable()) throw new Error("Review writes are not admitted for this principal, or another command is pending.");
     const epoch = state.epoch, id = selected(), context = state.context;
     const captured = change ? { id: change.id, version: change.version } : null;
-    if (confirmation && !await confirmAction(confirmation[0], confirmation[1])) return null;
+    if (confirmation && !await confirmAction(confirmation)) return null;
     if (!active(epoch, id) || context.principal !== state.context.principal || !writable()) throw new Error("Selection, identity or command availability changed before confirmation. No command was sent.");
     const requestId = crypto.randomUUID(); state.pending = requestId; state.error = ""; drawNotice();
     try {
@@ -359,9 +364,11 @@
   // Access reads as a labelled pill with the exact principal as secondary monospace text; its boundary sentence moves to "About this view".
   const accessText = () => state.snapshot.can_write ? "Review writes admitted" : "Read-only review access";
   function access() {
-    const box = node("div", null, "cr-access"), who = node("span", "as ", "meta");
+    // r[impl kiln.web.design_system] Access is a neutral classification, not an outcome: a plain chip with an icon, never a success tone.
+    const box = node("div", null, "cr-access"), who = node("span", "as ", "cr-muted"), badge = chip("", "cr-access-chip");
+    badge.replaceChildren(icon(state.snapshot.can_write ? "shield-check" : "eye"), node("span", accessText())); badge.dataset.access = state.snapshot.can_write ? "admitted" : "read_only";
     who.append(principalNode(state.context.principal, "cr-principal mono"));
-    box.append(pill(state.snapshot.can_write ? "admitted" : "read_only", "Review access", accessText(), state.snapshot.can_write ? "success" : "unknown"), who); return box;
+    box.append(badge, who); return box;
   }
   function aboutPage(parent) {
     const items = [`Principal ${state.context.principal} · ${accessText()}. CI and provider submission authority are checked separately.`];
@@ -384,8 +391,8 @@
   function listActions() {
     const contributions = arr(state.snapshot.contribution_sources).length > 0;
     headerActions(`list|${state.context.principal}|${state.snapshot.can_write === true}|${contributions}`, group => {
-      if (contributions) group.append(writeButton("Submit contribution branch", contribution, "quiet"));
-      group.append(writeButton("Create change", createChange, "primary"));
+      if (contributions) group.append(writeButton("Contribute branch…", contribution, "quiet"));
+      group.append(writeButton("Create change…", createChange, "primary"));
     });
   }
   function detailHeader() {
@@ -400,7 +407,7 @@
     heading.append(node("h2", c.title, "cr-change-name"), meta, access()); aboutPage(heading);
     const rev = field(actions, "Review revision", "select", revision(), arr(c.revisions).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}${item.id === current()?.id ? " · current" : ""}`]));
     rev.dataset.crKey = "header-revision"; rev.addEventListener("change", () => route({ review_revision: rev.value, review_base: "base", review_file: "", review_side: "", review_line: "" }));
-    header.append(heading, actions); return [link("← All changes", ALL_CHANGES, "cr-back"), header];
+    header.append(heading, actions); return [backLink(), header];
   }
   function draw() {
     const focused = document.activeElement; const key = focused?.dataset?.crKey; const start = focused?.selectionStart, end = focused?.selectionEnd;
@@ -417,8 +424,8 @@
     }
     if (!selected()) { listActions(); begin(aboutPage(document.createDocumentFragment())); drawList(root); }
     else if (state.detail) { headerActions(null); begin(...detailHeader()); drawDetail(root); }
-    else if (!state.error) { headerActions(null); begin(link("← All changes", ALL_CHANGES, "cr-back")); root.append(loading("Loading change…")); }
-    else { headerActions(null); begin(link("← All changes", ALL_CHANGES, "cr-back")); const box = stateBox("Selected change is unavailable", "Retry, or return to the change list. A missing change is never replaced by another."); box.append(button("Retry", refresh, "quiet")); root.append(box); }
+    else if (!state.error) { headerActions(null); begin(backLink()); root.append(loading("Loading change…")); }
+    else { headerActions(null); begin(backLink()); const box = stateBox("Selected change is unavailable", "Retry, or return to the change list. A missing change is never replaced by another."); box.append(button("Retry", refresh, "quiet")); root.append(box); }
     for (const d of root.querySelectorAll("details")) { const k = detailsKey(d); if (opened.has(k) && d.dataset.crForceOpen !== "true") { d.open = opened.get(k); if (d.dataset.crSection) d.dataset.crTouched = "true"; } }
     if (key) { const next = Array.from(root.querySelectorAll("[data-cr-key]")).find(n => n.dataset.crKey === key); if (next) { next.focus({ preventScroll: true }); if (typeof start === "number" && next.setSelectionRange && next.type !== "checkbox" && next.tagName !== "SELECT") { try { next.setSelectionRange(start, end); } catch {} } } }
   }
@@ -435,7 +442,7 @@
     listTitle.id = "cr-changes-title"; list.setAttribute("aria-labelledby", listTitle.id); listHead.append(listTitle, access()); list.append(listHead); main.append(list);
     const search = node("form", null, "toolbar cr-toolbar cr-search"); search.setAttribute("role", "search"); search.setAttribute("aria-label", "Search changes");
     const q = field(search, "Search change text", "search", state.route.review_q || "", [], "search");
-    const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], "open", "abandoned", "submitted"]);
+    const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], ["open", "Open"], ["abandoned", "Abandoned"], ["submitted", "Submitted"]]);
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
     search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_change: "" }); }); list.append(search);
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
@@ -447,7 +454,7 @@
       for (const view of savedViews) {
         const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "");
         const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "" }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
-        li.append(apply, iconOnly(writeButton(`Delete view ${view.name}`, () => command({ type: "delete_view", id: view.id }, null, ["Delete personal view", [["Name", view.name], ["Query", JSON.stringify(view.query)]]]), "quiet"), "close")); list.append(li);
+        li.append(apply, iconOnly(writeButton(`Delete view ${view.name}…`, () => command({ type: "delete_view", id: view.id }, null, { title: `Delete personal view "${view.name}"?`, verb: "Delete view", danger: true, facts: [["Name", view.name], ["Query", JSON.stringify(view.query)]] }), "quiet"), icon("x"))); list.append(li);
       }
       views.append(list);
     }
@@ -479,7 +486,7 @@
       const filtered = !!(state.route.review_q || state.route.review_status || kind !== "all");
       const empty = filtered ? stateBox("No changes match this query", "Adjust the search text, state or personal view.")
         : offset ? stateBox("No changes on this page", "The retained list may have changed. Return to the previous page.")
-        : stateBox("No changes yet", state.snapshot.can_write ? `Use Create change to register an exact local commit for review.${state.snapshot.intake_enabled ? " Submitted contribution branches appear here too." : ""}` : "No change has been registered. Review writes are not admitted for this principal.");
+        : stateBox("No changes yet", state.snapshot.can_write ? `Use Create change… to register an exact local commit for review.${state.snapshot.intake_enabled ? " Submitted contribution branches appear here too." : ""}` : "No change has been registered. Review writes are not admitted for this principal.");
       if (filtered) empty.append(button("Clear filters", () => { clearFields("search"); route({ review_q: "", review_status: "", review_view: "" }); }, "quiet"));
       list.append(empty);
     }
@@ -512,7 +519,7 @@
     if (operationOffset > 0 || state.snapshot.next_operation_offset != null) outstanding.append(pager("Operation pages", "Previous operations", "Next operations", `${operations.length} shown · ${state.snapshot.operations_total ?? 0} outstanding operations`, operationOffset === 0, state.snapshot.next_operation_offset == null, () => route({ review_operation_offset: String(Math.max(0, operationOffset - 100)) }), () => route({ review_operation_offset: String(state.snapshot.next_operation_offset) })));
   }
   function createChange() {
-    const { dialog, close } = modal("Create change from an exact local commit");
+    const { dialog, close } = modal("Create change");
     facts(dialog, [["Project", state.snapshot.project], ["Repository", state.snapshot.repository]]).classList.add("cr-facts-compact");
     const form = node("div", null, "cr-fields"); dialog.append(form);
     const title = field(form, "Title", "text", "", [], "create-title"); title.required = true;
@@ -520,10 +527,10 @@
     const commit = field(form, "Exact immutable commit", "text", "", [], "create-commit"); commit.required = true; commit.autocomplete = "off"; commit.spellcheck = false; commit.classList.add("mono");
     const target = field(form, "Admitted target ref", "select", arr(state.snapshot.target_refs)[0] || "", arr(state.snapshot.target_refs), "create-target");
     const wip = field(form, "Work in progress", "checkbox", true, [], "create-wip");
-    dialog.append(node("p", "Upload registers a locally available commit as a new review. It does not advance the target or publish to a remote provider.", "cr-muted"));
-    dialogActions(dialog, close).append(writeButton("Register change", async () => {
+    dialog.append(node("p", "Registers an exact locally available commit as a new review. The target does not move and nothing is published to a remote provider.", "cr-muted"));
+    dialogActions(dialog, close).append(writeButton("Create change…", async () => {
       if (!title.value.trim() || !commit.value.trim() || !target.value) throw new Error("Title, exact commit and admitted target are required.");
-      const result = await command({ type: "create", title: title.value.trim(), description: description.value, commit: commit.value.trim(), target_ref: target.value, wip: wip.checked }, null, ["Register change", [["Repository", state.snapshot.repository], ["Source commit", commit.value.trim()], ["Target ref", target.value], ["Title", title.value.trim()], ["WIP", String(wip.checked)]]]);
+      const result = await command({ type: "create", title: title.value.trim(), description: description.value, commit: commit.value.trim(), target_ref: target.value, wip: wip.checked }, null, { title: `Create change "${title.value.trim()}"?`, verb: "Create change", facts: [["Repository", state.snapshot.repository], ["Source commit", commit.value.trim()], ["Target ref", target.value], ["Title", title.value.trim()], ["WIP", String(wip.checked)]] });
       if (result) { clearFields("create-title", "create-description", "create-commit", "create-target", "create-wip"); close(); if (result.change?.id) route({ review_change: result.change.id }); }
     }, "primary"));
     title.focus();
@@ -531,7 +538,7 @@
   function drawCi(root) {
     const c = state.detail.change, selectedRevision = arr(c.revisions).find(r => r.id === revision());
     const matching = arr(state.detail.ci_runs).filter(fact => fact.project === c.project && fact.repository === c.repository && fact.revision === selectedRevision?.commit);
-    const card = panel(root, "Canonical CI for the selected exact revision", "ci", true, matching.length ? String(Math.min(matching.length, 25)) : "None");
+    const card = panel(root, "Canonical CI", "ci", true, matching.length ? String(Math.min(matching.length, 25)) : "None");
     about(card, "About canonical CI evidence", "Up to 25 newest exact-source facts retained in this response are shown. Full/clean successful facts and the policy's exact winner evaluation remain checklist authority; a displayed run alone does not authorize submission.");
     facts(card, [["Review revision", selectedRevision?.id], ["Exact source commit", selectedRevision?.commit]]).classList.add("cr-facts-compact");
     for (const fact of matching.slice(0, 25)) {
@@ -563,7 +570,7 @@
     drawSubscriptions(aside); drawOperations(aside); drawAuthorActions(aside);
   }
   function drawIdentity(root) {
-    const c = state.detail.change, count = arr(c.revisions).length, card = panel(root, "Exact identities and revision history", "identity", false, `${count} revision${count === 1 ? "" : "s"}`);
+    const c = state.detail.change, count = arr(c.revisions).length, card = panel(root, "Identities and revisions", "identity", false, `${count} revision${count === 1 ? "" : "s"}`);
     facts(card, [["Stable change", c.id], ["State", `${label(c.state)}${c.wip ? " · Work in progress" : ""}`], ["Owner", c.owner], ["Project / repository", `${c.project} / ${c.repository}`], ["Target ref", c.target_ref], ["Observed target", state.detail.source?.current_target], ["Current revision", current()?.id], ["Current commit", current()?.commit]]);
     const log = node("ol", null, "cr-history");
     for (const item of arr(c.revisions)) { const li = node("li"), meta = node("span", null, "cr-muted"); if (item.id === revision()) li.setAttribute("aria-current", "true"); meta.append(`${item.author} · `, when(item.created_ms)); li.append(link(`Revision ${item.number}`, { review_revision: item.id, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, node("code", item.commit)); log.append(li); }
@@ -584,10 +591,11 @@
   function requireCurrent() { if (revision() !== current()?.id) throw new Error("This is a historical revision. Select the current revision before changing review state."); }
   function drawReviewers(root) {
     const c = state.detail.change, entries = Object.entries(c.reviewers || {}), card = panel(root, "Reviewers, CC and attention", "reviewers", true, entries.length ? String(entries.length) : "None");
-    if (entries.length) { const list = node("ul", null, "cr-rows"); for (const [principal, role] of entries) { const li = node("li", null, "list-row"); li.append(principalNode(principal, "cr-row-title cr-principal"), chip(human(role)), iconOnly(writeButton(`Remove ${principal}`, () => command({ type: "set_reviewer", principal, role: null }, c), "quiet"), "close")); list.append(li); } card.append(list); }
+    if (entries.length) { const list = node("ul", null, "cr-rows"); for (const [principal, role] of entries) { const li = node("li", null, "list-row"); li.append(principalNode(principal, "cr-row-title cr-principal"), chip(human(role)), iconOnly(writeButton(`Remove ${principal}`, () => command({ type: "set_reviewer", principal, role: null }, c), "quiet"), icon("x"))); list.append(li); } card.append(list); }
     else card.append(node("p", "No reviewers or CC requested.", "cr-muted"));
-    const form = node("div", null, "toolbar cr-toolbar"); const principal = field(form, "Principal", "text", "", [], "reviewer-principal"); const role = field(form, "Role", "select", "reviewer", ["reviewer", "cc"], "reviewer-role");
-    form.append(writeButton("Request review / add CC", async () => { requireCurrent(); if (!principal.value.trim()) throw new Error("A principal is required."); await command({ type: "set_reviewer", principal: principal.value.trim(), role: role.value }, c); clearFields("reviewer-principal"); })); card.append(form);
+    const form = node("div", null, "toolbar cr-toolbar"); const principal = field(form, "Principal", "text", "", [], "reviewer-principal"); const role = field(form, "Role", "select", "reviewer", [["reviewer", "Reviewer"], ["cc", "CC"]], "reviewer-role");
+    const add = writeButton(role.value === "cc" ? "Add CC" : "Request review", async () => { requireCurrent(); if (!principal.value.trim()) throw new Error("A principal is required."); await command({ type: "set_reviewer", principal: principal.value.trim(), role: role.value }, c); clearFields("reviewer-principal"); });
+    role.addEventListener("change", () => { add.textContent = role.value === "cc" ? "Add CC" : "Request review"; }); form.append(add); card.append(form);
     const attentionLine = node("p", "Attention: ", "cr-muted"); arr(c.attention).forEach((p, i) => attentionLine.append(...(i ? [", "] : []), principalNode(p))); if (!arr(c.attention).length) attentionLine.append("No principals"); card.append(attentionLine);
     const attention = node("div", null, "toolbar cr-toolbar"); const who = field(attention, "Attention principal", "text", state.context.principal, [], "attention-principal");
     for (const [text, value, cls] of [["Request attention", true, undefined], ["Clear attention", false, "quiet"]]) attention.append(writeButton(text, () => { requireCurrent(); return command({ type: "set_attention", principal: who.value.trim(), attention: value }, c); }, cls)); card.append(attention);
@@ -607,8 +615,8 @@
     if (c.candidate) facts(card, [["Prepared candidate", c.candidate.id], ["Candidate revision", c.candidate.revision], ["Commit", c.candidate.commit], ["Expected target", c.candidate.target], ["CI run", c.candidate.ci_run]]);
     // One primary action per view: submission when the checklist is ready, otherwise review publication.
     const actions = node("div", null, "cr-actions");
-    actions.append(writeButton("Prepare exact submit candidate", async () => { requireCurrent(); await command({ type: "prepare_submit" }, c); }, ready && !c.candidate ? "primary" : undefined));
-    if (c.candidate) actions.append(writeButton("Submit prepared candidate", () => { requireCurrent(); return command({ type: "submit", candidate_id: c.candidate.id }, c, ["Submit candidate", [["Principal", state.context.principal], ["Repository", c.repository], ["Change", c.id], ["Candidate", c.candidate.id], ["Source revision", c.candidate.revision], ["Source commit", c.candidate.commit], ["Target ref", c.candidate.target_ref], ["Expected target commit", c.candidate.target], ["Dependencies", JSON.stringify(c.candidate.dependencies)]]]); }, ready ? "primary" : undefined));
+    actions.append(writeButton("Prepare candidate", async () => { requireCurrent(); await command({ type: "prepare_submit" }, c); }, ready && !c.candidate ? "primary" : undefined));
+    if (c.candidate) actions.append(writeButton("Submit change…", () => { requireCurrent(); return command({ type: "submit", candidate_id: c.candidate.id }, c, { title: `Submit "${c.title}" to ${c.candidate.target_ref || c.target_ref}?`, verb: "Submit change", facts: [["Principal", state.context.principal], ["Repository", c.repository], ["Change", c.id], ["Candidate", c.candidate.id], ["Source revision", c.candidate.revision], ["Source commit", c.candidate.commit], ["Target ref", c.candidate.target_ref], ["Expected target commit", c.candidate.target], ["Dependencies", JSON.stringify(c.candidate.dependencies)]] }); }, ready ? "primary" : undefined));
     card.append(actions);
     const votes = node("div", null, "cr-subsection"); votes.append(node("h4", "Votes"));
     if (arr(c.votes).length) {
@@ -629,13 +637,13 @@
     about(card, "About stack submission", "Dependencies must be submitted before this change. Follow the links in order, prepare and confirm each candidate independently; target movement requires a fresh checklist. No unchecked batch submission is sent.");
     const list = node("ol", null, "cr-stack"); for (const dep of dependencies) { const li = node("li"); const related = arr(state.detail.stack?.dependencies).find(item => item.id === dep.change); li.append(changeLink(dep.change, related?.title || dep.change), exactId(dep.revision), related ? pill(related.state, "Dependency state") : node("span", "Dependency detail unavailable", "cr-muted")); list.append(li); } const self = node("li"); self.append(node("strong", c.title), pill(c.state, "Change state"), node("span", "Selected change", "cr-muted")); self.setAttribute("aria-current", "true"); list.append(self); card.append(list);
     const required = node("div", null, "cr-tags"); required.append(node("span", "Required by:", "cr-muted")); for (const dep of dependents) required.append(changeLink(dep.id, dep.title)); if (!dependents.length) required.append(node("span", "No dependents observed", "cr-muted")); card.append(required);
-    card.append(writeButton("Start ordered stack submission", orderedStack));
+    card.append(writeButton("Submit stack in order…", orderedStack));
     const edit = disclosure(card, "Edit exact dependency revisions"); const initial = dependencies.map(dep => `${dep.change} ${dep.revision}`).join("\n"); const input = field(edit, "One stable change ID and exact review revision ID per line", "textarea", initial, [], "dependencies");
     edit.append(writeButton("Save dependencies", () => { requireCurrent(); const parsed = input.value.split("\n").filter(line => line.trim()).map(line => { const parts = line.trim().split(/\s+/); if (parts.length !== 2) throw new Error("Every dependency row must contain exactly a change ID and revision ID."); return { change: parts[0], revision: parts[1] }; }); return command({ type: "set_dependencies", dependencies: parsed }, c); }));
   }
   async function orderedStack() {
     const epoch = state.epoch, selectedId = selected(), context = state.context;
-    const { dialog } = modal("Ordered stack submission"); const body = node("div", null, "cr-fields"); dialog.append(body);
+    const { dialog } = modal(`Submit stack for "${state.detail?.change?.title || selectedId}" in order`); const body = node("div", null, "cr-fields"); dialog.append(body);
     const live = () => active(epoch, selectedId) && dialog.isConnected;
     const redraw = async () => {
       const visited = new Map(), visiting = new Set(), ordered = [];
@@ -653,12 +661,12 @@
       await visit(selectedId);
       if (!live()) return;
       body.replaceChildren(node("p", "Each step is freshly evaluated and requires its own exact source/target confirmation. A completed step is never blindly retried. Rebase or update later changes if target movement blocks them.", "cr-muted"));
-      const list = node("ol", null, "cr-stack"); for (const detail of ordered) { const c = detail.change, li = node("li", `${c.title} · ${c.state}`); li.append(node("code", c.id)); list.append(li); } body.append(list);
+      const list = node("ol", null, "cr-stack"); for (const detail of ordered) { const c = detail.change, li = node("li"); li.append(node("span", c.title), pill(c.state, "Change state"), exactId(c.id)); if (c.id === selectedId) li.setAttribute("aria-current", "true"); list.append(li); } body.append(list);
       const next = ordered.find(detail => detail.change.state !== "submitted");
       if (!next) { body.append(node("p", "All changes in this exact stack are observed submitted.", "cr-notice")); return; }
       body.append(node("h3", `Next: ${next.change.title}`)); facts(body, [["Change", next.change.id], ["Source commit", arr(next.change.revisions).at(-1)?.commit], ["Target ref", next.change.target_ref], ["Observed target", next.source?.current_target]]);
       body.append(requirements(next.checklist?.items));
-      const advance = writeButton("Prepare and confirm next stack candidate", async () => {
+      const advance = writeButton("Prepare and submit next…", async () => {
         if (!live()) return;
         const fresh = await context.api(path(next.change.id));
         if (!live()) return;
@@ -669,12 +677,12 @@
         if (!live()) return;
         const c = preparedDetail.change, candidate = c?.candidate;
         if (!candidate) throw new Error("The service returned no exact prepared candidate. No submission was sent.");
-        const submitted = await command({ type: "submit", candidate_id: candidate.id }, c, ["Submit next stack candidate", [["Principal", context.principal], ["Repository", c.repository], ["Change", c.id], ["Candidate", candidate.id], ["Source revision", candidate.revision], ["Source commit", candidate.commit], ["Target ref", candidate.target_ref], ["Expected target commit", candidate.target], ["Dependencies", JSON.stringify(candidate.dependencies)]]]);
+        const submitted = await command({ type: "submit", candidate_id: candidate.id }, c, { title: `Submit "${c.title}" to ${candidate.target_ref || c.target_ref}?`, verb: "Submit change", facts: [["Principal", context.principal], ["Repository", c.repository], ["Change", c.id], ["Candidate", candidate.id], ["Source revision", candidate.revision], ["Source commit", candidate.commit], ["Target ref", candidate.target_ref], ["Expected target commit", candidate.target], ["Dependencies", JSON.stringify(candidate.dependencies)]] });
         if (submitted && live()) await redraw();
       }, "primary");
       if (!next.checklist?.ready) { advance.disabled = true; advance.dataset.crBlocked = "true"; advance.title = "The exact next-step checklist is blocked. Resolve the listed requirements, then refresh stack observations."; }
       body.append(advance);
-      body.append(button("Refresh stack observations", redraw));
+      body.append(button("Refresh stack", redraw));
     };
     body.append(node("p", "Loading exact dependency order…", "cr-muted"));
     try { await redraw(); } catch (error) { if (live()) { body.replaceChildren(node("p", message(error), "cr-notice")); throw error; } }
@@ -684,27 +692,30 @@
     const edit = disclosure(card, "Edit change description and work-in-progress state");
     const title = field(edit, "Title", "text", c.title, [], "edit-title"), description = field(edit, "Description", "textarea", c.description, [], "edit-description");
     edit.append(writeButton("Save description", async () => { requireCurrent(); const result = await command({ type: "edit", title: title.value, description: description.value }, c); if (result) clearFields("edit-title", "edit-description"); }));
-    edit.append(writeButton(c.wip ? "Mark ready for review" : "Mark work in progress", () => command({ type: "set_wip", wip: !c.wip }, c, ["Change WIP state", [["Change", c.id], ["Revision", current()?.id], ["WIP", String(!c.wip)]]])));
+    edit.append(writeButton(c.wip ? "Mark ready for review…" : "Mark work in progress…", () => command({ type: "set_wip", wip: !c.wip }, c, { title: c.wip ? `Mark "${c.title}" ready for review?` : `Mark "${c.title}" as work in progress?`, verb: c.wip ? "Mark ready" : "Mark work in progress", facts: [["Change", c.id], ["Revision", current()?.id], ["WIP", String(!c.wip)]] })));
     const upload = disclosure(card, "Upload a new exact revision"); const commit = field(upload, "Exact local commit", "text", "", [], "upload-commit");
-    upload.append(writeButton("Register new revision", async () => { requireCurrent(); const result = await command({ type: "upload", commit: commit.value.trim() }, c, ["Upload revision", [["Change", c.id], ["Repository", c.repository], ["Previous revision", current()?.id], ["Source commit", commit.value.trim()], ["Target ref", c.target_ref]]]); if (result) { clearFields("upload-commit"); route({ review_revision: "", review_base: "base", review_file: "", review_side: "", review_line: "" }); } }));
+    upload.append(writeButton("Upload revision…", async () => { requireCurrent(); if (!commit.value.trim()) throw new Error("An exact local commit is required."); const result = await command({ type: "upload", commit: commit.value.trim() }, c, { title: `Upload a new revision to "${c.title}"?`, verb: "Upload revision", facts: [["Change", c.id], ["Repository", c.repository], ["Previous revision", current()?.id], ["Source commit", commit.value.trim()], ["Target ref", c.target_ref]] }); if (result) { clearFields("upload-commit"); route({ review_revision: "", review_base: "base", review_file: "", review_side: "", review_line: "" }); } }));
     const lifecycle = node("div", null, "cr-toolbar");
-    if (c.state === "open" || c.state === "abandoned") { const type = c.state === "abandoned" ? "restore" : "abandon"; lifecycle.append(writeButton(human(type), () => command({ type }, c, [human(type), [["Change", c.id], ["Source revision", current()?.id], ["Commit", current()?.commit], ["Target ref", c.target_ref]]]), type === "abandon" ? "danger" : undefined)); } card.append(lifecycle);
+    if (c.state === "open" || c.state === "abandoned") { const type = c.state === "abandoned" ? "restore" : "abandon", verb = `${human(type)} change`; lifecycle.append(writeButton(`${verb}…`, () => command({ type }, c, { title: `${verb} "${c.title}"?`, verb, danger: type === "abandon", facts: [["Change", c.id], ["Source revision", current()?.id], ["Commit", current()?.commit], ["Target ref", c.target_ref]] }), type === "abandon" ? "danger" : undefined)); } card.append(lifecycle);
     const provider = disclosure(card, "Rebase, revert or cherry-pick through the admitted provider");
     provider.append(node("p", `Provider capabilities: ${arr(state.snapshot.capabilities).join(", ") || "No capabilities reported"}. These actions create review revisions or new changes, not unchecked target updates. Unsupported operations are rejected visibly by the service.`, "cr-muted"));
-    const operation = field(provider, "Operation", "select", "rebase", ["rebase", "revert", "cherry_pick"], "maintenance-kind");
+    const OPERATIONS = { rebase: "Rebase", revert: "Revert", cherry_pick: "Cherry-pick" };
+    const operation = field(provider, "Operation", "select", "rebase", Object.entries(OPERATIONS), "maintenance-kind");
     const target = field(provider, "Target ref (cherry-pick)", "select", c.target_ref, arr(state.snapshot.target_refs), "maintenance-target");
     const resultTitle = field(provider, "New change title (revert / cherry-pick)", "text", `Revert ${c.title}`, [], "maintenance-title");
-    provider.append(writeButton("Review and confirm exact operation", async () => {
+    const run = writeButton(`${OPERATIONS[operation.value] || "Run"}…`, async () => {
       requireCurrent(); const epoch = state.epoch, id = selected(), r = current(); const kind = operation.value, targetRef = kind === "cherry_pick" ? target.value : c.target_ref;
       const observation = await state.context.api(`${ROOT}/targets?${new URLSearchParams({ commit: r.commit, target_ref: targetRef })}`);
       if (!active(epoch, id)) return;
       const expected = observation?.source?.current_target;
       if (!expected) throw new Error("The exact current target could not be observed. No provider action was sent.");
       const action = { type: kind, expected_target: expected }; if (kind !== "rebase") action.title = resultTitle.value; if (kind === "cherry_pick") action.target_ref = targetRef;
-      const result = await command(action, c, [label(kind), [["Principal", state.context.principal], ["Repository", c.repository], ["Change", c.id], ["Source revision", r.id], ["Source commit", r.commit], ["Target ref", targetRef], ["Expected target commit", expected], ["Result", kind === "rebase" ? "New revision on this review; target unchanged" : `New change: ${resultTitle.value}; target unchanged`]]]);
+      const verb = OPERATIONS[kind] || label(kind), title = kind === "rebase" ? `Rebase "${c.title}" onto ${targetRef}?` : kind === "revert" ? `Revert "${c.title}" as a new change?` : `Cherry-pick "${c.title}" onto ${targetRef}?`;
+      const result = await command(action, c, { title, verb, facts: [["Principal", state.context.principal], ["Repository", c.repository], ["Change", c.id], ["Source revision", r.id], ["Source commit", r.commit], ["Target ref", targetRef], ["Expected target commit", expected], ["Result", kind === "rebase" ? "New revision on this review; target unchanged" : `New change: ${resultTitle.value}; target unchanged`]] });
       const resultId = result?.operation?.result_change || result?.change?.id;
       if (resultId && resultId !== c.id) route({ review_change: resultId, review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" });
-    }));
+    });
+    operation.addEventListener("change", () => { run.textContent = `${OPERATIONS[operation.value] || "Run"}…`; }); provider.append(run);
   }
   async function loadDiff() {
     const epoch = state.epoch, id = selected(), rev = revision(), base = state.route.review_base || "base", request = ++state.diffRequest;
@@ -738,8 +749,9 @@
     for (const file of comparison.files) {
       const name = filePath(file), row = node("li", null, "cr-file-row"); const a = link(`${file.renamed ? `${file.old_path} → ` : ""}${name}${file.binary ? " · binary" : ""}${file.truncated ? " · truncated" : ""}`, { review_file: name, review_side: "", review_line: "" });
       if (name === shownFile) a.setAttribute("aria-current", "true");
-      const marked = mine(file), mark = writeButton(marked ? "Reviewed" : "Mark reviewed", () => { requireCurrent(); return command({ type: "mark_reviewed", file: name, reviewed: !marked }); }, "quiet cr-mark");
-      mark.dataset.reviewed = String(marked); if (marked) mark.prepend(icon("success"));
+      // r[impl kiln.web.design_system] A toggle: constant label, persistent pressed state, file named in its accessible name.
+      const marked = mine(file), mark = writeButton("Reviewed", () => { requireCurrent(); return command({ type: "mark_reviewed", file: name, reviewed: !marked }); }, "quiet cr-mark");
+      mark.dataset.reviewed = String(marked); mark.setAttribute("aria-pressed", String(marked)); mark.setAttribute("aria-label", `Reviewed: ${name}`); mark.prepend(icon("circle-check"));
       if (revision() !== current()?.id || file.binary || file.truncated || comparison.truncated || !exactWhitespace) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = "Only a complete exact (not whitespace-filtered) textual file on the current revision can be marked reviewed here."; }
       row.append(a, mark); list.append(row);
     }
@@ -774,10 +786,10 @@
     const target = host.querySelector(".cr-line-selected"); if (target) target.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (file.truncated) host.append(node("p", "This file is truncated. Missing text cannot be anchored, and this display cannot certify the whole file as reviewed.", "cr-notice"));
     const related = arr(state.detail.change.threads).filter(thread => thread.anchor.revision === revision() && thread.anchor.base_commit === comparison.old_commit && [file.old_path, file.new_path].includes(thread.anchor.file));
-    if (related.length) { const threads = node("ul", null, "cr-thread-links"); threads.setAttribute("aria-label", "Threads on this file"); for (const thread of related) { const line = thread.anchor.start_line, li = node("li"); const summary = link(`${thread.resolved ? "Resolved" : "Open"}${thread.blocking ? " blocking" : ""} thread · ${thread.anchor.side} ${line}–${thread.anchor.end_line}`, anchorRoute(thread.anchor)); summary.classList.add("cr-thread-link"); summary.dataset.resolved = String(!!thread.resolved); li.append(summary); threads.append(li); } host.append(threads); }
+    if (related.length) { const threads = node("ul", null, "cr-thread-links"); threads.setAttribute("aria-label", "Threads on this file"); for (const thread of related) { const line = thread.anchor.start_line, li = node("li"); const summary = link(`${thread.resolved ? "Resolved" : "Open"}${thread.blocking ? " blocking" : ""} thread · ${thread.anchor.side} ${line}–${thread.anchor.end_line}`, anchorRoute(thread.anchor)); summary.classList.add("cr-thread-link"); summary.dataset.resolved = String(!!thread.resolved); summary.dataset.blocking = String(!!thread.blocking && !thread.resolved); li.append(summary); threads.append(li); } host.append(threads); }
   }
   function drawDiscussion(root) {
-    const c = state.detail.change, card = section(root, "Anchored discussions and private review drafts", "cr-discussion");
+    const c = state.detail.change, card = section(root, "Discussion and drafts", "cr-discussion");
     const threads = arr(c.threads).filter(thread => thread.anchor.revision === revision());
     for (const thread of threads) {
       const article = node("article", null, "cr-thread"), a = thread.anchor, head = node("div", null, "cr-row-head");
@@ -787,7 +799,7 @@
       for (const comment of arr(thread.comments)) { const item = node("div", null, "cr-comment"), byline = node("h4", null, "cr-byline"), author = node("strong"); author.append(principalNode(comment.author)); byline.append(author, " · ", when(comment.created_ms)); item.append(byline, markdown(comment.body)); article.append(item); }
       const actions = node("div", null, "cr-actions");
       const reply = field(article, "Private reply", "textarea", "", [], `reply-${thread.id}`); reply.rows = 2; reply.parentElement.classList.add("cr-reply");
-      actions.append(writeButton("Save private reply draft", async () => { if (!reply.value.trim()) throw new Error("Reply text is required."); const result = await command({ type: "save_draft", anchor: a, thread: thread.id, body: reply.value, blocking: thread.blocking }, c); if (result) { clearFields(`reply-${thread.id}`); draw(); } }));
+      actions.append(writeButton("Save reply draft", async () => { if (!reply.value.trim()) throw new Error("Reply text is required."); const result = await command({ type: "save_draft", anchor: a, thread: thread.id, body: reply.value, blocking: thread.blocking }, c); if (result) { clearFields(`reply-${thread.id}`); draw(); } }));
       actions.append(writeButton(thread.resolved ? "Unresolve" : "Resolve", () => command({ type: "resolve", thread: thread.id, resolved: !thread.resolved }, c), "quiet")); article.append(actions); card.append(article);
     }
     if (!threads.length) card.append(node("p", "No published threads on the selected revision.", "cr-muted"));
@@ -798,7 +810,7 @@
     const choices = state.diff ? [...new Set(state.diff.files.flatMap(f => [f.old_path, f.new_path]).filter(Boolean))] : arr(state.detail.change.revisions).find(r => r.id === revision())?.files || [];
     const grid = node("div", null, "cr-field-grid"); compose.append(grid);
     const file = field(grid, "Exact file", "select", state.route.review_file || choices[0] || "", choices, "draft-file");
-    const side = field(grid, "Side", "select", state.route.review_side || "revision", ["base", "revision"], "draft-side");
+    const side = field(grid, "Side", "select", state.route.review_side || "revision", [["base", "Base"], ["revision", "Revision"]], "draft-side");
     const start = field(grid, "First line", "number", state.route.review_line || 1, [], "draft-start"); start.min = "1"; start.step = "1";
     const end = field(grid, "Last line", "number", state.route.review_line || 1, [], "draft-end"); end.min = "1"; end.step = "1";
     const body = field(compose, "Comment", "textarea", "", [], "draft-body"); const blocking = field(compose, "Blocks submission until resolved", "checkbox", true, [], "draft-blocking");
@@ -813,8 +825,8 @@
       const anchor = { revision: revision(), base_commit: state.diff.old_commit, file: exactPath, side: side.value, start_line: first, end_line: last };
       const result = await command({ type: "save_draft", anchor, thread: null, body: body.value, blocking: blocking.checked }, c);
       if (result) { clearFields("draft-body"); draw(); }
-    }), button("Preview comment Markdown", () => { preview.replaceChildren(markdown(body.value)); }, "quiet"));
-    const drafts = section(card, "My private drafts", "cr-drafts"); const publishIds = [];
+    }), button("Preview Markdown", () => { preview.replaceChildren(markdown(body.value)); }, "quiet"));
+    const drafts = section(card, "My drafts", "cr-drafts"); const publishIds = [];
     for (const draft of arr(state.detail.drafts)) {
       const article = node("article", null, "cr-draft"), a = draft.anchor; const currentDraft = a.revision === current()?.id;
       const draftHead = node("div", null, "cr-row-head"), draftMeta = node("p", "Comment revision ", "cr-muted"); draftMeta.append(exactId(a.revision), " · comparison base ", exactId(a.base_commit));
@@ -822,22 +834,22 @@
       const include = field(article, "Include in atomic publication", "checkbox", a.revision === revision(), [], `publish-${draft.id}`);
       publishIds.push({ id: draft.id, input: include, anchor: a });
       const draftBody = field(article, "Private draft text", "textarea", draft.body, [], `draft-edit-${draft.id}`);
-      const actions = node("div", null, "cr-actions"); actions.append(writeButton("Save draft edits", async () => { const result = await command({ type: "save_draft", id: draft.id, anchor: a, thread: draft.thread, body: draftBody.value, blocking: draft.blocking }, c); if (result) { clearFields(`draft-edit-${draft.id}`); draw(); } }), writeButton("Delete private draft", () => command({ type: "delete_draft", id: draft.id }, c, ["Delete private draft", [["Change", c.id], ["Draft", draft.id], ["Anchor", `${a.file}:${a.start_line}–${a.end_line}`], ["Body", draft.body]]]), "danger")); article.append(actions); drafts.append(article);
+      const actions = node("div", null, "cr-actions"); actions.append(writeButton("Save draft edits", async () => { const result = await command({ type: "save_draft", id: draft.id, anchor: a, thread: draft.thread, body: draftBody.value, blocking: draft.blocking }, c); if (result) { clearFields(`draft-edit-${draft.id}`); draw(); } }), writeButton("Delete draft…", () => command({ type: "delete_draft", id: draft.id }, c, { title: `Delete private draft on ${a.file}:${a.start_line}–${a.end_line}?`, verb: "Delete draft", danger: true, facts: [["Change", c.id], ["Draft", draft.id], ["Anchor", `${a.file}:${a.start_line}–${a.end_line}`], ["Body", draft.body]] }), "danger")); article.append(actions); drafts.append(article);
     }
     if (!arr(state.detail.drafts).length) drafts.append(node("p", "No server-saved private drafts for this principal on this change.", "cr-muted"));
-    const publish = section(card, "Publish review atomically", "cr-publish");
+    const publish = section(card, "Publish review", "cr-publish");
     const eligible = arr(state.snapshot.policy?.eligible_reviewers).includes(state.context.principal) && c.owner !== state.context.principal && c.reviewers?.[state.context.principal] === "reviewer";
     const vote = field(publish, "Vote on the exact current revision", "select", "", eligible ? [["", "No vote"], ["approve", "Approve"], ["needs_revision", "Needs revision"], ["veto", "Veto"], ["abstain", "Abstain"]] : [["", "No vote — requires an eligible requested non-owner reviewer"]], "publish-vote");
     const scope = node("p", "Only saved, selected drafts are published at their own original revision and comparison base. Unsaved editor changes are not included. An optional vote applies only to CURRENT revision ", "cr-muted"); scope.append(exactId(current()?.id), " (", exactId(current()?.commit), "), independently of historical comments."); publish.append(scope);
-    publish.append(writeButton("Publish selected drafts and vote", async () => {
+    publish.append(writeButton("Publish review…", async () => {
       const chosen = publishIds.filter(item => item.input.checked), ids = chosen.map(item => item.id);
       if (!ids.length && !vote.value) throw new Error("Select at least one saved draft or an eligible vote.");
       const savedText = chosen.map(item => `${item.id}\n${arr(state.detail.drafts).find(draft => draft.id === item.id)?.body ?? "Draft unavailable; refresh before publication"}`).join("\n\n");
-      const result = await command({ type: "publish", draft_ids: ids, vote: vote.value || null }, c, ["Publish review", [
+      const result = await command({ type: "publish", draft_ids: ids, vote: vote.value || null }, c, { title: `Publish review on "${c.title}"?`, verb: "Publish review", facts: [
         ["Principal", state.context.principal], ["Change", c.id], ["Vote revision (current)", current()?.id], ["Vote commit (current)", current()?.commit],
         ["Comment anchors", chosen.map(item => `${item.id}: revision ${item.anchor.revision}, base ${item.anchor.base_commit}, ${item.anchor.file}:${item.anchor.start_line}–${item.anchor.end_line} (${item.anchor.side})`).join("\n") || "None"],
         ["Exact saved comment text", savedText || "None"], ["Vote", vote.value || "None"],
-      ]]);
+      ] });
       if (result) { clearFields("publish-vote", ...ids.map(id => `publish-${id}`), ...ids.map(id => `draft-edit-${id}`)); draw(); }
     }, state.detail.checklist?.ready === true ? undefined : "primary"));
   }

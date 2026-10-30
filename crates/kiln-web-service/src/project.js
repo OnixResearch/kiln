@@ -174,10 +174,11 @@
     if (!slot) return;
     if (!project || !ctx.canOperate || typeof ctx.startRun !== "function") { releaseHeader(); return; }
     if (slot.firstElementChild?.dataset.projectAction === project.id) return;
-    const button = element("button", "Run latest", "primary");
+    // r[impl kiln.web.design_system] It opens the start form preselected (more input before dispatch), so it ends in an ellipsis.
+    const button = element("button", "Run latest…", "primary");
     button.type = "button";
     button.dataset.projectAction = project.id;
-    button.title = `Start a run of the latest admitted ${project.reference || "reference"}. Confirmation is required before dispatch.`;
+    button.title = `Open the start form for the latest admitted ${project.reference || "reference"}; nothing is dispatched until you submit it.`;
     button.addEventListener("click", () => ctx.startRun(project.id));
     slot.replaceChildren(button);
   }
@@ -239,7 +240,7 @@
     meta.append(ui().durationElement(validDuration(run.duration_ms)), document.createTextNode(" · "), revision);
     const actions = element("span", undefined, "pp-actions");
     const { logs, pipeline } = runLinks(ctx, projectId, run, label.toLowerCase());
-    if (kind === "failure") logs.prepend(ui().icon("warning"));
+    if (kind === "failure") logs.prepend(ui().icon("triangle-alert"));
     actions.append(logs, pipeline);
     value.append(head, meta, actions);
     tile.append(value);
@@ -260,7 +261,7 @@
       const link = routeLink(ctx, runPatch(projectId, run, "pipeline"), undefined, "pp-timeline-run");
       link.dataset.status = status;
       link.dataset.projectFocus = `timeline:${run.id}`;
-      link.append(ui().icon(status));
+      link.append(ui().statusIcon(status));
       const time = runTime(run);
       const exact = time === null ? "time not recorded" : new Date(time).toISOString();
       link.setAttribute("aria-label", `${label} run, ${timePhrase(run)}, ${shorten(run.id, SHORT_RUN_LENGTH)}`);
@@ -365,7 +366,7 @@
   }
   function runsTable(ctx, projectId, runs, total) {
     const { section, heading } = card("Run history", "pp-runs");
-    const all = routeLink(ctx, { page: "runs", project: projectId, run: "", node: "", view: "", stream: "", q: "", outcome: "", source: "", cursor: "" }, "All runs for this project", "pp-all-runs");
+    const all = routeLink(ctx, { page: "runs", project: projectId, run: "", node: "", view: "", stream: "", q: "", outcome: "", source: "", cursor: "" }, "All runs", "pp-all-runs");
     heading.append(all);
     const shown = runs.slice(0, TABLE_LIMIT);
     const wrap = element("div", undefined, "data-table-wrap");
@@ -392,7 +393,7 @@
       cell("Started", ui().timeElement(safeMs(run.started_at_ms)), "pp-started");
       const actions = element("div", undefined, "project-row-actions");
       const { logs, pipeline } = runLinks(ctx, projectId, run, `run ${shorten(run.id, SHORT_RUN_LENGTH)}`);
-      actions.append(pipeline, logs);
+      actions.append(logs, pipeline);
       cell("Inspect", actions);
       body.append(row);
     }
@@ -425,7 +426,7 @@
         headerAction(ctx, null);
         return page;
       }
-      page.append(emptyState("No retained runs for this project yet", enrolled && ctx.canOperate ? "Use Run latest to start the first source-bound run." : "Runs appear here once this project has executed."));
+      page.append(emptyState("No retained runs for this project yet", enrolled && ctx.canOperate ? "Use Run latest… to start the first source-bound run." : "Runs appear here once this project has executed."));
     } else {
       page.append(healthCard(ctx, project ? { ...project, id } : { id, reference: "", repository: "" }, history.value), trendCard(history.value.runs), runsTable(ctx, id, history.value.runs, history.value.total));
     }

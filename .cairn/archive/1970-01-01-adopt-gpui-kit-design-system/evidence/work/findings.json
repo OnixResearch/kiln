@@ -1,0 +1,88 @@
+{
+  "slice": "work",
+  "guide": "GPUI Kit design-guides.md @ 944803984cf0 (design review, accessibility, interaction states, feedback and overlays, data-heavy, interface language)",
+  "data": "Live retained data: 1 planning record (team \"test\"), 0 issues/requests/views/inbox items; dialogs opened then dismissed, no non-GET sent",
+  "recorded_deviations": [
+    "Header creation command stays `primary` (kiln.web.visual_design requires one primary action per view) although the guide would use a default Button for a command that only opens a form; label ends with an ellipsis.",
+    "Navigation to console routes stays a link (row titles, relationships, planning categories, saved views/favorites, roadmap rows, Use this view, All attention preferences); commands stay buttons.",
+    "44px touch targets at <=60rem; no OS menus or window chrome."
+  ],
+  "pages": {
+    "issues": {
+      "findings": [
+        "Open record shown with a 3px leading-edge bar (guide: selection on the item's own surface, no one-sided bar)",
+        "Row title was a Button that only navigates (web deviation: route navigation must be a link)",
+        "Overdue due date distinguished by colour alone",
+        "Commands opening forms lacked an ellipsis (New issue, Save current view, Edit metadata, Add sub-issue, Set reminder)",
+        "Signed-write confirmation used window.confirm: generic OK/Cancel, no object+verb, browser chrome",
+        "Record commands (Edit, Watch...) sat below facts, links and evidence; Hide list sat alone on its own band above the heading",
+        "Priority 'No priority' badge in the detail eyebrow spent emphasis on an unset value"
+      ],
+      "fixes": [
+        "aria-current row: list-active fill + full inset hairline; multi-selected row: fill + checked box",
+        "Row titles and relationship targets are real links (href keeps open-in-new-tab/history; plain click uses in-app navigate)",
+        "Overdue rows read 'Overdue · due <time>'",
+        "Ellipsis added to every form-opening command; label 'Edit metadata' -> 'Edit…'",
+        "In-page alert dialog: title names verb+object (e.g. Create issue “X”?), commit names the result, 'Keep editing'/'Cancel' dismissal, body keeps principal, object, expected head, each changed field and the non-authority statement; focus returns to the opener",
+        "Commands moved directly under title/description; Hide list joins the close control in the heading's trailing lane",
+        "Priority shown only when set"
+      ]
+    },
+    "inbox": {
+      "findings": ["'Browse my private preferences' was a Button that navigates", "'Attention preferences' opens a form without ellipsis", "Attention-reason badges used the info colour as decoration"],
+      "fixes": ["Navigation link 'All attention preferences'", "'Attention preferences…'", "Attention reasons are neutral badges"]
+    },
+    "planning": {
+      "findings": [
+        "Category tabs were Buttons navigating routes with an underline bar as the selection marker; wrapped into three rows at 320px",
+        "Rows and detail drew an empty 0/0 progress meter for records with no linked scope",
+        "Roadmap card shown even when there are no planning records"
+      ],
+      "fixes": [
+        "Categories are links in one segmented silhouette; selected item is a raised fill; strip scrolls horizontally when narrow with inset focus rings",
+        "No meter without linked records; detail says 'No linked records yet.'",
+        "Roadmap omitted when the current scope has no planning records; roadmap titles are links"
+      ]
+    },
+    "triage": {
+      "findings": ["Dialog commits read 'Persist snooze'/'Persist duplicate'", "'Route / edit request' duplicated Edit", "Accept/Decline confirmed through window.confirm"],
+      "fixes": ["Commits 'Snooze' / 'Mark duplicate', titles 'Snooze “X”' / 'Mark “X” as duplicate'", "Removed the duplicate; help text points to Edit…", "Confirmations 'Accept “X” to backlog?' / 'Decline request “X”?'"]
+    },
+    "saved views": {
+      "findings": ["Saved-view and favorite pills were Buttons navigating routes", "'Use this view' Button navigates", "'Create private/shared copy' opens a form without ellipsis"],
+      "fixes": ["Pills are links with aria-current on the item surface", "'Use this view' is a button-styled link", "Ellipsis added"]
+    },
+    "issue detail": {
+      "findings": ["Reaction chips had no pressed state for 'mine'", "Comment/reaction dialog commits read 'Persist reaction'", "Toggle labels did not predict their result in all surfaces"],
+      "fixes": ["aria-pressed on reaction chips", "'Save reaction', 'Edit comment…', 'React…'", "Watch/Unwatch, Favorite/Remove favorite, Mark read/Mark unread pass the explicit target state"]
+    },
+    "create/edit/other dialogs": {
+      "findings": ["Edit dialog title did not name the record", "Raw rgb backdrop in work.css and work-interaction.css", "Reminder commit 'Persist private reminder'"],
+      "fixes": ["'Edit <kind> “X”'", "Overrides removed; shared dialog::backdrop (var(--overlay)) applies", "'Set reminder'; title 'Set reminder for “X”'"]
+    },
+    "create something else": {
+      "findings": ["A details group of buttons without menu semantics or arrow keys; trigger not visibly pressed while open; stayed open when focus left"],
+      "fixes": ["role=menu/menuitem with roving focus (arrows, Home/End), Escape returns to the trigger, focus-out/Tab closes, aria-expanded synced, open trigger keeps its pressed fill; shared .menu-item rows"]
+    },
+    "row actions menu": {
+      "findings": ["Implemented as a centred modal dialog titled 'Work actions' with a help paragraph (guide: menu, not dialog)", "'Toggle watch…/Toggle favorite…/Mark current head read…' did not predict the result; ellipsis on commands that need no further input", "Trigger announced aria-haspopup=dialog"],
+      "fixes": ["Anchored popover menu (role=menu, arrows/Home/End, Escape/outside click dismiss, focus back to the trigger, flips/clamps inside the viewport; context-menu opens at the pointer)", "Items show row shortcuts (Enter, Space, X) and use the detail's verbs with explicit target state", "aria-haspopup=menu, aria-expanded while open, pressed trigger fill"]
+    },
+    "command palette": {
+      "findings": ["Active option marked with a leading-edge bar", "Create entries open forms without ellipsis", "Pointer cursor on options and summary; non-token .6875rem sizes"],
+      "fixes": ["Active option: list-active fill + full hairline; hover fill only", "'New issue…' etc.", "Default cursor; text-xs token"]
+    },
+    "selection toolbar": {
+      "findings": ["'Set status…/Set priority…/Set assignee…' carried an ellipsis though they only confirm"],
+      "fixes": ["'Set status' / 'Set priority' / 'Set assignee'; confirmations name verb and target, multi-record note retained"]
+    }
+  },
+  "metrics": {
+    "320_light": "issues, inbox, planning, planning&work_kind=team, planning board, triage, workviews, work_kind=personal, planning detail: errors 0, overflow 0, smallTargets []",
+    "320_overlays": "row menu, create-something-else menu, create dialog, palette, quick peek, create confirmation: errors 0, overflow 0, no target under 44px inside the layer",
+    "1440_dark": "same 9 routes: errors 0, overflow 0",
+    "keyboard": "row menu: opens focused on 'Open detail', ArrowDown moves, Escape closes and refocuses 'Actions for Team: test'; create menu: Enter opens to first item, ArrowUp wraps, Escape returns to summary; palette Escape returns to its trigger; confirmation Escape/Keep editing returns focus to 'Create issue', editor Escape returns to 'New issue…'"
+  },
+  "strings_changed_docs_tests": "docs/operator.md: 'New issue' -> 'New issue…' (2 places), confirmation and row-actions sentences added. No tests, scripts or checks asserted any changed string (grep of scripts/*.py, tests/*.mjs, crates/kiln-web-service/tests, checks/).",
+  "icon_requests": []
+}

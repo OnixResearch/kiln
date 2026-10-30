@@ -1,0 +1,92 @@
+{
+  "slice": "review",
+  "guide": "GPUI Kit Design Guides 944803984cf0 (design-guides.md): design review + accessibility checklists, Interaction states, Feedback and overlays, Data-heavy interfaces, Interface language",
+  "owned_files": ["crates/kiln-web-service/src/code-review.js", "crates/kiln-web-service/src/code-review.css"],
+  "also_updated": ["docs/operator.md (header labels)"],
+  "method": "Live list and dialogs reviewed on the real retained service (GET only; every non-GET aborted by the harness, none attempted). The live store has no changes, so detail/diff/panels were verified through the real shell with the real ui.js/icons.js/code-review.js and fixture JSON answering only /api/code-review* (/tmp/kiln-review-fixture.json). Dialogs opened then cancelled.",
+  "web_deviations": [
+    "Header slot #page-primary-action keeps a primary button ('Create change…'): kiln.web.visual_design requires one primary action per view (parent decision), although the guide makes a command that only opens a form a default Button. Inside dialogs primary stays on the commit.",
+    "Navigation to console routes (change titles, revisions, file rows, line permalinks, thread links, 'All changes') stays links.",
+    "44px touch targets at <=60rem kept."
+  ],
+  "pages": {
+    "list_toolbar_views_panels": {
+      "findings": [
+        "BUG: every review dialog failed to open: icon-only buttons asked for Lucide 'close', which is not in icons.list ('Unknown icon: close' in the status notice). Affected Create change, contribution, confirmations, saved-view delete and reviewer removal.",
+        "Header commands that open a form had no ellipsis ('Create change', 'Submit contribution branch').",
+        "Lexicon: 'Submit contribution branch' reused 'Submit', which elsewhere means submitting a change to its target.",
+        "Access state rendered as a success-toned status pill (access is a classification, not an outcome), with no gap before 'as <principal>'.",
+        "Unread notifications marked by a leading info-coloured bar.",
+        "Disclosures ('Save current query as a personal view', exact identities, editors) had no visible disclosure affordance.",
+        "Change table cells were middle-aligned, so column first lines did not share a spine.",
+        "State filter options were lowercase canonical values."
+      ],
+      "fixes": [
+        "Icon-only buttons take icon(\"x\") (now also visible to the reviewed-icon test regex).",
+        "'Create change…' and 'Contribute branch…' (docs/operator.md updated).",
+        "Access is a neutral chip with shield-check/eye icon and flex gap.",
+        "Unread uses weight plus the existing 'Unread' text; no edge bar.",
+        "Disclosures use KilnUi.disclosureSummary (rotating chevron).",
+        "Table cells top-aligned; filter options sentence case."
+      ]
+    },
+    "create_change_and_contribution_dialogs": {
+      "findings": [
+        "Overlay stacking: the form dialog stayed open beneath its confirmation.",
+        "Titles were long phrases; commit labels ('Register change', 'Confirm branch intake') did not match the opening command, and lacked an ellipsis although they lead to a confirmation.",
+        "Body copy said 'Upload registers…' in a Create dialog."
+      ],
+      "fixes": [
+        "modal() hides the covered dialog while a confirmation is open and reopens it on dismissal; Escape/Cancel return focus to the trigger (verified: confirmation → form → header button).",
+        "Titles 'Create change' / 'Contribute branch for review'; commits 'Create change…' / 'Contribute branch…'; body rewritten."
+      ]
+    },
+    "confirmation_copy": {
+      "findings": [
+        "Every confirmation used a generic title and a 'Confirm <title lowercased>' button (for example 'Confirm register change'), plus a ritual 'Confirm these exact values…' sentence.",
+        "Destructive confirmations (dequeue, delete view, delete draft, abandon) used primary styling."
+      ],
+      "fixes": [
+        "confirmAction({ title, verb, facts, dismiss, danger }): title names verb and object, commit repeats the verb, dismissal keeps the state; role=alertdialog; focus starts on the dismissal; danger styling for destructive results. Exact fact rows unchanged.",
+        "Copy: Create change \"<title>\"? / Create change; Contribute branch \"<ref>\" for review? / Contribute branch; Cancel merge queue entry for \"<title>\"? / Cancel queue entry / Keep queued; Authorize merge automation for \"<title>\"? / Authorize automation; Submit \"<title>\" to <target>? / Submit change (also each ordered-stack step); Apply N suggestion(s) to \"<title>\"?; Delete personal view \"<name>\"? / Delete view; Delete private draft on <file:range>? / Delete draft; Publish review on \"<title>\"? / Publish review; Upload a new revision to \"<title>\"? / Upload revision; Abandon|Restore change \"<title>\"?; Mark \"<title>\" ready for review? | as work in progress?; Rebase \"<title>\" onto <ref>? / Revert \"<title>\" as a new change? / Cherry-pick \"<title>\" onto <ref>?",
+        "Triggers end with an ellipsis: Cancel queue entry…, Authorize merge automation…, Submit change…, Submit stack in order…, Prepare and submit next…, Apply selected suggestions…, Publish review…, Delete draft…, Upload revision…, Abandon/Restore change…, Mark … …, Rebase…/Revert…/Cherry-pick… (label follows the operation select).",
+        "Ordered-stack dialog titled 'Submit stack for \"<title>\" in order'; its list shows state pills and marks the selected change."
+      ]
+    },
+    "change_detail_and_diff": {
+      "findings": [
+        "Cards nested inside cards (drafts, publish, submission receipt).",
+        "Leading/trailing edge bars as selection markers: current file row, selected line number, current revision/stack item.",
+        "Hunk headers used the info tone as decoration; open non-blocking and resolved thread links used warning/success fills.",
+        "Notices used a coloured leading bar.",
+        "'Mark reviewed'/'Reviewed' swapped labels instead of showing a persistent pressed state.",
+        "File-list focus rings were clipped by the scrolling list.",
+        "Verbose headings repeated context ('Canonical CI for the selected exact revision', 'Apply published suggestions as a new immutable revision', …); 'Request review / add CC' and 'Subscribe me' labels.",
+        "Upload revision accepted an empty commit into its confirmation."
+      ],
+      "fixes": [
+        "Nested sections are hairline subsections; grid-child buttons no longer stretch.",
+        "Selection uses the item's own fill and weight; forced-colors uses an outline.",
+        "Hunk headers muted; thread links neutral, warning only when unresolved and blocking (data-blocking).",
+        "Notices keep a single uniform border.",
+        "'Reviewed' is an aria-pressed toggle named 'Reviewed: <file>' with an icon whose state is visible.",
+        "File-list controls draw focus inside their own frame.",
+        "Headings: Canonical CI, Published suggestions, Discussion and drafts, Subscription and delivery, Identities and revisions, My drafts, Publish review; 'Request review'/'Add CC' follows the role select; Subscribe/Unsubscribe; select options sentence case.",
+        "Upload revision requires a commit before confirmation."
+      ]
+    }
+  },
+  "metrics": {
+    "live_list_1440_dark": { "errors": 0, "overflow": 0, "non_get": 0, "foreign_requests": 0 },
+    "live_list_320_light": { "errors": 0, "overflow": 0, "smallTargets": 0 },
+    "live_create_dialog_320": { "errors": 0, "dialog_overflow": 0, "smallTargets": 0, "focus_after_escape": "Create change…" },
+    "fixture_list_320 / 1440_dark (all panels open)": { "errors": 0, "overflow": 0, "smallTargets": 0, "primaries": ["Create change…"] },
+    "fixture_detail_320 / 1440_dark (all disclosures open, line selected)": { "errors": 0, "overflow": 0, "smallTargets": 0, "primaries": ["Publish review…"] },
+    "fixture_detail_split_320": { "errors": 0, "overflow": 0, "smallTargets": 0 },
+    "fixture_detail_compact": { "errors": 0, "overflow": 0 },
+    "fixture_confirmations": "dequeue, publish, delete draft, upload, abandon, WIP, submit (candidate variant), stack: titles and buttons as above, Escape restores focus to the trigger",
+    "node_test": "tests/live-console-ui.test.mjs 11/11 pass"
+  },
+  "screenshots": ["review-list-live-1440-dark.png", "review-detail-fixture-1440-dark.png", "review-detail-fixture-320-light.png", "review-confirm-fixture-320-light.png"],
+  "icon_requests": []
+}

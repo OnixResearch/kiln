@@ -1,0 +1,39 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-30",
+  "authority": "Operator selected option 3 (adopt GPUI Kit design system in the web console); deployment follows the established flow for console work.",
+  "package": "/nix/store/km9y7zvd19950m8ivzfqc2mcc79lbl42-kiln-web-service-0.1.0",
+  "executable_blake3": "92c716cba4ae1b1e65e795b7ec4cf7d6362ea34e84c140e8ad20cd74e23cca85",
+  "previous_package": "/nix/store/lznqfrc096af57z88ssx6vxrzn5lh9xw-kiln-web-service-0.1.0",
+  "gates": "nix flake check: all x86_64-linux checks passed; cairn validate valid, traceability 1093/1093, release-readiness valid",
+  "verification": {
+    "assets_identical": 14,
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "retained_runs": 19,
+    "live_pages": {
+      "overview": {
+        "icons": 88,
+        "overflow": 0
+      },
+      "runs": {
+        "icons": 70,
+        "overflow": 0
+      },
+      "work": {
+        "icons": 49,
+        "overflow": 0
+      },
+      "code-review": {
+        "icons": 58,
+        "overflow": 0
+      }
+    },
+    "js_errors": 0
+  },
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}

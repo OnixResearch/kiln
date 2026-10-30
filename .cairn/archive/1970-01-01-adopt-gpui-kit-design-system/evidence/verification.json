@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.design-system-adoption.verification.v1",
+  "date": "2026-10-30",
+  "maintenance_owner": "Kiln web-service maintainers",
+  "decision_trail": "A GPUI Kit WebAssembly spike (scratch ~/.cargo-target/kiln-gpui-spike, not committed) was a no-go. The web backend exposes only an unnamed canvas to screen readers, Tab gets stuck in the table, first load is 3.25 MB brotli versus 0.80 MB, and rows appear about 1.8 s versus 0.29 s. The operator then chose to adopt GPUI Kit's design system in the HTML console.",
+  "provenance": {
+    "source": "GPUI Kit 944803984cf0ba3111861d6e1aa9d6265c109ff9, NAR sha256-/w0H0zmgKPf+8aAFw3BOT8ifKl2xH+wdVKGEbSwXlRM=",
+    "icons": "43 Lucide icons (ISC; Feather-derived icons MIT) imported by scripts/import-lucide-icons.sh into data-only icons.js, with LICENSE-LUCIDE",
+    "reproducibility": "Parent re-ran the import: icons.js and LICENSE-LUCIDE were byte-identical (BLAKE3 check OK). The foundation slice exercised refusal of a mismatched revision.",
+    "inline_svg_remaining_in_web_html": 0
+  },
+  "tokens": "Live-console stylesheets and scripts use the GPUI Kit semantic vocabulary. The mapping table is in the web.css header and docs/operator.md. Legacy var() references across all live-console CSS, JS and HTML: 0. Foundation slice: 0 computed-colour differences against the deployed site over 74 page loads.",
+  "design_guides": {
+    "recorded_web_deviations": [
+      "Navigation to console routes stays a link; rail destinations and run tabs are now real links",
+      "No OS menus or window chrome",
+      "44px mobile touch targets",
+      "The page-header command stays primary, because accepted kiln.web.visual_design requires a single primary action; labels that open a form end with an ellipsis"
+    ],
+    "slice_findings": "evidence/{ci,work,review}/findings.json",
+    "confirmation_copy": "Dialogs name the object and verb, e.g. 'Rerun \"Transactional Reconciliation Core - all-feature conformance\" at the exact revision?' with Cancel and Rerun buttons. Work signed-write confirmations replaced window.confirm with in-page alert dialogs that show the same facts."
+  },
+  "defect_found_and_fixed": "After the foundation slice, every code-review dialog failed with 'Unknown icon: close', because 'close' is not in the Lucide list. The review slice switched to 'x'. The icon-name coverage test was widened to see icon-only call sites, which is how this escaped the test.",
+  "integrated_check": {
+    "routes": "21 routes at 320px light: 0 errors, 0 overflow, 0 targets under 44px. At 1440px dark: 0 errors, 0 overflow, icons rendered (46-88 per page) with 0 unhydrated placeholders.",
+    "dialogs": "Header Rerun on a failed run, New issue… and Create change… each opened and closed with Escape. Opened with the keyboard, the rerun dialog returned focus to #header-rerun on Escape. No non-GET requests.",
+    "tests": "cargo fmt --check; cargo clippy -p kiln-web-service --all-targets -D warnings; cargo test -p kiln-web-service; node --test tests/live-console-ui.test.mjs (11 passed); node --check on all console scripts: passed"
+  }
+}

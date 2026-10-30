@@ -1360,7 +1360,9 @@ integration**, **More work**, **Inspect** and **Administration** groups; labels
 stay available to assistive technology while it is collapsed. **Keep navigation
 expanded** at the bottom pins it open beside the content for this page session
 (the URL is unchanged). Escape collapses an unpinned expansion and returns focus.
-The active page has an acid-yellow icon. Secondary groups open automatically for
+The active page has a selected row fill and an acid-yellow icon. Rail destinations
+and run tabs are links, so they open in a new tab and keep browser history;
+commands stay buttons. Secondary groups open automatically for
 a selected deep link. Existing page URLs remain valid; the Kiln brand returns to
 Issues. The service boundary note (authenticated live service; actions affect the
 configured execution provider; recorded evidence is not acceptance authority)
@@ -1384,6 +1386,67 @@ presentation helpers. `work.css`, `work-interaction.css` and `code-review.css`
 build on the same tokens. These assets are maintained by Kiln's
 web-service/dashboard owners; they do not change the offline catalog or request
 external fonts or image assets.
+
+<!-- r[impl kiln.web.design_system] -->
+<!-- r[impl kiln.web.design_system.scenario.provenance] -->
+<!-- r[impl kiln.web.design_system.scenario.local] -->
+The console follows GPUI Kit's design system at the pinned revision
+`944803984cf0ba3111861d6e1aa9d6265c109ff9` (NAR
+`sha256-/w0H0zmgKPf+8aAFw3BOT8ifKl2xH+wdVKGEbSwXlRM=`). Every icon is a Lucide
+icon from that revision, served from Kiln's own origin at `/icons.js` (loaded
+before `/ui.js`); no icon, font or image is fetched from elsewhere. The reviewed
+names live in `crates/kiln-web-service/src/icons.list`, one per line and sorted.
+To add or change an icon, edit that list and run:
+
+```sh
+scripts/import-lucide-icons.sh
+```
+
+The script resolves the revision with `nix flake metadata`, refuses any revision
+or NAR mismatch, an unsorted list, a name missing from the revision or an SVG
+with unexpected attributes or elements, all before writing anything. It then
+regenerates `icons.js` (data only: `window.KilnIcons` maps each name to element
+descriptors, with the revision, NAR, list BLAKE3 and per-icon source BLAKE3 in
+its header) and copies `LICENSE-LUCIDE` beside it. Repeated runs are
+byte-identical. `KilnUi.icon(name)` builds the decorative SVG (`aria-hidden`,
+not focusable, `currentColor` stroke) and throws for a name that is not in the
+list; `KilnUi.statusIcon(status)` maps run and review states to icons, with
+unrecognised states shown as unknown. Static markup uses
+`<span class="icon" data-icon="name" aria-hidden="true"></span>` placeholders,
+which `ui.js` replaces on load (`KilnUi.hydrateIcons(root)` does the same for
+inserted markup), and `KilnUi.disclosureSummary(label, icon)` builds a
+disclosure summary with its turning chevron.
+
+Colour tokens use GPUI Kit's semantic theme names with dots written as hyphens;
+Kiln's palette values are unchanged. Former names were removed, not aliased:
+
+| Former token | GPUI Kit token | CSS custom property |
+| --- | --- | --- |
+| `--background` | background | `--background` |
+| `--text` | foreground | `--foreground` |
+| `--muted` | muted.foreground | `--muted-foreground` |
+| `--surface-soft` | muted.background; list.active.background; table.head.background | `--muted`; `--list-active` (current row); `--table-head` |
+| `--surface` | secondary.background; popover.background | `--secondary` (controls, raised rows); `--popover` (menus, dialogs) |
+| `--panel` | group_box.background | `--group-box` (panels, cards) |
+| `--surface-hover` | accent.background; list.hover.background | `--accent` (hover); `--list-hover` (rows, navigation, menu items) |
+| `--border` | border | `--border` |
+| `--border-input` | input.border | `--input-border` |
+| `--border-strong` | list.active.border; Kiln extension | `--list-active-border`; `--border-emphasis` |
+| `--sidebar` | sidebar.background | `--sidebar` |
+| `--focus` | ring | `--ring` |
+| `--signal`, `--signal-strong`, `--signal-text` | primary.background, primary.hover.background, primary.foreground | `--primary` (acid yellow), `--primary-hover`, `--primary-foreground` |
+| `--olive` | link; progress.bar.background; syntax string | `--link`; `--progress-bar`; `--syntax-string` |
+| `--accent` | syntax number | `--syntax-number` |
+| `--status-success`, `--status-failure`, `--status-warning`, `--status-running` (and `-bg`) | success, danger, warning, info (and `.background`) | `--success`, `--danger`, `--warning`, `--info` (and `-background`) |
+| `--status-queued`, `--status-cancelled`, `--status-unknown` (and `-bg`) | Kiln extensions | `--queued`, `--cancelled`, `--unknown` (and `-background`) |
+| `--log-background`, `--log-text`, `--log-muted` | editor.background, editor.foreground; Kiln extension | `--editor-background`, `--editor-foreground`, `--editor-muted-foreground` |
+
+Text on a state's `-background` uses the state colour itself, so no separate
+`-foreground` exists for states. `--hero`, `--olive-soft` and `--accent-soft`
+were unused by the live console and were removed. Spacing, type, radius, shadow,
+motion and layout sizes keep their names. The shared `catalog.css` of the
+offline report keeps its own names; one block in `web.css` points those names
+at the semantic tokens for the catalog rules that also style the live console.
 
 <!-- r[impl kiln.web.readable_observations] -->
 Outcomes appear as status pills with an icon and a human label (for example a
@@ -1437,9 +1500,12 @@ workflows. All 19 retained run projections and 546 original configuration, work
 and retained files were preserved; no source publication or lifecycle acceptance
 was performed. Kiln's web-service/dashboard maintainers own these interactions.
 
-Start with **New issue**. Title, description, status and priority are visible;
+Start with **New issue…**. Title, description, status and priority are visible;
 ownership/labels, relationships, dates and CI/source links open in labelled
-disclosures. Creation and editing still confirm exact fields before signed writes.
+disclosures. Creation and editing still confirm exact fields before signed writes:
+the confirmation names the record and the verb (for example **Create issue “…”?**
+with **Create issue** and **Keep editing**) and lists the principal, object, expected
+head and each changed field.
 Each work destination offers its own primary action: requests in Triage, a saved
 view in Saved views, and the selected planning type in Planning. **Create something
 else** retains access to all supported types, including private attention
@@ -1462,7 +1528,7 @@ labels while keeping the canonical value inspectable. The page **Refresh** re-re
 the bounded work snapshot.
 
 <!-- r[impl kiln.web.console_layout] -->
-Work pages use the shared page header: **New issue** (or the destination's own
+Work pages use the shared page header: **New issue…** (or the destination's own
 type) and **Create something else** sit in its action area. Issues, My inbox and
 Requests & triage show the list in a card beside a detail card on wide screens
 and stacked on narrow ones; with nothing selected the detail card reads
@@ -1472,6 +1538,8 @@ only the exact `work_status` URL override (started, backlog, completed or none),
 so it never adds a new status rule; under a saved view with its own status, the
 last segment reads **View default** and clears only the override. Planning and
 board layouts keep full width with card columns; the selected record opens below.
+Each row's **Actions** menu (also right-click or Shift+F10) offers Open detail, Quick
+peek, selection and Watch/Favorite/Mark read, with the same labels as the detail.
 
 
 Overview count chips link to retained run filters; the active count opens busy
@@ -1490,10 +1558,14 @@ selected run opens beside the table (rows then stack compactly); narrower
 screens open it below. **Hide run list** collapses the table beside an open run.
 The run header shows the outcome pill and phase above a facts grid. Open **Exact
 source & execution identities** for complete values, including exact local/UTC
-timestamps. **Rerun** (exact revision) and **Cancel run** appear in the header
+timestamps. **Rerun…** (exact revision) and **Cancel run…** appear in the header
 only when the principal may operate and the run advertises them; they open the
 same exact-identity confirmation as the **Execution actions** disclosure, which
-still holds pause, resume and the other rerun modes. Active runs show elapsed
+still holds pause, resume and the other rerun modes. The confirmation names the
+run and the verb, for example `Cancel run "Kiln — Rust workspace tests"?` with a
+**Cancel run** commit and a **Keep running** dismissal (**Keep queued** for queued
+work, **Keep paused** when resuming, **Cancel** for reruns); its exact facts are
+unchanged. Active runs show elapsed
 time since the recorded start (or Not recorded) and `n of m nodes complete`,
 updated from the live stream; the ticker stops at a terminal state, on leaving
 the run and on session clearing. Opening Logs reads the selected stream
@@ -1516,7 +1588,7 @@ Highlighting is a presentation aid and can miss or over-match lines.
 It shows health and the current outcome streak, a timeline of recent runs
 linking to exact executions, a duration trend over runs with recorded timing
 only (stating how many were excluded), and the last success and last failure
-with Logs links. **Run latest** opens the existing start form preselected and
+with Logs links. **Run latest…** opens the existing start form preselected and
 never dispatches by itself. Project names on the overview, project cards and
 the runs table link here; the overview lists running projects first under
 **In progress & unresolved** with a pulsing (static under reduced motion)
@@ -2420,9 +2492,9 @@ credential provisioning and worker isolation remain operator responsibilities.
   Clearing the session clears all private workflow views. Kiln dashboard
   maintainers own this browser presentation; Lattice retains execution semantics.
   See [bounded rendering evidence](../.cairn/archive/1970-01-01-improve-lattice-rendering/evidence/verification.json).
-- **Rerun exact revision** creates a new source-bound attempt at the selected
-  immutable revision. **Run latest admitted reference** resolves the current
-  reviewed reference into a new candidate. **Retry known failed nodes** selects
+- **Rerun exact revision…** creates a new source-bound attempt at the selected
+  immutable revision. **Run latest admitted reference…** resolves the current
+  reviewed reference into a new candidate. **Retry known failed nodes…** selects
   the failed/downstream subgraph and requires an exact registered provider route;
   missing subset support is rejection, never a full-graph fallback or success.
   Actions require explicit confirmation and fresh selected-run facts.
@@ -2774,8 +2846,9 @@ owned-needs-revision and unresolved views; saved queries and drafts are private
 to the authenticated principal.
 
 <!-- r[impl kiln.web.console_layout] -->
-The page header holds **Create change** and, when branches are admitted, **Submit
-contribution branch**. Search, personal views and the change table share one
+The page header holds **Create change…** and, when branches are admitted,
+**Contribute branch…**; both open a form whose commit asks for a confirmation that
+names the change or branch, for example `Create change "<title>"?`. Search, personal views and the change table share one
 **Changes** card that states the principal's review access. A selected change
 opens with an identity card and revision selector; on wide screens the side
 column, led by the submit requirements, stays in view while the diff scrolls.

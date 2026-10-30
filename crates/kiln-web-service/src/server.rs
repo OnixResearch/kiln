@@ -768,6 +768,8 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         // r[impl kiln.dashboard.cobs.view.scenario.cleared]
         let (content_type, bytes): (&'static str, &[u8]) = match path {
             "/" => ("text/html; charset=utf-8", include_bytes!("web.html")),
+            // r[impl kiln.web.design_system] Pinned Lucide icon data, served from Kiln's own origin.
+            "/icons.js" => ("text/javascript; charset=utf-8", include_bytes!("icons.js")),
             "/ui.js" => ("text/javascript; charset=utf-8", include_bytes!("ui.js")),
             "/web.js" => ("text/javascript; charset=utf-8", include_bytes!("web.js")),
             "/web.css" => ("text/css; charset=utf-8", include_bytes!("web.css")),

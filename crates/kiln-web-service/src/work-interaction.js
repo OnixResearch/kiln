@@ -38,7 +38,7 @@
   const visible = (element) => element.isConnected && !element.closest("[hidden], [inert]") && element.getClientRects().length > 0;
   const rows = () => [...document.querySelectorAll("[data-work-id]")].filter((row) => row.closest(WORK_ROOTS) && visible(row));
   const notify = (error) => bridge()?.notice(errorText(error));
-  const icon = (name) => window.KilnUi?.icon?.(name) || null;
+  const icon = (name) => window.KilnUi.icon(name);
   const humanize = (value) => String(value || "").replaceAll("_", " ").replace(/^./, (first) => first.toUpperCase());
   const kindName = (kind) => kind === "view" ? "Saved view" : kind === "personal" ? "Attention preferences" : humanize(kind);
 
@@ -58,8 +58,7 @@
     const result = button("", action, `icon-button quiet ${className}`.trim());
     result.setAttribute("aria-label", label);
     result.title = label;
-    const glyph = icon(name);
-    if (glyph) result.append(glyph); else result.textContent = label;
+    result.append(icon(name));
     return result;
   }
 
@@ -69,7 +68,7 @@
     heading.id = `${className}-title`;
     result.setAttribute("aria-labelledby", heading.id);
     const header = node("header", undefined, "work-interaction-header");
-    header.append(heading, iconButton("Close", "close", () => result.close(), "work-interaction-close"));
+    header.append(heading, iconButton("Close", "x", () => result.close(), "work-interaction-close"));
     result.append(header);
     // Native modal dialogs make the background inert; keep keyboard focus inside
     // even on browsers whose dialog Tab behavior reaches browser chrome.
@@ -123,7 +122,7 @@
     input.setAttribute("aria-describedby", help.id);
     const field = node("div", undefined, "work-command-field");
     const glass = icon("search");
-    if (glass) field.append(glass);
+    field.append(glass);
     field.append(input);
     const footer = node("div", undefined, "work-command-footer");
     footer.append(hint, shortcuts);
@@ -210,7 +209,7 @@
       ["Go to CI runs", { page: "runs" }], ["Go to retained reviews", { page: "reviews" }],
     ].map(([label, patch]) => ({ label, group: "Go to", detail: "Navigation", run: () => bridge().navigate(patch) }));
     if (writable() && typeof ui()?.create === "function") {
-      for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}`, group: "Create", detail: "Open creation form", run: () => ui().create(kind) });
+      for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}…`, group: "Create", detail: "Open creation form", run: () => ui().create(kind) });
     }
     const filtered = entries.filter((entry) => matches(query, entry.label));
     if (query) {
@@ -335,6 +334,8 @@
     const footer = node("div", undefined, "work-interaction-footer");
     footer.append(button("Open full detail", () => { shell.close(); return ui().open(id); }));
     shell.append(content, footer);
+    // A record link inside the peek navigates; the peek closes so the destination is not hidden behind it.
+    content.addEventListener("click", (event) => { if (event.defaultPrevented && event.target instanceof Element && event.target.closest("a[href]")) shell.close(); });
     shell.addEventListener("close", () => { if (peek === shell) { peekGeneration += 1; peek = null; } shell.remove(); restoreFocus(returnTarget); });
     shell.showModal();
     try {
@@ -402,7 +403,7 @@
     assigneeLabel.append(assignee);
     const actions = node("div", undefined, "work-selection-fields");
     actions.dataset.mutationControls = "true";
-    actions.append(statusLabel, button("Set status…", () => { if (!status.value.trim()) throw new Error("Enter an exact admitted status first."); return bulk({ type: "status", status: status.value.trim() }); }), priorityLabel, button("Set priority…", () => bulk({ type: "priority", priority: Number(priority.value) })), assigneeLabel, button("Set assignee…", () => bulk({ type: "assign", assignee: assignee.value.trim() })));
+    actions.append(statusLabel, button("Set status", () => { if (!status.value.trim()) throw new Error("Enter an exact admitted status first."); return bulk({ type: "status", status: status.value.trim() }); }), priorityLabel, button("Set priority", () => bulk({ type: "priority", priority: Number(priority.value) })), assigneeLabel, button("Set assignee", () => bulk({ type: "assign", assignee: assignee.value.trim() })));
     const header = node("div", undefined, "work-selection-header");
     header.append(count, button("Clear selection", () => { selected.clear(); syncRows(); }, "quiet"));
     toolbar.append(header, actions);
@@ -419,23 +420,78 @@
     for (const control of toolbar.querySelectorAll("[data-mutation-controls] button, [data-mutation-controls] input, [data-mutation-controls] select")) control.disabled = mutationBusy || !writable();
   }
 
-  function showMenu(row) {
-    if (!identity()) return;
-    menu?.close();
+  // r[impl kiln.web.design_system]
+  // Row actions are a real anchored menu, not a dialog: arrow keys/Home/End move, Enter/Space activate, Escape or
+  // an outside click dismisses and focus returns to the trigger. Items show the row shortcut and use the detail's verbs.
+  function personalChoices(who) {
+    const record = (ui()?.objects() || []).filter((item) => item.kind === "personal" && item.fields?.owner === who).sort((a, b) => a.created_at_ms - b.created_at_ms || a.id.localeCompare(b.id))[0];
+    return record?.fields?.personal || { watched: [], read: {}, favorites: [] };
+  }
+  function showMenu(row, anchor = row.querySelector("[data-work-menu]") || row) {
+    const who = identity();
+    if (!who) return;
+    menu?.hidePopover();
     const id = row.dataset.workId;
-    const shell = dialog("Work actions", "work-context-menu");
-    menu = shell;
     const record = ui()?.objects().find((item) => item.id === id);
+    const returnTarget = anchor instanceof Element ? anchor : row;
+    const shell = node("div", undefined, "work-context-menu");
+    shell.popover = "auto";
+    shell.setAttribute("role", "menu");
+    shell.setAttribute("aria-label", `Actions for ${record?.fields?.title || id}`);
+    menu = shell;
+    let activated = false;
     shell.append(node("p", record?.fields?.title || id, "work-context-title"));
-    const act = (action) => () => { shell.close(); return action(); };
-    const item = (label, action) => button(label, act(action), "quiet work-menu-item");
-    shell.append(item("Open detail", () => ui().open(id)), item("Quick peek", () => showPeek(id, row)), item(selected.has(id) ? "Remove from selection" : "Add to selection", () => toggleSelection(row)));
+    const item = (label, shortcut, action) => {
+      const result = button(label, () => { activated = true; shell.hidePopover(); returnTarget.focus?.({ preventScroll: true }); return action(); }, "quiet menu-item work-menu-item");
+      result.setAttribute("role", "menuitem");
+      result.tabIndex = -1;
+      if (shortcut) { const key = node("kbd", shortcut); key.setAttribute("aria-hidden", "true"); result.append(key); }
+      shell.append(result);
+    };
+    const separator = () => { const line = node("div", undefined, "work-menu-separator"); line.setAttribute("role", "separator"); shell.append(line); };
+    item("Open detail", "Enter", () => ui().open(id));
+    item("Quick peek", "Space", () => showPeek(id, row));
+    item(selected.has(id) ? "Remove from selection" : "Add to selection", "X", () => toggleSelection(row));
     if (writable()) {
-      shell.append(item("Toggle watch…", () => bulk({ type: "watch" }, [id])), item("Toggle favorite…", () => bulk({ type: "favorite" }, [id])), item("Mark current head read…", () => bulk({ type: "read" }, [id])));
-      shell.append(node("p", "Metadata changes for selected objects are available in the selection bar. Every mutation requires exact-head confirmation.", "work-interaction-help"));
+      const choices = personalChoices(who);
+      const watched = (choices.watched || []).includes(id), favorite = (choices.favorites || []).includes(id), read = Boolean(record) && choices.read?.[id] === record.head;
+      separator();
+      item(watched ? "Unwatch" : "Watch", "", () => bulk({ type: "watch", active: !watched }, [id]));
+      item(favorite ? "Remove favorite" : "Favorite", "", () => bulk({ type: "favorite", active: !favorite }, [id]));
+      item(read ? "Mark unread" : "Mark read", "", () => bulk({ type: "read", active: !read }, [id]));
     }
-    shell.addEventListener("close", () => { if (menu === shell) menu = null; shell.remove(); restoreFocus(row); });
-    shell.showModal();
+    const items = () => [...shell.querySelectorAll("[role='menuitem']")];
+    const move = (index) => { const list = items(); list[(index + list.length) % list.length]?.focus(); };
+    shell.addEventListener("keydown", (event) => {
+      const list = items(), index = list.indexOf(document.activeElement);
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") move(index + (event.key === "ArrowDown" ? 1 : -1));
+      else if (event.key === "Home" || event.key === "End") move(event.key === "Home" ? 0 : list.length - 1);
+      else if (event.key === "Escape" || event.key === "Tab") shell.hidePopover();
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    const trigger = returnTarget.matches?.("[data-work-menu]") ? returnTarget : null;
+    shell.addEventListener("toggle", (event) => {
+      trigger?.setAttribute("aria-expanded", String(event.newState === "open"));
+      if (event.newState !== "closed") return;
+      if (menu === shell) menu = null;
+      shell.remove();
+      // Dismissal returns focus to the trigger unless an outside click already moved it somewhere meaningful.
+      const current = document.activeElement;
+      if (!activated && (!current || current === document.body)) restoreFocus(returnTarget);
+    });
+    document.body.append(shell);
+    shell.showPopover();
+    trigger?.setAttribute("aria-expanded", "true");
+    // Anchor below the trigger's trailing edge (or at the pointer), flipped and clamped inside the viewport.
+    const box = anchor instanceof Element ? anchor.getBoundingClientRect() : { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y };
+    const gap = 4, edge = 8, width = shell.offsetWidth, height = shell.offsetHeight;
+    const left = anchor instanceof Element ? box.right - width : box.left;
+    const below = box.bottom + gap, above = box.top - gap - height;
+    shell.style.left = `${Math.max(edge, Math.min(left, innerWidth - width - edge))}px`;
+    shell.style.top = `${Math.max(edge, below + height <= innerHeight - edge || above < edge ? Math.min(below, innerHeight - height - edge) : above)}px`;
+    move(0);
   }
 
   function syncRows() {
@@ -463,9 +519,9 @@
       checkbox.checked = selected.has(id);
       row.classList.toggle("work-row-selected", selected.has(id));
       if (!row.querySelector("[data-work-menu]")) {
-        const control = iconButton("Actions", "more", () => showMenu(row), "work-row-menu");
+        const control = iconButton("Actions", "ellipsis", () => showMenu(row, control), "work-row-menu");
         control.dataset.workMenu = id;
-        control.setAttribute("aria-haspopup", "dialog");
+        control.setAttribute("aria-haspopup", "menu");
         control.setAttribute("aria-label", `Actions for ${row.getAttribute("aria-label") || id}`);
         control.title = `Actions for ${row.getAttribute("aria-label") || id}`;
         row.append(control);
@@ -495,7 +551,7 @@
     peek?.close();
     peek?.remove();
     peek = null;
-    menu?.close();
+    if (menu?.matches(":popover-open")) menu.hidePopover();
     menu?.remove();
     menu = null;
     toolbar?.remove();
@@ -522,7 +578,7 @@
   });
   document.addEventListener("contextmenu", (event) => {
     const row = event.target instanceof Element ? event.target.closest("[data-work-id]") : null;
-    if (row?.closest(WORK_ROOTS) && !editable(event.target) && identity()) { event.preventDefault(); showMenu(row); }
+    if (row?.closest(WORK_ROOTS) && !editable(event.target) && identity()) { event.preventDefault(); showMenu(row, { x: event.clientX, y: event.clientY }); }
   });
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k" && !event.altKey) { event.preventDefault(); openPalette(); return; }

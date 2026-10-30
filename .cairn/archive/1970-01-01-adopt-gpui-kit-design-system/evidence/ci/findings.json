@@ -1,0 +1,92 @@
+{
+  "slice": "ci",
+  "guide": "GPUI Kit Design Guides @ 944803984cf0 (design review, accessibility, interaction states, feedback/overlays, data-heavy, interface language)",
+  "method": "Real retained data on the live origin, candidate assets substituted by GET interception (web.html, web.js, web.css, project.js, project.css, icons.js, ui.js, work*, code-review*). Read-only: no non-GET request; dialogs opened then dismissed. The Cancel/Pause wording check stubbed one GET response in-page (controls advertised) and blocked any non-GET.",
+  "owned_files": ["crates/kiln-web-service/src/web.html", "crates/kiln-web-service/src/web.css", "crates/kiln-web-service/src/web.js", "crates/kiln-web-service/src/project.js", "crates/kiln-web-service/src/project.css"],
+  "recorded_deviations": [
+    "Navigation to console routes is a link (rail destinations and run tabs are <a href> with in-page plain-click navigation); the guide's Button/Action for internal navigation would lose new-tab and history.",
+    "No OS menus or window chrome; the web shell supplies the rail, top bar and account menu.",
+    "Mobile touch targets stay at 44px (min-height 2.75rem at <=60rem).",
+    "Page-header command keeps `primary` (kiln.web.visual_design requires one primary action per view): project page `Run latest…` opens the start form; the guide would use a default Button for a command that only opens a form. Inside the run-control dialog primary stays on the commit (danger for Cancel run)."
+  ],
+  "pages": {
+    "shell": {
+      "findings": [
+        "Rail destinations were <button data-page>: navigation without href (no open in new tab/history), contrary to the recorded web deviation.",
+        "Selected rail item had a transparent row; selection should be the item's own surface (guide: selected fill/weight, no edge bar).",
+        "Account menu and drawer triggers showed no persistent open state while their popup was shown (only a chevron turn).",
+        "Raw colours outside the theme layer: rgb scrim in dialog::backdrop and the drawer backdrop, rgb inset shadow on the search trigger, raw hex border on the terminal panel.",
+        "Disclosure summaries and button rows used the pointing-hand cursor; the guide reserves it for links.",
+        "Keyboard: Ctrl K, Escape-to-trigger on account menu and drawer, skip link and focus ring verified; unchanged."
+      ],
+      "fixes": [
+        "web.html: 18 rail destinations are <a data-page href>; web.js keeps hrefs equal to navigate(patch) and handles plain clicks in-page; CSS selectors moved from `.app-navigation button` to `.app-navigation a`.",
+        "web.css: selected rail row gets --list-active fill and 650 weight; the acid-yellow icon tile is kept (documented).",
+        "web.css: button.account-button[aria-expanded=true] and #app-menu-toggle[aria-expanded=true] keep a --list-active fill and --list-active-border.",
+        "web.css: new --overlay token (scrim) used by dialog::backdrop and the drawer backdrop; search trigger inset shadow removed; terminal border uses its --border token. Remaining hex/rgb are theme-token definitions only.",
+        "web.css: summary cursor default; cursor:pointer removed from source-entry buttons, nav/log/overview/run-filter summaries."
+      ]
+    },
+    "control-dialog": {
+      "findings": [
+        "Title `Confirm cancel run`, commit `Confirm cancel`, dismiss `Keep unchanged`: generic, no object named.",
+        "Reruns: title without object, commit `Create new run`, and the commit kept danger styling for non-destructive reruns.",
+        "Opening buttons lacked the ellipsis for commands that open a dialog.",
+        "Dialog had no alertdialog role for a consequential confirmation."
+      ],
+      "fixes": [
+        "Cancel: `Cancel run \"<project label>\"?` / `Cancel run` (danger) / `Keep running` (`Keep queued` for queued work).",
+        "Pause: `Pause run \"<label>\"?` / `Pause run` / `Keep running`; Resume: `Resume run \"<label>\"?` / `Resume run` / `Keep paused`.",
+        "Reruns: `Rerun \"<label>\" at the exact revision?` / `Rerun`; `Run \"<label>\" on the latest admitted reference?` / `Run latest`; `Retry failed nodes of \"<label>\"?` / `Retry failed nodes`; dismiss `Cancel`; commit primary.",
+        "Exact facts, freshness checks, warning body, focus on the safe dismissal and payloads unchanged; role=alertdialog added.",
+        "Openers: `Cancel run…`, `Rerun…` (aria-label `Rerun exact revision…`), `Pause run…`, `Resume run…`, `Rerun exact revision…`, `Run latest admitted reference…`, `Retry known failed nodes…`."
+      ],
+      "verified": "Escape and the dismiss button close the dialog and return focus to the opening button (header-rerun, rerun-latest, rerun-failed, header-cancel, control-pause); no non-GET was sent."
+    },
+    "overview": {
+      "findings": [
+        "Title `CI overview` repeated the `Continuous integration` eyebrow and differed from the rail label `Overview`.",
+        "Run-count chip said `Succeeded` while every other surface says `Passed`.",
+        "Attention cards drew a danger leading edge on top of the Failed pill: six competing red edges (emphasis budget, one-sided border).",
+        "Row actions were Logs, Pipeline on cards but Pipeline, Logs in the project table (unstable lanes).",
+        "Side links `Open workers` / `View all activity` restated the card context."
+      ],
+      "fixes": ["Title `Overview`.", "Chip label `Passed`.", "Attention-card and project-card leading status edges removed.", "Project table actions ordered Logs, Pipeline.", "Links `All workers`, `All activity`."]
+    },
+    "projects": {
+      "findings": ["Project cards repeated health as a coloured leading edge beside the health pill.", "Start form commit is primary (default commit of a form; allowed)."],
+      "fixes": ["Leading health edges removed (pill and text carry health)."]
+    },
+    "project": {
+      "findings": ["Header `Run latest` opens the start form but had no ellipsis and its tooltip claimed a separate confirmation.", "Health card drew a status-coloured leading edge beside the pill and coloured headline.", "Run history actions were Pipeline, Logs while last-run tiles were Logs, Pipeline.", "`All runs for this project` restated the card context."],
+      "fixes": ["`Run latest…` (primary per recorded deviation); tooltip states it opens the start form and nothing dispatches until submit; empty-state copy matches.", "Leading health edge removed.", "Actions ordered Logs, Pipeline.", "Link `All runs`."]
+    },
+    "runs": {
+      "findings": ["Selected run rows (table and stacked), worker/COB/receipt choices and source entries used a 3px leading bar as the selection marker.", "Table row hover and selection used the same fill (--muted == --list-active), so the bar was the only distinction.", "Run tabs were buttons although they change the `view` route."],
+      "fixes": ["Selection is the row's own surface: --list-active fill plus a full --list-active-border boundary; hover uses --list-hover; COB choices no longer change border on hover.", "Run tabs are <a data-view href> links with aria-current; 40px desktop / 44px touch."]
+    },
+    "run-tabs": {
+      "findings": ["Pipeline, Logs, Artifacts, Tests & coverage, Reviews, Compare & flaky, Activity, Evidence reviewed with real data: states (empty/unavailable/loading) explicit, About disclosures hold boundary copy; no further guide violations found beyond shared selection/link fixes."],
+      "fixes": ["Shared fixes above (tabs as links, selection surfaces, cursor)."]
+    },
+    "workers": {"findings": ["Metric tiles inside the snapshot panel carried their own shadow (card-in-card elevation)."], "fixes": ["Inventory tiles keep a hairline boundary, no shadow."]},
+    "source": {"findings": ["`Source browser` heading partly restates the page title; kept because it labels the repository filter region and is referenced as a landmark."], "fixes": ["Selection/cursor fixes on entries."]},
+    "receipts": {"findings": ["Heading `Retained Patchgate receipts` kept: it names the retained directory scope that the About text qualifies."], "fixes": ["Selection surface fix on receipt choices."]},
+    "cobs": {"findings": ["`COB browser` / `Select a COB` kept: COB is the established documented term (README, docs/operator.md `Optional read-only COB browser`)."], "fixes": ["Selection surface fix on object choices."]},
+    "activity": {"findings": ["No violations beyond shared fixes; entries lead with method, target and decision."], "fixes": []},
+    "evidence": {"findings": ["No violations beyond shared fixes; run picker accepts exact IDs."], "fixes": []},
+    "automation": {"findings": ["`Save registered automation` is a direct submit with no further dialog: no ellipsis needed."], "fixes": []},
+    "operations": {"findings": ["No violations beyond shared fixes."], "fixes": []},
+    "settings": {"findings": ["`Workspace settings` heading restated the Settings page; the panel holds access facts and appearance."], "fixes": ["Heading `Access & appearance`."]}
+  },
+  "metrics": {
+    "320_light": "21 routes (overview, projects, project, runs, run detail x8 tabs, workers, source, receipts, COBs, activity, evidence, automation, operations, settings) plus the open drawer in compact density: errors 0, overflow 0, smallTargets 0 on every page.",
+    "1440_dark": "Same 21 routes: errors 0, overflow 0."
+  },
+  "strings_changed_and_updated": {
+    "docs/operator.md": ["Rerun… / Cancel run… and the dialog wording", "Run latest…", "Rerun exact revision… / Run latest admitted reference… / Retry known failed nodes…", "rail destinations and run tabs are links; selected row fill"],
+    "tests/scripts/checks": "grep found no assertions on any changed string."
+  },
+  "icon_requests": [],
+  "screenshots": ["ci-cancel-dialog-1440-dark.png", "ci-overview-1440-dark.png", "ci-run-logs-320-light.png", "ci-projects-drawer-320-light.png"]
+}

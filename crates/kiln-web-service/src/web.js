@@ -65,7 +65,7 @@
   function statePill(status, label, exact) {
     const pill = element("span", undefined, "status-pill");
     pill.dataset.status = status;
-    pill.append(ui.icon(status), element("span", label, "status-pill-label"));
+    pill.append(ui.statusIcon(status), element("span", label, "status-pill-label"));
     if (exact && exact !== label) pill.title = exact;
     return pill;
   }
@@ -317,8 +317,9 @@
       button.type = "button";
       button.dataset.sort = key;
       button.title = `Sort the runs on this page by ${RUN_SORTS[key].label.toLowerCase()}`;
-      button.append(element("span", sorted === "asc" ? "↑" : sorted === "desc" ? "↓" : "↕", "sort-indicator"));
-      button.lastChild.setAttribute("aria-hidden", "true");
+      const indicator = ui.icon(sorted === "asc" ? "arrow-up" : sorted === "desc" ? "arrow-down" : "arrow-up-down");
+      indicator.classList.add("sort-indicator");
+      button.append(indicator);
       button.addEventListener("click", () => setRunSort(key));
       cell.append(button);
       row.append(cell);
@@ -706,6 +707,14 @@
     if ($("control-dialog").open) $("control-dialog").close();
     $("confirm-facts").replaceChildren();
   }
+  // r[impl kiln.web.design_system] Confirmation copy names the run and the verb: the title asks the decision, the
+  // commit repeats the verb (danger only for cancellation) and the dismissal names the state that is kept.
+  function confirmWording(title, verb, dismiss, danger) {
+    $("confirm-title").textContent = title;
+    $("confirm-control").textContent = verb;
+    $("confirm-control").className = danger ? "danger" : "primary";
+    $("dismiss-control").textContent = dismiss;
+  }
   async function prepareControl(action) {
     if (!canOperate()) return;
     const id = state.selected;
@@ -716,8 +725,9 @@
       if (!freshRun || state.selected !== id || (!queuedCancel && !exactIdentity(run)) || run.controls?.[action] !== true || !state.connected) throw new Error("This exact execution no longer advertises the requested control. Nothing was sent.");
       const identity = queuedCancel ? { action } : structuredClone({ action, attempt_id: run.attempt_id, expected_revision: run.revision, expected_sequence: run.sequence, execution: run.execution });
       state.confirm = { id, identity };
-      $("confirm-title").textContent = `Confirm ${action} run`;
-      $("confirm-control").textContent = `Confirm ${action}`;
+      const subject = `"${text(projectLabel(run.project_id))}"`;
+      const wording = { cancel: [`Cancel run ${subject}?`, "Cancel run", queuedCancel ? "Keep queued" : "Keep running"], pause: [`Pause run ${subject}?`, "Pause run", "Keep running"], resume: [`Resume run ${subject}?`, "Resume run", "Keep paused"] }[action];
+      confirmWording(...wording, action === "cancel");
       addFacts($("confirm-facts"), [["Run", id], ["Source", run.source_revision], ["Attempt", identity.attempt_id], ["Revision", identity.expected_revision], ["Sequence", identity.expected_sequence], ["Execution", identity.execution]]);
       $("control-dialog").showModal();
       $("dismiss-control").focus();
@@ -1183,6 +1193,10 @@
     for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
     // The project history page belongs to the CI projects destination in the rail.
     const navPage = route.page === "project" ? "projects" : route.page;
+    // Link targets mirror navigate(patch), so a new tab opens the same destination a plain click does.
+    const routeHref = (patch) => `?${new URLSearchParams(Object.entries({ ...route, ...patch }).filter(([, value]) => value))}`;
+    for (const node of document.querySelectorAll("a[data-page]")) node.href = routeHref({ page: node.dataset.page });
+    for (const node of document.querySelectorAll("a[data-view]")) node.href = routeHref({ view: node.dataset.view });
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === navPage) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     for (const group of document.querySelectorAll(".app-navigation details")) {
       if (group.querySelector('[aria-current="page"]')) group.open = true;
@@ -1191,7 +1205,7 @@
     $("run-split").classList.toggle("has-run", Boolean(route.run));
     applyRunPanels();
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", project: "CI project", cobs: "Raw collaboration history", overview: "CI overview", "code-review": "Code review", reviews: "Patchgate receipts" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
+    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", project: "CI project", cobs: "Raw collaboration history", overview: "Overview", "code-review": "Code review", reviews: "Patchgate receipts" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
@@ -1279,7 +1293,7 @@
     const details = element("details", undefined, "about-view");
     const body = element("div", undefined, "about-view-body");
     for (const paragraph of paragraphs) body.append(element("p", paragraph));
-    details.append(element("summary", label), body);
+    details.append(ui.disclosureSummary(label, "info"), body);
     return details;
   }
   function renderRecorded(parent, value, depth = 0) {
@@ -1755,7 +1769,7 @@
   function sourceBreadcrumb(parent, route) {
     const crumb = element("div", undefined, "source-breadcrumb");
     if (route.spath) {
-      const up = element("button", "↑ up"); up.type = "button";
+      const up = element("button"); up.type = "button"; up.append(ui.icon("arrow-up"), "up");
       up.addEventListener("click", () => navigate({ spath: route.spath.split("/").slice(0, -1).join("/"), sfile: "", sq: "" }));
       crumb.append(up);
     }
@@ -1936,8 +1950,9 @@
     }
     const index = entries.findIndex((entry) => entry.id === route.rev);
     const steps = element("div", undefined, "source-steps");
-    for (const [label, target] of [["← newer", index > 0 ? entries[index - 1] : null], ["older →", index >= 0 ? entries[index + 1] : null]]) {
-      const button = element("button", label); button.type = "button";
+    for (const [label, glyph, target] of [["newer", "arrow-left", index > 0 ? entries[index - 1] : null], ["older", "arrow-right", index >= 0 ? entries[index + 1] : null]]) {
+      const button = element("button"); button.type = "button";
+      if (glyph === "arrow-left") button.append(ui.icon(glyph), label); else button.append(label, ui.icon(glyph));
       button.disabled = !historical || !target;
       if (target) button.addEventListener("click", () => navigate({ rev: target.id, spath: "", sfile: "" }));
       steps.append(button);
@@ -2092,8 +2107,8 @@
     trendBody.id = "overview-trend";
     trend.append(element("summary", "Recorded duration trend"), trendBody);
     main.append(trend);
-    dashboardSection(side, "overview-workers", "Workers", "card side-card", workspaceLink({ page: "workers", worker_q: "", worker_status: "", worker: "" }, "Open workers"));
-    dashboardSection(side, "overview-activity", "Recent activity", "card side-card", workspaceLink({ page: "activity", activity_cursor: "" }, "View all activity"));
+    dashboardSection(side, "overview-workers", "Workers", "card side-card", workspaceLink({ page: "workers", worker_q: "", worker_status: "", worker: "" }, "All workers"));
+    dashboardSection(side, "overview-activity", "Recent activity", "card side-card", workspaceLink({ page: "activity", activity_cursor: "" }, "All activity"));
     grid.append(main, side);
     parent.replaceChildren(grid);
   }
@@ -2158,7 +2173,7 @@
     chips.setAttribute("aria-label", "Retained run counts");
     chips.append(element("span", "Retained runs", "eyebrow"));
     const outcomes = { runs: "", failed: "failed", active: "", queued: "queued", succeeded: "Success", cancelled: "Cancelled", unknown: "Unknown" };
-    const labels = { runs: "Retained", failed: "Failed", active: "Active", queued: "Queued", succeeded: "Succeeded", cancelled: "Cancelled", unknown: "Unknown" };
+    const labels = { runs: "Retained", failed: "Failed", active: "Active", queued: "Queued", succeeded: "Passed", cancelled: "Cancelled", unknown: "Unknown" };
     const statuses = { failed: "failure", active: "running", queued: "queued", unknown: "unknown", succeeded: "success", cancelled: "cancelled" };
     for (const key of ["failed", "active", "queued", "unknown", "succeeded", "cancelled", "runs"]) {
       if (!Object.hasOwn(totals, key)) continue;
@@ -2166,7 +2181,7 @@
       if (key === "active") Object.assign(patch, { page: "workers", worker_status: "busy", worker_q: "", worker: "" });
       const link = workspaceLink(patch, undefined, "count-chip");
       link.dataset.outcome = key;
-      if (statuses[key]) { link.dataset.status = statuses[key]; link.append(ui.icon(statuses[key])); }
+      if (statuses[key]) { link.dataset.status = statuses[key]; link.append(ui.statusIcon(statuses[key])); }
       if (key === "active" && Number(totals[key]) > 0) link.classList.add("is-live");
       if (key === "active") link.title = "Inspect execution targets with active runs";
       link.append(element("strong", text(totals[key]), "metric-value"), element("span", labels[key], "metric-label"));
@@ -2230,7 +2245,7 @@
     revision.append(exact);
     meta.append(took, revision);
     const actions = element("div", undefined, "attention-actions");
-    logs.prepend(ui.icon("warning"));
+    logs.prepend(ui.icon("triangle-alert"));
     actions.append(logs, pipeline);
     card.append(head, title, meta, actions);
     return card;
@@ -2260,7 +2275,7 @@
         if (project.health === "active") { const started = element("span", "Started ", "running-since"); started.append(when(latest.started_at_ms)); cell("Finished", started, "project-row-time"); }
         else cell("Finished", when(latest.completed_at_ms), "project-row-time");
         const actions = element("div", undefined, "project-row-actions");
-        actions.append(pipeline, logs);
+        actions.append(logs, pipeline);
         cell("Inspect", actions, "project-row-actions-cell");
       } else {
         name.append(projectLink(project.id, project.label));
@@ -2451,7 +2466,7 @@
         // r[impl kiln.web.page_consistency] Logs joins the card's shared action row instead of an inline 19px link.
         const { logs } = projectRunLinks(project, latest);
         logs.dataset.projectLogs = "";
-        if (project.health === "failing") logs.prepend(ui.icon("warning"));
+        if (project.health === "failing") logs.prepend(ui.icon("triangle-alert"));
         card.querySelector(".project-actions")?.prepend(logs);
         const finished = element("span", "Finished ");
         finished.append(when(latest.completed_at_ms));
@@ -2636,7 +2651,7 @@
   async function prepareRerun(mode) {
     if (!canOperate()) return;
     const id = state.selected;
-    try { const run = await loadDetail(); if (!run || id !== state.selected) return; if (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state))) throw new Error("No known failed node set is available. Unknown states cannot be retried blindly."); state.confirm = { id, mode }; $("confirm-title").textContent = mode === "latest" ? "Run latest admitted reference" : mode === "failed" ? "Retry known failed nodes" : "Rerun exact source revision"; $("confirm-control").textContent = "Create new run"; addFacts($("confirm-facts"), [["Parent run", id], ["Project", run.project_id], ["Mode", mode], ["Source", mode === "latest" ? "Latest admitted reference (resolved by service)" : run.source_revision], ["Failed selection", mode === "failed" ? run.nodes.filter((node) => /^(failed|error)$/i.test(node.state)).map((node) => node.id) : "Not a node retry"], ["Boundary", "New candidate and attempt; queued durably if project is busy."]]); $("control-dialog").showModal(); $("dismiss-control").focus(); }
+    try { const run = await loadDetail(); if (!run || id !== state.selected) return; if (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state))) throw new Error("No known failed node set is available. Unknown states cannot be retried blindly."); state.confirm = { id, mode }; const subject = `"${text(projectLabel(run.project_id))}"`; confirmWording(...(mode === "latest" ? [`Run ${subject} on the latest admitted reference?`, "Run latest"] : mode === "failed" ? [`Retry failed nodes of ${subject}?`, "Retry failed nodes"] : [`Rerun ${subject} at the exact revision?`, "Rerun"]), "Cancel", false); addFacts($("confirm-facts"), [["Parent run", id], ["Project", run.project_id], ["Mode", mode], ["Source", mode === "latest" ? "Latest admitted reference (resolved by service)" : run.source_revision], ["Failed selection", mode === "failed" ? run.nodes.filter((node) => /^(failed|error)$/i.test(node.state)).map((node) => node.id) : "Not a node retry"], ["Boundary", "New candidate and attempt; queued durably if project is busy."]]); $("control-dialog").showModal(); $("dismiss-control").focus(); }
     catch (error) { if (!isAborted(error)) notice(explain(error)); }
   }
   // r[impl kiln.dashboard.complete.reports]
@@ -3026,8 +3041,10 @@
   // Filter values stay canonical; labels are human with the exact outcome alongside.
   const outcomeFilterLabel = (id) => { const label = id === "Pending" ? "Pending (queued or running)" : ui.outcomeStatus(id).label; return label === id || id === "Pending" ? label : `${label} (${id})`; };
   options($("run-outcome"), [{ id: "failed", label: "All failures" }, { id: "queued", label: "Queued" }, ...["Pending", "Success", "DomainFailure", "Denied", "Cancelled", "TimedOut", "ProviderError", "Unknown"].map((id) => ({ id, label: outcomeFilterLabel(id) }))], "All outcomes", state.route.outcome);
-  for (const node of document.querySelectorAll("[data-page]")) node.addEventListener("click", () => navigate({ page: node.dataset.page }));
-  for (const node of document.querySelectorAll("[data-view]")) node.addEventListener("click", () => navigate({ view: node.dataset.view }));
+  // r[impl kiln.web.design_system] Web deviation: rail destinations and run tabs are links (new tab, history); plain clicks stay in-page.
+  const plainClick = (event) => event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
+  for (const node of document.querySelectorAll("a[data-page]")) node.addEventListener("click", (event) => { if (plainClick(event)) { event.preventDefault(); navigate({ page: node.dataset.page }); } });
+  for (const node of document.querySelectorAll("a[data-view]")) node.addEventListener("click", (event) => { if (plainClick(event)) { event.preventDefault(); navigate({ view: node.dataset.view }); } });
   for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).addEventListener("click", () => { void prepareRerun(mode); });
   for (const id of ["app-theme", "app-density"]) $(id).addEventListener("change", () => navigate({ [id === "app-theme" ? "theme" : "density"]: $(id).value }));
   $("app-menu-toggle").addEventListener("click", () => setMenu($("app-menu-toggle").getAttribute("aria-expanded") !== "true"));
