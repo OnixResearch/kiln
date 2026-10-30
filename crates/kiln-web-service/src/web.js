@@ -13,6 +13,7 @@
   const LOG_FOLLOW_MS = 2000;
   const LOG_TAIL_SLOP_PX = 24;
   const CONTROL_FRESHNESS_MS = 30000;
+  const ELAPSED_TICK_MS = 1000;
   const GRAPH_MIN_ZOOM = 0.35;
   const GRAPH_MAX_ZOOM = 1.5;
   const GRAPH_ZOOM_STEP = 0.15;
@@ -36,6 +37,11 @@
     cobsNextCursor: null,
     graphRun: null, graphZoom: 1,
     workCanWrite: false,
+    // Client-side order of the loaded runs page only; null keeps the service order.
+    runSort: null,
+    // Failure-first log defaults for the selected failed run: { run, node, stream, fellBack }.
+    failureFirst: null,
+    liveTicker: null, logAutoFollow: false, followDeclined: "", startProject: "",
   };
 
   function text(value) {
@@ -253,11 +259,116 @@
     renderRunList();
   }
 
+  // r[impl kiln.web.runs_table] Service filters, cursor paging and URL selection stay authoritative;
+  // header sorting reorders only the rows of the loaded page and says so.
+  const RUN_SORTS = Object.freeze({
+    status: { label: "Status", first: "asc", value: (run) => ui.outcomeStatus(run.outcome, run.phase).label },
+    project: { label: "Project", first: "asc", value: (run) => text(projectLabel(run.project_id)) },
+    revision: { label: "Revision", first: "asc", value: (run) => (typeof run.source_revision === "string" ? run.source_revision : null) },
+    duration: { label: "Duration", first: "desc", value: (run) => (Number.isSafeInteger(run.duration_ms) && run.duration_ms >= 0 ? run.duration_ms : null) },
+    started: { label: "Started", first: "desc", value: (run) => (Number.isSafeInteger(run.started_at_ms) ? run.started_at_ms : null) },
+  });
+  const RUN_COLUMNS = Object.freeze(["status", "project", "revision", "duration", "started"]);
+  function compareSortValues(a, b) { return typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b), undefined, { numeric: true }); }
+  function sortRunRows(runs) {
+    const sort = state.runSort;
+    if (!sort) return runs;
+    const direction = sort.dir === "asc" ? 1 : -1;
+    // Unrecorded values always follow recorded ones; they are never treated as zero.
+    return runs.map((run, index) => ({ run, index, value: RUN_SORTS[sort.key].value(run) })).sort((a, b) => {
+      if (a.value === null || b.value === null) return a.value === b.value ? a.index - b.index : a.value === null ? 1 : -1;
+      return compareSortValues(a.value, b.value) * direction || a.index - b.index;
+    }).map((entry) => entry.run);
+  }
+  function runDayInstant(run) { return Number.isSafeInteger(run.started_at_ms) ? run.started_at_ms : Number.isSafeInteger(run.created_at_ms) ? run.created_at_ms : null; }
+  function runDayGroups(runs) {
+    const now = Date.now();
+    const groups = new Map();
+    for (const run of runs) {
+      const day = ui.localDay(runDayInstant(run), now);
+      const key = day?.key || "";
+      if (!groups.has(key)) groups.set(key, { key, label: day?.label || "Start not recorded", runs: [] });
+      groups.get(key).runs.push(run);
+    }
+    const ordered = [...groups.values()];
+    if (state.runSort?.key === "started") {
+      const direction = state.runSort.dir === "asc" ? 1 : -1;
+      ordered.sort((a, b) => (!a.key || !b.key ? (a.key ? -1 : b.key ? 1 : 0) : a.key.localeCompare(b.key) * direction));
+    }
+    return ordered;
+  }
+  function setRunSort(key) {
+    const current = state.runSort;
+    const first = RUN_SORTS[key].first;
+    // Cycle: first direction, reversed, then back to the service order.
+    state.runSort = current?.key !== key ? { key, dir: first } : current.dir === first ? { key, dir: first === "asc" ? "desc" : "asc" } : null;
+    renderRunList();
+  }
+  function selectRunRow(id) { navigate({ page: "runs", run: id, node: "", stream: "", cursor: state.route?.cursor || "" }); }
+  function runTableHead() {
+    const head = element("thead");
+    const row = element("tr");
+    for (const key of RUN_COLUMNS) {
+      const cell = element("th", undefined, `run-col-${key}${key === "duration" ? " num" : ""}`);
+      cell.scope = "col";
+      const sorted = state.runSort?.key === key ? state.runSort.dir : "";
+      if (sorted) cell.setAttribute("aria-sort", sorted === "asc" ? "ascending" : "descending");
+      const button = element("button", RUN_SORTS[key].label, "sort-button");
+      button.type = "button";
+      button.dataset.sort = key;
+      button.title = `Sort the runs on this page by ${RUN_SORTS[key].label.toLowerCase()}`;
+      button.append(element("span", sorted === "asc" ? "↑" : sorted === "desc" ? "↓" : "↕", "sort-indicator"));
+      button.lastChild.setAttribute("aria-hidden", "true");
+      button.addEventListener("click", () => setRunSort(key));
+      cell.append(button);
+      row.append(cell);
+    }
+    const actions = element("th", undefined, "run-col-actions");
+    actions.scope = "col";
+    actions.append(element("span", "Actions", "sr-only"));
+    row.append(actions);
+    head.append(row);
+    return head;
+  }
+  function runTableRow(run) {
+    const row = element("tr", undefined, "run-row");
+    row.dataset.runId = run.id;
+    row.tabIndex = 0;
+    row.title = `${run.id}\nSource: ${text(run.source_revision)}`;
+    if (run.id === state.selected) row.setAttribute("aria-current", "true");
+    const label = text(projectLabel(run.project_id));
+    const cell = (key, content, className = "") => { const node = element("td", undefined, `run-col-${key} ${className}`.trim()); node.dataset.label = RUN_SORTS[key]?.label || "Actions"; node.append(...content); row.append(node); return node; };
+    cell("status", [livePill(run.outcome, run.phase)]);
+    const name = element("div", undefined, "run-project");
+    name.append(projectLink(run.project_id, label, "run-project-link"), element("span", shortIdentity(run.id), "run-id mono"));
+    cell("project", [name]);
+    const revision = element("span", shortRevision(run.source_revision), "mono");
+    revision.title = text(run.source_revision);
+    cell("revision", [revision]);
+    cell("duration", [elapsed(run.duration_ms)], "num");
+    cell("started", [when(run.started_at_ms)]);
+    const logs = workspaceLink({ page: "runs", run: run.id, view: "logs", node: "", stream: "" }, "Logs", "row-link");
+    logs.setAttribute("aria-label", `Logs for ${label} run ${shortIdentity(run.id)}`);
+    cell("actions", [logs]);
+    row.addEventListener("click", (event) => { if (!(event.target instanceof Element && event.target.closest("a, button"))) selectRunRow(run.id); });
+    row.addEventListener("keydown", (event) => {
+      if (event.target !== row) return;
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectRunRow(run.id); return; }
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      const rows = [...document.querySelectorAll("#run-list tr.run-row")];
+      const next = rows[rows.indexOf(row) + (event.key === "ArrowDown" ? 1 : -1)];
+      if (next) { event.preventDefault(); next.focus(); }
+    });
+    return row;
+  }
   function renderRunList() {
-    const focused = document.activeElement?.dataset.runId;
+    const focused = document.activeElement?.closest?.("#run-list tr.run-row")?.dataset.runId;
+    const focusedSort = document.activeElement?.closest?.("#run-list [data-sort]")?.dataset.sort;
     const runs = state.runs;
     $("runs-status").textContent = state.runsError || `${runs.length} shown of ${text(state.total)} matching retained runs · bounded page${state.connected ? "" : " · snapshot may be stale"}`;
     $("runs-next").disabled = !state.nextCursor;
+    const sort = state.runSort;
+    $("run-sort-note").textContent = sort ? `Sorted by ${RUN_SORTS[sort.key].label.toLowerCase()} (${sort.dir === "asc" ? "ascending" : "descending"}) within this page` : "Service order · sorting reorders this page only";
     $("run-list").replaceChildren();
     if (!runs.length && !state.runsError) {
       const clear = element("button", "Clear run filters");
@@ -265,22 +376,26 @@
       clear.addEventListener("click", () => navigate({ q: "", project: "", outcome: "", source: "", cursor: "" }));
       $("run-list").append(emptyState("No matching runs", "No runs match these filters. Clear filters or browse another project.", clear));
     }
-    for (const run of runs) {
-      const button = element("button", undefined, "run-choice");
-      button.type = "button";
-      button.dataset.runId = run.id;
-      if (run.id === state.selected) button.setAttribute("aria-current", "true");
-      const head = element("span", undefined, "run-choice-head");
-      head.append(ui.statusPill(run.outcome, run.phase), element("strong", text(projectLabel(run.project_id)), "run-name"), element("span", undefined, "run-summary"));
-      head.lastChild.append(when(run.created_at_ms));
-      const meta = element("span", undefined, "run-source");
-      meta.append(elapsed(run.duration_ms), document.createTextNode(` · ${shortIdentity(run.source_revision)}`));
-      button.append(head, meta, element("span", shortIdentity(run.id), "run-id mono"));
-      button.title = `${run.id}\nSource: ${run.source_revision}`;
-      button.addEventListener("click", () => navigate({ page: "runs", run: run.id, node: "", cursor: state.route.cursor }));
-      $("run-list").append(button);
-      if (focused === run.id) button.focus({ preventScroll: true });
+    if (!runs.length) return;
+    const wrap = element("div", undefined, "data-table-wrap run-table-wrap");
+    const table = element("table", undefined, "data-table run-table");
+    table.append(element("caption", "Retained runs on this page, grouped by local start day. Press Enter on a row to open that run. Column sorting reorders this page only.", "sr-only"), runTableHead());
+    for (const group of runDayGroups(runs)) {
+      const body = element("tbody", undefined, "run-day-group");
+      const heading = element("tr", undefined, "run-day");
+      const title = element("th", group.label);
+      title.scope = "rowgroup";
+      title.colSpan = RUN_COLUMNS.length + 1;
+      title.append(element("span", ` · ${group.runs.length} run${group.runs.length === 1 ? "" : "s"}`, "meta"));
+      heading.append(title);
+      body.append(heading);
+      for (const run of sortRunRows(group.runs)) body.append(runTableRow(run));
+      table.append(body);
     }
+    wrap.append(table);
+    $("run-list").append(wrap);
+    if (focused) document.querySelector(`#run-list tr.run-row[data-run-id="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
+    else if (focusedSort) document.querySelector(`#run-list [data-sort="${focusedSort}"]`)?.focus({ preventScroll: true });
   }
   function adoptRun(run) {
     if (!run || run.id !== state.selected) return;
@@ -336,6 +451,8 @@
     state.selected = id;
     state.run = null;
     state.observedAt = 0;
+    state.failureFirst = null;
+    stopLiveTicker();
     dismissControl();
     resetLogs();
     state.artifactsGeneration++;
@@ -355,13 +472,69 @@
       notice(`Run details unavailable: ${explain(error)}`);
     }
   }
+  function runStatus(run) { return run ? ui.outcomeStatus(run.outcome, run.phase).status : ""; }
+  function isFailedRun(run) { return runStatus(run) === "failure"; }
+  function isRunningRun(run) { return runStatus(run) === "running"; }
+  const FAILED_NODE_STATE = /^(failed|error)$/i;
+  function livePill(outcome, phase) {
+    const pill = ui.statusPill(outcome, phase);
+    if (pill.dataset.status === "running") pill.classList.add("is-live");
+    return pill;
+  }
+  // r[impl kiln.web.failure_first_run] r[impl kiln.web.failure_first_run.scenario.failed] A failed run opened without node/stream parameters defaults once to its
+  // first failed node and to stderr; URL-named node and stream always win and are never rewritten.
+  function failureDefaults(run) {
+    if (!isFailedRun(run)) return null;
+    if (state.failureFirst?.run !== run.id) {
+      const failed = (Array.isArray(run.nodes) ? run.nodes : []).find((node) => FAILED_NODE_STATE.test(node.state));
+      state.failureFirst = { run: run.id, node: failed?.id || "", stream: "stderr", fellBack: false, revealed: false };
+    }
+    return state.failureFirst;
+  }
+  function effectiveStream() {
+    const defaults = state.failureFirst?.run === state.route?.run ? state.failureFirst : null;
+    return state.route?.stream || defaults?.stream || "stdout";
+  }
+  function logsVisible() { return !document.querySelector('[data-run-panel="logs"]').hidden && !$("run-detail").hidden; }
+  // r[impl kiln.web.live_progress] Follow an active run's selected stream unless the operator declined following for it.
+  function maybeAutoFollow() {
+    const run = state.run;
+    if (!run || !isRunningRun(run) || state.followDeclined === run.id || $("follow-logs").checked || !$("log-node").value || !logsVisible()) return false;
+    $("follow-logs").checked = true;
+    state.logAutoFollow = true;
+    return true;
+  }
+  function stopLiveTicker() {
+    clearInterval(state.liveTicker);
+    state.liveTicker = null;
+  }
+  function tickElapsed() {
+    const run = state.run;
+    if (!state.session || !run || !isRunningRun(run) || state.route?.page !== "runs" || run.id !== state.selected) { stopLiveTicker(); return; }
+    const ms = ui.elapsedSince(Number.isSafeInteger(run.started_at_ms) ? run.started_at_ms : null);
+    $("run-elapsed").textContent = ui.formatDuration(ms);
+    $("run-elapsed").classList.toggle("not-recorded", ms === null);
+    $("run-elapsed").title = ms === null ? "Start time not recorded" : `Since recorded start ${timestamp(run.started_at_ms)}`;
+  }
+  function renderLiveProgress(run) {
+    const running = isRunningRun(run);
+    $("run-progress").hidden = !running;
+    if (!running) { stopLiveTicker(); return; }
+    const { complete, total } = ui.nodeProgress(run.nodes);
+    $("run-progress-label").textContent = total ? `${complete} of ${total} node${total === 1 ? "" : "s"} complete` : "Node progress not recorded";
+    $("run-progress-bar").hidden = !total;
+    $("run-progress-bar").max = Math.max(1, total);
+    $("run-progress-bar").value = complete;
+    tickElapsed();
+    if (!state.liveTicker && state.run === run) state.liveTicker = setInterval(tickElapsed, ELAPSED_TICK_MS);
+  }
   function renderDetail() {
     const run = state.run;
     if (!run) return;
     $("empty-run").hidden = true;
     $("run-detail").hidden = false;
     $("run-title").textContent = text(projectLabel(run.project_id));
-    $("run-badges").replaceChildren(ui.statusPill(run.outcome, run.phase), phaseChip(run.phase));
+    $("run-badges").replaceChildren(livePill(run.outcome, run.phase), phaseChip(run.phase));
     const warnings = [];
     if (run.error_code) warnings.push(`Service diagnostic: ${text(run.error_code)}.`);
     if (run.outcome === "Unknown" || /unknown|recover|unavailable/i.test(text(run.phase))) warnings.push("Execution state is uncertain or recovering. This is not a successful run; do not assume provider effects completed.");
@@ -373,15 +546,23 @@
     addFactTiles($("run-facts"), [["Source revision", revision], ["Created", when(run.created_at_ms)], ["Started", when(run.started_at_ms)], ["Completed", when(run.completed_at_ms)], ["Duration", elapsed(run.duration_ms)]]);
     addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)]]);
     $("execution-identity").textContent = text(run.execution);
+    renderLiveProgress(run);
+    const defaults = failureDefaults(run);
+    $("run-detail").toggleAttribute("data-failure-first", Boolean(defaults));
+    applyRunPanels();
     const nodes = Array.isArray(run.nodes) ? run.nodes : [];
     renderGraph(run);
     renderStepTelemetry(run);
     const previousNode = $("log-node").value;
-    options($("log-node"), nodes, nodes.length ? null : "No admitted nodes", state.route.node || previousNode);
+    const previousStream = $("log-stream").value;
+    options($("log-node"), nodes, nodes.length ? null : "No admitted nodes", state.route.node || defaults?.node || previousNode);
     if (state.route.node && !nodes.some((node) => node.id === state.route.node)) {
       options($("log-node"), [], `Node not found: ${state.route.node}`, "");
     }
-    if (previousNode && previousNode !== $("log-node").value) resetLogs();
+    $("log-stream").value = effectiveStream();
+    const selectionChanged = (previousNode && previousNode !== $("log-node").value) || previousStream !== $("log-stream").value;
+    const hadLog = state.logKey !== "" || state.logBusy;
+    if (selectionChanged) resetLogs();
     $("read-log").disabled = state.logBusy || !$("log-node").value;
     $("restart-log").disabled = state.logBusy || !$("log-node").value;
     const diagnostic = $("log-stream").value === "diagnostic";
@@ -390,6 +571,9 @@
     $("follow-logs").disabled = !$("log-node").value;
     $("download-log").disabled = !$("log-node").value;
     updateControlButtons();
+    // A live transition (for example to failed or to running) re-reads the newly defaulted stream or starts following it.
+    if (selectionChanged && hadLog && logsVisible()) { maybeAutoFollow(); void readLog(false); }
+    else if (maybeAutoFollow() && state.logKey && !state.logBusy) void readLog(true);
   }
   function renderStepTelemetry(run) {
     const target = $("step-telemetry");
@@ -416,8 +600,14 @@
     const run = state.run;
     const fresh = state.connected && Date.now() - state.observedAt < CONTROL_FRESHNESS_MS;
     for (const action of ["cancel", "pause", "resume"]) $("control-" + action).disabled = !canOperate() || state.mutation || !fresh || !(exactIdentity(run) || (action === "cancel" && run?.phase === "queued")) || run.controls?.[action] !== true;
-    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state)));
+    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "failed" && !run.nodes?.some((node) => FAILED_NODE_STATE.test(node.state)));
     $("control-note").textContent = !canOperate() ? "Read-only principal. Execution mutations are disabled." : run?.phase === "queued" ? "Queued work has no provider execution yet. Cancel removes this exact queued request before dispatch." : !run ? "Select a run to inspect controls." : !exactIdentity(run) ? "Exact control identity unavailable. No approximate identity will be sent." : !fresh ? "Snapshot stale or live observation disconnected. Refresh before control." : "Only advertised capabilities are enabled. Fresh reads and confirmation bind controls to the exact execution.";
+    // r[impl kiln.web.failure_first_run] Header shortcuts mirror the disclosure controls: same enablement, same confirmation.
+    const operate = canOperate() && Boolean(run);
+    $("header-cancel").hidden = !(operate && run.controls?.cancel === true);
+    $("header-cancel").disabled = $("control-cancel").disabled;
+    $("header-rerun").hidden = !(operate && !["running", "queued"].includes(runStatus(run)));
+    $("header-rerun").disabled = $("rerun-exact").disabled;
   }
 
   function scheduleLive(delay, generation) {
@@ -451,7 +641,7 @@
         const incoming = new Map(snapshot.runs.map((run) => [run.id, run]));
         if (!versionChanged) renderRunList();
         else if (state.route.page === "runs") void readAction(loadRuns)();
-        else if (["overview", "workers", "operations", "activity"].includes(state.route.page)) void readAction(loadPage)();
+        else if (["overview", "workers", "operations", "activity", "project"].includes(state.route.page)) void readAction(loadPage)();
         if (state.selected && incoming.has(state.selected)) adoptRun(incoming.get(state.selected));
         recognized = true;
       }
@@ -545,12 +735,57 @@
     state.logNext = "0";
     state.logKey = "";
     $("follow-logs").checked = false;
+    state.logAutoFollow = false;
     $("log-output").textContent = "";
     $("log-gap").textContent = "";
     $("log-gap").hidden = true;
     $("log-cursor").value = "0";
     $("log-position").textContent = "No log read yet";
     $("log-status").textContent = "Select a node and read actual retained logs. Live worker bytes can arrive before command completion; diagnostics are native provider logs.";
+    $("log-error-bar").hidden = true;
+    $("log-error-count").textContent = "";
+  }
+  // r[impl kiln.web.failure_first_run] Error lines are wrapped in inert <mark> elements built from text nodes;
+  // the displayed text (textContent) stays byte-for-byte the retained text.
+  function renderLogText(view, output) {
+    const matches = ui.errorLines(output);
+    if (!matches.length) { view.textContent = output; return; }
+    const fragment = document.createDocumentFragment();
+    const lines = output.split("\n");
+    let pending = "";
+    let match = 0;
+    lines.forEach((line, index) => {
+      const separator = index === lines.length - 1 ? "" : "\n";
+      if (matches[match] !== index) { pending += line + separator; return; }
+      if (pending) fragment.append(pending);
+      const mark = element("mark", line, "log-error-line");
+      mark.tabIndex = -1;
+      fragment.append(mark);
+      pending = separator;
+      match++;
+    });
+    if (pending) fragment.append(pending);
+    view.replaceChildren(fragment);
+  }
+  const ERROR_LINE_CAP = 1000;
+  function updateErrorBar() {
+    const view = $("log-output");
+    const count = view.querySelectorAll("mark.log-error-line").length;
+    const failed = isFailedRun(state.run);
+    $("log-error-bar").hidden = !view.textContent || (!count && !failed);
+    $("log-error-count").textContent = count ? `${count >= ERROR_LINE_CAP ? `${ERROR_LINE_CAP}+` : count} error line${count === 1 ? "" : "s"}` : "No error-pattern lines in the loaded text";
+    $("log-jump-error").hidden = !count;
+  }
+  function scrollLogToLine(mark) {
+    const view = $("log-output");
+    view.scrollTop = Math.max(0, mark.offsetTop - view.clientHeight / 4);
+  }
+  function jumpToFirstError() {
+    const mark = $("log-output").querySelector("mark.log-error-line");
+    if (!mark) return;
+    $("log-output").scrollIntoView({ block: "nearest" });
+    scrollLogToLine(mark);
+    mark.focus({ preventScroll: true });
   }
   function cursorValue(value) {
     if (typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("The service returned a cursor that cannot be represented exactly. No approximate cursor was used.");
@@ -577,6 +812,8 @@
     $("read-log").disabled = true;
     $("restart-log").disabled = true;
     $("log-status").textContent = "Reading retained stream cursor…";
+    let fallback = false;
+    let emptyRead = false;
     try {
       const maximum = state.run?.log_bounds?.maximum_chunk_bytes;
       if (!Number.isSafeInteger(maximum) || maximum <= 0) throw new Error("The run has no valid admitted log-read bound.");
@@ -605,7 +842,8 @@
         output = output.slice(-MAX_DISPLAYED_LOG_CHARS);
         gaps.push("Older displayed log text was removed at this page’s memory bound. Re-read an earlier stream cursor to inspect retained bytes.");
       }
-      if (output !== previousOutput) view.textContent = output;
+      if (output !== previousOutput) renderLogText(view, output);
+      updateErrorBar();
       if (!append) { $("log-gap").textContent = ""; $("log-gap").hidden = true; }
       if (gaps.length) {
         $("log-gap").textContent = [$("log-gap").hidden ? "" : $("log-gap").textContent, ...gaps].filter(Boolean).join("\n").slice(-8192);
@@ -621,7 +859,19 @@
         $("log-status").textContent = `No new ${stream} bytes at cursor ${next}. Previously loaded text is retained; an empty read does not imply success or complete logs.`;
         if (stream === "stdout" && !output) $("log-status").textContent += " Check stderr for compiler/build diagnostics.";
       }
+      const defaults = state.failureFirst?.run === id && !state.route.stream ? state.failureFirst : null;
+      if (defaults?.fellBack && stream === "stdout") $("log-status").textContent += " No stderr bytes were retained for this node, so its stdout is shown; choose stderr to return.";
+      // Failure-first: an empty retained stderr falls back to stdout once, only when the URL names no stream.
+      fallback = Boolean(defaults && stream === "stderr" && defaults.stream === "stderr" && !append && !search && cursor === "0" && next === "0" && !result.text);
+      if (fallback) { defaults.stream = "stdout"; defaults.fellBack = true; }
+      emptyRead = !result.text;
+      const firstError = !append && !followTail && defaults ? view.querySelector("mark.log-error-line") : null;
       view.scrollTop = followTail ? view.scrollHeight : append ? scrollTop : 0;
+      if (firstError) {
+        scrollLogToLine(firstError);
+        // First read of a failed run: bring the highlighted output into view once, without moving focus.
+        if (!defaults.revealed) { defaults.revealed = true; $("log-output").scrollIntoView({ block: "nearest" }); }
+      }
     } catch (error) {
       if (!isAborted(error) && generation === state.logGeneration) {
         $("log-status").textContent = `Logs unavailable: ${explain(error)} Following stopped; retained displayed bytes may be stale.`;
@@ -632,7 +882,10 @@
         state.logBusy = false;
         $("read-log").disabled = !$("log-node").value;
         $("restart-log").disabled = !$("log-node").value;
-        if ($("follow-logs").checked && state.session) state.logTimer = setTimeout(() => readLog(true), LOG_FOLLOW_MS);
+        // r[impl kiln.web.live_progress] Automatic following ends once the run is terminal and no new bytes arrive.
+        if ($("follow-logs").checked && state.logAutoFollow && emptyRead && !isRunningRun(state.run)) { $("follow-logs").checked = false; state.logAutoFollow = false; }
+        if (fallback && state.session) { $("log-stream").value = "stdout"; void readLog(false); }
+        else if ($("follow-logs").checked && state.session) state.logTimer = setTimeout(() => readLog(true), LOG_FOLLOW_MS);
       }
     }
   }
@@ -704,6 +957,13 @@
     window.KilnWorkInteraction?.clear();
     window.KilnCodeReview?.clear();
     $("code-review-content").replaceChildren();
+    // r[impl kiln.web.live_progress] Session clearing stops the elapsed ticker and drops per-run log defaults.
+    window.KilnProject?.clear();
+    $("project-content").replaceChildren();
+    stopLiveTicker();
+    state.runSort = null; state.failureFirst = null; state.followDeclined = ""; state.startProject = "";
+    $("run-progress").hidden = true;
+    for (const id of ["header-cancel", "header-rerun"]) $(id).hidden = true;
     for (const id of ["work-content", "planning-content", "inbox-content", "triage-content", "workviews-content"]) $(id).replaceChildren();
     window.dispatchEvent(new Event("kiln-session-changed"));
     for (const controller of state.requests) controller.abort();
@@ -820,21 +1080,29 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  const pages = ["overview", "projects", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
+  const pages = ["overview", "projects", "project", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   // Navigation group shown as the page-header eyebrow; matches the rail sections.
   const pageGroups = Object.freeze({
     work: "Work", inbox: "Work", planning: "Work", triage: "Work", workviews: "Work", "code-review": "Review",
-    overview: "Continuous integration", projects: "Continuous integration", runs: "Continuous integration", workers: "Continuous integration",
+    overview: "Continuous integration", projects: "Continuous integration", project: "Continuous integration", runs: "Continuous integration", workers: "Continuous integration",
     source: "Inspect", reviews: "Inspect", activity: "Inspect", evidence: "Inspect",
     automation: "Administration", operations: "Administration", cobs: "Administration", settings: "Administration",
   });
-  // r[impl kiln.web.console_layout] Wide screens show pipeline and logs together; the tab bar selects the remaining run view below them.
+  // r[impl kiln.web.console_layout] Wide screens show pipeline and logs together (side by side when the inspector has room);
+  // the tab bar selects the remaining run view below them.
   const splitRunQuery = window.matchMedia("(min-width: 90rem)");
   const PRIMARY_RUN_VIEWS = Object.freeze(["pipeline", "logs"]);
+  // r[impl kiln.web.failure_first_run] A failed run keeps its logs on screen beside or above the pipeline at every width.
+  function bothPrimaryPanels() {
+    const failed = Boolean(state.run) && state.run.id === state.route?.run && isFailedRun(state.run) && PRIMARY_RUN_VIEWS.includes(state.route?.view);
+    return splitRunQuery.matches || failed;
+  }
   function applyRunPanels() {
     const view = state.route?.view;
-    for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = !(node.dataset.runPanel === view || (splitRunQuery.matches && PRIMARY_RUN_VIEWS.includes(node.dataset.runPanel)));
+    const both = bothPrimaryPanels();
+    for (const node of document.querySelectorAll("[data-run-panel]")) node.hidden = !(node.dataset.runPanel === view || (both && PRIMARY_RUN_VIEWS.includes(node.dataset.runPanel)));
+    document.querySelector(".run-primary-panels").classList.toggle("is-split", splitRunQuery.matches);
   }
   function setRunList(open) {
     $("run-split").classList.toggle("is-list-collapsed", !open);
@@ -870,7 +1138,8 @@
       page: pages.includes(params.get("page")) ? params.get("page") : "overview",
       view: views.includes(params.get("view")) ? params.get("view") : "pipeline",
       run: params.get("run") || "", node: params.get("node") || "",
-      stream: ["stdout", "stderr", "diagnostic"].includes(params.get("stream")) ? params.get("stream") : "stdout",
+      // An absent stream stays empty so failure-first defaults can apply; a URL-named stream always wins.
+      stream: ["stdout", "stderr", "diagnostic"].includes(params.get("stream")) ? params.get("stream") : "",
       q: params.get("q") || "", project: params.get("project") || "", outcome: params.get("outcome") || "", source: params.get("source") || "",
       cursor: params.get("cursor") || "", activity_cursor: params.get("activity_cursor") || "", order: params.get("order") === "asc" ? "asc" : "desc", other: params.get("other") || "",
       cob_repository: params.get("cob_repository") || "", cob_type: params.get("cob_type") || "", cob_q: params.get("cob_q") || "", cob_cursor: params.get("cob_cursor") || "",
@@ -903,20 +1172,26 @@
     const previous = state.route;
     state.route = readRoute();
     if (previous?.page === "code-review" && state.route.page !== "code-review") window.KilnCodeReview?.clear();
+    if (previous?.page === "project" && state.route.page !== "project") window.KilnProject?.clear();
+    // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
+    if (previous && (state.route.page !== "runs" || previous.run !== state.route.run)) stopLiveTicker();
     const route = state.route;
     document.documentElement.dataset.theme = route.theme;
     document.documentElement.dataset.density = route.density;
     $("app-theme").value = route.theme;
     $("app-density").value = route.density;
     for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
-    for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === route.page) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
+    // The project history page belongs to the CI projects destination in the rail.
+    const navPage = route.page === "project" ? "projects" : route.page;
+    for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === navPage) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     for (const group of document.querySelectorAll(".app-navigation details")) {
       if (group.querySelector('[aria-current="page"]')) group.open = true;
     }
     $("workspace").classList.toggle("page-frame-wide", route.page === "runs");
+    $("run-split").classList.toggle("has-run", Boolean(route.run));
     applyRunPanels();
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", cobs: "Raw collaboration history", overview: "CI overview", "code-review": "Code review", reviews: "Patchgate receipts" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
+    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", project: "CI project", cobs: "Raw collaboration history", overview: "CI overview", "code-review": "Code review", reviews: "Patchgate receipts" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
@@ -924,6 +1199,7 @@
     $("observation-note").textContent = {
       overview: "Failing projects first, then health, worker capacity and recent activity. Counts cover retained runs only.",
       projects: "Choose a project to start a source-bound run, or browse its retained history.",
+      project: "Health, streak, duration trend and recent runs, derived from this project's retained runs.",
       workers: "Inspect configured execution targets and admission slots. Availability is not a health check.",
       runs: "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence.",
       cobs: "Browse local collaboration records. Raw operation history is not verified lifecycle state.",
@@ -948,7 +1224,8 @@
       $("workspace-title").focus({ preventScroll: true });
       window.scrollTo(0, 0);
     }
-    for (const [id, key] of [["run-search", "q"], ["run-filter", "project"], ["run-outcome", "outcome"], ["run-source", "source"], ["run-order", "order"], ["compare-other", "other"], ["evidence-run", "run"], ["log-stream", "stream"]]) $(id).value = route[key];
+    for (const [id, key] of [["run-search", "q"], ["run-filter", "project"], ["run-outcome", "outcome"], ["run-source", "source"], ["run-order", "order"], ["compare-other", "other"], ["evidence-run", "run"]]) $(id).value = route[key];
+    $("log-stream").value = effectiveStream();
     if (route.source || route.order !== "desc") $("run-more-filters").open = true;
     $("worker-search").value = route.worker_q;
     $("worker-status").value = route.worker_status;
@@ -959,7 +1236,7 @@
     }
     setMenu(false);
     if (!state.session) return;
-    if (previous && (previous.page !== route.page || previous.run !== route.run || previous.node !== route.node || (previous.view !== route.view && !splitRunQuery.matches) || previous.stream !== route.stream)) resetLogs();
+    if (previous && (previous.page !== route.page || previous.run !== route.run || previous.node !== route.node || (previous.view !== route.view && !bothPrimaryPanels()) || previous.stream !== route.stream)) resetLogs();
     state.pageGeneration++;
     if (route.page === "runs") {
       if (state.selected !== route.run) {
@@ -979,7 +1256,8 @@
     if (route.page === "runs" && route.run && previous?.run !== route.run && state.run) {
       $("run-title").tabIndex = -1;
       $("run-title").focus({ preventScroll: true });
-      $("run-title").scrollIntoView({ block: "start" });
+      // A failed run already revealed its first error line; keep that view instead of jumping back to the title.
+      if (!(state.failureFirst?.run === route.run && state.failureFirst.revealed)) $("run-title").scrollIntoView({ block: "start" });
     } else if (route.page === "runs" && route.run && previous?.view !== route.view) {
       const heading = document.querySelector(`[data-run-panel="${route.view}"] h2`);
       heading.tabIndex = -1;
@@ -992,7 +1270,7 @@
     const link = element("a", text(label), "row-link");
     const params = new URLSearchParams({ page: "runs", run: id, view });
     link.href = `?${params}`;
-    link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate({ page: "runs", run: id, view, node: "" }); } });
+    link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate({ page: "runs", run: id, view, node: "", stream: "" }); } });
     return link;
   }
   function section(title, parent, className = "panel") { const node = element("section", undefined, className); node.append(element("h3", title)); parent.append(node); return node; }
@@ -1085,7 +1363,17 @@
       return;
     }
     if (route.page === "overview") await loadOverview();
-    if (route.page === "projects") { renderProjects(); await Promise.all([loadRefs(), loadProjectHealth()]); }
+    // r[impl kiln.web.project_page] Project history renders through project.js; Run latest reuses the existing start form.
+    if (route.page === "project") {
+      if (!window.KilnProject) { $("project-content").replaceChildren(element("p", "Project history is loading.", "small")); return; }
+      await window.KilnProject.load($("project-content"), { api, navigate, project: route.project, canOperate: canOperate(), startRun });
+      return;
+    }
+    if (route.page === "projects") {
+      renderProjects();
+      if (state.startProject) { selectProjectForRun(state.startProject); state.startProject = ""; }
+      await Promise.all([loadRefs(), loadProjectHealth()]);
+    }
     if (route.page === "workers") await renderEndpoint("/api/workers", "workers-content", renderWorkers);
     if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
     if (route.page === "evidence") {
@@ -1113,7 +1401,7 @@
     if (route.view === "activity") await renderEndpoint(`${pathFor(route.run)}/activity?${activityQuery()}`, "run-activity-content", renderActivity);
     if (route.view === "evidence") await renderEndpoint(`${pathFor(route.run)}/evidence`, "run-evidence-content", renderEvidence);
     if (route.view === "artifacts") await loadArtifacts();
-    if ((route.view === "logs" || splitRunQuery.matches) && !state.logKey && !state.logBusy) await readLog(false);
+    if ((route.view === "logs" || bothPrimaryPanels()) && !state.logKey && !state.logBusy) { maybeAutoFollow(); await readLog(false); }
   }
   // r[impl kiln.dashboard.workers.view]
   function workerMetrics(parent, capacity, targets) {
@@ -1846,6 +2134,13 @@
   }
   function shortRevision(value) { return typeof value === "string" && value.length > 12 ? value.slice(0, 12) : text(value); }
   function finishedAt(ms) { return Number.isSafeInteger(ms) ? ms : -1; }
+  // r[impl kiln.web.project_page] Project names open the project's history page with a clean run selection.
+  const CLEAR_RUN_SELECTION = Object.freeze({ run: "", node: "", stream: "", view: "", q: "", outcome: "", source: "", cursor: "", other: "", activity_cursor: "" });
+  function projectLink(id, label, className) {
+    const link = workspaceLink({ ...CLEAR_RUN_SELECTION, page: "project", project: id }, text(label), className);
+    link.title = `Open the retained history of ${text(label)}`;
+    return link;
+  }
   // Pipeline/Logs keep their exact accessible names; Logs opens stderr of the exact latest execution for a failing project.
   function projectRunLinks(project, latest) {
     const history = { page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" };
@@ -1855,7 +2150,7 @@
     pipeline.setAttribute("aria-label", `Pipeline for ${text(project.label)}`);
     logs.setAttribute("aria-label", `Logs for ${text(project.label)}`);
     logs.title = `Open ${selection.stream} of this exact execution`;
-    return { history, pipeline, logs };
+    return { pipeline, logs };
   }
   function overviewCountChips(totals) {
     const chips = element("div", undefined, "count-chips");
@@ -1872,6 +2167,7 @@
       const link = workspaceLink(patch, undefined, "count-chip");
       link.dataset.outcome = key;
       if (statuses[key]) { link.dataset.status = statuses[key]; link.append(ui.icon(statuses[key])); }
+      if (key === "active" && Number(totals[key]) > 0) link.classList.add("is-live");
       if (key === "active") link.title = "Inspect execution targets with active runs";
       link.append(element("strong", text(totals[key]), "metric-value"), element("span", labels[key], "metric-label"));
       chips.append(link);
@@ -1918,13 +2214,13 @@
     const latest = project.latest_run;
     const card = element("article", undefined, "attention-card");
     card.dataset.health = project.health;
-    const { history, pipeline, logs } = projectRunLinks(project, latest);
+    const { pipeline, logs } = projectRunLinks(project, latest);
     const head = element("div", undefined, "attention-head");
     const finished = element("span", "Finished ", "meta");
     finished.append(when(latest.completed_at_ms));
     head.append(ui.statusPill(latest.outcome, latest.phase), finished);
     const title = element("h3", undefined, "attention-title");
-    title.append(workspaceLink(history, text(project.label)));
+    title.append(projectLink(project.id, project.label));
     const meta = element("p", undefined, "attention-meta");
     const took = element("span", "Duration ");
     took.append(elapsed(latest.duration_ms));
@@ -1955,17 +2251,19 @@
       const cell = (label, content, className) => { const node = element("td", undefined, className); node.dataset.label = label; if (content) node.append(content); row.append(node); return node; };
       const name = element("span", undefined, "project-row-name");
       if (latest) {
-        const { history, pipeline, logs } = projectRunLinks(project, latest);
-        name.append(workspaceLink(history, text(project.label)));
-        cell("Status", ui.statusPill(latest.outcome, latest.phase), "project-row-status");
+        const { pipeline, logs } = projectRunLinks(project, latest);
+        name.append(projectLink(project.id, project.label));
+        cell("Status", livePill(latest.outcome, latest.phase), "project-row-status");
         cell("Project", name);
         cell("Duration", elapsed(latest.duration_ms), "num project-row-duration");
-        cell("Finished", when(latest.completed_at_ms), "project-row-time");
+        // r[impl kiln.web.live_progress] Running projects show when their recorded run started instead of an absent finish.
+        if (project.health === "active") { const started = element("span", "Started ", "running-since"); started.append(when(latest.started_at_ms)); cell("Finished", started, "project-row-time"); }
+        else cell("Finished", when(latest.completed_at_ms), "project-row-time");
         const actions = element("div", undefined, "project-row-actions");
         actions.append(pipeline, logs);
         cell("Inspect", actions, "project-row-actions-cell");
       } else {
-        name.append(workspaceLink({ page: "runs", project: project.id, outcome: "", q: "", source: "", cursor: "", run: "", node: "" }, text(project.label)));
+        name.append(projectLink(project.id, project.label));
         cell("Status", statePill("unknown", "No retained runs"), "project-row-status");
         cell("Project", name);
         for (const label of ["Duration", "Finished", "Inspect"]) cell(label, element("span", "—", "meta"), label === "Duration" ? "num" : "");
@@ -2016,11 +2314,19 @@
     if (groups.healthy.length) passed.append(projectRunTable(groups.healthy));
     else passed.append(emptyState("No passing projects", "No project's latest retained run passed."));
     const other = $("overview-other");
-    const unresolved = [...groups.unknown, ...groups.active, ...groups.queued, ...groups.unavailable, ...groups.cancelled];
+    // Running work first: the overview highlights in-progress projects before unresolved ones.
+    const unresolved = [...groups.active, ...groups.queued, ...groups.unknown, ...groups.unavailable, ...groups.cancelled];
     other.replaceChildren();
     setSectionCount("overview-other", unresolved.length ? String(unresolved.length) : "");
     other.closest("section").hidden = !unresolved.length;
     if (unresolved.length) other.append(projectRunTable(unresolved));
+    // r[impl kiln.web.live_progress] While work is running, its section sits directly below Needs attention.
+    const otherSection = other.closest("section");
+    const passedSection = passed.closest("section");
+    const runningFirst = groups.active.length + groups.queued.length > 0;
+    // Move only when the order changes, so live refreshes never disturb focus inside either section.
+    if (runningFirst && otherSection.nextElementSibling !== passedSection) passedSection.before(otherSection);
+    else if (!runningFirst && passedSection.nextElementSibling !== otherSection) passedSection.after(otherSection);
     renderDurationTrend($("overview-trend"), result);
   }
   function validWorkers(result) {
@@ -2092,6 +2398,7 @@
     const parent = $("project-cards"); parent.replaceChildren();
     for (const project of state.projects.enrolled) {
       const card = section(text(project.label || project.id), parent, "project-card card");
+      card.querySelector("h3").replaceChildren(projectLink(project.id, project.label || project.id));
       card.dataset.projectId = project.id;
       const health = element("div", undefined, "project-card-health");
       health.append(element("span", "Reading latest run…", "meta"));
@@ -2102,7 +2409,7 @@
       const start = element("button", "Select for new run", "quiet");
       start.type = "button";
       start.disabled = !canOperate();
-      start.addEventListener("click", () => { $("enrolled-project").value = project.id; projectDescriptions(); void readAction(loadRefs)(); $("enrolled-project").focus(); $("start-form").scrollIntoView({ block: "center" }); });
+      start.addEventListener("click", () => { selectProjectForRun(project.id); void readAction(loadRefs)(); });
       actions.append(start); card.append(actions);
       const details = element("details");
       details.append(element("summary", "Repository & pipeline identity"));
@@ -2111,6 +2418,18 @@
       details.append(facts); card.append(details);
     }
     if (!state.projects.enrolled.length) parent.append(emptyState("No enrolled projects", "Enroll an allowlisted repository above to start source-bound runs."));
+  }
+  // "Select for new run" and the project page's Run latest only preselect the start form; the
+  // operator still submits it, so dispatch keeps its existing explicit action and admission.
+  function selectProjectForRun(projectId) {
+    $("enrolled-project").value = projectId;
+    projectDescriptions();
+    $("enrolled-project").focus();
+    $("start-form").scrollIntoView({ block: "center" });
+  }
+  function startRun(projectId) {
+    state.startProject = typeof projectId === "string" ? projectId : "";
+    navigate({ ...CLEAR_RUN_SELECTION, page: "projects", project: "" });
   }
   // Project cards show the latest retained run from the bounded overview read; its failure leaves inventory usable.
   async function loadProjectHealth() {
@@ -2754,7 +3073,7 @@
   splitRunQuery.addEventListener("change", () => {
     if (!state.route) return;
     applyRunPanels();
-    if (splitRunQuery.matches && state.session && state.route.page === "runs" && state.run && !state.logKey && !state.logBusy) void readLog(false);
+    if (bothPrimaryPanels() && state.session && state.route.page === "runs" && state.run && !state.logKey && !state.logBusy) { maybeAutoFollow(); void readLog(false); }
   });
   $("runs-first").addEventListener("click", () => navigate({ cursor: "" }));
   $("runs-next").addEventListener("click", () => { if (state.nextCursor) navigate({ cursor: state.nextCursor }); });
@@ -2824,9 +3143,13 @@
     const result = await mutate("/api/runs", payload, "Run request admitted. Inspect queue, phase and outcome for actual execution state.");
     if (!result) return;
     await readAction(loadRuns)();
-    if (result.id && state.session) navigate({ page: "runs", run: result.id, node: "", view: "pipeline" });
+    if (result.id && state.session) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" });
   });
   for (const action of ["cancel", "pause", "resume"]) $("control-" + action).addEventListener("click", () => { void prepareControl(action); });
+  // r[impl kiln.web.failure_first_run] Header Rerun/Cancel reuse the exact confirmation flows of the disclosure buttons.
+  $("header-cancel").addEventListener("click", () => { void prepareControl("cancel"); });
+  $("header-rerun").addEventListener("click", () => { void prepareRerun("exact"); });
+  $("log-jump-error").addEventListener("click", jumpToFirstError);
   $("dismiss-control").addEventListener("click", dismissControl);
   $("control-dialog").addEventListener("cancel", dismissControl);
   $("control-form").addEventListener("submit", async (event) => {
@@ -2834,7 +3157,7 @@
     const pending = state.confirm;
     if (!pending || state.mutation) return;
     dismissControl();
-    if (pending.mode) await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", view: "pipeline" }); });
+    if (pending.mode) await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" }); });
     else await mutate(`${pathFor(pending.id)}/control`, pending.identity, "Control response received. Observe admitted state for its result; no success is inferred.");
     if (state.session && pending.id === state.selected) await readAction(loadDetail)();
   });
@@ -2848,6 +3171,9 @@
   });
   $("follow-logs").addEventListener("change", () => {
     stopLogFollow();
+    // An operator choice owns following for this run: unchecking declines automatic following until another run is opened.
+    state.logAutoFollow = false;
+    state.followDeclined = $("follow-logs").checked ? "" : state.selected || "";
     if ($("follow-logs").checked) { $("log-output").scrollTop = $("log-output").scrollHeight; void readLog(state.logKey !== ""); }
   });
   $("clear-log").addEventListener("click", resetLogs);

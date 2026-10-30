@@ -790,6 +790,11 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-evidence.js"),
             ),
+            "/project.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("project.js"),
+            ),
+            "/project.css" => ("text/css; charset=utf-8", include_bytes!("project.css")),
             // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
             "/catalog.css" => (

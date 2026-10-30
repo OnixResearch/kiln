@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-29",
+  "authority": "Operator asked to improve the CI views and selected all four improvements; deployment follows the established flow for console work.",
+  "package": "/nix/store/lznqfrc096af57z88ssx6vxrzn5lh9xw-kiln-web-service-0.1.0",
+  "executable_blake3": "9b8719f21fc992511735061b3aab954199ccd5347cb4585c0c0eac26f43454f6",
+  "previous_package": "/nix/store/w630qxx2ykzcwm33v9bspk6wafr6zh9d-kiln-web-service-0.1.0",
+  "gates": "nix flake check: all x86_64-linux checks passed; cairn validate valid, traceability 1090/1090, release-readiness valid",
+  "verification": {
+    "assets_identical": 13,
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "retained_runs": 19,
+    "failed_run_default": {
+      "stream": "stderr",
+      "marks": 2
+    },
+    "project_page": {
+      "title": "Kiln · Transactional Reconciliation Core - all-feature conformance",
+      "headline": "Failing for 1 run"
+    },
+    "js_errors": 0
+  },
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}

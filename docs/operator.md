@@ -1480,17 +1480,47 @@ enrollment and source-bound execution above the inventory cards, which show each
 project's latest retained run; **Select for new run** only selects the project and
 never dispatches it.
 
-Run choices show a status pill, project, relative creation time, humanized
-duration, a shortened source revision and the run ID. The run header shows the
-outcome pill and phase above a facts grid. Open **Exact source & execution
-identities** for complete values, including exact local/UTC timestamps.
-Execution controls remain under a separate disclosure and retain the exact
-confirmation and service-side admission. Opening Logs reads the selected stream
-immediately; empty output is not success or complete-log evidence. **Hide run
-list** collapses the run list beside an open run. On screens at least 90rem wide,
-the pipeline and a terminal-styled log panel are shown side by side; the Pipeline
-and Logs tabs move focus to their panel and the other tabs open below them.
-Narrower screens keep one tabbed column.
+Runs lists retained runs as a table grouped under local start-day headings,
+with status, project (linking to its project page), short source revision
+(exact value in the tooltip), duration and relative start time. Column headers
+sort only the loaded page and say so; service filters, cursor paging and the
+URL-restored selection are unchanged. Rows are keyboard focusable: arrow keys
+move between rows and Enter opens one. On screens at least 90rem wide the
+selected run opens beside the table (rows then stack compactly); narrower
+screens open it below. **Hide run list** collapses the table beside an open run.
+The run header shows the outcome pill and phase above a facts grid. Open **Exact
+source & execution identities** for complete values, including exact local/UTC
+timestamps. **Rerun** (exact revision) and **Cancel run** appear in the header
+only when the principal may operate and the run advertises them; they open the
+same exact-identity confirmation as the **Execution actions** disclosure, which
+still holds pause, resume and the other rerun modes. Active runs show elapsed
+time since the recorded start (or Not recorded) and `n of m nodes complete`,
+updated from the live stream; the ticker stops at a terminal state, on leaving
+the run and on session clearing. Opening Logs reads the selected stream
+immediately; empty output is not success or complete-log evidence. The pipeline
+and a terminal-styled log panel are shown together on wide screens (side by
+side when the inspector has room); the Pipeline and Logs tabs move focus to their
+panel and the other tabs open below them. Narrower screens keep one tabbed
+column, except that a failed run always shows its logs before the pipeline.
+
+A failed run opened without `node` or `stream` URL parameters starts on its
+first failed node and stderr, falling back once to stdout when no stderr bytes
+were retained; parameters named in the URL always win. Lines matching a bounded,
+conservative error pattern (error, panicked, FAILED, failed, fatal, Traceback,
+non-zero exit code) are highlighted over the unchanged retained text, the count
+is shown, and **Jump to first error** scrolls to and focuses the first one.
+Highlighting is a presentation aid and can miss or over-match lines.
+
+`?page=project&project=<id>` is a project history page rendered by
+`project.js`/`project.css` from bounded `/api/runs` pages and `/api/projects`.
+It shows health and the current outcome streak, a timeline of recent runs
+linking to exact executions, a duration trend over runs with recorded timing
+only (stating how many were excluded), and the last success and last failure
+with Logs links. **Run latest** opens the existing start form preselected and
+never dispatches by itself. Project names on the overview, project cards and
+the runs table link here; the overview lists running projects first under
+**In progress & unresolved** with a pulsing (static under reduced motion)
+Running indicator.
 
 Evidence and comparison inputs offer bounded retained-run suggestions while
 still accepting exact IDs. Comparison suggestions exclude the current run and
@@ -2326,10 +2356,14 @@ Neither stream invents progress or completion. Text is inert; byte cursors are
 never inferred from displayed UTF-8 character counts. Follow works with an
 admitted network session as well as a manual bearer.
 
-The web viewer reads one bounded chunk at a time. **Read from cursor** appends
-when the requested cursor is the displayed stream/search's next cursor. Empty
-reads preserve existing output and text selection. **Read from start**, or an
-explicit different cursor, replaces the displayed range after a successful read.
+The web viewer reads one bounded chunk at a time. Node, stream and search sit in
+one toolbar; the cursor field, **Read from cursor** and **Read from start** are
+under **Advanced**. **Read from cursor** appends when the requested cursor is the
+displayed stream/search's next cursor. Empty reads preserve existing output and
+text selection. **Read from start**, or an explicit different cursor, replaces
+the displayed range after a successful read. **Follow** is enabled automatically
+for an active run unless you uncheck it, and ends once the run is terminal and
+no new bytes arrive.
 Failed continuations and rejected seeks retain admitted text with an explicit
 unavailable/stale status; they do not advance the accepted cursor. Changing a
 run, node, stream or search invalidates old responses rather than mixing output.

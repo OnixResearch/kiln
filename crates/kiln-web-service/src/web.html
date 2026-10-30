@@ -6,7 +6,7 @@
   <!-- ui.js loads first so every deferred view script can use window.KilnUi. -->
   <script src="/ui.js" defer></script>
   <link rel="stylesheet" href="/code-review.css"><script src="/code-review.js" defer></script>
-  <link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/work.css"><link rel="stylesheet" href="/work-interaction.css"><script src="/web.js" defer></script><script src="/work-evidence.js" defer></script><script src="/work.js" defer></script><script src="/work-interaction.js" defer></script>
+  <link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/work.css"><link rel="stylesheet" href="/work-interaction.css"><link rel="stylesheet" href="/project.css"><script src="/web.js" defer></script><script src="/work-evidence.js" defer></script><script src="/work.js" defer></script><script src="/work-interaction.js" defer></script><script src="/project.js" defer></script>
   <!-- r[impl kiln.dashboard.complete.shell] -->
   <!-- r[impl kiln.web.visual_design] -->
 </head>
@@ -93,30 +93,35 @@
         </div>
         <section class="panel"><div class="section-heading"><h2>Project inventory</h2></div><div id="project-cards" class="project-grid"></div></section>
       </section>
+      <!-- r[impl kiln.web.project_page] Project history route; project.js renders into #project-content. -->
+      <section data-panel="project" hidden class="view-stack"><div id="project-content" class="view-stack"></div></section>
       <section data-panel="workers" hidden class="view-stack" aria-label="Worker execution targets">
         <section class="panel filter-panel"><h2>Target filters</h2><details class="about-view"><summary>About this view</summary><div class="about-view-body"><p>Targets group configured workflow bindings, not discovered physical machines. Free slots are idle enrolled project slots—not online workers, health checks or guaranteed dispatch. Physical liveness is unknown.</p></div></details>
           <form id="worker-search-form" class="inline-form toolbar"><div><label for="worker-search">Search target metadata</label><input id="worker-search" type="search" maxlength="256" autocomplete="off" placeholder="Target, provider, platform, project…"></div><div><label for="worker-status">Slot status</label><select id="worker-status"><option value="">All slot statuses</option><option value="slots_available">Slots available</option><option value="busy">Busy</option><option value="unknown">Unknown execution</option><option value="not_enrolled">Not enrolled</option></select></div><button type="submit">Apply filters</button><button id="worker-reset" class="quiet" type="button">Clear filters</button></form>
         </section>
         <div id="workers-content" class="view-stack" aria-live="polite"></div>
       </section>
-      <!-- r[impl kiln.web.console_layout] Split run view: collapsible run list beside the inspector; ≥90rem shows pipeline and logs together, narrower widths keep one tabbed column. -->
+      <!-- r[impl kiln.web.console_layout] Split run view: the retained-runs table sits beside the selected run at ≥90rem and above it otherwise; the inspector shows pipeline and logs side by side when it has room, one tabbed column when it does not (failed runs show logs first). -->
+      <!-- r[impl kiln.web.runs_table] Retained runs table grouped by local day; header sorting reorders only the loaded page. -->
       <section data-panel="runs" hidden>
-        <div id="run-split" class="split-view run-split"><aside id="run-browser" class="split-list project-column" aria-label="Retained run browser"><section class="panel run-browser"><div class="section-heading"><h2>Retained runs</h2></div>
-          <form id="run-search-form" class="view-stack">
-            <div><label for="run-search">Search</label><input id="run-search" type="search" maxlength="256" autocomplete="off" placeholder="Run, repository, revision…"></div>
-            <div class="run-filter-pair">
-              <div><label for="run-filter">Project</label><select id="run-filter"><option value="">All projects</option></select></div>
-              <div><label for="run-outcome">Outcome</label><select id="run-outcome"><option value="">All outcomes</option><option>Active</option><option>Success</option><option>Failed</option><option>Cancelled</option><option>Unknown</option></select></div>
-            </div>
-            <details id="run-more-filters" class="run-filter-options"><summary>More filters</summary><div class="view-stack">
+        <div id="run-split" class="split-view run-split"><aside id="run-browser" class="split-list project-column" aria-label="Retained run browser"><section class="panel run-browser"><div class="section-heading"><h2>Retained runs</h2><p id="run-sort-note" class="small">Sorting reorders this page only</p></div>
+          <form id="run-search-form" class="run-filters">
+            <div class="run-filter-search"><label for="run-search">Search</label><input id="run-search" type="search" maxlength="256" autocomplete="off" placeholder="Run, repository, revision…"></div>
+            <div><label for="run-filter">Project</label><select id="run-filter"><option value="">All projects</option></select></div>
+            <div><label for="run-outcome">Outcome</label><select id="run-outcome"><option value="">All outcomes</option><option>Active</option><option>Success</option><option>Failed</option><option>Cancelled</option><option>Unknown</option></select></div>
+            <button type="submit">Apply filters</button>
+            <details id="run-more-filters" class="run-filter-options"><summary>More filters</summary><div class="run-filter-more">
               <div><label for="run-source">Exact source revision</label><input id="run-source" maxlength="128" autocomplete="off"></div>
               <div><label for="run-order">Order</label><select id="run-order"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
             </div></details>
-            <button type="submit">Apply filters</button>
           </form>
-          <p id="runs-status" class="small" role="status">No private data loaded.</p><div id="run-list" class="run-list" aria-label="Select a run"></div><div class="control-bar pager"><button id="runs-first" class="quiet" type="button">First page</button><button id="runs-next" type="button" disabled>Next page</button></div></section></aside>
+          <p id="runs-status" class="small" role="status">No private data loaded.</p><div id="run-list" class="run-table-region"></div><div class="control-bar pager"><button id="runs-first" class="quiet" type="button">First page</button><button id="runs-next" type="button" disabled>Next page</button></div></section></aside>
         <div class="split-detail detail-column"><div class="split-toolbar"><button id="run-list-toggle" class="quiet split-toggle" type="button" aria-expanded="true" aria-controls="run-browser"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg><span id="run-list-toggle-label">Hide run list</span></button></div><section id="empty-run" class="panel empty-state"><p class="eyebrow">Execution inspector</p><h2 id="empty-run-title" class="empty-state-title">Select a run</h2><p id="empty-run-message" class="empty-state-text">Choose a retained run. Missing or filtered runs are never silently replaced.</p></section><div id="run-detail" hidden>
-          <section class="panel run-header"><div class="run-heading"><h2 id="run-title"></h2><div id="run-badges" class="badges"></div></div><p id="run-warning" class="warning" hidden></p><dl id="run-facts" class="fact-grid"></dl>
+          <!-- r[impl kiln.web.failure_first_run] Visible Rerun/Cancel open the existing exact-identity confirmation; pause and resume stay in the disclosure. -->
+          <!-- r[impl kiln.web.live_progress] Active runs show elapsed time since the recorded start and node completion progress. -->
+          <section class="panel run-header"><div class="run-heading"><div class="run-heading-title"><h2 id="run-title"></h2><div id="run-badges" class="badges"></div></div><div id="run-header-actions" class="run-header-actions"><button id="header-cancel" class="danger" type="button" hidden data-operate>Cancel run</button><button id="header-rerun" type="button" hidden data-operate aria-label="Rerun exact revision" title="Rerun this exact source revision (opens confirmation)">Rerun</button></div></div><p id="run-warning" class="warning" hidden></p>
+            <div id="run-progress" class="run-progress" hidden><div class="run-progress-head"><span id="run-progress-label"></span><span class="meta">Elapsed <span id="run-elapsed" class="duration">Not recorded</span></span></div><progress id="run-progress-bar" max="1" value="0" aria-labelledby="run-progress-label"></progress></div>
+            <dl id="run-facts" class="fact-grid"></dl>
             <details class="run-exact-identity"><summary>Exact source &amp; execution identities</summary><dl id="run-exact-facts" class="facts"></dl><h3>Native execution identity</h3><pre id="execution-identity" class="identity"></pre></details>
             <details class="run-actions"><summary>Execution actions · cancel, pause &amp; rerun</summary><p id="control-note" class="small"></p><div class="control-bar" aria-label="Execution controls"><button id="control-cancel" class="danger" type="button" disabled data-operate>Cancel run</button><button id="control-pause" type="button" disabled data-operate>Pause run</button><button id="control-resume" type="button" disabled data-operate>Resume run</button></div><div class="control-bar"><button id="rerun-exact" type="button" data-operate>Rerun exact revision</button><button id="rerun-latest" type="button" data-operate>Run latest admitted reference</button><button id="rerun-failed" type="button" data-operate>Retry known failed nodes</button></div></details>
           </section>
@@ -131,18 +136,23 @@
             <section aria-labelledby="step-telemetry-title"><h3 id="step-telemetry-title">Measured worker steps</h3><details class="about-view"><summary>About these measurements</summary><div class="about-view-body"><p>Elapsed time uses the worker’s monotonic clock. CPU and peak memory are observed child usage, not reservations or isolation guarantees. Native graph timestamps above are coarse provider observations. Missing historical measurements stay unknown.</p></div></details><div id="step-telemetry" class="view-stack"></div></section>
           </section>
           <section data-run-panel="logs" class="panel log-panel terminal-panel" hidden>
-            <div class="section-heading"><h2>Execution logs</h2><label class="check"><input id="follow-logs" type="checkbox">Follow selected stream</label></div>
+            <div class="section-heading"><h2>Execution logs</h2><label class="check log-follow"><input id="follow-logs" type="checkbox" aria-label="Follow live output">Follow</label></div>
             <form id="log-form" class="log-tools" aria-describedby="log-read-help">
-              <div><label for="log-node">Node</label><select id="log-node" required></select></div>
-              <div><label for="log-stream">Stream</label><select id="log-stream"><option value="stdout">stdout</option><option value="stderr">stderr</option><option value="diagnostic">diagnostic</option></select></div>
-              <div><label for="log-cursor">Stream cursor</label><input id="log-cursor" inputmode="numeric" value="0" pattern="[0-9]+" required autocomplete="off"></div>
-              <div class="log-read-actions"><button id="read-log" type="submit">Read from cursor</button><button id="restart-log" class="quiet" type="button">Read from start</button></div>
-              <div class="log-search"><label for="log-search">Literal retained-log search</label><input id="log-search" type="search" maxlength="256" autocomplete="off" aria-describedby="log-search-help"><p id="log-search-help" class="small">Search retained stdout/stderr from the beginning; changing the search loads matching output.</p></div>
+              <div class="log-field"><label for="log-node">Node</label><select id="log-node" required></select></div>
+              <div class="log-field log-field-stream"><label for="log-stream">Stream</label><select id="log-stream"><option value="stdout">stdout</option><option value="stderr">stderr</option><option value="diagnostic">diagnostic</option></select></div>
+              <div class="log-search"><label for="log-search">Search log</label><input id="log-search" type="search" maxlength="256" autocomplete="off" placeholder="Literal text" aria-describedby="log-search-help"></div>
+              <details id="log-advanced" class="log-advanced"><summary>Advanced</summary><div class="log-advanced-body">
+                <div><label for="log-cursor">Stream cursor</label><input id="log-cursor" inputmode="numeric" value="0" pattern="[0-9]+" required autocomplete="off"></div>
+                <div class="log-read-actions"><button id="read-log" type="submit">Read from cursor</button><button id="restart-log" class="quiet" type="button">Read from start</button></div>
+                <p id="log-search-help" class="small">Search retained stdout/stderr from the beginning; changing the search loads matching output.</p>
+              </div></details>
             </form>
-            <details class="about-view"><summary>About log reads</summary><div class="about-view-body"><p>Actual worker-captured stdout/stderr can arrive before completion. Diagnostics use native provider cursors; an empty read implies neither completion nor success.</p><p id="log-read-help">Each read loads a bounded chunk. Continue from the next cursor to append; choose another cursor or Read from start to replace the view. Follow keeps the tail visible until you scroll up.</p></div></details>
-            <p id="log-status" class="small" role="status">Select a node to read retained logs.</p><p id="log-gap" class="warning" role="status" hidden></p>
+            <p id="log-gap" class="warning" role="status" hidden></p>
+            <div id="log-error-bar" class="log-error-bar" hidden><span id="log-error-count" role="status"></span><button id="log-jump-error" class="quiet" type="button">Jump to first error</button></div>
             <div class="log-viewer"><pre id="log-output" class="log-output" tabindex="0" aria-label="Selected node log output"></pre>
             <div class="log-footer"><span id="log-position" class="small mono">No log read yet</span><div class="log-footer-actions"><button id="download-log" class="quiet" type="button">Download full retained stream</button><button id="clear-log" class="quiet" type="button">Clear displayed log</button></div></div></div>
+            <p id="log-status" class="small" role="status">Select a node to read retained logs.</p>
+            <details class="about-view"><summary>About log reads</summary><div class="about-view-body"><p>Actual worker-captured stdout/stderr can arrive before completion. Diagnostics use native provider cursors; an empty read implies neither completion nor success.</p><p id="log-read-help">Each read loads a bounded chunk. Continue from the next cursor (Advanced) to append; choose another cursor or Read from start to replace the view. Follow keeps the tail visible until you scroll up. Highlighted error lines are a presentation aid over the exact retained text; nothing is changed or hidden.</p></div></details>
           </section>
           </div>
           <section data-run-panel="artifacts" class="panel" hidden><div class="section-heading"><h2>Retained artifacts</h2></div><p class="meta">Only retained uploads. A receipt is not a product artifact.</p><p id="artifact-status" class="small" role="status"></p><div id="artifact-list" class="artifact-list"></div></section>

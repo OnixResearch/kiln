@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.ci-views.verification.v1",
+  "date": "2026-10-29",
+  "maintenance_owner": "Kiln web-service maintainers",
+  "scope": "Failure-first run view, header Rerun/Cancel, runs table, live run progress, project history page. Presentation only; no API, authority or execution changes.",
+  "real_data_checks": {
+    "failed_run_without_node_or_stream": "Opens the failing node 'test' on stderr; 2 error lines highlighted; Jump to first error present; Rerun visible; Cancel hidden for a terminal run.",
+    "explicit_url_precedence": "stream=stdout in the URL stays stdout.",
+    "project_page_kiln_self_ci": "Passing for 4 runs; last failure shown; trend plots 1 timed run and states 4 untimed runs excluded (data-excluded=4).",
+    "width_320": "runs, failed run logs, project page (failing project), overview, projects: 0 JS errors, 0 overflow, 0 targets under 44px",
+    "slice_evidence": "runs/ and project/ hold before/after screenshots at 1440/320 and dark"
+  },
+  "simulated_active_run": {
+    "method": "In the browser only, the real retained run record was rewritten to an active state (phase active, Pending, recorded start 125s earlier, nodes Running/Completed). All non-GET requests were aborted by interception and none occurred. This exercises presentation, not a real execution.",
+    "observed": "Progress visible; elapsed ticked 2m 07s -> 2m 09s; '1 of 2 nodes complete' with progress bar 1/2; follow on; header Cancel opened the existing #control-dialog with exact run, source, attempt, revision, sequence and execution facts, focus on Keep unchanged, Escape closed it; after leaving the run route the elapsed value stopped updating.",
+    "safety_observed": "When the fresh detail read (unpatched) reported the run terminal, header Cancel refused with 'no longer advertises the requested control. Nothing was sent.'",
+    "screenshot": "simulated-active-run-1440.png",
+    "not_exercised": "A real in-progress execution in the browser; live SSE-driven progress is covered by unit helpers and the existing native exercise, not by a browser observation of a real active run."
+  },
+  "tests": [
+    "node --test tests/live-console-ui.test.mjs: 6 passed, including positive/negative cases for errorLines, durationPoints, elapsedSince/nodeProgress and localDay",
+    "cargo fmt --check; cargo clippy -p kiln-web-service --all-targets -D warnings; cargo test -p kiln-web-service: passed",
+    "node --check on every console script"
+  ]
+}

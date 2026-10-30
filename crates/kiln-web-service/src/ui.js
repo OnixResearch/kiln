@@ -24,6 +24,7 @@
     hour: "2-digit", minute: "2-digit", second: "2-digit", timeZoneName: "short",
   });
   const shortDate = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" });
+  const dayDate = new Intl.DateTimeFormat(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 
   // Canonical outcome -> [semantic status, human label].
   const OUTCOMES = Object.freeze({
@@ -171,5 +172,80 @@
     return time;
   }
 
-  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon });
+  // r[impl kiln.web.failure_first_run] Conservative, bounded error-line recognition. Presentation only:
+  // callers highlight the returned line indexes over inert text and never alter the retained bytes.
+  const MAX_ERROR_LINES = 1000;
+  const MAX_ERROR_LINE_CHARS = 2048;
+  // A word that is not part of an identifier, path, file name or hyphenated name ("error-chain", "error.rs", "error_code").
+  const word = (pattern, flags = "i") => new RegExp(`(?<![\\w./\`-])(?:${pattern})(?![\\w/\`-]|\\.\\w)`, flags);
+  const STRONG_ERROR_PATTERNS = Object.freeze([
+    /(?<![\w./-])error(?:\[[A-Za-z]?\d+\])?:/i,
+    /^\s*(?:error|fatal)\b/i,
+    /\bpanicked at\b/,
+    word("FAILED", ""),
+    /^\s*Traceback \(most recent call last\)/,
+    /(?<![\w.])[A-Z]\w*(?:Error|Exception):/,
+    /\bexit(?:ed with)?(?: exit)? (?:code|status)\D{0,3}[1-9]/i,
+  ]);
+  const WEAK_ERROR_PATTERN = word("error|failed|fatal");
+  const BENIGN_ERROR_PATTERN = /\b(?:0|no|zero|without) (?:errors?|failed|failures?|fatal)\b|\b(?:errors?|failed|failures?)[:=] ?0\b/i;
+  function isErrorLine(line) {
+    const sample = line.length > MAX_ERROR_LINE_CHARS ? line.slice(0, MAX_ERROR_LINE_CHARS) : line;
+    if (STRONG_ERROR_PATTERNS.some((pattern) => pattern.test(sample))) return true;
+    return WEAK_ERROR_PATTERN.test(sample) && !BENIGN_ERROR_PATTERN.test(sample);
+  }
+  function errorLines(text) {
+    if (typeof text !== "string" || !text) return [];
+    const lines = text.split("\n");
+    const result = [];
+    for (let index = 0; index < lines.length && result.length < MAX_ERROR_LINES; index++) if (isErrorLine(lines[index])) result.push(index);
+    return result;
+  }
+
+  // r[impl kiln.web.project_page.scenario.untimed] Trend points: terminal runs with a recorded duration only,
+  // oldest first by service ordinal. Terminal runs without timing are counted as excluded; in-progress runs are neither.
+  function durationPoints(runs) {
+    if (!Array.isArray(runs)) return Object.freeze({ points: Object.freeze([]), excluded: 0 });
+    const ordered = [];
+    const unordered = [];
+    let excluded = 0;
+    runs.forEach((run, index) => {
+      if (!run || typeof run !== "object") return;
+      const outcome = run.outcome;
+      if (typeof outcome !== "string" || !outcome || outcome === "Pending") return;
+      if (!Number.isSafeInteger(run.duration_ms) || run.duration_ms < 0) { excluded++; return; }
+      const at = [run.completed_at_ms, run.started_at_ms, run.created_at_ms].find((value) => Number.isSafeInteger(value));
+      const point = Object.freeze({ id: run.id, duration_ms: run.duration_ms, outcome, at_ms: at ?? null });
+      (Number.isSafeInteger(run.ordinal) ? ordered : unordered).push({ point, ordinal: run.ordinal, index });
+    });
+    ordered.sort((a, b) => a.ordinal - b.ordinal || a.index - b.index);
+    return Object.freeze({ points: Object.freeze([...ordered, ...unordered].map((entry) => entry.point)), excluded });
+  }
+
+  // r[impl kiln.web.live_progress] Elapsed time from a recorded start; null (shown as Not recorded) when no start is recorded.
+  function elapsedSince(start, now = Date.now()) {
+    const begin = instant(start);
+    const reference = instant(now);
+    if (!begin || !reference) return null;
+    return Math.max(0, reference.getTime() - begin.getTime());
+  }
+  const FINISHED_NODE_STATES = new Set(["Completed", "Failed", "Cancelled", "Skipped"]);
+  function nodeProgress(nodes) {
+    const rows = Array.isArray(nodes) ? nodes.filter((node) => node && typeof node === "object") : [];
+    return Object.freeze({ complete: rows.filter((node) => FINISHED_NODE_STATES.has(node.state)).length, total: rows.length });
+  }
+
+  // r[impl kiln.web.runs_table] Local calendar day for grouping; null when no instant is recorded.
+  function localDay(value, now = Date.now()) {
+    const date = instant(value);
+    const reference = instant(now);
+    if (!date || !reference) return null;
+    const key = (day) => `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+    const yesterday = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - 1);
+    const dayKey = key(date);
+    const label = dayKey === key(reference) ? "Today" : dayKey === key(yesterday) ? "Yesterday" : dayDate.format(date);
+    return Object.freeze({ key: dayKey, label });
+  }
+
+  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, errorLines, durationPoints, elapsedSince, nodeProgress, localDay });
 })();
