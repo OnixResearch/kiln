@@ -2117,9 +2117,33 @@ the current channel state and Pijul files describe the tracked working copy;
   actually contain one exact commit, so a recorded Radicle patch can be opened
   as a real diff. Sources that lack the object are omitted, never guessed.
 
-The view adds client-side entry filtering, an explicit up-one-level control and
-newer/older revision steps over the loaded page; all of them change only the URL
-selection, never the repository.
+The page (`source.js`/`source.css`) has a repository picker, a revision bar and
+three views selected by `sview`:
+
+- **Files** (default) lists one directory beside the selected file on wide
+  screens and above it on narrow ones: directories first, then files, each with
+  an icon and a humanized size. The filter narrows the loaded listing only; it
+  is not a repository-wide search. The file viewer shows the path, size, line
+  count and object id, Copy path, Copy link, Download (the retained text, byte
+  for byte) and Wrap lines. Line numbers are links; Shift extends a range and
+  Go to line selects one by keyboard or touch. Syntax highlighting is
+  presentation only and is skipped above 200,000 bytes or 5,000 lines.
+- **History** lists bounded revision pages (More revisions) with author name,
+  relative time and short id; the head and the pinned revision are marked.
+  Choosing a revision opens its Changes; Browse files pins it for Files.
+- **Changes** shows the pinned revision against its first parent: totals, a
+  changed-files list with status and +/- counts, and collapsible per-file hunks
+  with old and new line numbers and +/- markers. Truncation is stated at the top
+  and on the incomplete file. Without a pinned revision the view says how to pin
+  one; for Pijul it states that historical changes are not readable.
+
+The URL keeps every selection: `src`, `rev`, `spath`, `sfile`, `sq`, `sview`
+and `sline` (a line `12` or a range `12-20`). A reload restores exactly that
+selection; an unknown source, missing file, invalid revision or a line outside
+the file is reported, never substituted, and nothing is selected automatically.
+Newer/older steps, Use head and the up-one-level link change only the URL
+selection, never the repository. A recorded patch commit opened from the COB
+view lands on that revision's Changes.
 
 Fixed implementation bounds: 64 sources per policy; 100 log entries per page;
 512 tree entries; 262,144 file bytes; 262,144 diff bytes; 1 MiB retained program

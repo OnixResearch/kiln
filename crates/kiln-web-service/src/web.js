@@ -1011,13 +1011,12 @@
     state.cobsNextCursor = null;
     for (const id of ["cob-list", "cob-detail", "cob-source-status", "cob-status", "cob-repository", "cob-type"]) $(id).replaceChildren();
     $("cob-search").value = "";
-    for (const id of ["source-browser-status", "source-log", "source-tree", "source-file", "source-diff"]) $(id).replaceChildren();
-    $("source-log-status").textContent = "";
-    $("source-log-next").disabled = true;
+    // r[impl kiln.dashboard.source.view] Source reads, caches and selections live in source.js.
+    window.KilnSource?.clear();
+    $("source-content").replaceChildren();
     $("reviews-list").replaceChildren();
     $("reviews-detail").replaceChildren();
     $("reviews-status").textContent = "";
-    $("source-filter").value = "";
     // r[impl kiln.dashboard.workers.view.scenario.cleared]
     $("workers-content").replaceChildren();
     $("worker-search").value = "";
@@ -1155,6 +1154,7 @@
       cob_repository: params.get("cob_repository") || "", cob_type: params.get("cob_type") || "", cob_q: params.get("cob_q") || "", cob_cursor: params.get("cob_cursor") || "",
       cob: params.get("cob") || "", cob_repo: params.get("cob_repo") || "", cob_kind: params.get("cob_kind") || "",
       src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "", sq: (params.get("sq") || "").slice(0, 256),
+      sview: ["history", "changes"].includes(params.get("sview")) ? params.get("sview") : "", sline: (params.get("sline") || "").slice(0, 32),
       receipt: (params.get("receipt") || "").slice(0, 128),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(workerStatuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
@@ -1183,6 +1183,7 @@
     state.route = readRoute();
     if (previous?.page === "code-review" && state.route.page !== "code-review") window.KilnCodeReview?.clear();
     if (previous?.page === "project" && state.route.page !== "project") window.KilnProject?.clear();
+    if (previous?.page === "source" && state.route.page !== "source") window.KilnSource?.clear();
     // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
     if (previous && (state.route.page !== "runs" || previous.run !== state.route.run)) stopLiveTicker();
     const route = state.route;
@@ -1398,7 +1399,11 @@
     if (route.page === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
     if (route.page === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
     if (route.page === "cobs") await loadCobs();
-    if (route.page === "source") await loadSource();
+    // r[impl kiln.dashboard.source.navigation] The Source page renders through source.js.
+    if (route.page === "source") {
+      if (!window.KilnSource) { $("source-content").replaceChildren(element("p", "Source browser is loading.", "small")); return; }
+      await window.KilnSource.load($("source-content"), { api, navigate, route });
+    }
     if (route.page === "reviews") await loadReviewsPage();
     if (route.page === "runs") await loadRunView();
   }
@@ -1664,7 +1669,8 @@
         const button = element("button", `Open ${match.label} · ${match.kind} · ${revision.slice(0, 12)}…`);
         button.type = "button";
         button.title = revision;
-        button.addEventListener("click", () => navigate({ page: "source", src: match.id, rev: revision, spath: "", sfile: "", sq: "", cob: "", cob_repo: "", cob_kind: "", cob_type: "", cob_cursor: "", cob_repository: "", cob_q: "" }));
+        // r[impl kiln.dashboard.source.navigation.scenario.changes] A recorded patch commit opens that revision's Changes view.
+        button.addEventListener("click", () => navigate({ page: "source", src: match.id, rev: revision, sview: "changes", spath: "", sfile: "", sq: "", sline: "", cob: "", cob_repo: "", cob_kind: "", cob_type: "", cob_cursor: "", cob_repository: "", cob_q: "" }));
         card.append(button);
         links += 1;
       }
@@ -1758,222 +1764,6 @@
     }
     for (const boundary of result.non_claims || []) parent.append(element("p", boundary, "small"));
     void attachPatchSources(parent, object);
-  }
-
-  // r[impl kiln.dashboard.source.view]
-  function sourceQuery(values) {
-    const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(values)) if (value) query.set(key, value);
-    return query;
-  }
-  function sourceBreadcrumb(parent, route) {
-    const crumb = element("div", undefined, "source-breadcrumb");
-    if (route.spath) {
-      const up = element("button"); up.type = "button"; up.append(ui.icon("arrow-up"), "up");
-      up.addEventListener("click", () => navigate({ spath: route.spath.split("/").slice(0, -1).join("/"), sfile: "", sq: "" }));
-      crumb.append(up);
-    }
-    const root = element("button", "root"); root.type = "button";
-    root.addEventListener("click", () => navigate({ spath: "", sfile: "", sq: "" }));
-    crumb.append(root);
-    let prefix = "";
-    for (const part of route.spath.split("/").filter(Boolean)) {
-      prefix = prefix ? `${prefix}/${part}` : part;
-      const separator = element("span", "/", "source-separator");
-      const button = element("button", part); button.type = "button";
-      const target = prefix;
-      button.addEventListener("click", () => navigate({ spath: target, sfile: "", sq: "" }));
-      crumb.append(separator, button);
-    }
-    parent.append(crumb);
-  }
-  function renderSourceEntries(parent, route, tree) {
-    const heading = element("p", `${text(tree.label)} · ${text(tree.kind)} · ${tree.revision_scope === "revision" ? `revision ${text(tree.revision)}` : `channel ${text(tree.channel)}`}`, "small");
-    parent.append(heading);
-    sourceBreadcrumb(parent, route);
-    const needle = route.sq.toLowerCase();
-    const entries = needle ? tree.entries.filter((entry) => entry.path.toLowerCase().includes(needle)) : tree.entries;
-    parent.append(element("p", `${entries.length} of ${tree.entries.length} entr${tree.entries.length === 1 ? "y" : "ies"} at ${route.spath || "root"}${needle ? ` matching “${route.sq}”` : ""} · bounded listing`, "small"));
-    const list = element("div", undefined, "source-entries");
-    for (const entry of entries) {
-      const button = element("button", undefined, "source-entry");
-      button.type = "button";
-      if (entry.path === route.sfile) button.setAttribute("aria-current", "true");
-      button.append(element("span", entry.kind === "directory" ? "dir" : entry.kind, "source-kind"), element("span", entry.name, "source-name"), element("span", entry.bytes === null || entry.bytes === undefined ? "" : text(entry.bytes), "source-size"));
-      const patch = entry.kind === "directory" ? { spath: entry.path, sfile: "", sq: "" } : { sfile: entry.path };
-      button.addEventListener("click", () => navigate(patch));
-      list.append(button);
-    }
-    parent.append(list);
-    if (tree.entries.length && !entries.length) parent.append(element("p", "No entries match this directory filter. Clear the filter to see this bounded listing; this is not a repository-wide search.", "small"));
-    if (route.sfile && !entries.some((entry) => entry.path === route.sfile)) parent.append(element("p", "The selected file is outside this filtered directory listing. Its exact content is inspected independently.", "small"));
-    if (!tree.entries.length) parent.append(element("p", "This directory is empty in the selected revision.", "small"));
-  }
-  function renderSourceFile(parent, file) {
-    const heading = section(`${text(file.path)}`, parent, "record-card");
-    const facts = element("dl", undefined, "facts");
-    addFacts(facts, [["Repository", file.label], ["Kind", file.kind], ["Scope", file.revision_scope], ["Revision", file.revision], ["Object", file.oid], ["Bytes", file.bytes], ["Binary", file.binary ? "yes" : "no"]]);
-    heading.append(facts);
-    if (file.binary) heading.append(element("p", "This object is binary or not valid UTF-8. No text is rendered and nothing is decoded.", "small"));
-    else heading.append(sourceLines(file.text, "source-content"));
-  }
-  function sourceLines(textValue, className) {
-    const pre = element("pre", undefined, className);
-    const lines = String(textValue ?? "").split("\n");
-    if (lines.length && lines[lines.length - 1] === "") lines.pop();
-    for (const line of lines) pre.append(element("span", line, "line"), document.createTextNode("\n"));
-    return pre;
-  }
-  function renderSourceDiff(parent, diff) {
-    const card = section(`${text(diff.files_changed)} file(s) changed · +${text(diff.insertions)} −${text(diff.deletions)}`, parent, "record-card");
-    card.append(element("p", `Revision ${text(diff.revision)} against ${text(diff.parent)} · ${diff.truncated ? "bounded preview, not the complete diff" : "complete diff within bounds"}`, "small"));
-    const pre = element("pre", undefined, "source-content diff");
-    for (const line of text(diff.diff).split("\n")) {
-      const kind = line.startsWith("+++") || line.startsWith("---") ? "meta" : line.startsWith("@@") ? "hunk" : line.startsWith("+") ? "add" : line.startsWith("-") ? "del" : line.startsWith("diff --git") ? "file" : "context";
-      pre.append(element("span", line || " ", `diff-${kind}`), document.createTextNode("\n"));
-    }
-    card.append(pre);
-  }
-  async function loadSourceDiff(selected, route, current) {
-    const parent = $("source-diff");
-    if (!route.rev || selected.revision_scope !== "revision") {
-      parent.replaceChildren(element("p", selected.kind === "pijul" ? "Pijul changes are listed from the current channel; historical diffs are not readable." : "Select a revision to see its changes against its first parent.", "small"));
-      return;
-    }
-    parent.replaceChildren(element("p", "Loading selected revision changes…", "small"));
-    try {
-      const diff = await api(`/api/sources/${encodeURIComponent(selected.id)}/diff?${sourceQuery({ revision: route.rev })}`);
-      if (!current()) return;
-      parent.replaceChildren(); renderSourceDiff(parent, diff);
-    } catch (error) { if (!isAborted(error) && current()) parent.replaceChildren(element("p", `Changes unavailable: ${explain(error)}`, "warning")); }
-  }
-  async function loadSource() {
-    const route = state.route;
-    const current = beginBrowsingLoad("source", route);
-    const status = $("source-log-status");
-    const log = $("source-log");
-    for (const id of ["source-log", "source-tree", "source-file", "source-diff"]) $(id).replaceChildren();
-    $("source-log-next").disabled = true;
-    $("source-log-next").onclick = null;
-    $("source-filter").value = route.sq;
-    $("source-filter").disabled = !route.src;
-    $("source-up").disabled = true;
-    status.textContent = "Reading configured sources…";
-    $("source-browser-status").replaceChildren(loadingState());
-    let inventory;
-    try { inventory = await api("/api/sources"); }
-    catch (error) { if (!isAborted(error) && current()) { $("source-browser-status").replaceChildren(errorState(`Unavailable: ${explain(error)}`)); status.textContent = "Source inventory unavailable."; } return; }
-    if (!current()) return;
-    const sources = Array.isArray(inventory.sources) ? inventory.sources : [];
-    const parent = $("source-browser-status"); parent.replaceChildren();
-    if (!inventory.configured) parent.append(element("p", "No source repositories are configured. The service operator must admit a separate --sources policy. This is not proof that no repository is readable.", "warning"));
-    for (const row of sources) {
-      const details = element("details");
-      details.append(element("summary", `${text(row.label)} · ${text(row.kind)} · ${text(row.status)}${row.id === route.src ? " · selected" : ""}`));
-      const facts = element("dl", undefined, "facts");
-      addFacts(facts, [["Source ID", row.id], ["Scope", row.revision_scope], ["Channel", row.channel], ["Exact head", row.head], ["Unavailable reason", row.reason]]);
-      details.append(facts); parent.append(details);
-    }
-    options($("source-select"), sources.map((row) => ({ id: row.id, label: `${row.label} · ${row.kind}${row.status === "available" ? "" : " · unavailable"}` })), "Select a configured source", route.src);
-    const selected = sources.find((row) => row.id === route.src);
-    if (!selected) {
-      $("source-filter").disabled = true;
-      if (route.src) { const option = element("option", `Unavailable selection: ${route.src}`); option.value = route.src; $("source-select").append(option); $("source-select").value = route.src; }
-      const message = route.src ? `Source not found in the configured inventory: ${route.src}. No repository was substituted.` : sources.length ? "Select a configured source above to browse revisions and files. No repository is selected automatically." : "No source repository is configured.";
-      status.textContent = message;
-      $("source-tree").append(element("p", message, route.src ? "warning" : "small"));
-      if (route.src) browsingClear(parent, "Clear source selection", { src: "", rev: "", spath: "", sfile: "", sq: "" });
-      return;
-    }
-    browsingClear(parent, "Clear source selection", { src: "", rev: "", spath: "", sfile: "", sq: "" });
-    if (selected.status !== "available") {
-      $("source-filter").disabled = true;
-      status.textContent = `Selected source unavailable: ${text(selected.reason)}. No repository was substituted.`;
-      $("source-tree").append(element("p", status.textContent, "warning"));
-      return;
-    }
-    $("source-filter").disabled = false;
-    $("source-up").disabled = !route.spath;
-    status.textContent = "Reading revisions…";
-    const tree = $("source-tree"); tree.append(element("p", "Loading selected directory…", "small"));
-    const file = $("source-file");
-    const content = element("div", undefined, "view-stack");
-    if (route.sfile) {
-      browsingClear(file, "Clear selected file", { sfile: "" });
-      file.append(element("p", `Selected file: ${route.sfile}`, "identity"), content);
-      content.append(element("p", "Loading exact file content…", "small"));
-    } else file.append(element("p", "Select a file entry to read its exact content. No file is selected automatically.", "small"));
-    await Promise.all([
-      (async () => {
-        try {
-          const history = await api(`/api/sources/${encodeURIComponent(selected.id)}/log?${sourceQuery({ limit: "30" })}`);
-          if (current()) renderSourceLog(log, route, selected, history, current);
-        } catch (error) { if (!isAborted(error) && current()) status.textContent = `Revisions unavailable: ${explain(error)}`; }
-      })(),
-      (async () => {
-        try {
-          const listing = await api(`/api/sources/${encodeURIComponent(selected.id)}/tree?${sourceQuery({ revision: route.rev, path: route.spath })}`);
-          if (!current()) return;
-          tree.replaceChildren(); renderSourceEntries(tree, route, listing);
-        } catch (error) { if (!isAborted(error) && current()) { tree.replaceChildren(); sourceBreadcrumb(tree, route); tree.append(element("p", `Listing unavailable: ${explain(error)}`, "warning")); } }
-      })(),
-      loadSourceDiff(selected, route, current),
-      (async () => {
-        if (!route.sfile) return;
-        try {
-          const result = await api(`/api/sources/${encodeURIComponent(selected.id)}/file?${sourceQuery({ revision: route.rev, path: route.sfile })}`);
-          if (!current()) return;
-          content.replaceChildren(); renderSourceFile(content, result);
-        } catch (error) { if (!isAborted(error) && current()) content.replaceChildren(element("p", `File unavailable: ${explain(error)}`, "warning")); }
-      })()
-    ]);
-  }
-  function renderSourceLog(parent, route, selected, history, current) {
-    const entries = Array.isArray(history.entries) ? history.entries : [];
-    parent.replaceChildren();
-    const historical = selected.kind !== "pijul" && selected.revision_scope === "revision";
-    for (const entry of entries) {
-      const button = element("button", undefined, "run-choice source-revision");
-      button.type = "button";
-      button.title = text(entry.id);
-      if (historical && entry.id === route.rev) button.setAttribute("aria-current", "true");
-      button.append(element("strong", text(entry.summary || entry.id)), element("span", text(entry.author), "small"), recordedTimeSpan(entry.recorded_at_ms), element("span", historical ? `select revision ${shortOid(entry.id)}` : `change ${shortOid(entry.id)} · historical trees are not readable`, "small"));
-      button.addEventListener("click", () => { if (historical) navigate({ rev: entry.id, spath: "", sfile: "" }); });
-      if (!historical) button.disabled = true;
-      parent.append(button);
-    }
-    if (!entries.length) parent.append(element("p", "No recorded revision is readable for this source.", "small"));
-    $("source-log-status").textContent = `${entries.length} revision${entries.length === 1 ? "" : "s"} observed${history.next_cursor ? " · bounded page" : ""}${historical ? " · select one to pin the tree and file reads" : " · Pijul listings cover the current channel state only"}`;
-    if (route.rev) {
-      parent.append(element("p", `Selected revision: ${route.rev}${entries.some((entry) => entry.id === route.rev) ? "" : " · not in this bounded history page; exact reads are independent"}`, "identity"));
-      browsingClear(parent, "Use current head", { rev: "", spath: "", sfile: "" });
-    }
-    const index = entries.findIndex((entry) => entry.id === route.rev);
-    const steps = element("div", undefined, "source-steps");
-    for (const [label, glyph, target] of [["newer", "arrow-left", index > 0 ? entries[index - 1] : null], ["older", "arrow-right", index >= 0 ? entries[index + 1] : null]]) {
-      const button = element("button"); button.type = "button";
-      if (glyph === "arrow-left") button.append(ui.icon(glyph), label); else button.append(label, ui.icon(glyph));
-      button.disabled = !historical || !target;
-      if (target) button.addEventListener("click", () => navigate({ rev: target.id, spath: "", sfile: "" }));
-      steps.append(button);
-    }
-    parent.append(steps);
-    const next = $("source-log-next");
-    next.disabled = !history.next_cursor;
-    next.onclick = async () => {
-      if (!history.next_cursor) return;
-      next.disabled = true;
-      let more;
-      try { more = await api(`/api/sources/${encodeURIComponent(selected.id)}/log?${sourceQuery({ limit: "30", cursor: history.next_cursor })}`); }
-      catch (error) { if (!isAborted(error) && current()) { $("source-log-status").textContent = `More revisions unavailable: ${explain(error)}`; next.disabled = false; } return; }
-      if (!current()) return;
-      renderSourceLog(parent, route, selected, { ...history, entries: [...entries, ...(more.entries || [])], next_cursor: more.next_cursor }, current);
-    };
-  }
-  function recordedTimeSpan(ms) {
-    const node = when(ms);
-    node.classList.add("small");
-    return node;
   }
   // r[impl kiln.dashboard.reviews.view]
   function retainedDecisionLabel(decision) {
@@ -3096,10 +2886,6 @@
   $("runs-next").addEventListener("click", () => { if (state.nextCursor) navigate({ cursor: state.nextCursor }); });
   $("compare-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ other: $("compare-other").value.trim(), view: "compare" }); });
   $("evidence-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ page: "evidence", run: $("evidence-run").value.trim() }); });
-  $("source-select").addEventListener("change", (event) => { if (state.session) navigate({ src: event.target.value, rev: "", spath: "", sfile: "", sq: "" }); });
-  $("source-filter").addEventListener("input", (event) => { if (state.session) navigate({ sq: event.target.value }); });
-  $("source-up").addEventListener("click", () => { if (state.session && state.route.spath) navigate({ spath: state.route.spath.split("/").slice(0, -1).join("/"), sfile: "", sq: "" }); });
-  $("source-form").addEventListener("submit", (event) => { event.preventDefault(); if (state.session) navigate({ src: $("source-select").value, rev: "", spath: "", sfile: "", sq: "" }); });
   $("worker-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ worker_q: $("worker-search").value.trim(), worker_status: $("worker-status").value }); });
   $("worker-reset").addEventListener("click", () => navigate({ worker_q: "", worker_status: "" }));
   $("cob-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ cob_repository: $("cob-repository").value, cob_type: $("cob-type").value, cob_q: $("cob-search").value.trim(), cob_cursor: "" }); });

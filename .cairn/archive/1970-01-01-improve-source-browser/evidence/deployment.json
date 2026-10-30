@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-30",
+  "authority": "Operator requested \"push and deploy\".",
+  "package": "/nix/store/m5q3qwsxigydkaqqqp0s74gwa85y6bn8-kiln-web-service-0.1.0",
+  "executable_blake3": "2604e4cd436db6ce696b01226f5612c8654df1cdfcae2b827eaaf438fb355749",
+  "previous_package": "/nix/store/km9y7zvd19950m8ivzfqc2mcc79lbl42-kiln-web-service-0.1.0",
+  "gates": "nix flake check: all x86_64-linux checks passed; cairn validate valid, traceability 1096/1096, release-readiness valid",
+  "verification": {
+    "assets_identical": 16,
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "retained_runs": 19,
+    "source_file_view": {
+      "rows": 1108,
+      "overflow": 0
+    },
+    "js_errors": 0
+  },
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}

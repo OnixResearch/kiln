@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.source-browser.verification.v1",
+  "date": "2026-10-30",
+  "maintenance_owner": "Kiln web-service maintainers",
+  "before": "Live audit: one 4,768 px column; file content below a 43-entry list in a small inner scroll with double-spaced lines; directories mixed among files with size 0; raw byte counts; FILE/DIR text kinds; raw single-block diff only after picking a revision; no line anchors, copy, download, wrap or highlighting.",
+  "parent_checks_on_real_data": {
+    "line_anchor": "sline=10-14 on crates/kiln-web-service/src/server.rs: exactly 5 lines selected and scrolled into view",
+    "text_fidelity": "Concatenated rendered code text equals /api/sources/kiln/file text exactly",
+    "line_height": "20 px single spacing",
+    "directories_first": "src listing: cobs, code_review, engine, server, work, worker before files",
+    "changes": "Revision 7eaba128 renders a per-file list with status and +/- counts. 50 files changed, +2165 -828; the truncation is stated: 41 of 50 files shown, last file incomplete, missing lines not reconstructed.",
+    "width_320": "file with range, history, changes and Pijul changes: 0 JS errors, 0 overflow, 0 targets under 44 px"
+  },
+  "slice_evidence": "findings.json (metrics per view at 320 light and 1440 dark, interaction checks, design-guide deviations) and viewport screenshots",
+  "tests": [
+    "node --test tests/live-console-ui.test.mjs: 19 passed, including positive and negative diff parsing, tokenizer text preservation and bounds, size humanization, entry sorting and sline parsing",
+    "cargo fmt --check; cargo clippy -p kiln-web-service --all-targets -D warnings; cargo test -p kiln-web-service: passed",
+    "Icon import re-run: icons.js byte-identical (54 icons)"
+  ]
+}

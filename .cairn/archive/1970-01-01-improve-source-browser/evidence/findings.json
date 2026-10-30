@@ -1,0 +1,38 @@
+{
+  "slice": "source",
+  "guide": "GPUI Kit Design Guides @ 944803984cf0 (design review, accessibility, interaction states, data-heavy, interface language)",
+  "method": "Real retained data on the live origin (sources kiln/Git, lattice/Jujutsu, native-ci/Git, redox/Pijul), candidate assets substituted by GET interception (web.html, web.js, web.css, ui.js, icons.js, project.*, source.js, source.css, work*, code-review*). Read-only: no non-GET request. Metrics per page: page errors, document horizontal overflow (px) and, at <=480px, interactive elements under 44px.",
+  "owned_files": ["crates/kiln-web-service/src/source.js", "crates/kiln-web-service/src/source.css", "crates/kiln-web-service/src/web.js", "crates/kiln-web-service/src/web.html", "crates/kiln-web-service/src/web.css", "crates/kiln-web-service/src/server.rs", "crates/kiln-web-service/src/icons.list", "crates/kiln-web-service/src/icons.js", "tests/live-console-ui.test.mjs", "docs/operator.md"],
+  "recorded_deviations": [
+    "Navigation stays links: view tabs, breadcrumb, tree entries, history rows, newer/older, Use head and View file are <a href> with in-page plain-click navigation, so new tabs and browser history keep working.",
+    "Gutter line numbers are links for pointer use but leave the tab order (tabindex -1); Go to line is the keyboard path, so a 5,000-line file is not 5,000 tab stops.",
+    "On touch layouts (<=60rem) gutter numbers are not links (a tap on the number still selects); every other control keeps a 44px target."
+  ],
+  "metrics": {
+    "tree-root": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "directory crates/kiln-web-service/src": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "file ui.js": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "file server.rs sline=770-780": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "file flake.nix": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "history": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "changes kiln 7eaba128 (50 files, truncated)": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "changes lattice 85a38b6a (Jujutsu)": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "pijul redox files shell.nix": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "pijul redox changes": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "COB patch -> source (lands on native-ci c4bb071a Changes, 6 files)": { "320-light": [0, 0, 0], "1440-dark": [0, 0, 0] },
+    "compact density: server.rs range, history, directory": { "320-light": [0, 0, 0] },
+    "legend": "[errors, overflow px, smallTargets]"
+  },
+  "interactions": [
+    "Filter typing narrows at once, commits sq to the URL after 350 ms and keeps focus and caret in the filter (21 of 43 entries for 'rs').",
+    "Keyboard: Tab reaches tree entries; Enter opens the file and focus returns to the same entry after re-render.",
+    "Gutter click selects line 5, Shift-click extends to 5-9 without scrolling; Go to line '20-12' selects 12-20 and scrolls it into view; '99999' is refused with 'This file has 368 lines; nothing was selected.'",
+    "Reload/back restores sline exactly; sline=780-770 highlights 770-780 and the URL is not rewritten.",
+    "sline outside the file, garbage sline, sline without a file and sline on a binary file are each reported; nothing is highlighted.",
+    "Unknown source, missing file, invalid revision and a Pijul revision are reported explicitly; nothing is substituted.",
+    "History: More revisions appends 30 to 60 and keeps focus on More; a commit title opens its Changes; Older steps to the parent.",
+    "Changes: changed-files list jumps to the file section without changing the URL; binary files say 'no text diff'; truncation is stated at the top and on the last file.",
+    "Copy path reports 'Path copied.'; Wrap lines toggles aria-pressed and the wrapped layout."
+  ],
+  "screenshots": ["after-file-1440-dark.png", "after-line-range-320-light.png", "after-history-1440-light.png", "after-changes-1440-dark.png", "after-pijul-changes-320-light.png", "after-cob-changes-1440-light.png"]
+}

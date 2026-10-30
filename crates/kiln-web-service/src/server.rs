@@ -797,6 +797,12 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 include_bytes!("project.js"),
             ),
             "/project.css" => ("text/css; charset=utf-8", include_bytes!("project.css")),
+            // r[impl kiln.dashboard.source.navigation] Source page module, served like the project page.
+            "/source.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("source.js"),
+            ),
+            "/source.css" => ("text/css; charset=utf-8", include_bytes!("source.css")),
             // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
             "/catalog.css" => (
