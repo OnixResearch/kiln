@@ -1265,3 +1265,333 @@ fn catalog_output_cannot_replace_inputs_through_symlink_aliases() {
         .is_ok()
     );
 }
+
+const REVIEW_WINDOW_DOCUMENT: &str =
+    include_str!("../../../fixtures/observation/review-window-v1.json");
+
+fn review_window_path() -> String {
+    format!(
+        "{}/../../fixtures/observation/review-window-v1.json",
+        env!("CARGO_MANIFEST_DIR")
+    )
+}
+
+fn review_window() -> kiln_observe_core::ReviewWindow {
+    kiln_dashboard::shell::parse_review_window(REVIEW_WINDOW_DOCUMENT.as_bytes())
+        .unwrap_or_else(|_| unreachable!())
+}
+
+fn reviewed(window: kiln_observe_core::ReviewWindow) -> kiln_dashboard::journal::AdmittedJournal {
+    let mut journal = admitted(2);
+    journal.review = Some(window);
+    journal
+}
+
+// r[verify kiln.observe.review.parity]
+// r[verify kiln.observe.review.parity.scenario.equal]
+#[test]
+fn review_views_equal_the_accepted_projection_and_render_every_surface() {
+    let journal = reviewed(review_window());
+    let profile = dashboard_profile();
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let review = report
+        .views
+        .review
+        .as_ref()
+        .unwrap_or_else(|| unreachable!());
+    let direct = |view: ViewRequest| {
+        project_observation(
+            &profile.observation,
+            &journal.state,
+            &ObservationRequest {
+                state_revision: journal.state.revision,
+                view,
+            },
+            &ObservationWindow::review(review_window()),
+        )
+        .unwrap_or_else(|_| unreachable!())
+    };
+    let friction = direct(ViewRequest::ReviewFriction);
+    let anchors = direct(ViewRequest::SuggestionAnchors {
+        cursor: 0,
+        limit: profile.observation.bounds.max_page_items,
+    });
+    assert_eq!(review.friction, friction);
+    assert_eq!(review.friction.identity, friction.identity);
+    assert_eq!(review.anchors, anchors);
+    assert_eq!(review.anchors.identity, anchors.identity);
+    assert_ne!(review.friction.identity, review.anchors.identity);
+    let ViewBody::SuggestionAnchors(page) = &review.anchors.body else {
+        unreachable!()
+    };
+    assert_eq!(page.anchors.len(), 2);
+    assert_eq!(page.page.total, 3);
+    assert!(page.page.has_more);
+    assert_eq!(page.page.next, Some(2));
+
+    let text = render_report(&report, RenderStyle::Plain);
+    assert!(text.contains("review friction\n"));
+    assert!(text.contains("authorship is self-declared and unverified"));
+    assert!(text.contains(
+        "  human               changes 2   approved 2   merged 2   merged without suggestion 1 (500 per mille)\n    latency ms        min 2000   median 2000   max 4000\n    patch sets        min 1   median 1   max 2\n    suggestions       total 1   median 0   max 1\n"
+    ));
+    assert!(text.contains(
+        "  agent               changes 3   approved 2   merged 2   merged without suggestion 1 (500 per mille)\n    latency ms        min 1000   median 1000   max 10000\n    patch sets        min 1   median 1   max 3\n    suggestions       total 4   median 1   max 3\n"
+    ));
+    assert!(text.contains(
+        "  undeclared          changes 1   approved 0   merged 0   merged without suggestion 0 (-)\n    latency ms        min -   median -   max -\n"
+    ));
+    assert!(text.contains("suggestion anchors\n"));
+    assert!(text.contains("total 3   requested 2   effective 2   more   next 2"));
+    assert!(text.contains("  src/lib.rs  owner core  suggestions 3  changes 2\n"));
+    assert!(text.contains("  README.md  owner unowned  suggestions 1  changes 1\n"));
+    assert!(!text.contains("docs/guide.md"));
+    assert!(text.contains(&format!(
+        "  review_friction     {}\n",
+        friction.identity.as_str()
+    )));
+    assert!(text.contains(&format!(
+        "  suggestion_anchors  {}\n",
+        anchors.identity.as_str()
+    )));
+
+    let html_report = build_html_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(html_report.report.views.review, report.views.review);
+    let html = kiln_dashboard::render::html::render_html(&html_report);
+    assert!(html.contains("<h2 id=\"review-friction-heading\">Review friction</h2>"));
+    assert!(html.contains("authorship is self-declared and unverified"));
+    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td></tr>"));
+    assert!(html.contains("<h2 id=\"suggestion-anchors-heading\">Suggestion anchors</h2>"));
+    assert!(html.contains("<tr><td class=\"mono\">src/lib.rs</td><td class=\"mono\">core</td><td>3</td><td>2</td></tr>"));
+    assert!(html.contains("<tr><td class=\"mono\">README.md</td><td class=\"mono\">unowned</td><td>1</td><td>1</td></tr>"));
+    assert!(html.contains("<span class=\"pill\">total 3</span>"));
+    assert!(html.contains("<span class=\"pill\">more</span><span class=\"pill\">next 2</span>"));
+    assert!(html.contains(&format!(
+        "<tr><td class=\"mono\">review_friction</td><td class=\"mono\">{}</td></tr>",
+        friction.identity.as_str()
+    )));
+    assert!(html.contains(&format!(
+        "<tr><td class=\"mono\">suggestion_anchors</td><td class=\"mono\">{}</td></tr>",
+        anchors.identity.as_str()
+    )));
+
+    let plain = build_report(&profile, &admitted(2), &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    assert!(plain.views.review.is_none());
+    let text = render_report(&plain, RenderStyle::Plain);
+    assert!(!text.contains("review friction"));
+    assert!(!text.contains("suggestion_anchors"));
+    let html = kiln_dashboard::render::html::render_html(
+        &build_html_report(&profile, &admitted(2), &DashboardSelection::default())
+            .unwrap_or_else(|_| unreachable!()),
+    );
+    assert!(!html.contains("Review friction"));
+    assert!(!html.contains("review_friction"));
+}
+
+#[test]
+fn redacted_anchor_owners_are_not_reported_as_unowned() {
+    let journal = reviewed(review_window());
+    let mut profile = dashboard_profile();
+    profile
+        .observation
+        .redaction
+        .visible_fields
+        .remove(&ViewField::SuggestionOwners);
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        report
+            .redacted_fields
+            .contains(&ViewField::SuggestionOwners)
+    );
+    let text = render_report(&report, RenderStyle::Plain);
+    assert!(text.contains("  src/lib.rs  owner redacted  suggestions 3  changes 2\n"));
+    assert!(text.contains("  README.md  owner redacted  suggestions 1  changes 1\n"));
+    assert!(!text.contains("owner core"));
+    assert!(text.contains("suggestion_owners"));
+}
+
+// r[verify kiln.observe.review.window.scenario.violation]
+#[test]
+fn review_window_violations_and_unadmitted_review_views_fail_the_build() {
+    let profile = dashboard_profile();
+    let mut window = review_window();
+    window.end_ms = window.start_ms;
+    let journal = reviewed(window);
+    let error = expect_error(build_report(
+        &profile,
+        &journal,
+        &DashboardSelection::default(),
+    ));
+    assert_eq!(error.code, "review_window_range");
+    let error = expect_error(build_html_report(
+        &profile,
+        &journal,
+        &DashboardSelection::default(),
+    ));
+    assert_eq!(error.code, "review_window_range");
+
+    let journal = reviewed(review_window());
+    let mut narrowed = dashboard_profile();
+    narrowed
+        .observation
+        .views
+        .remove(&kiln_observe_core::ViewKind::SuggestionAnchors);
+    let error = expect_error(build_report(
+        &narrowed,
+        &journal,
+        &DashboardSelection::default(),
+    ));
+    assert_eq!(error.code, "review_views_not_admitted");
+    assert!(build_report(&profile, &journal, &DashboardSelection::default()).is_ok());
+}
+
+#[test]
+fn review_window_document_is_parsed_strictly_under_its_byte_bound() {
+    use kiln_dashboard::shell::{MAX_REVIEW_WINDOW_BYTES, load_review_window, parse_review_window};
+
+    let mut value: serde_json::Value =
+        serde_json::from_str(REVIEW_WINDOW_DOCUMENT).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        parse_review_window(&serde_json::to_vec(&value).unwrap_or_else(|_| unreachable!())),
+        Ok(review_window())
+    );
+    assert!(parse_review_window(b"{").is_err());
+    let mut unknown = value.clone();
+    unknown
+        .as_object_mut()
+        .unwrap_or_else(|| unreachable!())
+        .insert("authority".to_string(), serde_json::json!(true));
+    assert!(
+        parse_review_window(&serde_json::to_vec(&unknown).unwrap_or_else(|_| unreachable!()))
+            .is_err()
+    );
+    *value
+        .pointer_mut("/changes/0/authorship")
+        .unwrap_or_else(|| unreachable!()) = serde_json::json!("robot");
+    assert!(
+        parse_review_window(&serde_json::to_vec(&value).unwrap_or_else(|_| unreachable!()))
+            .is_err()
+    );
+
+    let directory = std::env::temp_dir().join("kiln-dashboard-review-bound");
+    std::fs::create_dir_all(&directory).unwrap_or_else(|_| unreachable!());
+    let at_bound = directory.join("at-bound.json");
+    let mut padded = REVIEW_WINDOW_DOCUMENT.as_bytes().to_vec();
+    padded.resize(MAX_REVIEW_WINDOW_BYTES, b' ');
+    std::fs::write(&at_bound, &padded).unwrap_or_else(|_| unreachable!());
+    assert_eq!(load_review_window(&at_bound), Ok(review_window()));
+    let oversized = directory.join("oversized.json");
+    padded.push(b' ');
+    std::fs::write(&oversized, &padded).unwrap_or_else(|_| unreachable!());
+    let error = match load_review_window(&oversized) {
+        Ok(_) => unreachable!(),
+        Err(error) => error,
+    };
+    assert!(error.contains("named byte bound"));
+}
+
+#[test]
+fn review_option_requires_a_journal_or_store_input() {
+    use kiln_dashboard::shell::{Parsed, parse_options};
+    let parse = |arguments: &[&str]| parse_options(arguments.iter().map(|value| value.to_string()));
+    let Ok(Parsed::Options(options)) = parse(&[
+        "--journal",
+        "journal.json",
+        "--profile",
+        "profile.json",
+        "--review",
+        "review.json",
+    ]) else {
+        unreachable!()
+    };
+    assert_eq!(options.review, Some(PathBuf::from("review.json")));
+    let Ok(Parsed::Options(options)) = parse(&[
+        "--store",
+        "events.db",
+        "--stream",
+        "kiln:pilot-ingress:operation-1",
+        "--profile",
+        "profile.json",
+        "--review",
+        "review.json",
+    ]) else {
+        unreachable!()
+    };
+    assert_eq!(options.review, Some(PathBuf::from("review.json")));
+    assert!(
+        parse(&[
+            "--catalog",
+            "catalog.json",
+            "--profile",
+            "profile.json",
+            "--format",
+            "html",
+            "--output",
+            "out.html",
+            "--review",
+            "review.json",
+        ])
+        .is_err()
+    );
+    assert!(
+        parse(&[
+            "--journal",
+            "journal.json",
+            "--profile",
+            "profile.json",
+            "--review"
+        ])
+        .is_err()
+    );
+}
+
+#[test]
+fn shell_renders_a_named_review_window_and_rejects_a_malformed_one() {
+    let profile = dashboard_profile();
+    let (journal_path, profile_path) = write_case("review", &journal_document(2), &profile);
+    let review_path = review_window_path();
+    let output = Process::new(env!("CARGO_BIN_EXE_kiln-dashboard"))
+        .args([
+            "--journal",
+            path_text(&journal_path),
+            "--profile",
+            path_text(&profile_path),
+            "--review",
+            &review_path,
+            "--plain",
+        ])
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap_or_else(|_| unreachable!());
+    assert!(text.contains("review friction"));
+    assert!(text.contains("suggestion anchors"));
+
+    let malformed = journal_path.with_file_name("review.json");
+    std::fs::write(
+        &malformed,
+        br#"{"start_ms": 0, "end_ms": 1, "changes": [], "extra": 1}"#,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let output = Process::new(env!("CARGO_BIN_EXE_kiln-dashboard"))
+        .args([
+            "--journal",
+            path_text(&journal_path),
+            "--profile",
+            path_text(&profile_path),
+            "--review",
+            path_text(&malformed),
+            "--plain",
+        ])
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    let error = String::from_utf8(output.stderr).unwrap_or_else(|_| unreachable!());
+    assert!(error.contains("review window document is not a canonical review window"));
+}

@@ -12,6 +12,11 @@ use crate::model::{
     RunDetailView, RunListView, RunSummaryView, StateSummaryView, ViewBody, ViewRequest,
 };
 use crate::profile::{ObservationProfile, ViewField, ViewKind};
+use crate::review::{
+    AnchorPageInfo, AuthorshipBasis, AuthorshipFrictionView, Distribution, ReviewChangeFact,
+    ReviewFrictionView, ReviewWindow, SuggestionAnchorView, SuggestionAnchorsView,
+};
+use kiln_core::change_review::AuthorshipClass;
 
 const PROFILE_IDENTITY_TAG: &[u8] = b"kiln.observe.profile.v1\0";
 const VIEW_IDENTITY_TAG: &[u8] = b"kiln.observe.view.v1\0";
@@ -143,6 +148,8 @@ fn view_kind_tag(kind: ViewKind) -> u8 {
         ViewKind::AttemptDetail => 4,
         ViewKind::EventTail => 5,
         ViewKind::LogRange => 6,
+        ViewKind::ReviewFriction => 7,
+        ViewKind::SuggestionAnchors => 8,
     }
 }
 
@@ -154,6 +161,8 @@ fn view_field_tag(field: ViewField) -> u8 {
         ViewField::Metrics => 4,
         ViewField::CommandId => 5,
         ViewField::LogBytes => 6,
+        ViewField::SuggestionPaths => 7,
+        ViewField::SuggestionOwners => 8,
     }
 }
 
@@ -185,6 +194,15 @@ fn encode_profile(output: &mut Vec<u8>, profile: &ObservationProfile) {
     push_u64(output, profile.bounds.max_log_segments);
     push_u64(output, profile.bounds.max_text_bytes);
     push_u64(output, profile.bounds.max_encoded_bytes);
+    // Review bounds are framed only when present so pre-review profiles keep
+    // their identity.
+    if let Some(review) = &profile.bounds.review {
+        output.push(1);
+        push_u64(output, review.max_review_changes);
+        push_u64(output, review.max_review_window_ms);
+        push_u64(output, review.max_review_patch_sets);
+        push_u64(output, review.max_review_suggestions_per_change);
+    }
     encode_field_set(output, &profile.redaction.visible_fields);
     push_len(output, profile.non_claims.len());
     for non_claim in &profile.non_claims {
@@ -223,6 +241,12 @@ fn encode_request(output: &mut Vec<u8>, request: &ObservationRequest) {
             push_u64(output, *cursor);
             push_u64(output, *max_bytes);
         }
+        ViewRequest::ReviewFriction => output.push(7),
+        ViewRequest::SuggestionAnchors { cursor, limit } => {
+            output.push(8);
+            push_u64(output, *cursor);
+            push_u64(output, *limit);
+        }
     }
 }
 
@@ -244,6 +268,130 @@ fn encode_window(output: &mut Vec<u8>, window: &ObservationWindow) {
         }
         None => output.push(0),
     }
+    // The review window is framed only when present so event and log views
+    // keep their identity.
+    if let Some(review) = &window.review {
+        output.push(1);
+        encode_review_window(output, review);
+    }
+}
+
+fn encode_authorship_class(output: &mut Vec<u8>, value: AuthorshipClass) {
+    output.push(match value {
+        AuthorshipClass::Human => 1,
+        AuthorshipClass::Agent => 2,
+        AuthorshipClass::Mixed => 3,
+        AuthorshipClass::Undeclared => 4,
+    });
+}
+
+fn encode_review_window(output: &mut Vec<u8>, window: &ReviewWindow) {
+    push_i64(output, window.start_ms);
+    push_i64(output, window.end_ms);
+    push_len(output, window.changes.len());
+    for change in &window.changes {
+        encode_review_change(output, change);
+    }
+}
+
+fn encode_review_change(output: &mut Vec<u8>, change: &ReviewChangeFact) {
+    push_str(output, &change.change_id);
+    encode_authorship_class(output, change.authorship);
+    push_len(output, change.patch_sets_ms.len());
+    for created_ms in &change.patch_sets_ms {
+        push_i64(output, *created_ms);
+    }
+    match &change.approval {
+        Some(approval) => {
+            output.push(1);
+            push_u64(output, u64::from(approval.patch_set));
+            push_i64(output, approval.approved_ms);
+        }
+        None => output.push(0),
+    }
+    push_len(output, change.suggestions.len());
+    for suggestion in &change.suggestions {
+        push_str(output, &suggestion.path);
+        push_option(output, suggestion.owner.as_ref(), |output, owner| {
+            push_str(output, owner);
+        });
+        push_i64(output, suggestion.created_ms);
+    }
+    push_option(output, change.merged_ms.as_ref(), |output, merged_ms| {
+        push_i64(output, *merged_ms);
+    });
+}
+
+fn encode_distribution(output: &mut Vec<u8>, value: &Distribution) {
+    push_u64(output, value.count);
+    push_u64(output, value.total);
+    for bound in [value.min, value.median, value.max] {
+        push_option(output, bound.as_ref(), |output, value| {
+            push_u64(output, *value)
+        });
+    }
+}
+
+fn encode_friction_row(output: &mut Vec<u8>, row: &AuthorshipFrictionView) {
+    encode_authorship_class(output, row.authorship);
+    push_u64(output, row.changes);
+    push_u64(output, row.approved_changes);
+    encode_distribution(output, &row.approval_latency_ms);
+    encode_distribution(output, &row.patch_sets_before_approval);
+    encode_distribution(output, &row.suggestions_per_change);
+    push_u64(output, row.merged_changes);
+    push_u64(output, row.merged_without_suggestion);
+    push_option(
+        output,
+        row.merged_without_suggestion_per_mille.as_ref(),
+        |output, value| push_u64(output, *value),
+    );
+}
+
+fn encode_review_friction(output: &mut Vec<u8>, view: &ReviewFrictionView) {
+    push_i64(output, view.start_ms);
+    push_i64(output, view.end_ms);
+    output.push(match view.authorship_basis {
+        AuthorshipBasis::SelfDeclaredUnverified => 1,
+    });
+    push_len(output, view.classes.len());
+    for row in &view.classes {
+        encode_friction_row(output, row);
+    }
+}
+
+fn encode_anchor(output: &mut Vec<u8>, anchor: &SuggestionAnchorView) {
+    push_option(output, anchor.path.as_ref(), |output, path| {
+        push_str(output, path);
+    });
+    push_option(output, anchor.owner.as_ref(), |output, owner| {
+        push_str(output, owner);
+    });
+    push_u64(output, anchor.suggestions);
+    push_u64(output, anchor.changes);
+}
+
+fn encode_anchor_page(output: &mut Vec<u8>, page: &AnchorPageInfo) {
+    push_u64(output, page.cursor);
+    push_u64(output, page.requested_limit);
+    push_u64(output, page.effective_limit);
+    push_u64(output, page.returned);
+    push_u64(output, page.total);
+    push_bool(output, page.capped);
+    push_bool(output, page.has_more);
+    push_option(output, page.next.as_ref(), |output, next| {
+        push_u64(output, *next);
+    });
+}
+
+fn encode_suggestion_anchors(output: &mut Vec<u8>, view: &SuggestionAnchorsView) {
+    push_i64(output, view.start_ms);
+    push_i64(output, view.end_ms);
+    push_len(output, view.anchors.len());
+    for anchor in &view.anchors {
+        encode_anchor(output, anchor);
+    }
+    encode_anchor_page(output, &view.page);
 }
 
 fn encode_log_window(output: &mut Vec<u8>, log: &LogWindow) {
@@ -404,6 +552,14 @@ fn encode_body(output: &mut Vec<u8>, body: &ViewBody) {
         ViewBody::NotFound(view) => {
             output.push(7);
             encode_not_found(output, view);
+        }
+        ViewBody::ReviewFriction(view) => {
+            output.push(8);
+            encode_review_friction(output, view);
+        }
+        ViewBody::SuggestionAnchors(view) => {
+            output.push(9);
+            encode_suggestion_anchors(output, view);
         }
     }
 }

@@ -7,12 +7,16 @@
 
 use kiln_core::domain::Outcome;
 use kiln_observe_core::{
-    AttemptDetailView, EventProjection, EventTailView, NotFoundTarget, ObservationView,
-    RunDetailView, StateSummaryView, ViewBody, ViewField,
+    AttemptDetailView, Distribution, EventProjection, EventTailView, NotFoundTarget,
+    ObservationView, ReviewFrictionView, RunDetailView, StateSummaryView, SuggestionAnchorsView,
+    ViewBody, ViewField,
 };
 
 use crate::journal::reference_text;
-use crate::report::{DashboardReport, HtmlReport};
+use crate::render::{
+    AUTHORSHIP_BASIS_TEXT, anchor_owner, anchor_path, authorship_label, distribution_value,
+};
+use crate::report::{DashboardReport, HtmlReport, ReviewViews};
 
 /// Render one dashboard report as a self-contained HTML document.
 // r[impl kiln.observe.dashboard.html]
@@ -141,6 +145,22 @@ pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>)
             "Recent activity",
             &events_section(events),
         ));
+    }
+    if let Some(review) = report.views.review.as_ref() {
+        if let ViewBody::ReviewFriction(friction) = &review.friction.body {
+            out.push_str(&section(
+                "review-friction",
+                "Review friction",
+                &review_friction_section(friction),
+            ));
+        }
+        if let ViewBody::SuggestionAnchors(anchors) = &review.anchors.body {
+            out.push_str(&section(
+                "suggestion-anchors",
+                "Suggestion anchors",
+                &suggestion_anchors_section(anchors, review),
+            ));
+        }
     }
     out.push_str("<section id=\"evidence\" aria-labelledby=\"evidence-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Trust boundaries</p><h2 id=\"evidence-heading\">Evidence &amp; provenance</h2></div><span class=\"pill\">Admitted facts, not authority</span></div><p class=\"note\">Local admitted observations only. Filtering and selection do not run jobs or change canonical state.</p>\n<details class=\"disclosure\"><summary>Report provenance</summary><dl class=\"facts\">\n");
     push_fact(
@@ -534,6 +554,79 @@ fn events_section(events: &EventTailView) -> String {
     out
 }
 
+fn spread(distribution: &Distribution) -> String {
+    format!(
+        "{} / {} / {}",
+        distribution_value(distribution.min),
+        distribution_value(distribution.median),
+        distribution_value(distribution.max)
+    )
+}
+
+fn review_friction_section(friction: &ReviewFrictionView) -> String {
+    let mut out = String::new();
+    out.push_str(&format!(
+        "<p class=\"note\">Basis: {}. These figures observe one admitted review window and carry no authority.</p>\n<p><span class=\"pill\">window ms {}..{}</span></p>\n",
+        escape(AUTHORSHIP_BASIS_TEXT),
+        friction.start_ms,
+        friction.end_ms
+    ));
+    out.push_str("<div class=\"table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Review friction by declared authorship\"><table>\n<thead><tr><th scope=\"col\">authorship</th><th scope=\"col\">changes</th><th scope=\"col\">approved</th><th scope=\"col\">approval latency ms (min / median / max)</th><th scope=\"col\">patch sets before approval (min / median / max)</th><th scope=\"col\">suggestions per change (total / median / max)</th><th scope=\"col\">merged</th><th scope=\"col\">merged without suggestion</th><th scope=\"col\">share per mille</th></tr></thead>\n<tbody>\n");
+    for class in &friction.classes {
+        out.push_str(&format!(
+            "<tr><th scope=\"row\">{}</th><td>{}</td><td>{}</td><td class=\"mono\">{}</td><td class=\"mono\">{}</td><td class=\"mono\">{} / {} / {}</td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
+            escape(authorship_label(class.authorship)),
+            class.changes,
+            class.approved_changes,
+            spread(&class.approval_latency_ms),
+            spread(&class.patch_sets_before_approval),
+            class.suggestions_per_change.total,
+            distribution_value(class.suggestions_per_change.median),
+            distribution_value(class.suggestions_per_change.max),
+            class.merged_changes,
+            class.merged_without_suggestion,
+            distribution_value(class.merged_without_suggestion_per_mille)
+        ));
+    }
+    out.push_str("</tbody>\n</table></div>\n");
+    out
+}
+
+fn suggestion_anchors_section(anchors: &SuggestionAnchorsView, review: &ReviewViews) -> String {
+    let page = &anchors.page;
+    let mut out = String::new();
+    out.push_str("<p>");
+    out.push_str(&format!(
+        "<span class=\"pill\">cursor {}</span><span class=\"pill\">returned {}</span><span class=\"pill\">total {}</span><span class=\"pill\">requested {}</span><span class=\"pill\">effective {}</span>",
+        page.cursor, page.returned, page.total, page.requested_limit, page.effective_limit
+    ));
+    if page.capped {
+        out.push_str("<span class=\"pill\">capped</span>");
+    }
+    if page.has_more {
+        out.push_str("<span class=\"pill\">more</span>");
+    }
+    if let Some(next) = page.next {
+        out.push_str(&format!("<span class=\"pill\">next {next}</span>"));
+    }
+    out.push_str("</p>\n");
+    out.push_str("<div class=\"table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Suggestion anchors\"><table>\n<thead><tr><th scope=\"col\">path</th><th scope=\"col\">owner</th><th scope=\"col\">suggestions</th><th scope=\"col\">changes</th></tr></thead>\n<tbody>\n");
+    for anchor in &anchors.anchors {
+        out.push_str(&format!(
+            "<tr><td class=\"mono\">{}</td><td class=\"mono\">{}</td><td>{}</td><td>{}</td></tr>\n",
+            escape(anchor_path(anchor)),
+            escape(anchor_owner(anchor, review)),
+            anchor.suggestions,
+            anchor.changes
+        ));
+    }
+    out.push_str("</tbody>\n</table></div>\n");
+    if page.total == 0 {
+        out.push_str("<p class=\"note\">No anchored suggestions lie in this review window.</p>\n");
+    }
+    out
+}
+
 fn event_name(event: &EventProjection) -> String {
     match event {
         EventProjection::RunStarted { .. } => "run_started",
@@ -660,6 +753,13 @@ fn identities_section(html: &HtmlReport) -> String {
         ));
     }
     out.push_str(&identity_row("event_tail", &report.views.events.identity));
+    if let Some(review) = report.views.review.as_ref() {
+        out.push_str(&identity_row("review_friction", &review.friction.identity));
+        out.push_str(&identity_row(
+            "suggestion_anchors",
+            &review.anchors.identity,
+        ));
+    }
     out.push_str("</tbody>\n</table>\n");
     out
 }
@@ -697,6 +797,8 @@ fn field_label(value: ViewField) -> &'static str {
         ViewField::Metrics => "metrics",
         ViewField::CommandId => "command_id",
         ViewField::LogBytes => "log_bytes",
+        ViewField::SuggestionPaths => "suggestion_paths",
+        ViewField::SuggestionOwners => "suggestion_owners",
     }
 }
 

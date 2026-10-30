@@ -1,0 +1,168 @@
+{
+  "schema": "kiln.work-kanban.verification.v1",
+  "date": "2026-10-30",
+  "change": "finish-kanban-saved-view",
+  "issue": "https://github.com/OnixResearch/kiln/issues/4",
+  "maintenance_owner": "Kiln web-service maintainers (work model, board core, /api/work/board shell and console assets)",
+  "commands": [
+    {
+      "command": "nix develop path:. --command cargo test --locked -p kiln-web-service --lib work::",
+      "result": "ok: 30 passed (6 new board core tests, 3 new model tests)"
+    },
+    {
+      "command": "nix develop path:. --command cargo test --locked -p kiln-web-service --test work",
+      "result": "ok: 14 passed (5 new Kanban integration tests on real disposable native stores)"
+    },
+    {
+      "command": "nix develop path:. --command cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings",
+      "result": "ok: no warnings"
+    },
+    {
+      "command": "nix develop path:. --command cargo fmt -p kiln-web-service --check",
+      "result": "no diffs in changed work/board files (an unrelated peer diff in developer.rs was reported)"
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs",
+      "result": "ok: 26 passed (6 new Kanban helper tests)"
+    },
+    {
+      "command": "cairn gate proposal|design|tasks finish-kanban-saved-view --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "PASS x3 before implementation"
+    }
+  ],
+  "fixtures": [
+    "crates/kiln-web-service/tests/fixtures/work-board/eligibility.json: team-defined statuses (two teams sharing one status), an old saved view without board configuration, a private view, a request, a project and a personal record; 15 filter cases checked by both board_tests.rs and the node tests (list/board parity)",
+    "tests/work.rs board_fixture: two teams, three issues, a request, a shared configured board view and a private pre-board list view in a real signed native store",
+    "board_tests.rs: 101 extra issues in one status for the 100-card bound and a 64-status team for the 64-column bound"
+  ],
+  "acceptance": {
+    "1_save_reload_share": "tests/work.rs kanban_view_survives_restart_is_shared_and_shows_the_list_eligible_issues; browser list and board layouts of the same view showed identical issues",
+    "2_columns": "configured empty columns stay in order (tests/work.rs, browser); retired columns and Other statuses lane (board_tests.rs); default team columns name their teams (browser old view)",
+    "3_one_status_update": "tests/work.rs moving_a_card_writes_one_issue_status_operation_seen_by_every_view (single parent commit, view heads unchanged); browser: moved issue chain has 6 native operations for 5 writes plus create, view heads equal their creation heads",
+    "4_flows": "browser keyboard/pointer move, cancel, failed request, duplicate retry, stale head; tests/work.rs stale_and_concurrent_moves_never_overwrite_a_newer_head",
+    "5_authority": "tests/work.rs board_configuration_and_moves_keep_existing_write_authority and private_views_stay_private_and_old_views_use_default_columns",
+    "6_fixtures": "see fixtures",
+    "7_docs": "docs/operator.md Kanban board paragraphs; board non-claim in API and UI"
+  },
+  "browser_smoke": {
+    "instance": "disposable kiln-web-service debug build on 127.0.0.1:9547 with its own state directory and a fresh bare work store (mode 700, new 32-byte seed); seeded through the API; stopped and removed afterwards. The live service was not contacted.",
+    "drag_method": "HTML5 DragEvent/DataTransfer dispatched in the page (dragstart, dragover, drop, dragend)",
+    "failure_injection": "page-level fetch wrapper: one synthetic 503 that never reached the server, and one lost response after the server applied the command",
+    "viewport_1440": {
+      "overflow_px": 0,
+      "min_move_button_px": 44,
+      "columns": 5,
+      "lanes_flow": "column"
+    },
+    "keyboard_move": {
+      "dialog_options": [
+        "triage",
+        "backlog(disabled)",
+        "review*",
+        "started",
+        "completed"
+      ],
+      "picked_with_arrow": "started",
+      "command_posts": 1
+    },
+    "cancel": {
+      "escape_closed": true,
+      "focus_returned_to": "card",
+      "cancel_button_closed": true,
+      "commands_sent_by_cancels": 0
+    },
+    "drag": {
+      "cancel_announcement": "Drag cancelled. Nothing was moved.",
+      "drop_marks": [
+        "triage:allowed",
+        "backlog:allowed",
+        "review:blocked",
+        "started:allowed",
+        "completed:allowed"
+      ],
+      "preselected_after_drop": "completed",
+      "commands_before_confirm": 0,
+      "commands_after_confirm": 1
+    },
+    "failed_request": {
+      "own_column_drop_accepted": false,
+      "board_unchanged_after_failure": true,
+      "same_request_id_on_retry": true,
+      "notice": "Moved \u201cFix login redirect\u201d to Completed."
+    },
+    "duplicate_retry": {
+      "same_request_id_on_retry": true,
+      "notice": "The move of \u201cFix login redirect\u201d had already applied; its original result was returned and nothing moved twice."
+    },
+    "stale_conflict": {
+      "status": "Conflict: \u201cFix login redirect\u201d changed after this board was read (work_head_conflict: Request conflicts with current identity or retained state). Nothing was overwritten or moved.",
+      "after_reload": "Current state: Started at head 41a6cd5ccc435bf8b89066be7fb58540745de3d0. Choose Move card to apply your move to this version with a new request, or Cancel to keep it.",
+      "distinct_request_ids": 2,
+      "external_edit_kept": true
+    },
+    "list_board_parity": true,
+    "old_view_default_columns": [
+      "triage:0",
+      "backlog:0",
+      "started:1",
+      "review:1",
+      "deploying:1",
+      "completed:2",
+      "cancelled:0",
+      "snoozed:0",
+      "duplicate:0"
+    ],
+    "viewport_320": {
+      "overflow_px": 0,
+      "lanes_flow": "row",
+      "widest_column_px": 263,
+      "min_move_button_px": 44,
+      "move_dialog_width_px": 309,
+      "move_dialog_overflow_px": 0,
+      "min_target_option_px": 55,
+      "keyboard_cancel_sent_nothing": true,
+      "keyboard_and_drag_moves_posted": 2,
+      "other_team_column_drop_accepted": false,
+      "other_team_option": "ReviewNot in this issue's team workflow",
+      "failed_then_stale": {
+        "retry_used_same_request_id": true,
+        "retry_result": "work_head_conflict",
+        "after_reload": "Current state: Completed at head 9320769fced2b54f37bda10f5247f455a8448854. Choose Move card to apply your move to this version with a new request, or Cancel to keep it.",
+        "cancel_extra_requests": 0,
+        "recovery_button_px": 44,
+        "doc_overflow_px": 0
+      },
+      "dark": {
+        "theme": "system",
+        "column_bg": "rgb(36, 38, 33)",
+        "text": "rgb(241, 242, 235)",
+        "overflow_px": 0
+      }
+    },
+    "diagnostics": {
+      "console_errors": [],
+      "fresh_load_page_errors": [],
+      "note": "The first session's diagnostics log held only request-level entries (initial certificate rejection before the CDP bypass, aborted reads on navigation, injected failures)."
+    }
+  },
+  "known_tradeoffs": [
+    "Filter semantics exist in Rust (board projection) and JavaScript (list); the shared fixture guards parity, but rare locale-specific lower-casing could still differ.",
+    "The board performs a second read (/api/work/board) beside /api/work; cards come only from the board projection, so one board render is internally consistent.",
+    "Old views whose group_by was not status now show status columns on the Work board; group_by still applies to the list layout.",
+    "Kanban columns apply to the Work page only; Inbox, Planning, Triage and Saved views keep the grouped layout.",
+    "WIP limits and manual card ordering are out of scope.",
+    "Drag-and-drop was exercised with dispatched DragEvents, not OS-level pointer drags."
+  ],
+  "parent_review": {
+    "instance": "release candidate /nix/store/qj42bp382xp991p24nlkk2x735c7p4vb-kiln-web-service-0.1.0, disposable port 9545, fresh work store and seed; production untouched",
+    "board": "Alpha view columns triage/backlog/review/completed = 0/1/2/1; empty Triage shown with 'No issues'; completeness: '4 matching issues, all shown', filtered and bounded-snapshot notes, planning-status non-claim",
+    "keyboard": "M on focused card opens the move dialog with radio targets and the current column disabled; Escape cancels with 0 writes and focus returns to the card's Move button",
+    "stale": "Concurrent API set_status moved the issue to completed while the dialog was open; confirming showed work_head_conflict, 'Nothing was overwritten or moved', and Reload current state; reload showed head c61e2393 (Completed) and kept the chosen target; the move then applied ('Moved \u201cFix login (Alpha)\u201d to Review.')",
+    "drag": "DragEvent drop on Triage preselected triage in the same dialog; confirming moved Ship board completed->triage",
+    "320": "0 document overflow; only sub-44px controls are the existing bulk-select checkboxes, whose 44px label carries the hit area",
+    "parent_fixes": [
+      "aria-keyshortcuts=M was on the Move button but M only worked with focus on the card itself: M now works from the card or its Move button, and the card advertises the shortcut too",
+      "After a stale-head conflict, the finally block re-enabled Move card with the stale head; it now stays disabled until Reload re-reads the current head"
+    ]
+  }
+}

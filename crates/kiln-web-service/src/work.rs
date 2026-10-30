@@ -9,6 +9,7 @@ use serde_json::json;
 use crate::engine::api::{error, json_response};
 use crate::engine::{ApiResponse, Role};
 
+pub mod board;
 pub mod model;
 mod store;
 
@@ -20,6 +21,18 @@ const NON_CLAIMS: [&str; 2] = [
     "Native signatures attest the service-recorded authenticated application principal, not that user's Radicle key.",
     "Local durable work operations grant no CI, provider, remote publication or release authority.",
 ];
+// r[impl kiln.work.kanban.boundary]
+const BOARD_NON_CLAIM: &str = "Board columns are planning status. Moving a card, including to completed, acquires no execution lease or worker authority and proves no CI or release completion.";
+
+/// Board projection plus the same principal and authority facts as the listing.
+#[derive(Serialize)]
+struct BoardResponse<'a> {
+    principal: &'a str,
+    can_write: bool,
+    non_claims: [&'static str; 3],
+    #[serde(flatten)]
+    board: board::Projection,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -118,7 +131,8 @@ impl Workspace {
         let detail = target.strip_prefix("/api/work/objects/");
         let listing = target == "/api/work";
         let command_route = target == "/api/work/commands";
-        if !listing && !command_route && detail.is_none() {
+        let board_route = target == "/api/work/board" || target.starts_with("/api/work/board?");
+        if !listing && !command_route && !board_route && detail.is_none() {
             return error(404, "route_missing");
         }
         if (command_route && method != "POST") || (!command_route && method != "GET") {
@@ -130,6 +144,17 @@ impl Workspace {
         if !command_route && !body.is_empty() {
             return error(400, "unexpected_body");
         }
+        // r[impl kiln.work.kanban.projection]
+        let board_query = if board_route {
+            match crate::engine::api::query(target)
+                .and_then(|(_, params)| board::parse_query(&params))
+            {
+                Ok(query) => Some(query),
+                Err(()) => return error(400, "work_query_invalid"),
+            }
+        } else {
+            None
+        };
         let can_write = self.profile.as_ref().is_some_and(|profile| {
             profile
                 .write_principals
@@ -166,6 +191,34 @@ impl Workspace {
             Ok(result) => {
                 if let Some((object, replayed)) = result.written {
                     return json_response(200, json!({"object":object,"replayed":replayed}));
+                }
+                if let Some(query) = &board_query {
+                    // A missing view and another principal's private view are
+                    // indistinguishable, exactly as for object detail.
+                    let view = match &query.view {
+                        Some(id) => match result.records.get(id).filter(|row| {
+                            row.kind == model::Kind::View && model::visible(row, principal)
+                        }) {
+                            Some(view) => Some(view),
+                            None => return error(404, "work_object_missing"),
+                        },
+                        None => None,
+                    };
+                    return json_response(
+                        200,
+                        BoardResponse {
+                            principal,
+                            can_write,
+                            non_claims: [NON_CLAIMS[0], NON_CLAIMS[1], BOARD_NON_CLAIM],
+                            board: board::project(
+                                &result.records,
+                                principal,
+                                view,
+                                query,
+                                store::MAX_OBJECTS,
+                            ),
+                        },
+                    );
                 }
                 if let Some(id) = detail {
                     return match result

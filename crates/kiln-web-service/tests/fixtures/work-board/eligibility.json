@@ -1,0 +1,403 @@
+{
+ "description": "Shared list/board eligibility fixture: checked by board_tests.rs (Rust) and tests/live-console-ui.test.mjs (KilnWorkBoard). Records include team-defined statuses, an old saved view without board configuration, a request, planning records and a private personal record.",
+ "records": [
+  {
+   "id": "team-a",
+   "head": "head-team-a",
+   "kind": "team",
+   "fields": {
+    "title": "Alpha",
+    "workflow": [
+     "review",
+     "qa"
+    ]
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  },
+  {
+   "id": "team-b",
+   "head": "head-team-b",
+   "kind": "team",
+   "fields": {
+    "title": "Beta",
+    "workflow": [
+     "review",
+     "deploying"
+    ]
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  },
+  {
+   "id": "project-1",
+   "head": "head-project-1",
+   "kind": "project",
+   "fields": {
+    "title": "Launch"
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  },
+  {
+   "id": "issue-1",
+   "head": "head-issue-1",
+   "kind": "issue",
+   "fields": {
+    "title": "Fix login",
+    "status": "backlog",
+    "team": "team-a",
+    "assignees": [
+     "local:alice"
+    ],
+    "labels": [
+     "bug"
+    ],
+    "priority": 2,
+    "project": "project-1"
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 205
+  },
+  {
+   "id": "issue-2",
+   "head": "head-issue-2",
+   "kind": "issue",
+   "fields": {
+    "title": "Review docs",
+    "status": "review",
+    "team": "team-a",
+    "priority": 1
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 204
+  },
+  {
+   "id": "issue-3",
+   "head": "head-issue-3",
+   "kind": "issue",
+   "fields": {
+    "title": "Deploy service",
+    "status": "deploying",
+    "team": "team-b"
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 203
+  },
+  {
+   "id": "issue-4",
+   "head": "head-issue-4",
+   "kind": "issue",
+   "fields": {
+    "title": "Search target",
+    "description": "Contains a Needle",
+    "status": "started"
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 202
+  },
+  {
+   "id": "issue-5",
+   "head": "head-issue-5",
+   "kind": "issue",
+   "fields": {
+    "title": "Ship release",
+    "status": "completed",
+    "team": "team-b",
+    "priority": 4
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 201
+  },
+  {
+   "id": "issue-6",
+   "head": "head-issue-6",
+   "kind": "issue",
+   "fields": {
+    "title": "Later",
+    "status": "snoozed",
+    "due_at_ms": 9000
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  },
+  {
+   "id": "request-1",
+   "head": "head-request-1",
+   "kind": "request",
+   "fields": {
+    "title": "Customer request",
+    "status": "triage",
+    "customer": "Acme"
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  },
+  {
+   "id": "view-shared",
+   "head": "head-view-shared",
+   "kind": "view",
+   "fields": {
+    "title": "Alpha board",
+    "owner": "local:alice",
+    "view": {
+     "filters": {
+      "team": "team-a"
+     },
+     "sort": "updated",
+     "group_by": "none",
+     "layout": "board",
+     "shared": true
+    }
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  },
+  {
+   "id": "view-private",
+   "head": "head-view-private",
+   "kind": "view",
+   "fields": {
+    "title": "Mine",
+    "owner": "local:alice",
+    "view": {
+     "filters": {},
+     "sort": "priority",
+     "group_by": "status",
+     "layout": "list",
+     "shared": false
+    }
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  },
+  {
+   "id": "personal-1",
+   "head": "head-personal-1",
+   "kind": "personal",
+   "fields": {
+    "title": "My attention",
+    "owner": "local:alice",
+    "personal": {
+     "watched": [],
+     "read": {},
+     "favorites": [],
+     "reminders": {}
+    }
+   },
+   "comments": [],
+   "updates": [],
+   "created_by": "local:alice",
+   "created_at_ms": 100,
+   "updated_at_ms": 200
+  }
+ ],
+ "cases": [
+  {
+   "name": "no view lists issues and requests",
+   "view_active": false,
+   "filters": {},
+   "issues": [
+    "issue-1",
+    "issue-2",
+    "issue-3",
+    "issue-4",
+    "issue-5",
+    "issue-6"
+   ],
+   "list_only": 1
+  },
+  {
+   "name": "a saved view lists every non-personal kind",
+   "view_active": true,
+   "filters": {},
+   "issues": [
+    "issue-1",
+    "issue-2",
+    "issue-3",
+    "issue-4",
+    "issue-5",
+    "issue-6"
+   ],
+   "list_only": 6
+  },
+  {
+   "name": "team scope",
+   "view_active": false,
+   "filters": {
+    "team": "team-a"
+   },
+   "issues": [
+    "issue-1",
+    "issue-2"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "search is case-insensitive over description",
+   "view_active": false,
+   "filters": {
+    "q": "needle"
+   },
+   "issues": [
+    "issue-4"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "search covers labels",
+   "view_active": false,
+   "filters": {
+    "q": "BUG"
+   },
+   "issues": [
+    "issue-1"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "search covers request customer",
+   "view_active": false,
+   "filters": {
+    "q": "acme"
+   },
+   "issues": [],
+   "list_only": 1
+  },
+  {
+   "name": "team-defined status",
+   "view_active": false,
+   "filters": {
+    "status": "review"
+   },
+   "issues": [
+    "issue-2"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "assignee and kind",
+   "view_active": false,
+   "filters": {
+    "assignee": "local:alice",
+    "kind": "issue"
+   },
+   "issues": [
+    "issue-1"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "priority is compared as text",
+   "view_active": false,
+   "filters": {
+    "priority": "2"
+   },
+   "issues": [
+    "issue-1"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "label",
+   "view_active": true,
+   "filters": {
+    "label": "bug"
+   },
+   "issues": [
+    "issue-1"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "project",
+   "view_active": false,
+   "filters": {
+    "project": "project-1"
+   },
+   "issues": [
+    "issue-1"
+   ],
+   "list_only": 0
+  },
+  {
+   "name": "kind request leaves no cards",
+   "view_active": false,
+   "filters": {
+    "kind": "request"
+   },
+   "issues": [],
+   "list_only": 1
+  },
+  {
+   "name": "personal only by explicit kind",
+   "view_active": true,
+   "filters": {
+    "kind": "personal"
+   },
+   "issues": [],
+   "list_only": 1
+  },
+  {
+   "name": "empty values are ignored",
+   "view_active": false,
+   "filters": {
+    "status": ""
+   },
+   "issues": [
+    "issue-1",
+    "issue-2",
+    "issue-3",
+    "issue-4",
+    "issue-5",
+    "issue-6"
+   ],
+   "list_only": 1
+  },
+  {
+   "name": "unknown filter keys never match",
+   "view_active": false,
+   "filters": {
+    "colour": "red"
+   },
+   "issues": [],
+   "list_only": 0
+  }
+ ]
+}

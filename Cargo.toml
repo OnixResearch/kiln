@@ -8,6 +8,7 @@ members = [
   "crates/kiln-highlight",
   "crates/kiln-web-service",
   "crates/kiln-hosted",
+  "crates/kiln-microvm",
   "crates/kiln-adapter-http-observe",
   "crates/kiln-adapter-iroh-observe",
   "crates/kiln-standalone",

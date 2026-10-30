@@ -14,7 +14,9 @@ const MAX_PERSONAL: usize = 256;
 const MAX_MESSAGES: usize = 1_024;
 const MAX_REACTIONS: usize = 32;
 const MAX_TIMESTAMP: i64 = 253_402_300_799_999;
-const STATUSES: &[&str] = &[
+/// Bound on configured and derived Kanban columns of one board.
+pub(super) const MAX_BOARD_COLUMNS: usize = 64;
+pub(super) const STATUSES: &[&str] = &[
     "triage",
     "backlog",
     "started",
@@ -103,6 +105,7 @@ pub struct Link {
     pub id: String,
 }
 
+// r[impl kiln.work.kanban.config]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct View {
@@ -111,6 +114,19 @@ pub struct View {
     pub group_by: String,
     pub layout: String,
     pub shared: bool,
+    /// Absent on views written before Kanban configuration existed; absence
+    /// means the default column order, and such envelopes stay byte-identical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub board: Option<Board>,
+}
+
+/// Kanban configuration of a view. It holds no card or task state: cards are
+/// the matching issues and their columns are the issues' canonical statuses.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Board {
+    /// Ordered status columns, 1..=MAX_BOARD_COLUMNS distinct statuses.
+    pub columns: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -184,6 +200,10 @@ pub enum Action {
     Update {
         body: String,
         mentions: Vec<String>,
+    },
+    /// Change only an issue's canonical status, e.g. a Kanban card move.
+    SetStatus {
+        status: String,
     },
 }
 
@@ -361,6 +381,25 @@ pub fn apply(
                     message.reactions.remove(emoji);
                 }
             }
+        }
+        // r[impl kiln.work.kanban.move]
+        // Only the canonical status changes; full validation below checks the
+        // target against the issue's own team workflow and snooze rules.
+        Action::SetStatus { status } => {
+            if next.kind != Kind::Issue {
+                return Err("only issues support status moves".into());
+            }
+            text(status, "status", MAX_STATUS, false, false)?;
+            if *status == next.fields.status {
+                return Err("issue already has this status".into());
+            }
+            if status == "duplicate" {
+                return Err("duplicate status requires a duplicate target; edit the issue".into());
+            }
+            if next.fields.status == "duplicate" {
+                next.fields.duplicate_of = None;
+            }
+            next.fields.status.clone_from(status);
         }
     }
     validate_fields(&next, records, &operation.actor)?;
@@ -733,6 +772,26 @@ fn validate_transition(
     operation: &Operation,
     records: &BTreeMap<String, Record>,
 ) -> Result<(), String> {
+    // r[impl kiln.work.kanban.config] A newly introduced column must name a
+    // defined status; columns kept from the previous board may since have been
+    // retired by a team and are then shown as retired instead of blocking edits.
+    if let Some(board) = next
+        .fields
+        .view
+        .as_ref()
+        .and_then(|view| view.board.as_ref())
+    {
+        let previous = current
+            .and_then(|record| record.fields.view.as_ref())
+            .and_then(|view| view.board.as_ref());
+        for status in &board.columns {
+            if !previous.is_some_and(|board| board.columns.contains(status))
+                && !defined_status(status, records.values())
+            {
+                return Err("board column is not built-in or defined by a team workflow".into());
+            }
+        }
+    }
     if next.fields.status == "snoozed"
         && current.is_none_or(|old| {
             old.fields.status != "snoozed" || old.fields.due_at_ms != next.fields.due_at_ms
@@ -861,7 +920,34 @@ fn validate_view(
             _ => return Err("unsupported view filter".into()),
         }
     }
+    // r[impl kiln.work.kanban.config] Static shape only; whether a column's
+    // status is still defined is checked when the column is introduced.
+    if let Some(board) = &view.board {
+        if board.columns.is_empty() || board.columns.len() > MAX_BOARD_COLUMNS {
+            return Err(format!(
+                "board must configure 1..={MAX_BOARD_COLUMNS} status columns"
+            ));
+        }
+        let mut seen = BTreeSet::new();
+        for status in &board.columns {
+            text(status, "board column", MAX_STATUS, false, false)?;
+            if !seen.insert(status) {
+                return Err("duplicate board column".into());
+            }
+        }
+    }
     Ok(())
+}
+
+/// A status is defined when it is built-in or listed by any team workflow.
+pub(super) fn defined_status<'a>(
+    status: &str,
+    teams: impl IntoIterator<Item = &'a Record>,
+) -> bool {
+    STATUSES.contains(&status)
+        || teams
+            .into_iter()
+            .any(|team| team.kind == Kind::Team && team.fields.workflow.iter().any(|s| s == status))
 }
 
 fn references(record: &Record, id: &str) -> bool {

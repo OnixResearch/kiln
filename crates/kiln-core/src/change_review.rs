@@ -82,6 +82,126 @@ pub struct Anchor {
     pub start_line: u32,
     pub end_line: u32,
 }
+/// Named byte bound for a declared agent harness or model.
+pub const MAX_AUTHORSHIP_TEXT_BYTES: usize = 128;
+
+/// Self-declared authorship of one patch set. Kiln never infers or verifies it;
+/// `Undeclared` is the default and older journals replay as `Undeclared`.
+/// Parsing is strict: harness/model text is admitted only for `agent`.
+// r[impl kiln.review.authorship]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    try_from = "AuthorshipDocument"
+)]
+pub enum Authorship {
+    #[default]
+    Undeclared,
+    Human,
+    Agent {
+        harness: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        model: Option<String>,
+    },
+    Mixed,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AuthorshipDocument {
+    kind: AuthorshipClass,
+    #[serde(default)]
+    harness: Option<String>,
+    #[serde(default)]
+    model: Option<String>,
+}
+impl TryFrom<AuthorshipDocument> for Authorship {
+    type Error = &'static str;
+    fn try_from(document: AuthorshipDocument) -> Result<Self, Self::Error> {
+        match (document.kind, document.harness, document.model) {
+            (AuthorshipClass::Agent, Some(harness), model) => Ok(Self::Agent { harness, model }),
+            (AuthorshipClass::Agent, None, _) => Err("agent authorship requires a harness"),
+            (_, Some(_), _) | (_, _, Some(_)) => {
+                Err("only agent authorship declares a harness or model")
+            }
+            (AuthorshipClass::Undeclared, None, None) => Ok(Self::Undeclared),
+            (AuthorshipClass::Human, None, None) => Ok(Self::Human),
+            (AuthorshipClass::Mixed, None, None) => Ok(Self::Mixed),
+        }
+    }
+}
+impl Authorship {
+    #[must_use]
+    pub fn is_undeclared(&self) -> bool {
+        matches!(self, Self::Undeclared)
+    }
+    #[must_use]
+    pub const fn class(&self) -> AuthorshipClass {
+        match self {
+            Self::Undeclared => AuthorshipClass::Undeclared,
+            Self::Human => AuthorshipClass::Human,
+            Self::Agent { .. } => AuthorshipClass::Agent,
+            Self::Mixed => AuthorshipClass::Mixed,
+        }
+    }
+}
+/// Aggregation class of declared authorship, in fixed reporting order.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorshipClass {
+    Human,
+    Agent,
+    Mixed,
+    Undeclared,
+}
+impl AuthorshipClass {
+    pub const ALL: [Self; 4] = [Self::Human, Self::Agent, Self::Mixed, Self::Undeclared];
+}
+fn authorship_text_valid(value: &str) -> bool {
+    !value.is_empty()
+        && value.trim() == value
+        && value.len() <= MAX_AUTHORSHIP_TEXT_BYTES
+        && !value.chars().any(char::is_control)
+}
+/// Reject empty, untrimmed, control-character or over-bound harness/model text.
+// r[impl kiln.review.authorship.scenario.invalid]
+pub fn validate_authorship(authorship: &Authorship) -> ReviewResult<()> {
+    if let Authorship::Agent { harness, model } = authorship
+        && (!authorship_text_valid(harness)
+            || model
+                .as_deref()
+                .is_some_and(|model| !authorship_text_valid(model)))
+    {
+        return fail(
+            "invalid_authorship",
+            "declared agent harness and model must be bounded non-empty trimmed text",
+        );
+    }
+    Ok(())
+}
+/// Class of a change from its declared patch sets only: none declared is
+/// `Undeclared`, one shared class is that class, differing classes are `Mixed`.
+#[must_use]
+pub fn authorship_class(change: &Change) -> AuthorshipClass {
+    authorship_class_of(&change.revisions)
+}
+/// [`authorship_class`] over an explicit patch-set prefix, such as the patch
+/// sets admitted before an observation window end.
+#[must_use]
+pub fn authorship_class_of(revisions: &[Revision]) -> AuthorshipClass {
+    let mut declared = revisions
+        .iter()
+        .map(|revision| revision.authorship.class())
+        .filter(|class| *class != AuthorshipClass::Undeclared);
+    let Some(first) = declared.next() else {
+        return AuthorshipClass::Undeclared;
+    };
+    if declared.all(|class| class == first) {
+        first
+    } else {
+        AuthorshipClass::Mixed
+    }
+}
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Revision {
     pub id: String,
@@ -91,6 +211,9 @@ pub struct Revision {
     pub files: Vec<String>,
     pub author: String,
     pub created_ms: i64,
+    /// Omitted when undeclared so pre-authorship journals keep identical bytes.
+    #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
+    pub authorship: Authorship,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Vote {
@@ -779,6 +902,22 @@ fn ownership_files<'a>(
     Ok(&files.files)
 }
 
+/// The first ownership rule, in policy order, that applies to `path` on `target_ref`.
+#[must_use]
+pub fn owning_rule<'a>(
+    ownership: &'a OwnershipPolicy,
+    target_ref: &str,
+    path: &str,
+) -> Option<&'a str> {
+    ownership
+        .rules
+        .iter()
+        .find(|rule| {
+            (rule.target_refs.is_empty() || rule.target_refs.contains(target_ref))
+                && rule.paths.iter().any(|pattern| path_matches(pattern, path))
+        })
+        .map(|rule| rule.id.as_str())
+}
 fn rule_matches(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
     files.iter().any(|file| {
         rule.paths.iter().any(|pattern| {
@@ -850,6 +989,7 @@ fn revision_valid(
     facts: &Facts,
 ) -> ReviewResult<()> {
     fresh(state, &revision.id)?;
+    validate_authorship(&revision.authorship)?;
     if revision.commit.is_empty()
         || revision.base.is_empty()
         || revision.author != actor
@@ -2262,6 +2402,7 @@ mod tests {
             files: vec!["src/lib.rs".into()],
             author: "alice".into(),
             created_ms: 0,
+            authorship: Authorship::Undeclared,
         }
     }
     fn create(state: &mut ReviewState, facts: &mut Facts, id: &str) -> ReviewResult<()> {
@@ -4061,6 +4202,137 @@ mod tests {
             .is_err()
         );
         assert_eq!(state, before);
+        Ok(())
+    }
+
+    fn agent(harness: &str, model: Option<&str>) -> Authorship {
+        Authorship::Agent {
+            harness: harness.into(),
+            model: model.map(Into::into),
+        }
+    }
+
+    fn upload_declared(
+        state: &mut ReviewState,
+        facts: &mut Facts,
+        number: u32,
+        authorship: Authorship,
+    ) -> ReviewResult<()> {
+        let commit = format!("commit-c{number}");
+        facts.source.as_mut().required()?.commit = commit.clone();
+        let mut next = revision(&format!("c-r{number}"), number, &commit);
+        next.authorship = authorship;
+        send(
+            state,
+            facts,
+            "alice",
+            Command::Upload {
+                change: "c".into(),
+                expected_revision: format!("c-r{}", number - 1),
+                revision: next,
+            },
+        )
+    }
+
+    // r[verify kiln.review.authorship]
+    // r[verify kiln.review.authorship.scenario.declared]
+    #[test]
+    fn declared_authorship_is_stored_per_patch_set_and_folded_from_declarations_only()
+    -> ReviewResult<()> {
+        let (mut state, mut facts) = setup()?;
+        let class = |state: &ReviewState| -> ReviewResult<AuthorshipClass> {
+            Ok(authorship_class(state.changes.get("c").required()?))
+        };
+        assert_eq!(class(&state)?, AuthorshipClass::Undeclared);
+        upload_declared(&mut state, &mut facts, 2, agent("omp", Some("claude")))?;
+        assert_eq!(
+            state.changes.get("c").required()?.current()?.authorship,
+            agent("omp", Some("claude"))
+        );
+        assert_eq!(class(&state)?, AuthorshipClass::Agent);
+        upload_declared(&mut state, &mut facts, 3, agent("other", None))?;
+        upload_declared(&mut state, &mut facts, 4, Authorship::Undeclared)?;
+        assert_eq!(
+            class(&state)?,
+            AuthorshipClass::Agent,
+            "undeclared is silent"
+        );
+        upload_declared(&mut state, &mut facts, 5, Authorship::Human)?;
+        assert_eq!(class(&state)?, AuthorshipClass::Mixed);
+        let mut human = state.changes.get("c").required()?.clone();
+        for revision in &mut human.revisions {
+            revision.authorship = Authorship::Human;
+        }
+        assert_eq!(authorship_class(&human), AuthorshipClass::Human);
+        human.revisions.first_mut().required()?.authorship = Authorship::Mixed;
+        assert_eq!(authorship_class(&human), AuthorshipClass::Mixed);
+        Ok(())
+    }
+
+    // r[verify kiln.review.authorship.scenario.invalid]
+    #[test]
+    fn invalid_declared_authorship_is_rejected_without_mutation() -> ReviewResult<()> {
+        let (mut state, mut facts) = setup()?;
+        let oversized = "h".repeat(MAX_AUTHORSHIP_TEXT_BYTES + 1);
+        let bounded = "h".repeat(MAX_AUTHORSHIP_TEXT_BYTES);
+        for invalid in [
+            agent("", None),
+            agent(" omp", None),
+            agent("omp\n", None),
+            agent(&oversized, None),
+            agent("omp", Some("")),
+            agent("omp", Some("model\u{7}")),
+            agent("omp", Some(&oversized)),
+        ] {
+            assert_eq!(
+                validate_authorship(&invalid).err().map(|error| error.code),
+                Some("invalid_authorship".into())
+            );
+            let before = state.clone();
+            let error = upload_declared(&mut state, &mut facts, 2, invalid);
+            assert_eq!(
+                error.err().map(|error| error.code),
+                Some("invalid_authorship".into())
+            );
+            assert_eq!(state, before);
+        }
+        validate_authorship(&agent(&bounded, Some(&bounded)))?;
+        upload_declared(&mut state, &mut facts, 2, agent(&bounded, Some(&bounded)))?;
+        Ok(())
+    }
+
+    #[test]
+    fn owning_rule_is_first_applicable_rule_in_policy_order() -> ReviewResult<()> {
+        let mut ownership = OwnershipPolicy::default();
+        for (id, path, target) in [
+            ("release-only", "src/**", Some("refs/heads/release")),
+            ("core", "src/**", None),
+            ("rust", "**/*.rs", None),
+        ] {
+            ownership.rules.push(OwnershipRule {
+                id: id.into(),
+                paths: vec![path.into()],
+                owners: BTreeSet::new(),
+                teams: BTreeSet::new(),
+                target_refs: target.into_iter().map(Into::into).collect(),
+            });
+        }
+        assert_eq!(
+            owning_rule(&ownership, "refs/heads/main", "src/lib.rs"),
+            Some("core")
+        );
+        assert_eq!(
+            owning_rule(&ownership, "refs/heads/release", "src/lib.rs"),
+            Some("release-only")
+        );
+        assert_eq!(
+            owning_rule(&ownership, "refs/heads/main", "tests/a.rs"),
+            Some("rust")
+        );
+        assert_eq!(
+            owning_rule(&ownership, "refs/heads/main", "README.md"),
+            None
+        );
         Ok(())
     }
 }

@@ -11,6 +11,8 @@ pub const REQUIRED_POSITIVE_CASES: &[&str] = &[
     "attempt_detail",
     "event_tail",
     "log_range",
+    "review_friction",
+    "suggestion_anchors",
     "live_delivery",
     "authorized",
 ];
@@ -25,6 +27,7 @@ pub const REQUIRED_NEGATIVE_CASES: &[&str] = &[
     "timeout",
     "stream_loss",
     "missing_negative_case",
+    "invalid_review_window",
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

@@ -11,6 +11,8 @@ pub const REQUIRED_POSITIVE_CASES: &[&str] = &[
     "attempt_detail",
     "event_tail",
     "log_range",
+    "review_friction",
+    "suggestion_anchors",
     "verified_log_payload",
     "trusted_peer",
     "http_iroh_equality",
@@ -24,6 +26,7 @@ pub const REQUIRED_NEGATIVE_CASES: &[&str] = &[
     "transport_failure",
     "relay_dependence",
     "divergence",
+    "review_cursor_ahead",
     "missing_negative_case",
     "authority_promotion",
 ];

@@ -26,11 +26,34 @@ missing required non-claims.
 | `GET /v1/views/attempts/<attempt>` | attempt detail |
 | `GET /v1/views/events?limit=<n>` | event-tail window |
 | `GET /v1/views/logs/<stream>?cursor=<n>&max_bytes=<n>` | log range |
+| `GET /v1/views/review-friction` | review friction by declared authorship |
+| `GET /v1/views/suggestion-anchors?cursor=<n>&limit=<n>` | ranked suggestion anchors page |
 | `GET /v1/live?after=<revision>&limit=<n>` | bounded SSE event stream |
 
 Only `GET` is admitted. Unknown paths return a bounded `unknown_view` rejection.
 Unknown run, attempt, and log-stream targets return a bounded `unknown_target`
 rejection before projection. The `Host` header must match the registered origin.
+
+### Review views
+
+The review views project the snapshot's admitted review window through the
+same `kiln-observe-core` projection the iroh shell and dashboard use, so every
+surface yields the same view and view identity for the same profile, state,
+request, and window.
+
+- `review-friction` admits no query field.
+- `suggestion-anchors` admits only `cursor` and `limit`. `cursor` defaults to
+  `0`; `limit` defaults to the profile page limit. A zero limit or a
+  non-integer value is rejected with `400`; a limit above the projection page
+  bound is capped and reported in the page; a cursor past the ranked total is
+  rejected with `400 invalid_request`.
+- A snapshot without a review window returns `404 unknown_target`.
+- A snapshot review window that fails admission returns
+  `500 invalid_review_window`; no partial view is served.
+
+Authorship in these views is self-declared by the change author and is not
+verified. The views and the review-window export carry no authority: they do
+not gate, approve, merge, notify, or alter review state.
 
 ## Authentication
 
@@ -127,12 +150,12 @@ Rejections carry `application/json` and a bounded
 |---|---|
 | `400` | malformed request, origin mismatch, invalid query, target, or bounds |
 | `401` | missing, stale, replayed, or invalid authorization |
-| `404` | unknown view kind, run, attempt, or log stream |
+| `404` | unknown view kind, run, attempt, log stream, or absent review window |
 | `405` | non-GET method |
 | `408` | request read timeout |
 | `413` | request body or total request exceeds its bound |
 | `431` | header bytes or field count exceeds its bound |
-| `500` | projection or profile state could not be served |
+| `500` | projection or profile state could not be served, including an inadmissible review window (`invalid_review_window`) |
 
 ## Evaluation outcome
 

@@ -792,6 +792,10 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-evidence.js"),
             ),
+            "/work-board.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("work-board.js"),
+            ),
             "/project.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("project.js"),

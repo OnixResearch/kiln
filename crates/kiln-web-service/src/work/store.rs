@@ -34,7 +34,7 @@ const TYPES: [&str; 9] = [
 ];
 const TYPE_PREFIX: &str = "xyz.onixresearch.work.";
 const MAX_REFS: usize = 16_384;
-const MAX_OBJECTS: usize = 1024;
+pub(super) const MAX_OBJECTS: usize = 1024;
 const MAX_OBJECT_OPERATIONS: usize = 128;
 const MAX_OPERATIONS: usize = 8192;
 const MAX_HISTORY_BYTES: usize = 16 * 1024 * 1024;

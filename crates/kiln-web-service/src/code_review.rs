@@ -13,6 +13,8 @@ use serde_json::{Value, json};
 use crate::engine::api::json_response;
 use crate::engine::{ApiResponse, Role};
 
+#[cfg(test)]
+mod authorship_tests;
 mod commands;
 pub mod delivery;
 pub mod intake;
@@ -49,6 +51,11 @@ const NOTIFICATION_PAGE_SIZE: usize = 200;
 const OPERATION_PAGE_SIZE: usize = 100;
 const CI_RUNS_PER_REVISION: usize = 25;
 const MILLIS_PER_SECOND: i64 = 1000;
+const MILLIS_PER_DAY: i64 = 24 * 60 * 60 * MILLIS_PER_SECOND;
+/// Longest exported review window; matches the observation profile's
+/// `bounds.review.max_review_window_ms` (30 days).
+const MAX_REVIEW_WINDOW_MS: i64 = 30 * MILLIS_PER_DAY;
+const REVIEW_WINDOW_QUERY_KEYS: [&str; 2] = ["start_ms", "end_ms"];
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -264,6 +271,10 @@ impl From<String> for Failure {
 }
 impl From<domain::ReviewError> for Failure {
     fn from(error: domain::ReviewError) -> Self {
+        // Malformed self-declared authorship is a request error, not a state conflict.
+        if error.code == "invalid_authorship" {
+            return Self::Api(400, "review_authorship_invalid".into());
+        }
         Self::Domain(error)
     }
 }
@@ -394,7 +405,10 @@ impl Workspace {
             });
         if !matches!(
             path.as_str(),
-            "/api/code-review" | "/api/code-review/commands" | "/api/code-review/targets"
+            "/api/code-review"
+                | "/api/code-review/commands"
+                | "/api/code-review/targets"
+                | "/api/code-review/review-window"
         ) && !detail_route
         {
             return reject(404, "route_missing");
@@ -430,6 +444,11 @@ impl Workspace {
         } else {
             None
         };
+        let window_range = if path == "/api/code-review/review-window" {
+            Some(review_window_range(&query)?)
+        } else {
+            None
+        };
         let _gate = self.gate.lock().map_err(|_| Failure::Unavailable)?;
         let binding = profile.binding()?;
         let mut store = store::Store::open(&profile.database, &binding)?;
@@ -452,6 +471,19 @@ impl Workspace {
         self.recover(&context, &mut store, &mut state)?;
         if let Some(request) = request {
             return self.command(&context, &mut store, &mut state, request, request_context);
+        }
+        if let Some((start_ms, end_ms)) = window_range {
+            // r[impl kiln.observe.review.window]
+            // Read-only export of the canonical review window document; grants no authority.
+            let policy = profile.effective_policy()?;
+            let window = kiln_observe_core::review_window(
+                &state.review,
+                Some(&policy.ownership),
+                start_ms,
+                end_ms,
+            )
+            .map_err(|_| Failure::Api(400, "review_window_range".into()))?;
+            return response(serde_json::to_value(&window).map_err(|_| Failure::Unavailable)?);
         }
         let projection = domain::project(&state.review, principal);
         if path == "/api/code-review" {
@@ -862,19 +894,20 @@ fn source_fact(
         changed_files: None,
     }
 }
+// r[impl kiln.review.authorship]
 fn enriched(change: &domain::Change, state: &State, principal: &str) -> Value {
     let reviewed: Vec<_> = domain::reviewed(change, principal).collect();
     json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),
         "project":change.project,"repository":change.repository,"target_ref":change.target_ref,
         "owner":change.owner,"title":change.title,"description":change.description,"state":change.state,
-        "wip":change.wip,"revisions":change.revisions,"reviewers":change.reviewers,"votes":change.votes,
+        "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"votes":change.votes,
         "threads":change.threads,"reviewed":reviewed,"attention":change.attention,
         "dependencies":change.dependencies,"candidate":change.candidate,"submission":change.submission,
         "maintenance":change.maintenance})
 }
 fn summary(change: &domain::Change, state: &State) -> Value {
     let revision = change.revisions.last().map(|revision|json!({"id":revision.id,"number":revision.number,"commit":revision.commit,"base":revision.base,"author":revision.author,"created_ms":revision.created_ms}));
-    json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),"project":change.project,"repository":change.repository,"target_ref":change.target_ref,"owner":change.owner,"title":change.title,"state":change.state,"wip":change.wip,"revisions":revision.into_iter().collect::<Vec<_>>(),"reviewers":change.reviewers,"attention":change.attention,"unresolved":change.threads.iter().filter(|t| !t.resolved).count()})
+    json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),"project":change.project,"repository":change.repository,"target_ref":change.target_ref,"owner":change.owner,"title":change.title,"state":change.state,"wip":change.wip,"authorship":domain::authorship_class(change),"revisions":revision.into_iter().collect::<Vec<_>>(),"reviewers":change.reviewers,"attention":change.attention,"unresolved":change.threads.iter().filter(|t| !t.resolved).count()})
 }
 fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery, Failure> {
     let kind = match query.get("view").map_or("all", String::as_str) {
@@ -942,4 +975,30 @@ fn page_offset(query: &BTreeMap<String, String>, key: &str) -> Result<usize, Fai
         .transpose()
         .map_err(|_| Failure::Api(400, "review_query_invalid".into()))
         .map(|value| value.unwrap_or(0))
+}
+/// Admit `start_ms`/`end_ms` for the review-window export: only those two keys,
+/// both required, a non-empty half-open range and a span within the named bound.
+// r[impl kiln.observe.review.window.scenario.violation]
+fn review_window_range(query: &BTreeMap<String, String>) -> Result<(i64, i64), Failure> {
+    if query
+        .keys()
+        .any(|key| !REVIEW_WINDOW_QUERY_KEYS.contains(&key.as_str()))
+    {
+        return reject(400, "review_query_invalid");
+    }
+    let bound = |key: &str| {
+        query
+            .get(key)
+            .ok_or_else(|| Failure::Api(400, "review_window_required".into()))?
+            .parse::<i64>()
+            .map_err(|_| Failure::Api(400, "review_query_invalid".into()))
+    };
+    let (start_ms, end_ms) = (bound("start_ms")?, bound("end_ms")?);
+    if start_ms >= end_ms {
+        return reject(400, "review_window_range");
+    }
+    if i128::from(end_ms) - i128::from(start_ms) > i128::from(MAX_REVIEW_WINDOW_MS) {
+        return reject(400, "review_window_span");
+    }
+    Ok((start_ms, end_ms))
 }

@@ -21,6 +21,8 @@ pub use profile::{
     DASHBOARD_NON_CLAIMS, DASHBOARD_PROFILE_SCHEMA_VERSION, DashboardProfile, ProfileDocument,
 };
 pub use render::{RenderStyle, render_report};
-pub use report::{DashboardReport, DashboardSelection, DashboardViews, RunPages, build_report};
-pub use shell::{Input, Options, Parsed, parse_options, run_from_env};
+pub use report::{
+    DashboardReport, DashboardSelection, DashboardViews, ReviewViews, RunPages, build_report,
+};
+pub use shell::{Input, MAX_REVIEW_WINDOW_BYTES, Options, Parsed, parse_options, run_from_env};
 pub use store::{STORE_JOURNAL_SCHEMA, admit_store, parse_reference};

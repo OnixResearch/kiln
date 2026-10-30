@@ -1,4 +1,6 @@
-use kiln_core::change_review::{Anchor, Dependency, ReviewerRole, SearchQuery, VoteValue};
+use kiln_core::change_review::{
+    Anchor, Authorship, Dependency, ReviewerRole, SearchQuery, VoteValue,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -19,6 +21,11 @@ pub(super) enum Action {
         title: String,
         description: String,
         wip: bool,
+        /// Self-declared and unverified; omitted when undeclared so request
+        /// digests of pre-authorship requests stay byte-identical.
+        // r[impl kiln.review.authorship.scenario.legacy]
+        #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
+        authorship: Authorship,
     },
     ApplySuggestions {
         thread_ids: Vec<String>,
@@ -36,9 +43,13 @@ pub(super) enum Action {
         title: String,
         description: String,
         wip: bool,
+        #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
+        authorship: Authorship,
     },
     Upload {
         commit: String,
+        #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
+        authorship: Authorship,
     },
     Edit {
         title: String,

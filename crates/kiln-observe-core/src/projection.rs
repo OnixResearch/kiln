@@ -16,6 +16,9 @@ use crate::model::{
     StateSummaryView, ViewBody, ViewRequest,
 };
 use crate::profile::{ObservationProfile, ViewField};
+use crate::review::{
+    ReviewWindow, admit_review_window, project_review_friction, project_suggestion_anchors,
+};
 
 const OUTCOME_ORDER: [Outcome; 8] = [
     Outcome::Pending,
@@ -72,7 +75,7 @@ pub fn project_observation(
             project_attempt_detail(profile, state, attempt_id, &mut redacted)?
         }
         ViewRequest::EventTail { limit } => {
-            if window.log.is_some() {
+            if window.log.is_some() || window.review.is_some() {
                 return Err(unexpected_window_fact());
             }
             project_event_tail(profile, state, window, *limit, &mut redacted)?
@@ -82,7 +85,7 @@ pub fn project_observation(
             cursor,
             max_bytes,
         } => {
-            if window.events.is_some() {
+            if window.events.is_some() || window.review.is_some() {
                 return Err(unexpected_window_fact());
             }
             project_log_range(
@@ -93,6 +96,21 @@ pub fn project_observation(
                 *max_bytes,
                 &mut redacted,
             )?
+        }
+        // r[impl kiln.observe.review.parity.scenario.equal]
+        ViewRequest::ReviewFriction => {
+            let review = require_review_window(profile, window)?;
+            ViewBody::ReviewFriction(project_review_friction(review))
+        }
+        ViewRequest::SuggestionAnchors { cursor, limit } => {
+            let review = require_review_window(profile, window)?;
+            ViewBody::SuggestionAnchors(project_suggestion_anchors(
+                profile,
+                review,
+                *cursor,
+                *limit,
+                &mut redacted,
+            )?)
         }
     };
     let body_bytes = identity::encode_view_body(&body);
@@ -116,10 +134,29 @@ pub fn project_observation(
 }
 
 fn require_no_window(window: &ObservationWindow) -> CoreResult<()> {
-    if window.events.is_some() || window.log.is_some() {
+    if window.events.is_some() || window.log.is_some() || window.review.is_some() {
         return Err(unexpected_window_fact());
     }
     Ok(())
+}
+
+// r[impl kiln.observe.review.window]
+fn require_review_window<'a>(
+    profile: &ObservationProfile,
+    window: &'a ObservationWindow,
+) -> CoreResult<&'a ReviewWindow> {
+    if window.events.is_some() || window.log.is_some() {
+        return Err(unexpected_window_fact());
+    }
+    let review = window.review.as_ref().ok_or_else(|| {
+        Diagnostic::new(
+            "missing_review_window",
+            "observation.window.review",
+            "review views require an admitted review window",
+        )
+    })?;
+    admit_review_window(profile, review)?;
+    Ok(review)
 }
 
 fn unexpected_window_fact() -> Diagnostic {

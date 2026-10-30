@@ -28,6 +28,7 @@ kiln-adapter-webhook.workspace = true
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-highlight.workspace = true
+kiln-observe-core.workspace = true
 kiln-provider-api.workspace = true
 lattice-workflow-transport.workspace = true
 libc = "0.2"

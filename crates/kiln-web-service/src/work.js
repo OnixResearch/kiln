@@ -8,8 +8,9 @@
   const SORT_LABELS = { updated: "last update", created: "newest first", priority: "priority", title: "title", due: "due date" };
   const LINK_KINDS = ["source", "revision", "patch", "review", "run", "artifact", "cairn"];
   const FILTERS = ["kind", "status", "assignee", "priority", "label", "team", "project", "cycle", "initiative", "q"];
-  const ROUTE_FILTERS = { kind: "work_kind", status: "work_status", assignee: "work_assignee", project: "work_project", q: "work_q" };
-  const state = { parent: null, route: {}, records: [], configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, dialogs: new Set(), scroll: new Map(), pending: false, error: "", listCollapsed: false };
+  const ROUTE_FILTERS = window.KilnWorkBoard.OVERRIDES;
+  const state = { parent: null, route: {}, records: [], configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, dialogs: new Set(), scroll: new Map(), pending: false, error: "", listCollapsed: false, board: null, boardRequest: 0, drag: null };
+  const kit = () => window.KilnWorkBoard;
   const previewRequests = new WeakMap();
   const bridge = () => window.KilnWork;
   const el = (tag, text, cls) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = String(text); if (cls) node.className = cls; return node; };
@@ -131,7 +132,7 @@
     state.generation++; state.load++; state.detail++; saveScroll();
     for (const dialog of state.dialogs) { if (dialog.open) dialog.close(); dialog.remove(); }
     state.dialogs.clear(); state.records = []; state.parent?.replaceChildren(); state.parent = null;
-    state.principal = ""; state.canWrite = false; state.configured = false; state.pending = false; state.error = ""; state.scroll.clear(); state.listCollapsed = false;
+    state.principal = ""; state.canWrite = false; state.configured = false; state.pending = false; state.error = ""; state.scroll.clear(); state.listCollapsed = false; state.board = null; state.boardRequest++; state.drag = null;
     headerActions(null, false);
   }
   function objects() { return identity() === state.principal ? clone(state.records) : []; }
@@ -221,7 +222,7 @@
       const snapshot = await bridge().api("/api/work");
       if (!valid(generation, principal) || request !== state.load) return;
       if (snapshot?.schema !== "kiln.work.v1" || snapshot.bounded !== true || !Array.isArray(snapshot.objects) || snapshot.principal !== principal) throw new Error("The work snapshot is invalid or belongs to a different principal.");
-      state.records = snapshot.objects; state.configured = snapshot.configured === true; state.canWrite = snapshot.can_write === true; state.principal = principal; state.error = "";
+      state.records = snapshot.objects; state.configured = snapshot.configured === true; state.canWrite = snapshot.can_write === true; state.principal = principal; state.error = ""; state.board = null;
       draw();
     } catch (error) {
       if (!valid(generation, principal) || request !== state.load) return;
@@ -254,17 +255,7 @@
     for (const [key, route] of Object.entries(ROUTE_FILTERS)) if (state.route[route]) filters[key] = state.route[route];
     return { filters, sort: state.route.work_sort || saved?.sort || "updated", group_by: state.route.work_group || saved?.group_by || "none", layout: state.route.work_layout || saved?.layout || "list" };
   }
-  function matches(record, filters) {
-    const f = record.fields;
-    return Object.entries(filters).every(([key, value]) => {
-      if (!value) return true;
-      if (key === "q") return [f.title, f.description, f.customer, f.source_url, ...(f.labels || []), record.id].filter(Boolean).join(" ").toLocaleLowerCase().includes(value.toLocaleLowerCase());
-      if (key === "kind") return record.kind === value;
-      if (key === "assignee") return (f.assignees || []).includes(value);
-      if (key === "label") return (f.labels || []).includes(value);
-      return String(f[key] ?? "") === value;
-    });
-  }
+  const matches = (record, filters) => kit().matches(record, filters);
   function visibleRows(config) {
     if (state.route.work_view && !activeView()) return [];
     const page = state.route.page;
@@ -273,8 +264,9 @@
       if (page === "planning" && !PLANNING.includes(record.kind)) return false;
       if (page === "triage" && record.kind !== "request") return false;
       if (page === "workviews" && record.kind !== "view") return false;
-      if (page === "work" && !state.route.work_kind && !activeView() && !["issue", "request"].includes(record.kind)) return false;
+      if (page === "work") return kit().listed(record, config.filters, !!activeView());
       if (page === "inbox" && (!attention(record).length || personal().read?.[record.id] === record.head && !(personal().reminders?.[record.id] != null && personal().reminders[record.id] <= Date.now()))) return false;
+      if (record.kind === "personal" && config.filters.kind !== "personal") return false;
       return matches(record, config.filters);
     });
     const compare = { updated: (a, b) => b.updated_at_ms - a.updated_at_ms, created: (a, b) => b.created_at_ms - a.created_at_ms, priority: (a, b) => (a.fields.priority || 5) - (b.fields.priority || 5), title: (a, b) => a.fields.title.localeCompare(b.fields.title), due: (a, b) => (a.fields.due_at_ms ?? Infinity) - (b.fields.due_at_ms ?? Infinity) }[config.sort] || (() => 0);
@@ -375,7 +367,7 @@
     const group = field(filters, "Group by", "select", config.group_by, ["none", "status", "assignee", "project", "priority", "team"]);
     const sort = field(filters, "Sort by", "select", config.sort, ["updated", "created", "priority", "title", "due"]);
     const actions = el("div", undefined, "work-actions"); const submit = el("button", "Apply filters"); submit.type = "submit"; actions.append(submit);
-    actions.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" }), "quiet"), button("Save current view…", () => editor("view", null, { view: { ...config, shared: false } }), "quiet", true));
+    actions.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" }), "quiet"), button("Save current view…", () => editor("view", null, { view: { ...config, shared: false, ...(activeView()?.board ? { board: clone(activeView().board) } : {}) } }), "quiet", true));
     filters.append(actions);
     form.addEventListener("submit", event => { event.preventDefault(); const patch = { work_layout: layout.value, work_group: group.value, work_sort: sort.value }; for (const [key, input] of Object.entries(inputs)) patch[ROUTE_FILTERS[key]] = input.value.trim(); bridge().navigate(patch); });
     bar.append(form); parent.append(bar);
@@ -502,6 +494,188 @@
       for (const record of rows) workRow(record, group); parent.append(group);
     }
   }
+  // r[impl kiln.work.kanban.projection] r[impl kiln.work.kanban.columns]
+  // The Kanban board renders only the server's bounded projection, never a browser-side regrouping; each card
+  // carries the exact head its move names. Nothing about a card is stored on the view.
+  function kanban(parent) {
+    parent.dataset.layout = "kanban";
+    if (state.route.work_view && !activeView()) { parent.append(el("p", "No board: the selected saved view is unavailable.", "meta")); return; }
+    const path = kit().boardPath(state.route.work_view || "", state.route);
+    const current = state.board?.key === path ? state.board : null;
+    if (current?.projection) { boardView(parent, current.projection); return; }
+    if (current?.error) {
+      const failure = el("div", undefined, "error-state work-unavailable"); failure.setAttribute("role", "alert");
+      failure.append(el("p", `Board unavailable: ${current.error}. No columns or cards were substituted.`, "warning"), button("Retry", () => loadBoard(path), "quiet"));
+      parent.append(failure); return;
+    }
+    parent.append(loading("Reading the bounded board projection…", 2));
+    if (!current) void loadBoard(path);
+  }
+  function loadBoard(path) {
+    const generation = state.generation, principal = identity(), request = ++state.boardRequest;
+    const task = (async () => {
+      let next;
+      try { next = { key: path, projection: kit().admit(await bridge().api(path), principal), error: "" }; }
+      catch (error) { next = { key: path, projection: null, error: errorText(error) }; }
+      if (!valid(generation, principal) || request !== state.boardRequest) return null;
+      state.board = next; draw(); return next.projection;
+    })();
+    state.board = { key: path, projection: null, error: "", task };
+    return task;
+  }
+  function announce(text) { if (state.boardLive?.isConnected) state.boardLive.textContent = text; }
+  function clearDropMarks() { for (const node of document.querySelectorAll(".work-board-column[data-drop]")) { node.removeAttribute("data-drop"); node.classList.remove("is-drop-target"); } }
+  function boardView(parent, p) {
+    const { summary, notes } = kit().completeness(p), head = el("div", undefined, "work-board-summary");
+    head.append(el("p", summary, "work-board-total"));
+    for (const note of notes) head.append(el("p", note, "meta"));
+    // r[impl kiln.work.kanban.boundary]
+    head.append(el("p", "Columns are planning status. Moving a card changes only that issue's status: it acquires no execution lease and proves no CI or release completion.", "meta work-board-boundary"));
+    const live = el("p", "", "sr-only"); live.setAttribute("role", "status"); head.append(live); state.boardLive = live;
+    const lanes = el("div", undefined, "work-board-lanes");
+    for (const lane of p.columns) lanes.append(boardLane(p, lane, false));
+    // Issues whose status has no column are never hidden.
+    if (p.other.total) lanes.append(boardLane(p, { status: "", builtin: false, teams: [], retired: false, ...p.other }, true));
+    parent.append(head, lanes);
+  }
+  function boardLane(p, lane, other) {
+    const column = el("section", undefined, "work-board-column"); column.dataset.status = lane.status;
+    const heading = el("h3", undefined, "work-board-heading"); heading.id = `work-board-${crypto.randomUUID()}`; column.setAttribute("aria-labelledby", heading.id);
+    heading.append(other ? el("span", "Other statuses") : workStatus(lane.status), el("span", String(lane.total), "work-count"));
+    column.append(heading);
+    const note = el("p", undefined, "meta work-board-note");
+    if (other) note.textContent = `No column on this board for: ${lane.statuses.map(item => `${title(item.status)} (${item.total})`).join(", ")}.`;
+    else if (lane.retired) note.textContent = "Retired status: no team workflow defines it now. It is not a move target.";
+    else if (!lane.builtin) note.textContent = `Team status · ${lane.teams.map(nameFor).join(", ")}`;
+    if (note.textContent) column.append(note);
+    if (lane.total > lane.cards.length) column.append(el("p", `Showing ${lane.cards.length} of ${lane.total}`, "meta work-board-note"));
+    const cards = el("div", undefined, "work-board-cards");
+    for (const card of lane.cards) cards.append(boardCard(p, card));
+    if (!lane.total) cards.append(el("p", "No issues", "meta work-board-empty"));
+    column.append(cards);
+    if (!other) dropZone(column, p, lane);
+    return column;
+  }
+  // r[impl kiln.work.kanban.interaction]
+  // Keyboard (Move… or M) and drag-and-drop open the same confirmation; a drop is only a target choice.
+  function boardCard(p, card) {
+    const node = el("article", undefined, "work-row work-board-card"); node.dataset.workId = card.id; node.tabIndex = 0;
+    node.setAttribute("aria-label", `Issue: ${card.title}`);
+    if (state.route.work_id === card.id) node.setAttribute("aria-current", "true");
+    const meta = el("div", undefined, "work-row-meta");
+    if (card.priority) meta.append(priorityTag(card.priority));
+    if (card.team) meta.append(el("span", nameFor(card.team)));
+    if (card.assignees.length) meta.append(el("span", `Assigned: ${card.assignees.join(", ")}`, "work-assignees"));
+    for (const label of card.labels) meta.append(el("span", label, "work-label"));
+    if (card.due_at_ms != null) { const due = el("span", undefined, "work-due"); due.append("Due ", when(card.due_at_ms)); meta.append(due); }
+    const move = button("Move…", () => moveDialog(p, card), "quiet work-board-move", true);
+    move.setAttribute("aria-label", `Move ${quoted(card.title)} to another column`); move.setAttribute("aria-keyshortcuts", "M");
+    node.setAttribute("aria-keyshortcuts", "M");
+    node.append(recordLink(card.title || "Untitled", card.id, "work-row-title"), meta, move);
+    node.draggable = writable();
+    node.addEventListener("keydown", event => {
+      if ((event.target !== node && event.target !== move) || event.key.toLowerCase() !== "m" || event.ctrlKey || event.metaKey || event.altKey || !writable()) return;
+      event.preventDefault(); Promise.resolve().then(() => moveDialog(p, card)).catch(report);
+    });
+    node.addEventListener("dragstart", event => {
+      if (!writable() || state.pending || event.target !== node) { event.preventDefault(); return; }
+      state.drag = { card, dropped: false }; event.dataTransfer.setData("text/plain", card.id); event.dataTransfer.effectAllowed = "move";
+      node.classList.add("is-dragging");
+      const targets = new Map(kit().moveTargets(card, p.columns, Date.now()).map(target => [target.status, target.allowed]));
+      for (const column of node.closest(".work-board-lanes")?.querySelectorAll(".work-board-column") || []) column.dataset.drop = targets.get(column.dataset.status) ? "allowed" : "blocked";
+      announce(`Dragging ${quoted(card.title)}. Drop it on a highlighted column, or press Escape to cancel.`);
+    });
+    node.addEventListener("dragend", () => {
+      node.classList.remove("is-dragging"); const drag = state.drag; state.drag = null; clearDropMarks();
+      if (drag && !drag.dropped) announce("Drag cancelled. Nothing was moved.");
+    });
+    return node;
+  }
+  function dropZone(column, p, lane) {
+    const allowed = () => !!state.drag && kit().moveTargets(state.drag.card, [lane], Date.now())[0].allowed;
+    column.addEventListener("dragover", event => { if (!allowed()) return; event.preventDefault(); event.dataTransfer.dropEffect = "move"; column.classList.add("is-drop-target"); });
+    column.addEventListener("dragleave", event => { if (!column.contains(event.relatedTarget)) column.classList.remove("is-drop-target"); });
+    column.addEventListener("drop", event => {
+      if (!allowed()) return;
+      event.preventDefault(); const drag = state.drag; drag.dropped = true; clearDropMarks();
+      Promise.resolve().then(() => moveDialog(p, drag.card, lane.status)).catch(report);
+    });
+  }
+  // r[impl kiln.work.kanban.interaction] r[impl kiln.work.kanban.move]
+  // One attempt keeps one request ID: only an unknown outcome is retried, with the identical command. A head
+  // conflict is shown, reloaded and left to the user; nothing is overwritten or sent automatically.
+  function moveDialog(p, card, preselect = "") {
+    if (!writable()) throw new Error("Moving cards requires an admitted work writer and writable native store.");
+    const generation = state.generation, principal = identity();
+    const { dialog, close } = modal(`Move ${quoted(card.title)}`, "work-move-dialog");
+    const form = el("form", undefined, "work-dialog-form"), factsBox = el("div"), fieldset = el("fieldset", undefined, "work-move-targets");
+    const status = el("p", "", "small work-dialog-status"), recovery = el("div", undefined, "work-actions work-move-recovery"), commit = el("button", "Move card", "primary");
+    status.setAttribute("role", "status"); commit.type = "submit";
+    form.append(factsBox, fieldset, el("p", "Changes only this issue's canonical status, checked against its exact head. Columns are planning status: no execution lease, CI or release completion is implied.", "small"), status, recovery);
+    footer(form, commit, close); dialog.append(form);
+    let subject = card, attempt = null, stale = false;
+    const render = selected => {
+      factsBox.replaceChildren(); facts(factsBox, [["Issue", subject.id], ["Expected head", subject.head], ["Current column", title(subject.status)]], "work-facts-mono");
+      fieldset.replaceChildren(el("legend", "Target column"));
+      const choice = selected || kit().defaultTarget(subject, p.columns, Date.now());
+      for (const target of kit().moveTargets(subject, p.columns, Date.now())) {
+        const option = el("label", undefined, "work-move-option"), input = el("input"), text = el("span", undefined, "work-move-option-text");
+        input.type = "radio"; input.name = "target"; input.value = target.status; input.disabled = !target.allowed; input.checked = target.allowed && target.status === choice;
+        text.append(el("span", title(target.status))); if (target.reason) text.append(el("span", target.reason, "meta"));
+        option.append(input, text); fieldset.append(option);
+      }
+    };
+    const settle = (text, actions = []) => { status.textContent = text; recovery.replaceChildren(...actions); };
+    async function send(command, target) {
+      if (!valid(generation, principal) || !writable()) { close(); return; }
+      if (state.pending) { settle("A work command is already in flight. Wait for its observed result."); return; }
+      attempt = { card: subject, target, command }; commit.disabled = true; state.pending = true;
+      settle(`Sending request ${command.request_id}…`);
+      try {
+        const result = await bridge().command(command);
+        if (!valid(generation, principal)) return;
+        if (result?.object?.id !== subject.id || result.object.fields?.status !== target) throw new Error("No matching durable work record was returned.");
+        close();
+        bridge().notice(result.replayed ? `The move of ${quoted(subject.title)} had already applied; its original result was returned and nothing moved twice.` : `Moved ${quoted(subject.title)} to ${title(target)}.`);
+        state.pending = false; await refresh();
+      } catch (error) {
+        if (valid(generation, principal) && dialog.isConnected) failure(error);
+      } finally {
+        if (valid(generation, principal)) state.pending = false;
+        if (dialog.isConnected) commit.disabled = !writable() || stale;
+      }
+    }
+    function failure(error) {
+      const kind = kit().classify(error), message = errorText(error);
+      if (kind === "aborted") { close(); return; }
+      if (kind === "conflict") { stale = true; commit.disabled = true; settle(`Conflict: ${quoted(subject.title)} changed after this board was read (${message}). Nothing was overwritten or moved. Reload the current state before moving again.`, [button("Reload current state", reload, "primary")]); }
+      else if (kind === "unknown") settle(`Outcome unknown: ${message}. Retry resends request ${attempt.command.request_id} unchanged; if it already applied, the original result is returned and nothing moves twice.`, [button("Retry same request", () => send(attempt.command, attempt.target)), button("Reload current state", reload, "quiet")]);
+      else settle(`${kind === "denied" ? "Not permitted" : kind === "missing" ? "Issue unavailable" : "Rejected"}: ${message}. Nothing changed.`);
+    }
+    async function reload() {
+      settle("Reloading the current snapshot and board…");
+      await refresh();
+      if (!valid(generation, principal) || !dialog.isConnected) return;
+      const path = kit().boardPath(state.route.work_view || "", state.route), cached = state.board?.key === path ? state.board : null;
+      const projection = cached?.projection || await (cached?.task || loadBoard(path));
+      if (!valid(generation, principal) || !dialog.isConnected) return;
+      if (!projection) { settle(`Reload failed: ${state.board?.error || "board unavailable"}. Nothing was sent.`, [button("Reload current state", reload)]); return; }
+      p = projection;
+      const outcome = kit().resolve(attempt, kit().findCard(projection, subject.id));
+      if (outcome.kind === "missing") { commit.disabled = true; settle("This issue is no longer on this board (it may no longer match its filters or bounds). Nothing was sent."); return; }
+      subject = outcome.card;
+      if (outcome.kind === "applied") { render(); commit.disabled = true; settle(`${quoted(subject.title)} is already in ${title(attempt.target)} at head ${subject.head}. Nothing was sent.`); return; }
+      stale = false; commit.disabled = !writable(); render(attempt.target);
+      settle(outcome.kind === "changed" ? `Current state: ${title(subject.status)} at head ${subject.head}. Choose Move card to apply your move to this version with a new request, or Cancel to keep it.` : `Reloaded: the issue is unchanged at head ${subject.head}.`);
+    }
+    form.addEventListener("submit", event => {
+      event.preventDefault(); const target = fieldset.querySelector("input[name='target']:checked")?.value || "";
+      if (!target) { settle("Choose a target column."); return; }
+      void send(kit().moveCommand(subject, target, crypto.randomUUID()), target);
+    });
+    render(preselect);
+    (fieldset.querySelector("input:checked") || commit).focus();
+  }
   function roadmap(parent, records) {
     const plans = records.filter(record => PLANNING.includes(record.kind));
     // r[impl kiln.web.design_system] With no planning records at all there is nothing to schedule; the empty list speaks.
@@ -571,14 +745,17 @@
     const board = config.layout === "board";
     const split = !board && (!!selectedId || (records.length > 0 && ["work", "inbox", "triage"].includes(state.route.page)));
     const listPane = el("section", undefined, `card work-list-card${split ? " split-list" : ""}`); const prefix = parent.id || "work"; listPane.id = `${prefix}-list-pane`;
-    const listHead = el("div", undefined, "work-list-head"), listTitle = el("h2", "Results", "card-title"); listTitle.id = `${prefix}-list-title`; listPane.setAttribute("aria-labelledby", listTitle.id);
-    const count = el("span", String(records.length), "work-count"); count.title = `${records.length} record(s) in the current bounded snapshot`;
+    // r[impl kiln.work.kanban.columns] On the Work page the board is the Kanban projection of the same eligible issues.
+    const kanbanBoard = board && state.route.page === "work", shown = kanbanBoard ? records.filter(record => record.kind === "issue") : records;
+    const listHead = el("div", undefined, "work-list-head"), listTitle = el("h2", kanbanBoard ? "Board" : "Results", "card-title"); listTitle.id = `${prefix}-list-title`; listPane.setAttribute("aria-labelledby", listTitle.id);
+    const count = el("span", String(shown.length), "work-count"); count.title = `${shown.length} ${kanbanBoard ? "matching issue(s)" : "record(s)"} in the current bounded snapshot`;
     // r[impl kiln.web.page_consistency]
     // Order is described in words, and only when there is something to order.
     listHead.append(listTitle, count);
-    if (records.length) listHead.append(el("span", `Sorted by ${SORT_LABELS[config.sort] || config.sort}${config.group_by !== "none" ? ` · grouped by ${config.group_by}` : ""}`, "meta work-list-order"));
-    const list = el("div", undefined, "work-list-scroll"); list.setAttribute("aria-label", "Work records");
-    grouped(list, records, config); listPane.append(listHead, list);
+    if (shown.length) listHead.append(el("span", kanbanBoard ? `Status columns · sorted by ${SORT_LABELS[config.sort] || config.sort} within each column` : `Sorted by ${SORT_LABELS[config.sort] || config.sort}${config.group_by !== "none" ? ` · grouped by ${config.group_by}` : ""}`, "meta work-list-order"));
+    const list = el("div", undefined, "work-list-scroll"); list.setAttribute("aria-label", kanbanBoard ? "Kanban board" : "Work records");
+    if (kanbanBoard) kanban(list); else grouped(list, records, config);
+    listPane.append(listHead, list);
     const detail = el("aside", undefined, `card work-detail${split ? " split-detail" : ""}`); detail.id = `${prefix}-detail-pane`; detail.setAttribute("aria-label", "Selected work record");
     const body = el("div", undefined, "work-detail-body");
     let layout;
@@ -795,10 +972,13 @@
       inputs[key] = field(panel, key === "q" ? "Search text" : title(key), options ? "select" : "text", view.filters?.[key] || "", options);
     }
     const sort = field(panel, "Sort", "select", view.sort, ["updated", "created", "priority", "title", "due"]), group = field(panel, "Group by", "select", view.group_by, ["none", "status", "assignee", "project", "priority", "team"]), layout = field(panel, "Layout", "select", view.layout, ["list", "board"]), shared = field(panel, "Shared with this workspace", "checkbox", view.shared);
+    // r[impl kiln.work.kanban.config] Board columns are view configuration only; cards stay the issues themselves.
+    const columns = field(panel, "Board columns (ordered statuses, comma separated)", "text", (view.board?.columns || []).join(", ")); columns.closest(".work-field").classList.add("work-field-wide");
+    panel.append(el("p", `Leave empty for the default: ${["triage", "backlog", "started"].map(title).join(", ")}, then team statuses, then ${["completed", "cancelled", "snoozed", "duplicate"].map(title).join(", ")}. Empty columns stay visible; issues with other statuses appear under Other statuses. Group by applies to the list layout.`, "small"));
     shared.disabled = existing;
     if (existing) panel.append(el("p", "Visibility is fixed for this signed history. Create a separate saved view to change sharing without exposing prior private events.", "small"));
     panel.append(el("p", "Private views are visible only to their authenticated owner. Sharing exposes this view definition, not private records or hidden fields.", "small"));
-    return () => ({ filters: Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value.trim()]).filter(([, value]) => value)), sort: sort.value, group_by: group.value, layout: layout.value, shared: shared.checked });
+    return () => { const board = split(columns.value); return { filters: Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value.trim()]).filter(([, value]) => value)), sort: sort.value, group_by: group.value, layout: layout.value, shared: shared.checked, ...(board.length ? { board: { columns: board } } : {}) }; };
   }
   function personalEditor(form, current) {
     const p = current || { watched: [], read: {}, favorites: [], reminders: {} }; const panel = section(form, "Private attention preferences", "work-form-section");

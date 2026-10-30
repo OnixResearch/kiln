@@ -1,10 +1,11 @@
 use std::collections::BTreeSet;
 
+use kiln_core::domain::State;
 use kiln_core::operations::JournalRecord;
-use kiln_core::types::{AttemptId, CoreResult, RunId};
+use kiln_core::types::{AttemptId, CoreResult, Diagnostic, RunId};
 use kiln_observe_core::{
-    ObservationRequest, ObservationView, ObservationWindow, ViewBody, ViewField, ViewRequest,
-    project_observation,
+    ObservationProfile, ObservationRequest, ObservationView, ObservationWindow, ReviewWindow,
+    ViewBody, ViewField, ViewKind, ViewRequest, project_observation,
 };
 
 use crate::journal::{AdmittedJournal, JournalFacts};
@@ -29,6 +30,16 @@ pub struct RunPages {
     pub truncated: bool,
 }
 
+/// The review views projected over one shell-supplied review window.
+///
+/// Authorship classes are self-declared and unverified; these views grant no
+/// authority.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReviewViews {
+    pub friction: ObservationView,
+    pub anchors: ObservationView,
+}
+
 /// Every accepted observation view one dashboard report reports.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DashboardViews {
@@ -37,6 +48,7 @@ pub struct DashboardViews {
     pub run_detail: Option<ObservationView>,
     pub attempt_detail: Option<ObservationView>,
     pub events: ObservationView,
+    pub review: Option<ReviewViews>,
 }
 
 /// One bounded operator dashboard report.
@@ -182,6 +194,11 @@ pub fn build_report(
         &ObservationWindow::events(window),
     )?;
 
+    let review = match journal.review.as_ref() {
+        Some(window) => Some(project_review(observation, state, window)?),
+        None => None,
+    };
+
     let mut redacted_fields = BTreeSet::new();
     redacted_fields.extend(summary.redacted_fields.iter().copied());
     for view in &views {
@@ -191,6 +208,12 @@ pub fn build_report(
         redacted_fields.extend(view.redacted_fields.iter().copied());
     }
     redacted_fields.extend(events.redacted_fields.iter().copied());
+    for view in review
+        .iter()
+        .flat_map(|review| [&review.friction, &review.anchors])
+    {
+        redacted_fields.extend(view.redacted_fields.iter().copied());
+    }
 
     Ok(DashboardReport {
         profile_id: profile.profile_id.clone(),
@@ -216,9 +239,50 @@ pub fn build_report(
             run_detail,
             attempt_detail,
             events,
+            review,
         },
         redacted_fields,
         non_claims: profile.non_claims.clone(),
+    })
+}
+
+/// Project the two review views over one supplied review window.
+///
+/// Both requests go through the accepted projection unchanged, so window
+/// admission failures surface as the build error. A supplied window that the
+/// profile cannot observe fails instead of being silently dropped.
+// r[impl kiln.observe.review.parity]
+fn project_review(
+    observation: &ObservationProfile,
+    state: &State,
+    window: &ReviewWindow,
+) -> CoreResult<ReviewViews> {
+    if !observation.admits_view(ViewKind::ReviewFriction)
+        || !observation.admits_view(ViewKind::SuggestionAnchors)
+    {
+        return Err(Diagnostic::new(
+            "review_views_not_admitted",
+            "dashboard.review",
+            "a review window was supplied but the observation profile does not admit the review_friction and suggestion_anchors views",
+        ));
+    }
+    let project = |view: ViewRequest| {
+        project_observation(
+            observation,
+            state,
+            &ObservationRequest {
+                state_revision: state.revision,
+                view,
+            },
+            &ObservationWindow::review(window.clone()),
+        )
+    };
+    Ok(ReviewViews {
+        friction: project(ViewRequest::ReviewFriction)?,
+        anchors: project(ViewRequest::SuggestionAnchors {
+            cursor: 0,
+            limit: observation.bounds.max_page_items,
+        })?,
     })
 }
 

@@ -54,6 +54,8 @@ fn all_views() -> BTreeSet<ViewKind> {
         ViewKind::AttemptDetail,
         ViewKind::EventTail,
         ViewKind::LogRange,
+        ViewKind::ReviewFriction,
+        ViewKind::SuggestionAnchors,
     ]
     .into_iter()
     .collect()
@@ -67,6 +69,8 @@ fn all_fields() -> BTreeSet<ViewField> {
         ViewField::Metrics,
         ViewField::CommandId,
         ViewField::LogBytes,
+        ViewField::SuggestionPaths,
+        ViewField::SuggestionOwners,
     ]
     .into_iter()
     .collect()
@@ -95,6 +99,12 @@ fn fixture_profile() -> ObservationProfile {
             max_log_segments: 2,
             max_text_bytes: 256,
             max_encoded_bytes: 65_536,
+            review: Some(ReviewBounds {
+                max_review_changes: 16,
+                max_review_window_ms: 2_592_000_000,
+                max_review_patch_sets: 16,
+                max_review_suggestions_per_change: 16,
+            }),
         },
         redaction: RedactionPolicy {
             visible_fields: all_fields(),

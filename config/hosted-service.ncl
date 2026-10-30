@@ -65,8 +65,34 @@ let Backend =
         }
         label
         value
+    else if value.kind == "firecracker" then
+      # One microVM per job from the `microvm-guest` flake output (see its
+      # manifest.json for exact paths and BLAKE3). Rust admission checks memory
+      # and vCPUs against the unit limits; there is no network or jailer field.
+      std.contract.check
+        {
+          kind | std.contract.from_predicate (fun v => v == "firecracker"),
+          firecracker | Executable,
+          kernel | Executable,
+          initrd | Executable,
+          guest_shell | c.AbsolutePath,
+          vcpus | c.BoundedInteger 1 8,
+          memory_mib | c.BoundedInteger 128 16384,
+          boot_timeout_ms | c.BoundedInteger 100 60000,
+          source_image_mib | c.BoundedInteger 1 1024,
+          warm_pool
+            | c.Nullable {
+              directory | c.AbsolutePath,
+              slots | c.BoundedInteger 1 16,
+            }
+            | default
+            = null,
+          qualification_identity | c.Nullable c.Blake3 | default = null,
+        }
+        label
+        value
     else
-      'Error { message = "Backend kind must be namespaces or qemu" }
+      'Error { message = "Backend kind must be namespaces, qemu or firecracker" }
   )
 in
 let CacheRelative =

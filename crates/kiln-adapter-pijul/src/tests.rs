@@ -277,3 +277,63 @@ fn concrete_shell_uses_native_library_without_mutation_or_network_surface() {
         );
     }
 }
+
+fn failure_code<T>(result: PortResult<T>) -> Option<String> {
+    match result {
+        Err(PortFailure::Domain(diagnostic)) => Some(diagnostic.code),
+        Ok(_) | Err(_) => None,
+    }
+}
+
+// Semantic merge orchestration acquires O, A, B and M only through this read-only profile.
+// r[verify kiln.semantic_merge.candidate.scenario.adapter]
+#[test]
+fn pinned_profile_refuses_every_forbidden_source_capability() {
+    let profile = PijulSourceProfile::pinned_local();
+    let admitted = admit_profile(&profile).unwrap_or_else(|_| unreachable!());
+    let forbidden = [
+        SourceCapability::UseCredentials,
+        SourceCapability::Collaborate,
+        SourceCapability::ReceiveTrigger,
+        SourceCapability::PublishStatus,
+        SourceCapability::Mutate,
+    ];
+    for capability in forbidden {
+        assert_eq!(
+            kiln_core::source::admit_source_capability(&admitted, capability, &profile.id)
+                .map_err(|diagnostic| diagnostic.code),
+            Err("source_capability_missing".to_string()),
+            "{capability:?}"
+        );
+        let mut widened = PijulSourceProfile::pinned_local();
+        widened.capabilities.insert(capability);
+        assert_eq!(
+            failure_code(admit_profile(&widened)),
+            Some("pijul_profile".to_string()),
+            "{capability:?}"
+        );
+    }
+    let grants: [fn(&mut PijulSourceProfile); 6] = [
+        |profile| profile.allow_network = true,
+        |profile| profile.allow_credentials = true,
+        |profile| profile.allow_collaboration = true,
+        |profile| profile.allow_triggers = true,
+        |profile| profile.allow_status_publication = true,
+        |profile| profile.allow_mutation = true,
+    ];
+    for grant in grants {
+        let mut widened = PijulSourceProfile::pinned_local();
+        grant(&mut widened);
+        assert!(profile_has_forbidden_authority(&widened));
+        assert_eq!(
+            failure_code(admit_profile(&widened)),
+            Some("pijul_profile_authority".to_string())
+        );
+        let repository = fixture(observation("state-a", "change-a", b"content"));
+        assert_eq!(
+            failure_code(resolve(&repository, &widened)),
+            Some("pijul_profile_authority".to_string())
+        );
+        assert_eq!(repository.calls.get(), 0);
+    }
+}

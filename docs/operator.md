@@ -78,6 +78,31 @@ properties derived from the staged inputs and the checked-in profiles. The same
 rail has a browser specification for the HTML report and its local controls.
 See [operator dashboard](observation-dashboard.md).
 
+Two further views, `review_friction` and `suggestion_anchors`, observe the
+optional change-review workspace through an admitted review window rather than
+the CI journal. Per declared authorship class (`human`, `agent`, `mixed`,
+`undeclared`), `review_friction` reports:
+
+- time from first patch set to revision-bound approval;
+- patch sets before approval;
+- anchored suggestions per change;
+- the share of merged changes that had no suggestion, that is, changes merged
+  on required CI alone.
+
+`suggestion_anchors` ranks the most frequent suggestion anchors by path and
+owning ownership rule. Use it as input for turning a recurring review comment
+into a required CI check.
+
+Authorship is self-declared by the contributor and unverified. Kiln never infers
+it. A change counts as `undeclared` unless a patch set declares otherwise, and
+pre-authorship journals replay as `undeclared`.
+
+The views follow the existing redaction, paging and window-admission rules, and
+they carry no authority. Export the window from the web service with
+`GET /api/code-review/review-window?start_ms=…&end_ms=…`, then pass it to
+`kiln-dashboard --review <path>` or to an observation shell snapshot. See
+[observation projection](observation-projection.md#review-friction-and-authorship).
+
 ## Logs and follow
 
 A cursor binds one exact stream and byte offset. A read reports gaps when retained data no longer contains that offset.
@@ -1814,6 +1839,46 @@ The Kiln web-service shell owns this optional collaboration surface and its
 native smoke exercise; its consumers are authenticated workspace principals.
 Clearing the session erases private snapshots, previews, results and pending reads.
 
+<!-- r[related kiln.work.kanban.config] -->
+<!-- r[related kiln.work.kanban.boundary] -->
+**Kanban board.** On the Work page, the board layout is a Kanban board over issue COBs. A saved
+view is the board: its object ID, filters, sort and private/shared visibility
+apply to both its list and board layouts, and switching layout never writes the
+view. A view may store `board.columns`, an ordered list of 1 to 64 distinct
+statuses (edit it in the view form). Views without it, including every view
+written before boards existed, read and replay unchanged and use the default
+columns: Triage, Backlog, Started, then team-defined statuses (only the view's
+`team` filter, otherwise every team ordered by title, each in workflow order),
+then Completed, Cancelled, Snoozed, Duplicate. `group_by` applies to the list.
+
+Every column is shown even when empty. Team-defined columns name their teams.
+A new column must be built-in or defined by a team workflow; a kept column whose
+status a team later removes is marked retired and is not a move target. Matching
+issues whose status has no column appear under **Other statuses**; none is hidden.
+`GET /api/work/board?view=<id>` (plus the Work page's `kind`, `status`,
+`assignee`, `project`, `q` and `sort` overrides) is the read-only projection. It
+returns at most 100 cards per column with totals, matched, shown and list-only
+counts, the 1,024-object snapshot bound and `complete`; the board states when it
+is filtered or partial. Requests and planning records stay in the list layout.
+Another principal's private view is reported as missing.
+
+Moving a card (its **Move…** button or the `M` key, or dragging it to a column,
+which opens the same confirmation) sends one `set_status` command for that
+issue only, naming its exact head. The status must be built-in or in the issue's
+team workflow; `duplicate` needs the issue form, and `snoozed` needs a future due
+date. Writer admission is unchanged. A timeout or unavailable response leaves
+the outcome unknown: **Retry same request** resends the identical request ID, so
+an applied move returns its original result instead of moving twice. A head
+conflict is shown, not overwritten: reload, then apply the move to the current
+head with a new request, or keep the current status. WIP limits and manual card
+ordering are not provided.
+
+Board status is **planning state** only. Moving a card, including to Completed,
+does not acquire an agent or worker execution lease, dispatch or cancel runs, or
+grant any CI operator authority. It neither proves that CI passed nor that a
+release completed; CI outcomes and Cairn/release acceptance remain separate,
+exactly identified evidence.
+
 Linked change detail joins only explicit source/revision, patch/review, run,
 artifact and Cairn identities. Missing or inaccessible observations remain
 unavailable; work completion and recorded provider verdicts grant no merge,
@@ -2963,6 +3028,35 @@ kiln-web-service ci --profile "$DEVELOPER_PROFILE" --identity "$DEVELOPER_IDENTI
   review-submit --request-id "$REQUEST_ID" --source-ref refs/heads/review/my-change \
   --title 'Review this contribution' --description 'Exact committed branch'
 ```
+
+Create, upload and branch-contribution commands accept an optional
+self-declared `authorship`: `{"kind":"human"}`, `{"kind":"mixed"}` or
+`{"kind":"agent","harness":"…","model":"…"}`, where `model` is optional.
+
+- **Text rules:** harness and model must be trimmed, non-empty text of at most
+  128 bytes with no control characters.
+- **Rejections:** invalid text fails with `400 review_authorship_invalid`, and a
+  malformed shape fails with `400 review_command_invalid`. Both happen before
+  any provider effect.
+- **Console:** the Create change, Contribute branch and Upload revision forms
+  offer a labelled Authorship select that defaults to Undeclared.
+- **Developer CLI:** `review-submit` accepts
+  `--authorship undeclared|human|agent|mixed [--agent-harness TEXT [--agent-model TEXT]]`.
+- **Undeclared:** omitting authorship records the patch set as undeclared, and
+  older journals and requests replay unchanged as undeclared. Service-created
+  patch sets are always undeclared: rebase, revert, cherry-pick and applied
+  suggestions.
+- **Change detail:** shows the change's class, folded from its declared patch
+  sets, and each patch set's declaration.
+
+Authorship is self-declared and unverified. Kiln never infers or checks it, and
+it grants no review or submit authority.
+
+Read principals can export the canonical review window with
+`GET /api/code-review/review-window?start_ms=<ms>&end_ms=<ms>`. The range is
+half-open, the span is at most 30 days, and no other query keys are allowed.
+The document feeds `kiln-dashboard --review` and the HTTPS and iroh review
+views. It is a read-only projection with no authority.
 
 Markdown uses DOM text nodes, safe inline formatting and fenced code (shown
 plain); supplied HTML does not execute. The diff is highlighted by the

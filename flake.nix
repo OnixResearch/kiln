@@ -223,6 +223,127 @@
           '';
           meta.description = "Authenticated single-tenant Kiln web service with supervised deployment assets";
         });
+      # Hosted Firecracker backend guest: the pinned nixpkgs (NixOS) kernel, a
+      # makeInitrdNG initramfs rootfs and the guest agent. Not a full NixOS system.
+      # r[impl kiln.hosted.microvm.protocol]
+      # r[impl kiln.hosted.microvm.escape]
+      # r[impl kiln.hosted.microvm.escape.scenario.suite]
+      microvmGuestPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          kernel = pkgs.linuxPackages.kernel;
+          agent = (packageFor system).overrideAttrs (_: {
+            pname = "kiln-microvm-guest-agent";
+            cargoBuildFlags = [
+              "-p"
+              "kiln-microvm"
+              "--bin"
+              "kiln-microvm-guest"
+            ];
+            cargoTestFlags = [
+              "-p"
+              "kiln-microvm"
+            ];
+          });
+          rootModules = [
+            "virtio_mmio"
+            "virtio_blk"
+            "vmw_vsock_virtio_transport"
+            "virtio_rng"
+            "vmgenid"
+          ];
+          modulesClosure = pkgs.makeModulesClosure {
+            kernel = kernel.modules;
+            firmware = kernel.modules;
+            inherit rootModules;
+            allowMissing = false;
+          };
+          # Busybox modprobe loads plain modules; decompress and re-index here.
+          modules =
+            pkgs.runCommand "kiln-microvm-guest-modules"
+              {
+                nativeBuildInputs = [
+                  pkgs.xz
+                  pkgs.kmod
+                ];
+              }
+              ''
+                mkdir -p "$out/lib"
+                cp -r --no-preserve=mode ${modulesClosure}/lib/modules "$out/lib/"
+                find "$out/lib/modules" -name '*.ko.xz' -exec xz -d {} +
+                depmod -b "$out" ${kernel.modDirVersion}
+              '';
+          vmlinux = pkgs.runCommand "kiln-microvm-vmlinux" { } ''
+            ${pkgs.binutils-unwrapped}/bin/strip --strip-all -o "$out" ${kernel.dev}/vmlinux
+          '';
+          # Modules load before kernel.modules_disabled; every namespace kind is
+          # disabled; the agent becomes PID 1 and runs steps as uid/gid 1000.
+          init = pkgs.writeScript "kiln-microvm-init" ''
+            #!/bin/busybox sh
+            set -eu
+            /bin/busybox mkdir -p /proc /sys /dev /work /tmp
+            /bin/busybox mount -t proc -o nosuid,nodev,noexec proc /proc
+            /bin/busybox --install -s /bin
+            mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
+            mount -t devtmpfs -o nosuid,noexec devtmpfs /dev
+            for module in ${pkgs.lib.concatStringsSep " " rootModules}; do
+              modprobe "$module"
+            done
+            echo 1 > /proc/sys/kernel/modules_disabled
+            for kind in user mnt pid net ipc uts cgroup time; do
+              echo 0 > "/proc/sys/user/max_''${kind}_namespaces"
+            done
+            echo 1 > /proc/sys/kernel/dmesg_restrict
+            echo 2 > /proc/sys/kernel/kptr_restrict
+            mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /work
+            mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp
+            exec /bin/kiln-microvm-guest serve /dev/vda /bin/busybox
+          '';
+          initrd = pkgs.makeInitrdNG {
+            name = "kiln-microvm-guest-initrd";
+            compressor = "cat";
+            contents = [
+              {
+                source = init;
+                target = "/init";
+              }
+              {
+                source = "${pkgs.busybox}/bin/busybox";
+                target = "/bin/busybox";
+              }
+              {
+                source = "${pkgs.bash}/bin/bash";
+                target = "/bin/bash";
+              }
+              {
+                source = "${agent}/bin/kiln-microvm-guest";
+                target = "/bin/kiln-microvm-guest";
+              }
+              {
+                source = "${modules}/lib/modules";
+                target = "/lib/modules";
+              }
+            ];
+          };
+        in
+        pkgs.runCommand "kiln-microvm-guest"
+          {
+            nativeBuildInputs = [ pkgs.b3sum ];
+            meta.description = "Firecracker guest kernel, initramfs and pinned VMM for the hosted microVM backend";
+          }
+          ''
+            mkdir -p "$out"
+            ln -s ${vmlinux} "$out/vmlinux"
+            ln -s ${initrd}/initrd "$out/initrd"
+            ln -s ${pkgs.firecracker}/bin/firecracker "$out/firecracker"
+            entry() {
+              printf '{"path":"%s","blake3":"%s"}' "$1" "$(b3sum --no-names "$1")"
+            }
+            cat > "$out/manifest.json" <<EOF
+            {"schema":"kiln.microvm.guest-image.v1","kernel_version":"${kernel.version}","firecracker_version":"${pkgs.firecracker.version}","guest_shell":"/bin/bash","firecracker":$(entry ${pkgs.firecracker}/bin/firecracker),"kernel":$(entry ${vmlinux}),"initrd":$(entry "$(readlink -f ${initrd}/initrd)")}
+            EOF
+          '';
       kilnAspenHostPackageFor =
         system:
         let
@@ -405,18 +526,25 @@
         file = ./deployment/onixos-module.ncl;
       };
 
-      packages = eachSystem (system: {
-        kiln = packageFor system;
-        web-service = webServicePackageFor system;
-        kiln-aspen-host = kilnAspenHostPackageFor system;
-        kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
-        dashboard-tools = dashboardToolsPackageFor system;
-        dashboard-index-assets = dashboardIndexPackageFor system;
-        celld-cohort = celldCohortPackageFor system;
-        pijul-cohort-fixture-producer = pijulCohortPackageFor system;
-        secretspec-cohort = secretspecPackageFor system;
-        default = packageFor system;
-      });
+      packages = eachSystem (
+        system:
+        {
+          kiln = packageFor system;
+          web-service = webServicePackageFor system;
+          kiln-aspen-host = kilnAspenHostPackageFor system;
+          kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
+          dashboard-tools = dashboardToolsPackageFor system;
+          dashboard-index-assets = dashboardIndexPackageFor system;
+          celld-cohort = celldCohortPackageFor system;
+          pijul-cohort-fixture-producer = pijulCohortPackageFor system;
+          secretspec-cohort = secretspecPackageFor system;
+          default = packageFor system;
+        }
+        # The Firecracker guest's CPU template and module set are x86_64-only.
+        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+          microvm-guest = microvmGuestPackageFor system;
+        }
+      );
 
       apps = eachSystem (system: {
         kiln = {
@@ -958,6 +1086,28 @@
                 for fixture in config/fixtures/negative-aspen-runtime-*.ncl; do
                   if nickel export "$fixture" >/dev/null 2>&1; then
                     echo "negative Aspen runtime fixture passed: $fixture" >&2
+                    exit 1
+                  fi
+                done
+                touch "$out"
+              '';
+          semantic-merge-fixtures =
+            pkgs.runCommand "kiln-semantic-merge-fixtures"
+              {
+                nativeBuildInputs = [
+                  pkgs.diffutils
+                  pkgs.nickel
+                ];
+              }
+              ''
+                ${copySource}
+                cd fixtures/semantic-merge
+                nickel format --check *.ncl
+                nickel export --format json quartet.ncl > "$TMPDIR/quartet.json"
+                diff -u quartet.json "$TMPDIR/quartet.json"
+                for fixture in negative-*.ncl; do
+                  if nickel export "$fixture" >/dev/null 2>&1; then
+                    echo "negative semantic merge fixture passed: $fixture" >&2
                     exit 1
                   fi
                 done

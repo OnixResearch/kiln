@@ -77,6 +77,7 @@ fn view(shared: bool) -> View {
         group_by: "status".into(),
         layout: "list".into(),
         shared,
+        board: None,
     }
 }
 
@@ -1224,6 +1225,7 @@ fn view_filters_layout_sort_and_grouping_are_validated_as_a_whole() {
         sort: "priority".into(),
         group_by: "assignee".into(),
         shared: true,
+        board: None,
     };
     assert_eq!(
         create(
@@ -1735,6 +1737,239 @@ fn blocker_diamonds_are_not_cycles_but_a_back_edge_is_rejected() {
                 blocked_by: vec!["top".into()],
                 ..root.fields.clone()
             },
+            &records
+        )
+        .is_err()
+    );
+}
+
+fn set_status(
+    record: &Record,
+    status: &str,
+    at: i64,
+    records: &BTreeMap<String, Record>,
+) -> Result<Record, String> {
+    apply(
+        Some(record),
+        &operation(
+            record,
+            "alice",
+            "move-1",
+            at,
+            Action::SetStatus {
+                status: status.into(),
+            },
+        ),
+        records,
+    )
+}
+
+fn board_view(columns: &[&str]) -> Fields {
+    Fields {
+        view: Some(View {
+            layout: "board".into(),
+            board: Some(Board {
+                columns: columns.iter().map(|status| (*status).to_owned()).collect(),
+            }),
+            ..view(true)
+        }),
+        ..fields("Board")
+    }
+}
+
+// r[verify kiln.work.kanban.config] r[verify kiln.work.kanban.config.scenario.invalid]
+#[test]
+fn board_configuration_is_bounded_and_new_columns_must_be_defined() {
+    let mut records = BTreeMap::new();
+    let team = insert(
+        &mut records,
+        "team",
+        Kind::Team,
+        Fields {
+            workflow: vec!["review".into()],
+            ..fields("Platform")
+        },
+    );
+    let saved = insert(
+        &mut records,
+        "board",
+        Kind::View,
+        board_view(&["backlog", "review"]),
+    );
+    let too_many: Vec<String> = (0..=MAX_BOARD_COLUMNS).map(|i| format!("s{i}")).collect();
+    let too_many: Vec<&str> = too_many.iter().map(String::as_str).collect();
+    let long = "x".repeat(MAX_STATUS + 1);
+    for invalid in [
+        &[][..],
+        &too_many[..],
+        &["backlog", "backlog"][..],
+        &["undefined"][..],
+        &[long.as_str()][..],
+        &["bad\nstatus"][..],
+    ] {
+        assert!(
+            create(Kind::View, board_view(invalid), &records).is_err(),
+            "{invalid:?}"
+        );
+    }
+    let at_bound: Vec<String> = (0..MAX_BOARD_COLUMNS).map(|i| format!("s{i}")).collect();
+    insert(
+        &mut records,
+        "wide",
+        Kind::Team,
+        Fields {
+            workflow: at_bound.clone(),
+            ..fields("Wide")
+        },
+    );
+    let at_bound: Vec<&str> = at_bound.iter().map(String::as_str).collect();
+    assert!(create(Kind::View, board_view(&at_bound), &records).is_ok());
+    // The team retires "review"; no issue uses it, so the team edit is admitted
+    // and the board keeps the column, which projections then mark as retired.
+    let retired = edit(
+        &team,
+        Fields {
+            workflow: Vec::new(),
+            ..team.fields.clone()
+        },
+        &records,
+    )
+    .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    records.insert("team".into(), retired);
+    let renamed = edit(
+        &saved,
+        Fields {
+            title: "Renamed board".into(),
+            ..saved.fields.clone()
+        },
+        &records,
+    )
+    .unwrap_or_else(|error| unreachable!("kept column blocked an edit: {error:?}"));
+    assert_eq!(renamed.fields.title, "Renamed board");
+    // A newly introduced undefined column is still rejected.
+    let introduced = Fields {
+        view: board_view(&["backlog", "review", "gone"]).view,
+        ..saved.fields.clone()
+    };
+    assert!(edit(&saved, introduced, &records).is_err());
+    let kept = Fields {
+        view: board_view(&["review", "backlog"]).view,
+        ..saved.fields.clone()
+    };
+    assert!(
+        edit(&saved, kept, &records).is_ok(),
+        "reordering kept columns"
+    );
+}
+
+// r[verify kiln.work.kanban.config.scenario.migration]
+#[test]
+fn views_written_before_board_configuration_read_and_reserialize_unchanged() {
+    let old = r#"{"filters":{"status":"started"},"sort":"updated","group_by":"assignee","layout":"board","shared":true}"#;
+    let parsed: View =
+        serde_json::from_str(old).unwrap_or_else(|error| unreachable!("old view: {error}"));
+    assert_eq!(parsed.board, None);
+    assert_eq!(
+        serde_json::to_string(&parsed).unwrap_or_else(|error| unreachable!("{error}")),
+        old,
+        "unconfigured views keep their exact encoding"
+    );
+    let unknown = r#"{"filters":{},"sort":"updated","group_by":"none","layout":"board","shared":true,"board":{"columns":["backlog"],"wip":3}}"#;
+    assert!(serde_json::from_str::<View>(unknown).is_err());
+}
+
+// r[verify kiln.work.kanban.move]
+#[test]
+fn set_status_changes_only_an_issue_status_within_its_team_workflow() {
+    let mut records = BTreeMap::new();
+    for (id, title, status) in [("alpha", "Alpha", "review"), ("beta", "Beta", "deploying")] {
+        insert(
+            &mut records,
+            id,
+            Kind::Team,
+            Fields {
+                workflow: vec![status.into()],
+                ..fields(title)
+            },
+        );
+    }
+    let issue = insert(
+        &mut records,
+        "issue",
+        Kind::Issue,
+        Fields {
+            team: Some("alpha".into()),
+            labels: vec!["keep".into()],
+            description: "Unchanged".into(),
+            ..fields("Card")
+        },
+    );
+    let moved = set_status(&issue, "review", 300, &records)
+        .unwrap_or_else(|error| unreachable!("valid move: {error:?}"));
+    assert_eq!(moved.fields.status, "review");
+    assert_eq!(
+        Fields {
+            status: issue.fields.status.clone(),
+            ..moved.fields.clone()
+        },
+        issue.fields,
+        "nothing but status changes"
+    );
+    assert_eq!(moved.updated_at_ms, 300);
+    // Another team's status, a team status without a team, a no-op and duplicate are refused.
+    assert!(set_status(&issue, "deploying", 300, &records).is_err());
+    let teamless = insert(&mut records, "teamless", Kind::Issue, fields("Loose"));
+    assert!(set_status(&teamless, "review", 300, &records).is_err());
+    assert!(set_status(&issue, "backlog", 300, &records).is_err());
+    assert!(set_status(&issue, "duplicate", 300, &records).is_err());
+    assert!(set_status(&issue, "", 300, &records).is_err());
+    // Only issues move; requests and planning keep their own flows.
+    let project = insert(&mut records, "project", Kind::Project, fields("Plan"));
+    assert!(set_status(&project, "started", 300, &records).is_err());
+    // Snooze still needs a future due time.
+    assert!(set_status(&issue, "snoozed", 300, &records).is_err());
+    let due = insert(
+        &mut records,
+        "due",
+        Kind::Issue,
+        Fields {
+            due_at_ms: Some(1_000),
+            ..fields("Due")
+        },
+    );
+    assert!(set_status(&due, "snoozed", 300, &records).is_ok());
+    assert!(set_status(&due, "snoozed", 1_000, &records).is_err());
+    // Leaving duplicate clears the duplicate target in the same operation.
+    let duplicate = insert(
+        &mut records,
+        "dup",
+        Kind::Issue,
+        Fields {
+            status: "duplicate".into(),
+            duplicate_of: Some("issue".into()),
+            ..fields("Dup")
+        },
+    );
+    let reopened = set_status(&duplicate, "backlog", 300, &records)
+        .unwrap_or_else(|error| unreachable!("reopen duplicate: {error:?}"));
+    assert_eq!(reopened.fields.duplicate_of, None);
+    // A stale head never applies.
+    let stale = Record {
+        head: "head-old".into(),
+        ..issue.clone()
+    };
+    assert!(
+        apply(
+            Some(&issue),
+            &operation(
+                &stale,
+                "alice",
+                "move-2",
+                300,
+                Action::SetStatus {
+                    status: "review".into()
+                }
+            ),
             &records
         )
         .is_err()

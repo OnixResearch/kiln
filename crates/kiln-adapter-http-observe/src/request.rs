@@ -8,6 +8,8 @@ use crate::HttpError;
 use crate::profile::HttpObservationProfile;
 
 const MAX_QUERY_FIELDS: usize = 16;
+/// Suggestion-anchor pages start at the first ranked anchor when no cursor is given.
+const FIRST_ANCHOR_CURSOR: u64 = 0;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HttpRequest {
@@ -290,6 +292,15 @@ pub fn map_view_request(
             cursor,
             max_bytes,
         }
+    } else if request.path == "/v1/views/review-friction" {
+        // r[impl kiln.observe.review.parity]
+        require_no_query(&query)?;
+        ViewRequest::ReviewFriction
+    } else if request.path == "/v1/views/suggestion-anchors" {
+        require_keys(&query, &["cursor", "limit"])?;
+        let cursor = optional_u64(&query, "cursor")?.unwrap_or(FIRST_ANCHOR_CURSOR);
+        let limit = limit(&query, profile)?;
+        ViewRequest::SuggestionAnchors { cursor, limit }
     } else {
         return Err(HttpError::new(
             404,

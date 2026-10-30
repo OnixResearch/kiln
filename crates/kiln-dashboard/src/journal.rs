@@ -2,6 +2,7 @@ use kiln_codec::{encode_and_identify, identity_from_bytes};
 use kiln_core::domain::{Event, State};
 use kiln_core::operations::{JournalRecord, replay};
 use kiln_core::types::{CONTRACT_VERSION_V1, CoreResult, Diagnostic, ExternalRef};
+use kiln_observe_core::ReviewWindow;
 use serde::{Deserialize, Serialize};
 
 /// Named bound on one journal document read.
@@ -50,6 +51,8 @@ pub struct AdmittedJournal {
     pub records: Vec<JournalRecord>,
     pub schema: Option<String>,
     pub declared_identity: Option<String>,
+    /// The shell-supplied review window observed beside this journal, if any.
+    pub review: Option<ReviewWindow>,
 }
 
 /// The canonical record stream of one Kiln journal document.
@@ -168,6 +171,7 @@ pub fn admit_document(document: &JournalDocument) -> CoreResult<AdmittedJournal>
         records: document.records.clone(),
         schema: document.schema.clone(),
         declared_identity: document.declared_identity.clone(),
+        review: None,
     })
 }
 

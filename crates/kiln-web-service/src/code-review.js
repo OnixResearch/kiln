@@ -135,6 +135,46 @@
   }
   // r[impl kiln.highlight.render] Diff text is drawn from the service's tokens (fragments) or plain.
   function codeCell(text, fragments) { const td = node("td", null, "cr-code"), code = node("code", null, "cr-code-text"); if (fragments) ui().appendFragments(code, fragments); else code.textContent = String(text ?? ""); td.append(code); return td; }
+  // r[impl kiln.review.authorship.console]
+  // Self-declared, unverified authorship. Client checks mirror the service: trimmed, non-empty,
+  // no control characters and at most AUTHORSHIP_TEXT_BYTES UTF-8 bytes; undeclared sends nothing.
+  const AUTHORSHIP_TEXT_BYTES = 128;
+  const AUTHORSHIP_KINDS = [["undeclared", "Undeclared"], ["human", "Human"], ["agent", "Agent"], ["mixed", "Mixed"]];
+  const AUTHORSHIP_NOTE = "Self-declared and unverified. It is recorded for review-friction views and grants no authority.";
+  const utf8Bytes = text => { let bytes = 0; for (const ch of String(text)) { const point = ch.codePointAt(0); bytes += point < 0x80 ? 1 : point < 0x800 ? 2 : point < 0x10000 ? 3 : 4; } return bytes; };
+  function authorshipText(name, value) {
+    const text = String(value ?? "").trim();
+    if (!text) throw new Error(`${name} is required for agent authorship.`);
+    if (/\p{Cc}/u.test(text)) throw new Error(`${name} must not contain control characters.`);
+    if (utf8Bytes(text) > AUTHORSHIP_TEXT_BYTES) throw new Error(`${name} must be at most ${AUTHORSHIP_TEXT_BYTES} bytes.`);
+    return text;
+  }
+  function authorshipPayload(kind, harness = "", model = "") {
+    switch (kind || "undeclared") {
+      case "undeclared": return null;
+      case "human": case "mixed": return { kind };
+      case "agent": { const declared = { kind, harness: authorshipText("Harness", harness) }; if (String(model ?? "").trim()) declared.model = authorshipText("Model", model); return declared; }
+      default: throw new Error("Select a listed authorship.");
+    }
+  }
+  function authorshipLabel(authorship) {
+    const kind = authorship?.kind || "undeclared";
+    if (kind !== "agent") return human(kind);
+    return `Agent · harness ${authorship.harness}${authorship.model ? ` · model ${authorship.model}` : ""}`;
+  }
+  const authorshipClassLabel = value => !value || value === "undeclared" ? "Undeclared" : `${human(value)} (self-declared)`;
+  const withAuthorship = (action, declared) => declared ? { ...action, authorship: declared } : action;
+  function authorshipFields(parent, key) {
+    const keys = [`${key}-authorship`, `${key}-harness`, `${key}-model`];
+    const kind = field(parent, "Authorship", "select", "undeclared", AUTHORSHIP_KINDS, keys[0]);
+    const harness = field(parent, "Harness", "text", "", [], keys[1]), model = field(parent, "Model (optional)", "text", "", [], keys[2]);
+    for (const input of [harness, model]) { input.maxLength = AUTHORSHIP_TEXT_BYTES; input.autocomplete = "off"; input.spellcheck = false; }
+    const note = node("p", AUTHORSHIP_NOTE, "cr-muted cr-field-note"); note.id = `cr-${crypto.randomUUID()}`; kind.setAttribute("aria-describedby", note.id); kind.parentElement.after(note);
+    const sync = () => { const agent = kind.value === "agent"; harness.parentElement.hidden = !agent; model.parentElement.hidden = !agent; harness.required = agent; };
+    kind.addEventListener("change", sync); sync();
+    return { keys, value: () => authorshipPayload(kind.value, harness.value, model.value) };
+  }
+  const authorshipFact = declared => ["Authorship", `${authorshipLabel(declared)} (self-declared, unverified)`];
   function contribution() {
     const sources = arr(state.snapshot.contribution_sources);
     if (!sources.length) throw new Error("No contribution branches are admitted for this principal.");
@@ -147,11 +187,13 @@
     const expected = field(dialog, "Expected exact source commit (clear to resolve branch tip at intake)", "text", sources.find(s => s.source_ref === source.value)?.commit || "", [], "contribution-commit"); expected.autocomplete = "off"; expected.spellcheck = false; expected.classList.add("mono");
     source.addEventListener("change", () => { expected.value = sources.find(s => s.source_ref === source.value)?.commit || ""; state.forms.set(memoryKey("contribution-commit"), expected.value); describe(); }); describe();
     const title = field(dialog, "Title", "text", "", [], "contribution-title"), description = field(dialog, "Description (Markdown supported)", "textarea", "", [], "contribution-description"), wip = field(dialog, "Work in progress", "checkbox", true, [], "contribution-wip");
+    const authorship = authorshipFields(dialog, "contribution");
     dialogActions(dialog, close).append(writeButton("Contribute branch…", async () => {
       if (!title.value.trim()) throw new Error("A contribution title is required.");
       const configured = sources.find(s => s.source_ref === source.value); if (!configured) throw new Error("Select an admitted contribution branch.");
-      const result = await command({ type: "contribute", source_ref: source.value, expected_commit: expected.value.trim() || null, title: title.value.trim(), description: description.value, wip: wip.checked }, null, { title: `Contribute branch "${source.value}" for review?`, verb: "Contribute branch", facts: [["Principal", state.context.principal], ["Repository", state.snapshot.repository], ["Source branch", source.value], ["Expected source", expected.value.trim() || "Resolve the configured branch tip at intake; no exact commit precondition"], ["Configured target", configured.target_ref], ["Title", title.value.trim()], ["Description", description.value], ["WIP", String(wip.checked)], ["Effect", "Register review only; no target movement or remote publication"]] });
-      if (result) { clearFields("contribution-source", "contribution-commit", "contribution-title", "contribution-description", "contribution-wip"); close(); if (result.change?.id) route({ review_change: result.change.id, review_revision: "" }); }
+      const declared = authorship.value();
+      const result = await command(withAuthorship({ type: "contribute", source_ref: source.value, expected_commit: expected.value.trim() || null, title: title.value.trim(), description: description.value, wip: wip.checked }, declared), null, { title: `Contribute branch "${source.value}" for review?`, verb: "Contribute branch", facts: [["Principal", state.context.principal], ["Repository", state.snapshot.repository], ["Source branch", source.value], ["Expected source", expected.value.trim() || "Resolve the configured branch tip at intake; no exact commit precondition"], ["Configured target", configured.target_ref], ["Title", title.value.trim()], ["Description", description.value], ["WIP", String(wip.checked)], authorshipFact(declared), ["Effect", "Register review only; no target movement or remote publication"]] });
+      if (result) { clearFields("contribution-source", "contribution-commit", "contribution-title", "contribution-description", "contribution-wip", ...authorship.keys); close(); if (result.change?.id) route({ review_change: result.change.id, review_revision: "" }); }
     }, "primary"));
     source.focus();
   }
@@ -382,6 +424,7 @@
   function detailHeader() {
     const c = state.detail.change, header = node("section", null, "card cr-change-header"), heading = node("div", null, "cr-change-heading"), meta = node("div", null, "cr-header-meta"), actions = node("div", null, "cr-change-actions");
     meta.append(pill(c.state, "Change state")); if (c.wip) meta.append(chip("Work in progress"));
+    meta.append(chip(`Authorship: ${authorshipClassLabel(c.authorship)}`));
     const target = node("span", null, "cr-muted"), owner = node("span", "Owner ", "cr-muted"); target.append(exactId(c.repository), " → ", node("code", c.target_ref)); owner.append(principalNode(c.owner)); meta.append(owner, target);
     // One-glance attention: the observed submit readiness links to the requirements card (also below the main column on narrow screens).
     const items = arr(state.detail.checklist?.items), ready = state.detail.checklist?.ready === true, readiness = node("a", null, "cr-readiness"); readiness.href = "#cr-requirements";
@@ -511,11 +554,13 @@
     const commit = field(form, "Exact immutable commit", "text", "", [], "create-commit"); commit.required = true; commit.autocomplete = "off"; commit.spellcheck = false; commit.classList.add("mono");
     const target = field(form, "Admitted target ref", "select", arr(state.snapshot.target_refs)[0] || "", arr(state.snapshot.target_refs), "create-target");
     const wip = field(form, "Work in progress", "checkbox", true, [], "create-wip");
+    const authorship = authorshipFields(form, "create");
     dialog.append(node("p", "Registers an exact locally available commit as a new review. The target does not move and nothing is published to a remote provider.", "cr-muted"));
     dialogActions(dialog, close).append(writeButton("Create change…", async () => {
       if (!title.value.trim() || !commit.value.trim() || !target.value) throw new Error("Title, exact commit and admitted target are required.");
-      const result = await command({ type: "create", title: title.value.trim(), description: description.value, commit: commit.value.trim(), target_ref: target.value, wip: wip.checked }, null, { title: `Create change "${title.value.trim()}"?`, verb: "Create change", facts: [["Repository", state.snapshot.repository], ["Source commit", commit.value.trim()], ["Target ref", target.value], ["Title", title.value.trim()], ["WIP", String(wip.checked)]] });
-      if (result) { clearFields("create-title", "create-description", "create-commit", "create-target", "create-wip"); close(); if (result.change?.id) route({ review_change: result.change.id }); }
+      const declared = authorship.value();
+      const result = await command(withAuthorship({ type: "create", title: title.value.trim(), description: description.value, commit: commit.value.trim(), target_ref: target.value, wip: wip.checked }, declared), null, { title: `Create change "${title.value.trim()}"?`, verb: "Create change", facts: [["Repository", state.snapshot.repository], ["Source commit", commit.value.trim()], ["Target ref", target.value], ["Title", title.value.trim()], ["WIP", String(wip.checked)], authorshipFact(declared)] });
+      if (result) { clearFields("create-title", "create-description", "create-commit", "create-target", "create-wip", ...authorship.keys); close(); if (result.change?.id) route({ review_change: result.change.id }); }
     }, "primary"));
     title.focus();
   }
@@ -555,9 +600,9 @@
   }
   function drawIdentity(root) {
     const c = state.detail.change, count = arr(c.revisions).length, card = panel(root, "Identities and revisions", "identity", false, `${count} revision${count === 1 ? "" : "s"}`);
-    facts(card, [["Stable change", c.id], ["State", `${label(c.state)}${c.wip ? " · Work in progress" : ""}`], ["Owner", c.owner], ["Project / repository", `${c.project} / ${c.repository}`], ["Target ref", c.target_ref], ["Observed target", state.detail.source?.current_target], ["Current revision", current()?.id], ["Current commit", current()?.commit]]);
+    facts(card, [["Stable change", c.id], ["State", `${label(c.state)}${c.wip ? " · Work in progress" : ""}`], ["Owner", c.owner], ["Project / repository", `${c.project} / ${c.repository}`], ["Target ref", c.target_ref], ["Observed target", state.detail.source?.current_target], ["Current revision", current()?.id], ["Current commit", current()?.commit], ["Authorship (self-declared, unverified)", authorshipClassLabel(c.authorship)]]);
     const log = node("ol", null, "cr-history");
-    for (const item of arr(c.revisions)) { const li = node("li"), meta = node("span", null, "cr-muted"); if (item.id === revision()) li.setAttribute("aria-current", "true"); meta.append(`${item.author} · `, when(item.created_ms)); li.append(link(`Revision ${item.number}`, { review_revision: item.id, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, node("code", item.commit)); log.append(li); }
+    for (const item of arr(c.revisions)) { const li = node("li"), meta = node("span", null, "cr-muted"); if (item.id === revision()) li.setAttribute("aria-current", "true"); meta.append(`${item.author} · `, when(item.created_ms), ` · ${authorshipLabel(item.authorship)}`); li.append(link(`Revision ${item.number}`, { review_revision: item.id, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, node("code", item.commit)); log.append(li); }
     card.append(log);
   }
   function drawOperations(root) {
@@ -677,8 +722,8 @@
     const title = field(edit, "Title", "text", c.title, [], "edit-title"), description = field(edit, "Description", "textarea", c.description, [], "edit-description");
     edit.append(writeButton("Save description", async () => { requireCurrent(); const result = await command({ type: "edit", title: title.value, description: description.value }, c); if (result) clearFields("edit-title", "edit-description"); }));
     edit.append(writeButton(c.wip ? "Mark ready for review…" : "Mark work in progress…", () => command({ type: "set_wip", wip: !c.wip }, c, { title: c.wip ? `Mark "${c.title}" ready for review?` : `Mark "${c.title}" as work in progress?`, verb: c.wip ? "Mark ready" : "Mark work in progress", facts: [["Change", c.id], ["Revision", current()?.id], ["WIP", String(!c.wip)]] })));
-    const upload = disclosure(card, "Upload a new exact revision"); const commit = field(upload, "Exact local commit", "text", "", [], "upload-commit");
-    upload.append(writeButton("Upload revision…", async () => { requireCurrent(); if (!commit.value.trim()) throw new Error("An exact local commit is required."); const result = await command({ type: "upload", commit: commit.value.trim() }, c, { title: `Upload a new revision to "${c.title}"?`, verb: "Upload revision", facts: [["Change", c.id], ["Repository", c.repository], ["Previous revision", current()?.id], ["Source commit", commit.value.trim()], ["Target ref", c.target_ref]] }); if (result) { clearFields("upload-commit"); route({ review_revision: "", review_base: "base", review_file: "", review_side: "", review_line: "" }); } }));
+    const upload = disclosure(card, "Upload a new exact revision"); const commit = field(upload, "Exact local commit", "text", "", [], "upload-commit"); const authorship = authorshipFields(upload, "upload");
+    upload.append(writeButton("Upload revision…", async () => { requireCurrent(); if (!commit.value.trim()) throw new Error("An exact local commit is required."); const declared = authorship.value(); const result = await command(withAuthorship({ type: "upload", commit: commit.value.trim() }, declared), c, { title: `Upload a new revision to "${c.title}"?`, verb: "Upload revision", facts: [["Change", c.id], ["Repository", c.repository], ["Previous revision", current()?.id], ["Source commit", commit.value.trim()], ["Target ref", c.target_ref], authorshipFact(declared)] }); if (result) { clearFields("upload-commit", ...authorship.keys); route({ review_revision: "", review_base: "base", review_file: "", review_side: "", review_line: "" }); } }));
     const lifecycle = node("div", null, "cr-toolbar");
     if (c.state === "open" || c.state === "abandoned") { const type = c.state === "abandoned" ? "restore" : "abandon", verb = `${human(type)} change`; lifecycle.append(writeButton(`${verb}…`, () => command({ type }, c, { title: `${verb} "${c.title}"?`, verb, danger: type === "abandon", facts: [["Change", c.id], ["Source revision", current()?.id], ["Commit", current()?.commit], ["Target ref", c.target_ref]] }), type === "abandon" ? "danger" : undefined)); } card.append(lifecycle);
     const provider = disclosure(card, "Rebase, revert or cherry-pick through the admitted provider");
@@ -862,5 +907,5 @@
     draw();
     return refresh();
   }
-  window.KilnCodeReview = Object.freeze({ load, refresh, clear });
+  window.KilnCodeReview = Object.freeze({ load, refresh, clear, authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }) });
 })();

@@ -1,6 +1,7 @@
 //! Explicit, profile-pinned HTTPS developer client. Mutations are sent once.
 // r[impl kiln.web.developer_loop.cli]
 use base64::Engine as _;
+use kiln_core::change_review::{Authorship, validate_authorship};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -320,7 +321,7 @@ fn print_json(value: &Value) -> Result<(), String> {
 pub fn cli_main(args: &[String]) -> Result<i32, String> {
     if args == ["--help"] || args == ["-h"] {
         println!(
-            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
+            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n         [--authorship undeclared|human|agent|mixed]\n         [--agent-harness TEXT [--agent-model TEXT]]\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nDeclared authorship is self-declared and unverified; it grants no authority.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
         );
         return Ok(0);
     }
@@ -364,6 +365,9 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                     | "--description"
                     | "--expected-commit"
                     | "--wip"
+                    | "--authorship"
+                    | "--agent-harness"
+                    | "--agent-model"
             ),
             "watch" => key == "--run",
             "logs" => matches!(key, "--run" | "--follow"),
@@ -409,16 +413,31 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
         {
             return Err("developer review source or request identity invalid".into());
         }
-        let description = options
-            .get("--description")
-            .and_then(|values| values.first())
-            .map(String::as_str)
-            .unwrap_or("");
+        let first = |key| {
+            options
+                .get(key)
+                .and_then(|values| values.first())
+                .map(String::as_str)
+        };
+        let description = first("--description").unwrap_or("");
+        let authorship = review_authorship(
+            first("--authorship"),
+            first("--agent-harness"),
+            first("--agent-model"),
+        )?;
+        let mut action = json!({"type":"contribute","source_ref":source_ref,
+            "expected_commit":expected_commit,"title":title,"description":description,
+            "wip":options.contains_key("--wip")});
+        if !authorship.is_undeclared()
+            && let Some(map) = action.as_object_mut()
+        {
+            map.insert(
+                "authorship".into(),
+                serde_json::to_value(&authorship).map_err(|_| "developer authorship encoding")?,
+            );
+        }
         let body = json!({
-            "request_id":request_id,"change_id":null,"expected_version":null,
-            "action":{"type":"contribute","source_ref":source_ref,
-                "expected_commit":expected_commit,"title":title,"description":description,
-                "wip":options.contains_key("--wip")}
+            "request_id":request_id,"change_id":null,"expected_version":null,"action":action
         });
         print_json(&client.request(
             reqwest::Method::POST,
@@ -528,5 +547,85 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             Ok(0)
         }
         _ => Err("developer command invalid".into()),
+    }
+}
+
+/// Parse `review-submit` authorship flags into a validated self-declaration.
+/// Harness/model are accepted only with `--authorship agent`; absent means undeclared.
+// r[impl kiln.review.authorship]
+pub fn review_authorship(
+    kind: Option<&str>,
+    harness: Option<&str>,
+    model: Option<&str>,
+) -> Result<Authorship, String> {
+    let authorship = match (kind.unwrap_or("undeclared"), harness, model) {
+        ("agent", Some(harness), model) => Authorship::Agent {
+            harness: harness.into(),
+            model: model.map(Into::into),
+        },
+        ("agent", None, _) => {
+            return Err("developer --agent-harness is required for agent authorship".into());
+        }
+        (_, Some(_), _) | (_, _, Some(_)) => {
+            return Err(
+                "developer --agent-harness/--agent-model require --authorship agent".into(),
+            );
+        }
+        ("undeclared", ..) => Authorship::Undeclared,
+        ("human", ..) => Authorship::Human,
+        ("mixed", ..) => Authorship::Mixed,
+        _ => return Err("developer --authorship invalid".into()),
+    };
+    validate_authorship(&authorship)
+        .map_err(|_| "developer agent harness or model invalid".to_owned())?;
+    Ok(authorship)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // r[verify kiln.review.authorship.scenario.declared]
+    // r[verify kiln.review.authorship.scenario.invalid]
+    #[test]
+    fn review_authorship_flags_build_declarations_and_reject_misuse() {
+        let parse = |kind, harness, model| review_authorship(kind, harness, model);
+        assert_eq!(parse(None, None, None), Ok(Authorship::Undeclared));
+        assert_eq!(
+            parse(Some("undeclared"), None, None),
+            Ok(Authorship::Undeclared)
+        );
+        assert_eq!(parse(Some("human"), None, None), Ok(Authorship::Human));
+        assert_eq!(parse(Some("mixed"), None, None), Ok(Authorship::Mixed));
+        assert_eq!(
+            parse(Some("agent"), Some("omp"), Some("claude")),
+            Ok(Authorship::Agent {
+                harness: "omp".into(),
+                model: Some("claude".into())
+            })
+        );
+        assert_eq!(
+            parse(Some("agent"), Some("omp"), None),
+            Ok(Authorship::Agent {
+                harness: "omp".into(),
+                model: None
+            })
+        );
+        let oversized = "h".repeat(kiln_core::change_review::MAX_AUTHORSHIP_TEXT_BYTES + 1);
+        for (kind, harness, model) in [
+            (Some("agent"), None, None),
+            (Some("agent"), None, Some("claude")),
+            (Some("human"), Some("omp"), None),
+            (None, None, Some("claude")),
+            (Some("mixed"), Some("omp"), Some("claude")),
+            (Some("robot"), None, None),
+            (Some("Agent"), Some("omp"), None),
+            (Some("agent"), Some(" omp"), None),
+            (Some("agent"), Some("om\u{7}p"), None),
+            (Some("agent"), Some(oversized.as_str()), None),
+            (Some("agent"), Some("omp"), Some(oversized.as_str())),
+        ] {
+            assert!(parse(kind, harness, model).is_err(), "{kind:?} {harness:?}");
+        }
     }
 }

@@ -1,0 +1,45 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-30",
+  "authority": "Operator asked to read the open issues and resolve them; the established flow after each accepted change is deploy then push.",
+  "package": "/nix/store/z9bff830r80irp0f4akhqyg6g40jsi3j-kiln-web-service-0.1.0",
+  "executable_blake3": "0494de047cf3e2e7ccd35106dbfeadd8a1d5d36b67f7cf2687bf0d0b90855ba5",
+  "previous_package": "/nix/store/s0jh60km2qv3cp6zxwiacg1cr5sc8bcs-kiln-web-service-0.1.0",
+  "resolves": [
+    "https://github.com/OnixResearch/kiln/issues/1",
+    "https://github.com/OnixResearch/kiln/issues/2",
+    "https://github.com/OnixResearch/kiln/issues/3",
+    "https://github.com/OnixResearch/kiln/issues/4"
+  ],
+  "gates": "nix flake check: all x86_64-linux checks passed; cargo clippy --workspace -D warnings; 42 Rust test suites; 28 node tests; cairn validate valid, traceability 1163/1163, release-readiness valid",
+  "verification": {
+    "assets_identical": 17,
+    "unserved_source_assets": [],
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "retained_runs": 19,
+    "work_board_api": 200,
+    "review_window_api": 200,
+    "ui": {
+      "work": {
+        "overflow": 0,
+        "title": "Your work, live."
+      },
+      "review": {
+        "overflow": 0,
+        "title": "Your work, live."
+      },
+      "source": {
+        "overflow": 0,
+        "title": "Your work, live."
+      },
+      "errors": []
+    }
+  },
+  "firecracker_note": "The microVM backend ships in kiln-hosted and the microvm-guest flake output; the live web service does not run hosted CI workers, so no Firecracker runner was enabled by this deployment.",
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}

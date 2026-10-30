@@ -57,6 +57,10 @@ Log bytes have stream, segment, total, read, and retention bounds. Gaps and trun
 
 Diagnostics use safe fields and redaction markers. Kiln cannot prove that external output contains no secret before capture.
 
+## Semantic merge checks
+
+A semantic merge result applies only to the checked property for one exact role-tagged quartet (base, variants, candidate) and its assumptions, dependencies, model, checker, and policy. It does not prove source trust or grant merge, publish, status, or release authority. Unknown and other non-verified outcomes are neither success nor a demonstrated conflict. See `docs/semantic-merge-orchestration.md`.
+
 ## Interchange
 
 SLSA, in-toto, CDEvents, CloudEvents, and OpenTelemetry remain projections. Schema validity does not transfer builder, signer, lifecycle, or release authority.

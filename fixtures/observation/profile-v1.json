@@ -10,7 +10,13 @@
       "max_metrics_per_attempt": 1,
       "max_page_items": 2,
       "max_products_per_attempt": 1,
-      "max_text_bytes": 256
+      "max_text_bytes": 256,
+      "review": {
+        "max_review_changes": 16,
+        "max_review_patch_sets": 16,
+        "max_review_suggestions_per_change": 16,
+        "max_review_window_ms": 2592000000
+      }
     },
     "non_claims": [
       "bounded observation projection does not prove transport delivery",
@@ -28,7 +34,9 @@
         "products",
         "metrics",
         "command_id",
-        "log_bytes"
+        "log_bytes",
+        "suggestion_paths",
+        "suggestion_owners"
       ]
     },
     "schema_version": 1,
@@ -38,7 +46,9 @@
       "run_detail",
       "attempt_detail",
       "event_tail",
-      "log_range"
+      "log_range",
+      "review_friction",
+      "suggestion_anchors"
     ]
   }
 }

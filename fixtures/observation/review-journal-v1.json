@@ -1,0 +1,3363 @@
+{
+  "end_ms": 1767225700000,
+  "entries": [
+    {
+      "actor": "alice",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-early",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "kind": "human"
+          },
+          "base": "base-0000",
+          "commit": "change-early-commit-1",
+          "created_ms": 1767225595000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-early-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-early",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-early-commit-1",
+            "run_id": "run-change-early-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-001",
+        "integration": null,
+        "now_ms": 1767225595000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-early-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-h1",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "kind": "human"
+          },
+          "base": "base-0000",
+          "commit": "change-h1-commit-1",
+          "created_ms": 1767225601000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-h1-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-h1",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h1-commit-1",
+            "run_id": "run-change-h1-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-002",
+        "integration": null,
+        "now_ms": 1767225601000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h1-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "anchor": {
+          "base_commit": "base-0000",
+          "end_line": 2,
+          "file": "src/lib.rs",
+          "revision": "change-h1-r1",
+          "side": "revision",
+          "start_line": 1
+        },
+        "blocking": false,
+        "body": "Consider a guard here.",
+        "change": "change-h1",
+        "comment_id": "change-h1-comment-3",
+        "expected_revision": "change-h1-r1",
+        "id": "change-h1-thread-3",
+        "op": "start_thread"
+      },
+      "facts": {
+        "anchors": [
+          {
+            "base_commit": "base-0000",
+            "end_line": 2,
+            "file": "src/lib.rs",
+            "revision": "change-h1-r1",
+            "side": "revision",
+            "start_line": 1
+          }
+        ],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h1-commit-1",
+            "run_id": "run-change-h1-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-003",
+        "integration": null,
+        "now_ms": 1767225602000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h1-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "change": "change-h1",
+        "expected_revision": "change-h1-r1",
+        "op": "upload",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "kind": "human"
+          },
+          "base": "base-0000",
+          "commit": "change-h1-commit-2",
+          "created_ms": 1767225603000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-h1-r2",
+          "number": 2
+        }
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h1-commit-2",
+            "run_id": "run-change-h1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-004",
+        "integration": null,
+        "now_ms": 1767225603000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "change": "change-h1",
+        "expected_revision": "change-h1-r2",
+        "op": "vote",
+        "value": "approve"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h1-commit-2",
+            "run_id": "run-change-h1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-005",
+        "integration": null,
+        "now_ms": 1767225605000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "candidate_id": "change-h1-candidate",
+        "change": "change-h1",
+        "expected_revision": "change-h1-r2",
+        "op": "prepare_submit"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h1-commit-2",
+            "run_id": "run-change-h1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-006",
+        "integration": null,
+        "now_ms": 1767225606000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "candidate_id": "change-h1-candidate",
+        "change": "change-h1",
+        "expected_revision": "change-h1-r2",
+        "expected_target": "base-0000",
+        "op": "record_submit",
+        "result_commit": "change-h1-commit-2"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h1-commit-2",
+            "run_id": "run-change-h1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-007",
+        "integration": null,
+        "now_ms": 1767225606000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": true,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "dave",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-h2",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "dave",
+          "authorship": {
+            "kind": "human"
+          },
+          "base": "base-0000",
+          "commit": "change-h2-commit-1",
+          "created_ms": 1767225610000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-h2-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-h2",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h2-commit-1",
+            "run_id": "run-change-h2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-008",
+        "integration": null,
+        "now_ms": 1767225610000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "change": "change-h2",
+        "expected_revision": "change-h2-r1",
+        "op": "vote",
+        "value": "approve"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h2-commit-1",
+            "run_id": "run-change-h2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-009",
+        "integration": null,
+        "now_ms": 1767225612000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "dave",
+      "command": {
+        "candidate_id": "change-h2-candidate",
+        "change": "change-h2",
+        "expected_revision": "change-h2-r1",
+        "op": "prepare_submit"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h2-commit-1",
+            "run_id": "run-change-h2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-010",
+        "integration": null,
+        "now_ms": 1767225613000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "dave",
+      "command": {
+        "candidate_id": "change-h2-candidate",
+        "change": "change-h2",
+        "expected_revision": "change-h2-r1",
+        "expected_target": "base-0000",
+        "op": "record_submit",
+        "result_commit": "change-h2-commit-1"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-h2-commit-1",
+            "run_id": "run-change-h2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-011",
+        "integration": null,
+        "now_ms": 1767225613000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-h2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": true,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-a1",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "harness": "omp",
+            "kind": "agent",
+            "model": "claude"
+          },
+          "base": "base-0000",
+          "commit": "change-a1-commit-1",
+          "created_ms": 1767225620000,
+          "files": [
+            "README.md",
+            "docs/guide.md",
+            "src/lib.rs"
+          ],
+          "id": "change-a1-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-a1",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-1",
+            "run_id": "run-change-a1-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-012",
+        "integration": null,
+        "now_ms": 1767225620000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "anchor": {
+          "base_commit": "base-0000",
+          "end_line": 2,
+          "file": "src/lib.rs",
+          "revision": "change-a1-r1",
+          "side": "revision",
+          "start_line": 1
+        },
+        "blocking": false,
+        "body": "Consider a guard here.",
+        "change": "change-a1",
+        "comment_id": "change-a1-comment-13",
+        "expected_revision": "change-a1-r1",
+        "id": "change-a1-thread-13",
+        "op": "start_thread"
+      },
+      "facts": {
+        "anchors": [
+          {
+            "base_commit": "base-0000",
+            "end_line": 2,
+            "file": "src/lib.rs",
+            "revision": "change-a1-r1",
+            "side": "revision",
+            "start_line": 1
+          }
+        ],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-1",
+            "run_id": "run-change-a1-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-013",
+        "integration": null,
+        "now_ms": 1767225621000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "carol",
+      "command": {
+        "anchor": {
+          "base_commit": "base-0000",
+          "end_line": 2,
+          "file": "docs/guide.md",
+          "revision": "change-a1-r1",
+          "side": "revision",
+          "start_line": 1
+        },
+        "blocking": false,
+        "body": "Consider a guard here.",
+        "change": "change-a1",
+        "comment_id": "change-a1-comment-14",
+        "expected_revision": "change-a1-r1",
+        "id": "change-a1-thread-14",
+        "op": "start_thread"
+      },
+      "facts": {
+        "anchors": [
+          {
+            "base_commit": "base-0000",
+            "end_line": 2,
+            "file": "docs/guide.md",
+            "revision": "change-a1-r1",
+            "side": "revision",
+            "start_line": 1
+          }
+        ],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-1",
+            "run_id": "run-change-a1-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-014",
+        "integration": null,
+        "now_ms": 1767225622000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "change": "change-a1",
+        "expected_revision": "change-a1-r1",
+        "op": "upload",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "harness": "omp",
+            "kind": "agent",
+            "model": "claude"
+          },
+          "base": "base-0000",
+          "commit": "change-a1-commit-2",
+          "created_ms": 1767225623000,
+          "files": [
+            "README.md",
+            "docs/guide.md",
+            "src/lib.rs"
+          ],
+          "id": "change-a1-r2",
+          "number": 2
+        }
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-2",
+            "run_id": "run-change-a1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-015",
+        "integration": null,
+        "now_ms": 1767225623000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "anchor": {
+          "base_commit": "base-0000",
+          "end_line": 2,
+          "file": "src/lib.rs",
+          "revision": "change-a1-r2",
+          "side": "revision",
+          "start_line": 1
+        },
+        "blocking": false,
+        "body": "Consider a guard here.",
+        "change": "change-a1",
+        "comment_id": "change-a1-comment-16",
+        "expected_revision": "change-a1-r2",
+        "id": "change-a1-thread-16",
+        "op": "start_thread"
+      },
+      "facts": {
+        "anchors": [
+          {
+            "base_commit": "base-0000",
+            "end_line": 2,
+            "file": "src/lib.rs",
+            "revision": "change-a1-r2",
+            "side": "revision",
+            "start_line": 1
+          }
+        ],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-2",
+            "run_id": "run-change-a1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-016",
+        "integration": null,
+        "now_ms": 1767225624000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "change": "change-a1",
+        "expected_revision": "change-a1-r2",
+        "op": "upload",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "harness": "omp",
+            "kind": "agent",
+            "model": "claude"
+          },
+          "base": "base-0000",
+          "commit": "change-a1-commit-3",
+          "created_ms": 1767225625000,
+          "files": [
+            "README.md",
+            "docs/guide.md",
+            "src/lib.rs"
+          ],
+          "id": "change-a1-r3",
+          "number": 3
+        }
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-3",
+            "run_id": "run-change-a1-commit-3",
+            "success": true
+          }
+        ],
+        "event_id": "event-017",
+        "integration": null,
+        "now_ms": 1767225625000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-3",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "change": "change-a1",
+        "expected_revision": "change-a1-r3",
+        "op": "vote",
+        "value": "approve"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-3",
+            "run_id": "run-change-a1-commit-3",
+            "success": true
+          }
+        ],
+        "event_id": "event-018",
+        "integration": null,
+        "now_ms": 1767225630000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-3",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "carol",
+      "command": {
+        "change": "change-a1",
+        "expected_revision": "change-a1-r3",
+        "op": "vote",
+        "value": "approve"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-3",
+            "run_id": "run-change-a1-commit-3",
+            "success": true
+          }
+        ],
+        "event_id": "event-019",
+        "integration": null,
+        "now_ms": 1767225630500,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-3",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "candidate_id": "change-a1-candidate",
+        "change": "change-a1",
+        "expected_revision": "change-a1-r3",
+        "op": "prepare_submit"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-3",
+            "run_id": "run-change-a1-commit-3",
+            "success": true
+          }
+        ],
+        "event_id": "event-020",
+        "integration": null,
+        "now_ms": 1767225631000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-3",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "candidate_id": "change-a1-candidate",
+        "change": "change-a1",
+        "expected_revision": "change-a1-r3",
+        "expected_target": "base-0000",
+        "op": "record_submit",
+        "result_commit": "change-a1-commit-3"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a1-commit-3",
+            "run_id": "run-change-a1-commit-3",
+            "success": true
+          }
+        ],
+        "event_id": "event-021",
+        "integration": null,
+        "now_ms": 1767225631000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "docs/guide.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a1-commit-3",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": true,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "dave",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-a2",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "dave",
+          "authorship": {
+            "harness": "omp",
+            "kind": "agent"
+          },
+          "base": "base-0000",
+          "commit": "change-a2-commit-1",
+          "created_ms": 1767225640000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-a2-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-a2",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a2-commit-1",
+            "run_id": "run-change-a2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-022",
+        "integration": null,
+        "now_ms": 1767225640000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "change": "change-a2",
+        "expected_revision": "change-a2-r1",
+        "op": "vote",
+        "value": "approve"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a2-commit-1",
+            "run_id": "run-change-a2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-023",
+        "integration": null,
+        "now_ms": 1767225641000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "dave",
+      "command": {
+        "candidate_id": "change-a2-candidate",
+        "change": "change-a2",
+        "expected_revision": "change-a2-r1",
+        "op": "prepare_submit"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a2-commit-1",
+            "run_id": "run-change-a2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-024",
+        "integration": null,
+        "now_ms": 1767225642000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "dave",
+      "command": {
+        "candidate_id": "change-a2-candidate",
+        "change": "change-a2",
+        "expected_revision": "change-a2-r1",
+        "expected_target": "base-0000",
+        "op": "record_submit",
+        "result_commit": "change-a2-commit-1"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a2-commit-1",
+            "run_id": "run-change-a2-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-025",
+        "integration": null,
+        "now_ms": 1767225642000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a2-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": true,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-a3",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "harness": "omp",
+            "kind": "agent"
+          },
+          "base": "base-0000",
+          "commit": "change-a3-commit-1",
+          "created_ms": 1767225650000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-a3-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-a3",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a3-commit-1",
+            "run_id": "run-change-a3-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-026",
+        "integration": null,
+        "now_ms": 1767225650000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a3-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "anchor": {
+          "base_commit": "base-0000",
+          "end_line": 2,
+          "file": "src/lib.rs",
+          "revision": "change-a3-r1",
+          "side": "revision",
+          "start_line": 1
+        },
+        "blocking": false,
+        "body": "Consider a guard here.",
+        "change": "change-a3",
+        "comment_id": "change-a3-comment-27",
+        "expected_revision": "change-a3-r1",
+        "id": "change-a3-thread-27",
+        "op": "start_thread"
+      },
+      "facts": {
+        "anchors": [
+          {
+            "base_commit": "base-0000",
+            "end_line": 2,
+            "file": "src/lib.rs",
+            "revision": "change-a3-r1",
+            "side": "revision",
+            "start_line": 1
+          }
+        ],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a3-commit-1",
+            "run_id": "run-change-a3-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-027",
+        "integration": null,
+        "now_ms": 1767225650500,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a3-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "carol",
+      "command": {
+        "anchor": {
+          "base_commit": "base-0000",
+          "end_line": 2,
+          "file": "README.md",
+          "revision": "change-a3-r1",
+          "side": "revision",
+          "start_line": 1
+        },
+        "blocking": false,
+        "body": "Consider a guard here.",
+        "change": "change-a3",
+        "comment_id": "change-a3-comment-28",
+        "expected_revision": "change-a3-r1",
+        "id": "change-a3-thread-28",
+        "op": "start_thread"
+      },
+      "facts": {
+        "anchors": [
+          {
+            "base_commit": "base-0000",
+            "end_line": 2,
+            "file": "README.md",
+            "revision": "change-a3-r1",
+            "side": "revision",
+            "start_line": 1
+          }
+        ],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-a3-commit-1",
+            "run_id": "run-change-a3-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-028",
+        "integration": null,
+        "now_ms": 1767225651000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-a3-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-u1",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "alice",
+          "base": "base-0000",
+          "commit": "change-u1-commit-1",
+          "created_ms": 1767225660000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-u1-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-u1",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-u1-commit-1",
+            "run_id": "run-change-u1-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-029",
+        "integration": null,
+        "now_ms": 1767225660000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-u1-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "description": "Fixture change",
+        "id": "change-m1",
+        "op": "create",
+        "project": "kiln",
+        "repository": "fixture-repository",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "kind": "human"
+          },
+          "base": "base-0000",
+          "commit": "change-m1-commit-1",
+          "created_ms": 1767225670000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-m1-r1",
+          "number": 1
+        },
+        "target_ref": "refs/heads/main",
+        "title": "Change change-m1",
+        "wip": false
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-m1-commit-1",
+            "run_id": "run-change-m1-commit-1",
+            "success": true
+          }
+        ],
+        "event_id": "event-030",
+        "integration": null,
+        "now_ms": 1767225670000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-m1-commit-1",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "alice",
+      "command": {
+        "change": "change-m1",
+        "expected_revision": "change-m1-r1",
+        "op": "upload",
+        "revision": {
+          "author": "alice",
+          "authorship": {
+            "harness": "omp",
+            "kind": "agent"
+          },
+          "base": "base-0000",
+          "commit": "change-m1-commit-2",
+          "created_ms": 1767225671000,
+          "files": [
+            "README.md",
+            "src/lib.rs"
+          ],
+          "id": "change-m1-r2",
+          "number": 2
+        }
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-m1-commit-2",
+            "run_id": "run-change-m1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-031",
+        "integration": null,
+        "now_ms": 1767225671000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-m1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    },
+    {
+      "actor": "bob",
+      "command": {
+        "change": "change-m1",
+        "expected_revision": "change-m1-r2",
+        "op": "vote",
+        "value": "approve"
+      },
+      "facts": {
+        "anchors": [],
+        "ci": [
+          {
+            "clean": true,
+            "full_run": true,
+            "ordinal": 1,
+            "project": "kiln",
+            "repository": "fixture-repository",
+            "revision": "change-m1-commit-2",
+            "run_id": "run-change-m1-commit-2",
+            "success": true
+          }
+        ],
+        "event_id": "event-032",
+        "integration": null,
+        "now_ms": 1767225750000,
+        "policy": {
+          "eligible_reviewers": [
+            "bob",
+            "carol"
+          ],
+          "id": "fixture-policy",
+          "minimum_approvals": 1,
+          "ownership": {
+            "rules": [
+              {
+                "id": "core",
+                "owners": [
+                  "bob"
+                ],
+                "paths": [
+                  "src/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              },
+              {
+                "id": "docs",
+                "owners": [
+                  "carol"
+                ],
+                "paths": [
+                  "docs/**"
+                ],
+                "target_refs": [],
+                "teams": []
+              }
+            ],
+            "teams": {}
+          },
+          "require_ci": true,
+          "submitters": [
+            "alice",
+            "dave"
+          ]
+        },
+        "source": {
+          "base": "base-0000",
+          "changed_files": {
+            "complete": true,
+            "files": [
+              {
+                "old_path": null,
+                "path": "README.md"
+              },
+              {
+                "old_path": null,
+                "path": "src/lib.rs"
+              }
+            ]
+          },
+          "commit": "change-m1-commit-2",
+          "current_target": "base-0000",
+          "immutable": true,
+          "project": "kiln",
+          "repository": "fixture-repository",
+          "target_ancestors": [],
+          "target_contains_commit": false,
+          "target_is_ancestor": true,
+          "target_ref": "refs/heads/main"
+        }
+      }
+    }
+  ],
+  "ownership": {
+    "rules": [
+      {
+        "id": "core",
+        "owners": [
+          "bob"
+        ],
+        "paths": [
+          "src/**"
+        ],
+        "target_refs": [],
+        "teams": []
+      },
+      {
+        "id": "docs",
+        "owners": [
+          "carol"
+        ],
+        "paths": [
+          "docs/**"
+        ],
+        "target_refs": [],
+        "teams": []
+      }
+    ],
+    "teams": {}
+  },
+  "schema": "kiln.review.journal-fixture.v1",
+  "start_ms": 1767225600000
+}

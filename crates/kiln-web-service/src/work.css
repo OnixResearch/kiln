@@ -136,6 +136,38 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--accent); color:
 .work-list-scroll[data-layout="board"] .work-row:hover { background: var(--list-hover); }
 .work-list-scroll[data-layout="board"] .work-row-updated { grid-column: 2 / -1; grid-row: auto; justify-self: start; }
 .work-list-scroll[data-layout="board"] > .work-empty { flex: 1 1 100%; }
+/* r[impl kiln.work.kanban.interaction] */
+/* Kanban: status columns scroll sideways inside the card; narrow screens stack them. Drop targets show in border and fill. */
+.work-list-scroll[data-layout="kanban"] { display: grid; gap: var(--space-3); align-content: start; padding: var(--space-4); }
+.work-board-summary { display: grid; gap: var(--space-1); min-width: 0; }
+.work-board-summary > p { margin: 0; overflow-wrap: anywhere; }
+.work-board-total { font-weight: 600; color: var(--foreground); }
+.work-board-lanes { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(16rem, 20rem); gap: var(--space-3); align-items: start; min-width: 0; overflow-x: auto; padding-bottom: var(--space-2); }
+.work-board-column { display: grid; gap: var(--space-2); align-content: start; min-width: 0; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--muted); }
+.work-board-heading { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-1); font-size: var(--text-sm); }
+.work-board-note { margin: 0; padding-inline: var(--space-1); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.work-board-cards { display: grid; gap: var(--space-2); min-height: 3rem; }
+.work-board-empty { margin: 0; padding: var(--space-3); border: 1px dashed var(--border); border-radius: var(--radius); text-align: center; }
+.work-board-card.work-row { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--group-box); box-shadow: var(--shadow-sm); }
+.work-board-card.work-row:last-child { border-bottom: 1px solid var(--border); }
+.work-board-card > .work-board-move { grid-column: 2; justify-self: start; min-height: 2.75rem; }
+.work-board-card[draggable="true"] { cursor: grab; }
+.work-board-card.is-dragging { opacity: .6; }
+.work-board-column[data-drop="allowed"] { border-style: dashed; border-color: var(--ring); }
+.work-board-column[data-drop="blocked"] { opacity: .7; }
+.work-board-column.is-drop-target { background: var(--list-active); box-shadow: inset 0 0 0 2px var(--ring); }
+.work-move-targets { display: grid; gap: var(--space-1); min-width: 0; margin: 0; padding: 0; border: 0; }
+.work-move-targets > legend { margin-bottom: var(--space-2); font-weight: 600; }
+.work-move-option { display: flex; align-items: center; gap: var(--space-2); min-height: 2.75rem; padding: var(--space-1) var(--space-2); border-radius: var(--radius); }
+.work-move-option:has(input:enabled):hover { background: var(--list-hover); }
+.work-move-option:has(input:disabled) { color: var(--muted-foreground); }
+.work-move-option input { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; }
+.work-move-option-text { display: grid; min-width: 0; overflow-wrap: anywhere; }
+.work-move-recovery:empty { display: none; }
+@media (max-width: 640px) {
+  .work-list-scroll[data-layout="kanban"] { padding: var(--space-2); }
+  .work-board-lanes { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr); overflow-x: visible; }
+}
 
 /* Detail */
 .work-detail { display: grid; align-content: start; gap: var(--space-2); min-width: 0; scroll-margin-top: var(--space-6); }
@@ -286,6 +318,8 @@ pre.work-text { overflow: auto; max-height: 28rem; font-family: var(--mono); fon
 @media (forced-colors: active) {
   .work-category[aria-current="page"], .work-favorite[aria-current="true"], .work-row[aria-current="true"], .work-active, .work-quick-status > button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
   .work-list-card, .work-detail, .work-list-scroll[data-layout="board"] .work-group { border: 1px solid CanvasText; }
+  .work-board-column { border: 1px solid CanvasText; }
+  .work-board-column.is-drop-target { outline: 2px solid Highlight; outline-offset: -2px; }
   .work-chip, .work-kind, .work-priority, .work-attention, .work-count { border-color: CanvasText; }
   .work-roadmap-bar { background: Highlight; }
 }

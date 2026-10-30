@@ -23,6 +23,8 @@ let ViewKind =
         "attempt_detail",
         "event_tail",
         "log_range",
+        "review_friction",
+        "suggestion_anchors",
       ]
   )
 in
@@ -38,8 +40,17 @@ let ViewField =
         "metrics",
         "command_id",
         "log_bytes",
+        "suggestion_paths",
+        "suggestion_owners",
       ]
   )
+in
+let ReviewBounds = {
+  max_review_changes | Positive,
+  max_review_window_ms | Positive,
+  max_review_patch_sets | Positive,
+  max_review_suggestions_per_change | Positive,
+}
 in
 let Bounds = {
   max_page_items | Positive,
@@ -52,6 +63,7 @@ let Bounds = {
   max_log_segments | Positive,
   max_text_bytes | Positive,
   max_encoded_bytes | Positive,
+  review | ReviewBounds | optional,
 }
 in
 let Redaction = {
@@ -77,6 +89,11 @@ let MaxLogWindowBytes = 64 in
 let MaxLogSegments = 2 in
 let MaxTextBytes = 256 in
 let MaxEncodedBytes = 65536 in
+let MaxReviewChanges = 16 in
+# Thirty days of review history in milliseconds.
+let MaxReviewWindowMs = 2592000000 in
+let MaxReviewPatchSets = 16 in
+let MaxReviewSuggestionsPerChange = 16 in
 {
   profile | Profile = {
     schema_version = 1,
@@ -88,6 +105,8 @@ let MaxEncodedBytes = 65536 in
       "attempt_detail",
       "event_tail",
       "log_range",
+      "review_friction",
+      "suggestion_anchors",
     ],
     bounds = {
       max_page_items = MaxPageItems,
@@ -100,6 +119,12 @@ let MaxEncodedBytes = 65536 in
       max_log_segments = MaxLogSegments,
       max_text_bytes = MaxTextBytes,
       max_encoded_bytes = MaxEncodedBytes,
+      review = {
+        max_review_changes = MaxReviewChanges,
+        max_review_window_ms = MaxReviewWindowMs,
+        max_review_patch_sets = MaxReviewPatchSets,
+        max_review_suggestions_per_change = MaxReviewSuggestionsPerChange,
+      },
     },
     redaction = {
       visible_fields = [
@@ -109,6 +134,8 @@ let MaxEncodedBytes = 65536 in
         "metrics",
         "command_id",
         "log_bytes",
+        "suggestion_paths",
+        "suggestion_owners",
       ],
     },
     non_claims = [

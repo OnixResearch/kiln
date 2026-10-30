@@ -36,6 +36,7 @@ pub fn admit_store(
         records,
         schema: Some(STORE_JOURNAL_SCHEMA.to_string()),
         declared_identity: None,
+        review: None,
     })
 }
 

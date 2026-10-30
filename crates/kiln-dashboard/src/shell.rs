@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use kiln_core::types::{AttemptId, RunId};
+use kiln_observe_core::ReviewWindow;
 
 use crate::catalog::{Catalog, CatalogRenderer, HistoryInput, MAX_CATALOG_BYTES};
 use crate::journal::{AdmittedJournal, JournalDocument, MAX_JOURNAL_BYTES, admit_document};
@@ -18,13 +19,17 @@ use crate::render::{RenderStyle, render_report};
 use crate::report::{DashboardSelection, build_html_report, build_report};
 use crate::store::{admit_store, parse_reference};
 
+/// Named bound on one review window document read.
+pub const MAX_REVIEW_WINDOW_BYTES: usize = 1024 * 1024;
+
 /// The usage text of the dashboard shell.
 pub const USAGE: &str = "\
 usage: kiln-dashboard --journal <path> --profile <path> [--run <id>] [--attempt <id>]
-                      [--watch] [--plain] [--format text|html] [--output <path>]
+                      [--review <path>] [--watch] [--plain] [--format text|html]
+                      [--output <path>]
        kiln-dashboard --store <path> --stream <ns:kind:id> --profile <path>
-                      [--run <id>] [--attempt <id>] [--watch] [--plain]
-                      [--format text|html] [--output <path>]
+                      [--run <id>] [--attempt <id>] [--review <path>] [--watch]
+                      [--plain] [--format text|html] [--output <path>]
        kiln-dashboard --catalog <path> --profile <path> --format html --output <path>
                       [--watch | --refresh-seconds <seconds>]
 
@@ -35,6 +40,9 @@ usage: kiln-dashboard --journal <path> --profile <path> [--run <id>] [--attempt 
   --profile <path>        canonical dashboard profile document
   --run <id>              run to detail; defaults to the first observed run
   --attempt <id>          attempt to detail; defaults to the selected run's active attempt
+  --review <path>         canonical review window document; adds the review friction
+                          and suggestion anchor views (authorship is self-declared
+                          and unverified; not with --catalog)
   --watch                 re-read the input on the profile's watch interval
   --refresh-seconds <n>   finite HTML generation with browser refresh (1..86400)
   --plain                 render without ANSI styling
@@ -89,6 +97,8 @@ pub struct Options {
     pub format: ReportFormat,
     pub output: Option<PathBuf>,
     pub refresh_seconds: Option<u64>,
+    /// Canonical review window document observed beside the journal or store.
+    pub review: Option<PathBuf>,
 }
 
 /// The outcome of parsing dashboard shell arguments.
@@ -113,6 +123,7 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
     let mut format = ReportFormat::Text;
     let mut output: Option<PathBuf> = None;
     let mut refresh_seconds = None;
+    let mut review: Option<PathBuf> = None;
     let mut arguments = arguments.peekable();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
@@ -164,6 +175,9 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
             "--output" => {
                 output = Some(PathBuf::from(next_value(&mut arguments, "--output")?));
             }
+            "--review" => {
+                review = Some(PathBuf::from(next_value(&mut arguments, "--review")?));
+            }
             "--help" | "-h" => return Ok(Parsed::Help),
             other => return Err(format!("unknown argument: {other}")),
         }
@@ -173,9 +187,10 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
         return Err("--refresh-seconds requires HTML and cannot be mixed with --watch".to_string());
     }
     let input = if let Some(path) = catalog_path {
-        if journal_path.is_some() || store_path.is_some() || stream.is_some() {
+        if journal_path.is_some() || store_path.is_some() || stream.is_some() || review.is_some() {
             return Err(
-                "--catalog cannot be mixed with --journal, --store or --stream".to_string(),
+                "--catalog cannot be mixed with --journal, --store, --stream or --review"
+                    .to_string(),
             );
         }
         if format != ReportFormat::Html
@@ -212,6 +227,7 @@ pub fn parse_options(arguments: impl Iterator<Item = String>) -> Result<Parsed, 
         format,
         output,
         refresh_seconds,
+        review,
     }))
 }
 
@@ -335,23 +351,46 @@ fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
 }
 
 /// Admit the observed input into canonical Kiln state.
+///
+/// A named review window document is read and parsed after the journal or
+/// store is admitted; the report projection admits it against the profile.
 pub fn admit_input(options: &Options) -> Result<AdmittedJournal, String> {
-    match &options.input {
+    let mut journal = match &options.input {
         Input::Journal { path } => {
             let bytes = read_bounded(path, MAX_JOURNAL_BYTES)?;
             let document = JournalDocument::parse(&bytes)
                 .map_err(|error| format!("journal document: {}: {}", error.code, error.message))?;
             admit_document(&document)
-                .map_err(|error| format!("journal admission: {}: {}", error.code, error.message))
+                .map_err(|error| format!("journal admission: {}: {}", error.code, error.message))?
         }
         Input::Store { path, stream } => {
             let store_profile = kiln_adapter_sqlite::canonical_profile();
-            admit_store(path, &store_profile, stream)
+            admit_store(path, &store_profile, stream)?
         }
         Input::Catalog { .. } => {
-            Err("catalog histories must be admitted independently".to_string())
+            return Err("catalog histories must be admitted independently".to_string());
         }
+    };
+    if let Some(path) = &options.review {
+        journal.review = Some(load_review_window(path)?);
     }
+    Ok(journal)
+}
+
+/// Read and parse one canonical review window document under its byte bound.
+pub fn load_review_window(path: &Path) -> Result<ReviewWindow, String> {
+    let bytes = read_bounded(path, MAX_REVIEW_WINDOW_BYTES)?;
+    parse_review_window(&bytes).map_err(|message| format!("{}: {message}", path.display()))
+}
+
+/// Parse one canonical review window document.
+///
+/// The document is exactly the observation review window: unknown fields,
+/// unknown authorship classes, and missing facts are rejected.
+pub fn parse_review_window(bytes: &[u8]) -> Result<ReviewWindow, String> {
+    serde_json::from_slice(bytes).map_err(|error| {
+        format!("review window document is not a canonical review window: {error}")
+    })
 }
 
 /// Load and admit the dashboard profile document.

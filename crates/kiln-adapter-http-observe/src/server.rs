@@ -7,7 +7,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use kiln_core::domain::State;
 use kiln_observe_core::{
-    EventWindow, LogWindow, ObservationRequest, ObservationWindow, ViewRequest, project_observation,
+    EventWindow, LogWindow, ObservationRequest, ObservationWindow, ReviewWindow, ViewRequest,
+    project_observation,
 };
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use rustls_pemfile::{certs, private_key};
@@ -24,6 +25,9 @@ pub struct ObservationSnapshot {
     pub state: State,
     pub events: Option<EventWindow>,
     pub log: Option<LogWindow>,
+    /// Admitted review window served by the review views; `None` keeps them
+    /// unavailable as an unknown target.
+    pub review: Option<ReviewWindow>,
 }
 
 impl ObservationSnapshot {
@@ -33,6 +37,7 @@ impl ObservationSnapshot {
             state,
             events: None,
             log: None,
+            review: None,
         }
     }
 
@@ -45,6 +50,12 @@ impl ObservationSnapshot {
     #[must_use]
     pub fn with_log(mut self, log: LogWindow) -> Self {
         self.log = Some(log);
+        self
+    }
+
+    #[must_use]
+    pub fn with_review(mut self, review: ReviewWindow) -> Self {
+        self.review = Some(review);
         self
     }
 }
@@ -438,6 +449,14 @@ fn admit_target(view: &ViewRequest, snapshot: &ObservationSnapshot) -> Result<()
                 ))
             }
         }
+        // r[impl kiln.observe.review.parity]
+        ViewRequest::ReviewFriction | ViewRequest::SuggestionAnchors { .. } => {
+            if snapshot.review.is_some() {
+                Ok(())
+            } else {
+                Err(missing_review_window())
+            }
+        }
         ViewRequest::RunList { after: None, .. }
         | ViewRequest::StateSummary
         | ViewRequest::EventTail { .. } => Ok(()),
@@ -461,8 +480,21 @@ fn observation_window(
             .as_ref()
             .map(|log| ObservationWindow::log(log.meta.clone(), log.retained_bytes.clone()))
             .ok_or_else(|| HttpError::new(404, "unknown_target", "log stream is unavailable")),
+        ViewRequest::ReviewFriction | ViewRequest::SuggestionAnchors { .. } => snapshot
+            .review
+            .as_ref()
+            .map(|review| ObservationWindow::review(review.clone()))
+            .ok_or_else(missing_review_window),
         _ => Ok(ObservationWindow::empty()),
     }
+}
+
+fn missing_review_window() -> HttpError {
+    HttpError::new(
+        404,
+        "unknown_target",
+        "review window is not in the admitted snapshot",
+    )
 }
 
 // r[impl kiln.observe.http.live.scenario.delivery]
@@ -584,6 +616,13 @@ fn projection_error(error: &kiln_core::types::Diagnostic) -> HttpError {
             409,
             "stale_state",
             "requested state revision is not current",
+        ),
+        "missing_review_window" => missing_review_window(),
+        // Every review-window admission fault shares the `review_window_` prefix.
+        code if code.starts_with("review_window_") => HttpError::new(
+            500,
+            "invalid_review_window",
+            "admitted review window failed admission",
         ),
         _ => HttpError::new(
             500,

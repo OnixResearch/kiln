@@ -1,10 +1,14 @@
 pub mod html;
 
+use kiln_core::change_review::AuthorshipClass;
 use kiln_core::domain::Outcome;
-use kiln_observe_core::{AttemptDetailView, EventProjection, RunDetailView, ViewBody, ViewField};
+use kiln_observe_core::{
+    AttemptDetailView, Distribution, EventProjection, RunDetailView, SuggestionAnchorView,
+    ViewBody, ViewField,
+};
 
 use crate::journal::reference_text;
-use crate::report::DashboardReport;
+use crate::report::{DashboardReport, ReviewViews};
 
 /// Terminal rendering style of one dashboard report.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -28,6 +32,10 @@ pub fn render_report(report: &DashboardReport, style: RenderStyle) -> String {
     render_run_detail(&mut out, &painter, report);
     render_attempt_detail(&mut out, &painter, report);
     render_events(&mut out, &painter, report);
+    if let Some(review) = report.views.review.as_ref() {
+        render_review_friction(&mut out, &painter, review);
+        render_suggestion_anchors(&mut out, &painter, review);
+    }
     render_identities(&mut out, &painter, report);
     render_redactions(&mut out, &painter, report);
     render_non_claims(&mut out, &painter, report);
@@ -369,6 +377,131 @@ fn render_events(out: &mut String, painter: &Painter, report: &DashboardReport) 
     out.push('\n');
 }
 
+/// The fixed statement attached to every rendered authorship class.
+pub(crate) const AUTHORSHIP_BASIS_TEXT: &str = "authorship is self-declared and unverified";
+
+/// Operator label of one self-declared authorship class.
+pub(crate) fn authorship_label(class: AuthorshipClass) -> &'static str {
+    match class {
+        AuthorshipClass::Human => "human",
+        AuthorshipClass::Agent => "agent",
+        AuthorshipClass::Mixed => "mixed",
+        AuthorshipClass::Undeclared => "undeclared",
+    }
+}
+
+/// Render one optional distribution fact, `-` when no value was observed.
+pub(crate) fn distribution_value(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+fn spread(distribution: &Distribution) -> String {
+    format!(
+        "min {}   median {}   max {}",
+        distribution_value(distribution.min),
+        distribution_value(distribution.median),
+        distribution_value(distribution.max)
+    )
+}
+
+/// Label one anchor path; the view omits it only under profile redaction.
+pub(crate) fn anchor_path(anchor: &SuggestionAnchorView) -> &str {
+    anchor.path.as_deref().unwrap_or("redacted")
+}
+
+/// Label one anchor owner, distinguishing redaction from an unowned anchor.
+pub(crate) fn anchor_owner<'a>(anchor: &'a SuggestionAnchorView, review: &ReviewViews) -> &'a str {
+    match anchor.owner.as_deref() {
+        Some(owner) => owner,
+        None if review
+            .anchors
+            .redacted_fields
+            .contains(&ViewField::SuggestionOwners) =>
+        {
+            "redacted"
+        }
+        None => "unowned",
+    }
+}
+
+fn render_review_friction(out: &mut String, painter: &Painter, review: &ReviewViews) {
+    let ViewBody::ReviewFriction(friction) = &review.friction.body else {
+        return;
+    };
+    out.push_str(&painter.bold("review friction\n"));
+    push_pair(
+        out,
+        "window ms",
+        &format!("{}..{}", friction.start_ms, friction.end_ms),
+    );
+    push_pair(out, "basis", AUTHORSHIP_BASIS_TEXT);
+    for class in &friction.classes {
+        let share = class
+            .merged_without_suggestion_per_mille
+            .map_or_else(|| "-".to_string(), |share| format!("{share} per mille"));
+        push_pair(
+            out,
+            authorship_label(class.authorship),
+            &format!(
+                "changes {}   approved {}   merged {}   merged without suggestion {} ({share})",
+                class.changes,
+                class.approved_changes,
+                class.merged_changes,
+                class.merged_without_suggestion
+            ),
+        );
+        push_pair(out, "  latency ms", &spread(&class.approval_latency_ms));
+        push_pair(
+            out,
+            "  patch sets",
+            &spread(&class.patch_sets_before_approval),
+        );
+        push_pair(
+            out,
+            "  suggestions",
+            &format!(
+                "total {}   median {}   max {}",
+                class.suggestions_per_change.total,
+                distribution_value(class.suggestions_per_change.median),
+                distribution_value(class.suggestions_per_change.max)
+            ),
+        );
+    }
+    out.push('\n');
+}
+
+fn render_suggestion_anchors(out: &mut String, painter: &Painter, review: &ReviewViews) {
+    let ViewBody::SuggestionAnchors(anchors) = &review.anchors.body else {
+        return;
+    };
+    out.push_str(&painter.bold("suggestion anchors\n"));
+    let page = &anchors.page;
+    let mut facts = format!(
+        "cursor {}   returned {}   total {}   requested {}   effective {}",
+        page.cursor, page.returned, page.total, page.requested_limit, page.effective_limit
+    );
+    if page.capped {
+        facts.push_str("   capped");
+    }
+    if page.has_more {
+        facts.push_str("   more");
+    }
+    if let Some(next) = page.next {
+        facts.push_str(&format!("   next {next}"));
+    }
+    push_pair(out, "page", &facts);
+    for anchor in &anchors.anchors {
+        out.push_str(&format!(
+            "  {}  owner {}  suggestions {}  changes {}\n",
+            anchor_path(anchor),
+            anchor_owner(anchor, review),
+            anchor.suggestions,
+            anchor.changes
+        ));
+    }
+    out.push('\n');
+}
+
 fn event_text(event: &EventProjection, painter: &Painter) -> String {
     match event {
         EventProjection::RunStarted {
@@ -473,6 +606,10 @@ fn render_identities(out: &mut String, painter: &Painter, report: &DashboardRepo
         push_pair(out, "attempt_detail", view.identity.as_str());
     }
     push_pair(out, "event_tail", report.views.events.identity.as_str());
+    if let Some(review) = report.views.review.as_ref() {
+        push_pair(out, "review_friction", review.friction.identity.as_str());
+        push_pair(out, "suggestion_anchors", review.anchors.identity.as_str());
+    }
     out.push('\n');
 }
 
@@ -499,6 +636,8 @@ fn field_label(value: ViewField) -> &'static str {
         ViewField::Metrics => "metrics",
         ViewField::CommandId => "command_id",
         ViewField::LogBytes => "log_bytes",
+        ViewField::SuggestionPaths => "suggestion_paths",
+        ViewField::SuggestionOwners => "suggestion_owners",
     }
 }
 

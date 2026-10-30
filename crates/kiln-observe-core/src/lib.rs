@@ -8,7 +8,10 @@ mod identity;
 mod model;
 mod profile;
 mod projection;
+mod review;
 
+#[cfg(test)]
+mod review_tests;
 #[cfg(test)]
 mod tests;
 
@@ -22,8 +25,15 @@ pub use model::{
     OutcomeCount, PageInfo, ProductView, RetentionView, RunDetailView, RunListView, RunSummaryView,
     StateSummaryView, ViewBody, ViewRequest,
 };
-pub use profile::{ObservationBounds, ObservationProfile, RedactionPolicy, ViewField, ViewKind};
+pub use profile::{
+    ObservationBounds, ObservationProfile, RedactionPolicy, ReviewBounds, ViewField, ViewKind,
+};
 pub use projection::project_observation;
+pub use review::{
+    AnchorPageInfo, AuthorshipBasis, AuthorshipFrictionView, Distribution, PER_MILLE,
+    ReviewApprovalFact, ReviewChangeFact, ReviewFrictionView, ReviewSuggestionFact, ReviewWindow,
+    SuggestionAnchorView, SuggestionAnchorsView, admit_review_window, review_window,
+};
 
 // r[impl kiln.observe.nonclaims]
 pub const OBSERVATION_VIEW_PROFILE: &str = "kiln.observe.view.v1";

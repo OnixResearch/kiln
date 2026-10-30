@@ -19,6 +19,7 @@ serde.workspace = true
 [dev-dependencies]
 anyhow = "1.0"
 bounded-exec.workspace = true
+serde_json.workspace = true
 tempfile = "3.24.0"
 
 [features]

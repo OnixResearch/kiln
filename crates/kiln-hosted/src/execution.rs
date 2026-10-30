@@ -1,6 +1,8 @@
 //! Hosted execution: explicit reviewed backends, durable pre-effect admission,
 //! external resource enforcement and host-side observations. Namespaces are for
 //! trusted jobs only. A supplied VM image does not itself qualify hostile use.
+//! Firecracker runners put a separate guest kernel behind KVM per job; that is
+//! an isolation upgrade over namespaces, not a hostile-isolation qualification.
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Component, Path, PathBuf};
@@ -24,7 +26,7 @@ pub struct Image {
     pub blake3: String,
 }
 impl Image {
-    fn verify(&self) -> Result<PathBuf, String> {
+    pub(crate) fn verify(&self) -> Result<PathBuf, String> {
         // Images and executables share the immutable content identity contract.
         Executable {
             path: self.path.clone(),
@@ -50,6 +52,21 @@ pub enum Backend {
         root_image: Option<Image>,
         guest_shell: String,
         acceleration: String,
+        qualification_identity: Option<String>,
+    },
+    /// One Firecracker microVM per job: kernel and initramfs from the reviewed
+    /// `microvm-guest` flake output, the source snapshot as a read-only
+    /// virtio-blk image, vsock for the guest protocol and no network device.
+    Firecracker {
+        firecracker: Executable,
+        kernel: Image,
+        initrd: Image,
+        guest_shell: String,
+        vcpus: u8,
+        memory_mib: u32,
+        boot_timeout_ms: u64,
+        source_image_mib: u32,
+        warm_pool: Option<crate::microvm::WarmPool>,
         qualification_identity: Option<String>,
     },
 }
@@ -261,17 +278,81 @@ impl Config {
                     {
                         return Err("invalid VM backend".into());
                     }
-                    if let Some(identity) = qualification_identity {
-                        if identity.len() != 64 || !identity.bytes().all(|b| b.is_ascii_hexdigit())
-                        {
-                            return Err("invalid independent VM qualification identity".into());
-                        }
+                    qualification_reference(qualification_identity)?;
+                }
+                Backend::Firecracker {
+                    firecracker,
+                    kernel,
+                    initrd,
+                    warm_pool,
+                    ..
+                } => {
+                    admit_firecracker(self, label, backend)?;
+                    firecracker.verify()?;
+                    kernel.verify()?;
+                    initrd.verify()?;
+                    if let Some(pool) = warm_pool {
+                        crate::microvm::verify_pool_directory(&pool.directory)?;
                     }
                 }
             }
         }
         Ok(())
     }
+}
+
+fn qualification_reference(identity: &Option<String>) -> Result<(), String> {
+    match identity {
+        Some(identity)
+            if identity.len() != 64 || !identity.bytes().all(|b| b.is_ascii_hexdigit()) =>
+        {
+            Err("invalid independent VM qualification identity".into())
+        }
+        _ => Ok(()),
+    }
+}
+
+// r[impl kiln.hosted.microvm.admission]
+// r[impl kiln.hosted.microvm.admission.scenario.bounds]
+/// Pure Firecracker runner admission against this execution policy. Image and
+/// pool filesystem checks follow in the shell.
+fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<(), String> {
+    let Backend::Firecracker {
+        qualification_identity,
+        warm_pool,
+        ..
+    } = backend
+    else {
+        return Err("not a Firecracker runner".into());
+    };
+    // The VM plan's CPU template and the guest module set are reviewed on x86_64.
+    if !cfg!(target_arch = "x86_64") {
+        return Err("Firecracker runners are reviewed only on x86_64 hosts".into());
+    }
+    let policy = crate::microvm::machine_policy(backend).ok_or("not a Firecracker runner")?;
+    kiln_microvm::admission::admit_machine(
+        &policy,
+        &kiln_microvm::admission::HostBounds {
+            unit_memory_bytes: config.memory_bytes,
+            unit_tasks: config.processes,
+            maximum_concurrent: config.maximum_concurrent,
+            maximum_timeout_ms: config.maximum_timeout_ms,
+        },
+    )?;
+    qualification_reference(qualification_identity)?;
+    if let Some(pool) = warm_pool {
+        crate::microvm::admit_pool_path(&pool.directory, &config.work_root)?;
+    }
+    // Guest writes never reach the host workspace, so publication would cache
+    // unchanged source; restoration would be invisible to the guest.
+    if config
+        .cache
+        .as_ref()
+        .is_some_and(|cache| cache.policies.iter().any(|p| p.runner == label))
+    {
+        return Err("cache policies cannot name a Firecracker runner".into());
+    }
+    Ok(())
 }
 fn clean(p: &Path) -> bool {
     p.is_absolute()
@@ -281,7 +362,8 @@ fn clean(p: &Path) -> bool {
 
 pub fn init(db: &Connection) -> Result<(), String> {
     db.execute_batch("CREATE TABLE IF NOT EXISTS hosted_execution_config(singleton INTEGER PRIMARY KEY CHECK(singleton=1),identity TEXT NOT NULL,config TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS hosted_execution(org TEXT NOT NULL,project TEXT NOT NULL,attempt TEXT NOT NULL,pipeline TEXT NOT NULL,request_identity TEXT NOT NULL,config_identity TEXT NOT NULL,unit TEXT NOT NULL,state TEXT NOT NULL,reserved_ms INTEGER NOT NULL,result TEXT,PRIMARY KEY(org,attempt));") .map_err(|e|e.to_string())
+      CREATE TABLE IF NOT EXISTS hosted_execution(org TEXT NOT NULL,project TEXT NOT NULL,attempt TEXT NOT NULL,pipeline TEXT NOT NULL,request_identity TEXT NOT NULL,config_identity TEXT NOT NULL,unit TEXT NOT NULL,state TEXT NOT NULL,reserved_ms INTEGER NOT NULL,result TEXT,PRIMARY KEY(org,attempt));
+      CREATE TABLE IF NOT EXISTS hosted_microvm_job(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,lifecycle TEXT NOT NULL,result TEXT,PRIMARY KEY(org,attempt,job));") .map_err(|e|e.to_string())
 }
 /// Trusted startup only. Existing in-flight/unknown effects pin their configuration.
 pub fn configure(db: &mut Connection, config: &Config) -> Result<(), String> {
@@ -369,7 +451,7 @@ fn workspace(
 fn admit_backend(backend: &Backend, trust: &str) -> Result<(), String> {
     match (trust,backend) {
         ("trusted",_)=>Ok(()),
-        ("hostile",Backend::Qemu{qualification_identity:Some(_),..})=>Ok(()),
+        ("hostile",Backend::Qemu{qualification_identity:Some(_),..}|Backend::Firecracker{qualification_identity:Some(_),..})=>Ok(()),
         ("hostile",_)=>Err("hostile execution blocked: independently qualified VM backend and immutable images required; namespaces are trusted-only".into()),
         _=>Err("trust must be trusted or hostile".into()),
     }
@@ -546,6 +628,7 @@ pub fn run_pipeline(
         let queued_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
         let job_started = Instant::now();
         let mut steps = Vec::new();
+        let mut microvm: Option<Value> = None;
         let bound_job = crate::identity(
             &json!({"attempt":request.attempt_id,"job":job.id,"organization":actor.organization,"project":request.project}),
         )?;
@@ -667,6 +750,84 @@ pub fn run_pipeline(
         if let Err(error) = credential_result {
             state = "failed";
             steps.push(json!({"state":"not_dispatched","reason":error}));
+        } else if let Some(runner) = config
+            .runners
+            .get(&job.runner)
+            .and_then(crate::microvm::Runner::from_backend)
+        {
+            let elapsed = u64::try_from(job_started.elapsed().as_millis()).unwrap_or(u64::MAX);
+            let remaining = job.timeout_ms.saturating_sub(elapsed);
+            if remaining == 0 {
+                state = "failed";
+                steps.push(json!({"state":"timed_out"}));
+            } else if output_budget < 1024 {
+                state = "failed";
+                steps.push(json!({"state":"output_budget_exhausted"}));
+            } else {
+                let output_limit = (output_budget / 12).max(1);
+                let mut guest_steps = Vec::with_capacity(job.steps.len());
+                let mut rejected = None;
+                for step in &job.steps {
+                    let mut environment = step.env.clone();
+                    for (name, value) in &secret_environment {
+                        environment.insert(name.clone(), value.clone());
+                    }
+                    match kiln_microvm::protocol::guest_step(
+                        runner.policy.guest_shell,
+                        matches!(step.shell, crate::pipelines::Shell::Bash),
+                        &step.run,
+                        &step.working_directory,
+                        &environment,
+                        output_limit,
+                    ) {
+                        Ok(guest) => guest_steps.push((step.name.clone(), guest)),
+                        Err(error) => rejected = Some(error),
+                    }
+                    for value in environment.values_mut() {
+                        value.zeroize();
+                    }
+                }
+                if let Some(error) = rejected {
+                    state = "failed";
+                    steps.push(json!({"state":"not_dispatched","reason":error}));
+                } else {
+                    let outcome = crate::microvm::run_job(
+                        db,
+                        &config,
+                        &runner,
+                        &crate::microvm::Job {
+                            organization: &actor.organization,
+                            attempt: &request.attempt_id,
+                            job: &job.id,
+                            workspace: &work,
+                            steps: &guest_steps,
+                            unit: &unit,
+                            timeout_ms: remaining,
+                        },
+                        cancellation,
+                    );
+                    for (_, guest) in &mut guest_steps {
+                        for value in guest.environment.values_mut() {
+                            value.zeroize();
+                        }
+                    }
+                    for observation in outcome.steps {
+                        if !absorb(
+                            Ok(observation),
+                            &mut state,
+                            &mut cleanup,
+                            &mut output_budget,
+                            &redactions,
+                            &mut steps,
+                        ) {
+                            break;
+                        }
+                    }
+                    let mut vm = outcome.vm;
+                    redact_value(&mut vm, &redactions);
+                    microvm = Some(vm);
+                }
+            }
         } else {
             for step in &job.steps {
                 let elapsed = u64::try_from(job_started.elapsed().as_millis()).unwrap_or(u64::MAX);
@@ -707,28 +868,14 @@ pub fn run_pipeline(
                         value.zeroize();
                     }
                 }
-                match observation {
-                    Ok(mut observation) => {
-                        cleanup &= observation.cleaned;
-                        if !observation.cleaned {
-                            state = "unknown";
-                        } else if observation.cancelled {
-                            state = "cancelled";
-                        } else if !observation.success {
-                            state = "failed";
-                        }
-                        redact_value(&mut observation.value, &redactions);
-                        output_budget =
-                            output_budget.saturating_sub(observation.value.to_string().len());
-                        steps.push(observation.value);
-                    }
-                    Err(error) => {
-                        state = "unknown";
-                        cleanup = false;
-                        steps.push(json!({"state":"unknown","reason":error}));
-                    }
-                }
-                if state != "succeeded" {
+                if !absorb(
+                    observation,
+                    &mut state,
+                    &mut cleanup,
+                    &mut output_budget,
+                    &redactions,
+                    &mut steps,
+                ) {
                     break;
                 }
             }
@@ -790,7 +937,12 @@ pub fn run_pipeline(
         if state == "succeeded" {
             successful.insert(job.id.clone());
         }
-        jobs.push(json!({"job":job.id,"state":state,"steps":steps,"cache":cache_observation}));
+        let mut job_record =
+            json!({"job":job.id,"state":state,"steps":steps,"cache":cache_observation});
+        if let (Some(fields), Some(vm)) = (job_record.as_object_mut(), microvm) {
+            fields.insert("microvm".into(), vm);
+        }
+        jobs.push(job_record);
         crate::fleet::record_timing(
             db,
             &actor.organization,
@@ -810,14 +962,24 @@ pub fn run_pipeline(
         .jobs
         .iter()
         .filter_map(|job| match config.runners.get(&job.runner) {
-            Some(Backend::Qemu {
-                qualification_identity: Some(reference),
-                ..
-            }) => Some(reference.clone()),
+            Some(
+                Backend::Qemu {
+                    qualification_identity: Some(reference),
+                    ..
+                }
+                | Backend::Firecracker {
+                    qualification_identity: Some(reference),
+                    ..
+                },
+            ) => Some(reference.clone()),
             _ => None,
         })
         .collect::<std::collections::BTreeSet<_>>();
     let mut result = json!({"attempt_id":request.attempt_id,"pipeline":request.pipeline_id,"state":state,"elapsed_ms":elapsed_ms,"cleaned":cleanup,"evidence":evidence,"jobs":jobs,"requested_trust":request.trust,"hostile_isolation_claim":false,"operator_qualification_references":qualification_references,"qualification_evidence":"external independent evidence required"});
+    let outcome = canonical_outcome(&result)?;
+    if let Some(fields) = result.as_object_mut() {
+        fields.insert("canonical_outcome".into(), json!(outcome));
+    }
     let settlement = if state == "unknown" || !cleanup {
         crate::finance::observe_unknown_trusted(
             db,
@@ -918,7 +1080,10 @@ fn redact_value(value: &mut Value, secrets: &[String]) {
     }
 }
 
-fn infrastructure_failure_state(cancel_requested: bool, cleaned: bool) -> (&'static str, bool) {
+pub(crate) fn infrastructure_failure_state(
+    cancel_requested: bool,
+    cleaned: bool,
+) -> (&'static str, bool) {
     if !cleaned {
         ("unknown", false)
     } else if cancel_requested {
@@ -927,11 +1092,121 @@ fn infrastructure_failure_state(cancel_requested: bool, cleaned: bool) -> (&'sta
         ("failed", false)
     }
 }
-struct StepObservation {
-    success: bool,
-    cancelled: bool,
-    cleaned: bool,
-    value: Value,
+pub(crate) struct StepObservation {
+    pub(crate) success: bool,
+    pub(crate) cancelled: bool,
+    pub(crate) cleaned: bool,
+    pub(crate) value: Value,
+}
+/// Backend-independent facts about one finished step process.
+pub(crate) struct ProcessFacts<'a> {
+    pub(crate) name: &'a str,
+    pub(crate) exited: bool,
+    pub(crate) timed_out: bool,
+    pub(crate) cancelled: bool,
+    pub(crate) exit_code: Option<i32>,
+    pub(crate) signal: Option<i32>,
+    pub(crate) stdout: String,
+    pub(crate) stderr: String,
+    pub(crate) stdout_truncated: bool,
+    pub(crate) stderr_truncated: bool,
+    pub(crate) elapsed_ms: u64,
+    pub(crate) cleaned: bool,
+}
+// r[impl kiln.hosted.microvm.equivalence]
+/// The one step-receipt mapping shared by every backend. `extra_success` lets
+/// a backend add its own completion evidence (the QEMU guest result marker).
+pub(crate) fn step_observation(
+    facts: ProcessFacts<'_>,
+    extra_success: bool,
+    guest: Option<Value>,
+) -> StepObservation {
+    let success = facts.exited
+        && facts.exit_code == Some(0)
+        && !facts.stdout_truncated
+        && !facts.stderr_truncated
+        && extra_success;
+    let state = if !facts.cleaned {
+        "unknown"
+    } else if facts.cancelled {
+        "cancelled"
+    } else if facts.timed_out {
+        "timed_out"
+    } else if success {
+        "succeeded"
+    } else {
+        "failed"
+    };
+    StepObservation {
+        success,
+        cancelled: facts.cancelled,
+        cleaned: facts.cleaned,
+        value: json!({"name":facts.name,"state":state,"exit_code":facts.exit_code,"signal":facts.signal,"elapsed_ms":facts.elapsed_ms,"stdout":facts.stdout,"stderr":facts.stderr,"stdout_truncated":facts.stdout_truncated,"stderr_truncated":facts.stderr_truncated,"cleaned":facts.cleaned,"guest":guest}),
+    }
+}
+/// Fold one step observation into the job state. Returns false to stop the job.
+fn absorb(
+    observation: Result<StepObservation, String>,
+    state: &mut &'static str,
+    cleanup: &mut bool,
+    output_budget: &mut usize,
+    redactions: &[String],
+    steps: &mut Vec<Value>,
+) -> bool {
+    match observation {
+        Ok(mut observation) => {
+            *cleanup &= observation.cleaned;
+            if !observation.cleaned {
+                *state = "unknown";
+            } else if observation.cancelled {
+                *state = "cancelled";
+            } else if !observation.success {
+                *state = "failed";
+            }
+            redact_value(&mut observation.value, redactions);
+            *output_budget = output_budget.saturating_sub(observation.value.to_string().len());
+            steps.push(observation.value);
+        }
+        Err(error) => {
+            *state = "unknown";
+            *cleanup = false;
+            steps.push(json!({"state":"unknown","reason":error}));
+        }
+    }
+    *state == "succeeded"
+}
+// r[impl kiln.hosted.microvm.equivalence]
+// r[impl kiln.hosted.microvm.equivalence.scenario.host]
+/// BLAKE3 identity of the backend-independent outcome: pipeline, overall and
+/// per-job states, and each step's name, state, exit code and stdout. Timing,
+/// cleanup, stderr (the namespace launcher writes its own diagnostics there),
+/// signals and backend observations are excluded.
+pub(crate) fn canonical_outcome(receipt: &Value) -> Result<String, String> {
+    let field = |value: &Value, key: &str| value.get(key).cloned().unwrap_or(Value::Null);
+    let jobs: Vec<Value> = receipt
+        .get("jobs")
+        .and_then(Value::as_array)
+        .ok_or("execution receipt has no jobs")?
+        .iter()
+        .map(|job| {
+            let steps: Vec<Value> = job
+                .get("steps")
+                .and_then(Value::as_array)
+                .map(|steps| {
+                    steps
+                        .iter()
+                        .map(|step| {
+                            json!({"name":field(step,"name"),"state":field(step,"state"),"exit_code":field(step,"exit_code"),"stdout":field(step,"stdout"),"stdout_truncated":field(step,"stdout_truncated")})
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            json!({"job":field(job,"job"),"state":field(job,"state"),"steps":steps})
+        })
+        .collect();
+    crate::identity(
+        &json!({"schema":"kiln.hosted.canonical-outcome.v1","pipeline":field(receipt,"pipeline"),"state":field(receipt,"state"),"jobs":jobs}),
+    )
 }
 struct StepRequest<'a> {
     backend: &'a Backend,
@@ -970,7 +1245,7 @@ fn request(
         outcome_policy: OutcomePolicy::new(vec![0], true, true).map_err(|e| format!("{e:?}"))?,
     })
 }
-fn manager_request(
+pub(crate) fn manager_request(
     config: &Config,
     program: PathBuf,
     args: Vec<OsString>,
@@ -984,6 +1259,40 @@ fn manager_request(
         config.manager_runtime_directory.as_os_str().to_owned(),
     ));
     Ok(run)
+}
+/// `systemd-run` arguments placing one process tree in the attempt unit with the
+/// reviewed cgroup limits, followed by `env -i`. `collect` unloads the unit even
+/// after failure so a later process in the same attempt can reuse its name.
+pub(crate) fn unit_command(
+    config: &Config,
+    unit: &str,
+    timeout_ms: u64,
+    collect: bool,
+) -> Result<Vec<OsString>, String> {
+    let mut service = vec![
+        OsString::from("--user"),
+        OsString::from("--wait"),
+        OsString::from("--pipe"),
+        OsString::from(format!("--unit={unit}")),
+    ];
+    if collect {
+        service.push(OsString::from("--collect"));
+    }
+    for property in [
+        format!("MemoryMax={}", config.memory_bytes),
+        "MemorySwapMax=0".into(),
+        format!("TasksMax={}", config.processes),
+        format!("CPUQuota={}%", config.cpu_percent),
+        format!("RuntimeMaxSec={}ms", timeout_ms.saturating_add(1000)),
+        "KillMode=control-group".into(),
+        "SendSIGKILL=yes".into(),
+        "TimeoutStopSec=2s".into(),
+    ] {
+        service.push(OsString::from(format!("--property={property}")));
+    }
+    service.push(config.env.verify()?.into_os_string());
+    service.push(OsString::from("-i"));
+    Ok(service)
 }
 fn systemctl(config: &Config, args: &[&str]) -> Result<bounded_exec::ExecutionOutput, String> {
     bounded_exec::run(manager_request(
@@ -1000,7 +1309,7 @@ fn systemctl(config: &Config, args: &[&str]) -> Result<bounded_exec::ExecutionOu
 }
 /// Stop is owned and bounded. Missing, inactive, or failed units with no cgroup
 /// are authoritative systemd cleanup observations; any ambiguity retains a slot.
-fn cleanup_unit(config: &Config, unit: &str) -> bool {
+pub(crate) fn cleanup_unit(config: &Config, unit: &str) -> bool {
     let stopped = systemctl(config, &["stop", unit]);
     if stopped.as_ref().is_err() {
         return false;
@@ -1047,26 +1356,7 @@ fn run_step(
         .prefix("kiln-hosted-root-")
         .tempdir()
         .map_err(|e| e.to_string())?;
-    let mut service = vec![
-        OsString::from("--user"),
-        OsString::from("--wait"),
-        OsString::from("--pipe"),
-        OsString::from(format!("--unit={unit}")),
-    ];
-    for property in [
-        format!("MemoryMax={}", config.memory_bytes),
-        "MemorySwapMax=0".into(),
-        format!("TasksMax={}", config.processes),
-        format!("CPUQuota={}%", config.cpu_percent),
-        format!("RuntimeMaxSec={}ms", timeout_ms.saturating_add(1000)),
-        "KillMode=control-group".into(),
-        "SendSIGKILL=yes".into(),
-        "TimeoutStopSec=2s".into(),
-    ] {
-        service.push(OsString::from(format!("--property={property}")));
-    }
-    service.push(config.env.verify()?.into_os_string());
-    service.push(OsString::from("-i"));
+    let mut service = unit_command(config, unit, timeout_ms, false)?;
     let input = match backend {
         Backend::Namespaces {
             unshare,
@@ -1171,6 +1461,9 @@ fn run_step(
             service.extend(args.into_iter().map(OsString::from));
             Input::Null
         }
+        Backend::Firecracker { .. } => {
+            return Err("Firecracker runners execute whole jobs, not single steps".into());
+        }
     };
     let started = Instant::now();
     let observed = bounded_exec::run_with_cancellation(
@@ -1193,29 +1486,38 @@ fn run_step(
     match observed {
         Ok(output) => {
             let cancelled = output.completion == Completion::Cancelled;
-            let mut success = output.completion == Completion::Exited
-                && output.exit_code == Some(0)
-                && !output.stdout.truncated
-                && !output.stderr.truncated;
             let stdout = String::from_utf8_lossy(&output.stdout.bytes).into_owned();
             let mut guest = None;
+            let mut qemu_success = true;
             if matches!(backend, Backend::Qemu { .. }) {
                 guest = stdout
                     .lines()
                     .filter_map(|line| line.strip_prefix("KILN_RESULT:"))
                     .next_back()
                     .and_then(|line| serde_json::from_str::<Value>(line).ok());
-                success &= guest.as_ref().is_some_and(|r| {
+                qemu_success = guest.as_ref().is_some_and(|r| {
                     r.get("schema") == Some(&json!("kiln.hosted.guest.v1"))
                         && r.get("exit_code") == Some(&json!(0))
                 });
             }
-            Ok(StepObservation {
-                success,
-                cancelled,
-                cleaned,
-                value: json!({"name":step.name,"state":if !cleaned {"unknown"} else if cancelled {"cancelled"} else if output.completion==Completion::TimedOut {"timed_out"} else if success {"succeeded"} else {"failed"},"exit_code":output.exit_code,"signal":output.signal,"elapsed_ms":elapsed_ms,"stdout":stdout,"stderr":String::from_utf8_lossy(&output.stderr.bytes),"stdout_truncated":output.stdout.truncated,"stderr_truncated":output.stderr.truncated,"cleaned":cleaned,"guest":guest}),
-            })
+            Ok(step_observation(
+                ProcessFacts {
+                    name: &step.name,
+                    exited: output.completion == Completion::Exited,
+                    timed_out: output.completion == Completion::TimedOut,
+                    cancelled,
+                    exit_code: output.exit_code,
+                    signal: output.signal,
+                    stdout,
+                    stderr: String::from_utf8_lossy(&output.stderr.bytes).into_owned(),
+                    stdout_truncated: output.stdout.truncated,
+                    stderr_truncated: output.stderr.truncated,
+                    elapsed_ms,
+                    cleaned,
+                },
+                qemu_success,
+                guest,
+            ))
         }
         Err(error) => {
             let (state, cancelled) =
@@ -1369,6 +1671,9 @@ pub fn handle(
             let cleaned = cleanup_unit(&config, &unit);
             if cleaned {
                 db.execute("UPDATE hosted_execution SET state='reaped_unknown' WHERE org=?1 AND project=?2 AND attempt=?3",params![actor.organization,lookup.project,lookup.attempt_id]).map_err(|e|e.to_string())?;
+                // The owned unit held every VM of this attempt; its empty cgroup
+                // retires any VM whose destruction was not yet observed.
+                db.execute("UPDATE hosted_microvm_job SET lifecycle='reaped' WHERE org=?1 AND attempt=?2 AND lifecycle<>'destroyed'",params![actor.organization,lookup.attempt_id]).map_err(|e|e.to_string())?;
             }
             Ok(
                 json!({"attempt_id":lookup.attempt_id,"cleaned":cleaned,"state":if cleaned {"reaped_unknown"} else {"unknown"},"financial_obligation":"reserved","rerun":false}),
@@ -1450,5 +1755,219 @@ mod tests {
         )
         .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert!(check_capacity(&db, 2).is_ok());
+    }
+
+    fn executable() -> Value {
+        json!({"path": "/nix/store/missing/bin/tool", "blake3": "0".repeat(64)})
+    }
+
+    fn firecracker_backend(extra: Value) -> Value {
+        let mut backend = json!({
+            "kind": "firecracker", "firecracker": executable(), "kernel": executable(),
+            "initrd": executable(), "guest_shell": "/bin/bash", "vcpus": 1, "memory_mib": 256,
+            "boot_timeout_ms": 10_000, "source_image_mib": 64, "warm_pool": null,
+            "qualification_identity": null,
+        });
+        if let (Some(fields), Some(extra)) = (backend.as_object_mut(), extra.as_object()) {
+            fields.extend(extra.clone());
+        }
+        backend
+    }
+
+    fn firecracker_config(backend: Value, cache_runner: Option<&str>) -> Config {
+        let cache = cache_runner.map(|runner| json!({
+            "directory": "/srv/kiln/cache", "maximum_entry_bytes": 1024, "maximum_total_bytes": 4096,
+            "maximum_entries": 4, "maximum_age_seconds": 60, "maximum_files": 4,
+            "policies": [{"organization": "acme", "project": "app", "runner": runner, "worker": {
+                "producer": "hosted", "toolchain": "t", "platform": "linux", "inputs": ["Cargo.lock"],
+                "paths": ["target"], "maximum_entry_bytes": 1024, "maximum_files": 4}}],
+        }));
+        serde_json::from_value(json!({
+            "systemd_run": executable(), "systemctl": executable(),
+            "manager_runtime_directory": "/run/user/1000", "env": executable(),
+            "work_root": "/srv/kiln/work", "cache": cache,
+            "runners": {"vm": backend},
+            "maximum_concurrent": 2, "memory_bytes": 512 * 1_048_576_u64, "processes": 16,
+            "cpu_percent": 100, "maximum_timeout_ms": 60_000, "maximum_output_bytes": 65_536,
+        }))
+        .unwrap_or_else(|error| unreachable!("fixture configuration parses: {error}"))
+    }
+
+    fn admit(config: &Config) -> Result<(), String> {
+        let backend = config.runners.get("vm").unwrap_or_else(|| unreachable!());
+        admit_firecracker(config, "vm", backend)
+    }
+
+    // r[verify kiln.hosted.microvm.admission]
+    // r[verify kiln.hosted.microvm.admission.scenario.bounds]
+    #[test]
+    fn firecracker_runner_admission_is_bounded_by_unit_limits_cache_and_pool() {
+        assert_eq!(
+            admit(&firecracker_config(firecracker_backend(json!({})), None)),
+            Ok(())
+        );
+        let pooled = json!({"warm_pool": {"directory": "/srv/kiln/pool", "slots": 2}});
+        assert_eq!(
+            admit(&firecracker_config(firecracker_backend(pooled), None)),
+            Ok(())
+        );
+        for rejected in [
+            json!({"memory_mib": 512}),
+            json!({"vcpus": 13}),
+            json!({"boot_timeout_ms": 60_000}),
+            json!({"warm_pool": {"directory": "/srv/kiln/pool", "slots": 3}}),
+            json!({"warm_pool": {"directory": "/srv/kiln/work/pool", "slots": 1}}),
+            json!({"qualification_identity": "not-a-blake3"}),
+        ] {
+            let config = firecracker_config(firecracker_backend(rejected.clone()), None);
+            assert!(admit(&config).is_err(), "{rejected}");
+        }
+        let cached = firecracker_config(firecracker_backend(json!({})), Some("vm"));
+        assert!(admit(&cached).is_err_and(|error| error.contains("cache")));
+        let unknown = serde_json::from_value::<Backend>(firecracker_backend(
+            json!({"network_interfaces": []}),
+        ));
+        assert!(unknown.is_err(), "unknown backend fields are rejected");
+    }
+
+    // r[verify kiln.hosted.qualification.scenario.nonclaims]
+    #[test]
+    fn firecracker_admits_hostile_only_with_an_operator_qualification_reference() {
+        let unqualified: Backend = serde_json::from_value(firecracker_backend(json!({})))
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(admit_backend(&unqualified, "trusted").is_ok());
+        assert!(admit_backend(&unqualified, "hostile").is_err());
+        let qualified: Backend = serde_json::from_value(firecracker_backend(
+            json!({"qualification_identity": "a".repeat(64)}),
+        ))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(admit_backend(&qualified, "hostile").is_ok());
+    }
+
+    fn namespace_step(name: &str, exit_code: i32, stdout: &str, stderr: &str) -> StepObservation {
+        // The facts run_step derives from a finished `systemd-run` process.
+        step_observation(
+            ProcessFacts {
+                name,
+                exited: true,
+                timed_out: false,
+                cancelled: false,
+                exit_code: Some(exit_code),
+                signal: None,
+                stdout: stdout.into(),
+                stderr: stderr.into(),
+                stdout_truncated: false,
+                stderr_truncated: false,
+                elapsed_ms: 41,
+                cleaned: true,
+            },
+            true,
+            None,
+        )
+    }
+
+    fn receipt(steps: Vec<StepObservation>, state: &str, extra: Value) -> Value {
+        let steps: Vec<Value> = steps.into_iter().map(|step| step.value).collect();
+        json!({"attempt_id": "a", "pipeline": "p", "state": state, "elapsed_ms": 999,
+            "jobs": [{"job": "build", "state": state, "steps": steps, "cache": {"outcome": "disabled_unconfigured"}, "microvm": extra},
+                     {"job": "after", "state": "skipped_dependency"}]})
+    }
+
+    // r[verify kiln.hosted.microvm.equivalence]
+    #[test]
+    fn namespace_and_microvm_observations_share_one_canonical_outcome() {
+        use kiln_microvm::protocol::StepReport;
+        let namespace = receipt(
+            vec![
+                namespace_step(
+                    "read",
+                    0,
+                    "readme=hello\n",
+                    "Running as unit: kiln-hosted-1.service\n",
+                ),
+                namespace_step("fail", 3, "before-failure\n", ""),
+            ],
+            "failed",
+            Value::Null,
+        );
+        let reports = [
+            StepReport {
+                index: 0,
+                exit_code: Some(0),
+                signal: None,
+                timed_out: false,
+                stdout: "readme=hello\n".into(),
+                stderr: String::new(),
+                stdout_truncated: false,
+                stderr_truncated: false,
+                elapsed_ms: 7,
+            },
+            StepReport {
+                index: 1,
+                exit_code: Some(3),
+                signal: None,
+                timed_out: false,
+                stdout: "before-failure\n".into(),
+                stderr: String::new(),
+                stdout_truncated: false,
+                stderr_truncated: false,
+                elapsed_ms: 2,
+            },
+        ];
+        let guest_steps: Vec<(String, kiln_microvm::protocol::GuestStep)> = ["read", "fail"]
+            .iter()
+            .map(|name| {
+                let step = kiln_microvm::protocol::guest_step(
+                    "/bin/bash",
+                    true,
+                    "true",
+                    ".",
+                    &BTreeMap::new(),
+                    1024,
+                )
+                .unwrap_or_else(|error| unreachable!("{error}"));
+                ((*name).to_owned(), step)
+            })
+            .collect();
+        let microvm_steps =
+            crate::microvm::observations_for_reports(&guest_steps, &reports, None, true, false);
+        let microvm = receipt(
+            microvm_steps,
+            "failed",
+            json!({"boot": "restore", "ready_ms": 56}),
+        );
+        let identity =
+            canonical_outcome(&namespace).unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!(canonical_outcome(&microvm), Ok(identity.clone()));
+
+        let changed = receipt(
+            vec![
+                namespace_step("read", 0, "readme=other\n", ""),
+                namespace_step("fail", 3, "before-failure\n", ""),
+            ],
+            "failed",
+            Value::Null,
+        );
+        assert_ne!(canonical_outcome(&changed), Ok(identity.clone()));
+        let exit = receipt(
+            vec![
+                namespace_step("read", 0, "readme=hello\n", ""),
+                namespace_step("fail", 4, "before-failure\n", ""),
+            ],
+            "failed",
+            Value::Null,
+        );
+        assert_ne!(canonical_outcome(&exit), Ok(identity.clone()));
+        let interrupted = crate::microvm::observations_for_reports(
+            &guest_steps,
+            reports.get(..1).unwrap_or_default(),
+            Some("guest boot deadline elapsed"),
+            true,
+            false,
+        );
+        assert_ne!(
+            canonical_outcome(&receipt(interrupted, "failed", Value::Null)),
+            Ok(identity)
+        );
     }
 }

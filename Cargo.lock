@@ -2908,6 +2908,7 @@ dependencies = [
  "pijul-repository",
  "sanakirja",
  "serde",
+ "serde_json",
  "tempfile",
 ]
 
@@ -3093,6 +3094,7 @@ dependencies = [
  "kiln-adapter-github",
  "kiln-codec",
  "kiln-core",
+ "kiln-microvm",
  "kiln-provider-api",
  "kiln-web-service",
  "libc",
@@ -3105,6 +3107,16 @@ dependencies = [
  "tempfile",
  "tokio",
  "zeroize",
+]
+
+[[package]]
+name = "kiln-microvm"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "nix 0.30.1",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3248,6 +3260,7 @@ dependencies = [
  "kiln-codec",
  "kiln-core",
  "kiln-highlight",
+ "kiln-observe-core",
  "kiln-provider-api",
  "lattice-workflow-transport",
  "libc",
@@ -3746,6 +3759,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+ "memoffset",
 ]
 
 [[package]]

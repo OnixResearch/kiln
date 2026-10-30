@@ -1,0 +1,58 @@
+{
+  "schema": "kiln.semantic-merge-orchestration.verification.v1",
+  "date": "2026-10-30",
+  "issue": "OnixResearch/kiln#1",
+  "maintenance_owner": "Kiln maintainers (kiln_core::semantic_merge, kiln_provider_api::semantic_merge, fixtures/semantic-merge, docs/semantic-merge-orchestration.md)",
+  "scope": "Design contract plus pure core, producer port and fixture proof. No production checker, receipt profile, required production gate, candidate generation, or mutation authority.",
+  "commands": [
+    {
+      "command": "nix develop path:. --command cargo test --locked -p kiln-core",
+      "result": "126 passed, including 16 semantic_merge tests"
+    },
+    {
+      "command": "nix develop path:. --command cargo test --locked -p kiln-adapter-pijul -p kiln-provider-api",
+      "result": "kiln-adapter-pijul unit 11 passed (incl. pinned_profile_refuses_every_forbidden_source_capability); tests/semantic_merge.rs 3 passed (positive end-to-end, producer substitution/cancellation, 20 negative fixture cases); kiln-provider-api 2 passed"
+    },
+    {
+      "command": "nix develop path:. --command cargo clippy --locked -p kiln-core -p kiln-provider-api -p kiln-adapter-pijul --all-targets -- -D warnings",
+      "result": "passed"
+    },
+    {
+      "command": "rustfmt --edition 2024 --check <changed Rust files>",
+      "result": "passed"
+    },
+    {
+      "command": "nix build path:.#checks.x86_64-linux.semantic-merge-fixtures --no-write-lock-file --builders '' --option substituters https://cache.nixos.org",
+      "result": "passed: nickel format check, byte-identical re-export of quartet.json, all four negative-*.ncl contract fixtures rejected"
+    },
+    {
+      "command": "cairn gate proposal|design|tasks define-semantic-merge-orchestration --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "PASS before implementation"
+    }
+  ],
+  "fixtures": {
+    "source": "fixtures/semantic-merge/quartet-data.ncl (typed by contract.ncl, applied by quartet.ncl)",
+    "export": "fixtures/semantic-merge/quartet.json (nickel export --format json, checked byte for byte)",
+    "negative_contract_fixtures": [
+      "negative-unsorted-coverage.ncl",
+      "negative-duplicate-change.ncl",
+      "negative-retry-bound.ncl",
+      "negative-unknown-mode.ncl"
+    ],
+    "negative_orchestration_cases": "swapped roles; changed base, candidate, dependencies, policy; missing coverage; counterexample, unknown, unsupported, exhausted, cancelled, tool-error; partial output; replay from another attempt; cancellation; concurrent source change; clean text merge, equal trees, passing tests, evidence envelope substitution"
+  },
+  "acceptance": {
+    "1_contract_and_integration_plan": "docs/semantic-merge-orchestration.md (state-transition table, integration plan over source, Lattice WorkflowEffectPlan, Bounded Exec, SemanticCheckerPort, Valence); checker_workflow_plan validated by validate_workflow_plan",
+    "2_frozen_positive_fixture": "tests/semantic_merge.rs frozen_quartet_reaches_a_ci_decision_through_provider_ports",
+    "3_negative_fixtures": "tests/semantic_merge.rs every_negative_fixture_fails_closed_with_a_named_binding plus kiln-core semantic_merge unit tests",
+    "4_cache_retry_freshness_diagnostics": "cache_reuse_and_retry_follow_the_exact_binding, concurrent_source_change_marks_the_evaluation_stale, results_for_changed_inputs_name_the_failed_binding (diagnostic field semantic_merge.binding.<component>)",
+    "5_provenance_and_forbidden_capabilities": "docs section 'Lineage and Pijul provenance'; pinned_profile_refuses_every_forbidden_source_capability",
+    "6_non_claims": "SEMANTIC_MERGE_NON_CLAIMS, docs Non-claims section, docs/security-and-non-claims.md"
+  },
+  "known_tradeoffs": [
+    "Pijul change-set containment is a provenance relation, not proof that M is the intended merge; extra candidate changes are bounded, not interpreted.",
+    "Bounds are part of the cache key, so a verified result under different bounds is not reused.",
+    "The Lattice plan carries the quartet only through operation_identity; its single-revision source context stays unset.",
+    "The fixture producer proves orchestration only; checker soundness and receipt typing wait for Octet #1, Noble #30 and Valence #1."
+  ]
+}

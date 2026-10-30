@@ -1,0 +1,120 @@
+{
+  "start_ms": 1767225600000,
+  "end_ms": 1767225700000,
+  "changes": [
+    {
+      "change_id": "change-a1",
+      "authorship": "agent",
+      "patch_sets_ms": [
+        1767225620000,
+        1767225623000,
+        1767225625000
+      ],
+      "approval": {
+        "patch_set": 3,
+        "approved_ms": 1767225630000
+      },
+      "suggestions": [
+        {
+          "path": "src/lib.rs",
+          "owner": "core",
+          "created_ms": 1767225621000
+        },
+        {
+          "path": "docs/guide.md",
+          "owner": "docs",
+          "created_ms": 1767225622000
+        },
+        {
+          "path": "src/lib.rs",
+          "owner": "core",
+          "created_ms": 1767225624000
+        }
+      ],
+      "merged_ms": 1767225631000
+    },
+    {
+      "change_id": "change-a2",
+      "authorship": "agent",
+      "patch_sets_ms": [
+        1767225640000
+      ],
+      "approval": {
+        "patch_set": 1,
+        "approved_ms": 1767225641000
+      },
+      "suggestions": [],
+      "merged_ms": 1767225642000
+    },
+    {
+      "change_id": "change-a3",
+      "authorship": "agent",
+      "patch_sets_ms": [
+        1767225650000
+      ],
+      "approval": null,
+      "suggestions": [
+        {
+          "path": "README.md",
+          "owner": null,
+          "created_ms": 1767225651000
+        }
+      ],
+      "merged_ms": null
+    },
+    {
+      "change_id": "change-h1",
+      "authorship": "human",
+      "patch_sets_ms": [
+        1767225601000,
+        1767225603000
+      ],
+      "approval": {
+        "patch_set": 2,
+        "approved_ms": 1767225605000
+      },
+      "suggestions": [
+        {
+          "path": "src/lib.rs",
+          "owner": "core",
+          "created_ms": 1767225602000
+        }
+      ],
+      "merged_ms": 1767225606000
+    },
+    {
+      "change_id": "change-h2",
+      "authorship": "human",
+      "patch_sets_ms": [
+        1767225610000
+      ],
+      "approval": {
+        "patch_set": 1,
+        "approved_ms": 1767225612000
+      },
+      "suggestions": [],
+      "merged_ms": 1767225613000
+    },
+    {
+      "change_id": "change-m1",
+      "authorship": "mixed",
+      "patch_sets_ms": [
+        1767225670000,
+        1767225671000
+      ],
+      "approval": null,
+      "suggestions": [],
+      "merged_ms": null
+    },
+    {
+      "change_id": "change-u1",
+      "authorship": "undeclared",
+      "patch_sets_ms": [
+        1767225660000
+      ],
+      "approval": null,
+      "suggestions": [],
+      "merged_ms": null
+    }
+  ]
+}

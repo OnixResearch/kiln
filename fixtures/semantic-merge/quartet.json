@@ -1,0 +1,329 @@
+{
+  "bounds": {
+    "max_memory_bytes": 1073741824,
+    "max_products": 4,
+    "stderr_max_bytes": 1048576,
+    "stdout_max_bytes": 1048576,
+    "timeout_ms": 60000
+  },
+  "checker": {
+    "checker": "fixture checker executable 1",
+    "producer_profile": "fixture-semantic-checker-v1",
+    "receipt_profile": "fixture-receipt-v1",
+    "semantic_profile": "fixture-rust-merge-profile",
+    "toolchain": "fixture toolchain 1"
+  },
+  "independent_gates": [
+    {
+      "kind": "build",
+      "name": "build",
+      "passed": true
+    },
+    {
+      "kind": "lint",
+      "name": "lints",
+      "passed": true
+    },
+    {
+      "kind": "review",
+      "name": "review",
+      "passed": true
+    },
+    {
+      "kind": "test",
+      "name": "tests",
+      "passed": true
+    }
+  ],
+  "inputs": {
+    "dependencies": "fixture dependency closure 1",
+    "model": "fixture semantic model 1"
+  },
+  "negative_cases": [
+    {
+      "expected_code": "semantic_binding_mismatch",
+      "expected_field": "semantic_merge.binding.variant_a",
+      "mutation": "swap_variants",
+      "name": "swapped-roles"
+    },
+    {
+      "changes": [
+        "change-base"
+      ],
+      "expected_code": "semantic_binding_mismatch",
+      "expected_field": "semantic_merge.binding.base",
+      "mutation": "result_for_moved_role",
+      "name": "changed-base",
+      "role": "base",
+      "state": "state-o-moved"
+    },
+    {
+      "changes": [
+        "change-base",
+        "change-b",
+        "change-a"
+      ],
+      "expected_code": "semantic_binding_mismatch",
+      "expected_field": "semantic_merge.binding.candidate",
+      "mutation": "result_for_moved_role",
+      "name": "changed-candidate",
+      "role": "candidate",
+      "state": "state-m-moved"
+    },
+    {
+      "expected_code": "semantic_binding_mismatch",
+      "expected_field": "semantic_merge.binding.dependencies",
+      "label": "fixture dependency closure 2",
+      "mutation": "change_dependencies",
+      "name": "changed-dependencies"
+    },
+    {
+      "expected_code": "semantic_binding_mismatch",
+      "expected_field": "semantic_merge.binding.policy",
+      "mutation": "change_policy",
+      "name": "changed-policy"
+    },
+    {
+      "expected_code": "semantic_coverage_missing",
+      "expected_field": "semantic_merge.result.coverage",
+      "mutation": "missing_coverage",
+      "name": "missing-coverage"
+    },
+    {
+      "expected_code": "semantic_partial_output",
+      "expected_outcome": "tool_error",
+      "mutation": "partial_output",
+      "name": "partial-output"
+    },
+    {
+      "expected_code": "semantic_attempt_replay",
+      "expected_field": "semantic_merge.attempt",
+      "mutation": "replay_attempt",
+      "name": "replay-from-another-attempt"
+    },
+    {
+      "expected_code": "semantic_result_late",
+      "expected_field": "semantic_merge.attempt",
+      "expected_outcome": "cancelled",
+      "mutation": "cancel_then_result",
+      "name": "cancellation"
+    },
+    {
+      "changes": [
+        "change-b",
+        "change-base"
+      ],
+      "expected_code": "semantic_result_stale",
+      "expected_field": "semantic_merge.binding.variant_b",
+      "expected_outcome": "stale",
+      "mutation": "concurrent_source_change",
+      "name": "concurrent-source-change",
+      "role": "variant_b",
+      "state": "state-b-moved"
+    },
+    {
+      "expected_outcome": "counterexample",
+      "mutation": "verdict",
+      "name": "nonverified-counterexample",
+      "verdict": "counterexample"
+    },
+    {
+      "expected_outcome": "unknown",
+      "mutation": "verdict",
+      "name": "nonverified-unknown",
+      "verdict": "unknown"
+    },
+    {
+      "expected_outcome": "unsupported",
+      "mutation": "verdict",
+      "name": "nonverified-unsupported",
+      "verdict": "unsupported"
+    },
+    {
+      "expected_outcome": "exhausted_wall_time",
+      "mutation": "verdict",
+      "name": "nonverified-exhausted_wall_time",
+      "verdict": "exhausted_wall_time"
+    },
+    {
+      "expected_outcome": "cancelled",
+      "mutation": "verdict",
+      "name": "nonverified-cancelled",
+      "verdict": "cancelled"
+    },
+    {
+      "expected_outcome": "tool_error",
+      "mutation": "verdict",
+      "name": "nonverified-tool_error",
+      "verdict": "tool_error"
+    },
+    {
+      "evidence_kind": "clean_text_merge",
+      "expected_code": "semantic_evidence_substitution",
+      "expected_field": "semantic_merge.result.evidence_kind",
+      "mutation": "substitute_evidence",
+      "name": "substitute-clean_text_merge"
+    },
+    {
+      "evidence_kind": "equal_source_trees",
+      "expected_code": "semantic_evidence_substitution",
+      "expected_field": "semantic_merge.result.evidence_kind",
+      "mutation": "substitute_evidence",
+      "name": "substitute-equal_source_trees"
+    },
+    {
+      "evidence_kind": "passing_tests",
+      "expected_code": "semantic_evidence_substitution",
+      "expected_field": "semantic_merge.result.evidence_kind",
+      "mutation": "substitute_evidence",
+      "name": "substitute-passing_tests"
+    },
+    {
+      "evidence_kind": "evidence_envelope",
+      "expected_code": "semantic_evidence_substitution",
+      "expected_field": "semantic_merge.result.evidence_kind",
+      "mutation": "substitute_evidence",
+      "name": "substitute-evidence_envelope"
+    }
+  ],
+  "non_claims": [
+    "fixture producer proves orchestration only, not checker soundness",
+    "fixture states are local fixtures, not trusted or complete Pijul history",
+    "fixture verdicts grant no merge, publish, status, or release authority"
+  ],
+  "policy": {
+    "admitted_candidate_suppliers": [
+      "fixture-proposal-supplier"
+    ],
+    "bound_ceilings": {
+      "max_memory_bytes": 1073741824,
+      "max_products": 4,
+      "stderr_max_bytes": 1048576,
+      "stdout_max_bytes": 1048576,
+      "timeout_ms": 60000
+    },
+    "id": "semantic-merge-fixture",
+    "lineage": {
+      "max_candidate_extra_changes": 0,
+      "require_greatest_common_base": true
+    },
+    "mode": "required",
+    "retry": {
+      "max_attempts": 2,
+      "retry_exhausted": false,
+      "retry_tool_error": true
+    }
+  },
+  "producer": {
+    "coverage": [
+      "crate::add",
+      "crate::sub"
+    ],
+    "log": "fixture checker log 1",
+    "output_complete": true,
+    "products": [
+      {
+        "content": "fixture proof summary 1",
+        "name": "proof-summary"
+      }
+    ],
+    "receipt": "fixture receipt 1",
+    "verdict": "verified"
+  },
+  "property": {
+    "assumptions": [
+      "fixture assumption: integer arithmetic is total"
+    ],
+    "id": "semantic-conflict-freedom",
+    "revision": "fixture property revision 1"
+  },
+  "repository": "semantic-merge-fixture",
+  "roles": {
+    "base": {
+      "changes": [
+        "change-base"
+      ],
+      "channel": "main",
+      "files": [
+        {
+          "path": "Cargo.toml",
+          "text": "[package]\nname = \"fixture-crate\"\nversion = \"0.1.0\"\nedition = \"2024\""
+        },
+        {
+          "path": "src/lib.rs",
+          "text": "pub fn add(left: i64, right: i64) -> i64 {\n    left + right\n}"
+        }
+      ],
+      "state": "state-o"
+    },
+    "candidate": {
+      "changes": [
+        "change-base",
+        "change-a",
+        "change-b"
+      ],
+      "channel": "proposed-merge",
+      "files": [
+        {
+          "path": "Cargo.toml",
+          "text": "[package]\nname = \"fixture-crate\"\nversion = \"0.1.0\"\nedition = \"2024\""
+        },
+        {
+          "path": "src/lib.rs",
+          "text": "pub fn add(left: i64, right: i64) -> i64 {\n    left.wrapping_add(right)\n}\n\npub fn sub(left: i64, right: i64) -> i64 {\n    left - right\n}"
+        }
+      ],
+      "state": "state-m"
+    },
+    "variant_a": {
+      "changes": [
+        "change-base",
+        "change-a"
+      ],
+      "channel": "feature-wrapping-add",
+      "files": [
+        {
+          "path": "Cargo.toml",
+          "text": "[package]\nname = \"fixture-crate\"\nversion = \"0.1.0\"\nedition = \"2024\""
+        },
+        {
+          "path": "src/lib.rs",
+          "text": "pub fn add(left: i64, right: i64) -> i64 {\n    left.wrapping_add(right)\n}"
+        }
+      ],
+      "state": "state-a"
+    },
+    "variant_b": {
+      "changes": [
+        "change-base",
+        "change-b"
+      ],
+      "channel": "feature-sub",
+      "files": [
+        {
+          "path": "Cargo.toml",
+          "text": "[package]\nname = \"fixture-crate\"\nversion = \"0.1.0\"\nedition = \"2024\""
+        },
+        {
+          "path": "src/lib.rs",
+          "text": "pub fn add(left: i64, right: i64) -> i64 {\n    left + right\n}\n\npub fn sub(left: i64, right: i64) -> i64 {\n    left - right\n}"
+        }
+      ],
+      "state": "state-b"
+    }
+  },
+  "schema": "kiln.semantic-merge-fixture.v1",
+  "source_profile": "pijul-source-v1",
+  "subject": {
+    "language": "rust",
+    "required_coverage": [
+      "crate::add",
+      "crate::sub"
+    ],
+    "unit": "fixture-crate"
+  },
+  "supply": {
+    "proposal": "proposal-1",
+    "supplier": "fixture-proposal-supplier"
+  }
+}

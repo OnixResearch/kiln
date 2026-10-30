@@ -1,0 +1,18 @@
+[package]
+name = "kiln-microvm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Pure Firecracker microVM plan, lifecycle, guest protocol and source archive core, plus the guest agent"
+
+[dependencies]
+blake3.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Guest agent shell only: vsock connect, no_new_privs, clock and process-group signals.
+nix = { version = "=0.30.1", features = ["socket", "process", "signal", "time"] }
+
+[lints]
+workspace = true

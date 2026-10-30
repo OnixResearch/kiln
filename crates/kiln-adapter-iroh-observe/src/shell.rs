@@ -248,6 +248,14 @@ fn admit_target(view: &ViewRequest, snapshot: &ObservationSnapshot) -> Result<()
                 ))
             }
         }
+        // r[impl kiln.observe.review.parity]
+        ViewRequest::ReviewFriction | ViewRequest::SuggestionAnchors { .. } => {
+            if snapshot.review.is_some() {
+                Ok(())
+            } else {
+                Err(missing_review_window())
+            }
+        }
         ViewRequest::RunList { after: None, .. }
         | ViewRequest::StateSummary
         | ViewRequest::EventTail { .. } => Ok(()),
@@ -271,8 +279,20 @@ fn observation_window(
             .as_ref()
             .map(|log| ObservationWindow::log(log.meta.clone(), log.retained_bytes.clone()))
             .ok_or_else(|| ObserveError::new("unknown_target", "log stream is unavailable")),
+        ViewRequest::ReviewFriction | ViewRequest::SuggestionAnchors { .. } => snapshot
+            .review
+            .as_ref()
+            .map(|review| ObservationWindow::review(review.clone()))
+            .ok_or_else(missing_review_window),
         _ => Ok(ObservationWindow::empty()),
     }
+}
+
+fn missing_review_window() -> ObserveError {
+    ObserveError::new(
+        "unknown_target",
+        "review window is not in the admitted snapshot",
+    )
 }
 
 // r[impl kiln.observe.iroh.serve.scenario.target]

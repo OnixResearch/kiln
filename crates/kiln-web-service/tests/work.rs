@@ -927,3 +927,551 @@ fn native_bounds_and_message_authorship_reject_without_changing_accepted_state()
     );
     Ok(())
 }
+
+fn board(workspace: &Workspace, query: &str, actor: &str) -> ApiResponse {
+    let target = if query.is_empty() {
+        "/api/work/board".to_owned()
+    } else {
+        format!("/api/work/board?{query}")
+    };
+    workspace.response("GET", &target, &[], Role::Viewer, actor, 999)
+}
+fn text<'a>(value: &'a Value, path: &str) -> Result<&'a str> {
+    Ok(field(value, path)
+        .as_str()
+        .ok_or_else(|| format!("{path} is not text"))?)
+}
+fn column_statuses(projection: &Value) -> Result<Vec<String>> {
+    Ok(field(projection, "/columns")
+        .as_array()
+        .ok_or("columns missing")?
+        .iter()
+        .map(|lane| {
+            field(lane, "/status")
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        })
+        .collect())
+}
+fn lane<'a>(projection: &'a Value, status: &str) -> Result<&'a Value> {
+    Ok(field(projection, "/columns")
+        .as_array()
+        .ok_or("columns missing")?
+        .iter()
+        .find(|lane| field(lane, "/status") == status)
+        .ok_or_else(|| format!("column {status} missing"))?)
+}
+fn card_ids(lane: &Value) -> Vec<String> {
+    field(lane, "/cards")
+        .as_array()
+        .map(|cards| {
+            cards
+                .iter()
+                .map(|card| field(card, "/id").as_str().unwrap_or_default().to_owned())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+fn set(value: &mut Value, path: &str, replacement: Value) -> Result<()> {
+    let (parent, key) = path.rsplit_once('/').ok_or("path must start with /")?;
+    value
+        .pointer_mut(parent)
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| format!("{parent} is not an object"))?
+        .insert(key.to_owned(), replacement);
+    Ok(())
+}
+fn set_status(request: &str, record: &Value, status: &str) -> Value {
+    change(
+        request,
+        record,
+        json!({"type":"set_status","status":status}),
+    )
+}
+
+struct Board {
+    alpha: Value,
+    review: Value,
+    deploying: Value,
+    request: Value,
+    view: Value,
+    private: Value,
+}
+
+/// Two teams with their own statuses, three issues, a request and two views:
+/// a shared team-scoped board with configured columns and Alice's private list view.
+fn board_fixture(workspace: &Workspace) -> Result<Board> {
+    let alpha = accepted(post(
+        workspace,
+        &create(
+            "team-alpha",
+            "team",
+            json!({"title":"Alpha","workflow":["review"]}),
+        ),
+        ALICE,
+        100,
+    )?)?;
+    let beta = accepted(post(
+        workspace,
+        &create(
+            "team-beta",
+            "team",
+            json!({"title":"Beta","workflow":["deploying"]}),
+        ),
+        ALICE,
+        101,
+    )?)?;
+    let alpha_id = text(&alpha, "/id")?;
+    let backlog = accepted(post(
+        workspace,
+        &create(
+            "issue-backlog",
+            "issue",
+            json!({"title":"Fix login","team":alpha_id,"labels":["bug"]}),
+        ),
+        ALICE,
+        102,
+    )?)?;
+    let review = accepted(post(
+        workspace,
+        &create(
+            "issue-review",
+            "issue",
+            json!({"title":"Review docs","team":alpha_id,"status":"review"}),
+        ),
+        ALICE,
+        103,
+    )?)?;
+    let deploying = accepted(post(
+        workspace,
+        &create(
+            "issue-deploying",
+            "issue",
+            json!({"title":"Deploy","team":text(&beta, "/id")?,"status":"deploying"}),
+        ),
+        ALICE,
+        104,
+    )?)?;
+    let request = accepted(post(
+        workspace,
+        &create(
+            "request-one",
+            "request",
+            json!({"title":"Customer ask","status":"triage","customer":"Acme"}),
+        ),
+        ALICE,
+        105,
+    )?)?;
+    let view = accepted(post(
+        workspace,
+        &create(
+            "view-board",
+            "view",
+            json!({"title":"Alpha board","view":{"filters":{"team":alpha_id},"sort":"title","group_by":"none","layout":"board","shared":true,
+                "board":{"columns":["triage","backlog","review","completed"]}}}),
+        ),
+        ALICE,
+        106,
+    )?)?;
+    let private = accepted(post(
+        workspace,
+        &create(
+            "view-private",
+            "view",
+            json!({"title":"Mine","view":{"filters":{},"sort":"updated","group_by":"status","layout":"list","shared":false}}),
+        ),
+        ALICE,
+        107,
+    )?)?;
+    let _ = backlog;
+    Ok(Board {
+        alpha,
+        review,
+        deploying,
+        request,
+        view,
+        private,
+    })
+}
+
+// r[verify kiln.work.kanban.config] r[verify kiln.work.kanban.columns] r[verify kiln.work.kanban.projection]
+// r[verify kiln.work.kanban.boundary]
+#[test]
+fn kanban_view_survives_restart_is_shared_and_shows_the_list_eligible_issues() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let made = board_fixture(&fixture.workspace()?)?;
+    let view_id = text(&made.view, "/id")?;
+    // A fresh workspace replays the signed history: the configuration is durable.
+    let workspace = fixture.workspace()?;
+    let shared = body(&board(&workspace, &format!("view={view_id}"), BOB))?;
+    assert_eq!(field(&shared, "/schema"), "kiln.work.board.v1");
+    assert_eq!(field(&shared, "/principal"), BOB);
+    assert_eq!(field(&shared, "/view/id"), view_id);
+    assert_eq!(field(&shared, "/view/head"), field(&made.view, "/head"));
+    assert_eq!(field(&shared, "/view/configured_columns"), true);
+    assert_eq!(
+        column_statuses(&shared)?,
+        ["triage", "backlog", "review", "completed"]
+    );
+    // Empty configured columns stay visible in configured order.
+    assert_eq!(field(lane(&shared, "triage")?, "/total"), 0);
+    assert_eq!(field(lane(&shared, "completed")?, "/total"), 0);
+    assert_eq!(
+        field(lane(&shared, "review")?, "/teams/0"),
+        field(&made.alpha, "/id")
+    );
+    assert_eq!(
+        card_ids(lane(&shared, "review")?),
+        [text(&made.review, "/id")?]
+    );
+    // List eligibility over the same snapshot: Alpha issues only.
+    let listing = body(&workspace.response("GET", "/api/work", &[], Role::Viewer, BOB, 999))?;
+    let mut expected: Vec<String> = field(&listing, "/objects")
+        .as_array()
+        .ok_or("objects missing")?
+        .iter()
+        .filter(|record| {
+            field(record, "/kind") == "issue"
+                && record.pointer("/fields/team") == Some(field(&made.alpha, "/id"))
+        })
+        .map(|record| field(record, "/id").as_str().unwrap_or_default().to_owned())
+        .collect();
+    expected.sort();
+    let mut shown: Vec<String> = field(&shared, "/columns")
+        .as_array()
+        .ok_or("columns missing")?
+        .iter()
+        .flat_map(card_ids)
+        .collect();
+    shown.sort();
+    assert_eq!(shown, expected);
+    assert_eq!(field(&shared, "/matched_issues"), 2);
+    assert_eq!(field(&shared, "/complete"), true);
+    assert_eq!(field(&shared, "/filtered"), true);
+    assert_eq!(field(&shared, "/object_limit"), 1024);
+    assert!(
+        field(&shared, "/non_claims/2")
+            .as_str()
+            .is_some_and(|claim| claim.contains("no execution lease"))
+    );
+    // URL overrides narrow the saved filters without writing the view.
+    let narrowed = body(&board(
+        &workspace,
+        &format!("view={view_id}&status=review&sort=updated"),
+        BOB,
+    ))?;
+    assert_eq!(field(&narrowed, "/matched_issues"), 1);
+    assert_eq!(field(&narrowed, "/sort"), "updated");
+    // Without a saved view the Work page defaults apply: issues as cards,
+    // the matching request only in the list, every default column present.
+    let unsaved = body(&board(&workspace, "", BOB))?;
+    assert_eq!(field(&unsaved, "/view"), &Value::Null);
+    assert_eq!(field(&unsaved, "/matched_issues"), 3);
+    assert_eq!(field(&unsaved, "/list_only"), 1);
+    assert_eq!(
+        column_statuses(&unsaved)?,
+        [
+            "triage",
+            "backlog",
+            "started",
+            "review",
+            "deploying",
+            "completed",
+            "cancelled",
+            "snoozed",
+            "duplicate"
+        ]
+    );
+    let _ = (&made.deploying, &made.request);
+    Ok(())
+}
+
+// r[verify kiln.work.kanban.projection] r[verify kiln.work.kanban.config.scenario.migration]
+#[test]
+fn private_views_stay_private_and_old_views_use_default_columns() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let workspace = fixture.workspace()?;
+    let made = board_fixture(&workspace)?;
+    let private_id = text(&made.private, "/id")?;
+    // The private view has no board configuration (written as before boards existed).
+    assert_eq!(made.private.pointer("/fields/view/board"), None);
+    let missing = board(&workspace, &format!("view={private_id}"), BOB);
+    assert_eq!(missing.status, 404);
+    assert_eq!(field(&body(&missing)?, "/code"), "work_object_missing");
+    let absent = board(
+        &workspace,
+        "view=0123456789abcdef0123456789abcdef01234567",
+        BOB,
+    );
+    assert_eq!(
+        absent.body, missing.body,
+        "missing and private are indistinguishable"
+    );
+    let mine = body(&board(&workspace, &format!("view={private_id}"), ALICE))?;
+    assert_eq!(field(&mine, "/view/configured_columns"), false);
+    assert_eq!(column_statuses(&mine)?.len(), 9);
+    assert_eq!(field(&mine, "/matched_issues"), 3);
+    // Saved views list every non-personal kind: two teams, the request and both views.
+    assert_eq!(field(&mine, "/list_only"), 5);
+    // A non-view object is not a board.
+    let not_view = board(
+        &workspace,
+        &format!("view={}", text(&made.review, "/id")?),
+        ALICE,
+    );
+    assert_eq!(not_view.status, 404);
+    // Malformed, unknown and repeated parameters are rejected, never ignored.
+    for query in [
+        "view=nope",
+        "team=x",
+        "sort=random",
+        "q=a&q=b",
+        "q=%0A",
+        "q",
+    ] {
+        let response = board(&workspace, query, ALICE);
+        assert_eq!(response.status, 400, "{query}");
+        assert_eq!(field(&body(&response)?, "/code"), "work_query_invalid");
+    }
+    let posted = workspace.response("POST", "/api/work/board", b"{}", Role::Operator, ALICE, 999);
+    assert_eq!(posted.status, 405);
+    let worker = workspace.response("GET", "/api/work/board", &[], Role::Worker, ALICE, 999);
+    assert_eq!(worker.status, 403);
+    let unconfigured = Workspace::new(None)?;
+    assert_eq!(board(&unconfigured, "", ALICE).status, 404);
+    Ok(())
+}
+
+// r[verify kiln.work.kanban.move] r[verify kiln.work.kanban.move.scenario.retry]
+#[test]
+fn moving_a_card_writes_one_issue_status_operation_seen_by_every_view() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let workspace = fixture.workspace()?;
+    let made = board_fixture(&workspace)?;
+    let view_id = text(&made.view, "/id")?;
+    let private_id = text(&made.private, "/id")?;
+    let before = body(&board(&workspace, &format!("view={view_id}"), ALICE))?;
+    let card = (*field(lane(&before, "review")?, "/cards/0")).clone();
+    let command = set_status("move-one", &card, "completed");
+    let moved = accepted(post(&workspace, &command, ALICE, 500)?)?;
+    assert_eq!(field(&moved, "/fields/status"), "completed");
+    assert_eq!(field(&moved, "/fields/title"), "Review docs");
+    assert_eq!(field(&moved, "/fields/team"), field(&made.alpha, "/id"));
+    // Exactly one native operation: the new head's only parent is the prior head.
+    let repository = fixture.repository()?;
+    let head = repository.find_commit(cob_git2::Oid::from_str(text(&moved, "/head")?)?)?;
+    assert_eq!(head.parent_count(), 1);
+    assert_eq!(head.parent_id(0)?.to_string(), text(&card, "/head")?);
+    // An identical retry returns the original result and writes nothing.
+    let retried = post(&workspace, &command, ALICE, 600)?;
+    assert_eq!(retried.status, 200);
+    let retried = body(&retried)?;
+    assert_eq!(field(&retried, "/replayed"), true);
+    assert_eq!(field(&retried, "/object/head"), field(&moved, "/head"));
+    let current = body(&get(&workspace, text(&moved, "/id")?, ALICE))?;
+    assert_eq!(field(&current, "/head"), field(&moved, "/head"));
+    // The same request ID with a different target is a request conflict.
+    let changed = post(
+        &workspace,
+        &set_status("move-one", &card, "backlog"),
+        ALICE,
+        600,
+    )?;
+    assert_eq!(changed.status, 409);
+    assert_eq!(field(&body(&changed)?, "/code"), "work_request_conflict");
+    // Every including view sees the move; no view was written.
+    let shared = body(&board(&workspace, &format!("view={view_id}"), BOB))?;
+    assert_eq!(
+        card_ids(lane(&shared, "completed")?),
+        [text(&moved, "/id")?]
+    );
+    assert_eq!(field(lane(&shared, "review")?, "/total"), 0);
+    assert_eq!(field(&shared, "/view/head"), field(&made.view, "/head"));
+    let private = body(&board(&workspace, &format!("view={private_id}"), ALICE))?;
+    assert_eq!(field(&private, "/view/head"), field(&made.private, "/head"));
+    assert!(card_ids(lane(&private, "completed")?).contains(&text(&moved, "/id")?.to_owned()));
+    // The target must belong to the issue's team workflow; requests do not move.
+    let wrong_team = post(
+        &workspace,
+        &set_status("move-wrong-team", &moved, "deploying"),
+        ALICE,
+        700,
+    )?;
+    assert_eq!(wrong_team.status, 400);
+    let request = post(
+        &workspace,
+        &set_status("move-request", &made.request, "backlog"),
+        ALICE,
+        700,
+    )?;
+    assert_eq!(request.status, 400);
+    let unchanged = body(&get(&workspace, text(&moved, "/id")?, ALICE))?;
+    assert_eq!(field(&unchanged, "/head"), field(&moved, "/head"));
+    let _ = &made.deploying;
+    Ok(())
+}
+
+// r[verify kiln.work.kanban.move] r[verify kiln.work.kanban.projection]
+#[test]
+fn board_configuration_and_moves_keep_existing_write_authority() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let workspace = fixture.workspace()?;
+    let made = board_fixture(&workspace)?;
+    let command = set_status("move-denied", &made.review, "completed");
+    // An authenticated principal outside write_principals may read but not move.
+    let outsider = "local:outsider";
+    assert_eq!(board(&workspace, "", outsider).status, 200);
+    assert_eq!(
+        field(&body(&board(&workspace, "", outsider))?, "/can_write"),
+        false
+    );
+    let denied = post(&workspace, &command, outsider, 500)?;
+    assert_eq!(denied.status, 403);
+    assert_eq!(field(&body(&denied)?, "/code"), "work_write_denied");
+    let worker = workspace.response(
+        "POST",
+        "/api/work/commands",
+        &serde_json::to_vec(&command)?,
+        Role::Worker,
+        ALICE,
+        500,
+    );
+    assert_eq!(worker.status, 403);
+    // A board column change on another principal's private view stays hidden.
+    let mut fields = (*field(&made.private, "/fields")).clone();
+    set(&mut fields, "/view/board", json!({"columns":["backlog"]}))?;
+    let hidden = post(
+        &workspace,
+        &change(
+            "bob-edits-private",
+            &made.private,
+            json!({"type":"edit","fields":fields}),
+        ),
+        BOB,
+        500,
+    )?;
+    assert_eq!(hidden.status, 404);
+    // Extending the configuration does not unlock the immutable visibility.
+    let mut shared = (*field(&made.private, "/fields")).clone();
+    set(&mut shared, "/view/shared", json!(true))?;
+    set(&mut shared, "/view/board", json!({"columns":["backlog"]}))?;
+    let exposed = post(
+        &workspace,
+        &change(
+            "share-private",
+            &made.private,
+            json!({"type":"edit","fields":shared}),
+        ),
+        ALICE,
+        500,
+    )?;
+    assert_eq!(exposed.status, 400);
+    // Undefined columns are rejected when introduced.
+    let mut undefined = (*field(&made.view, "/fields")).clone();
+    set(
+        &mut undefined,
+        "/view/board",
+        json!({"columns":["backlog","nonexistent"]}),
+    )?;
+    let rejected = post(
+        &workspace,
+        &change(
+            "undefined-column",
+            &made.view,
+            json!({"type":"edit","fields":undefined}),
+        ),
+        ALICE,
+        500,
+    )?;
+    assert_eq!(rejected.status, 400);
+    let unchanged = body(&get(&workspace, text(&made.view, "/id")?, ALICE))?;
+    assert_eq!(field(&unchanged, "/head"), field(&made.view, "/head"));
+    let issue = body(&get(&workspace, text(&made.review, "/id")?, ALICE))?;
+    assert_eq!(field(&issue, "/fields/status"), "review");
+    Ok(())
+}
+
+// r[verify kiln.work.kanban.move.scenario.stale]
+#[test]
+fn stale_and_concurrent_moves_never_overwrite_a_newer_head() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let workspace = fixture.workspace()?;
+    let made = board_fixture(&workspace)?;
+    let card = made.review.clone();
+    // Bob edits the title first; Alice's board still holds the old head.
+    let mut fields = (*field(&card, "/fields")).clone();
+    set(&mut fields, "/title", json!("Review docs (renamed)"))?;
+    let renamed = accepted(post(
+        &workspace,
+        &change("bob-rename", &card, json!({"type":"edit","fields":fields})),
+        BOB,
+        500,
+    )?)?;
+    let stale = post(
+        &workspace,
+        &set_status("alice-stale", &card, "completed"),
+        ALICE,
+        600,
+    )?;
+    assert_eq!(stale.status, 409);
+    assert_eq!(field(&body(&stale)?, "/code"), "work_head_conflict");
+    let current = body(&get(&workspace, text(&card, "/id")?, ALICE))?;
+    assert_eq!(field(&current, "/head"), field(&renamed, "/head"));
+    assert_eq!(field(&current, "/fields/status"), "review");
+    // After reloading, the user's explicit new request applies to the new head
+    // and keeps the concurrent rename.
+    let resolved = accepted(post(
+        &workspace,
+        &set_status("alice-resolved", &current, "completed"),
+        ALICE,
+        700,
+    )?)?;
+    assert_eq!(field(&resolved, "/fields/title"), "Review docs (renamed)");
+    // Two workspaces moving the same head concurrently: exactly one applies.
+    let barrier = Arc::new(Barrier::new(2));
+    let mut writers = Vec::new();
+    for (number, status) in ["backlog", "triage"].into_iter().enumerate() {
+        let racer = fixture.workspace()?;
+        let barrier = barrier.clone();
+        let command =
+            serde_json::to_vec(&set_status(&format!("race-{number}"), &resolved, status))?;
+        writers.push(std::thread::spawn(move || {
+            barrier.wait();
+            racer
+                .response(
+                    "POST",
+                    "/api/work/commands",
+                    &command,
+                    Role::Operator,
+                    ALICE,
+                    800,
+                )
+                .status
+        }));
+    }
+    let statuses: Vec<u16> = writers
+        .into_iter()
+        .map(|writer| {
+            writer
+                .join()
+                .unwrap_or_else(|error| unreachable!("fixture writer failed: {error:?}"))
+        })
+        .collect();
+    assert_eq!(
+        statuses.iter().filter(|status| **status == 200).count(),
+        1,
+        "{statuses:?}"
+    );
+    assert!(
+        statuses
+            .iter()
+            .all(|status| [200, 409, 503].contains(status))
+    );
+    let settled = body(&get(&workspace, text(&card, "/id")?, ALICE))?;
+    let repository = fixture.repository()?;
+    let head = repository.find_commit(cob_git2::Oid::from_str(text(&settled, "/head")?)?)?;
+    assert_eq!(head.parent_id(0)?.to_string(), text(&resolved, "/head")?);
+    assert!(["backlog", "triage"].contains(&text(&settled, "/fields/status")?));
+    Ok(())
+}

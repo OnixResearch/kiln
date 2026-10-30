@@ -81,14 +81,43 @@ report states the page facts it observed, including `capped`, `more`, and
 `earlier`, so an operator can tell that the report is a bounded view rather
 than the whole history.
 
+### Review friction and suggestion anchors
+
+With `--review <path>`, the dashboard adds two panels over one canonical review
+window document: exactly the observation `ReviewWindow` JSON, as in
+`fixtures/observation/review-window-v1.json`. The shell reads the document under
+the named `MAX_REVIEW_WINDOW_BYTES` bound (1 MiB) and rejects malformed
+documents, unknown fields, and unknown authorship classes before projection.
+
+| Panel | Request |
+|---|---|
+| review friction | `review_friction` over the review window: per authorship class, changes, approved changes, approval latency and patch sets before approval (min, median, max), suggestions per change (total, median, max), merged changes, merged without suggestion, and its per-mille share |
+| suggestion anchors | `suggestion_anchors` with cursor `0` and the profile's `max_page_items`: anchor path, owning rule or `unowned`, suggestions, and changes, with the page facts `total`, `more`, and `next` |
+
+Both requests go through `project_observation` unchanged, so their content and
+`kiln.observe.view.v1` identities equal what any surface projecting the same
+profile, state, request, and window serves; both identities appear in the
+identity table.
+A window that fails admission, such as `start_ms >= end_ms`
+(`review_window_range`), fails the report, and a profile that does not admit
+both review views fails with `review_views_not_admitted` instead of silently
+dropping the window. Redacted anchor paths and owners render as `redacted`.
+
+Authorship is self-declared and unverified: the classes are what change
+authors declared, not provenance the dashboard checked. The panels observe
+review friction only; they grant no merge, approval, or review authority, and
+nothing they show is a gate input.
+
 ## Inputs
 
-The dashboard observes two kinds of input.
+The dashboard observes two kinds of input, plus an optional review window
+beside either one.
 
 | Input | Command | Admission |
 |---|---|---|
 | canonical Kiln journal document | `--journal <path>` | every record's event identity is recomputed under the convention its identity kind declares, and the whole record set replays canonically |
 | canonical SQLite event store | `--store <path> --stream <ns:kind:id>` | the store is opened read only, the retained stream is loaded, its event identities are verified, and the history replays canonically |
+| canonical review window document (optional, with `--journal` or `--store`) | `--review <path>` | read under its named byte bound, parsed strictly, and admitted against the observation profile's review bounds during projection |
 
 The journal document path reads the envelope that the writing shell owns and
 ignores unknown envelope fields. The store path opens the database without
@@ -107,6 +136,7 @@ path, which its read-only local boundary forbids.
 $ kiln-dashboard --journal path/to/journal.json --profile path/to/profile.json
 $ kiln-dashboard --journal path/to/journal.json --profile path/to/profile.json --run run-1 --watch
 $ kiln-dashboard --store path/to/events.db --stream kiln:event-stream:main --profile path/to/profile.json
+$ kiln-dashboard --journal path/to/journal.json --profile path/to/profile.json --review fixtures/observation/review-window-v1.json
 $ kiln dashboard --journal path/to/journal.json --profile path/to/profile.json
 ```
 

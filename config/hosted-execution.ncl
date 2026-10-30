@@ -38,9 +38,11 @@ let Immutable = {
 }
 in
 let Backend = {
-  kind | std.contract.from_predicate (fun value => std.array.elem value ["namespaces", "qemu"]),
+  kind | std.contract.from_predicate (fun value => std.array.elem value ["namespaces", "qemu", "firecracker"]),
   # namespaces: every namespace-specific field is required by Rust admission;
-  # qemu: qemu/kernel/initramfs/guest_shell/acceleration are required there.
+  # qemu: qemu/kernel/initramfs/guest_shell/acceleration are required there;
+  # firecracker: firecracker/kernel/initrd/guest_shell/vcpus/memory_mib/
+  # boot_timeout_ms/source_image_mib are required, warm_pool is optional.
   # Unknown or cross-backend fields are rejected, not ignored.
   unshare | Immutable | optional,
   python | Immutable | optional,
@@ -53,6 +55,15 @@ let Backend = {
   root_image | Dyn | optional,
   guest_shell | Absolute | optional,
   acceleration | std.contract.from_predicate (fun value => std.array.elem value ["tcg", "kvm"]) | optional,
+  firecracker | Immutable | optional,
+  initrd | Immutable | optional,
+  vcpus | Positive 8 | optional,
+  memory_mib | Positive 16384 | optional,
+  boot_timeout_ms | Positive 60000 | optional,
+  source_image_mib | Positive 1024 | optional,
+  # Snapshot/restore warm pool: a private 0700 directory outside work_root and
+  # at most 16 slots, never more than maximum_concurrent (checked in Rust).
+  warm_pool | Dyn | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
   qualification_identity | Dyn | optional,

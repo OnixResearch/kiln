@@ -8,6 +8,7 @@ pub mod connections;
 pub mod execution;
 pub mod finance;
 pub mod fleet;
+pub mod microvm;
 pub mod operations;
 pub mod pipelines;
 pub mod secrets;

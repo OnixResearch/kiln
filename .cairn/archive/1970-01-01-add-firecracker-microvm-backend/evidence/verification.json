@@ -1,0 +1,203 @@
+{
+  "schema": "kiln.hosted-microvm.verification.v1",
+  "date": "2026-10-30",
+  "issue": "https://github.com/OnixResearch/kiln/issues/2",
+  "maintenance_owner": "Kiln hosted-composition maintainers (Firecracker shell, Nickel contracts, flake guest output); Kiln maintainers (kiln-microvm core and guest agent)",
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X3D",
+    "host_kernel": "6.18.50",
+    "kvm": "/dev/kvm 0666 root:kvm, service user in group kvm",
+    "user_manager": "systemd user manager /run/user/1555 with cgroup v2 cpu/io/memory/pids delegation"
+  },
+  "guest_image": {
+    "flake_output": "path:.#microvm-guest (x86_64-linux)",
+    "store_path": "/nix/store/1w0hkmkv73cc0j133l7dhb1iwhyg3l9a-kiln-microvm-guest",
+    "kernel": "nixpkgs linux 6.18.42 vmlinux, --strip-all, 56,626,632 bytes, blake3 6be7dd21ca509a067ad4dac11280c0856c7c02bdd2dff1dbd3c6876f2ad0226a",
+    "initrd": "makeInitrdNG uncompressed cpio, 9,134,080 bytes, blake3 dc91a5c63c73a372b0770aea9b951b1fea99c34ed718c842a5f3aee37843c3a2",
+    "firecracker": "1.15.1 from the flake-pinned nixpkgs, blake3 cd583fce90a23493fbe06ce8efec22b3fcd3d970ec339fe3481d883682b72f7d",
+    "location": "nix store only; nothing image-sized in the repository"
+  },
+  "commands": [
+    {
+      "command": "cairn gate proposal|design|tasks add-firecracker-microvm-backend --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "PASS x3 (before implementation and after final edits)"
+    },
+    {
+      "command": "nix build path:.#microvm-guest --no-write-lock-file --builders ''",
+      "result": "built; manifest.json lists exact paths and BLAKE3"
+    },
+    {
+      "command": "nix develop path:. --command cargo fmt -p kiln-microvm -p kiln-hosted",
+      "result": "clean"
+    },
+    {
+      "command": "nix develop path:. --command cargo clippy --locked -p kiln-microvm -p kiln-hosted --all-targets -- -D warnings",
+      "result": "clean"
+    },
+    {
+      "command": "nix develop path:. --command cargo test --locked -p kiln-microvm -p kiln-hosted",
+      "result": "kiln-microvm 14 passed; kiln-hosted lib 49 passed, journey 9 passed, microvm host test printed 'SKIP microVM host test: KILN_MICROVM_GUEST unset' with no VM result"
+    },
+    {
+      "command": "KILN_MICROVM_REQUIRED=1 cargo test --locked -p kiln-hosted --test microvm",
+      "result": "FAILED as intended without KILN_MICROVM_GUEST: 'microVM host test required but unavailable'"
+    },
+    {
+      "command": "KILN_MICROVM_GUEST=/nix/store/1w0hkmkv73cc0j133l7dhb1iwhyg3l9a-kiln-microvm-guest KILN_MICROVM_REQUIRED=1 cargo test --locked --release -p kiln-hosted --test microvm -- --nocapture",
+      "result": "1 passed in 9.24s; numbers below"
+    },
+    {
+      "command": "KILN_MICROVM_GUEST=... KILN_MICROVM_REQUIRED=1 cargo test --locked -p kiln-hosted --test microvm -- --nocapture (debug build)",
+      "result": "1 passed in 106s; same canonical outcome; debug-build BLAKE3 image verification dominates job time (verify_ms median 3774)"
+    },
+    {
+      "command": "nickel format --check / typecheck config/hosted-*.ncl; export config/fixtures/hosted-service-positive.ncl; every config/fixtures/negative-*.ncl",
+      "result": "positive exports with a firecracker runner; negative-hosted-service-firecracker-network (extra field network_interfaces) and -pool (slots 17) rejected; all other negatives still rejected"
+    }
+  ],
+  "acceptance": {
+    "1_same_canonical_result": {
+      "pipeline": "build (README/nested file/symlink reads, cwd+env, tmp scratch) -> check (exit 3, second step never runs) -> after (skipped_dependency); overall state failed on every backend",
+      "canonical_outcome": "5106f54806bfa0631748d4ac86afda5de6a1ed0ba101150a688d0fc2dbedc722",
+      "runs_with_identical_canonical_outcome": [
+        "namespaces",
+        "cold-1",
+        "cold-2",
+        "warm-1",
+        "warm-2",
+        "warm-3"
+      ],
+      "pure_core_test": "kiln-hosted execution::tests::namespace_and_microvm_observations_share_one_canonical_outcome (+ changed stdout/exit/interruption yield different identities)",
+      "host_test": "crates/kiln-hosted/tests/microvm.rs, gated on /dev/kvm + user manager + KILN_MICROVM_GUEST; explicit SKIP otherwise, failure with KILN_MICROVM_REQUIRED=1",
+      "journal_before_destroy": "every VM observation journaled=true destroyed=true; every hosted_microvm_job row ended 'destroyed'"
+    },
+    "2_guest_escape_suite": {
+      "all_denied": true,
+      "probes": [
+        {
+          "probe": "namespace-creation",
+          "state": "succeeded",
+          "stdout": "denied unshare -U: unshare: unshare(0x10000000): No space left on device\ndenied unshare -m: unshare: unshare(0x20000): Operation not permitted\ndenied unshare -n: unshare: unshare(0x40000000): Operation not permitted\ndenied unshare -p -f: unshare: unshare(0x20000000): Operation not permitted\ndenied unshare -i: unshare: unshare(0x8000000): Operation not permitted\ndenied unshare -u: unshare: unshare(0x4000000): Operation not permitted\ndenied mount: mount: permission denied (are you root?)\n"
+        },
+        {
+          "probe": "proc-sys-probing",
+          "state": "succeeded",
+          "stdout": "denied host processes: 53 guest pids, pid1=kiln-microvm-gu\ndenied host boot_id: guest kernel has its own\ndenied host hostname: guest=(none)\ndenied host filesystem: host work_root absent in guest\nguest cpu reports hypervisor\ndenied host network devices: sysfs lists only lo\ndenied host block devices: sysfs lists only the source drive\ndenied host cgroups: no cgroupfs\ndenied module loading: modules_disabled=1\ndenied kernel log: dmesg_restrict\n"
+        },
+        {
+          "probe": "network-egress",
+          "state": "succeeded",
+          "stdout": "denied tcp 1.1.1.1:443: Network is unreachable (os error 101)\ndenied tcp 10.0.2.2:80: Network is unreachable (os error 101)\ndenied tcp 169.254.169.254:80: Network is unreachable (os error 101)\ndenied bash /dev/tcp 1.1.1.1:443\ndenied vsock 2:10240: ECONNRESET: Connection reset by peer\ndenied vsock 2:1024: ECONNRESET: Connection reset by peer\ndenied vsock 2:22: ECONNRESET: Connection reset by peer\ndenied vsock 1:10240: ETIMEDOUT: Connection timed out\n"
+        }
+      ]
+    },
+    "3_latency_release_build": {
+      "definition": "ready_ms = systemd-run spawn of the attempt unit -> guest agent vsock connection accepted (includes unit start, VMM start, kernel boot or snapshot load); restore_api_ms = spawn -> PUT /snapshot/load returned",
+      "cold_start_ready_ms": {
+        "samples": [
+          476,
+          486,
+          464,
+          515
+        ],
+        "min": 464,
+        "median": 481.0,
+        "max": 515
+      },
+      "snapshot_restore_ready_ms": {
+        "samples": [
+          72,
+          64,
+          59,
+          55,
+          104,
+          54
+        ],
+        "min": 54,
+        "median": 61.5,
+        "max": 104
+      },
+      "snapshot_restore_api_ms": {
+        "samples": [
+          47,
+          53,
+          44,
+          34,
+          67,
+          39
+        ],
+        "min": 34,
+        "median": 45.5,
+        "max": 67
+      },
+      "snapshot_build_ms": [
+        690
+      ],
+      "end_to_end_job_ms_cold": {
+        "samples": [
+          636,
+          650,
+          682,
+          671
+        ],
+        "min": 636,
+        "median": 660.5,
+        "max": 682
+      },
+      "end_to_end_job_ms_restore": {
+        "samples": [
+          1012,
+          244,
+          255,
+          260,
+          324,
+          302
+        ],
+        "min": 244,
+        "median": 281.0,
+        "max": 1012
+      },
+      "image_verification_ms": {
+        "samples": [
+          34,
+          48,
+          34,
+          38,
+          36,
+          32,
+          41,
+          67,
+          41,
+          79,
+          38
+        ],
+        "min": 32,
+        "median": 38,
+        "max": 79
+      },
+      "machine": "1 vCPU, 256 MiB, 16 MiB source image"
+    },
+    "4_docs": "docs/hosted-ci.md section 6: firecracker runner fields, guest build, host test, and 'Isolation claims of the Firecracker backend' (upgrades: separate guest kernel behind KVM instead of host kernel namespaces; non-claims: hostile multi-tenant/production qualification, KVM/Firecracker host bugs, side channels, jailer separation, secret confidentiality, RNG independence). README hosted line links it. Receipts keep hostile_isolation_claim:false."
+  },
+  "fixtures": [
+    "config/fixtures/hosted-service-positive.ncl (firecracker runner 'microvm' with warm pool)",
+    "config/fixtures/negative-hosted-service-firecracker-network.ncl",
+    "config/fixtures/negative-hosted-service-firecracker-pool.ncl",
+    "crates/kiln-hosted/tests/microvm.rs (temporary workspaces, services, pool dirs under /tmp; removed after the run; no leftover units)"
+  ],
+  "known_tradeoffs": [
+    "Guest CPUs hide CET (shadow stack/IBT): Firecracker 1.15.1 restores snapshots without CET supervisor XSAVE state on this KVM-CET host; without the template the restored guest faulted in XRSTORS (observed). Cold and restored VMs use the same template.",
+    "Stock nixpkgs distro kernel: cold boot ~0.5 s; a microVM-tuned kernel would be faster. The warm pool cuts readiness to ~55-105 ms.",
+    "One snapshot serves many jobs: pre-restore guest memory/RNG state is shared; mitigated by a 32-byte host seed and VMGenID, documented.",
+    "Snapshot files are trusted from a private 0700 pool directory; only the state file is BLAKE3-checked per restore (memory file size only) to keep restore latency low.",
+    "Guest writes never reach the host workspace; cache policies naming a Firecracker runner are rejected; steps within one job share /work, jobs do not.",
+    "No jailer (requires root); the VMM runs as the service user inside the attempt's user-manager unit with Firecracker's built-in seccomp.",
+    "Kernel images are BLAKE3-verified on every job (~30-80 ms in release).",
+    "The guest pid-count probe bound (< 64) is calibrated for 1 vCPU; more vCPUs add kernel threads.",
+    "x86_64 only: the flake output and Rust admission reject other architectures."
+  ],
+  "not_done": [
+    "No independent adversarial/hostile multi-tenant qualification; none is claimed.",
+    "Warm-pool exhaustion fallback and snapshot rebuild-after-identity-change are covered by unit tests of identity/admission, not by a host run."
+  ]
+}

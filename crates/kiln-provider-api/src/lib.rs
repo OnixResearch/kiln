@@ -1,4 +1,5 @@
 pub mod change_review;
+pub mod semantic_merge;
 
 use core::sync::atomic::AtomicBool;
 use std::collections::BTreeSet;

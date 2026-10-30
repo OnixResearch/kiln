@@ -57,6 +57,14 @@ Response schema: `kiln.observe.iroh.response.v1`, containing either:
 The view carries its accepted `kiln.observe.view.v1` identity. The shell does
 not recompute or replace it.
 
+The `review_friction` and `suggestion_anchors` views travel as ordinary
+`ObservationRequest`s. The server projects them from the snapshot's admitted
+review window; a snapshot without one returns `unknown_target`, and window
+admission or paging faults return the projection's stable code (for example
+`review_window_range` or `cursor_ahead`) instead of a view. Review views carry
+no byte payload, so their `PayloadIdentity` is absent. Their authorship is
+self-declared and unverified, and they carry no review or merge authority.
+
 ## Verified payloads
 
 Log ranges with returned bytes carry a `log_bytes` payload identity: the BLAKE3

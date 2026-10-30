@@ -17,6 +17,7 @@ iroh = { version = "=0.95.1", default-features = false }
 kiln-adapter-github = { path = "../kiln-adapter-github" }
 kiln-codec.workspace = true
 kiln-core.workspace = true
+kiln-microvm = { path = "../kiln-microvm" }
 kiln-provider-api.workspace = true
 kiln-web-service = { path = "../kiln-web-service" }
 libc = "0.2"

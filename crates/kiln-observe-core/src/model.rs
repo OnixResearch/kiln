@@ -9,6 +9,7 @@ use kiln_core::types::{
 use serde::{Deserialize, Serialize};
 
 use crate::profile::{ViewField, ViewKind};
+use crate::review::{ReviewFrictionView, ReviewWindow, SuggestionAnchorsView};
 
 pub const OBSERVATION_VIEW_SCHEMA_VERSION: u16 = 1;
 
@@ -41,6 +42,11 @@ pub enum ViewRequest {
         cursor: u64,
         max_bytes: u64,
     },
+    ReviewFriction,
+    SuggestionAnchors {
+        cursor: u64,
+        limit: u64,
+    },
 }
 
 impl ViewRequest {
@@ -53,6 +59,8 @@ impl ViewRequest {
             Self::AttemptDetail { .. } => ViewKind::AttemptDetail,
             Self::EventTail { .. } => ViewKind::EventTail,
             Self::LogRange { .. } => ViewKind::LogRange,
+            Self::ReviewFriction => ViewKind::ReviewFriction,
+            Self::SuggestionAnchors { .. } => ViewKind::SuggestionAnchors,
         }
     }
 }
@@ -62,6 +70,10 @@ impl ViewRequest {
 pub struct ObservationWindow {
     pub events: Option<EventWindow>,
     pub log: Option<LogWindow>,
+    /// Admitted review facts; omitted when absent so existing windows keep
+    /// their canonical JSON form.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review: Option<ReviewWindow>,
 }
 
 impl ObservationWindow {
@@ -70,6 +82,7 @@ impl ObservationWindow {
         Self {
             events: None,
             log: None,
+            review: None,
         }
     }
 
@@ -78,6 +91,7 @@ impl ObservationWindow {
         Self {
             events: Some(EventWindow { records }),
             log: None,
+            review: None,
         }
     }
 
@@ -89,6 +103,16 @@ impl ObservationWindow {
                 meta,
                 retained_bytes,
             }),
+            review: None,
+        }
+    }
+
+    #[must_use]
+    pub fn review(review: ReviewWindow) -> Self {
+        Self {
+            events: None,
+            log: None,
+            review: Some(review),
         }
     }
 }
@@ -126,6 +150,8 @@ pub enum ViewBody {
     EventTail(EventTailView),
     LogRange(LogRangeView),
     NotFound(NotFoundView),
+    ReviewFriction(ReviewFrictionView),
+    SuggestionAnchors(SuggestionAnchorsView),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

@@ -11,8 +11,8 @@ use kiln_core::operations::JournalRecord;
 use kiln_core::task_ops::LogStreamMeta;
 use kiln_core::types::{AttemptId, CommandId, ExternalRef, ProviderProfileId, RunId, StreamId};
 use kiln_observe_core::{
-    ObservationProfile, ObservationRequest, ObservationWindow, ViewBody, ViewRequest,
-    project_observation,
+    ObservationProfile, ObservationRequest, ObservationView, ObservationWindow, ReviewWindow,
+    ViewBody, ViewRequest, project_observation,
 };
 use serde::Deserialize;
 use tokio::sync::oneshot;
@@ -156,6 +156,13 @@ fn journal_record(revision: u64) -> JournalRecord {
     }
 }
 
+fn review_window() -> ReviewWindow {
+    serde_json::from_str(include_str!(
+        "../../../fixtures/observation/review-window-v1.json"
+    ))
+    .unwrap_or_else(|_| unreachable!())
+}
+
 fn snapshot() -> ObservationSnapshot {
     ObservationSnapshot::new(fixture_state())
         .with_events(kiln_observe_core::EventWindow {
@@ -173,6 +180,7 @@ fn snapshot() -> ObservationSnapshot {
             },
             retained_bytes: b"abc".to_vec(),
         })
+        .with_review(review_window())
 }
 
 struct Server {
@@ -183,10 +191,16 @@ struct Server {
 
 impl Server {
     async fn start(profile: IrohObservationProfile) -> Self {
+        Self::start_with(profile, Arc::new(MemoryObservationSource::new(snapshot()))).await
+    }
+
+    async fn start_with(
+        profile: IrohObservationProfile,
+        source: Arc<dyn ObservationSource>,
+    ) -> Self {
         let endpoint = bind_endpoint(&profile, key(1))
             .await
             .unwrap_or_else(|_| unreachable!());
-        let source: Arc<dyn ObservationSource> = Arc::new(MemoryObservationSource::new(snapshot()));
         let (shutdown, receive) = oneshot::channel();
         let owned = endpoint.clone();
         let task = tokio::spawn(serve(owned, profile, source, async {
@@ -531,6 +545,113 @@ async fn log_range_delivers_verified_payload() {
         unreachable!()
     };
     verify_payload(view, payload.as_ref()).unwrap_or_else(|_| unreachable!());
+    client.close().await;
+    server.stop().await;
+}
+
+fn review_request(view: ViewRequest) -> ObservationRequest {
+    ObservationRequest {
+        state_revision: 1,
+        view,
+    }
+}
+
+async fn exchange(
+    client: &Endpoint,
+    server: &Server,
+    profile: &IrohObservationProfile,
+    request: &ObservationRequest,
+) -> IrohObserveResponse {
+    timeout(
+        BOUND,
+        client_exchange(client, remote_address(&server.endpoint), profile, request),
+    )
+    .await
+    .unwrap_or_else(|_| unreachable!())
+    .unwrap_or_else(|_| unreachable!())
+}
+
+fn error_code(response: &IrohObserveResponse) -> Option<&str> {
+    match &response.result {
+        IrohResult::Err { code, .. } => Some(code.as_str()),
+        IrohResult::Ok { .. } => None,
+    }
+}
+
+// r[verify kiln.observe.review.parity]
+// r[verify kiln.observe.review.parity.scenario.equal]
+// r[verify kiln.observe.review.window.scenario.violation]
+// r[verify kiln.observe.review.anchors.scenario.paging]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn review_views_over_iroh_equal_the_direct_projection() {
+    let server_profile = profile(key(2), false);
+    let source = Arc::new(MemoryObservationSource::new(snapshot()));
+    let server = Server::start_with(
+        server_profile,
+        Arc::clone(&source) as Arc<dyn ObservationSource>,
+    )
+    .await;
+    let client_profile = profile(key(1), false);
+    let client = client(&client_profile).await;
+    for view in [
+        ViewRequest::ReviewFriction,
+        ViewRequest::SuggestionAnchors {
+            cursor: 0,
+            limit: 2,
+        },
+        ViewRequest::SuggestionAnchors {
+            cursor: 2,
+            limit: 2,
+        },
+    ] {
+        let request = review_request(view);
+        let response = exchange(&client, &server, &client_profile, &request).await;
+        let IrohResult::Ok { view, payload } = &response.result else {
+            unreachable!()
+        };
+        assert_eq!(payload, &None);
+        let iroh_view: &ObservationView = view;
+        let direct = project_observation(
+            &client_profile.core,
+            &fixture_state(),
+            &request,
+            &ObservationWindow::review(review_window()),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        admit_equivalence(&direct, iroh_view).unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            encode_view(&direct, 4_194_304).unwrap_or_else(|_| unreachable!()),
+            encode_view(iroh_view, 4_194_304).unwrap_or_else(|_| unreachable!())
+        );
+        if let ViewBody::SuggestionAnchors(anchors) = &iroh_view.body {
+            assert_eq!(anchors.page.total, 3);
+            assert_eq!(anchors.page.next, (anchors.page.cursor == 0).then_some(2));
+        }
+    }
+
+    let ahead = review_request(ViewRequest::SuggestionAnchors {
+        cursor: 4,
+        limit: 2,
+    });
+    let response = exchange(&client, &server, &client_profile, &ahead).await;
+    assert!(logical_view(&response).is_none());
+    assert_eq!(error_code(&response), Some("cursor_ahead"));
+
+    source.update(snapshot().with_review(ReviewWindow {
+        end_ms: review_window().start_ms,
+        ..review_window()
+    }));
+    let friction = review_request(ViewRequest::ReviewFriction);
+    let response = exchange(&client, &server, &client_profile, &friction).await;
+    assert!(logical_view(&response).is_none());
+    assert_eq!(error_code(&response), Some("review_window_range"));
+
+    let mut without_review = snapshot();
+    without_review.review = None;
+    source.update(without_review);
+    let response = exchange(&client, &server, &client_profile, &friction).await;
+    assert!(logical_view(&response).is_none());
+    assert_eq!(error_code(&response), Some("unknown_target"));
     client.close().await;
     server.stop().await;
 }

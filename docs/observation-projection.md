@@ -15,6 +15,8 @@ authority. HTTP and Iroh shells are later changes.
 | `attempt_detail` | attempt identity | attempt facts, bounded products and metrics, redaction facts |
 | `event_tail` | record limit, admitted event window | newest journal records, revision range, earlier-history fact |
 | `log_range` | stream identity, cursor, max bytes, admitted log window | retained-window facts, bounded bytes, gap or completion fact |
+| `review_friction` | admitted review window | per-authorship-class approval latency, patch sets before approval, suggestions per change, merged-without-suggestion share |
+| `suggestion_anchors` | cursor, page limit, admitted review window | ranked suggestion anchors by path and owning rule with paging facts |
 
 An unknown view kind, a view kind absent from the profile vocabulary, or an
 unknown state revision fails before projection. An unknown run, attempt, or log
@@ -45,6 +47,14 @@ Rust profile test.
 | `max_log_segments` | maximum segment metadata entries admitted in one log window |
 | `max_text_bytes` | maximum bytes for one admitted profile, reference, or attribute text |
 | `max_encoded_bytes` | maximum canonical view-body bytes |
+| `review.max_review_changes` | maximum changes admitted in one review window |
+| `review.max_review_window_ms` | maximum review window span in milliseconds |
+| `review.max_review_patch_sets` | maximum patch sets admitted for one change |
+| `review.max_review_suggestions_per_change` | maximum anchored suggestions admitted for one change |
+
+`bounds.review` is optional. A profile that declares `review_friction` or
+`suggestion_anchors` without it fails admission with `missing_review_bounds`.
+Profiles that omit it keep their earlier identity and document form.
 
 Zero bounds fail profile admission. A page limit of zero fails request
 admission. A requested limit above the profile bound is capped, and the view
@@ -57,6 +67,8 @@ admitted state revision. Every projection also receives an explicit window:
 
 - `event_tail` requires an event window and rejects a log window;
 - `log_range` requires a log window and rejects an event window;
+- `review_friction` and `suggestion_anchors` require a review window and
+  reject event and log windows; every other view rejects a review window;
 - summary, run, and attempt views admit no window facts.
 
 An event window must use schema version one, contain contiguous
@@ -71,6 +83,66 @@ cursor before `retained_start` returns `RetentionView::Gap` with the exact
 retained start and no claimed bytes. A complete terminal cursor returns an empty
 terminal range.
 
+A review window is the half-open millisecond range `[start_ms, end_ms)` and
+the facts of every change whose first patch set lies in it, ordered by change
+identifier. Each change carries its authorship class, patch-set creation times,
+an optional approval, anchored suggestions with path and optional owner, and an
+optional merge time. Admission fails before projection on:
+
+| Diagnostic | Violation |
+|---|---|
+| `review_window_range` | empty or inverted range |
+| `review_window_span` | span above `max_review_window_ms` |
+| `review_window_change_bound` | more than `max_review_changes` changes |
+| `review_window_order` | unsorted or duplicate change identifiers |
+| `review_window_text_bound` | empty or over-`max_text_bytes` identifier, path, or owner |
+| `review_window_patch_sets` | no, unordered, or more than `max_review_patch_sets` patch sets |
+| `review_window_fact_outside` | first patch set before the start, or any fact at or after the end or before the first patch set |
+| `review_window_approval` | approval not bound to the latest admitted patch set |
+| `review_window_suggestion_bound` | more than `max_review_suggestions_per_change` suggestions |
+
+A missing review window fails with `missing_review_window`.
+
+## Review friction and authorship
+
+`review_window(state, ownership, start_ms, end_ms)` derives the window from
+admitted change-review state as a pure function. It includes changes whose
+first patch set lies in the window, and it clips every later fact to before
+`end_ms`:
+
+- the authorship class is folded from declared patch sets only. No declaration
+  gives `undeclared`, one shared class gives that class, and differing declared
+  classes give `mixed`;
+- the approval is the earliest `approve` vote bound to the latest patch set
+  admitted in the window. Patch sets before approval is that patch set's
+  number;
+- an anchored suggestion is a review thread opened by someone other than the
+  change owner. Its owner is the first ownership rule, in policy order, that
+  applies to the anchor path and change target;
+- a change is merged when its submission was recorded before `end_ms`.
+
+`review_friction` reports one row per class in the fixed order `human`,
+`agent`, `mixed`, `undeclared`. Each row has:
+
+- `changes` and `approved_changes`;
+- integer distributions (`count`, `total`, `min`, lower `median`, `max`) of
+  approval latency in milliseconds, patch sets before approval, and anchored
+  suggestions per change;
+- `merged_changes`, `merged_without_suggestion` (merged on required CI alone),
+  and `merged_without_suggestion_per_mille`.
+
+`suggestion_anchors` groups suggestions by path and owner. It ranks them by
+suggestion count descending, then distinct changes descending, then path and
+owner ascending. It pages by an offset `cursor`: a zero limit fails, a limit
+above `max_page_items` is capped and reported, and a cursor past the total
+fails with `cursor_ahead`. The ranking is input for turning recurring review
+comments into required CI checks. It creates no checks itself.
+
+Authorship is self-declared by the contributor and unverified. Kiln never
+infers it from commits, principals, or diffs, and every `review_friction` body
+carries `authorship_basis: self_declared_unverified`. Neither view nor the
+window gates, approves, merges, notifies, or alters review state.
+
 ## View identity
 
 Every view carries a `kiln.observe.view.v1` BLAKE3 identity. The identity is
@@ -79,7 +151,7 @@ computed over a deterministic length-prefixed frame containing:
 - the profile identity;
 - the source state revision;
 - the canonical request;
-- the canonical admitted window;
+- the canonical admitted window, including the review window when present;
 - the redacted field set;
 - the canonical view body.
 
@@ -91,7 +163,10 @@ grants lifecycle, release, transport, or control authority.
 ## Redaction
 
 The profile's `visible_fields` set decides whether provider profiles, external
-references, products, metrics, command identities, and log bytes are populated.
+references, products, metrics, command identities, log bytes, suggestion paths
+(`suggestion_paths`), and suggestion owners (`suggestion_owners`) are populated.
+Suggestion anchors are redacted after aggregation, so redaction never changes
+their counts.
 An omitted field is set to `None` or an empty collection and named in the
 view's `redacted_fields` set before identity computation and encoding. Omission
 is therefore visible and deterministic. Secret classification belongs to the

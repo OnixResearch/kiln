@@ -123,6 +123,7 @@ impl Workspace {
             title,
             description,
             wip,
+            authorship,
         } = &request.action
         {
             if request.change_id.is_some() || request.expected_version.is_some() {
@@ -139,6 +140,7 @@ impl Workspace {
             let title = title.clone();
             let description = description.clone();
             let wip = *wip;
+            let authorship = authorship.clone();
             match plan {
                 intake::Plan::Create {
                     contribution: item,
@@ -150,6 +152,7 @@ impl Workspace {
                         title,
                         description,
                         wip,
+                        authorship,
                     };
                     contribution = Some((source_ref, item));
                 }
@@ -160,7 +163,7 @@ impl Workspace {
                 } => {
                     request.change_id = Some(item.change_id.clone());
                     request.expected_version = Some(expected_version);
-                    request.action = Action::Upload { commit };
+                    request.action = Action::Upload { commit, authorship };
                     contribution = Some((source_ref, item));
                 }
                 intake::Plan::Replay { change_id } => {
@@ -302,6 +305,7 @@ impl Workspace {
                 title,
                 description,
                 wip,
+                authorship,
             } => {
                 if state.review.changes.len() >= MAX_CHANGES {
                     return reject(409, "review_change_bound");
@@ -318,7 +322,7 @@ impl Workspace {
                     &inspection.target_commit,
                     identify("revision")?,
                     1,
-                    (actor, now_ms),
+                    (actor, now_ms, authorship),
                 )?;
                 facts.source = Some(source_fact(profile, &inspection, revision.base.clone()));
                 self.populate_changed_files(provider, &revision, &mut facts)?;
@@ -344,7 +348,7 @@ impl Workspace {
                 result_change = Some(id);
                 command
             }
-            Action::Upload { commit } => {
+            Action::Upload { commit, authorship } => {
                 let change = current.as_ref().ok_or(Failure::Unavailable)?;
                 if change.revisions.len() >= MAX_REVISIONS {
                     return reject(409, "review_revision_bound");
@@ -356,7 +360,7 @@ impl Workspace {
                     &inspection.target_commit,
                     identify("revision")?,
                     change.revisions.len() as u32 + 1,
-                    (actor, now_ms),
+                    (actor, now_ms, authorship),
                 )?;
                 facts.source = Some(source_fact(profile, &inspection, revision.base.clone()));
                 self.populate_changed_files(provider, &revision, &mut facts)?;
@@ -754,6 +758,9 @@ impl Workspace {
             },
         }
     }
+    /// Build one patch set. `authorship` is the caller's self-declaration;
+    /// service-created patch sets pass `Undeclared` and never infer it.
+    // r[impl kiln.review.authorship.scenario.declared]
     fn revision(
         &self,
         provider: &impl ChangeReviewPort,
@@ -761,7 +768,7 @@ impl Workspace {
         base: &str,
         id: String,
         number: u32,
-        (actor, now_ms): (&str, i64),
+        (actor, now_ms, authorship): (&str, i64, domain::Authorship),
     ) -> Result<domain::Revision, Failure> {
         let comparison = provider.compare(&CompareRequest {
             old_commit: base.into(),
@@ -786,6 +793,7 @@ impl Workspace {
             files: files.into_iter().collect(),
             author: actor.into(),
             created_ms: now_ms,
+            authorship,
         })
     }
     fn admit_anchor(
@@ -1046,7 +1054,7 @@ impl Workspace {
                     &onto,
                     result_revision.clone(),
                     number,
-                    (&pending.actor, facts.now_ms),
+                    (&pending.actor, facts.now_ms, domain::Authorship::Undeclared),
                 )?;
                 facts.integration = None;
                 self.populate_changed_files(provider, &revision, &mut facts)?;
@@ -1121,7 +1129,7 @@ impl Workspace {
                     &base,
                     result_revision,
                     current.revisions.len() as u32 + 1,
-                    (&pending.actor, facts.now_ms),
+                    (&pending.actor, facts.now_ms, domain::Authorship::Undeclared),
                 )?;
                 let inspection = provider.inspect(&commit, &current.target_ref)?;
                 facts.source = Some(source_fact(profile, &inspection, base));
@@ -1207,6 +1215,14 @@ fn replay(journal: &Journal, replayed: bool) -> Result<ApiResponse, Failure> {
     json_response(status, body).map_err(Failure::from)
 }
 fn validate_action(action: &Action) -> Result<(), Failure> {
+    // r[impl kiln.review.authorship.scenario.invalid]
+    if let Action::Contribute { authorship, .. }
+    | Action::Create { authorship, .. }
+    | Action::Upload { authorship, .. } = action
+        && domain::validate_authorship(authorship).is_err()
+    {
+        return reject(400, "review_authorship_invalid");
+    }
     let valid = match action {
         Action::Contribute {
             title,

@@ -13,7 +13,10 @@ use kiln_core::domain::{AttemptState, Event, Outcome, RunState, State};
 use kiln_core::operations::JournalRecord;
 use kiln_core::task_ops::LogStreamMeta;
 use kiln_core::types::{AttemptId, CommandId, ExternalRef, ProviderProfileId, RunId, StreamId};
-use kiln_observe_core::{LogWindow, ObservationView, ViewBody, ViewRequest};
+use kiln_observe_core::{
+    LogWindow, ObservationRequest, ObservationView, ObservationWindow, ReviewWindow, ViewBody,
+    ViewRequest, project_observation,
+};
 use rustls::pki_types::ServerName;
 use serde::Deserialize;
 use ucan::{
@@ -392,6 +395,54 @@ fn status(response: &[u8]) -> u16 {
 
 fn header_present(response: &[u8], name: &[u8]) -> bool {
     response.windows(name.len()).any(|window| window == name)
+}
+
+fn header_value(response: &[u8], name: &str) -> Option<String> {
+    let text = std::str::from_utf8(response).ok()?;
+    let head = text.split("\r\n\r\n").next()?;
+    head.lines().find_map(|line| {
+        let (key, value) = line.split_once(':')?;
+        key.eq_ignore_ascii_case(name)
+            .then(|| value.trim().to_string())
+    })
+}
+
+fn error_code(response: &[u8]) -> Option<String> {
+    let body: serde_json::Value = serde_json::from_slice(response_body(response)).ok()?;
+    body.get("code")?.as_str().map(String::from)
+}
+
+fn review_window() -> ReviewWindow {
+    serde_json::from_str(include_str!(
+        "../../../fixtures/observation/review-window-v1.json"
+    ))
+    .unwrap_or_else(|_| unreachable!())
+}
+
+fn review_snapshot() -> ObservationSnapshot {
+    snapshot().with_review(review_window())
+}
+
+fn direct_review_view(profile: &HttpObservationProfile, view: ViewRequest) -> ObservationView {
+    project_observation(
+        &profile.core,
+        &fixture_state(),
+        &ObservationRequest {
+            state_revision: 1,
+            view,
+        },
+        &ObservationWindow::review(review_window()),
+    )
+    .unwrap_or_else(|_| unreachable!())
+}
+
+fn map_target(target: &str, profile: &HttpObservationProfile) -> Result<ViewRequest, HttpError> {
+    let request = parse_request(
+        format!("GET {target} HTTP/1.1\r\nHost: localhost").as_bytes(),
+        profile,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    map_view_request(&request, 1, profile).map(|request| request.view)
 }
 
 // r[verify kiln.observe.http.nonclaims.scenario.scope]
@@ -1226,6 +1277,182 @@ fn server_rejects_unauthorized_unknown_and_malformed() {
     assert_eq!(status(&response), 404);
     let response = tls_exchange(server.address, b"BAD\r\n\r\n");
     assert_eq!(status(&response), 400);
+    server.stop();
+}
+
+// r[verify kiln.observe.review.anchors.scenario.paging]
+#[test]
+fn request_mapping_routes_review_views_and_rejects_malformed_queries() {
+    let profile = profile();
+    assert_eq!(
+        map_target("/v1/views/review-friction", &profile),
+        Ok(ViewRequest::ReviewFriction)
+    );
+    assert_eq!(
+        map_target("/v1/views/suggestion-anchors", &profile),
+        Ok(ViewRequest::SuggestionAnchors {
+            cursor: 0,
+            limit: profile.content.default_page_limit,
+        })
+    );
+    assert_eq!(
+        map_target("/v1/views/suggestion-anchors?cursor=2&limit=1", &profile),
+        Ok(ViewRequest::SuggestionAnchors {
+            cursor: 2,
+            limit: 1,
+        })
+    );
+    for (target, code) in [
+        ("/v1/views/review-friction?limit=1", "unexpected_query"),
+        (
+            "/v1/views/suggestion-anchors?after=1",
+            "unexpected_query_field",
+        ),
+        ("/v1/views/suggestion-anchors?limit=0", "invalid_limit"),
+        (
+            "/v1/views/suggestion-anchors?cursor=abc",
+            "invalid_query_value",
+        ),
+        (
+            "/v1/views/suggestion-anchors?cursor=-1",
+            "invalid_query_value",
+        ),
+        (
+            "/v1/views/suggestion-anchors?cursor=1&cursor=2",
+            "duplicate_query_field",
+        ),
+    ] {
+        assert_eq!(
+            map_target(target, &profile)
+                .err()
+                .map(|error| (error.status, error.code)),
+            Some((400, code)),
+            "{target}"
+        );
+    }
+    assert_eq!(
+        map_target("/v1/views/review-friction/extra", &profile)
+            .err()
+            .map(|error| (error.status, error.code)),
+        Some((404, "unknown_view"))
+    );
+}
+
+// r[verify kiln.observe.review.parity]
+// r[verify kiln.observe.review.parity.scenario.equal]
+// r[verify kiln.observe.review.anchors.scenario.paging]
+#[test]
+fn server_serves_review_views_identical_to_direct_projection() {
+    let profile = profile();
+    let source = Arc::new(MemoryObservationSource::new(review_snapshot()));
+    let live = Arc::new(LiveEventBuffer::new(4));
+    let mut server = start_server(profile.clone(), source, live);
+    let max_view = usize::try_from(profile.content.max_view_bytes).unwrap_or(usize::MAX);
+    let cases = [
+        ("/v1/views/review-friction", ViewRequest::ReviewFriction),
+        (
+            "/v1/views/suggestion-anchors?limit=2",
+            ViewRequest::SuggestionAnchors {
+                cursor: 0,
+                limit: 2,
+            },
+        ),
+        (
+            "/v1/views/suggestion-anchors?cursor=2&limit=2",
+            ViewRequest::SuggestionAnchors {
+                cursor: 2,
+                limit: 2,
+            },
+        ),
+    ];
+    let mut pages = Vec::new();
+    for (index, (target, view)) in cases.into_iter().enumerate() {
+        let authorization = auth_header(target, 1, &format!("nonce-review-{index}"));
+        let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+        assert_eq!(status(&response), 200, "{target}");
+        let direct = direct_review_view(&profile, view);
+        assert_eq!(
+            response_body(&response),
+            encode_view(&direct, max_view)
+                .unwrap_or_else(|_| unreachable!())
+                .as_slice(),
+            "{target}"
+        );
+        assert_eq!(
+            header_value(&response, "X-Kiln-View-Identity").as_deref(),
+            Some(direct.identity.as_str()),
+            "{target}"
+        );
+        if let ViewBody::SuggestionAnchors(anchors) = direct.body {
+            pages.push(anchors);
+        }
+    }
+    let [first, second] = pages.as_slice() else {
+        unreachable!()
+    };
+    assert_eq!(first.anchors.len(), 2);
+    assert!(first.page.has_more);
+    assert_eq!(first.page.next, Some(2));
+    assert_eq!(second.anchors.len(), 1);
+    assert!(!second.page.has_more);
+    assert_eq!(second.page.next, None);
+    assert_eq!(first.page.total, 3);
+
+    let target = "/v1/views/suggestion-anchors?cursor=4";
+    let authorization = auth_header(target, 1, "nonce-review-ahead");
+    let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+    assert_eq!(status(&response), 400);
+    assert_eq!(error_code(&response).as_deref(), Some("invalid_request"));
+    let target = "/v1/views/suggestion-anchors?limit=0";
+    let authorization = auth_header(target, 1, "nonce-review-zero");
+    let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+    assert_eq!(status(&response), 400);
+    assert_eq!(error_code(&response).as_deref(), Some("invalid_limit"));
+    server.stop();
+}
+
+// r[verify kiln.observe.review.parity]
+// r[verify kiln.observe.review.window.scenario.violation]
+#[test]
+fn server_rejects_missing_and_inadmissible_review_windows() {
+    let profile = profile();
+    let source = Arc::new(MemoryObservationSource::new(snapshot()));
+    let live = Arc::new(LiveEventBuffer::new(4));
+    let mut server = start_server(
+        profile,
+        Arc::clone(&source) as Arc<dyn ObservationSource>,
+        live,
+    );
+    for (index, target) in ["/v1/views/review-friction", "/v1/views/suggestion-anchors"]
+        .into_iter()
+        .enumerate()
+    {
+        let authorization = auth_header(target, 1, &format!("nonce-missing-{index}"));
+        let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+        assert_eq!(status(&response), 404, "{target}");
+        assert_eq!(error_code(&response).as_deref(), Some("unknown_target"));
+    }
+
+    let mut mismatched = review_window();
+    let approval = mismatched
+        .changes
+        .iter_mut()
+        .find_map(|change| change.approval.as_mut())
+        .unwrap_or_else(|| unreachable!());
+    approval.patch_set = approval.patch_set.saturating_add(1);
+    let mut empty_range = review_window();
+    empty_range.end_ms = empty_range.start_ms;
+    for (index, window) in [mismatched, empty_range].into_iter().enumerate() {
+        source.update(snapshot().with_review(window));
+        let target = "/v1/views/review-friction";
+        let authorization = auth_header(target, 1, &format!("nonce-invalid-{index}"));
+        let response = tls_exchange(server.address, &request_bytes(target, Some(&authorization)));
+        assert_eq!(status(&response), 500);
+        assert_eq!(
+            error_code(&response).as_deref(),
+            Some("invalid_review_window")
+        );
+    }
     server.stop();
 }
 

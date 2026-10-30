@@ -17,6 +17,15 @@ pub enum ViewKind {
     AttemptDetail,
     EventTail,
     LogRange,
+    ReviewFriction,
+    SuggestionAnchors,
+}
+
+impl ViewKind {
+    #[must_use]
+    pub const fn is_review(self) -> bool {
+        matches!(self, Self::ReviewFriction | Self::SuggestionAnchors)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -28,6 +37,8 @@ pub enum ViewField {
     Metrics,
     CommandId,
     LogBytes,
+    SuggestionPaths,
+    SuggestionOwners,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -43,6 +54,20 @@ pub struct ObservationBounds {
     pub max_log_segments: u64,
     pub max_text_bytes: u64,
     pub max_encoded_bytes: u64,
+    /// Review-window bounds; required only when a review view is declared.
+    /// Omitted documents keep their pre-review profile identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review: Option<ReviewBounds>,
+}
+
+// r[impl kiln.observe.review.window]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewBounds {
+    pub max_review_changes: u64,
+    pub max_review_window_ms: u64,
+    pub max_review_patch_sets: u64,
+    pub max_review_suggestions_per_change: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -99,7 +124,16 @@ impl ObservationProfile {
             self.bounds.max_log_segments,
             self.bounds.max_text_bytes,
             self.bounds.max_encoded_bytes,
-        ] {
+        ]
+        .into_iter()
+        .chain(self.bounds.review.iter().flat_map(|review| {
+            [
+                review.max_review_changes,
+                review.max_review_window_ms,
+                review.max_review_patch_sets,
+                review.max_review_suggestions_per_change,
+            ]
+        })) {
             if value == 0 {
                 return Err(Diagnostic::new(
                     "zero_bound",
@@ -107,6 +141,13 @@ impl ObservationProfile {
                     "profile bound must be positive",
                 ));
             }
+        }
+        if self.bounds.review.is_none() && self.views.iter().any(|kind| kind.is_review()) {
+            return Err(Diagnostic::new(
+                "missing_review_bounds",
+                "observation.profile.bounds.review",
+                "profile declares a review view without review bounds",
+            ));
         }
         if self.non_claims.is_empty() {
             return Err(Diagnostic::new(

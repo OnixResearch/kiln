@@ -422,6 +422,101 @@ Actual runner choices are:
   Receipts always report `hostile_isolation_claim:false`; `requested_trust` and
   `operator_qualification_references` retain requested policy/provided references,
   not independently verified qualification evidence.
+* `kind = "firecracker"`: one Firecracker microVM per job. Fields:
+  - `firecracker`, `kernel` and `initrd`: reviewed `{path,blake3}` identities.
+  - `guest_shell`: absolute shell path inside the guest.
+  - `vcpus` (1–8) and `memory_mib` (128–16384). Guest memory plus a 64 MiB VMM
+    allowance must fit `memory_bytes`, and vCPUs plus 4 tasks must fit
+    `processes`.
+  - `boot_timeout_ms` (100–60000, below `maximum_timeout_ms`).
+  - `source_image_mib` (1–1024): the fixed source drive size.
+  - Optional `warm_pool = {directory, slots}`: at most 16 slots and at most
+    `maximum_concurrent`. The directory must be an existing short, private
+    0700 path outside `work_root` and `/nix/store`.
+  - Optional `qualification_identity`.
+
+  There is no network or jailer field. Cache policies naming a Firecracker
+  runner are rejected.
+
+  The backend is admitted only on x86_64 hosts. Build the guest with
+  `nix build path:.#microvm-guest` (x86_64-linux only). It contains the pinned
+  nixpkgs NixOS kernel (stripped `vmlinux`), a `makeInitrdNG` initramfs
+  (busybox, bash, the `kiln-microvm-guest` agent and the virtio/vsock modules)
+  and the pinned `firecracker`. Its `manifest.json` lists the exact paths and
+  BLAKE3 values to copy into Nickel. This is a Nix-built initramfs over the
+  NixOS kernel, not a full NixOS system.
+
+  For each job, the service:
+  1. Archives the scoped workspace into a deterministic, bounded ustar image.
+     Symlinks are archived, never followed; special files are rejected.
+  2. Starts Firecracker in the attempt's systemd unit, with the same limits.
+     The VM gets the image as its only, read-only virtio-blk drive, one vsock
+     device, an entropy device, no network interface, and a CPU template that
+     hides CET (see below).
+  3. Runs the guest agent as PID 1. The agent connects to the single
+     per-session host listener; the host removes that listener after the first
+     connection. The agent extracts the source into guest tmpfs `/work` and runs
+     each step as uid/gid 1000 with `no_new_privs`, the namespace backend's
+     environment and shell flags, a deadline and output bounds.
+  4. Writes the job result to `hosted_microvm_job` before it stops the unit, and
+     records `destroyed` or `destroy_uncertain`. Uncertain teardown leaves the
+     attempt `unknown` until `execution.recover`.
+
+  Guest writes never reach the host workspace. With a warm pool, each slot
+  holds an exclusive lock and a snapshot bound to the Firecracker, kernel,
+  initrd, machine and slot identity. A changed identity or state hash rebuilds
+  the snapshot. A restore gets fresh wall-clock time and a host entropy seed,
+  and the VM is still destroyed after each job. When all slots are busy, the
+  job cold boots.
+
+  The guest is not offered CET (shadow stack/IBT). Firecracker 1.15 does not
+  carry CET supervisor state through a snapshot on KVM hosts that virtualize
+  CET, and the restored guest faults without the template.
+
+  Run the KVM-gated host test with:
+
+  ```sh
+  KILN_MICROVM_GUEST=$(nix build --no-link --print-out-paths path:.#microvm-guest) \
+    cargo test -p kiln-hosted --test microvm -- --nocapture
+  ```
+
+  The test runs the same pipeline on `namespaces` and `firecracker` and
+  compares `canonical_outcome`, runs the guest-escape suite, and prints latency
+  lines. Set `KILN_MICROVM_REQUIRED=1` to make missing KVM or guest artifacts a
+  failure instead of a skip. On the 2026-10-30 reference host (AMD Zen 5, 1 vCPU,
+  256 MiB, release build), the time from unit spawn to guest readiness was
+  464–515 ms for a cold boot and 54–104 ms for a snapshot restore. This is a
+  single-host measurement retained with the change evidence, not a capacity
+  promise.
+
+**Isolation claims of the Firecracker backend.** It upgrades exactly one claim.
+A job no longer runs on the host kernel: it runs in a separate guest kernel
+behind KVM and a seccomp-confined VMM.
+
+As a result, a kernel exploit through unprivileged user namespaces or other
+host syscalls first lands in the guest kernel, not the host. Inside the guest,
+jobs run unprivileged, namespace creation and module loading are disabled, and
+there is no network device. The retained escape suite denied namespace
+creation, host `/proc`/`/sys` observation and IP or vsock egress.
+
+It does **not** claim:
+- hostile multi-tenant or production qualification;
+- resistance to KVM or Firecracker vulnerabilities on the host;
+- protection from CPU side channels between tenants on shared cores;
+- the separation the jailer would add. The jailer is not used: there is no
+  chroot, no dedicated uid or network namespace per VM, and the unit's cgroup
+  replaces a per-VM jailer cgroup. The VMM runs as the service user.
+
+It also does not provide:
+- confidentiality of the source and secrets that the job is given;
+- RNG independence beyond the host seed and VMGenID for restored snapshots.
+
+Hostile admission still needs an operator `qualification_identity`, which is a
+reference, not evidence. Receipts keep `hostile_isolation_claim:false`. Every
+receipt carries `canonical_outcome`: the BLAKE3 identity of the pipeline,
+per-job states and per-step name, state, exit code and stdout. It excludes
+timing, cleanup, signals, stderr (the namespace launcher writes `systemd-run`
+diagnostics there) and backend observations.
 
 Materialize only reviewed customer source under
 `work_root/acme/app/RELATIVE_WORKSPACE` (no symlink escape). This local execution

@@ -1,0 +1,63 @@
+{
+  "schema": "kiln.change-authorship-review-friction.verification.v1",
+  "date": "2026-10-30",
+  "issue": "https://github.com/OnixResearch/kiln/issues/3",
+  "maintenance_owner": "Kiln maintainers (kiln-core change review, kiln-observe-core); Kiln web-service maintainers (intake, export, console); observation shell maintainers (kiln-adapter-http-observe, kiln-adapter-iroh-observe, kiln-dashboard)",
+  "commands": [
+    {
+      "command": "CARGO_TARGET_DIR=~/.cargo-target/authorship nix develop path:. --command cargo test --offline -p kiln-core -p kiln-observe-core -p kiln-adapter-http-observe -p kiln-adapter-iroh-observe -p kiln-dashboard -p kiln-web-service",
+      "result": "pass: every suite ok, 0 failed (kiln-core 126, kiln-observe-core 26, http-observe 28, iroh-observe 13, dashboard 39, web-service lib 103 + integration suites)",
+      "note": "--offline instead of --locked because a concurrent peer's new workspace crate left Cargo.lock needing an update"
+    },
+    {
+      "command": "cargo clippy --offline -p kiln-core -p kiln-observe-core -p kiln-adapter-http-observe -p kiln-adapter-iroh-observe -p kiln-dashboard -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass: no warnings"
+    },
+    {
+      "command": "rustfmt --edition 2024 --check on changed Rust files; cargo fmt --check -p kiln-dashboard -p kiln-adapter-http-observe -p kiln-adapter-iroh-observe",
+      "result": "pass"
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs",
+      "result": "pass: 28/28"
+    },
+    {
+      "command": "nickel export --format json for config/observation-profile.ncl, dashboard-profile.ncl, http-observation-profile.ncl, fixtures/ucan-observation-positive.ncl, iroh-observation-profile.ncl into their fixtures; nickel export of every negative-observation/http/iroh fixture",
+      "result": "pass: fixtures regenerated; all negative fixtures still fail; nickel format --check clean"
+    },
+    {
+      "command": "cargo run --offline -p kiln-dashboard -- --journal checks/bombadil/journal-4-runs.json --profile fixtures/dashboard/profile-v1.json --review fixtures/observation/review-window-v1.json --plain (and --format html)",
+      "result": "pass: review friction and suggestion anchors sections rendered with view identities"
+    },
+    {
+      "command": "disposable kiln-web-service instance on 127.0.0.1:9551 with private mode-700 state (production untouched)",
+      "result": "pass: agent-declared create applied and shown; invalid harness 400 review_authorship_invalid; review-window export returned the agent change; over-span and unknown-key rejected; console select, Agent fields, 44px controls, no 320px overflow observed in headless Chromium; scratch removed",
+      "limit": "dark colour-scheme emulation did not switch the console theme, so dark mode was not visually confirmed; no new colours or tokens were added"
+    }
+  ],
+  "fixtures": [
+    "fixtures/observation/review-journal-v1.json: replayed review journal (human h1/h2, agent a1/a2/a3, mixed m1, undeclared u1, pre-window change-early, post-window approval)",
+    "fixtures/observation/review-window-v1.json: canonical review window derived from it; consumed by observe-core, HTTPS, iroh, dashboard and web-service tests",
+    "fixtures/observation/profile-v1.json and the derived http, ucan, iroh and dashboard profile fixtures, regenerated from Nickel"
+  ],
+  "expected_fixture_values": {
+    "human": "2 changes, 2 approved, latency ms min/median/max 2000/2000/4000, patch sets 1/1/2, merged 2, merged without suggestion 1 (500 per mille)",
+    "agent": "3 changes, 2 approved, latency ms 1000/1000/10000, patch sets 1/1/3, suggestions total 4, merged 2, merged without suggestion 1 (500 per mille)",
+    "anchors": "src/lib.rs core 3/2, README.md unowned 1/1, docs/guide.md docs 1/1"
+  },
+  "known_trade_offs": [
+    "Authorship is self-declared and unverified; misdeclaration is possible and documented.",
+    "Measurement definitions are fixed: approval is the earliest approve vote on the latest patch set in the window; suggestions are anchored threads opened by non-owners; owner is the first applicable ownership rule.",
+    "Undeclared patch sets (including service-created ones) do not change a change's class.",
+    "The dashboard renders only the first anchor page; deeper pages are served over HTTPS and iroh.",
+    "HTTPS maps review-window admission faults to 500 invalid_review_window; iroh passes core diagnostic codes through, following each shell's existing convention.",
+    "The web-service export returns the raw derived window; consumers admit it against their observation profile."
+  ],
+  "not_run": "nix flake check (parent runs it once at the end)",
+  "parent_review": {
+    "instance": "release candidate on a disposable port with its own review SQLite and fixture repository; production untouched",
+    "declared": "create with authorship {kind: agent, harness: omp, model: claude} journaled on the revision and returned by change detail",
+    "invalid": "agent with empty harness -> 400 review_authorship_invalid",
+    "window_to_dashboard": "GET /api/code-review/review-window exported one agent change; kiln-dashboard --review rendered review friction with agent changes 1 and the self-declared/unverified basis line"
+  }
+}

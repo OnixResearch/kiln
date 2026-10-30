@@ -40,6 +40,7 @@ fn review() -> domain::ReviewState {
                 files: vec!["src/lib.rs".into()],
                 author: "alice".into(),
                 created_ms: 1,
+                authorship: domain::Authorship::Undeclared,
             }],
             reviewers: BTreeMap::new(),
             votes: Vec::new(),

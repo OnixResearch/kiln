@@ -217,7 +217,7 @@ test("static placeholders hydrate into icons that keep their classes", () => {
 
 // r[verify kiln.web.design_system]
 test("every icon the console names is in the reviewed list", () => {
-  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-interaction.js", "code-review.js", "project.js", "source.js"];
+  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-board.js", "work-interaction.js", "code-review.js", "project.js", "source.js"];
   const used = new Set();
   for (const name of sources) {
     const text = asset(name);
@@ -484,4 +484,150 @@ test("empty, foreign or headerless diff text is kept rather than invented", () =
   assert.equal(malformed.additions, 0);
   const spaced = plain(source.parseDiff("diff --git a/a b/c b/a b/c\nindex 1..2 100644\n").files[0]);
   assert.deepEqual([spaced.oldPath, spaced.newPath, spaced.path], ["a b/c", "a b/c", "a b/c"], "equal halves resolve a path that contains ' b/'");
+});
+
+// Kanban board helpers: pure, loaded in their own context exactly as served.
+const boardContext = { window: {}, URLSearchParams };
+vm.runInNewContext(asset("work-board.js"), boardContext);
+const board = boardContext.window.KilnWorkBoard;
+const boardFixture = JSON.parse(readFileSync(new URL("../crates/kiln-web-service/tests/fixtures/work-board/eligibility.json", import.meta.url), "utf8"));
+
+// r[verify kiln.work.kanban.projection]
+test("list and board eligibility follow the fixture shared with the Rust projection", () => {
+  for (const item of boardFixture.cases) {
+    const shown = boardFixture.records.filter((record) => board.listed(record, item.filters, item.view_active));
+    assert.deepEqual(shown.filter((record) => record.kind === "issue").map((record) => record.id), item.issues, item.name);
+    assert.equal(shown.filter((record) => record.kind !== "issue").length, item.list_only, item.name);
+  }
+});
+
+test("board reads carry only the Work page's overrides and an admitted sort", () => {
+  assert.equal(board.boardPath("", {}), "/api/work/board");
+  const route = { work_status: "review", work_q: " needle case ", work_kind: "", work_sort: "due", work_layout: "board", work_group: "team" };
+  assert.equal(board.boardPath("ab".repeat(20), route), `/api/work/board?view=${"ab".repeat(20)}&status=review&q=needle+case&sort=due`);
+  assert.equal(board.boardPath("", { work_sort: "random" }), "/api/work/board", "an unknown sort is not forwarded");
+});
+
+const columns = [
+  { status: "backlog", builtin: true, teams: [], retired: false },
+  { status: "review", builtin: false, teams: ["team-a"], retired: false },
+  { status: "gone", builtin: false, teams: [], retired: true },
+  { status: "completed", builtin: true, teams: [], retired: false },
+  { status: "snoozed", builtin: true, teams: [], retired: false },
+  { status: "duplicate", builtin: true, teams: [], retired: false },
+];
+const card = { id: "issue-1", head: "head-1", title: "Fix", status: "backlog", team: "team-a", due_at_ms: null };
+
+// r[verify kiln.work.kanban.move]
+test("move targets follow the issue's team workflow and name every refusal", () => {
+  const now = 1_000;
+  const reasons = (subject) => Object.fromEntries(plain(board.moveTargets(subject, columns, now)).map((target) => [target.status, target.allowed ? "allowed" : target.reason]));
+  assert.deepEqual(reasons(card), {
+    backlog: "Current column", review: "allowed", gone: "Retired: no team workflow defines this status", completed: "allowed",
+    snoozed: "Needs a future snooze date: use Edit…", duplicate: "Needs a duplicate target: use Edit…",
+  });
+  assert.equal(reasons({ ...card, team: "team-b" }).review, "Not in this issue's team workflow");
+  assert.equal(reasons({ ...card, team: null }).review, "Custom status: the issue has no team");
+  assert.equal(reasons({ ...card, due_at_ms: now + 1 }).snoozed, "allowed");
+  assert.equal(reasons({ ...card, due_at_ms: now }).snoozed, "Needs a future snooze date: use Edit…");
+  // The default target is the next allowed column to the right, else the first allowed one.
+  assert.equal(board.defaultTarget(card, columns, now), "review");
+  assert.equal(board.defaultTarget({ ...card, status: "completed" }, columns, now), "backlog");
+  assert.equal(board.defaultTarget({ ...card, status: "review", team: "team-b" }, [columns[1]], now), "");
+});
+
+// r[verify kiln.work.kanban.move.scenario.retry] r[verify kiln.work.kanban.interaction]
+test("a move names its exact head and only unknown outcomes are retryable", () => {
+  assert.deepEqual(plain(board.moveCommand(card, "review", "request-1")), { request_id: "request-1", object_id: "issue-1", expected_head: "head-1", action: { type: "set_status", status: "review" } });
+  const failure = (status, message) => Object.assign(new Error(message), { status });
+  assert.equal(board.classify(failure(409, "work_head_conflict: Request conflicts")), "conflict");
+  assert.equal(board.classify(failure(409, "work_request_conflict: Request conflicts")), "replay");
+  assert.equal(board.classify(failure(400, "work_command_invalid: x")), "invalid");
+  assert.equal(board.classify(failure(403, "work_write_denied: x")), "denied");
+  assert.equal(board.classify(failure(404, "work_object_missing: x")), "missing");
+  for (const unknown of [failure(503, "work_store_unavailable: x"), new TypeError("Failed to fetch"), Object.assign(new Error("Request timed out"), { name: "TimeoutError" }), new Error("No matching durable work record was returned.")]) assert.equal(board.classify(unknown), "unknown");
+  assert.equal(board.classify(Object.assign(new Error("Signed out"), { name: "AbortError" })), "aborted");
+});
+
+// r[verify kiln.work.kanban.move.scenario.stale]
+test("a reloaded conflict is resolved by the user, never by overwriting", () => {
+  const attempt = { card, target: "review" };
+  assert.equal(board.resolve(attempt, null).kind, "missing");
+  assert.equal(board.resolve(attempt, { ...card, head: "head-2", status: "review" }).kind, "applied");
+  assert.equal(board.resolve(attempt, { ...card }).kind, "unchanged");
+  const changed = plain(board.resolve(attempt, { ...card, head: "head-2", status: "completed" }));
+  assert.deepEqual([changed.kind, changed.card.head, changed.card.status], ["changed", "head-2", "completed"]);
+});
+
+const projection = (overrides = {}) => ({
+  schema: "kiln.work.board.v1", principal: "local:alice", bounded: true, complete: true, filtered: false,
+  matched_issues: 2, shown_cards: 2, list_only: 0, snapshot_objects: 9, object_limit: 1024, card_limit: 100, columns_truncated: 0,
+  columns: [{ ...columns[0], total: 2, cards: [card, { ...card, id: "issue-2", head: "head-2" }] }],
+  other: { statuses: [], total: 0, cards: [] }, ...overrides,
+});
+
+// r[verify kiln.work.kanban.projection]
+test("board projections are admitted only for their principal and state their completeness", () => {
+  const value = projection();
+  assert.equal(board.admit(value, "local:alice"), value);
+  assert.equal(board.findCard(value, "issue-2").head, "head-2");
+  assert.equal(board.findCard(value, "issue-9"), null);
+  for (const invalid of [projection({ principal: "local:bob" }), projection({ bounded: false }), projection({ matched_issues: -1 }), projection({ columns: [{ ...columns[0], total: 1, cards: [{ ...card, head: "" }] }] }), projection({ other: null })]) {
+    assert.throws(() => board.admit(invalid, "local:alice"), /invalid or belongs to a different principal/);
+  }
+  const whole = plain(board.completeness(value));
+  assert.equal(whole.summary, "2 matching issues, all shown");
+  assert.deepEqual(whole.notes, ["Bounded snapshot: 9 of at most 1024 work objects."]);
+  const partial = plain(board.completeness(projection({ complete: false, matched_issues: 107, shown_cards: 105, filtered: true, list_only: 1, columns_truncated: 3 })));
+  assert.equal(partial.summary, "105 of 107 matching issues shown");
+  assert.deepEqual(partial.notes, [
+    "Columns show at most 100 cards each; 2 matching issue(s) are not shown. Narrow the filters or use the list layout.",
+    "Filtered: issues outside this view's filters are not on this board.",
+    "1 matching record is not an issue and appears only in the list layout.",
+    "3 team statuses exceed the column bound; their issues are under Other statuses.",
+    "Bounded snapshot: 9 of at most 1024 work objects.",
+  ]);
+});
+
+// Declared authorship: the console sends only validated self-declarations and labels them as unverified.
+const reviewContext = { window: {} };
+vm.runInNewContext(asset("code-review.js"), reviewContext);
+const reviewAuthorship = reviewContext.window.KilnCodeReview.authorship;
+
+// r[verify kiln.review.authorship.console]
+test("authorship payloads mirror the service bounds and send nothing when undeclared", () => {
+  const payload = (...args) => plain(reviewAuthorship.payload(...args));
+  assert.equal(reviewAuthorship.payload("undeclared", "ignored", "ignored"), null);
+  assert.equal(reviewAuthorship.payload("", "", ""), null);
+  assert.deepEqual(payload("human", "ignored"), { kind: "human" });
+  assert.deepEqual(payload("mixed"), { kind: "mixed" });
+  assert.deepEqual(payload("agent", "  omp ", " claude "), { kind: "agent", harness: "omp", model: "claude" });
+  assert.deepEqual(payload("agent", "omp", "   "), { kind: "agent", harness: "omp" });
+  const bounded = "h".repeat(reviewAuthorship.limit);
+  assert.deepEqual(payload("agent", bounded, bounded), { kind: "agent", harness: bounded, model: bounded });
+  // 64 two-byte characters are exactly the byte bound; one more exceeds it although it is only 65 characters.
+  assert.equal(payload("agent", "é".repeat(64)).harness.length, 64);
+  for (const [args, pattern] of [
+    [["agent", "", "claude"], /Harness is required/],
+    [["agent", "   "], /Harness is required/],
+    [["agent", "om\u0007p"], /Harness must not contain control characters/],
+    [["agent", "h".repeat(reviewAuthorship.limit + 1)], /Harness must be at most 128 bytes/],
+    [["agent", "é".repeat(65)], /Harness must be at most 128 bytes/],
+    [["agent", "omp", "m".repeat(reviewAuthorship.limit + 1)], /Model must be at most 128 bytes/],
+    [["agent", "omp", "cl\nude"], /Model must not contain control characters/],
+    [["robot"], /Select a listed authorship/],
+  ]) {
+    assert.throws(() => reviewAuthorship.payload(...args), pattern);
+  }
+});
+
+// r[verify kiln.review.authorship.console]
+test("change detail labels declared authorship as self-declared and absent as undeclared", () => {
+  assert.equal(reviewAuthorship.classLabel("agent"), "Agent (self-declared)");
+  assert.equal(reviewAuthorship.classLabel("mixed"), "Mixed (self-declared)");
+  assert.equal(reviewAuthorship.classLabel(undefined), "Undeclared");
+  assert.equal(reviewAuthorship.label(undefined), "Undeclared");
+  assert.equal(reviewAuthorship.label({ kind: "human" }), "Human");
+  assert.equal(reviewAuthorship.label({ kind: "agent", harness: "omp", model: "claude" }), "Agent · harness omp · model claude");
+  assert.equal(reviewAuthorship.label({ kind: "agent", harness: "omp" }), "Agent · harness omp");
 });
