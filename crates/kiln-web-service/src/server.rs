@@ -98,10 +98,7 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
         .as_deref()
         .map(crate::code_review::Profile::load)
         .transpose()?;
-    if let Some(review_profile) = &review_profile {
-        review_profile.admit_service(&profile)?;
-    }
-    let _code_review = crate::code_review::Workspace::new(review_profile)?;
+    let _code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
     if let Some(cache) = &_cache {
         cache.preflight_for(&profile)?;
     }
@@ -169,10 +166,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         .as_deref()
         .map(crate::code_review::Profile::load)
         .transpose()?;
-    if let Some(review_profile) = &review_profile {
-        review_profile.admit_service(&profile)?;
-    }
-    let code_review = crate::code_review::Workspace::new(review_profile)?;
+    let code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;
     let listener = TcpListener::bind(profile.listen_address)

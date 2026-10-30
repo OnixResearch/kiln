@@ -288,6 +288,10 @@ pub struct AutomationState {
     pub requests: BTreeMap<String, String>,
     /// Next registration in the immutable admitted policy's round-robin order.
     pub next_registration: usize,
+    /// Last recorded head per (repository key, reference): the exact base
+    /// of the next push. Absent means a new reference (`no_base`).
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub heads: BTreeMap<String, String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -316,6 +320,12 @@ pub struct SourceRecord {
     pub reference: String,
     pub source_revision: Option<String>,
     pub candidate_identity: Option<String>,
+    /// Affected decision of the repository event this source belongs to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub affected: Option<kiln_core::monorepo::AffectedSet>,
+    /// Changed-file summary behind `affected`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub changed: Option<kiln_core::monorepo::ChangedSummary>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -10,5 +10,8 @@ publish = false
 blake3 = { version = "1.8.2", default-features = false }
 serde = { workspace = true, default-features = false, features = ["alloc", "derive"] }
 
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

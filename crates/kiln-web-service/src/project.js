@@ -300,6 +300,14 @@
     const repository = element("span", project?.repository || "", "mono");
     identity.append(reference);
     if (project?.repository) identity.append(document.createTextNode(" · "), repository);
+    // r[impl kiln.monorepo.console] A scoped project names its root and the build graphs it consults.
+    const pathScope = ui().scopeSummary(project);
+    if (pathScope) {
+      const where = element("span", pathScope.root, pathScope.whole ? undefined : "mono");
+      where.title = pathScope.scoped ? `Path scope root: ${pathScope.root}` : "Unscoped: every change runs this project";
+      identity.append(document.createTextNode(" · "), where);
+      if (pathScope.graphs.length) identity.append(document.createTextNode(` · ${pathScope.graphs.join(", ")} graph${pathScope.graphs.length === 1 ? "" : "s"}`));
+    }
     main.append(head, headline, since, identity);
     const facts = element("dl", undefined, "pp-lasts");
     const bounded = truncated || total > runs.length;

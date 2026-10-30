@@ -149,6 +149,7 @@ fn binding_fixture(
             maximum_total_bytes: 4096,
             maximum_chunks: 128,
         },
+        project_root: None,
     }
 }
 
@@ -761,6 +762,7 @@ fn output_is_ingressed_before_exit_and_each_retained_byte_is_uploaded_once() {
         &profile,
         profile.steps.first().unwrap_or_else(|| unreachable!()),
         &prepared.checkout,
+        &prepared.checkout,
         &AtomicBool::new(false),
         64,
         |chunk| {
@@ -806,6 +808,7 @@ fn overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_e
         &profile,
         profile.steps.first().unwrap_or_else(|| unreachable!()),
         &prepared.checkout,
+        &prepared.checkout,
         &AtomicBool::new(false),
         2,
         |chunk| {
@@ -835,6 +838,7 @@ fn overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_e
             &profile,
             profile.steps.first().unwrap_or_else(|| unreachable!()),
             &prepared.checkout,
+            &prepared.checkout,
             &AtomicBool::new(false),
             2,
             |_| {
@@ -860,6 +864,7 @@ fn overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_e
         &profile,
         profile.steps.first().unwrap_or_else(|| unreachable!()),
         &prepared.checkout,
+        &prepared.checkout,
         &AtomicBool::new(false),
         2,
         |_| Err("rejected ingress".into()),
@@ -877,6 +882,7 @@ fn overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_e
     let output = process::execute_streamed(
         &profile,
         profile.steps.first().unwrap_or_else(|| unreachable!()),
+        &prepared.checkout,
         &prepared.checkout,
         &AtomicBool::new(false),
         2,
@@ -915,6 +921,7 @@ fn streaming_cancellation_and_deadline_terminate_owned_descendants() {
             &profile,
             profile.steps.first().unwrap_or_else(|| unreachable!()),
             &prepared.checkout,
+            &prepared.checkout,
             &cancellation,
             64,
             |chunk| {
@@ -939,4 +946,76 @@ fn streaming_cancellation_and_deadline_terminate_owned_descendants() {
             "owned descendant remains alive"
         );
     }
+}
+
+// r[verify kiln.monorepo.dispatch]
+#[test]
+fn scoped_jobs_start_in_the_project_root_and_reject_missing_or_escaping_roots() {
+    let (root, mut profile, context) = fixture();
+    let prepared =
+        source::prepare(&profile, &context).unwrap_or_else(|error| unreachable!("{error}"));
+    let checkout = &prepared.checkout;
+    fs::create_dir_all(checkout.join("crates/api")).unwrap_or_else(|error| unreachable!("{error}"));
+    let canonical = checkout
+        .canonicalize()
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    // Unscoped and repository-root scopes run at the checkout itself.
+    assert_eq!(
+        source::project_directory(checkout, None),
+        Ok(checkout.clone())
+    );
+    assert_eq!(
+        source::project_directory(checkout, Some("")),
+        Ok(checkout.clone())
+    );
+    let directory = source::project_directory(checkout, Some("crates/api"))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(directory, canonical.join("crates/api"));
+    for (root_path, diagnostic) in [
+        ("crates/missing", source::PROJECT_ROOT_MISSING),
+        ("source.txt", source::PROJECT_ROOT_MISSING),
+        ("crates/../..", source::PROJECT_ROOT_ESCAPES_CHECKOUT),
+        ("/etc", source::PROJECT_ROOT_ESCAPES_CHECKOUT),
+        ("outside", source::PROJECT_ROOT_ESCAPES_CHECKOUT),
+    ] {
+        if root_path == "outside" {
+            symlink(root.path(), checkout.join("outside"))
+                .unwrap_or_else(|error| unreachable!("{error}"));
+        }
+        if root_path == "source.txt" {
+            fs::write(checkout.join("source.txt"), b"file, not a directory")
+                .unwrap_or_else(|error| unreachable!("{error}"));
+        }
+        assert_eq!(
+            source::project_directory(checkout, Some(root_path)),
+            Err(diagnostic.to_owned()),
+            "{root_path}"
+        );
+    }
+    profile
+        .steps
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .argv = vec!["-c".into(), "pwd -P".into()];
+    let mut stdout = Vec::new();
+    let output = process::execute_streamed(
+        &profile,
+        profile.steps.first().unwrap_or_else(|| unreachable!()),
+        checkout,
+        &directory,
+        &AtomicBool::new(false),
+        64,
+        |chunk| {
+            if matches!(chunk.stream, super::streaming::Stream::Stdout) {
+                stdout.extend_from_slice(&chunk.bytes);
+            }
+            Ok(())
+        },
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(output.code, 0);
+    assert_eq!(
+        String::from_utf8_lossy(&stdout).trim_end(),
+        canonical.join("crates/api").to_string_lossy()
+    );
 }

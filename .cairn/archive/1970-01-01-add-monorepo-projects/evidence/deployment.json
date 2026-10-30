@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-30",
+  "authority": "Operator asked to add monorepo support (path-scoped projects plus build-graph affected detection); the established flow after each accepted change is deploy then push.",
+  "package": "/nix/store/wqrijva8fyvy8iavjxp0vmdmi08n0sj1-kiln-web-service-0.1.0",
+  "executable_blake3": "8f7f53a8a6595fd61267776d8ea411cb1c0cf87b3ad080e765c5c1a387cb4f0e",
+  "previous_package": "/nix/store/z9bff830r80irp0f4akhqyg6g40jsi3j-kiln-web-service-0.1.0",
+  "gates": "nix flake check: all x86_64-linux checks passed (after making the celld boundary injection insert under [dependencies]); workspace clippy -D warnings; 26 Rust test suites; 33 node tests; cairn validate valid, traceability 1173/1173, release-readiness valid",
+  "live_profile": "No project declares a scope, so automation and review behave exactly as before. Monorepo behaviour starts when an operator adds scope to projects.",
+  "verification": {
+    "assets_identical": 17,
+    "health": "{\"status\":\"ok\"}",
+    "anonymous_api": 401,
+    "projects": 15,
+    "projects_with_scope": 0,
+    "repository_key_present": true,
+    "retained_runs": 19,
+    "ui": {
+      "cards": 15,
+      "groups": 15,
+      "wholeRepo": 15,
+      "overflow": 0,
+      "whyShownOnOldRun": false,
+      "errors": []
+    }
+  },
+  "rollback": [
+    "nix profile remove kiln-web-service",
+    "nix profile add <previous_package>",
+    "systemctl --user restart kiln-web-service.service"
+  ]
+}

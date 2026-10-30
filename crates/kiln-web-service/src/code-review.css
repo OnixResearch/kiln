@@ -290,3 +290,14 @@
   .cr-file-row > a[aria-current="true"], .cr-history li[aria-current="true"], .cr-stack li[aria-current="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
   .cr-mark[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+
+/* r[impl kiln.monorepo.console] Required CI per project: one row per project of the review repository. */
+.cr-ci-projects { display: grid; gap: var(--space-2); margin: var(--space-1) 0 0; padding: 0; list-style: none; min-width: 0; }
+.cr-ci-project { display: grid; gap: var(--space-1); min-width: 0; padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.cr-ci-project-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; color: var(--foreground); }
+.cr-requirement .cr-ci-project-head > strong { color: var(--foreground); }
+.cr-ci-project .reason-list { font-size: var(--text-xs); }
+.cr-ci-run { justify-self: start; font-size: var(--text-xs); font-weight: 600; }
+@media (max-width: 60rem) {
+  .cr-ci-run { display: inline-flex; align-items: center; min-height: 2.75rem; }
+}

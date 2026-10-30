@@ -164,6 +164,12 @@ pub struct RunRecord {
     pub step_telemetry: Vec<crate::telemetry::TelemetryRecord>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dirty_snapshot: Option<crate::snapshot::SnapshotProvenance>,
+    /// Why an automation run ran (affected-set identity, reasons, changes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub affected: Option<crate::monorepo::RunAffected>,
+    /// Scope identity and root bound into a scoped project's run identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<crate::monorepo::RunScope>,
     #[serde(skip)]
     pub state: State,
 }
@@ -205,6 +211,13 @@ pub struct RunView {
     pub step_telemetry: Vec<crate::telemetry::TelemetryRecord>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dirty_snapshot: Option<crate::snapshot::SnapshotProvenance>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub affected: Option<crate::monorepo::RunAffected>,
+    /// Repository-relative directory jobs start in; absent for unscoped projects.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_root: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_identity: Option<String>,
 }
 impl RunRecord {
     pub fn restore(&mut self) -> Result<(), String> {
@@ -367,6 +380,9 @@ impl RunRecord {
             report_summary: super::reports::summary(self),
             step_telemetry: self.step_telemetry.clone(),
             dirty_snapshot: self.dirty_snapshot.clone(),
+            affected: self.affected.clone(),
+            project_root: self.scope.as_ref().map(|scope| scope.root.clone()),
+            scope_identity: self.scope.as_ref().map(|scope| scope.identity.clone()),
             log_bounds: LogBounds {
                 maximum_chunk_bytes: self.plan.bounds.max_log_read_bytes,
                 maximum_total_bytes: self.plan.bounds.max_total_log_bytes,

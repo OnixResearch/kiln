@@ -74,6 +74,7 @@ fn fixture() -> (
             maximum_total_bytes: 4096,
             maximum_chunks: 4,
         },
+        project_root: None,
     };
     checked(super::admit_binding(&profile, &source, &binding));
     (root, profile, source, binding)

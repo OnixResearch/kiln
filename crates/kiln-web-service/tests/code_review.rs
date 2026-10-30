@@ -110,6 +110,8 @@ impl Fixture {
             success,
             full_run: true,
             clean: true,
+            scope_identity: None,
+            terminal: true,
         }
     }
     fn target(&self, target: &str) -> Result<String> {
@@ -1526,5 +1528,161 @@ fn review_diff_highlighting_is_opt_in_row_aligned_and_rejects_other_values() -> 
             &json!("review_query_invalid")
         );
     }
+    Ok(())
+}
+
+/// Service projects sharing the review repository: the primary project and
+/// `docs` (declares a dependency on file.txt) are affected by the fixture's
+/// first revision; `lib` is skipped.
+fn monorepo_service(fixture: &Fixture) -> Result<kiln_web_service::profile::ServiceProfile> {
+    let root = fixture._temp.path();
+    let repository = &fixture.profile.provider.repository_path;
+    let project = |id: &str, scope: Value| {
+        json!({"id":id,"label":format!("Project {id}"),"repository_path":repository,"reference":MAIN,"admitted_references":[RELEASE],
+            "source_limits":{"max_entries":32,"max_path_bytes":1024,"max_file_bytes":4096,"max_total_bytes":16384},
+            "workflow":{"socket_path":root.join(format!("{id}.sock")),"allowed_user_ids":[0],
+                "transport_limits":{"maximum_frame_bytes":1048576,"maximum_log_bytes":65536,"maximum_connections":4,"read_deadline_milliseconds":1000,"write_deadline_milliseconds":1000},
+                "adapter_limits":{"maximum_request_bytes":1048576,"maximum_response_bytes":1048576},
+                "policy_id":"reviewed-policy","provider_profile_id":"reviewed-lattice","platform":"linux-x86_64",
+                "nodes":[{"id":"job","kind":"test","effect_class":"test","adapter_kind":"local","operation_identity":"a".repeat(64)}],
+                "edges":[],"controls":{"cancel":true,"pause":false,"resume":false},
+                "bounds":{"max_nodes":8,"max_edges":16,"max_log_references":32,"max_log_read_bytes":4096,"max_total_log_bytes":65536}},
+            "scope":scope})
+    };
+    Ok(serde_json::from_value(
+        json!({"schema":"kiln.web-service.v1","service_id":"review-monorepo","listen_address":"127.0.0.1:9443","origin":"https://localhost:9443",
+        "tls":{"certificate_path":root.join("cert.pem"),"private_key_path":root.join("key.pem"),"min_version":"TLS1.3"},
+        "operator_token_file":root.join("operator.token"),"worker_token_file":root.join("worker.token"),"state_directory":root.join("state"),
+        "projects":[
+            project("project", json!({"root":"","include":["file.txt"]})),
+            project("lib", json!({"root":"","include":["lib.txt"]})),
+            project("docs", json!({"root":"","include":["docs.txt"],"depends_on":["file.txt"]})),
+        ],
+        "bounds":{"max_request_bytes":16384,"max_response_bytes":1048576,"max_header_bytes":4096,"max_connections":4,"timeout_seconds":2,"poll_interval_ms":10,
+            "max_projects":4,"max_runs":4,"max_artifact_bytes":1024,"max_artifacts":2,"max_run_artifact_bytes":2048,"max_total_artifact_bytes":4096,
+            "max_log_read_bytes":4096,"max_requests":32,"max_events_per_run":8,"max_state_bytes":1048576}}),
+    )?)
+}
+
+fn ci_projects(detail: &Value) -> Result<Vec<Value>> {
+    Ok(field(detail, "/checklist/items")?
+        .as_array()
+        .ok_or("items")?
+        .iter()
+        .find(|item| item.get("key") == Some(&json!("ci")))
+        .ok_or("ci item")?
+        .get("ci_projects")
+        .and_then(Value::as_array)
+        .ok_or("ci_projects")?
+        .clone())
+}
+
+// r[verify kiln.monorepo.gating]
+#[test]
+fn monorepo_review_requires_current_scope_ci_for_each_affected_project() -> Result {
+    let fixture = Fixture::new()?;
+    let service = monorepo_service(&fixture)?;
+    let scope = |id: &str| -> Result<String> {
+        Ok(service
+            .projects
+            .iter()
+            .find(|p| p.id == id)
+            .ok_or("project")?
+            .admitted_scope()?
+            .ok_or("scope")?
+            .identity()
+            .as_str()
+            .to_owned())
+    };
+    let workspace = Workspace::for_service(Some(fixture.profile.clone()), &service)?;
+    let change = approved(&workspace, &fixture)?;
+    let run = |project: &str, ordinal: u64, scope: Option<String>, success: bool| CiFact {
+        project: project.into(),
+        run_id: format!("{project}-{ordinal}"),
+        scope_identity: scope,
+        terminal: success,
+        ..fixture.ci(&fixture.first, ordinal, success)
+    };
+    let state = |rows: &[Value], id: &str| {
+        rows.iter()
+            .find(|row| row.get("project_id") == Some(&json!(id)))
+            .map(|row| (row.get("outcome").cloned(), row.get("state").cloned()))
+    };
+    let before = detail(&workspace, &change, ALICE, &[])?;
+    assert_eq!(field(&before, "/checklist/ready")?, false);
+    let rows = ci_projects(&before)?;
+    assert_eq!(rows.len(), 3);
+    assert_eq!(
+        state(&rows, "project"),
+        Some((Some(json!("affected")), Some(json!("missing"))))
+    );
+    assert_eq!(
+        state(&rows, "docs"),
+        Some((Some(json!("affected")), Some(json!("missing"))))
+    );
+    let lib = rows
+        .iter()
+        .find(|row| row.get("project_id") == Some(&json!("lib")))
+        .ok_or("lib")?;
+    assert_eq!(lib.get("outcome"), Some(&json!("skipped")));
+    assert_eq!(lib.get("reason"), Some(&json!("no_changes_in_scope")));
+    assert_eq!(lib.get("state"), Some(&Value::Null));
+    let docs_reason = rows
+        .iter()
+        .find(|row| row.get("project_id") == Some(&json!("docs")))
+        .ok_or("docs")?;
+    assert_eq!(
+        docs_reason.pointer("/reasons/0/kind"),
+        Some(&json!("declared"))
+    );
+
+    let primary = run("project", 1, Some(scope("project")?), true);
+    // CI of another project and of an older docs scope never satisfies docs.
+    let mut ci = vec![
+        primary.clone(),
+        run("lib", 2, Some(scope("lib")?), true),
+        run("docs", 3, Some("0".repeat(64)), true),
+    ];
+    let detail_now = detail(&workspace, &change, ALICE, &ci)?;
+    assert_eq!(field(&detail_now, "/checklist/ready")?, false);
+    let rows = ci_projects(&detail_now)?;
+    assert_eq!(
+        state(&rows, "project"),
+        Some((Some(json!("affected")), Some(json!("passed"))))
+    );
+    assert_eq!(
+        state(&rows, "docs"),
+        Some((Some(json!("affected")), Some(json!("stale_scope"))))
+    );
+    ci.push(run("docs", 4, Some(scope("docs")?), false));
+    let rows = ci_projects(&detail(&workspace, &change, ALICE, &ci)?)?;
+    assert_eq!(
+        state(&rows, "docs"),
+        Some((Some(json!("affected")), Some(json!("pending"))))
+    );
+    let mut failed = run("docs", 5, Some(scope("docs")?), false);
+    failed.terminal = true;
+    ci.push(failed);
+    let rows = ci_projects(&detail(&workspace, &change, ALICE, &ci)?)?;
+    assert_eq!(
+        state(&rows, "docs"),
+        Some((Some(json!("affected")), Some(json!("failed"))))
+    );
+    // A current clean run for every affected project passes; skipped lib never blocks.
+    ci.push(run("docs", 6, Some(scope("docs")?), true));
+    let ready = detail(&workspace, &change, ALICE, &ci)?;
+    assert_eq!(field(&ready, "/checklist/ready")?, true);
+    assert_eq!(
+        state(&ci_projects(&ready)?, "docs"),
+        Some((Some(json!("affected")), Some(json!("passed"))))
+    );
+    // The single-project workspace keeps today's requirement: no ci_projects.
+    let legacy = detail(
+        &fixture.workspace()?,
+        &change,
+        ALICE,
+        &[fixture.ci(&fixture.first, 1, true)],
+    )?;
+    assert!(ci_projects(&legacy).is_err());
     Ok(())
 }

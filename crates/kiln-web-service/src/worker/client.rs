@@ -25,6 +25,9 @@ pub struct RunBinding {
     pub outcome: String,
     pub nodes: Vec<Node>,
     pub log_bounds: LogBounds,
+    /// Scoped project root jobs start in; absent for unscoped projects.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_root: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -408,6 +411,7 @@ pub fn exact_binding(expected: &RunBinding, current: &RunBinding) -> Result<(), 
         || current.project_id != expected.project_id
         || current.log_bounds != expected.log_bounds
         || current.nodes != expected.nodes
+        || current.project_root != expected.project_root
         || current.outcome != "Pending"
     {
         return Err("worker attempt or execution became stale".into());

@@ -23,6 +23,22 @@ pub(crate) fn error(status: u16, code: &str) -> Result<ApiResponse, String> {
         json!({"code":code,"message":match status {400=>"Request does not match the bounded API contract",403=>"Role is not authorized for this operation",404=>"Requested resource was not found",409=>"Request conflicts with current identity or retained state",_=>"Provider operation is unavailable or ambiguous"}}),
     )
 }
+/// Project JSON: monorepo `scope` (null when unscoped) and the BLAKE3
+/// `repository_key` shared by projects on one canonical repository.
+pub(crate) fn project_view(
+    project: &crate::profile::ProjectProfile,
+    pipeline: bool,
+) -> Result<Value, String> {
+    let mut value = json!({"id":project.id,"label":project.label,"repository":project.repository_path,
+        "reference":project.reference,"scope":project.scope_view()?,"repository_key":project.repository_key()});
+    if let (true, Some(object)) = (pipeline, value.as_object_mut()) {
+        object.insert(
+            "pipeline_identity".into(),
+            json!(identity(&project.workflow)?),
+        );
+    }
+    Ok(value)
+}
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ProjectRequest {
@@ -156,7 +172,7 @@ impl Engine {
                         .iter()
                         .find(|p| p.id == prior.resource)
                         .ok_or("reserved project missing")?;
-                    return json_response(200,json!({"id":project.id,"label":project.label,"repository":project.repository_path,"reference":project.reference,"pipeline_identity":identity(&project.workflow)?})).map(Some);
+                    return json_response(200, project_view(project, true)?).map(Some);
                 }
                 RequestKind::Control => {}
             }
@@ -312,8 +328,19 @@ impl Engine {
             return self.start_run(body);
         }
         if method == "GET" && path == "/api/projects" && params.is_empty() {
-            let available:Vec<Value>=self.profile.projects.iter().map(|p|json!({"id":p.id,"label":p.label,"repository":p.repository_path,"reference":p.reference})).collect();
-            let enrolled:Vec<Value>=self.profile.projects.iter().filter(|p|self.state.enrolled.contains(&p.id)).map(|p|Ok(json!({"id":p.id,"label":p.label,"repository":p.repository_path,"reference":p.reference,"pipeline_identity":identity(&p.workflow)?}))).collect::<Result<_,String>>()?;
+            let available: Vec<Value> = self
+                .profile
+                .projects
+                .iter()
+                .map(|p| project_view(p, false))
+                .collect::<Result<_, String>>()?;
+            let enrolled: Vec<Value> = self
+                .profile
+                .projects
+                .iter()
+                .filter(|p| self.state.enrolled.contains(&p.id))
+                .map(|p| project_view(p, true))
+                .collect::<Result<_, String>>()?;
             return json_response(200, json!({"available":available,"enrolled":enrolled}));
         }
         // r[impl kiln.web.enrollment]
@@ -348,7 +375,7 @@ impl Engine {
                 project.id.clone(),
                 RequestKind::Enroll,
             )?;
-            return self.finish_request(&req.request_id,200,json!({"id":project.id,"label":project.label,"repository":project.repository_path,"reference":project.reference,"pipeline_identity":identity(&project.workflow)?}));
+            return self.finish_request(&req.request_id, 200, project_view(&project, true)?);
         }
         if method == "GET" && path == "/api/runs" {
             return self.run_list(&params, role);

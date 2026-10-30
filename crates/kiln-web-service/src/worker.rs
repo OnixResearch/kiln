@@ -67,6 +67,7 @@ pub fn run_job(
     let source = source::prepare(profile, context)?;
     let service = client::ServiceClient::new(profile)?;
     let binding = service.await_binding(profile, &source.resolution, cancellation)?;
+    let directory = source::project_directory(&source.checkout, binding.project_root.as_deref())?;
     let mut total_artifact_bytes = 0usize;
     let mut total_report_bytes = 0usize;
     let mut log_uploads = client::LogUploads::default();
@@ -104,6 +105,7 @@ pub fn run_job(
             profile,
             step,
             &source.checkout,
+            &directory,
             cancellation,
             binding.log_bounds.maximum_chunk_bytes,
             |chunk| {

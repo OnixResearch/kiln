@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Component, Path, PathBuf};
@@ -6,6 +6,7 @@ use std::path::{Component, Path, PathBuf};
 use kiln_adapter_github::profile::WorkflowConfig;
 use kiln_adapter_http_observe::TlsProfile;
 use kiln_adapter_lattice::{LatticeAdapterLimits, LatticeProfile};
+use kiln_core::monorepo::{AdmittedScope, MAX_PROJECTS_PER_REPOSITORY, ProjectScope, admit_scope};
 use kiln_core::source::GitSnapshotLimits;
 use kiln_core::types::ProviderProfileId;
 use lattice_workflow_transport::{
@@ -49,6 +50,9 @@ pub struct ProjectProfile {
     pub admitted_references: Vec<String>,
     pub source_limits: GitSnapshotLimits,
     pub workflow: WorkflowConfig,
+    /// Optional monorepo path scope; absent keeps repository-wide behaviour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<ProjectScope>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -103,7 +107,42 @@ pub(crate) fn read_token(path: &Path) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
+/// Lexically canonical repository path text shared by every project on one
+/// repository. `absolute` already rejects `.`/`..`, so components suffice.
+pub(crate) fn canonical_repository(path: &Path) -> String {
+    let mut text = String::new();
+    for part in path.components() {
+        if let Component::Normal(part) = part {
+            text.push('/');
+            text.push_str(&part.to_string_lossy());
+        }
+    }
+    if text.is_empty() {
+        text.push('/');
+    }
+    text
+}
+
 impl ProjectProfile {
+    /// BLAKE3 over the canonical repository path; equal for projects that share it.
+    pub fn repository_key(&self) -> String {
+        blake3::hash(canonical_repository(&self.repository_path).as_bytes())
+            .to_hex()
+            .to_string()
+    }
+    /// Admitted scope, `None` for an unscoped project. Errors name the
+    /// project and the offending field.
+    pub fn admitted_scope(&self) -> Result<Option<AdmittedScope>, String> {
+        self.scope
+            .as_ref()
+            .map(|scope| admit_scope(&self.id, scope).map_err(|error| error.to_string()))
+            .transpose()
+    }
+    /// API projection of the admitted scope with its project-bound identity.
+    pub fn scope_view(&self) -> Result<serde_json::Value, String> {
+        serde_json::to_value(self.admitted_scope()?)
+            .map_err(|_| "project scope encoding failed".into())
+    }
     pub fn reviewed_request(&self) -> Result<serde_json::Value, String> {
         self.reviewed_request_for_nodes(&[])
     }
@@ -277,6 +316,50 @@ impl ServiceProfile {
             let plan = crate::engine::model::workflow_plan(project, &identity, &identity, None)?;
             kiln_adapter_lattice::lower_request(&lattice, &plan)
                 .map_err(|_| "unsupported reviewed workflow")?;
+        }
+        self.admit_repositories()?;
+        Ok(())
+    }
+
+    // r[impl kiln.monorepo.scope]
+    // r[impl kiln.monorepo.scope.scenario.invalid]
+    /// Scope admission plus the shared-repository rules: every scope is
+    /// admitted (errors name project and field), at most
+    /// `MAX_PROJECTS_PER_REPOSITORY` projects share one repository, and
+    /// projects resolving to one directory spell one canonical path.
+    fn admit_repositories(&self) -> Result<(), String> {
+        let mut repositories: BTreeMap<String, (&Path, usize)> = BTreeMap::new();
+        let mut resolved: BTreeMap<PathBuf, &Path> = BTreeMap::new();
+        for project in &self.projects {
+            project.admitted_scope()?;
+            let key = canonical_repository(&project.repository_path);
+            let entry = repositories
+                .entry(key)
+                .or_insert((project.repository_path.as_path(), 0));
+            if entry.0 != project.repository_path.as_path() {
+                return Err(format!(
+                    "project {} repository_path must use the canonical spelling shared by its repository",
+                    project.id
+                ));
+            }
+            entry.1 += 1;
+            if entry.1 > MAX_PROJECTS_PER_REPOSITORY {
+                return Err(format!(
+                    "project {} repository_path exceeds {MAX_PROJECTS_PER_REPOSITORY} projects per repository",
+                    project.id
+                ));
+            }
+            if let Ok(real) = std::fs::canonicalize(&project.repository_path) {
+                let spelled = resolved
+                    .entry(real)
+                    .or_insert(project.repository_path.as_path());
+                if *spelled != project.repository_path.as_path() {
+                    return Err(format!(
+                        "project {} repository_path must use the canonical spelling shared by its repository",
+                        project.id
+                    ));
+                }
+            }
         }
         Ok(())
     }

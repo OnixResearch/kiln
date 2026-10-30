@@ -36,6 +36,74 @@ let Workflow = {
   bounds | { max_nodes | c.Positive, max_edges | c.Positive, max_log_references | c.Positive, max_log_read_bytes | c.Positive, max_total_log_bytes | c.Positive },
 }
 in
+# Monorepo scope limits mirror Rust admission.
+let max_scope_patterns = 32 in
+let max_scope_pattern_bytes = 256 in
+let max_projects_per_repository = 64 in
+# Unpadded base64 emits four symbols per three UTF-8 bytes, giving exact byte lengths.
+let base64_bytes_per_symbol = 3 / 4 in
+let utf8_bytes = fun value => std.number.floor (std.string.length (std.string.base64_encode 'NoPad value) * base64_bytes_per_symbol) in
+# Repository-relative `/` path or glob: no absolute, empty, `.` or `..` segment, backslash or NUL.
+let is_relative_path = fun value =>
+  std.is_string value
+  && utf8_bytes value <= max_scope_pattern_bytes
+  # `std.string.split` drops a trailing empty segment, so require a final non-`/` character.
+  && std.string.is_match "[^/]$" value
+  && !(std.string.is_match "[\\x00\\\\]" value)
+  && std.array.all (fun segment => segment != "" && segment != "." && segment != "..") (std.string.split "/" value)
+in
+let ScopeRoot = std.contract.from_predicate (fun value => value == "" || is_relative_path value) in
+let ScopePattern = std.contract.from_predicate is_relative_path in
+let PatternList = std.contract.from_predicate (fun value => std.is_array value && std.array.length value <= max_scope_patterns) in
+let GraphKind = std.contract.from_predicate (fun value => value == "cargo" || value == "nix") in
+let DistinctGraphs =
+  std.contract.from_predicate (fun value =>
+    std.is_array value
+    && std.array.all (fun kind => std.array.length (std.array.filter (fun other => other == kind) value) == 1) value
+  )
+in
+let Scope = {
+  root | ScopeRoot,
+  # Quoted: `include` is a Nickel keyword.
+  "include" | Array ScopePattern | PatternList | default = ["**"],
+  exclude | Array ScopePattern | PatternList | default = [],
+  depends_on | Array ScopePattern | PatternList | default = [],
+  graphs | Array GraphKind | DistinctGraphs | default = [],
+}
+in
+# Lexically equal repository paths must be spelled identically, and each repository holds a bounded number of projects.
+let repository_key = fun path => std.string.join "/" (std.array.filter (fun segment => segment != "" && segment != ".") (std.string.split "/" path)) in
+let RepositoryProjects =
+  std.contract.from_validator (fun projects =>
+    let offending =
+      std.array.filter
+        (fun project =>
+          let key = repository_key project.repository_path in
+          let peers = std.array.filter (fun other => repository_key other.repository_path == key) projects in
+          std.array.length peers > max_projects_per_repository
+          || !(std.array.all (fun other => other.repository_path == project.repository_path) peers)
+        )
+        projects
+    in
+    if offending == [] then
+      'Ok
+    else
+      'Error {
+        message = "projects sharing a repository must use one identical repository_path and number at most %{std.string.from_number max_projects_per_repository}: %{(std.array.first offending).repository_path}"
+      }
+  )
+in
+let Project = {
+  id | Identifier,
+  label | c.NonEmpty,
+  repository_path | c.AbsolutePath,
+  reference | c.NonEmpty,
+  admitted_references | Array c.NonEmpty | default = [],
+  source_limits | { max_entries | c.Positive, max_path_bytes | c.Positive, max_file_bytes | c.Positive, max_total_bytes | c.Positive },
+  workflow | Workflow,
+  scope | Scope | optional,
+}
+in
 fun input =>
   let settings =
     input
@@ -47,16 +115,7 @@ fun input =>
         operator_token_file | c.AbsolutePath,
         worker_token_file | c.AbsolutePath,
         state_directory | c.AbsolutePath,
-        projects
-          | Array {
-            id | Identifier,
-            label | c.NonEmpty,
-            repository_path | c.AbsolutePath,
-            reference | c.NonEmpty,
-            admitted_references | Array c.NonEmpty | default = [],
-            source_limits | { max_entries | c.Positive, max_path_bytes | c.Positive, max_file_bytes | c.Positive, max_total_bytes | c.Positive },
-            workflow | Workflow,
-          },
+        projects | Array Project | RepositoryProjects,
         bounds
           | {
             max_request_bytes | c.BoundedInteger 1 67108864,

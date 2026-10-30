@@ -545,7 +545,9 @@
     const revision = element("span", shortIdentity(run.source_revision), "mono");
     revision.title = text(run.source_revision);
     addFactTiles($("run-facts"), [["Source revision", revision], ["Created", when(run.created_at_ms)], ["Started", when(run.started_at_ms)], ["Completed", when(run.completed_at_ms)], ["Duration", elapsed(run.duration_ms)]]);
-    addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)]]);
+    const affected = ui.affectedSummary(run.affected);
+    addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ...(affected?.identity ? [["Affected-set BLAKE3", affected.identity]] : [])]);
+    renderWhy(affected);
     $("execution-identity").textContent = text(run.execution);
     renderLiveProgress(run);
     const defaults = failureDefaults(run);
@@ -575,6 +577,18 @@
     // A live transition (for example to failed or to running) re-reads the newly defaulted stream or starts following it.
     if (selectionChanged && hadLog && logsVisible()) { maybeAutoFollow(); void readLog(false); }
     else if (maybeAutoFollow() && state.logKey && !state.logBusy) void readLog(true);
+  }
+  // r[impl kiln.monorepo.console] Why this ran: the recorded affected reasons and changed-file facts.
+  // Runs recorded without them (older or unscoped manual runs) show nothing here.
+  function renderWhy(affected) {
+    const target = $("run-why");
+    target.hidden = !affected;
+    if (!affected) { target.replaceChildren(); return; }
+    const heading = element("h3", "Why this ran");
+    heading.id = "run-why-title";
+    target.replaceChildren(heading);
+    if (affected.changed) target.append(element("p", affected.changed, "meta"));
+    target.append(affected.reasons.length ? ui.reasonList(affected.reasons) : element("p", "No reason was recorded for this run.", "small"));
   }
   function renderStepTelemetry(run) {
     const target = $("step-telemetry");
@@ -998,7 +1012,7 @@
     state.detailGeneration++;
     state.artifactsGeneration++;
     resetLogs();
-    for (const id of ["run-list", "run-title", "run-facts", "run-exact-facts", "retained-run-options", "run-badges", "run-warning", "execution-identity", "node-list", "step-telemetry", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
+    for (const id of ["run-list", "run-title", "run-facts", "run-exact-facts", "retained-run-options", "run-badges", "run-warning", "run-why", "execution-identity", "node-list", "step-telemetry", "artifact-list", "artifact-status", "available-description", "project-description"]) $(id).replaceChildren();
     for (const id of ["available-project", "enrolled-project", "run-filter", "log-node"]) $(id).replaceChildren();
     state.principal = null;
     state.permissions = {};
@@ -1297,6 +1311,25 @@
     details.append(ui.disclosureSummary(label, "info"), body);
     return details;
   }
+  // r[impl kiln.monorepo.console] A delivery's affected decision: which projects ran and why, and which were skipped.
+  function affectedDecisionList(decisions) {
+    const box = element("div", undefined, "affected-decisions");
+    if (!decisions.rows.length) box.append(element("p", "No project decisions were recorded.", "small"));
+    const list = element("ul", undefined, "affected-decision-list");
+    for (const row of decisions.rows) {
+      const item = element("li");
+      item.dataset.outcome = row.affected ? "affected" : "skipped";
+      const head = element("p", undefined, "affected-decision-head");
+      head.append(element("strong", text(projectLabel(row.projectId))), element("span", row.affected ? "Affected" : "Skipped", "chip"));
+      item.append(head);
+      if (row.affected) item.append(ui.reasonList(row.reasons));
+      else item.append(element("p", row.detail, "small"));
+      list.append(item);
+    }
+    if (decisions.rows.length) box.append(list);
+    if (decisions.identity) { const identity = element("p", `Affected-set BLAKE3 ${shortIdentity(decisions.identity)}`, "small mono"); identity.title = decisions.identity; box.append(identity); }
+    return box;
+  }
   function renderRecorded(parent, value, depth = 0) {
     if (value === null || value === undefined) { parent.append(element("p", "Not recorded", "small")); return; }
     if (Array.isArray(value)) {
@@ -1311,7 +1344,9 @@
       const label = element("dt", key.replaceAll("_", " "));
       const cell = element("dd");
       facts.append(label, cell);
-      if (item && typeof item === "object") {
+      const decisions = key === "affected" ? ui.affectedDecisions(item) : null;
+      if (decisions) cell.append(affectedDecisionList(decisions));
+      else if (item && typeof item === "object") {
         const details = element("details"); details.append(element("summary", `${key.replaceAll("_", " ")} · recorded facts`)); cell.append(details);
         if (depth < 7) renderRecorded(details, item, depth + 1); else details.append(element("pre", text(item), "identity"));
       } else if ((key === "run_id" || key === "parent_run_id") && typeof item === "string") cell.append(runLink(item));
@@ -2199,30 +2234,75 @@
     }
     body.append(list);
   }
+  // r[impl kiln.monorepo.console] A path scope as one line: root (or "Whole repository"), graph kinds and
+  // any narrowing; `detailed` adds include/exclude and declared dependencies for trigger cards.
+  function scopeLine(scope, detailed) {
+    const line = element("span", undefined, "scope-line");
+    line.append(ui.icon("folder"), element("span", scope.root, scope.whole ? undefined : "mono"));
+    for (const graph of scope.graphs) line.append(element("span", `${graph} graph`, "chip"));
+    if (detailed) {
+      for (const [label, patterns] of [["Only", scope.include], ["Except", scope.exclude], ["Also when", scope.dependsOn]]) {
+        if (!patterns.length) continue;
+        const part = element("span", `${label} `, "scope-patterns");
+        patterns.forEach((pattern, index) => { if (index) part.append(", "); part.append(element("code", pattern)); });
+        if (label === "Also when") part.append(" changes");
+        line.append(part);
+      }
+    }
+    line.title = scope.scoped ? `Path scope root: ${scope.root}` : "Unscoped: every change runs this project";
+    return line;
+  }
+  // r[impl kiln.monorepo.console] Projects sharing one repository sit under that repository's heading.
   function renderProjects() {
     const parent = $("project-cards"); parent.replaceChildren();
-    for (const project of state.projects.enrolled) {
-      const card = section(text(project.label || project.id), parent, "project-card card");
-      card.querySelector("h3").replaceChildren(projectLink(project.id, project.label || project.id));
-      card.dataset.projectId = project.id;
-      const health = element("div", undefined, "project-card-health");
-      health.append(element("span", "Reading latest run…", "meta"));
-      card.append(health);
-      card.append(element("p", text(project.reference), "meta mono"));
-      const actions = element("div", undefined, "project-actions");
-      actions.append(workspaceLink({ page: "runs", project: project.id, q: "", outcome: "", source: "", cursor: "", run: "", node: "" }, "Browse runs"));
-      const start = element("button", "Select for new run", "quiet");
-      start.type = "button";
-      start.disabled = !canOperate();
-      start.addEventListener("click", () => { selectProjectForRun(project.id); void readAction(loadRefs)(); });
-      actions.append(start); card.append(actions);
-      const details = element("details");
-      details.append(element("summary", "Repository & pipeline identity"));
-      const facts = element("dl", undefined, "facts");
-      addFacts(facts, [["ID", project.id], ["Repository", project.repository], ["Reference", project.reference], ["Pipeline", project.pipeline_identity]]);
-      details.append(facts); card.append(details);
+    for (const group of ui.groupProjects(state.projects.enrolled)) {
+      let target = parent;
+      if (group.shared) {
+        const box = element("section", undefined, "project-repo-group");
+        const heading = element("div", undefined, "project-repo-heading");
+        const title = element("h3", undefined, "project-repo-title");
+        title.append(ui.icon("git-branch"), element("span", group.label || "Shared repository", "mono"));
+        heading.append(title, element("span", `${group.projects.length} projects share this repository`, "meta"));
+        target = element("div", undefined, "project-repo-cards");
+        box.append(heading, target);
+        parent.append(box);
+      }
+      for (const project of group.projects) projectCard(project, target, group.shared ? "h4" : "h3");
     }
     if (!state.projects.enrolled.length) parent.append(emptyState("No enrolled projects", "Enroll an allowlisted repository above to start source-bound runs."));
+  }
+  function projectCard(project, parent, headingLevel) {
+    const card = element("section", undefined, "project-card card");
+    const heading = element(headingLevel, undefined, "project-card-title");
+    heading.append(projectLink(project.id, project.label || project.id));
+    card.append(heading);
+    parent.append(card);
+    card.dataset.projectId = project.id;
+    const health = element("div", undefined, "project-card-health");
+    health.append(element("span", "Reading latest run…", "meta"));
+    card.append(health);
+    card.append(element("p", text(project.reference), "meta mono"));
+    const scope = ui.scopeSummary(project);
+    if (scope) { const line = element("p", undefined, "meta project-scope"); line.append(scopeLine(scope, false)); card.append(line); }
+    const actions = element("div", undefined, "project-actions");
+    actions.append(workspaceLink({ page: "runs", project: project.id, q: "", outcome: "", source: "", cursor: "", run: "", node: "" }, "Browse runs"));
+    const start = element("button", "Select for new run", "quiet");
+    start.type = "button";
+    start.disabled = !canOperate();
+    start.addEventListener("click", () => { selectProjectForRun(project.id); void readAction(loadRefs)(); });
+    actions.append(start); card.append(actions);
+    const details = element("details");
+    details.append(element("summary", "Repository & pipeline identity"));
+    const facts = element("dl", undefined, "facts");
+    const entries = [["ID", project.id], ["Repository", project.repository], ["Reference", project.reference], ["Pipeline", project.pipeline_identity]];
+    if (scope?.scoped) {
+      if (scope.include.length) entries.push(["Include", scope.include.join(", ")]);
+      if (scope.exclude.length) entries.push(["Exclude", scope.exclude.join(", ")]);
+      if (scope.dependsOn.length) entries.push(["Declared dependencies", scope.dependsOn.join(", ")]);
+      if (scope.identity) entries.push(["Scope BLAKE3", scope.identity]);
+    }
+    addFacts(facts, entries);
+    details.append(facts); card.append(details);
   }
   // "Select for new run" and the project page's Run latest only preselect the start form; the
   // operator still submits it, so dispatch keeps its existing explicit action and admission.
@@ -2726,7 +2806,8 @@
       if (!result[key]?.length) group.append(emptyState(`No registered ${key}`, "No registrations. Registrations are admitted in server policy, not created from this page."));
       for (const row of result[key] || []) {
         const form = element("form", undefined, "record-card automation-form"); form.append(element("h3", text(row.id)));
-        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", projectLabel(row.project_id) === row.project_id ? row.project_id : `${projectLabel(row.project_id)} · ${row.project_id}`], ["Reference", row.reference], ["Last status", CANONICAL_OUTCOMES.has(row.last_status) ? ui.statusPill(row.last_status) : row.last_status]]); form.append(facts);
+        const scope = kind === "trigger" ? ui.scopeSummary(row) : null;
+        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", projectLabel(row.project_id) === row.project_id ? row.project_id : `${projectLabel(row.project_id)} · ${row.project_id}`], ["Reference", row.reference], ...(scope ? [["Path scope", scopeLine(scope, true)]] : []), ["Last status", CANONICAL_OUTCOMES.has(row.last_status) ? ui.statusPill(row.last_status) : row.last_status]]); form.append(facts);
         const inputs = { enabled: field(form, "Enabled", "checkbox", row.enabled) };
         if (kind === "trigger") {
           inputs.push = field(form, "Signed push events", "checkbox", row.push); inputs.pull_request = field(form, "Signed pull request events", "checkbox", row.pull_request);

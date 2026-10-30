@@ -229,9 +229,50 @@ fn hash(value: &impl Serialize) -> Result<String, Failure> {
         .map_err(|_| Failure::Unavailable)
 }
 
+/// CI state of one affected project for an exact commit and its current scope
+/// identity: only a run at the current scope counts; a run for the commit at
+/// another scope is reported as `stale_scope`.
+fn ci_state(
+    ci: &[domain::CiFact],
+    project: &str,
+    repository: &str,
+    commit: &str,
+    scope: &Option<String>,
+) -> (Option<String>, &'static str) {
+    let exact = || {
+        ci.iter().filter(|fact| {
+            fact.project == project
+                && fact.repository == repository
+                && fact.revision == commit
+                && fact.full_run
+                && fact.clean
+                && !fact.run_id.is_empty()
+        })
+    };
+    if let Some(fact) = exact()
+        .filter(|fact| &fact.scope_identity == scope)
+        .max_by_key(|fact| fact.ordinal)
+    {
+        let state = if fact.success {
+            "passed"
+        } else if fact.terminal {
+            "failed"
+        } else {
+            "pending"
+        };
+        return (Some(fact.run_id.clone()), state);
+    }
+    match exact().max_by_key(|fact| fact.ordinal) {
+        Some(fact) => (Some(fact.run_id.clone()), "stale_scope"),
+        None => (None, "missing"),
+    }
+}
+
 #[derive(Debug)]
 pub struct Workspace {
     profile: Option<Profile>,
+    /// Service projects on the review repository, primary project first.
+    projects: Vec<crate::profile::ProjectProfile>,
     gate: Mutex<()>,
 }
 
@@ -351,8 +392,59 @@ impl Workspace {
         }
         Ok(Self {
             profile,
+            projects: Vec::new(),
             gate: Mutex::new(()),
         })
+    }
+    /// Review bound to a service profile: every project on the review
+    /// repository's canonical path takes part in the monorepo CI requirement.
+    pub fn for_service(
+        profile: Option<Profile>,
+        service: &crate::profile::ServiceProfile,
+    ) -> Result<Self, String> {
+        let mut projects = Vec::new();
+        if let Some(profile) = &profile {
+            profile.admit_service(service)?;
+            let primary = service
+                .projects
+                .iter()
+                .find(|p| p.id == profile.project)
+                .ok_or("review CI project missing")?;
+            let repository = primary.repository_key();
+            projects.push(primary.clone());
+            projects.extend(
+                service
+                    .projects
+                    .iter()
+                    .filter(|p| p.id != primary.id && p.repository_key() == repository)
+                    .cloned(),
+            );
+        }
+        Ok(Self {
+            profile,
+            projects,
+            gate: Mutex::new(()),
+        })
+    }
+    /// Affected decision for a revision's exact base and commit; `None` when
+    /// no project on the review repository is scoped (today's behaviour).
+    fn review_evaluation(
+        &self,
+        profile: &Profile,
+        revision: &domain::Revision,
+    ) -> Result<Option<crate::monorepo::Evaluation>, Failure> {
+        if !self.projects.iter().any(|p| p.scope.is_some()) {
+            return Ok(None);
+        }
+        let projects: Vec<_> = self.projects.iter().collect();
+        crate::monorepo::evaluate(
+            &profile.provider.repository_path,
+            &projects,
+            Some(&revision.base),
+            &revision.commit,
+        )
+        .map(Some)
+        .map_err(Failure::from)
     }
     pub fn response(
         &self,
@@ -586,8 +678,31 @@ impl Workspace {
         if diff {
             return self.diff(&provider, change, &query);
         }
-        let facts = self.facts(&context, &state, change, now_ms, ci, "observation")?;
-        let checklist = domain::checklist(&state.review, id, &facts)?;
+        let (facts, evaluation) =
+            self.facts_evaluated(&context, &state, change, now_ms, ci, "observation")?;
+        let mut checklist = serde_json::to_value(domain::checklist(&state.review, id, &facts)?)
+            .map_err(|_| Failure::Unavailable)?;
+        if let Some(evaluation) = &evaluation {
+            let tested = facts
+                .integration
+                .as_ref()
+                .map_or(change.current()?.commit.as_str(), |proof| {
+                    proof.candidate_commit.as_str()
+                });
+            let projects = self.ci_projects(evaluation, ci, &change.repository, tested)?;
+            if let Some(item) = checklist
+                .get_mut("items")
+                .and_then(Value::as_array_mut)
+                .and_then(|items| {
+                    items
+                        .iter_mut()
+                        .find(|item| item.get("key") == Some(&json!("ci")))
+                })
+                .and_then(Value::as_object_mut)
+            {
+                item.insert("ci_projects".into(), projects);
+            }
+        }
         let dependencies: Vec<_> = change
             .dependencies
             .iter()
@@ -619,7 +734,8 @@ impl Workspace {
         let mut matched_ci: Vec<_> = ci
             .iter()
             .filter(|fact| {
-                fact.project == change.project
+                (fact.project == change.project
+                    || (evaluation.is_some() && self.projects.iter().any(|p| p.id == fact.project)))
                     && fact.repository == change.repository
                     && commits.contains(fact.revision.as_str())
             })
@@ -662,6 +778,18 @@ impl Workspace {
         ci: &[domain::CiFact],
         event_id: &str,
     ) -> Result<domain::Facts, Failure> {
+        self.facts_evaluated(context, state, change, now_ms, ci, event_id)
+            .map(|(facts, _)| facts)
+    }
+    fn facts_evaluated(
+        &self,
+        context: &ProviderContext<'_, impl ChangeReviewPort>,
+        state: &State,
+        change: &domain::Change,
+        now_ms: i64,
+        ci: &[domain::CiFact],
+        event_id: &str,
+    ) -> Result<(domain::Facts, Option<crate::monorepo::Evaluation>), Failure> {
         let ProviderContext {
             profile, provider, ..
         } = *context;
@@ -691,20 +819,37 @@ impl Workspace {
             .map_or(revision.commit.as_str(), |proof| {
                 proof.candidate_commit.as_str()
             });
-        let ci = ci
-            .iter()
-            .filter(|fact| {
-                fact.project == change.project
-                    && fact.repository == change.repository
-                    && fact.revision == tested_commit
-                    && fact.full_run
-                    && fact.clean
-                    && !fact.run_id.is_empty()
-            })
-            .max_by_key(|fact| fact.ordinal)
-            .cloned()
-            .into_iter()
-            .collect();
+        let exact = |fact: &&domain::CiFact| {
+            fact.repository == change.repository
+                && fact.revision == tested_commit
+                && fact.full_run
+                && fact.clean
+                && !fact.run_id.is_empty()
+        };
+        let evaluation = self.review_evaluation(profile, revision)?;
+        let (ci, ci_required) = match &evaluation {
+            None => (
+                ci.iter()
+                    .filter(|fact| fact.project == change.project)
+                    .filter(exact)
+                    .max_by_key(|fact| fact.ordinal)
+                    .cloned()
+                    .into_iter()
+                    .collect(),
+                None,
+            ),
+            Some(evaluation) => {
+                let required = self.ci_requirements(evaluation)?;
+                (
+                    ci.iter()
+                        .filter(|fact| required.iter().any(|r| r.project == fact.project))
+                        .filter(exact)
+                        .cloned()
+                        .collect(),
+                    Some(required),
+                )
+            }
+        };
         let mut facts = domain::Facts {
             now_ms,
             event_id: event_id.into(),
@@ -713,9 +858,65 @@ impl Workspace {
             ci,
             anchors: Vec::new(),
             integration,
+            ci_required,
         };
         self.populate_changed_files(provider, revision, &mut facts)?;
-        Ok(facts)
+        Ok((facts, evaluation))
+    }
+    // r[impl kiln.monorepo.gating]
+    /// Every affected project of the review repository at its current scope.
+    fn ci_requirements(
+        &self,
+        evaluation: &crate::monorepo::Evaluation,
+    ) -> Result<Vec<domain::CiRequirement>, Failure> {
+        let mut required = Vec::new();
+        for project in &self.projects {
+            if evaluation
+                .set
+                .decision(&project.id)
+                .is_none_or(|decision| decision.is_affected())
+            {
+                required.push(domain::CiRequirement {
+                    project: project.id.clone(),
+                    scope_identity: project
+                        .admitted_scope()?
+                        .map(|scope| scope.identity().as_str().to_owned()),
+                });
+            }
+        }
+        Ok(required)
+    }
+    /// Per-project CI state for the `ci` checklist item.
+    fn ci_projects(
+        &self,
+        evaluation: &crate::monorepo::Evaluation,
+        ci: &[domain::CiFact],
+        repository: &str,
+        commit: &str,
+    ) -> Result<Value, Failure> {
+        let mut rows = Vec::new();
+        for project in &self.projects {
+            let scope = project
+                .admitted_scope()?
+                .map(|scope| scope.identity().as_str().to_owned());
+            let row = match evaluation.set.decision(&project.id).map(|d| &d.outcome) {
+                Some(kiln_core::monorepo::Outcome::Skipped { reason }) => {
+                    json!({"project_id":project.id,"label":project.label,"outcome":"skipped",
+                        "reason":reason,"run_id":null,"state":null})
+                }
+                outcome => {
+                    let reasons = match outcome {
+                        Some(kiln_core::monorepo::Outcome::Affected { reasons }) => json!(reasons),
+                        _ => json!([]),
+                    };
+                    let (run_id, state) = ci_state(ci, &project.id, repository, commit, &scope);
+                    json!({"project_id":project.id,"label":project.label,"outcome":"affected",
+                        "reasons":reasons,"run_id":run_id,"state":state})
+                }
+            };
+            rows.push(row);
+        }
+        Ok(Value::Array(rows))
     }
     fn populate_changed_files(
         &self,

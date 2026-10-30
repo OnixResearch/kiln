@@ -2999,6 +2999,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-build-graph"
+version = "0.1.0"
+dependencies = [
+ "kiln-core",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "kiln-cli"
 version = "0.1.0"
 dependencies = [
@@ -3040,6 +3049,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3257,6 +3267,7 @@ dependencies = [
  "kiln-adapter-http-observe",
  "kiln-adapter-lattice",
  "kiln-adapter-webhook",
+ "kiln-build-graph",
  "kiln-codec",
  "kiln-core",
  "kiln-highlight",

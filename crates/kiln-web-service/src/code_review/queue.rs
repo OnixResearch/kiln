@@ -46,6 +46,10 @@ pub(super) struct Entry {
     pub target_commit: String,
     pub candidate_commit: Option<String>,
     pub ci_run: Option<String>,
+    /// Every candidate CI run of a monorepo review (one per affected project);
+    /// `None` with `ci_run` set is a single-project entry.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ci_runs: Option<Vec<String>>,
     pub status: String,
     pub detail: String,
     pub created_ms: i64,
@@ -105,7 +109,7 @@ pub(super) fn enqueue(
     let revision = change.current()?;
     state.queue.push(Entry { id: hash(&json!(["queue", event, change_id, &revision.id]))?, change:change_id.into(),
         revision:revision.id.clone(), actor:actor.into(), target_ref:change.target_ref.clone(),
-        source_commit:revision.commit.clone(),target_commit:expected_target.into(),candidate_commit:None,ci_run:None,
+        source_commit:revision.commit.clone(),target_commit:expected_target.into(),candidate_commit:None,ci_run:None,ci_runs:None,
         status:"queued".into(),detail:"Authorized to construct and test exact integration candidates, then submit after fresh admission".into(),
         created_ms:now_ms,generation:0,policy_id:policy.id.clone() });
     Ok(())
@@ -298,6 +302,7 @@ impl Workspace {
             next.target_commit = observed.target_commit;
             next.candidate_commit = None;
             next.ci_run = None;
+            next.ci_runs = None;
             next.status = "queued".into();
             next.detail = "Target changed: prior candidate and CI invalidated".into();
             store.commit(context.binding, state, None)?;
@@ -375,31 +380,64 @@ impl Workspace {
             .candidate_commit
             .as_ref()
             .ok_or(Failure::Unavailable)?;
-        if entry.ci_run.is_none() {
-            let request_id = format!("review-queue-{}-{}", entry.id, entry.generation);
-            let response =
-                engine.start_review_candidate(&profile.project, candidate, &request_id)?;
-            let value: Value =
-                serde_json::from_slice(&response.body).map_err(|_| Failure::Unavailable)?;
-            if let Some(id) = value.get("id").and_then(Value::as_str) {
-                let next = state.queue.get_mut(index).ok_or(Failure::Unavailable)?;
-                next.ci_run = Some(id.into());
-                next.status = "waiting_ci".into();
-                next.detail = "Canonical workflow executing exact integration commit".into();
-                store.commit(context.binding, state, None)?;
+        let started = match (&entry.ci_runs, &entry.ci_run) {
+            (Some(runs), _) => Some(runs.clone()),
+            (None, Some(run)) => Some(vec![run.clone()]),
+            (None, None) => None,
+        };
+        let Some(runs) = started else {
+            // r[impl kiln.monorepo.gating]
+            // Monorepo reviews test the candidate once per affected project.
+            let revision = change.current()?;
+            let evaluation = self.review_evaluation(profile, revision)?;
+            let targets: Vec<(String, Option<crate::monorepo::RunAffected>)> = match &evaluation {
+                None => vec![(profile.project.clone(), None)],
+                Some(evaluation) => self
+                    .ci_requirements(evaluation)?
+                    .into_iter()
+                    .map(|requirement| {
+                        let affected = evaluation.run_affected(&requirement.project);
+                        (requirement.project, affected)
+                    })
+                    .collect(),
+            };
+            let mut runs = Vec::new();
+            for (project, affected) in targets {
+                let request_id = if project == profile.project {
+                    format!("review-queue-{}-{}", entry.id, entry.generation)
+                } else {
+                    format!(
+                        "review-queue-{}",
+                        hash(&json!(["queue-ci", &entry.id, entry.generation, &project]))?
+                    )
+                };
+                let response =
+                    engine.start_review_candidate(&project, candidate, &request_id, affected)?;
+                let value: Value =
+                    serde_json::from_slice(&response.body).map_err(|_| Failure::Unavailable)?;
+                let Some(id) = value.get("id").and_then(Value::as_str) else {
+                    return reject(response.status, "review_queue_ci_admission_failed");
+                };
+                runs.push(id.to_owned());
+            }
+            let next = state.queue.get_mut(index).ok_or(Failure::Unavailable)?;
+            next.ci_run = runs.first().cloned();
+            next.ci_runs = evaluation.map(|_| runs);
+            next.status = "waiting_ci".into();
+            next.detail = "Canonical workflow executing exact integration commit".into();
+            store.commit(context.binding, state, None)?;
+            return Ok(());
+        };
+        for run_id in &runs {
+            let Some((terminal, success)) = engine.review_ci_outcome(run_id) else {
+                return reject(503, "review_queue_ci_missing");
+            };
+            if !terminal {
                 return Ok(());
             }
-            return reject(response.status, "review_queue_ci_admission_failed");
-        }
-        let run_id = entry.ci_run.as_deref().ok_or(Failure::Unavailable)?;
-        let Some((terminal, success)) = engine.review_ci_outcome(run_id) else {
-            return reject(503, "review_queue_ci_missing");
-        };
-        if !terminal {
-            return Ok(());
-        }
-        if !success {
-            return reject(409, "review_queue_ci_failed");
+            if !success {
+                return reject(409, "review_queue_ci_failed");
+            }
         }
         let ci = engine.code_review_ci();
         let facts = self.facts(context, state, change, now_ms, &ci, "queue-admission")?;

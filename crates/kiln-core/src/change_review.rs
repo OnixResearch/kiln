@@ -8,6 +8,7 @@
 //! r[impl kiln.review.workflow]
 //! r[impl kiln.review.parity.ownership]
 
+use crate::paths;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -42,6 +43,24 @@ pub struct CiFact {
     pub success: bool,
     pub full_run: bool,
     pub clean: bool,
+    /// Scope identity of the run's project when it is scoped (monorepo).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope_identity: Option<String>,
+    /// The run reached a terminal outcome; `false` means still pending.
+    #[serde(default = "terminal_default")]
+    pub terminal: bool,
+}
+fn terminal_default() -> bool {
+    true
+}
+/// Required CI for one affected project of the review repository, computed by
+/// the shell from the monorepo affected decision for the revision.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CiRequirement {
+    pub project: String,
+    /// Current scope identity; `None` for an unscoped project.
+    #[serde(default)]
+    pub scope_identity: Option<String>,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -460,6 +479,11 @@ pub struct Facts {
     pub anchors: Vec<Anchor>,
     #[serde(default)]
     pub integration: Option<IntegrationFact>,
+    /// Monorepo required CI: every affected project of the review repository
+    /// with its current scope identity. `None` requires the change's own
+    /// project; an empty list means every project was skipped.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ci_required: Option<Vec<CiRequirement>>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ChecklistItem {
@@ -717,80 +741,6 @@ fn body_valid(body: &str) -> ReviewResult<()> {
     }
     Ok(())
 }
-fn canonical_path(path: &str) -> bool {
-    !path.is_empty()
-        && !path.contains('\\')
-        && !path.chars().any(char::is_control)
-        && path.split('/').all(|part| !matches!(part, "" | "." | ".."))
-}
-
-fn valid_pattern(pattern: &str) -> bool {
-    canonical_path(pattern)
-        && !pattern.contains(['[', ']', '{', '}'])
-        && pattern
-            .split('/')
-            .all(|part| !part.contains("**") || part == "**")
-}
-
-/// Greedy wildcard matching without allocation, filesystem state or locale rules.
-fn component_matches(pattern: &str, value: &str) -> bool {
-    let mut pattern = pattern.chars();
-    let mut value = value.chars();
-    let mut retry = None;
-    loop {
-        match (pattern.clone().next(), value.clone().next()) {
-            (Some('*'), _) => {
-                pattern.next();
-                retry = Some((pattern.clone(), value.clone()));
-            }
-            (Some(want), Some(got)) if want == '?' || want == got => {
-                pattern.next();
-                value.next();
-            }
-            (None, None) => return true,
-            _ => {
-                let Some((resume, rest)) = retry.as_mut() else {
-                    return false;
-                };
-                if rest.next().is_none() {
-                    return false;
-                }
-                pattern = resume.clone();
-                value = rest.clone();
-            }
-        }
-    }
-}
-
-fn path_matches(pattern: &str, path: &str) -> bool {
-    let mut pattern = pattern.split('/');
-    let mut path = path.split('/');
-    let mut retry = None;
-    loop {
-        match (pattern.clone().next(), path.clone().next()) {
-            (Some("**"), _) => {
-                pattern.next();
-                retry = Some((pattern.clone(), path.clone()));
-            }
-            (Some(want), Some(got)) if component_matches(want, got) => {
-                pattern.next();
-                path.next();
-            }
-            (None, None) => return true,
-            _ => {
-                let Some((resume, rest)) = retry.as_mut() else {
-                    return false;
-                };
-                if rest.next().is_none() {
-                    return false;
-                }
-                pattern = resume.clone();
-                path = rest.clone();
-            }
-        }
-    }
-}
-
 fn rule_owners<'a>(
     policy: &'a Policy,
     rule: &'a OwnershipRule,
@@ -837,7 +787,7 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
         if !principal_valid(&rule.id)
             || !ids.insert(&rule.id)
             || rule.paths.is_empty()
-            || !rule.paths.iter().all(|path| valid_pattern(path))
+            || !rule.paths.iter().all(|path| paths::valid_pattern(path))
             || !rule
                 .owners
                 .iter()
@@ -849,7 +799,7 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
             || rule_owners(policy, rule).next().is_none()
             || rule.target_refs.iter().any(|target| {
                 !target.starts_with("refs/heads/")
-                    || !canonical_path(target)
+                    || !paths::canonical(target)
                     || target.contains(['*', '?', '[', ']', ' ', '~', '^', ':'])
             })
         {
@@ -887,11 +837,11 @@ fn ownership_files<'a>(
         || paths.len() != files.files.len()
         || paths != revision.files.iter().collect()
         || files.files.iter().any(|file| {
-            !canonical_path(&file.path)
+            !paths::canonical(&file.path)
                 || file
                     .old_path
                     .as_ref()
-                    .is_some_and(|path| !canonical_path(path))
+                    .is_some_and(|path| !paths::canonical(path))
         })
     {
         return fail(
@@ -914,18 +864,21 @@ pub fn owning_rule<'a>(
         .iter()
         .find(|rule| {
             (rule.target_refs.is_empty() || rule.target_refs.contains(target_ref))
-                && rule.paths.iter().any(|pattern| path_matches(pattern, path))
+                && rule
+                    .paths
+                    .iter()
+                    .any(|pattern| paths::matches(pattern, path))
         })
         .map(|rule| rule.id.as_str())
 }
 fn rule_matches(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
     files.iter().any(|file| {
         rule.paths.iter().any(|pattern| {
-            path_matches(pattern, &file.path)
+            paths::matches(pattern, &file.path)
                 || file
                     .old_path
                     .as_ref()
-                    .is_some_and(|path| path_matches(pattern, path))
+                    .is_some_and(|path| paths::matches(pattern, path))
         })
     })
 }
@@ -1254,19 +1207,49 @@ fn checklist_at(
         .map_or(revision.commit.as_str(), |integration| {
             integration.candidate_commit.as_str()
         });
-    let latest = facts
-        .ci
-        .iter()
-        .filter(|ci| {
-            ci.project == change.project
-                && ci.repository == change.repository
-                && ci.revision == ci_commit
-                && ci.full_run
-                && ci.clean
-                && !ci.run_id.is_empty()
-        })
-        .max_by_key(|ci| ci.ordinal);
-    let ci_ok = policy.is_some_and(|p| !p.require_ci || latest.is_some_and(|ci| ci.success));
+    // r[impl kiln.monorepo.gating]
+    // Monorepo reviews require the latest full clean run for the exact commit
+    // of every affected project, bound to that project's current scope
+    // identity; skipped projects never block and other scopes never satisfy.
+    let latest_for = |project: &str, scope: Option<Option<&str>>| {
+        facts
+            .ci
+            .iter()
+            .filter(|ci| {
+                ci.project == project
+                    && ci.repository == change.repository
+                    && ci.revision == ci_commit
+                    && ci.full_run
+                    && ci.clean
+                    && !ci.run_id.is_empty()
+                    && scope.is_none_or(|scope| ci.scope_identity.as_deref() == scope)
+            })
+            .max_by_key(|ci| ci.ordinal)
+    };
+    let (latest, required_ok) = match &facts.ci_required {
+        None => {
+            let latest = latest_for(&change.project, None);
+            (latest, latest.is_some_and(|ci| ci.success))
+        }
+        Some(required) => {
+            let mut all = true;
+            let mut primary = None;
+            let mut first = None;
+            for requirement in required {
+                let latest = latest_for(
+                    &requirement.project,
+                    Some(requirement.scope_identity.as_deref()),
+                );
+                all &= latest.is_some_and(|ci| ci.success);
+                first = first.or(latest);
+                if requirement.project == change.project {
+                    primary = latest;
+                }
+            }
+            (primary.or(first), all)
+        }
+    };
+    let ci_ok = policy.is_some_and(|p| !p.require_ci || required_ok);
     let dependencies_ok = dependency_valid(state, change, &change.dependencies).is_ok()
         && change.dependencies.iter().all(|dep| {
             state.changes.get(&dep.change).is_some_and(|node| {
@@ -2364,6 +2347,8 @@ mod tests {
                 success: true,
                 full_run: true,
                 clean: true,
+                scope_identity: None,
+                terminal: true,
             }],
             anchors: vec![Anchor {
                 revision: "c-r1".into(),
@@ -2374,6 +2359,7 @@ mod tests {
                 end_line: 3,
             }],
             integration: None,
+            ci_required: None,
         }
     }
     fn send(
@@ -2771,7 +2757,7 @@ mod tests {
     }
 
     #[test]
-    fn ownership_rejects_inconsistent_policy_and_matches_globs_without_io() -> ReviewResult<()> {
+    fn ownership_rejects_inconsistent_policy_without_io() -> ReviewResult<()> {
         let facts = owned_facts()?;
         let baseline = facts.policy.required()?;
         for variant in 0..8 {
@@ -2818,19 +2804,6 @@ mod tests {
                 validate_policy(&policy).err().required()?.code,
                 "invalid_policy"
             );
-        }
-        for (pattern, path, matched) in [
-            ("src/**", "src/lib.rs", true),
-            ("src/*", "src/nested/lib.rs", false),
-            ("**/lib.?s", "src/nested/lib.rs", true),
-            ("**/lib.rs", "lib.rs", true),
-            ("src/**/test/*.rs", "src/a/b/test/lib.rs", true),
-            ("src/**/test/*.rs", "src/test/lib.rs", true),
-            ("src/**/test/*.rs", "src/test/lib.py", false),
-            ("src/**", "other/src/lib.rs", false),
-            ("src/?.rs", "src/é.rs", true),
-        ] {
-            assert_eq!(path_matches(pattern, path), matched, "{pattern}: {path}");
         }
         Ok(())
     }
@@ -2946,6 +2919,74 @@ mod tests {
         facts.ci.first_mut().required()?.revision = "second-valid-candidate".into();
         assert!(checklist(&state, "c", &facts)?.ready);
         assert!(validate_candidate(&state, "c", "c-r1", "integrated", "alice", &facts).is_err());
+        Ok(())
+    }
+
+    // r[verify kiln.monorepo.gating]
+    #[test]
+    fn monorepo_ci_requires_every_affected_project_at_its_current_scope() -> ReviewResult<()> {
+        let (mut state, mut facts) = setup()?;
+        vote(&mut state, &mut facts, "bob", VoteValue::Approve)?;
+        let primary = facts.ci.first().required()?.clone();
+        let requirement = |project: &str, scope: Option<&str>| CiRequirement {
+            project: project.into(),
+            scope_identity: scope.map(Into::into),
+        };
+        // Only the change's own unscoped project affected: today's behaviour.
+        facts.ci_required = Some(vec![requirement("project", None)]);
+        assert!(checklist(&state, "c", &facts)?.ready);
+        // Every project skipped: nothing blocks.
+        facts.ci_required = Some(Vec::new());
+        facts.ci.clear();
+        assert!(checklist(&state, "c", &facts)?.ready);
+        // A second affected scoped project needs its own run at its scope.
+        facts.ci.push(primary.clone());
+        facts.ci_required = Some(vec![
+            requirement("project", None),
+            requirement("api", Some("scope-2")),
+        ]);
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(!checks.ready);
+        assert_eq!(checks.ci_run.as_deref(), Some("run-1"));
+        // Another project's run never satisfies the requirement.
+        facts.ci.push(CiFact {
+            project: "web".into(),
+            run_id: "run-web".into(),
+            ordinal: 2,
+            scope_identity: Some("scope-2".into()),
+            ..primary.clone()
+        });
+        assert!(!checklist(&state, "c", &facts)?.ready);
+        // An older scope of the right project never satisfies it either.
+        facts.ci.push(CiFact {
+            project: "api".into(),
+            run_id: "run-api-old".into(),
+            ordinal: 3,
+            scope_identity: Some("scope-1".into()),
+            ..primary.clone()
+        });
+        assert!(!checklist(&state, "c", &facts)?.ready);
+        // A pending run at the current scope does not pass yet.
+        facts.ci.push(CiFact {
+            project: "api".into(),
+            run_id: "run-api".into(),
+            ordinal: 4,
+            scope_identity: Some("scope-2".into()),
+            success: false,
+            terminal: false,
+            ..primary.clone()
+        });
+        assert!(!checklist(&state, "c", &facts)?.ready);
+        facts.ci.push(CiFact {
+            project: "api".into(),
+            run_id: "run-api-2".into(),
+            ordinal: 5,
+            scope_identity: Some("scope-2".into()),
+            ..primary
+        });
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(checks.ready);
+        assert_eq!(checks.ci_run.as_deref(), Some("run-1"));
         Ok(())
     }
 

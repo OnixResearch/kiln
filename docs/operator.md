@@ -1619,6 +1619,24 @@ the runs table link here; the overview lists running projects first under
 **In progress & unresolved** with a pulsing (static under reduced motion)
 Running indicator.
 
+<!-- r[impl kiln.monorepo.console] -->
+Projects that share one repository (the same `repository_key`) are grouped on
+**Projects** under a heading naming that repository and how many projects share
+it; a project alone on its repository stays an ordinary card. Each card, and the
+project history page, shows the project's path scope root (or **Whole
+repository** when unscoped) and the build graphs it consults (Cargo, Nix). A run
+recorded with an affected decision shows **Why this ran** under its facts: each
+recorded reason in plain words (changed files in scope with a sample and count,
+a matched declared dependency, the graph edge from the changed package to the
+project's package, or the conservative fallback such as no earlier revision or
+an unreadable build graph) and the changed-file count or why it is unknown; the
+affected-set BLAKE3 is under the exact identities. **Automation** trigger cards
+show the path scope, and signed event intake records list each project of the
+event as affected (with reasons) or skipped (with its reason). In change review the CI requirement
+lists every affected project with its CI state and a link to its run, and shows
+skipped projects as **Not required** with their reason. Runs, triggers and
+projects recorded before scopes existed show none of these additions.
+
 Evidence and comparison inputs offer bounded retained-run suggestions while
 still accepting exact IDs. Comparison suggestions exclude the current run and
 other projects; missing suggestions do not establish that no older run exists.
@@ -1706,6 +1724,89 @@ the remaining check received HTTP 404 for its pinned Octet archive. Those six
 real prerequisite failures remain visible and do not authorize permission,
 credential or dependency-pin changes. The receipt binds exact revisions,
 operations, retained logs, installed executable and observed UI surfaces.
+
+### Monorepo projects
+
+Several service projects may share one repository. Each uses the identical
+`repository_path`; another spelling of the same directory (for example a
+symlink alias) is rejected, and one repository holds at most 64 projects. The
+project API reports a shared `repository_key` (BLAKE3 of the canonical path). A project
+without `scope` keeps repository-wide behaviour and is always affected. A scoped
+project adds:
+
+```json
+"scope": {"root": "crates/api", "include": ["**"], "exclude": [], "depends_on": ["Cargo.lock"], "graphs": ["cargo"]}
+```
+
+| Field | Meaning | Default |
+| --- | --- | --- |
+| `root` | Repository-relative directory; `""` is the repository root. | Required |
+| `include` | Globs relative to `root`. | `["**"]` |
+| `exclude` | Globs relative to `root`. | `[]` |
+| `depends_on` | Repository-relative globs that also affect the project. | `[]` |
+| `graphs` | Distinct build-graph kinds to consult: `cargo`, `nix`. | `[]` |
+
+Globs share code-review ownership semantics: `*` and `?` match within one `/`
+segment and `**` across segments. A file is in scope when it lies under `root`,
+matches an `include` and matches no `exclude`. Admission names the project and
+field and serves no project of the profile when `root` or any pattern is
+absolute, contains an empty, `.` or `..` segment, a backslash or NUL, or exceeds
+256 bytes; when a list holds more than 32 patterns; or when `graphs` repeats or
+names an unknown kind. `config/web-service.ncl` mirrors these rules; Rust
+admission is authoritative.
+
+**Affected decision.** For one exact base and candidate, Kiln decides every
+project of the repository deterministically and records one affected-set BLAKE3.
+A project is affected with one or more reasons:
+
+- `unscoped`;
+- `path` — a changed file is in scope (sample of at most 5 paths and a count);
+- `declared` — a changed file matches a `depends_on` pattern;
+- `graph` (`cargo` or `nix`) — a changed package is reachable, through the
+  reverse dependency closure, from a package under `root`;
+- `fallback` — `no_base`, `truncated`, `unsupported_provider`, `read_error`, or
+  `graph_unavailable` with its reason. Uncertain facts never skip: a changed-file
+  fallback affects every scoped project; an unavailable graph affects every
+  project consulting that kind.
+
+Otherwise the project is skipped with `no_changes_in_scope`. Changed files are a
+Git tree diff between the exact base and candidate commits, never the working
+tree; a rename contributes both paths. More than 10,000 paths or 1,048,576 total
+path bytes yields `truncated`. A push uses the previous recorded head of the
+reference as base (a new reference yields `no_base`); a pull request or review
+uses the revision's base.
+
+Graphs see only Cargo workspace members and `path` dependencies (including
+`workspace = true` through `[workspace.dependencies]`) and Nix `flake.lock`
+inputs of type `path`. Registry dependencies and Nix expressions reading sibling
+directories without a `path` input are invisible; declare them in `depends_on`.
+
+**Dispatch.** One webhook delivery to any trigger evaluates every enabled push
+or pull-request trigger whose project shares the canonical repository and
+reference, and queues runs only for affected projects; at most one trigger per
+project takes part. Each project gets one automation source record carrying
+`affected: {identity, decisions}`; skipped projects get status `skipped` with
+`no_changes_in_scope` and no run. Repositories without any scoped project keep
+today's dispatch exactly. The first push of a reference has no recorded base,
+so every project runs with `fallback` `no_base`. Each queued run records `affected: {set_identity,
+reasons, changed}`, where `changed` is `{exact_count}` or `{fallback}`; older
+records load without it. Manual and scheduled runs are unchanged and record
+`fallback` `no_base` only for scoped projects.
+
+Jobs of a scoped project start in `<checkout>/<root>` inside the exact checkout.
+A missing root fails the job with `project_root_missing`; one escaping the
+checkout fails with `project_root_escapes_checkout`.
+
+**Identity and review.** The scope identity, BLAKE3 over the scope and project
+id, is bound into run and gate candidate identities, so changing a scope
+invalidates older results. When a project on the review repository is scoped, code
+review computes the affected decision for the revision's base and commit, and
+the merge queue tests its candidate once per affected project. It requires, for
+every affected project on the
+review repository, a current clean full run for the exact commit and current
+scope identity. Skipped projects do not block. The `ci` checklist item lists
+`ci_projects` with a state of `passed`, `failed`, `pending`, `missing` or
+`stale_scope`; CI from another project or an older scope never satisfies it.
 
 ### Remote Lattice workers
 

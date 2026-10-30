@@ -631,3 +631,85 @@ test("change detail labels declared authorship as self-declared and absent as un
   assert.equal(reviewAuthorship.label({ kind: "agent", harness: "omp", model: "claude" }), "Agent · harness omp · model claude");
   assert.equal(reviewAuthorship.label({ kind: "agent", harness: "omp" }), "Agent · harness omp");
 });
+
+// r[verify kiln.monorepo.console]
+test("projects sharing one repository key group together; single projects and keyless records stay alone", () => {
+  const shape = (groups) => [...groups].map((group) => ({ key: group.key, label: group.label, shared: group.shared, ids: [...group.projects].map((project) => project.id) }));
+  assert.deepEqual(shape(ui.groupProjects([
+    { id: "api", repository: "/srv/mono", repository_key: "aa" },
+    { id: "solo", repository: "/srv/solo", repository_key: "bb" },
+    { id: "web", repository: "/srv/mono", repository_key: "aa" },
+  ])), [
+    { key: "aa", label: "/srv/mono", shared: true, ids: ["api", "web"] },
+    { key: "bb", label: "/srv/solo", shared: false, ids: ["solo"] },
+  ]);
+  // Older records without a key never merge, even on one repository path; malformed rows are skipped.
+  assert.deepEqual(shape(ui.groupProjects([{ id: "a", repository: "/srv/r" }, null, "x", { id: "b", repository: "/srv/r", repository_key: "" }])), [
+    { key: null, label: "/srv/r", shared: false, ids: ["a"] },
+    { key: null, label: "/srv/r", shared: false, ids: ["b"] },
+  ]);
+  for (const value of [undefined, null, {}, "projects"]) assert.equal(ui.groupProjects(value).length, 0);
+});
+
+// r[verify kiln.monorepo.console]
+test("path scopes show the root or the whole repository, graph kinds and only deliberate narrowing", () => {
+  const scoped = plain(ui.scopeSummary({ scope: { root: "crates/api", include: ["**"], exclude: ["docs/**"], depends_on: ["proto/**"], graphs: ["cargo", "nix"], identity: "ff" } }));
+  assert.deepEqual(scoped, { scoped: true, whole: false, root: "crates/api", graphs: ["Cargo", "Nix"], include: [], exclude: ["docs/**"], dependsOn: ["proto/**"], identity: "ff" });
+  assert.equal(ui.scopeSummary({ scope: { root: "", include: ["src/**"] } }).root, "Whole repository");
+  assert.deepEqual([...ui.scopeSummary({ scope: { root: "", include: ["src/**"] } }).include], ["src/**"]);
+  const unscoped = ui.scopeSummary({ scope: null });
+  assert.equal(unscoped.scoped, false);
+  assert.equal(unscoped.root, "Whole repository");
+  // Absent (older service) or malformed scopes render nothing rather than a guessed scope.
+  for (const holder of [{}, { scope: "crates/api" }, { scope: { include: ["**"] } }, { scope: [] }, null, undefined]) assert.equal(ui.scopeSummary(holder), null);
+});
+
+// r[verify kiln.monorepo.console]
+test("affected reasons read as plain words and unknown or malformed reasons give a safe generic line", () => {
+  const read = (reason) => plain(ui.reasonText(reason));
+  assert.deepEqual(read({ kind: "path", sample: ["crates/api/src/lib.rs", 7], count: 3 }), { kind: "path", text: "3 changed files are in this project's scope.", sample: ["crates/api/src/lib.rs"] });
+  assert.equal(read({ kind: "path", sample: ["a", "b"], count: 1 }).text, "Changed files are in this project's scope.");
+  assert.deepEqual(read({ kind: "declared", pattern: "proto/**", sample: ["proto/api.proto"] }), { kind: "declared", text: "A changed file matches the declared dependency proto/**.", sample: ["proto/api.proto"] });
+  assert.equal(read({ kind: "graph", graph: "cargo", from_package: "kiln-highlight", via_package: "kiln-web-service" }).text, "Cargo build graph: kiln-web-service depends on kiln-highlight, which changed.");
+  assert.equal(read({ kind: "graph", graph: "nix", from_package: "flake.lock", via_package: "*" }).text, "flake.lock changed; every project using the Nix build graph depends on it.");
+  assert.equal(read({ kind: "graph", graph: "cargo", from_package: "api", via_package: "api" }).text, "Package api under this project's root changed (Cargo build graph).");
+  assert.equal(read({ kind: "unscoped" }).text, "This project has no path scope, so every change runs it.");
+  assert.equal(read({ kind: "fallback", reason: "truncated" }).text, "Ran to be safe: too many files changed to list them exactly.");
+  assert.equal(read({ kind: "fallback", reason: "graph_unavailable: cargo: missing manifest crates/x/Cargo.toml" }).text, "Ran to be safe: the Cargo build graph could not be read (missing manifest crates/x/Cargo.toml).");
+  assert.deepEqual(read({ kind: "teleport", sample: ["x"] }), { kind: "unknown", text: "Recorded reason “teleport” is not recognised by this console.", sample: [] });
+  for (const value of [null, "path", 3, [], { sample: ["x"] }]) assert.deepEqual(read(value), { kind: "unknown", text: "A recorded reason could not be read.", sample: [] });
+});
+
+// r[verify kiln.monorepo.console]
+test("a run's affected record yields reasons and the changed-file fact; absent or malformed records yield nothing", () => {
+  const summary = plain(ui.affectedSummary({ set_identity: "abc", reasons: [{ kind: "path", sample: ["a"], count: 1 }, { kind: "nope" }], changed: { exact_count: 12 } }));
+  assert.equal(summary.identity, "abc");
+  assert.equal(summary.changed, "12 changed files compared with the previous revision.");
+  assert.deepEqual(summary.reasons.map((reason) => reason.kind), ["path", "unknown"]);
+  assert.equal(ui.affectedSummary({ reasons: [], changed: { fallback: "no_base" } }).changed, "Changed files not known: there was no earlier revision to compare with (a new reference or a manual run).");
+  assert.equal(ui.affectedSummary({ reasons: [], changed: { exact_count: -1 } }).changed, null);
+  for (const value of [undefined, null, "affected", [], { set_identity: "abc" }, { reasons: "path" }]) assert.equal(ui.affectedSummary(value), null);
+});
+
+// r[verify kiln.monorepo.console]
+test("review CI rows list affected projects with state and run; skipped projects are not required with their reason", () => {
+  const rows = plain(ui.ciProjects([
+    { project_id: "api", label: "API", outcome: "affected", reasons: [{ kind: "path", sample: ["crates/api/a.rs"], count: 1 }], run_id: "run-1", state: "passed" },
+    { project_id: "web", label: "Web", outcome: "affected", reasons: [], run_id: null, state: "stale_scope" },
+    { project_id: "docs", outcome: "skipped", reason: "no_changes_in_scope" },
+    { project_id: "odd", outcome: "affected", state: "exploded" },
+    { project_id: "bad", outcome: "maybe" }, { outcome: "affected" }, null,
+  ]));
+  assert.deepEqual(rows.map((row) => [row.projectId, row.label, row.required, row.stateLabel, row.tone, row.runId]), [
+    ["api", "API", true, "Passed", "success", "run-1"],
+    ["web", "Web", true, "Scope changed since its run", "warning", null],
+    ["docs", "docs", false, "Not required", "cancelled", null],
+    ["odd", "odd", true, "exploded", "unknown", null],
+  ]);
+  assert.equal(rows[2].detail, "No changed file is in its scope, its declared dependencies or its build graph.");
+  assert.equal(ui.skipText("future_reason"), "Recorded reason “future_reason” is not recognised by this console.");
+  assert.equal(ui.ciProjects(undefined).length, 0);
+  const decisions = plain(ui.affectedDecisions({ identity: "id", decisions: [{ project_id: "api", outcome: "affected", reasons: [{ kind: "unscoped" }] }, { project_id: "web", outcome: "skipped", reason: "no_changes_in_scope" }, { project_id: "x" }] }));
+  assert.deepEqual(decisions.rows.map((row) => [row.projectId, row.affected]), [["api", true], ["web", false]]);
+  for (const value of [undefined, null, { identity: "id" }, { decisions: {} }]) assert.equal(ui.affectedDecisions(value), null);
+});

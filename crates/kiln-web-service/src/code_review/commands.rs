@@ -115,6 +115,7 @@ impl Workspace {
             ci: Vec::new(),
             anchors: Vec::new(),
             integration: None,
+            ci_required: None,
         };
         let mut contribution = None;
         if let Action::Contribute {

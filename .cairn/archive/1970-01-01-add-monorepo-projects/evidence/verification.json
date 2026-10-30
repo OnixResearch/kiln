@@ -1,0 +1,27 @@
+{
+  "schema": "kiln.monorepo-projects.verification.v1",
+  "date": "2026-10-30",
+  "operator_decision": "Path-scoped projects plus affected-project detection from the real build graph (Cargo path dependencies, Nix flake path inputs)",
+  "maintenance_owner": "Kiln maintainers (kiln_core::monorepo, kiln_core::paths, kiln-build-graph); Kiln web-service maintainers (shell, automation, review, console)",
+  "integration": [
+    "cargo fmt --check: clean",
+    "cargo clippy --locked --workspace --all-targets -D warnings: clean",
+    "cargo test --locked -p kiln-core -p kiln-build-graph -p kiln-web-service -p kiln-dashboard: 26 suites ok, 0 failed",
+    "node --test tests/live-console-ui.test.mjs: 33 passed; node --check on every console script: ok",
+    "nickel typecheck config/web-service.ncl: ok"
+  ],
+  "added_tests_after_review": "Pull-request dispatch: the base is the merge base, only affected projects are queued, a skipped project is recorded, and a missing base branch falls back to no_base. Merge queue: every affected project at its current scope is required; another project's run or an older scope does not satisfy it; one failed project blocks; a skipped project never blocks.",
+  "real_history_check": {
+    "method": "Throwaway integration test, deleted afterwards, calling kiln_web_service::monorepo::evaluate on this repository's object store. Six scoped projects: highlight, web-service, hosted, cli and core, each Cargo-graph scoped to crates/<name>, plus docs scoped to docs with depends_on README.md. One unscoped project, 'whole'.",
+    "29c23d39 (source browser; parent 7eaba128)": "29 changed. Affected: web-service by path (8 files) plus its graph self-edge; hosted by Cargo graph from kiln-web-service via kiln-hosted; docs by path; whole as unscoped. Skipped as no_changes_in_scope: cli, core and highlight.",
+    "78fea670 and f3f4c060": "Both change the root Cargo.toml and Cargo.lock, so every Cargo-scoped project is affected through those workspace-wide files (via_package '*'). Path and graph reasons are also recorded where they apply.",
+    "no base": "Every scoped project is affected with fallback no_base; whole remains unscoped."
+  },
+  "browser_review": "See console.json: a disposable instance with two Cargo-scoped projects on one fixture repository and signed pushes. A docs-only push queued mono-web (declared docs/**) and skipped mono-api. An api-only push queued both, mono-web through the Cargo graph. The review CI list showed the required and Not required projects. 0 console or page errors and 0 document overflow at 1440 dark and 320 light. The parent reviewed both screenshots.",
+  "known_tradeoffs": [
+    "Changes to the root Cargo.toml, Cargo.lock, rust-toolchain or .cargo/config affect every Cargo-scoped project. This is conservative.",
+    "Only Cargo path dependencies (including [patch] path entries and workspace = true) and Nix path flake inputs are graph edges. Registry dependencies and Nix expressions that read sibling directories need depends_on.",
+    "When no project on a repository is scoped, automation and review behave exactly as before.",
+    "The web service produces no kiln_core::gating GateResults; scope identity is bound into the run, candidate and attempt identity and the review CI check."
+  ]
+}

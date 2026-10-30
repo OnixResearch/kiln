@@ -269,8 +269,8 @@ impl Engine {
         let projects:Vec<_>=self.profile.projects.iter().map(|p| {
             let latest=runs.iter().filter(|r|r.project_id==p.id).max_by_key(|r|r.ordinal);
             let health=latest.map(|r|if r.phase=="queued" {"queued"}else if r.outcome()==Outcome::Success {"healthy"}else if failed(r.outcome()) {"failing"}else if r.outcome()==Outcome::Unknown {"unknown"}else if !r.outcome().is_terminal() {"active"}else{"cancelled"}).unwrap_or("unavailable");
-            json!({"id":p.id,"label":p.label,"health":health,"latest_run":latest.map(|r|r.view())})
-        }).collect();
+            Ok(json!({"id":p.id,"label":p.label,"health":health,"latest_run":latest.map(|r|r.view()),"scope":p.scope_view()?,"repository_key":p.repository_key()}))
+        }).collect::<Result<_, String>>()?;
         let mut completed: Vec<_> = runs
             .iter()
             .filter(|r| duration(r.started_at_ms, r.completed_at_ms).is_some())

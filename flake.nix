@@ -1240,6 +1240,13 @@
               fi
             done
             nickel export config/fixtures/web-service-positive.ncl >/dev/null
+            nickel export config/fixtures/web-service-monorepo-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-web-service-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative web service fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel export config/fixtures/patchgate-review-positive.ncl >/dev/null
             nickel export config/mantle-build-profile.ncl >/dev/null
             nickel export config/nix-eval-jobs-profile.ncl >/dev/null

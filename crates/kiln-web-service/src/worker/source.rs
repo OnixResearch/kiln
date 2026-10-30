@@ -39,6 +39,34 @@ pub struct PreparedSource {
     pub resolution: SourceResolution,
 }
 
+pub const PROJECT_ROOT_MISSING: &str = "project_root_missing";
+pub const PROJECT_ROOT_ESCAPES_CHECKOUT: &str = "project_root_escapes_checkout";
+
+// r[impl kiln.monorepo.dispatch]
+/// Working directory for a scoped project's jobs: `checkout/root`, resolved
+/// through symlinks and required to stay inside the exact checkout. An empty
+/// or absent root is the checkout itself.
+pub fn project_directory(checkout: &Path, root: Option<&str>) -> Result<PathBuf, String> {
+    let Some(root) = root.filter(|root| !root.is_empty()) else {
+        return Ok(checkout.to_path_buf());
+    };
+    if !kiln_core::paths::canonical(root) {
+        return Err(PROJECT_ROOT_ESCAPES_CHECKOUT.into());
+    }
+    let checkout = fs::canonicalize(checkout).map_err(|_| "worker checkout unavailable")?;
+    let directory = match fs::canonicalize(checkout.join(root)) {
+        Ok(directory) => directory,
+        Err(_) => return Err(PROJECT_ROOT_MISSING.into()),
+    };
+    if !directory.starts_with(&checkout) {
+        return Err(PROJECT_ROOT_ESCAPES_CHECKOUT.into());
+    }
+    if !directory.is_dir() {
+        return Err(PROJECT_ROOT_MISSING.into());
+    }
+    Ok(directory)
+}
+
 // r[impl kiln.web.remote_workers.source]
 // r[impl kiln.web.remote_workers.source.scenario.clone]
 pub fn prepare(profile: &WorkerProfile, context: &SourceContext) -> Result<PreparedSource, String> {

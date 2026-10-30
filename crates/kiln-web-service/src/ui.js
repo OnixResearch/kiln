@@ -357,6 +357,185 @@
     return parent;
   }
 
-  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments });
+  // r[impl kiln.monorepo.console] Monorepo presentation: pure derivations over service JSON. A field
+  // that is absent (an older record) yields null so callers render nothing; a malformed one is ignored.
+  const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+  const strings = (value) => (Array.isArray(value) ? value.filter((item) => typeof item === "string" && item) : []);
+  const countText = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+  const GRAPH_LABELS = Object.freeze({ cargo: "Cargo", nix: "Nix" });
+  function graphLabel(kind) { return typeof kind === "string" && kind ? (Object.hasOwn(GRAPH_LABELS, kind) ? GRAPH_LABELS[kind] : kind) : "Unrecorded"; }
+  const WHOLE_REPOSITORY = "Whole repository";
+  // A project's or trigger's path scope: null when the field is absent or malformed; scope null means unscoped.
+  // include is omitted when it is the default ["**"] so only deliberate narrowing is shown.
+  function scopeSummary(holder) {
+    if (!isRecord(holder) || !Object.hasOwn(holder, "scope")) return null;
+    const scope = holder.scope;
+    if (scope === null) return Object.freeze({ scoped: false, whole: true, root: WHOLE_REPOSITORY, graphs: Object.freeze([]), include: Object.freeze([]), exclude: Object.freeze([]), dependsOn: Object.freeze([]), identity: null });
+    if (!isRecord(scope) || typeof scope.root !== "string") return null;
+    const include = strings(scope.include);
+    return Object.freeze({
+      scoped: true,
+      whole: !scope.root,
+      root: scope.root || WHOLE_REPOSITORY,
+      graphs: Object.freeze(strings(scope.graphs).map(graphLabel)),
+      include: Object.freeze(include.length === 1 && include[0] === "**" ? [] : include),
+      exclude: Object.freeze(strings(scope.exclude)),
+      dependsOn: Object.freeze(strings(scope.depends_on)),
+      identity: typeof scope.identity === "string" && scope.identity ? scope.identity : null,
+    });
+  }
+  // Projects grouped by repository_key in first-appearance order. A project without a key is its own
+  // group; `shared` is true only when several projects share one recorded key.
+  function groupProjects(projects) {
+    const groups = [];
+    const byKey = new Map();
+    for (const project of Array.isArray(projects) ? projects : []) {
+      if (!isRecord(project)) continue;
+      const key = typeof project.repository_key === "string" && project.repository_key ? project.repository_key : null;
+      let group = key === null ? null : byKey.get(key);
+      if (!group) {
+        group = { key, label: typeof project.repository === "string" && project.repository ? project.repository : null, projects: [] };
+        groups.push(group);
+        if (key !== null) byKey.set(key, group);
+      }
+      group.projects.push(project);
+    }
+    return Object.freeze(groups.map((group) => Object.freeze({ ...group, projects: Object.freeze(group.projects), shared: group.projects.length > 1 })));
+  }
+  const CHANGED_FALLBACKS = Object.freeze({
+    no_base: "there was no earlier revision to compare with (a new reference or a manual run)",
+    truncated: "too many files changed to list them exactly",
+    unsupported_provider: "this source provider cannot list changed files",
+    read_error: "the changed files could not be read",
+  });
+  const GRAPH_FALLBACK = /^graph_unavailable(?::\s*(cargo|nix))?(?::\s*([\s\S]*))?$/;
+  function fallbackWords(reason) {
+    if (typeof reason !== "string" || !reason) return "the inputs for an exact decision were not available";
+    if (Object.hasOwn(CHANGED_FALLBACKS, reason)) return CHANGED_FALLBACKS[reason];
+    const graph = GRAPH_FALLBACK.exec(reason);
+    if (graph) {
+      const which = graph[1] ? `${GRAPH_LABELS[graph[1]]} build graph` : "build graph";
+      return `the ${which} could not be read${graph[2] ? ` (${graph[2].trim()})` : ""}`;
+    }
+    return `the recorded fallback was “${reason}”`;
+  }
+  const sampleOf = (value) => Object.freeze(strings(value).slice(0, 5));
+  // One recorded reason as { kind, text, sample }. Unknown or malformed reasons give a safe generic line.
+  function reasonText(reason) {
+    const generic = (kind) => Object.freeze({ kind: "unknown", text: kind ? `Recorded reason “${kind}” is not recognised by this console.` : "A recorded reason could not be read.", sample: Object.freeze([]) });
+    if (!isRecord(reason) || typeof reason.kind !== "string") return generic(null);
+    switch (reason.kind) {
+      case "unscoped":
+        return Object.freeze({ kind: "unscoped", text: "This project has no path scope, so every change runs it.", sample: Object.freeze([]) });
+      case "path": {
+        const sample = sampleOf(reason.sample);
+        const count = Number.isSafeInteger(reason.count) && reason.count >= sample.length ? reason.count : null;
+        return Object.freeze({ kind: "path", text: count === null ? "Changed files are in this project's scope." : `${countText(count, "changed file")} ${count === 1 ? "is" : "are"} in this project's scope.`, sample });
+      }
+      case "declared": {
+        const pattern = typeof reason.pattern === "string" && reason.pattern ? reason.pattern : null;
+        return Object.freeze({ kind: "declared", text: pattern ? `A changed file matches the declared dependency ${pattern}.` : "A changed file matches a declared dependency.", sample: sampleOf(reason.sample) });
+      }
+      case "graph": {
+        const graph = typeof reason.graph === "string" && reason.graph ? `${graphLabel(reason.graph)} build graph` : "build graph";
+        const from = typeof reason.from_package === "string" && reason.from_package ? reason.from_package : null;
+        const via = typeof reason.via_package === "string" && reason.via_package ? reason.via_package : null;
+        const text = !from || !via ? `A changed package reaches this project through the ${graph}.`
+          // A change to a file every package of the graph depends on (for example the root Cargo.lock).
+          : via === "*" ? `${from} changed; every project using the ${graph} depends on it.`
+          : via === from ? `Package ${from} under this project's root changed (${graph}).`
+          : `${graph[0].toUpperCase()}${graph.slice(1)}: ${via} depends on ${from}, which changed.`;
+        return Object.freeze({ kind: "graph", text, sample: Object.freeze([]) });
+      }
+      case "fallback":
+        return Object.freeze({ kind: "fallback", text: `Ran to be safe: ${fallbackWords(reason.reason)}.`, sample: Object.freeze([]) });
+      default:
+        return generic(reason.kind);
+    }
+  }
+  // A run's recorded `affected` object, or null when absent or malformed (rendered as nothing).
+  function affectedSummary(affected) {
+    if (!isRecord(affected) || !Array.isArray(affected.reasons)) return null;
+    let changed = null;
+    if (isRecord(affected.changed)) {
+      if (Number.isSafeInteger(affected.changed.exact_count) && affected.changed.exact_count >= 0) changed = `${countText(affected.changed.exact_count, "changed file")} compared with the previous revision.`;
+      else if (typeof affected.changed.fallback === "string") changed = `Changed files not known: ${fallbackWords(affected.changed.fallback)}.`;
+    }
+    return Object.freeze({
+      identity: typeof affected.set_identity === "string" && affected.set_identity ? affected.set_identity : null,
+      reasons: Object.freeze(affected.reasons.map(reasonText)),
+      changed,
+    });
+  }
+  const SKIP_REASONS_TEXT = Object.freeze({ no_changes_in_scope: "No changed file is in its scope, its declared dependencies or its build graph." });
+  function skipText(reason) {
+    if (typeof reason === "string" && Object.hasOwn(SKIP_REASONS_TEXT, reason)) return SKIP_REASONS_TEXT[reason];
+    return typeof reason === "string" && reason ? `Recorded reason “${reason}” is not recognised by this console.` : "No reason was recorded.";
+  }
+  // Required-CI state per project of a review: { label, tone } over the shared semantic statuses.
+  const CI_STATES = Object.freeze({
+    passed: ["Passed", "success"],
+    failed: ["Failed", "failure"],
+    pending: ["Running or queued", "queued"],
+    missing: ["No run for this commit", "warning"],
+    stale_scope: ["Scope changed since its run", "warning"],
+  });
+  // Normalised review rows; entries that are not objects with a project id and a known outcome are ignored.
+  function ciProjects(rows) {
+    const result = [];
+    for (const row of Array.isArray(rows) ? rows : []) {
+      if (!isRecord(row) || typeof row.project_id !== "string" || !row.project_id) continue;
+      const label = typeof row.label === "string" && row.label ? row.label : row.project_id;
+      const run = typeof row.run_id === "string" && row.run_id ? row.run_id : null;
+      if (row.outcome === "skipped") {
+        result.push(Object.freeze({ projectId: row.project_id, label, required: false, state: "not_required", stateLabel: "Not required", tone: "cancelled", detail: skipText(row.reason), reasons: Object.freeze([]), runId: null }));
+      } else if (row.outcome === "affected") {
+        const [stateLabel, tone] = typeof row.state === "string" && Object.hasOwn(CI_STATES, row.state) ? CI_STATES[row.state] : [typeof row.state === "string" && row.state ? row.state : "Not recorded", "unknown"];
+        const reasons = Array.isArray(row.reasons) ? row.reasons.map(reasonText) : [];
+        result.push(Object.freeze({ projectId: row.project_id, label, required: true, state: typeof row.state === "string" ? row.state : "unknown", stateLabel, tone, detail: null, reasons: Object.freeze(reasons), runId: run }));
+      }
+    }
+    return Object.freeze(result);
+  }
+  // A delivery's recorded decision set: { identity, rows } or null when absent or malformed. Rows that
+  // are not objects with a project id and a known outcome are ignored.
+  function affectedDecisions(affected) {
+    if (!isRecord(affected) || !Array.isArray(affected.decisions)) return null;
+    const rows = [];
+    for (const row of affected.decisions) {
+      if (!isRecord(row) || typeof row.project_id !== "string" || !row.project_id) continue;
+      if (row.outcome === "affected") rows.push(Object.freeze({ projectId: row.project_id, affected: true, reasons: Object.freeze((Array.isArray(row.reasons) ? row.reasons : []).map(reasonText)), detail: null }));
+      else if (row.outcome === "skipped") rows.push(Object.freeze({ projectId: row.project_id, affected: false, reasons: Object.freeze([]), detail: skipText(row.reason) }));
+    }
+    return Object.freeze({ identity: typeof affected.identity === "string" && affected.identity ? affected.identity : null, rows: Object.freeze(rows) });
+  }
+  // Reasons from reasonText() as a list; each path sample stays inert text in <code>.
+  function reasonList(reasons) {
+    const list = document.createElement("ul");
+    list.className = "reason-list";
+    for (const reason of Array.isArray(reasons) ? reasons : []) {
+      const item = document.createElement("li");
+      item.dataset.reason = reason.kind;
+      const line = document.createElement("p");
+      line.textContent = reason.text;
+      item.append(line);
+      if (reason.sample.length) {
+        const sample = document.createElement("p");
+        sample.className = "reason-sample";
+        sample.append(reason.sample.length === 1 ? "Changed: " : "Including: ");
+        reason.sample.forEach((path, index) => {
+          if (index) sample.append(", ");
+          const code = document.createElement("code");
+          code.textContent = path;
+          sample.append(code);
+        });
+        item.append(sample);
+      }
+      list.append(item);
+    }
+    return list;
+  }
+
+  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, affectedDecisions, reasonList });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();

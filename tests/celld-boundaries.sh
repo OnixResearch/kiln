@@ -43,7 +43,7 @@ edition = "2024"
 path = "src/lib.rs"
 MANIFEST
 printf '%s\n' 'pub struct ForbiddenRuntime;' >"$tmp/workspace/crates/celld-forbidden-runtime/src/lib.rs"
-sed -i '/^\[lints\]/i celld-forbidden-runtime = { path = "../celld-forbidden-runtime" }' \
+sed -i '/^\[dependencies\]$/a celld-forbidden-runtime = { path = "../celld-forbidden-runtime" }' \
     "$tmp/workspace/crates/kiln-core/Cargo.toml"
 printf '\npub use celld_forbidden_runtime::ForbiddenRuntime;\n' >>"$tmp/workspace/crates/kiln-core/src/lib.rs"
 (

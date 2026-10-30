@@ -50,7 +50,26 @@
       const [kind, text, tone] = item.satisfied ? ["met", "Met", "success"] : BLOCKING_REQUIREMENTS.has(item.key) ? ["blocked", "Blocked", "failure"] : ["unmet", "Unmet", "warning"];
       const li = node("li", null, "cr-requirement"), body = node("div", null, "cr-requirement-body"), title = node("p", null, "cr-requirement-title");
       li.dataset.requirement = kind; li.dataset.satisfied = String(!!item.satisfied); li.dataset.status = tone;
-      title.append(node("strong", text), ` · ${human(item.key)}`); body.append(title, node("p", item.detail, "cr-muted")); li.append(toneIcon(tone), body); list.append(li);
+      title.append(node("strong", text), ` · ${human(item.key)}`); body.append(title, node("p", item.detail, "cr-muted"));
+      if (item.key === "ci" && Array.isArray(item.ci_projects)) body.append(ciProjectList(ui().ciProjects(item.ci_projects)));
+      li.append(toneIcon(tone), body); list.append(li);
+    }
+    return list;
+  }
+  // r[impl kiln.monorepo.console] Required CI per project of the review repository: each affected project with its
+  // state and exact run; skipped projects read as not required, with the recorded reason.
+  function ciProjectList(rows) {
+    const list = node("ul", null, "cr-ci-projects"); list.setAttribute("aria-label", "Required CI per project");
+    if (!rows.length) { list.append(node("li", "No project decisions were recorded.", "cr-muted")); return list; }
+    for (const row of rows) {
+      const li = node("li", null, "cr-ci-project"), head = node("p", null, "cr-ci-project-head"); li.dataset.ciState = row.state;
+      head.append(pill(row.state, `CI for ${row.label}`, row.stateLabel, row.tone), node("strong", row.label));
+      li.append(head);
+      if (row.required) {
+        if (row.reasons.length) li.append(ui().reasonList(row.reasons));
+        if (row.runId) { const run = node("a", `Inspect ${row.label} run`, "cr-ci-run"); run.href = `?${new URLSearchParams({ page: "runs", project: row.projectId, run: row.runId, view: "pipeline" })}`; li.append(run); }
+      } else li.append(node("p", row.detail, "cr-muted"));
+      list.append(li);
     }
     return list;
   }

@@ -8,6 +8,7 @@ pub mod code_review;
 pub mod developer;
 pub mod engine;
 pub mod execution;
+pub mod monorepo;
 pub mod profile;
 pub mod reports;
 pub mod reviews;

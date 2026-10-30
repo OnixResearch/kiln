@@ -1,0 +1,131 @@
+[workspace]
+members = [
+  "crates/kiln-core",
+  "crates/kiln-provider-api",
+  "crates/kiln-codec",
+  "crates/kiln-observe-core",
+  "crates/kiln-highlight",
+  "crates/kiln-standalone",
+  "crates/kiln-adapter-valence",
+]
+exclude = [
+  "vendor/lattice/crates/lattice-workflow-contract",
+  "vendor/lattice/crates/lattice-workflow-contract/transport",
+  "vendor/cairn",
+  "vendor/valence",
+  "vendor/artifact",
+  "vendor/bounded-exec",
+  "vendor/ucan",
+  "runtime/kiln-aspen-host",
+  "runtime/kiln-radicle-nix-provider",
+  "web/dashboard-index",
+  "vendor/subwayrat",
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.88"
+version = "0.1.0"
+
+[workspace.dependencies]
+blake3 = "1.8.2"
+base64 = "0.22.1"
+ed25519-dalek = "=2.2.0"
+fs2 = "0.4.3"
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pemfile = "2.2.0"
+zeroize = "1.8.1"
+preserves = { version = "5.0.0-rc.7", features = ["serde"] }
+serde = { version = "1.0.228", default-features = false, features = ["alloc", "derive"] }
+serde_json = "1.0.145"
+# Cargo manifest parsing for build-graph facts; the version the lock already selects.
+toml = { version = "=0.8.23", default-features = false, features = ["parse"] }
+# Syntax highlighting: native C runtime and grammars; the Tree-sitter `wasm`
+# feature stays off. Tree-sitter 0.27 needs Rust 1.90, above the pinned 1.88.
+tree-sitter = { version = "=0.26.13", default-features = false, features = ["std"] }
+tree-sitter-highlight = "=0.26.13"
+tree-sitter-bash = "=0.25.1"
+tree-sitter-c = "=0.24.2"
+tree-sitter-css = "=0.25.0"
+tree-sitter-go = "=0.25.0"
+tree-sitter-html = "=0.23.2"
+tree-sitter-javascript = "=0.25.0"
+tree-sitter-json = "=0.24.8"
+tree-sitter-md = { version = "=0.5.4", default-features = false }
+tree-sitter-nickel = "=0.5.0"
+tree-sitter-nix = "=0.3.0"
+tree-sitter-python = "=0.25.0"
+tree-sitter-rust = "=0.24.2"
+tree-sitter-toml-ng = "=0.7.0"
+tree-sitter-typescript = "=0.23.2"
+tree-sitter-yaml = "=0.7.2"
+rusqlite = { version = "=0.40.2", default-features = false, features = ["backup", "bundled"] }
+git2 = { version = "=0.20.4", default-features = false, features = ["vendored-libgit2"] }
+cob-git2 = { package = "git2", version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
+nonempty = "0.9"
+radicle-cob = { version = "=0.21.1", default-features = false, features = ["git2"] }
+radicle-core = { version = "=0.4.1", default-features = false, features = ["std", "git2", "serde"] }
+radicle-crypto = { version = "=0.19.0", default-features = false, features = ["ssh", "alloc", "multibase"] }
+radicle-oid = { version = "=0.2.2", default-features = false, features = ["serde", "std"] }
+radicle-git-ref-format = { version = "=0.2.0", default-features = false }
+onix-radicle-cob-git-store = { path = "vendor/radicle-cob-git-store" }
+libpijul = { version = "=1.0.0-beta.11", default-features = true }
+pijul-config = "=1.0.0-beta.10"
+pijul-macros = "=1.0.0-beta.11"
+pijul-repository = "=1.0.0-beta.10"
+sanakirja = "=2.0.0-beta"
+lattice-workflow-contract = { path = "vendor/lattice/crates/lattice-workflow-contract" }
+lattice-workflow-transport = { path = "vendor/lattice/crates/lattice-workflow-contract/transport" }
+cairn-gate-contract = { path = "vendor/cairn/crates/cairn-gate-contract" }
+bounded-exec = { path = "vendor/bounded-exec/crates/bounded-exec" }
+bounded-exec-core = { path = "vendor/bounded-exec/crates/bounded-exec-core" }
+kiln-core = { path = "crates/kiln-core" }
+kiln-build-graph = { path = "crates/kiln-build-graph" }
+kiln-provider-api = { path = "crates/kiln-provider-api" }
+kiln-codec = { path = "crates/kiln-codec" }
+kiln-observe-core = { path = "crates/kiln-observe-core" }
+kiln-dashboard = { path = "crates/kiln-dashboard" }
+kiln-highlight = { path = "crates/kiln-highlight" }
+kiln-adapter-http-observe = { path = "crates/kiln-adapter-http-observe" }
+kiln-adapter-iroh-observe = { path = "crates/kiln-adapter-iroh-observe" }
+ucan = { path = "vendor/ucan" }
+kiln-standalone = { path = "crates/kiln-standalone" }
+kiln-radicle-source-contract = { path = "crates/kiln-radicle-source-contract" }
+kiln-adapter-radicle = { path = "crates/kiln-adapter-radicle" }
+kiln-adapter-cob = { path = "crates/kiln-adapter-cob" }
+kiln-adapter-jj = { path = "crates/kiln-adapter-jj" }
+kiln-adapter-git = { path = "crates/kiln-adapter-git" }
+kiln-adapter-pijul = { path = "crates/kiln-adapter-pijul" }
+kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
+kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
+kiln-adapter-patchgate = { path = "crates/kiln-adapter-patchgate" }
+kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }
+kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
+kiln-adapter-nix = { path = "crates/kiln-adapter-nix" }
+kiln-nix-build = { path = "crates/kiln-nix-build" }
+kiln-onixos-pilot = { path = "crates/kiln-onixos-pilot" }
+kiln-radicle-ci = { path = "crates/kiln-radicle-ci" }
+kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
+kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
+kiln-adapter-sqlite = { path = "crates/kiln-adapter-sqlite" }
+kiln-adapter-webhook = { path = "crates/kiln-adapter-webhook" }
+kiln-aspen-extension = { path = "crates/kiln-aspen-extension" }
+valence-core = { path = "vendor/valence/crates/valence-core" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+
+[patch."ssh://git@github.com/OnixResearch/onix-artifact.git"]
+artifact-auth-core = { path = "vendor/artifact/crates/artifact-auth-core" }

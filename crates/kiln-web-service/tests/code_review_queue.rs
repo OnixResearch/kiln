@@ -699,3 +699,296 @@ fn queue_admission_requires_ci_and_explicit_integration_capability() -> Result {
     assert_eq!(fixture.target()?, fixture.target);
     Ok(())
 }
+
+/// Three projects on the review repository: the primary `fixture` (source.txt)
+/// and `docs` (declares source.txt) are affected by the reviewed source;
+/// `other` (other.txt) is skipped.
+struct Monorepo {
+    fixture: Fixture,
+    service: ServiceProfile,
+    workspace: Workspace,
+    engine: Engine,
+    backends: BTreeMap<String, Arc<Mutex<Backend>>>,
+    change_id: String,
+    now_ms: i64,
+}
+impl Monorepo {
+    fn new() -> Result<Self> {
+        let fixture = Fixture::new()?;
+        let mut service = serde_json::to_value(&fixture.service)?;
+        let template = field(&service, "/projects/0")?.clone();
+        let project = |id: &str, scope: Value| -> Result<Value> {
+            let mut project = template.clone();
+            let object = project.as_object_mut().ok_or("project")?;
+            object.insert("id".into(), json!(id));
+            object.insert("label".into(), json!(format!("Project {id}")));
+            object.insert("scope".into(), scope);
+            Ok(project)
+        };
+        let projects = json!([
+            project("fixture", json!({"root":"","include":["source.txt"]}))?,
+            project(
+                "docs",
+                json!({"root":"","include":["docs.txt"],"depends_on":["source.txt"]})
+            )?,
+            project("other", json!({"root":"","include":["other.txt"]}))?,
+        ]);
+        let object = service.as_object_mut().ok_or("service")?;
+        object.insert("projects".into(), projects);
+        let bounds = object
+            .get_mut("bounds")
+            .and_then(Value::as_object_mut)
+            .ok_or("bounds")?;
+        bounds.insert("max_projects".into(), json!(4));
+        bounds.insert("max_runs".into(), json!(16));
+        let service: ServiceProfile = serde_json::from_value(service)?;
+        service.admit()?;
+        let workspace = Workspace::for_service(Some(fixture.review.clone()), &service)?;
+        let mut ports: BTreeMap<String, Box<dyn WorkflowPort + Send>> = BTreeMap::new();
+        let mut backends = BTreeMap::new();
+        for project in &service.projects {
+            let backend = Arc::new(Mutex::new(Backend::default()));
+            backends.insert(project.id.clone(), backend.clone());
+            ports.insert(
+                project.id.clone(),
+                Box::new(Port {
+                    profile: project.lattice(service.bounds.max_runs)?.provider,
+                    backend,
+                }),
+            );
+        }
+        let mut engine = Engine::open_with_ports(service.clone(), ports)?;
+        for id in ["fixture", "docs", "other"] {
+            accepted(engine_api(
+                &mut engine,
+                "POST",
+                "/api/projects",
+                json!({"project_id":id,"request_id":format!("enroll-{id}")}),
+            )?)?;
+        }
+        let mut harness = Self {
+            fixture,
+            service,
+            workspace,
+            engine,
+            backends,
+            change_id: String::new(),
+            now_ms: 1000,
+        };
+        let created = accepted(harness.post(AUTHOR, &json!({"request_id":"create","change_id":null,"expected_version":null,
+            "action":{"type":"create","commit":harness.fixture.source,"target_ref":MAIN,"title":"Monorepo review","description":"Exact integration","wip":false}}))?)?;
+        harness.change_id = text(&created, "/change/id")?;
+        accepted(harness.action(
+            AUTHOR,
+            "assign-reviewer",
+            json!({"type":"set_reviewer","principal":REVIEWER,"role":"reviewer"}),
+        )?)?;
+        accepted(harness.action(
+            REVIEWER,
+            "approve",
+            json!({"type":"vote","value":"approve"}),
+        )?)?;
+        accepted(harness.action(
+            SUBMITTER,
+            "enqueue",
+            json!({"type":"enqueue","expected_target":harness.fixture.target}),
+        )?)?;
+        Ok(harness)
+    }
+    fn post(&mut self, actor: &str, request: &Value) -> Result<ApiResponse> {
+        self.now_ms += 1000;
+        Ok(self.workspace.response(
+            "POST",
+            "/api/code-review/commands",
+            &serde_json::to_vec(request)?,
+            RequestContext {
+                role: Role::Viewer,
+                principal: actor,
+                now_ms: self.now_ms,
+                ci: &[],
+            },
+        ))
+    }
+    fn detail_with(&self, ci: &[kiln_core::change_review::CiFact]) -> Result<Value> {
+        accepted(self.workspace.response(
+            "GET",
+            &format!("/api/code-review/changes/{}", self.change_id),
+            &[],
+            RequestContext {
+                role: Role::Viewer,
+                principal: AUTHOR,
+                now_ms: self.now_ms,
+                ci,
+            },
+        ))
+    }
+    fn action(&mut self, actor: &str, request: &str, action: Value) -> Result<ApiResponse> {
+        let detail = self.detail_with(&[])?;
+        let command = json!({"request_id":request,"change_id":self.change_id,
+            "expected_version":field(&detail,"/change/version")?,"action":action});
+        self.post(actor, &command)
+    }
+    fn tick(&mut self) -> Result {
+        self.now_ms += 1000;
+        self.workspace
+            .advance_queue(&mut self.engine, self.now_ms)?;
+        Ok(())
+    }
+    fn backend(&self, project: &str) -> Result<&Arc<Mutex<Backend>>> {
+        Ok(self.backends.get(project).ok_or("backend")?)
+    }
+    fn finish(&mut self, project: &str, success: bool) -> Result {
+        {
+            let mut backend = self.backend(project)?.lock();
+            let execution = backend
+                .executions
+                .values_mut()
+                .next()
+                .ok_or("project candidate was not dispatched")?;
+            execution.sequence += 1;
+            execution.success = Some(success);
+        }
+        let _notifications = self.engine.poll()?;
+        Ok(())
+    }
+    fn scope(&self, project: &str) -> Result<String> {
+        Ok(self
+            .service
+            .projects
+            .iter()
+            .find(|p| p.id == project)
+            .ok_or("project")?
+            .admitted_scope()?
+            .ok_or("scope")?
+            .identity()
+            .as_str()
+            .to_owned())
+    }
+    fn run(&mut self, id: &str) -> Result<Value> {
+        accepted(engine_api(
+            &mut self.engine,
+            "GET",
+            &format!("/api/runs/{id}"),
+            Value::Null,
+        )?)
+    }
+    /// Start CI for the constructed candidate; returns (candidate, runs).
+    fn start(&mut self) -> Result<(String, Vec<String>)> {
+        self.tick()?;
+        self.tick()?;
+        let detail = self.detail_with(&[])?;
+        let candidate = text(&detail, "/queue/candidate_commit")?;
+        let runs = field(&detail, "/queue/ci_runs")?
+            .as_array()
+            .ok_or("ci_runs")?
+            .iter()
+            .map(|run| run.as_str().map(str::to_owned).ok_or("run id"))
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok((candidate, runs))
+    }
+}
+
+fn row<'a>(detail: &'a Value, project: &str) -> Result<&'a Value> {
+    Ok(field(detail, "/checklist/items")?
+        .as_array()
+        .ok_or("items")?
+        .iter()
+        .find(|item| item.get("key") == Some(&json!("ci")))
+        .and_then(|item| item.get("ci_projects"))
+        .and_then(Value::as_array)
+        .ok_or("ci_projects")?
+        .iter()
+        .find(|row| row.get("project_id") == Some(&json!(project)))
+        .ok_or("project row")?)
+}
+
+// r[verify kiln.monorepo.gating]
+#[test]
+fn monorepo_queue_tests_every_affected_project_at_its_current_scope() -> Result {
+    let mut h = Monorepo::new()?;
+    let (candidate, runs) = h.start()?;
+    assert_eq!(runs.len(), 2, "one candidate run per affected project");
+    let dispatches =
+        |h: &Monorepo, id: &str| -> Result<usize> { Ok(h.backend(id)?.lock().dispatches) };
+    assert_eq!(dispatches(&h, "fixture")?, 1);
+    assert_eq!(dispatches(&h, "docs")?, 1);
+    assert_eq!(dispatches(&h, "other")?, 0, "skipped projects never run");
+    let mut by_project = BTreeMap::new();
+    for id in &runs {
+        let run = h.run(id)?;
+        assert_eq!(text(&run, "/source_revision")?, candidate);
+        by_project.insert(text(&run, "/project_id")?, run);
+    }
+    let docs = by_project.get("docs").ok_or("docs run")?;
+    assert_eq!(text(docs, "/scope_identity")?, h.scope("docs")?);
+    assert_eq!(text(docs, "/affected/reasons/0/kind")?, "declared");
+    let primary = by_project.get("fixture").ok_or("fixture run")?;
+    assert_eq!(text(primary, "/affected/reasons/0/kind")?, "path");
+
+    // Canonical facts for the exact candidate: another project's success or an
+    // older docs scope never satisfies docs; a current-scope success does.
+    let fact = |project: &str, run: &str, ordinal: u64, scope: Option<String>| {
+        kiln_core::change_review::CiFact {
+            project: project.into(),
+            repository: h.fixture.review.provider.repository_id.clone(),
+            revision: candidate.clone(),
+            run_id: run.into(),
+            ordinal,
+            success: true,
+            full_run: true,
+            clean: true,
+            scope_identity: scope,
+            terminal: true,
+        }
+    };
+    let primary_id = text(primary, "/id")?;
+    let mut ci = vec![
+        fact("fixture", &primary_id, 100, Some(h.scope("fixture")?)),
+        fact("other", "other-run", 101, Some(h.scope("other")?)),
+        fact("docs", "stale-docs-run", 102, Some("0".repeat(64))),
+    ];
+    let stale = h.detail_with(&ci)?;
+    assert_eq!(field(&stale, "/checklist/ready")?, false);
+    assert_eq!(text(row(&stale, "docs")?, "/state")?, "stale_scope");
+    assert_eq!(text(row(&stale, "fixture")?, "/state")?, "passed");
+    assert_eq!(text(row(&stale, "other")?, "/outcome")?, "skipped");
+    ci.push(fact(
+        "docs",
+        "current-docs-run",
+        103,
+        Some(h.scope("docs")?),
+    ));
+    let current = h.detail_with(&ci)?;
+    assert_eq!(text(row(&current, "docs")?, "/state")?, "passed");
+    assert_eq!(field(&current, "/checklist/ready")?, true);
+
+    // Real CI: the target moves only after every affected project passed.
+    h.finish("fixture", true)?;
+    h.tick()?;
+    let waiting = h.detail_with(&[])?;
+    assert_eq!(text(&waiting, "/queue/status")?, "waiting_ci");
+    assert_eq!(h.fixture.target()?, h.fixture.target);
+    h.finish("docs", true)?;
+    h.tick()?;
+    assert_eq!(h.fixture.target()?, candidate);
+    assert_eq!(text(&h.detail_with(&[])?, "/queue/status")?, "submitted");
+    assert_eq!(dispatches(&h, "other")?, 0);
+    Ok(())
+}
+
+// r[verify kiln.monorepo.gating]
+#[test]
+fn monorepo_queue_failure_of_any_affected_project_blocks_submission() -> Result {
+    let mut h = Monorepo::new()?;
+    let (_candidate, runs) = h.start()?;
+    assert_eq!(runs.len(), 2);
+    h.finish("fixture", true)?;
+    h.finish("docs", false)?;
+    h.tick()?;
+    let detail = h.detail_with(&[])?;
+    assert_eq!(text(&detail, "/queue/status")?, "blocked");
+    assert_eq!(text(&detail, "/queue/detail")?, "review_queue_ci_failed");
+    assert_eq!(h.fixture.target()?, h.fixture.target);
+    assert!(field(&detail, "/change/submission")?.is_null());
+    Ok(())
+}

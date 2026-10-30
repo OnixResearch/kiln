@@ -88,6 +88,7 @@ impl Engine {
         project_id: &str,
         commit: &str,
         request_id: &str,
+        affected: Option<crate::monorepo::RunAffected>,
     ) -> Result<ApiResponse, String> {
         if self.storage_failed {
             return error(503, "durable_state_unavailable");
@@ -139,6 +140,7 @@ impl Engine {
             },
             None,
             Vec::new(),
+            affected,
         )
     }
 
@@ -203,6 +205,10 @@ impl Engine {
                 );
             }
         };
+        let affected = match self.automation_affected.take() {
+            Some(affected) => Some(affected),
+            None => crate::monorepo::manual_affected(&project)?,
+        };
         self.enqueue(
             &project,
             &req.request_id,
@@ -213,6 +219,7 @@ impl Engine {
             },
             None,
             Vec::new(),
+            affected,
         )
     }
     pub(super) fn rerun(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
@@ -299,6 +306,11 @@ impl Engine {
                 _ => return error(409, "snapshot_retry_source_unavailable"),
             }
         }
+        let affected = if req.mode == "latest" {
+            crate::monorepo::manual_affected(&project)?
+        } else {
+            prior.affected.clone()
+        };
         self.enqueue(
             &project,
             &req.request_id,
@@ -309,8 +321,10 @@ impl Engine {
             },
             Some(id.to_owned()),
             selected.into_iter().collect(),
+            affected,
         )
     }
+    #[allow(clippy::too_many_arguments)]
     fn enqueue(
         &mut self,
         project: &ProjectProfile,
@@ -319,6 +333,7 @@ impl Engine {
         candidate: CandidateSource,
         parent: Option<String>,
         selected: Vec<String>,
+        affected: Option<crate::monorepo::RunAffected>,
     ) -> Result<ApiResponse, String> {
         let CandidateSource {
             resolution: source,
@@ -331,14 +346,30 @@ impl Engine {
             return error(409, "run_retention");
         }
         let pipeline = identity(&project.workflow)?;
-        let run_identity = identity(&(
-            &self.profile.service_id,
-            request_id,
-            &source,
-            &pipeline,
-            &parent,
-            &selected,
-        ))?;
+        let scope = crate::monorepo::run_scope(project)?;
+        // r[impl kiln.monorepo.gating]
+        // A scoped project's scope identity (and so its project) enters the run
+        // and candidate identity; a changed scope never reuses older results.
+        let run_identity = match &scope {
+            None => identity(&(
+                &self.profile.service_id,
+                request_id,
+                &source,
+                &pipeline,
+                &parent,
+                &selected,
+            ))?,
+            Some(scope) => identity(&(
+                &self.profile.service_id,
+                request_id,
+                &source,
+                &pipeline,
+                &parent,
+                &selected,
+                &project.id,
+                &scope.identity,
+            ))?,
+        };
         let id = format!("web-run-{}", run_identity.as_str());
         let context = WorkflowSourceContext {
             provider: Alias::new("git").map_err(|_| "git alias invalid")?,
@@ -359,6 +390,8 @@ impl Engine {
             pipeline_identity: pipeline,
             source,
             dirty_snapshot,
+            affected,
+            scope,
             step_telemetry: Vec::new(),
             plan: plan.clone(),
             events: Vec::new(),

@@ -33,6 +33,8 @@ impl Engine {
                 success: !self.storage_failed && run.outcome() == Outcome::Success,
                 full_run: run.selected_nodes.is_empty(),
                 clean: run.dirty_snapshot.is_none(),
+                scope_identity: run.scope.as_ref().map(|scope| scope.identity.clone()),
+                terminal: run.outcome().is_terminal(),
             })
             .collect()
     }

@@ -1,0 +1,261 @@
+{
+  "schema": "kiln.evidence.console-browser-review.v1",
+  "requirement": "kiln.monorepo.console",
+  "captured_at": "2026-10-30T18:45:07.862Z",
+  "instance": {
+    "origin": "https://localhost:9551",
+    "kind": "disposable",
+    "binary": "debug build of the working tree",
+    "state": "private mode-700 directory outside the repository; removed after review",
+    "provider": "none (absent socket): runs stay queued or Unknown"
+  },
+  "fixture": {
+    "repository": "two-crate Cargo workspace (crates/api, crates/web; web depends on api by path)",
+    "projects": {
+      "mono-api": {
+        "root": "crates/api",
+        "graphs": [
+          "cargo"
+        ]
+      },
+      "mono-web": {
+        "root": "crates/web",
+        "graphs": [
+          "cargo"
+        ],
+        "exclude": [
+          "fixtures/**"
+        ],
+        "depends_on": [
+          "docs/**"
+        ]
+      }
+    },
+    "events": [
+      "signed push of a docs-only commit: mono-web affected (declared docs/**), mono-api skipped (no_changes_in_scope)",
+      "signed push of a crates/api-only commit: mono-api affected (path + graph), mono-web affected (cargo graph web→api)",
+      "review change touching crates/web only: ci_projects lists mono-web required (missing) and mono-api Not required"
+    ]
+  },
+  "viewports": {
+    "1440_dark": "1440x900, theme=dark",
+    "320_light": "320x900, theme=light"
+  },
+  "results": {
+    "1440_dark": {
+      "console_errors": 0,
+      "page_errors": 0,
+      "aborted_requests_from_navigation": 5,
+      "pages": {
+        "projects": {
+          "document_overflow_px": 0,
+          "small_targets_total": 0,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 2,
+            "why_visible": false,
+            "why_reasons": 0,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "project_page": {
+          "document_overflow_px": 0,
+          "small_targets_total": 0,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": false,
+            "why_reasons": 0,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "run_api": {
+          "document_overflow_px": 0,
+          "small_targets_total": 0,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": true,
+            "why_reasons": 2,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "run_web_graph": {
+          "document_overflow_px": 0,
+          "small_targets_total": 0,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": true,
+            "why_reasons": 1,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "run_web_declared": {
+          "document_overflow_px": 0,
+          "small_targets_total": 0,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": true,
+            "why_reasons": 1,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "automation": {
+          "document_overflow_px": 0,
+          "small_targets_total": 0,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 2,
+            "why_visible": false,
+            "why_reasons": 1,
+            "decision_lists": 8,
+            "ci_project_rows": 0
+          }
+        },
+        "review": {
+          "document_overflow_px": 0,
+          "small_targets_total": 0,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": false,
+            "why_reasons": 1,
+            "decision_lists": 8,
+            "ci_project_rows": 2
+          }
+        }
+      }
+    },
+    "320_light": {
+      "console_errors": 0,
+      "page_errors": 0,
+      "aborted_requests_from_navigation": 8,
+      "pages": {
+        "projects": {
+          "document_overflow_px": 0,
+          "small_targets_total": 10,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 2,
+            "why_visible": false,
+            "why_reasons": 0,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "project_page": {
+          "document_overflow_px": 0,
+          "small_targets_total": 2,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": false,
+            "why_reasons": 0,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "run_api": {
+          "document_overflow_px": 0,
+          "small_targets_total": 15,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": true,
+            "why_reasons": 2,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "run_web_graph": {
+          "document_overflow_px": 0,
+          "small_targets_total": 15,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": true,
+            "why_reasons": 1,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "run_web_declared": {
+          "document_overflow_px": 0,
+          "small_targets_total": 15,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": true,
+            "why_reasons": 1,
+            "decision_lists": 0,
+            "ci_project_rows": 0
+          }
+        },
+        "automation": {
+          "document_overflow_px": 0,
+          "small_targets_total": 7,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 2,
+            "why_visible": false,
+            "why_reasons": 1,
+            "decision_lists": 8,
+            "ci_project_rows": 0
+          }
+        },
+        "review": {
+          "document_overflow_px": 0,
+          "small_targets_total": 35,
+          "small_targets_in_new_monorepo_ui": 0,
+          "surface": {
+            "repo_groups": 1,
+            "grouped_cards": 2,
+            "scope_lines": 0,
+            "why_visible": false,
+            "why_reasons": 1,
+            "decision_lists": 8,
+            "ci_project_rows": 2
+          }
+        }
+      }
+    }
+  },
+  "exemptions": "Small targets reported at 320px are pre-existing controls outside this change (account button, form selects/inputs/buttons at 40px, automation checkboxes); none belong to the monorepo UI. Review-page diff tables overflow inside their own horizontal scroll container (document overflow 0). Aborted requests are navigation/live-stream cancellations, not errors.",
+  "screenshots": [
+    "console-1440-dark-why-this-ran.jpg",
+    "console-320-light-projects.jpg"
+  ]
+}

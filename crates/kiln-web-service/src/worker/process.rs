@@ -34,6 +34,7 @@ pub fn execute(
         profile,
         step,
         checkout,
+        checkout,
         cancellation,
         streaming::MAX_CHUNK_BYTES,
         |_| Ok(()),
@@ -43,10 +44,12 @@ pub fn execute(
 /// The calling thread owns ingress. Reader threads and their fixed-capacity
 /// channel apply backpressure; a failed upload is never retried, but readers
 /// continue draining until Bounded Exec completes owned-process teardown.
+/// `directory` is the job working directory inside `checkout`.
 pub fn execute_streamed(
     profile: &WorkerProfile,
     step: &Step,
     checkout: &Path,
+    directory: &Path,
     cancellation: &AtomicBool,
     chunk_bytes: usize,
     mut upload: impl FnMut(&Chunk) -> Result<(), String>,
@@ -57,7 +60,7 @@ pub fn execute_streamed(
     let chunk_bytes = chunk_bytes.min(streaming::MAX_CHUNK_BYTES);
     let endpoints = streaming::Endpoints::new()?;
     let (isolated_program, isolated_args) =
-        super::sandbox::command(profile, step, checkout, &endpoints.usage_path)?;
+        super::sandbox::command(profile, step, checkout, directory, &endpoints.usage_path)?;
     let (program, args) = streaming::helper_command(
         &endpoints.stdout_path,
         &endpoints.stderr_path,
@@ -70,7 +73,7 @@ pub fn execute_streamed(
         command: CommandSpec {
             program,
             args,
-            current_dir: checkout.to_path_buf(),
+            current_dir: directory.to_path_buf(),
             environment_mode: EnvironmentMode::Clear,
             environment: if profile.execution.is_some() {
                 Vec::new()

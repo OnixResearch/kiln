@@ -1351,6 +1351,8 @@ mod runtime;
 mod automation;
 #[path = "engine/dashboard.rs"]
 mod dashboard;
+#[path = "engine/monorepo.rs"]
+mod monorepo;
 #[path = "engine/reports.rs"]
 mod reports;
 

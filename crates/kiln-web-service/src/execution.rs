@@ -72,12 +72,16 @@ impl IsolationPolicy {
     pub(crate) fn command(
         &self,
         checkout: &Path,
+        directory: &Path,
         program: &Path,
         argv: &[String],
         environment: &std::collections::BTreeMap<String, String>,
         observation: ObservationMount<'_>,
     ) -> Result<(PathBuf, Vec<String>), String> {
         self.admit()?;
+        if !directory.starts_with(checkout) {
+            return Err("isolated working directory is outside the checkout".into());
+        }
         if !self.read_only_mounts.iter().any(|p| program.starts_with(p)) {
             return Err("isolated executable is not in a reviewed runtime mount".into());
         }
@@ -98,7 +102,7 @@ impl IsolationPolicy {
             text(checkout)?,
             text(checkout)?,
             "--chdir".into(),
-            text(checkout)?,
+            text(directory)?,
             "--".into(),
             "/run/kiln-step-observer".into(),
         ]);
@@ -236,6 +240,7 @@ mod tests {
         assert!(
             policy()
                 .command(
+                    Path::new("/tmp/source"),
                     Path::new("/tmp/source"),
                     Path::new("/home/token"),
                     &[],

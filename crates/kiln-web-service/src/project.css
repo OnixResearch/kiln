@@ -92,3 +92,33 @@ a.pp-timeline-run[data-status="unknown"] { border-style: dashed; }
   a.pp-timeline-run, .pp-health { border-color: CanvasText; }
   .pp-bar { fill: CanvasText; }
 }
+
+/* r[impl kiln.monorepo.console] Monorepo: projects grouped under their shared repository, path scopes, and
+ * recorded affected reasons (run detail "Why this ran", automation deliveries). Shared tokens only. */
+#project-cards > .project-repo-group { grid-column: 1 / -1; display: grid; gap: var(--space-3); min-width: 0; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--secondary); }
+.project-repo-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); min-width: 0; }
+.project-repo-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; margin: 0; font-size: var(--text-md); font-weight: 650; overflow-wrap: anywhere; }
+.project-repo-title > .icon { color: var(--muted-foreground); }
+.project-repo-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--space-4); min-width: 0; }
+.project-card-title { margin: 0; font-size: var(--text-md); font-weight: 650; overflow-wrap: anywhere; }
+.scope-line { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.scope-line > .icon { color: var(--muted-foreground); }
+.scope-line > .mono { color: var(--foreground); }
+.scope-patterns { color: var(--muted-foreground); }
+.run-why { display: grid; gap: var(--space-2); min-width: 0; }
+.run-why[hidden] { display: none; }
+.run-why > * { margin: 0; }
+.run-why > h3 { font-size: var(--text-sm); font-weight: 650; }
+.reason-list { display: grid; gap: var(--space-2); margin: 0; padding-left: 1.1rem; min-width: 0; font-size: var(--text-sm); line-height: 1.5; }
+.reason-list > li { min-width: 0; overflow-wrap: anywhere; }
+.reason-list p { margin: 0; color: var(--foreground); }
+.reason-list .reason-sample { color: var(--muted-foreground); font-size: var(--text-xs); }
+.affected-decisions { display: grid; gap: var(--space-2); min-width: 0; }
+.affected-decisions > * { margin: 0; }
+.affected-decision-list { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.affected-decision-list > li { display: grid; gap: var(--space-1); min-width: 0; }
+.affected-decision-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; color: var(--foreground); }
+.affected-decision-list > li[data-outcome="skipped"] .chip { font-style: italic; }
+@media (max-width: 40rem) {
+  #project-cards > .project-repo-group { padding: var(--space-3); }
+}

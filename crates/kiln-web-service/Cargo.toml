@@ -25,6 +25,7 @@ kiln-adapter-github = { path = "../kiln-adapter-github" }
 kiln-adapter-http-observe.workspace = true
 kiln-adapter-lattice.workspace = true
 kiln-adapter-webhook.workspace = true
+kiln-build-graph.workspace = true
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-highlight.workspace = true

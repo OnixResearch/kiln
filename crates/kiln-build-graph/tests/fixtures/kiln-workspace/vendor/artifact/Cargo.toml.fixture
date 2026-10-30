@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/artifact-auth-core",
+  "crates/artifact-auth-ed25519",
+  "crates/artifact-transfer-core",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/OnixResearch/onix-artifact"
+publish = false
+
+[workspace.dependencies]
+artifact-auth-core = { path = "crates/artifact-auth-core", default-features = false }
+blake3 = { version = "1.8.2", default-features = false }
+ed25519-dalek = { version = "2.2", default-features = false }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"

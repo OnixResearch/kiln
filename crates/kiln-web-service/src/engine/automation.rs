@@ -45,6 +45,77 @@ fn key(kind: &str, id: &str) -> String {
 fn digest<T: Serialize>(value: &T) -> Result<String, String> {
     Ok(identity(value)?.as_str().to_string())
 }
+fn head_key(project: &crate::profile::ProjectProfile, reference: &str) -> String {
+    format!("{}:{reference}", project.repository_key())
+}
+
+// r[impl kiln.monorepo.dispatch]
+/// Pure selection of the other registrations one authenticated repository
+/// event applies to: enabled for this event kind, same provider repository,
+/// matching reference, a project on the same canonical repository, and at
+/// most one registration (the first in policy order) per project.
+fn sibling_triggers(
+    profile: &AutomationProfile,
+    settings: &std::collections::BTreeMap<String, RegistrationState>,
+    projects: &[crate::profile::ProjectProfile],
+    registration: &crate::automation::TriggerProfile,
+    selector: &EventSelector,
+) -> Result<Vec<crate::automation::TriggerProfile>, String> {
+    let project_of = |id: &str| {
+        projects
+            .iter()
+            .find(|p| p.id == id)
+            .ok_or("automation project missing")
+    };
+    let repository = project_of(&registration.project_id)?.repository_key();
+    let mut seen = std::collections::BTreeSet::from([registration.project_id.as_str()]);
+    let mut siblings = Vec::new();
+    for trigger in &profile.triggers {
+        let Some(state) = settings.get(&key("trigger", &trigger.id)) else {
+            continue;
+        };
+        let matches = match selector {
+            EventSelector::Push { reference } => state.push && &trigger.reference == reference,
+            EventSelector::PullRequest {
+                head_reference,
+                base_reference,
+                ..
+            } => {
+                state.pull_request
+                    && trigger.reference.strip_prefix("refs/heads/")
+                        == Some(head_reference.as_str())
+                    && trigger.pull_request_base.as_ref() == Some(base_reference)
+            }
+        };
+        if state.enabled
+            && matches
+            && trigger.repository == registration.repository
+            && project_of(&trigger.project_id)?.repository_key() == repository
+            && seen.insert(trigger.project_id.as_str())
+        {
+            siblings.push(trigger.clone());
+        }
+    }
+    Ok(siblings)
+}
+
+/// A pull request's exact base: the merge base of its head and the admitted
+/// base branch. Unknown bases are `None` and fall back to every project.
+fn pull_request_base(
+    repository: &git2::Repository,
+    head: &str,
+    base_reference: &str,
+) -> Option<String> {
+    let head = git2::Oid::from_str(head).ok()?;
+    let base = repository
+        .find_reference(&format!("refs/heads/{base_reference}"))
+        .and_then(|reference| reference.peel_to_commit())
+        .ok()?;
+    repository
+        .merge_base(head, base.id())
+        .ok()
+        .map(|oid| oid.to_string())
+}
 
 /// A durable reservation, consumed exactly once outside the engine lock.
 /// Dropping it leaves the reservation ambiguous on restart, never retryable.
@@ -477,7 +548,8 @@ impl Engine {
         };
         let triggers: Vec<_> = profile.triggers.iter().map(|p| {
             let s = get("trigger", &p.id)?;
-            Ok(json!({"id":p.id,"project_id":p.project_id,"reference":p.reference,"enabled":s.enabled,"push":s.push,"pull_request":s.pull_request,"allow_push":p.push,"allow_pull_request":p.pull_request,"last_status":s.last_status}))
+            let scope = self.profile.projects.iter().find(|project| project.id == p.project_id).map(|project| project.scope_view()).transpose()?.unwrap_or(Value::Null);
+            Ok(json!({"id":p.id,"project_id":p.project_id,"reference":p.reference,"enabled":s.enabled,"push":s.push,"pull_request":s.pull_request,"allow_push":p.push,"allow_pull_request":p.pull_request,"last_status":s.last_status,"scope":scope}))
         }).collect::<Result<_, String>>()?;
         let schedules: Vec<_> = profile.schedules.iter().map(|p| {
             let s = get("schedule", &p.id)?;
@@ -489,7 +561,7 @@ impl Engine {
         }).collect::<Result<_, String>>()?;
         let mut sources: Vec<_> = self.state.automation.sources.values().collect();
         sources.sort_by_key(|r| (std::cmp::Reverse(r.received_at_ms), &r.id));
-        let sources: Vec<_> = sources.into_iter().take(profile.status_limit).map(|r| json!({"id":r.id,"kind":r.kind,"registration_id":r.registration_id,"received_at_ms":r.received_at_ms,"status":r.status,"run_id":r.run_id,"error_code":r.error_code})).collect();
+        let sources: Vec<_> = sources.into_iter().take(profile.status_limit).map(|r| json!({"id":r.id,"kind":r.kind,"registration_id":r.registration_id,"project_id":r.project_id,"received_at_ms":r.received_at_ms,"status":r.status,"run_id":r.run_id,"error_code":r.error_code,"affected":r.affected,"changed":r.changed})).collect();
         let mut deliveries: Vec<_> = self.state.automation.deliveries.values().collect();
         deliveries.sort_by_key(|r| (std::cmp::Reverse(r.reserved_at_ms), &r.id));
         let deliveries: Vec<_> = deliveries.into_iter().take(profile.status_limit).collect();
@@ -698,6 +770,10 @@ impl Engine {
         let body_identity = blake3::hash(body).to_hex().to_string();
         let mut revision = None;
         let mut candidate = Some(body_identity);
+        // The receiving registration first, then one sibling per other project.
+        let mut group = vec![registration.clone()];
+        let mut evaluation = None;
+        let mut head = None;
         if let Some(event) = event {
             let selected = match &event.selector {
                 EventSelector::Push { reference } => {
@@ -732,6 +808,44 @@ impl Engine {
             if current.id().to_string() != event.revision.to_ascii_lowercase() {
                 return error(409, "trigger_source_stale");
             }
+            let exact = current.id().to_string();
+            group.extend(sibling_triggers(
+                profile,
+                &self.state.automation.settings,
+                &self.profile.projects,
+                &registration,
+                &event.selector,
+            )?);
+            let projects = group
+                .iter()
+                .map(|trigger| {
+                    self.profile
+                        .projects
+                        .iter()
+                        .find(|p| p.id == trigger.project_id)
+                        .ok_or("automation project missing")
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let base = match &event.selector {
+                EventSelector::Push { reference } => {
+                    let key = head_key(project, reference);
+                    let base = self.state.automation.heads.get(&key).cloned();
+                    head = Some((key, exact.clone()));
+                    base
+                }
+                EventSelector::PullRequest { base_reference, .. } => {
+                    pull_request_base(&repository, &exact, base_reference)
+                }
+            };
+            // Repositories without scoped projects keep today's behaviour exactly.
+            if projects.iter().any(|p| p.scope.is_some()) {
+                evaluation = Some(crate::monorepo::evaluate(
+                    &project.repository_path,
+                    &projects,
+                    base.as_deref(),
+                    &exact,
+                )?);
+            }
             candidate = Some(event.candidate_identity.as_str().to_string());
             revision = Some(event.revision);
         }
@@ -744,32 +858,65 @@ impl Engine {
         {
             return error(409, "trigger_candidate_replayed");
         }
-        if self.state.automation.sources.len() >= profile.max_records {
+        if self.state.automation.sources.len() + group.len() > profile.max_records {
             return error(409, "automation_retention");
         }
-        self.state.automation.sources.insert(
-            delivery.clone(),
-            SourceRecord {
-                id: delivery.clone(),
-                kind: "trigger".into(),
-                registration_id: id.into(),
-                received_at_ms: now_ms()?,
-                status: if revision.is_some() {
-                    "reserved"
-                } else {
-                    "ignored"
+        let received_at_ms = now_ms()?;
+        let mut reserved = Vec::new();
+        for (index, trigger) in group.into_iter().enumerate() {
+            let id = if index == 0 {
+                delivery.clone()
+            } else {
+                digest(&("github-delivery", &headers.delivery, &trigger.id))?
+            };
+            let affected = evaluation
+                .as_ref()
+                .and_then(|e: &crate::monorepo::Evaluation| e.set.decision(&trigger.project_id))
+                .map(kiln_core::monorepo::ProjectDecision::is_affected);
+            let status = if revision.is_none() {
+                "ignored"
+            } else if affected == Some(false) {
+                "skipped"
+            } else {
+                reserved.push(id.clone());
+                "reserved"
+            };
+            if index > 0 || status == "skipped" {
+                if let Some(settings) = self
+                    .state
+                    .automation
+                    .settings
+                    .get_mut(&key("trigger", &trigger.id))
+                {
+                    settings.last_status = Some(status.into());
                 }
-                .into(),
-                run_id: None,
-                error_code: None,
-                project_id: registration.project_id,
-                reference: registration.reference,
-                source_revision: revision,
-                candidate_identity: candidate,
-            },
-        );
+            }
+            self.state.automation.sources.insert(
+                id.clone(),
+                SourceRecord {
+                    id,
+                    kind: "trigger".into(),
+                    registration_id: trigger.id,
+                    received_at_ms,
+                    status: status.into(),
+                    run_id: None,
+                    error_code: None,
+                    project_id: trigger.project_id,
+                    reference: trigger.reference,
+                    source_revision: revision.clone(),
+                    candidate_identity: candidate.clone(),
+                    affected: evaluation.as_ref().map(|e| e.set.clone()),
+                    changed: evaluation.as_ref().map(|e| e.changed),
+                },
+            );
+        }
+        if let Some((key, exact)) = head {
+            self.state.automation.heads.insert(key, exact);
+        }
         self.persist()?;
-        self.dispatch_automation_source(&delivery)?;
+        for id in reserved {
+            self.dispatch_automation_source(&id)?;
+        }
         json_response(202, self.state.automation.sources.get(&delivery))
     }
     fn dispatch_automation_source(&mut self, id: &str) -> Result<(), String> {
@@ -800,12 +947,23 @@ impl Engine {
             label: format!("{} {}", reservation.kind, reservation.registration_id),
             role: Role::Operator,
         };
+        // The run records why it ran; manual fallback applies when absent.
+        self.automation_affected = match (&reservation.affected, reservation.changed) {
+            (Some(set), Some(changed)) => crate::monorepo::Evaluation {
+                set: set.clone(),
+                changed,
+            }
+            .run_affected(&reservation.project_id),
+            _ => None,
+        };
         let response = self.api_as(
             "POST",
             "/api/runs",
             &serde_json::to_vec(&body).map_err(|_| "automation run encoding failed")?,
             &principal,
-        )?;
+        );
+        self.automation_affected = None;
+        let response = response?;
         let value: Value = serde_json::from_slice(&response.body)
             .map_err(|_| "automation run response invalid")?;
         let record = self
@@ -899,6 +1057,8 @@ impl Engine {
                             reference: schedule.reference.clone(),
                             source_revision: None,
                             candidate_identity: None,
+                            affected: None,
+                            changed: None,
                         });
                     self.state.automation.next_registration = next;
                     self.persist()?;

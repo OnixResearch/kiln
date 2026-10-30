@@ -53,6 +53,8 @@ pub struct Engine {
     automation_profile: Option<crate::automation::AutomationProfile>,
     cache_store: Option<crate::cache::CacheStore>,
     worker_status: Option<worker_status::Store>,
+    /// Affected decision handed from automation dispatch to the run it starts.
+    automation_affected: Option<crate::monorepo::RunAffected>,
     _lock: storage::StateLock,
 }
 
@@ -119,6 +121,7 @@ impl Engine {
             automation_profile: None,
             cache_store: None,
             worker_status: None,
+            automation_affected: None,
             _lock: lock,
         })
     }

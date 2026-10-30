@@ -926,7 +926,7 @@ a.count-chip:hover { border-color: var(--border-emphasis); background: var(--acc
   a.count-chip, .attention-actions a, .project-actions a, .action-row a, .split-toggle, .dashboard-section-head a { min-height: 2.75rem; display: inline-flex; align-items: center; }
   /* r[impl kiln.web.page_consistency] Run links act as row actions; keep them 44px tall on touch layouts. */
   a.row-link { display: inline-flex; align-items: center; max-width: 100%; min-height: 2.75rem; }
-  .run-project-link, #project-cards .project-card h3 a { display: inline-flex; align-items: center; min-height: 2.75rem; }
+  .run-project-link, #project-cards .project-card-title a { display: inline-flex; align-items: center; min-height: 2.75rem; }
 }
 @media (max-width: 40rem) {
   #worker-search-form > div { flex-basis: 100%; }
