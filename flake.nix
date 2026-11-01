@@ -1323,6 +1323,7 @@
               fi
             done
             nickel export config/fixtures/web-service-positive.ncl >/dev/null
+            nickel export config/fixtures/web-service-feeds-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-monorepo-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-untrusted-positive.ncl >/dev/null
             for fixture in config/fixtures/negative-web-service-*.ncl; do

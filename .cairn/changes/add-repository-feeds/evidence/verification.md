@@ -42,6 +42,13 @@ validators and the attempt time, and requires no body. A `304` without a
 supplied validator is refused. Redirects clear validators because they belong
 to the issuing origin.
 
+## Nickel policy
+
+`config/web-service.ncl` accepts the optional feeds policy with matching bounds.
+A positive fixture exports the feeds object, and a negative fixture is refused
+for a cadence below the 60-second minimum. The repository Nickel check exercises
+the export and format gates.
+
 ## Evidence
 
 - 13 feed unit tests pass: RSS/Atom, DTD rejection, URL/private-address

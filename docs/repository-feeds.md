@@ -6,7 +6,8 @@ observations, not CI evidence, acceptance, or release authority.
 
 ## Configure
 
-Add a `feeds` object to the service profile:
+Add a `feeds` object to the service profile. The optional `feeds` field is also
+accepted by `config/web-service.ncl` and its positive/negative fixtures:
 
 ```json
 "feeds": {

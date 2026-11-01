@@ -105,5 +105,11 @@
     "no_validator": "304 without a supplied validator is refused",
     "redirect": "validators are cleared after a redirect because they belong to the issuing origin"
   },
-  "ui_auto_refresh": "The Feeds page reloads its own observations every 60 seconds while open, stops on navigation/logout, and keeps the configured cadence note visible."
+  "ui_auto_refresh": "The Feeds page reloads its own observations every 60 seconds while open, stops on navigation/logout, and keeps the configured cadence note visible.",
+  "nickel_policy": {
+    "builder": "config/web-service.ncl accepts an optional feeds object with token path, bounds and cadence",
+    "positive_fixture": "config/fixtures/web-service-feeds-positive.ncl exports the feeds object",
+    "negative_fixture": "config/fixtures/negative-web-service-feeds-fast-refresh.ncl is refused for a 1000 ms cadence",
+    "gate": "direct dev-shell gates: nickel export positive, negative refused, nickel format --check on the builder and both fixtures"
+  }
 }

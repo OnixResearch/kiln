@@ -52,6 +52,23 @@ let is_relative_path = fun value =>
   && !(std.string.is_match "[\\x00\\\\]" value)
   && std.array.all (fun segment => segment != "" && segment != "." && segment != "..") (std.string.split "/" value)
 in
+let FeedRefresh =
+  std.contract.from_predicate (fun value =>
+    std.is_number value
+    && (value == 0 || (value >= 60000 && value <= 86400000))
+  )
+in
+let FeedPolicy = {
+  token_file | c.AbsolutePath,
+  max_subscriptions | c.BoundedInteger 1 128,
+  max_entries_per_feed | c.BoundedInteger 1 200,
+  max_feed_bytes | c.BoundedInteger 4096 4194304,
+  max_redirects | c.BoundedInteger 0 5,
+  timeout_seconds | c.BoundedInteger 1 30,
+  refresh_interval_ms | FeedRefresh | default = 900000,
+  allow_private_destinations | Bool | default = false,
+}
+in
 let ScopeRoot = std.contract.from_predicate (fun value => value == "" || is_relative_path value) in
 let ScopePattern = std.contract.from_predicate is_relative_path in
 let PatternList = std.contract.from_predicate (fun value => std.is_array value && std.array.length value <= max_scope_patterns) in
@@ -120,6 +137,7 @@ fun input =>
         operator_token_file | c.AbsolutePath,
         worker_token_file | c.AbsolutePath,
         state_directory | c.AbsolutePath,
+        feeds | FeedPolicy | optional,
         projects | Array Project | RepositoryProjects,
         bounds
           | {
@@ -154,3 +172,4 @@ fun input =>
     projects = settings.projects,
     bounds = settings.bounds,
   }
+  & (if std.record.has_field "feeds" settings then { feeds = settings.feeds } else {})
