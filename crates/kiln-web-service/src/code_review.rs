@@ -739,7 +739,7 @@ impl Workspace {
             return response(
                 json!({"schema":"kiln.code-review.v1","configured":true,"principal":principal,"can_write":can_write,
                 "project":profile.project,"repository":profile.provider.repository_id,"target_refs":profile.provider.target_refs,
-                "capabilities":provider.info().capabilities,"policy":profile.policy,"changes":changes,"total":total,"next_offset":next_offset,
+                "capabilities":provider.info().capabilities,"policy":profile.policy,"agent_principals":profile.agent_principals,"agent_metadata":profile.agent_metadata,"changes":changes,"total":total,"next_offset":next_offset,
                 "saved_views":projection.saved_queries,"notifications":notifications,"notifications_total":notifications_total,
                 "next_notification_offset":next_notification_offset,"operations":operations,"operations_total":pending.len(),"next_operation_offset":next_operation_offset,
                 "contribution_sources":intake::sources(profile,&state,principal)?,"intake_enabled":profile.intake.is_some(),"jj_intake":jj_intake::published(profile),

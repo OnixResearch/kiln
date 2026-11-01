@@ -16,7 +16,8 @@ either mode.
   over-bound agent principal lists.
 - Review detail tests verify declared agent reviewers and votes are marked with
   reviewer metadata and the effective advisory/binding mode is reported;
-  notifications carry the same agent marker and declared harness metadata.
+  notifications carry the same agent marker and declared harness metadata. The
+  snapshot exposes the declared agent principals and metadata.
 - Full core and web-service suites pass.
 - Clippy, rustfmt, Nickel typecheck/export and Cairn validation pass.
 
