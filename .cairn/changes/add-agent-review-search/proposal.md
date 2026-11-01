@@ -9,8 +9,12 @@ Issue: [#26](https://github.com/OnixResearch/kiln/issues/26).
 
 - Add optional `agent` to the review search query.
 - Filter on whether the current revision carries an attested agent submission.
-- Accept `agent=with|without` in the review query and expose the same filter in
-  the console search form and saved views.
-- Add core search and web query tests.
+- Add optional exact `agent_harness` and `agent_model` filters for the declared
+  identity on the current attested revision.
+- Accept `agent=with|without` and bounded harness/model values in the review
+  query and expose the same filters in the console search form.
+- Preserve every agent filter when saving and applying personal views, and clear
+  them together.
+- Add core search, saved-query and web query tests.
 
 Filtering is read-only and confers no review, execution or merge authority.
