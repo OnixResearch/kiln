@@ -127,6 +127,28 @@ impl Engine {
             (Role::Operator, Some(token)) => Some(token.as_str()),
             _ => None,
         };
+        let total = self.state.feeds.subscriptions.len();
+        let paused = self
+            .state
+            .feeds
+            .subscriptions
+            .values()
+            .filter(|subscription| !subscription.enabled)
+            .count();
+        let failing = self
+            .state
+            .feeds
+            .subscriptions
+            .values()
+            .filter(|subscription| subscription.error.is_some())
+            .count();
+        let pending = self
+            .state
+            .feeds
+            .subscriptions
+            .values()
+            .filter(|subscription| subscription.fetched_at_ms.is_none())
+            .count();
         let publication: Vec<serde_json::Value> = repositories
             .into_iter()
             .filter(|(key, (label, _, _))| {
@@ -170,6 +192,12 @@ impl Engine {
                     "refresh_interval_ms": profile.refresh_interval_ms,
                 },
                 "subscriptions": subscriptions,
+                "summary": {
+                    "total": total,
+                    "paused": paused,
+                    "failing": failing,
+                    "pending": pending,
+                },
                 "publication": publication_view(
                     &self.profile.origin,
                     token,

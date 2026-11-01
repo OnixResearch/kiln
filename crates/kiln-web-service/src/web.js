@@ -1492,6 +1492,14 @@
       navigate({ page: "feeds", feed_q: searchInput.value.trim() });
     });
     root.append(search);
+    const summary = result.summary;
+    if (summary) {
+      root.append(element(
+        "p",
+        `${summary.total} subscription${summary.total === 1 ? "" : "s"} · ${summary.pending} pending · ${summary.failing} failing · ${summary.paused} paused`,
+        "small"
+      ));
+    }
     const publication = result.publication?.repositories || [];
     if (publication.length > 0) {
       const section = element("section", undefined, "panel");
