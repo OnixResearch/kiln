@@ -174,7 +174,7 @@ impl RadicleSourceSelection {
             return Err(domain(
                 "radicle_source_selection",
                 "radicle_source.selection",
-                "Source selection contains an invalid repository, signer or branch identity",
+                "Source selection contains an invalid repository, signer, branch or tag identity",
             ));
         }
         Ok(())

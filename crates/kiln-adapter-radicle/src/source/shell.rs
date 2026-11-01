@@ -159,7 +159,7 @@ impl RadicleSourceShell {
         let checkout = destination
             .map(|path| materialize_snapshot(&snapshot, path))
             .transpose()?;
-        // Revalidate signed branch, namespace, RID and exact sigrefs after acquisition
+        // Revalidate the signed reference, namespace, RID and exact sigrefs after acquisition
         // and any writes. Immutable blobs already acquired need not be read again.
         let after = self.verify(&repository)?;
         if self.canonical(&repository)? != canonical {
