@@ -1314,6 +1314,7 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
         None | Some("") => None,
         Some(value)
             if value.len() <= crate::access::MAX_AGENT_TEXT_BYTES
+                && value.trim() == value
                 && !value.chars().any(char::is_control) =>
         {
             Some(value.to_string())
