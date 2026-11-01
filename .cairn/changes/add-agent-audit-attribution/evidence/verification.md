@@ -11,6 +11,7 @@ decision changes.
 
 - The focused denied-viewer test asserts agent attribution in the activity
   audit.
+- Activity metadata source is exercised by the JavaScript syntax check.
 - Full core and web-service suites pass.
 - Clippy, rustfmt and Cairn validation pass.
 

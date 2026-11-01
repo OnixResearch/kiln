@@ -2,6 +2,7 @@
 
 - [x] [serial] Add optional agent attribution to audit records from authenticated principals. r[kiln.access.agent.audit]
 - [x] [serial] Extend the denied-viewer regression test to assert agent audit attribution. r[kiln.access.agent.audit]
+- [x] [serial] Show the declared agent identity in activity audit metadata. r[kiln.access.agent.audit]
 
 ## Phase 2: Verification
 

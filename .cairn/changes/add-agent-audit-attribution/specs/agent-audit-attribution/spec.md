@@ -20,6 +20,15 @@ r[kiln.access.agent.audit.scenario.denial]
 - WHEN the activity audit is read
 - THEN the record names the principal and its declared harness/model.
 
+The workspace activity metadata MUST show the declared harness/model when an
+audit record carries an agent identity, labelled as declared.
+
+#### Scenario: Agent audit is displayed
+r[kiln.access.agent.audit.scenario.surface]
+- GIVEN an agent-attributed audit item
+- WHEN the activity feed renders
+- THEN the declared harness/model are shown beside the actor and no authority changes.
+
 #### Scenario: Non-agent audit remains unchanged
 r[kiln.access.agent.audit.scenario.human]
 - GIVEN an operator, worker or undeclared viewer request

@@ -2534,6 +2534,7 @@
     meta.append(element("span", item.kind === "audit" ? "Audit decision" : "Canonical event"));
     if (item.project_id) meta.append(element("span", text(projectLabel(item.project_id))));
     if (item.kind === "audit" && item.audit?.actor_label) meta.append(element("span", text(item.audit.actor_label)));
+    if (item.kind === "audit" && item.audit?.agent) { const agent = item.audit.agent; meta.append(element("span", `Agent ${text(agent.harness)}${agent.model ? ` · ${text(agent.model)}` : ""} (declared)`)); }
     meta.append(when(item.recorded_at_ms));
     if (item.run_id) { const link = runLink(item.run_id, `Run ${shortIdentity(item.run_id)}`, "activity"); link.title = item.run_id; meta.append(link); }
     return meta;

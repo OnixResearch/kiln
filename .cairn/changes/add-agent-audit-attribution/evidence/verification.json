@@ -26,7 +26,8 @@
   "behavior": {
     "attribution": "authenticated agent principals add their declared harness/model to audit records",
     "omission": "non-agent and anonymous records omit the field and keep their existing shape",
-    "authority": "audit attribution changes no access, review, execution or merge decision"
+    "authority": "audit attribution changes no access, review, execution or merge decision",
+    "surface": "activity audit metadata shows the declared harness/model when present"
   },
   "non_claims": [
     "the declaration is configuration, not verified execution metadata",
