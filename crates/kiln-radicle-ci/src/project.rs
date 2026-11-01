@@ -809,7 +809,7 @@ pub(crate) mod tests {
     // r[verify kiln.radicle_ci.tag] r[verify kiln.radicle_ci.tag.scenario.projection]
     #[test]
     fn tag_project_profile_projects_the_tag_event() {
-        let (mut profile, _, intent) = fixture();
+        let (mut profile, identity, intent) = fixture();
         profile.source.signed_reference = "refs/tags/release/v1".into();
         if let Some(canonical) = profile.source.canonical.as_mut() {
             canonical.reference = "refs/tags/release/v1".into();
@@ -824,6 +824,11 @@ pub(crate) mod tests {
             Some("release/v1")
         );
         assert_eq!(trigger.after.native_id.as_str(), intent.source.revision);
+        let bindings = profile
+            .bindings(&identity, &intent.source)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(!bindings.key.as_str().is_empty());
+        assert!(!bindings.run_id.as_str().is_empty());
     }
 
     // r[verify kiln.radicle_ci.runtime] r[verify kiln.radicle_ci.source]
