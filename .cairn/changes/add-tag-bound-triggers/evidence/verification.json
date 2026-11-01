@@ -7,6 +7,10 @@
       "result": "1 passed; a signed annotated-tag push creates a run bound to the exact tagged commit"
     },
     {
+      "command": "cargo test -p kiln-web-service --test engine branch_push_does_not_dispatch_a_tag_bound_trigger",
+      "result": "1 passed; a branch push is refused by a tag-bound trigger"
+    },
+    {
       "command": "cargo test -p kiln-web-service --test engine deleted_tag_push_never_dispatches",
       "result": "1 passed; a deleted tag push is acknowledged without a run"
     },

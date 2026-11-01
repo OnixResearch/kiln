@@ -12,6 +12,7 @@ Schedules remain branch-bound.
 
 - End-to-end signed annotated-tag push dispatch passes through real local Git
   tag creation, signature admission, source resolution and dispatch.
+- A branch push is refused by a tag-bound trigger.
 - A deleted tag push is acknowledged without dispatching a run.
 - Admission tests reject a tag reference with branch filters, a tag filter that
   does not admit the bound tag, a tag-bound pull-request trigger and a tag-bound
