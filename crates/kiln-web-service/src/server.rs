@@ -1383,6 +1383,7 @@ mod tests {
             id: "viewer:reader".into(),
             label: "Reader".into(),
             role: crate::engine::Role::Viewer,
+            agent: None,
         };
         let operator = Principal {
             role: crate::engine::Role::Operator,
@@ -1427,6 +1428,7 @@ mod tests {
             id: "viewer:reviewer".into(),
             label: "Reviewer".into(),
             role: crate::engine::Role::Viewer,
+            agent: None,
         };
         let mut request = parse(b"POST /api/code-review/commands HTTP/1.1\r\nHost: localhost\r\nOrigin: https://localhost\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}")
             .unwrap_or_else(|_| unreachable!());

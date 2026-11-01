@@ -239,6 +239,7 @@ impl Engine {
                 id: format!("system:{label}"),
                 label: format!("Embedded {label}"),
                 role,
+                agent: None,
             },
         )
     }

@@ -14,6 +14,8 @@ pub struct Principal {
     pub id: String,
     pub label: String,
     pub role: Role,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentDeclaration>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -191,6 +193,7 @@ impl AccessProfile {
             id: id.to_owned(),
             label: binding.label.clone(),
             role: binding.role.into(),
+            agent: binding.agent.clone(),
         })
     }
 }
@@ -242,6 +245,7 @@ fn admit_whois(profile: &ProxyProfile, bytes: &[u8]) -> Result<Principal, String
         id: format!("tailscale:{}", binding.user_id),
         label: binding.label.clone(),
         role: binding.role.into(),
+        agent: binding.agent.clone(),
     })
 }
 

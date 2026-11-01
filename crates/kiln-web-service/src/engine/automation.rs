@@ -741,6 +741,7 @@ impl Engine {
             id: format!("github:{id}"),
             label: format!("GitHub {id}"),
             role: Role::Operator,
+            agent: None,
         });
         let status = result.as_ref().map(|r| r.status).unwrap_or(503);
         self.append_audit(
@@ -1044,6 +1045,7 @@ impl Engine {
             ),
             label: format!("{} {}", reservation.kind, reservation.registration_id),
             role: Role::Operator,
+            agent: None,
         };
         // The run records why it ran; manual fallback applies when absent.
         self.automation_affected = match (&reservation.affected, reservation.changed) {

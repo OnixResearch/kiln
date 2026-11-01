@@ -905,6 +905,7 @@ fn approve(
             id: id.into(),
             label: id.into(),
             role,
+            agent: None,
         },
     ))
 }

@@ -155,6 +155,7 @@ impl Credentials {
                         id: format!("viewer:{}", viewer.id),
                         label: viewer.label.clone(),
                         role: Role::Viewer,
+                        agent: viewer.agent.clone(),
                     },
                     verifier,
                 ))
@@ -183,12 +184,14 @@ impl Credentials {
                 id: "local:operator".into(),
                 label: "Local operator".into(),
                 role: Role::Operator,
+                agent: None,
             })
         } else if worker {
             Some(Principal {
                 id: "local:worker".into(),
                 label: "Registered worker".into(),
                 role: Role::Worker,
+                agent: None,
             })
         } else {
             self.viewers
@@ -326,6 +329,7 @@ mod tests {
                     id: "viewer:private".into(),
                     label: "Private viewer".into(),
                     role: Role::Viewer,
+                    agent: None,
                 },
                 TokenVerifier::new("d".repeat(64).as_bytes())
                     .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}")),

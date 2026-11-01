@@ -1,0 +1,45 @@
+{
+  "schema": "kiln.access.agent-session.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --test engine viewer_denials_are_attributable_and_before_effects",
+      "result": "1 passed; the session exposes the declared agent harness/model and viewer permissions remain read-only"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/web.js crates/kiln-web-service/src/code-review.js",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/web-access.ncl; nickel export config/fixtures/web-access-positive.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "principal": "viewer and tailnet authentication copy the optional access agent declaration",
+    "session": "the principal agent field is exposed when present and omitted for non-agent principals",
+    "surface": "workspace principal facts show the declared harness/model with a declared label",
+    "authority": "permissions, review votes, execution and merge authority are unchanged"
+  },
+  "non_claims": [
+    "the declaration is configuration, not proof of the executing model or harness",
+    "signed per-request agent credentials remain future work",
+    "the workspace label grants no authority or permission"
+  ]
+}

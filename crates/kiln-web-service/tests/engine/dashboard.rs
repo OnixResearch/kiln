@@ -1,5 +1,5 @@
 use super::*;
-use kiln_web_service::access::Principal;
+use kiln_web_service::access::{AgentDeclaration, Principal};
 
 fn id(run: &Value) -> &str {
     checked(field(run, "id").as_str().ok_or("run id"))
@@ -46,6 +46,10 @@ fn viewer_denials_are_attributable_and_before_effects() {
         id: "tailscale:42".into(),
         label: "Read-only member".into(),
         role: Role::Viewer,
+        agent: Some(AgentDeclaration {
+            harness: "omp".into(),
+            model: Some("deepseek".into()),
+        }),
     };
     let response = checked(engine.api_as(
         "POST",
@@ -70,6 +74,10 @@ fn viewer_denials_are_attributable_and_before_effects() {
             .pointer("/permissions/operate")
             .unwrap_or(&serde_json::Value::Null),
         false
+    );
+    assert_eq!(
+        session.pointer("/principal/agent/harness"),
+        Some(&json!("omp"))
     );
     enroll(&mut engine);
     assert_eq!(start(&mut engine, "admitted").status, 201);

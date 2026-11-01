@@ -2631,7 +2631,9 @@ A viewer or tailnet binding may declare `agent = { harness, model? }`; when code
 review is configured, its exact `viewer:<id>` or `tailscale:<user-id>` principal
 is merged into the review agent list so advisory/binding vote policy and submission attestation apply. The
 declaration must name a review write principal or startup fails. Harness/model
-text is bounded; it is configuration, not verified execution metadata. When
+text is bounded; it is configuration, not verified execution metadata. The
+admitted session principal carries the declaration, and the workspace shows it
+as declared identity, not as an authority grant. When
 present, it is recorded on revisions submitted by that agent and shown with the
 attested principal.
 Viewer requests can inspect retained facts but cannot enroll, run, control or

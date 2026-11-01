@@ -1145,7 +1145,9 @@
     $("account-name").textContent = principalLabel;
     $("account-role").textContent = `${text(state.principal?.role)} · ${admission}`;
     $("connection-status").hidden = false;
-    addFacts($("principal-facts"), [["Principal", state.principal?.label], ["ID", state.principal?.id], ["Role", state.principal?.role], ["Admission", admission]]);
+    const principalFacts = [["Principal", state.principal?.label], ["ID", state.principal?.id], ["Role", state.principal?.role], ["Admission", admission]];
+    if (state.principal?.agent) principalFacts.push(["Agent", `${text(state.principal.agent.harness)}${state.principal.agent.model ? ` · ${text(state.principal.agent.model)}` : ""} (declared)`]);
+    addFacts($("principal-facts"), principalFacts);
     notice("");
     projectDescriptions();
     startLive();

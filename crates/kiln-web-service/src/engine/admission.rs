@@ -23,6 +23,7 @@ impl Engine {
             id: "system:access-configuration".into(),
             label: "Runtime access admission".into(),
             role: Role::Operator,
+            agent: None,
         };
         self.append_audit(
             "CONFIGURE",
