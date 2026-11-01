@@ -50,6 +50,9 @@ pub struct FeedSubscription {
     /// HTTP Last-Modified value returned by the feed origin.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_modified: Option<String>,
+    /// Consecutive failed refresh attempts, used for bounded backoff.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub failures: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub entries: Vec<FeedEntry>,
 }
@@ -178,6 +181,22 @@ pub fn subscription_id(url: &str) -> String {
     blake3::hash(url.as_bytes()).to_hex().to_string()
 }
 
+fn is_zero(value: &u32) -> bool {
+    *value == 0
+}
+
+/// Effective retry interval after consecutive failures.
+#[must_use]
+pub fn failure_backoff_ms(interval_ms: u64, failures: u32) -> u64 {
+    if interval_ms == 0 {
+        return 0;
+    }
+    let exponent = failures.min(6);
+    interval_ms
+        .saturating_mul(1_u64 << exponent)
+        .min(MAX_REFRESH_INTERVAL_MS)
+}
+
 /// Whether a subscription is due for a background refresh.
 #[must_use]
 pub fn is_due(now_ms: u64, fetched_at_ms: Option<u64>, interval_ms: u64) -> bool {
@@ -197,7 +216,13 @@ pub fn due_subscriptions<'a>(
         return Vec::new();
     }
     let mut due: Vec<(u64, DueFeed)> = subscriptions
-        .filter(|subscription| is_due(now_ms, subscription.fetched_at_ms, interval_ms))
+        .filter(|subscription| {
+            is_due(
+                now_ms,
+                subscription.fetched_at_ms,
+                failure_backoff_ms(interval_ms, subscription.failures),
+            )
+        })
         .map(|subscription| {
             (
                 subscription.fetched_at_ms.unwrap_or(0),
@@ -1116,6 +1141,7 @@ mod tests {
             error: None,
             etag: None,
             last_modified: None,
+            failures: 0,
             entries: Vec::new(),
         };
         let subscriptions = vec![
@@ -1128,6 +1154,16 @@ mod tests {
         assert_eq!(due.first().map(|feed| feed.id.as_str()), Some("never"));
         assert_eq!(due.get(1).map(|feed| feed.id.as_str()), Some("oldest"));
         assert!(due_subscriptions(subscriptions.iter(), 100, 0, 2).is_empty());
+    }
+
+    #[test]
+    fn failure_backoff_grows_and_caps() {
+        assert_eq!(failure_backoff_ms(0, 10), 0);
+        assert_eq!(failure_backoff_ms(60_000, 0), 60_000);
+        assert_eq!(failure_backoff_ms(60_000, 1), 120_000);
+        assert_eq!(failure_backoff_ms(60_000, 6), 3_840_000);
+        assert_eq!(failure_backoff_ms(60_000, 100), 3_840_000);
+        assert_eq!(failure_backoff_ms(86_400_000, 6), 86_400_000);
     }
 
     #[test]

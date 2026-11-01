@@ -59,7 +59,9 @@ revision, and a console link. Text is XML-escaped.
 
 Operators can add an external feed URL, refresh it, and remove it. When
 `refresh_interval_ms` is non-zero, the service refreshes due subscriptions in
-the background, oldest attempt first and at most two per tick. `0` keeps refresh
+the background, oldest attempt first and at most two per tick. Consecutive
+refresh failures double the retry interval from the base cadence up to one day;
+a successful refresh or `304` resets the backoff. `0` keeps refresh
 operator-only. Subscription URLs are omitted from viewer responses; entries and
 errors remain readable. Add fetches
 immediately; refresh replaces entries on success and retains previous entries

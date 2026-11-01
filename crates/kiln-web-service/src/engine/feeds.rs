@@ -277,6 +277,7 @@ impl Engine {
                     error: None,
                     etag: None,
                     last_modified: None,
+                    failures: 0,
                     entries: Vec::new(),
                 },
             );
@@ -340,6 +341,7 @@ impl Engine {
             error: None,
             etag,
             last_modified,
+            failures: 0,
             entries: feed.entries,
         };
         if !self.feed_state_fits(&admitted.id, &subscription) {
@@ -706,6 +708,7 @@ fn refreshed_candidate(
             candidate.error = None;
             candidate.etag = etag;
             candidate.last_modified = last_modified;
+            candidate.failures = 0;
             candidate.fetched_at_ms = Some(now_ms);
         }
         Ok(FetchOutcome::NotModified {
@@ -715,10 +718,12 @@ fn refreshed_candidate(
             candidate.error = None;
             candidate.etag = etag.or(candidate.etag);
             candidate.last_modified = last_modified.or(candidate.last_modified);
+            candidate.failures = 0;
             candidate.fetched_at_ms = Some(now_ms);
         }
         Err(message) => {
             candidate.error = Some(message.chars().take(256).collect());
+            candidate.failures = candidate.failures.saturating_add(1);
             candidate.fetched_at_ms = Some(now_ms);
         }
     }
