@@ -291,6 +291,42 @@ fn pull_request_supersession_is_scoped_to_one_pull_request() {
 }
 
 #[test]
+fn tag_trigger_filter_namespaces_and_schedule_references_are_rejected() {
+    let (root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend);
+    enroll(&mut engine);
+    let mut branch_filter = policy(root.path());
+    let trigger = branch_filter
+        .triggers
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture trigger"));
+    trigger.reference = "refs/tags/v1".into();
+    trigger.push = true;
+    trigger.pull_request = false;
+    trigger.pull_request_base = None;
+    trigger.filter.branches = vec!["main".into()];
+    assert!(engine.configure_automation(branch_filter).is_err());
+    let mut tag_filter = policy(root.path());
+    let trigger = tag_filter
+        .triggers
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture trigger"));
+    trigger.reference = "refs/tags/v1".into();
+    trigger.push = true;
+    trigger.pull_request = true;
+    trigger.filter.tags = vec!["v*".into()];
+    assert!(engine.configure_automation(tag_filter).is_err());
+    let mut schedule = policy(root.path());
+    schedule
+        .schedules
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture schedule"))
+        .reference = "refs/tags/v1".into();
+    assert!(engine.configure_automation(schedule).is_err());
+}
+
+#[test]
 fn signed_tag_push_dispatches_a_tag_bound_run() {
     let (root, mut profile, revision) = fixture();
     let tag = "refs/tags/v1.0.0";

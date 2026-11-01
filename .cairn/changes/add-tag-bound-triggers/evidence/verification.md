@@ -12,6 +12,8 @@ Schedules remain branch-bound.
 
 - End-to-end signed tag-push dispatch test passes through real local Git tag
   creation, signature admission, source resolution and dispatch.
+- Admission tests reject a tag reference with branch filters, a tag-bound
+  pull-request trigger and a tag-bound schedule.
 - Full core and web-service suites pass.
 - Clippy, rustfmt, Nickel typecheck and Cairn validation pass.
 
