@@ -1281,6 +1281,21 @@ fn review_window() -> kiln_observe_core::ReviewWindow {
         .unwrap_or_else(|_| unreachable!())
 }
 
+#[test]
+fn admitted_journal_accessors_expose_admitted_facts() {
+    let journal = admitted(2);
+    assert_eq!(journal.schema(), Some("kiln.onixos-pilot.journal.v1"));
+    assert_eq!(
+        journal.declared_identity(),
+        Some("0000000000000000000000000000000000000000000000000000000000000000")
+    );
+    assert_eq!(journal.review(), None);
+    assert_eq!(journal.records().len(), 2);
+    let reviewed = journal.clone().with_review(Some(review_window()));
+    assert!(reviewed.review().is_some());
+    assert_eq!(reviewed.state().revision, journal.state().revision);
+}
+
 fn reviewed(window: kiln_observe_core::ReviewWindow) -> kiln_dashboard::journal::AdmittedJournal {
     let journal = admitted(2);
     journal.with_review(Some(window))

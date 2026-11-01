@@ -4,7 +4,7 @@
   "commands": [
     {
       "command": "cargo test -p kiln-dashboard",
-      "result": "41 dashboard tests passed; compile-fail doc test passed"
+      "result": "42 dashboard tests passed; accessors and compile-fail doc test passed"
     },
     {
       "command": "cargo test --workspace --no-fail-fast",

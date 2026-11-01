@@ -10,8 +10,8 @@ rejected.
 
 ## Evidence
 
-- `cargo test -p kiln-dashboard`: 41 dashboard tests passed; the compile-fail
-  doc test passed.
+- `cargo test -p kiln-dashboard`: 42 dashboard tests passed, including the
+  accessor and compile-fail proof checks.
 - `cargo test --workspace --no-fail-fast`: all workspace test binaries and doc
   tests passed.
 - `cargo check --workspace --all-targets` and workspace-wide Clippy with
