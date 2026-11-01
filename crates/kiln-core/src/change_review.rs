@@ -4788,6 +4788,23 @@ mod tests {
                 .iter()
                 .any(|item| item.key.starts_with("interface"))
         );
+        facts
+            .policy
+            .as_mut()
+            .required()?
+            .ownership
+            .dependents
+            .clear();
+        facts
+            .policy
+            .as_mut()
+            .required()?
+            .ownership
+            .dependents
+            .insert("other".into(), ["web".into()].into_iter().collect());
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "interface_ci:api:web")?);
+        assert!(evidence_item(&checks, "interface:api:web")?);
         Ok(())
     }
 
