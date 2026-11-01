@@ -34,15 +34,22 @@ refused. Titles, summaries, dates, links, entries, response bytes, redirects and
 timeouts are bounded. Links are restricted to HTTP(S), and the console renders
 text nodes rather than HTML.
 
+## Conditional refresh
+
+Refresh requests send bounded stored `ETag` and `Last-Modified` validators. A
+`304 Not Modified` retains entries and title, clears the error, updates
+validators and the attempt time, and requires no body. A `304` without a
+supplied validator is refused. Redirects clear validators because they belong
+to the issuing origin.
+
 ## Evidence
 
-- 12 feed unit tests pass: RSS/Atom, DTD rejection, URL/private-address
+- 13 feed unit tests pass: RSS/Atom, DTD rejection, URL/private-address
   admission, body bound, one-hop redirect, UTC formatting, Atom escaping and
-  repository run filtering/order/limit, due selection and cadence monotonicity.
-- 144 web-service library tests and 70 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
-- The workspace passed 1224 tests before this increment. The post-increment
-  full workspace command was blocked by another workspace holding the shared
-  Cargo target lock; the post-increment 146 library and 70 engine tests passed.
+  repository run filtering/order/limit, conditional 304, due selection and cadence monotonicity.
+- 147 web-service library tests and 70 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
+- The workspace passes 1228 tests. The Feeds page reloads its observations every
+  60 seconds while open and stops on navigation or logout.
 - The runtime round-trip starts the actual service, publishes an Atom feed,
   rejects wrong/missing tokens, adds an external feed, retains entries after a
   failed refresh, and removes the subscription.

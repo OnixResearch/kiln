@@ -60,6 +60,10 @@ fragments. DNS is resolved once, every address must be globally routable, and
 the connection is pinned to the admitted address. Redirects are manual,
 bounded, and re-admitted. Proxy environment variables are ignored.
 
+Refresh requests send stored `ETag` and `Last-Modified` validators. A `304 Not
+Modified` retains previous entries, clears the error and updates the validators
+without parsing a body. A `304` without a supplied validator is refused.
+
 RSS 2.0 and Atom are parsed with `roxmltree`; DTD and entity declarations are
 refused. Titles, summaries, dates, links, entries and response bytes are
 bounded. Links are restricted to HTTP(S). The console renders feed text with

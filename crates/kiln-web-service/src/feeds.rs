@@ -6,7 +6,10 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs as _};
 use std::time::Duration;
 
 use reqwest::blocking::Client;
-use reqwest::header::{ACCEPT, CONTENT_LENGTH, LOCATION, USER_AGENT};
+use reqwest::header::{
+    ACCEPT, CONTENT_LENGTH, ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED, LOCATION,
+    USER_AGENT,
+};
 use reqwest::{Url, redirect::Policy};
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +43,12 @@ pub struct FeedSubscription {
     pub fetched_at_ms: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// HTTP entity tag returned by the feed origin, when bounded and valid.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub etag: Option<String>,
+    /// HTTP Last-Modified value returned by the feed origin.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_modified: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub entries: Vec<FeedEntry>,
 }
@@ -79,6 +88,43 @@ pub struct ParsedFeed {
     pub entries: Vec<FeedEntry>,
 }
 
+/// One subscription selected for background refresh.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DueFeed {
+    pub id: String,
+    pub url: String,
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
+}
+
+/// Bounds and validators for one external feed request.
+#[derive(Clone, Copy, Debug)]
+pub struct FetchOptions<'a> {
+    pub max_bytes: usize,
+    pub max_entries: usize,
+    pub max_redirects: usize,
+    pub timeout_seconds: u64,
+    pub allow_private: bool,
+    pub etag: Option<&'a str>,
+    pub last_modified: Option<&'a str>,
+}
+
+/// Result of one bounded conditional feed request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FetchOutcome {
+    /// The origin returned a feed body and optional validators.
+    Modified {
+        feed: ParsedFeed,
+        etag: Option<String>,
+        last_modified: Option<String>,
+    },
+    /// The origin confirmed the supplied validators without a body.
+    NotModified {
+        etag: Option<String>,
+        last_modified: Option<String>,
+    },
+}
+
 /// Stable identity for one subscription URL.
 #[must_use]
 pub fn subscription_id(url: &str) -> String {
@@ -99,23 +145,27 @@ pub fn due_subscriptions<'a>(
     now_ms: u64,
     interval_ms: u64,
     limit: usize,
-) -> Vec<(String, String)> {
+) -> Vec<DueFeed> {
     if interval_ms == 0 || limit == 0 {
         return Vec::new();
     }
-    let mut due: Vec<(u64, String, String)> = subscriptions
+    let mut due: Vec<(u64, DueFeed)> = subscriptions
         .filter(|subscription| is_due(now_ms, subscription.fetched_at_ms, interval_ms))
         .map(|subscription| {
             (
                 subscription.fetched_at_ms.unwrap_or(0),
-                subscription.id.clone(),
-                subscription.url.clone(),
+                DueFeed {
+                    id: subscription.id.clone(),
+                    url: subscription.url.clone(),
+                    etag: subscription.etag.clone(),
+                    last_modified: subscription.last_modified.clone(),
+                },
             )
         })
         .collect();
-    due.sort_by_key(|(attempt, _, _)| *attempt);
+    due.sort_by_key(|(attempt, _)| *attempt);
     due.truncate(limit);
-    due.into_iter().map(|(_, id, url)| (id, url)).collect()
+    due.into_iter().map(|(_, feed)| feed).collect()
 }
 
 /// Validate a subscription URL before any DNS or network effect.
@@ -212,14 +262,16 @@ fn globally_routable_v4(ip: Ipv4Addr) -> bool {
 /// pinned to the admitted address so a second resolution cannot rebind it.
 /// Redirects are manual and re-admitted, and proxy environment variables are
 /// ignored.
-pub fn fetch(
-    url: &str,
-    max_bytes: usize,
-    max_entries: usize,
-    max_redirects: usize,
-    timeout_seconds: u64,
-    allow_private: bool,
-) -> Result<ParsedFeed, String> {
+pub fn fetch(url: &str, options: FetchOptions<'_>) -> Result<FetchOutcome, String> {
+    let FetchOptions {
+        max_bytes,
+        max_entries,
+        max_redirects,
+        timeout_seconds,
+        allow_private,
+        etag,
+        last_modified,
+    } = options;
     if max_bytes == 0 || max_bytes > ABSOLUTE_MAX_FEED_BYTES {
         return Err("feed byte bound is invalid".into());
     }
@@ -233,15 +285,34 @@ pub fn fetch(
         return Err("feed fetch bounds are invalid".into());
     }
     let mut current = admit_url(url, allow_private)?;
+    let mut etag = etag;
+    let mut last_modified = last_modified;
     for hop in 0..=max_redirects {
         let client = pinned_client(&current, timeout_seconds, allow_private)?;
-        let response = client
+        let mut request = client
             .get(current.clone())
             .header(ACCEPT, FEED_ACCEPT)
-            .header(USER_AGENT, USER_AGENT_VALUE)
+            .header(USER_AGENT, USER_AGENT_VALUE);
+        if let Some(etag) = etag.filter(|value| valid_validator(value)) {
+            request = request.header(IF_NONE_MATCH, etag);
+        }
+        if let Some(last_modified) = last_modified.filter(|value| valid_validator(value)) {
+            request = request.header(IF_MODIFIED_SINCE, last_modified);
+        }
+        let response = request
             .send()
             .map_err(|_| "external feed could not be reached")?;
         let status = response.status();
+        if status == reqwest::StatusCode::NOT_MODIFIED {
+            if etag.is_none() && last_modified.is_none() {
+                return Err("external feed returned not-modified without a validator".into());
+            }
+            return Ok(FetchOutcome::NotModified {
+                etag: response_validator(&response, ETAG).or_else(|| etag.map(ToString::to_string)),
+                last_modified: response_validator(&response, LAST_MODIFIED)
+                    .or_else(|| last_modified.map(ToString::to_string)),
+            });
+        }
         if status.is_redirection() {
             if hop == max_redirects {
                 return Err("external feed exceeded its redirect bound".into());
@@ -258,6 +329,10 @@ pub fn fetch(
                 .join(location)
                 .map_err(|_| "external feed redirect location is invalid")?;
             current = admit_url(current.as_str(), allow_private)?;
+            // Validators belong to the origin that issued them; a redirect is a
+            // different resource and must be fetched without conditional headers.
+            etag = None;
+            last_modified = None;
             continue;
         }
         if status != reqwest::StatusCode::OK {
@@ -273,6 +348,8 @@ pub fn fetch(
                 return Err("external feed content length exceeds its bound".into());
             }
         }
+        let etag = response_validator(&response, ETAG);
+        let last_modified = response_validator(&response, LAST_MODIFIED);
         let mut bytes = Vec::new();
         response
             .take((max_bytes as u64).saturating_add(1))
@@ -281,9 +358,34 @@ pub fn fetch(
         if bytes.len() > max_bytes {
             return Err("external feed body exceeds its bound".into());
         }
-        return parse(&bytes, max_entries);
+        return Ok(FetchOutcome::Modified {
+            feed: parse(&bytes, max_entries)?,
+            etag,
+            last_modified,
+        });
     }
     Err("external feed exceeded its redirect bound".into())
+}
+
+fn response_validator(
+    response: &reqwest::blocking::Response,
+    header: reqwest::header::HeaderName,
+) -> Option<String> {
+    response
+        .headers()
+        .get(header)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| valid_validator(value))
+        .map(str::to_string)
+}
+
+fn valid_validator(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 256
+        && !value
+            .bytes()
+            .any(|byte| byte.is_ascii_control() || byte == b'\r' || byte == b'\n')
 }
 
 fn pinned_client(url: &Url, timeout_seconds: u64, allow_private: bool) -> Result<Client, String> {
@@ -720,6 +822,22 @@ mod tests {
         assert!(admit_url("https://example.invalid/feed", false).is_ok());
     }
 
+    fn options<'a>(
+        allow_private: bool,
+        etag: Option<&'a str>,
+        last_modified: Option<&'a str>,
+    ) -> FetchOptions<'a> {
+        FetchOptions {
+            max_bytes: 65_536,
+            max_entries: 10,
+            max_redirects: 1,
+            timeout_seconds: 5,
+            allow_private,
+            etag,
+            last_modified,
+        }
+    }
+
     fn serve(
         responses: Vec<(&'static str, &'static str, &'static str)>,
     ) -> (u16, std::thread::JoinHandle<()>) {
@@ -754,22 +872,49 @@ mod tests {
         ]);
         let fetched = fetch(
             &format!("http://127.0.0.1:{port}/start"),
-            65_536,
-            10,
-            1,
-            5,
-            true,
+            options(true, None, None),
         )
         .unwrap_or_else(|_| unreachable!());
-        assert_eq!(fetched.entries.len(), 2);
+        let FetchOutcome::Modified { feed, .. } = fetched else {
+            unreachable!("redirected feed must be modified")
+        };
+        assert_eq!(feed.entries.len(), 2);
         handle.join().unwrap_or_else(|_| unreachable!());
     }
 
     #[test]
     fn fetch_refuses_private_destinations_without_the_explicit_exception() {
-        assert!(fetch("https://127.0.0.1:9/feed.xml", 65_536, 10, 1, 5, false).is_err());
-        assert!(fetch("http://127.0.0.1:9/feed.xml", 65_536, 10, 1, 5, false).is_err());
-        assert!(fetch("https://10.0.0.1/feed.xml", 65_536, 10, 1, 5, false).is_err());
+        assert!(fetch("https://127.0.0.1:9/feed.xml", options(false, None, None)).is_err());
+        assert!(fetch("http://127.0.0.1:9/feed.xml", options(false, None, None)).is_err());
+        assert!(fetch("https://10.0.0.1/feed.xml", options(false, None, None)).is_err());
+    }
+
+    #[test]
+    fn conditional_fetch_honours_not_modified_and_requires_a_validator() {
+        let (port, handle) = serve(vec![("304 Not Modified", "ETag: \"v2\"\r\n", "")]);
+        let fetched = fetch(
+            &format!("http://127.0.0.1:{port}/feed.xml"),
+            options(true, Some("\"v1\""), None),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(
+            fetched,
+            FetchOutcome::NotModified { etag: Some(ref value), .. } if value == "\"v2\""
+        ));
+        handle.join().unwrap_or_else(|_| unreachable!());
+
+        let (port, handle) = serve(vec![("304 Not Modified", "", "")]);
+        assert!(
+            fetch(
+                &format!("http://127.0.0.1:{port}/feed.xml"),
+                FetchOptions {
+                    max_redirects: 0,
+                    ..options(true, None, None)
+                },
+            )
+            .is_err()
+        );
+        handle.join().unwrap_or_else(|_| unreachable!());
     }
 
     #[test]
@@ -779,11 +924,10 @@ mod tests {
         assert!(
             fetch(
                 &format!("http://127.0.0.1:{port}/feed.xml"),
-                16,
-                10,
-                0,
-                5,
-                true
+                FetchOptions {
+                    max_bytes: 16,
+                    ..options(true, None, None)
+                },
             )
             .is_err()
         );
@@ -799,6 +943,8 @@ mod tests {
             title: None,
             fetched_at_ms: fetched,
             error: None,
+            etag: None,
+            last_modified: None,
             entries: Vec::new(),
         };
         let subscriptions = vec![
@@ -808,8 +954,8 @@ mod tests {
         ];
         let due = due_subscriptions(subscriptions.iter(), 100, 60, 2);
         assert_eq!(due.len(), 2);
-        assert_eq!(due.first().map(|(id, _)| id.as_str()), Some("never"));
-        assert_eq!(due.get(1).map(|(id, _)| id.as_str()), Some("oldest"));
+        assert_eq!(due.first().map(|feed| feed.id.as_str()), Some("never"));
+        assert_eq!(due.get(1).map(|feed| feed.id.as_str()), Some("oldest"));
         assert!(due_subscriptions(subscriptions.iter(), 100, 0, 2).is_empty());
     }
 

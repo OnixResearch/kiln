@@ -266,21 +266,25 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
                         };
                         engine.due_feeds(now)
                     };
-                    for (id, url) in due {
+                    for feed in due {
                         let fetched = crate::feeds::fetch(
-                            &url,
-                            feeds.max_feed_bytes,
-                            feeds.max_entries_per_feed,
-                            feeds.max_redirects,
-                            feeds.timeout_seconds,
-                            feeds.allow_private_destinations,
+                            &feed.url,
+                            crate::feeds::FetchOptions {
+                                max_bytes: feeds.max_feed_bytes,
+                                max_entries: feeds.max_entries_per_feed,
+                                max_redirects: feeds.max_redirects,
+                                timeout_seconds: feeds.timeout_seconds,
+                                allow_private: feeds.allow_private_destinations,
+                                etag: feed.etag.as_deref(),
+                                last_modified: feed.last_modified.as_deref(),
+                            },
                         );
                         let Ok(mut engine) = engine.lock() else {
                             failed.store(true, Ordering::Release);
                             stop.store(true, Ordering::Release);
                             break;
                         };
-                        if engine.record_feed_refresh(&id, fetched, now).is_err() {
+                        if engine.record_feed_refresh(&feed.id, fetched, now).is_err() {
                             failed.store(true, Ordering::Release);
                             stop.store(true, Ordering::Release);
                             break;
@@ -988,11 +992,15 @@ fn feed_api(
         let url = admitted.url.clone();
         let fetched = crate::feeds::fetch(
             &url,
-            profile.max_feed_bytes,
-            profile.max_entries_per_feed,
-            profile.max_redirects,
-            profile.timeout_seconds,
-            profile.allow_private_destinations,
+            crate::feeds::FetchOptions {
+                max_bytes: profile.max_feed_bytes,
+                max_entries: profile.max_entries_per_feed,
+                max_redirects: profile.max_redirects,
+                timeout_seconds: profile.timeout_seconds,
+                allow_private: profile.allow_private_destinations,
+                etag: None,
+                last_modified: None,
+            },
         );
         return match context.engine.lock() {
             Ok(mut engine) => engine
@@ -1026,20 +1034,24 @@ fn feed_api(
         };
     }
     if request.method == "POST" && action == Some("refresh") {
-        let url = match context.engine.lock() {
-            Ok(engine) => engine.feed_url(id),
+        let target = match context.engine.lock() {
+            Ok(engine) => engine.feed_refresh_target(id),
             Err(_) => return error_response(503, "service_unavailable"),
         };
-        let Some(url) = url else {
+        let Some((url, etag, last_modified)) = target else {
             return error_response(404, "feed_missing");
         };
         let fetched = crate::feeds::fetch(
             &url,
-            profile.max_feed_bytes,
-            profile.max_entries_per_feed,
-            profile.max_redirects,
-            profile.timeout_seconds,
-            profile.allow_private_destinations,
+            crate::feeds::FetchOptions {
+                max_bytes: profile.max_feed_bytes,
+                max_entries: profile.max_entries_per_feed,
+                max_redirects: profile.max_redirects,
+                timeout_seconds: profile.timeout_seconds,
+                allow_private: profile.allow_private_destinations,
+                etag: etag.as_deref(),
+                last_modified: last_modified.as_deref(),
+            },
         );
         return match context.engine.lock() {
             Ok(mut engine) => engine

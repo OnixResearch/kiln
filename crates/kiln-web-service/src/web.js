@@ -1024,6 +1024,13 @@
     }
   }
 
+  function stopFeedsTimer() {
+    if (state.feedsTimer !== null) {
+      clearTimeout(state.feedsTimer);
+      state.feedsTimer = null;
+    }
+  }
+
   // r[impl kiln.web.interface.scenario.loss]
   function logout(message = "Signed out. Private views and pending requests were cleared.") {
     state.epoch++;
@@ -1037,6 +1044,7 @@
     // r[impl kiln.web.live_progress] Session clearing stops the elapsed ticker and drops per-run log defaults.
     window.KilnProject?.clear();
     $("project-content").replaceChildren();
+    stopFeedsTimer();
     stopLiveTicker();
     state.runSort = null; state.failureFirst = null; state.followDeclined = ""; state.startProject = "";
     $("run-progress").hidden = true;
@@ -1459,6 +1467,7 @@
   // r[impl kiln.web.feeds.ui]
   // r[impl kiln.web.feeds.config.scenario.console]
   async function loadFeeds() {
+    stopFeedsTimer();
     const result = await api("/api/feeds");
     const root = $("feeds-content");
     root.replaceChildren();
@@ -1471,7 +1480,7 @@
       const section = element("section", undefined, "panel");
       section.append(element("h2", "Repository subscriptions"));
       const cadence = result.bounds?.refresh_interval_ms;
-      const note = element("p", `Copy an Atom URL into any feed reader. The URL carries a dedicated read-only feed token, so treat it as a secret. ${cadence ? `External subscriptions refresh every ${Math.max(1, Math.round(cadence / 60000))} minutes.` : "External subscriptions refresh only when you press Refresh."}`, "small");
+      const note = element("p", `Copy an Atom URL into any feed reader. The URL carries a dedicated read-only feed token, so treat it as a secret. ${cadence ? `External subscriptions refresh every ${Math.max(1, Math.round(cadence / 60000))} minutes.` : "External subscriptions refresh only when you press Refresh."} This page reloads its observations every 60 seconds while open.`, "small");
       section.append(note);
       const list = element("div", undefined, "project-grid");
       for (const repository of publication) {
@@ -1530,9 +1539,17 @@
       });
       root.append(form);
     }
+    const scheduleRefresh = () => {
+      if (!result.configured) return;
+      state.feedsTimer = setTimeout(() => {
+        state.feedsTimer = null;
+        if (state.session && state.route?.page === "feeds") void readAction(loadFeeds)();
+      }, 60_000);
+    };
     const subscriptions = result.subscriptions || [];
     if (subscriptions.length === 0) {
       root.append(emptyState("No external feeds", "Subscriptions added here are fetched on add and on explicit refresh."));
+      scheduleRefresh();
       return;
     }
     for (const subscription of subscriptions) {
@@ -1578,9 +1595,11 @@
       else card.append(entries);
       root.append(card);
     }
+    scheduleRefresh();
   }
   async function loadPage() {
     const route = state.route;
+    if (route.page !== "feeds") stopFeedsTimer();
     if (route.page === "code-review") {
       await window.KilnCodeReview.load($("code-review-content"), {
         api,

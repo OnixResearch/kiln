@@ -12,11 +12,11 @@
   "commands": [
     {
       "command": "cargo test -p kiln-web-service --lib feeds::",
-      "result": "12 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, UTC formatting, Atom escaping, run filtering/order/limit, due selection and cadence monotonicity"
+      "result": "13 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom escaping, run filtering/order/limit, due selection and cadence monotonicity"
     },
     {
       "command": "cargo test -p kiln-web-service --lib",
-      "result": "144 passed, 0 failed, 1 ignored"
+      "result": "147 passed, 0 failed, 1 ignored"
     },
     {
       "command": "cargo test -p kiln-web-service --test engine",
@@ -24,7 +24,7 @@
     },
     {
       "command": "cargo test --workspace",
-      "result": "1224 passed before the background-refresh increment; the post-increment full workspace run was blocked by an external workspace holding the shared Cargo target lock. Post-increment focused runs: 146 library tests and 70 engine tests passed."
+      "result": "1228 passed, 0 failed"
     },
     {
       "command": "cargo clippy -p kiln-web-service --all-targets -- -D warnings",
@@ -89,8 +89,7 @@
     "external subscriptions are retained observations, not continuous freshness or remote completeness",
     "DNS pinning and private-address checks reduce common SSRF paths but do not prove hostile-network safety",
     "the optional profile keeps feeds disabled by default; this change performs no deployment",
-    "allow_private_destinations is an explicit test/private-network exception, not a production claim",
-    "the post-increment full workspace command was not executed because another workspace held the shared cargo target lock; focused web-service suites passed"
+    "allow_private_destinations is an explicit test/private-network exception, not a production claim"
   ],
   "background_refresh": {
     "cadence": "feeds.refresh_interval_ms; default 900000 ms, 0 disables background refresh",
@@ -98,5 +97,13 @@
     "isolation": "fetch runs on a dedicated scoped thread; the engine mutex is held only for selection and recording",
     "failure": "refresh errors are recorded with bounded text; previous entries remain",
     "state": "candidate state is preflighted against max_state_bytes before persistence"
-  }
+  },
+  "conditional_refresh": {
+    "validators": "ETag and Last-Modified are bounded (256 bytes, no control bytes) and persisted per subscription",
+    "request": "If-None-Match and If-Modified-Since are sent when validators exist",
+    "not_modified": "304 retains entries/title, clears the error, updates validators and fetched_at without parsing a body",
+    "no_validator": "304 without a supplied validator is refused",
+    "redirect": "validators are cleared after a redirect because they belong to the issuing origin"
+  },
+  "ui_auto_refresh": "The Feeds page reloads its own observations every 60 seconds while open, stops on navigation/logout, and keeps the configured cadence note visible."
 }

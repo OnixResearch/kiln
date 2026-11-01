@@ -111,6 +111,12 @@ r[kiln.web.feeds.security.scenario.malformed]
 - WHEN parsing runs
 - THEN it MUST fail without changing retained entries.
 
+#### Scenario: Conditional refresh is honored
+r[kiln.web.feeds.security.scenario.conditional]
+- GIVEN stored entity validators and an origin returning 304
+- WHEN refresh runs
+- THEN previous entries MUST remain, validators MUST update, and no body is required; a 304 without a supplied validator MUST be refused.
+
 ### Requirement: Bounded feed retention
 
 r[kiln.web.feeds.bounds] Subscription count, entries per feed, response bytes, redirects and timeouts MUST use named policy bounds, and a chain of retained subscriptions MUST remain within the durable state bound before a write is committed.

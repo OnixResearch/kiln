@@ -7,7 +7,7 @@ use serde_json::json;
 use super::{ApiResponse, Engine, Role, api::error, api::json_response};
 use crate::access::Principal;
 use crate::feeds::{
-    AtomItem, FeedSubscription, ParsedFeed, admit_url, render_atom, subscription_id,
+    AtomItem, FeedSubscription, FetchOutcome, admit_url, render_atom, subscription_id,
 };
 
 #[derive(Deserialize)]
@@ -148,7 +148,7 @@ impl Engine {
     pub(crate) fn finish_feed_add(
         &mut self,
         admitted: AdmittedFeed,
-        fetched: Result<ParsedFeed, String>,
+        fetched: Result<FetchOutcome, String>,
         now_ms: u64,
         method: &str,
         target: &str,
@@ -164,9 +164,13 @@ impl Engine {
             self.append_audit(method, target, Some(principal), "denied", 409)?;
             return error(409, "feed_retention");
         }
-        let parsed = match fetched {
-            Ok(parsed) => parsed,
-            Err(_) => {
+        let (feed, etag, last_modified) = match fetched {
+            Ok(FetchOutcome::Modified {
+                feed,
+                etag,
+                last_modified,
+            }) => (feed, etag, last_modified),
+            Ok(FetchOutcome::NotModified { .. }) | Err(_) => {
                 self.append_audit(method, target, Some(principal), "denied", 502)?;
                 return error(502, "feed_unavailable");
             }
@@ -175,10 +179,12 @@ impl Engine {
             id: admitted.id.clone(),
             url: admitted.url,
             label: admitted.label,
-            title: parsed.title,
+            title: feed.title,
             fetched_at_ms: Some(now_ms),
             error: None,
-            entries: parsed.entries,
+            etag,
+            last_modified,
+            entries: feed.entries,
         };
         if !self.feed_state_fits(&admitted.id, &subscription) {
             self.append_audit(method, target, Some(principal), "denied", 409)?;
@@ -193,16 +199,21 @@ impl Engine {
         json_response(201, json!({"subscription": subscription}))
     }
 
-    pub(crate) fn feed_url(&self, id: &str) -> Option<String> {
-        self.state
-            .feeds
-            .subscriptions
-            .get(id)
-            .map(|subscription| subscription.url.clone())
+    pub(crate) fn feed_refresh_target(
+        &self,
+        id: &str,
+    ) -> Option<(String, Option<String>, Option<String>)> {
+        self.state.feeds.subscriptions.get(id).map(|subscription| {
+            (
+                subscription.url.clone(),
+                subscription.etag.clone(),
+                subscription.last_modified.clone(),
+            )
+        })
     }
 
     /// Subscriptions whose cadence elapsed, oldest attempt first.
-    pub(crate) fn due_feeds(&self, now_ms: u64) -> Vec<(String, String)> {
+    pub(crate) fn due_feeds(&self, now_ms: u64) -> Vec<crate::feeds::DueFeed> {
         let Some(profile) = &self.profile.feeds else {
             return Vec::new();
         };
@@ -221,7 +232,7 @@ impl Engine {
     pub(crate) fn record_feed_refresh(
         &mut self,
         id: &str,
-        fetched: Result<ParsedFeed, String>,
+        fetched: Result<FetchOutcome, String>,
         now_ms: u64,
     ) -> Result<(), String> {
         let Some(existing) = self.state.feeds.subscriptions.get(id).cloned() else {
@@ -242,7 +253,7 @@ impl Engine {
     pub(crate) fn finish_feed_refresh(
         &mut self,
         id: &str,
-        fetched: Result<ParsedFeed, String>,
+        fetched: Result<FetchOutcome, String>,
         now_ms: u64,
         method: &str,
         target: &str,
@@ -409,15 +420,30 @@ impl Engine {
 
 fn refreshed_candidate(
     existing: FeedSubscription,
-    fetched: Result<ParsedFeed, String>,
+    fetched: Result<FetchOutcome, String>,
     now_ms: u64,
 ) -> FeedSubscription {
     let mut candidate = existing;
     match fetched {
-        Ok(parsed) => {
-            candidate.title = parsed.title;
-            candidate.entries = parsed.entries;
+        Ok(FetchOutcome::Modified {
+            feed,
+            etag,
+            last_modified,
+        }) => {
+            candidate.title = feed.title;
+            candidate.entries = feed.entries;
             candidate.error = None;
+            candidate.etag = etag;
+            candidate.last_modified = last_modified;
+            candidate.fetched_at_ms = Some(now_ms);
+        }
+        Ok(FetchOutcome::NotModified {
+            etag,
+            last_modified,
+        }) => {
+            candidate.error = None;
+            candidate.etag = etag.or(candidate.etag);
+            candidate.last_modified = last_modified.or(candidate.last_modified);
             candidate.fetched_at_ms = Some(now_ms);
         }
         Err(message) => {
