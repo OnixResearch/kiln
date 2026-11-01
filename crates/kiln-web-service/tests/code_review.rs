@@ -1893,12 +1893,29 @@ fn service_rejects_ownership_links_to_unknown_projects() -> Result<()> {
             approval: BTreeMap::new(),
         });
     assert!(Workspace::for_service(Some(unknown_rule), &service).is_err());
-    let mut unknown_dependents = fixture.profile;
+    let mut unknown_dependents = fixture.profile.clone();
     unknown_dependents
         .policy
         .ownership
         .dependents
         .insert("unknown".into(), BTreeSet::new());
     assert!(Workspace::for_service(Some(unknown_dependents), &service).is_err());
+    let mut known = fixture.profile;
+    known
+        .policy
+        .ownership
+        .rules
+        .push(kiln_core::change_review::OwnershipRule {
+            id: "known".into(),
+            paths: vec!["src/**".into()],
+            owners: [BOB.into()].into_iter().collect(),
+            teams: BTreeSet::new(),
+            target_refs: BTreeSet::new(),
+            project: Some("project".into()),
+            interface: vec!["src/**".into()],
+            required_evidence: Vec::new(),
+            approval: BTreeMap::new(),
+        });
+    assert!(Workspace::for_service(Some(known), &service).is_ok());
     Ok(())
 }

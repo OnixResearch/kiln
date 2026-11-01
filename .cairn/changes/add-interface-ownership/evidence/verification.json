@@ -4,7 +4,7 @@
   "commands": [
     {
       "command": "cargo test -p kiln-web-service --test code_review service_rejects_ownership_links_to_unknown_projects",
-      "result": "1 passed; unknown interface and dependent project links are rejected at service admission"
+      "result": "1 passed; unknown interface/dependent links are rejected and a known project link is admitted"
     },
     {
       "command": "cargo test -p kiln-core interface",
