@@ -1782,6 +1782,7 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         400
     );
     let snapshot = accepted(get(&workspace, "/api/code-review", ALICE, &[]))?;
+    assert_eq!(field(&snapshot, "/agent_principals")?, &json!([BOB]));
     assert!(
         field(&snapshot, "/notifications")?
             .as_array()
