@@ -811,9 +811,10 @@ pub(crate) mod tests {
     fn tag_project_profile_projects_the_tag_event() {
         let (mut profile, identity, intent) = fixture();
         profile.source.signed_reference = "refs/tags/release/v1".into();
-        if let Some(canonical) = profile.source.canonical.as_mut() {
-            canonical.reference = "refs/tags/release/v1".into();
-        }
+        profile.source.canonical = Some(kiln_radicle_source_contract::CanonicalRequest {
+            identity_commit: "5".repeat(40),
+            reference: "refs/tags/release/v1".into(),
+        });
         profile.admit().unwrap_or_else(|_| unreachable!());
         let trigger = profile
             .trigger(&intent.source)

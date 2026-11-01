@@ -10,8 +10,8 @@ revision remains the trigger's `after`.
 ## Evidence
 
 - `cargo check --workspace --all-targets` passed.
-- Radicle CI tests pass, including branch/tag event and alias projection, full
-  tag profile admission and candidate bindings.
+- Radicle CI tests pass, including branch/tag event and alias projection,
+  canonical tag profile admission and candidate bindings.
 - Full workspace tests and workspace-wide Clippy pass.
 - `cargo fmt` and Cairn validation pass.
 

@@ -8,7 +8,7 @@
     },
     {
       "command": "cargo test -p kiln-radicle-ci",
-      "result": "11 passed; branch/tag projection, tag profile admission and tag candidate bindings covered"
+      "result": "11 passed; branch/tag projection, canonical tag profile admission and tag candidate bindings covered"
     },
     {
       "command": "cargo test --workspace --no-fail-fast",
