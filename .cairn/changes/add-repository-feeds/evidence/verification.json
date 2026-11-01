@@ -55,7 +55,8 @@
       "GET an unknown 64-hex repository key returns 404",
       "with no feeds policy, GET /api/feeds reports configured=false",
       "viewer GET /api/feeds omits each subscription URL and every token-bearing subscribe URL",
-      "viewer POST /api/feeds is denied with 403 without changing state"
+      "viewer POST /api/feeds is denied with 403 without changing state",
+      "replacing the feed token file takes effect without restart: the old token is denied and the new token returns the feed"
     ]
   },
   "browser_case": {

@@ -367,7 +367,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
         fs::Permissions::from_mode(0o400),
     ));
     profile.feeds = Some(kiln_web_service::profile::FeedsProfile {
-        token_file: feed_token_path,
+        token_file: feed_token_path.clone(),
         max_subscriptions: 4,
         max_entries_per_feed: 10,
         max_feed_bytes: 65_536,
@@ -832,6 +832,41 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .send(),
     );
     assert_eq!(removed.status(), 200);
+
+    let rotated = "e".repeat(64);
+    checked(fs::set_permissions(
+        &feed_token_path,
+        fs::Permissions::from_mode(0o600),
+    ));
+    checked(fs::write(&feed_token_path, &rotated));
+    checked(fs::set_permissions(
+        &feed_token_path,
+        fs::Permissions::from_mode(0o400),
+    ));
+    assert_eq!(
+        checked(
+            client
+                .get(format!(
+                    "{}/feeds/{key}.xml?token={feed_token}",
+                    profile.origin
+                ))
+                .send()
+        )
+        .status(),
+        403
+    );
+    assert_eq!(
+        checked(
+            client
+                .get(format!(
+                    "{}/feeds/{key}.xml?token={rotated}",
+                    profile.origin
+                ))
+                .send()
+        )
+        .status(),
+        200
+    );
 }
 
 // r[verify kiln.web.deploy.runtime.scenario.denied]
