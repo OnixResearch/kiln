@@ -34,6 +34,7 @@ fn policy(ownership: bool, minimum_approvals: u32) -> Policy {
             teams: BTreeMap::new(),
             rules,
             classes: Vec::new(),
+            dependents: BTreeMap::new(),
         },
         optional_ci: Vec::new(),
         agent_votes: AgentVotes::Advisory,

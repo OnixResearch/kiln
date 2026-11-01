@@ -68,6 +68,7 @@ in
 let Ownership = {
   teams | { _ | Array Principal },
   classes | Array ChangeClass | optional,
+  dependents | { _ | Array (Text 128) } | optional,
   rules
     | Array {
       id | Text 128,

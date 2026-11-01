@@ -3158,8 +3158,9 @@ The exported `kiln.code-review-profile.v1` declares:
   requires a separate full clean CI item for every other affected project in the
   current required-project set when `require_ci` is false, plus one eligible
   non-author owner approval from each ownership rule linked to those affected
-  projects. This first cut conservatively treats every affected project as a
-  dependent; explicit dependency-edge evidence is not yet used.
+  projects. Operators may declare `ownership.dependents` as an explicit source
+  project to dependent-project map; when a source is absent, every other
+  affected project is treated as a dependent, while an empty set declares none.
   Changed paths come from the provider comparison, including renamed old paths;
   incomplete observations cannot silently satisfy ownership. Registration and
   upload automatically request eligible owners. An empty rules list disables

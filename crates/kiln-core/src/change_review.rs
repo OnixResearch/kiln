@@ -566,6 +566,10 @@ pub struct OwnershipPolicy {
     /// the reserved `logic` class.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub classes: Vec<ChangeClass>,
+    /// Explicit interface dependents by source project. Missing entries fall
+    /// back to every other affected project; an empty set declares none.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub dependents: BTreeMap<String, BTreeSet<String>>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -577,6 +581,7 @@ pub struct ChangeClass {
 /// Named bounds for policy-declared change classes.
 pub const MAX_CHANGE_CLASSES: usize = 8;
 pub const MAX_CHANGE_CLASS_PATTERNS: usize = 16;
+pub const MAX_INTERFACE_DEPENDENTS: usize = 64;
 /// How a matching ownership rule treats the change's class.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -1121,6 +1126,21 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
             );
         }
     }
+    if policy.ownership.dependents.len() > MAX_INTERFACE_DEPENDENTS
+        || policy.ownership.dependents.iter().any(|(source, targets)| {
+            !principal_valid(source)
+                || source.len() > 128
+                || targets.len() > MAX_INTERFACE_DEPENDENTS
+                || targets.iter().any(|target| {
+                    !principal_valid(target) || target.len() > 128 || target == source
+                })
+        })
+    {
+        return fail(
+            "invalid_policy",
+            "ownership dependents need bounded unique non-self project identities",
+        );
+    }
     let mut ids = BTreeSet::new();
     for rule in &policy.ownership.rules {
         if !principal_valid(&rule.id)
@@ -1296,6 +1316,23 @@ fn rule_matches(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
     })
 }
 
+fn interface_dependents<'a>(
+    policy: &Policy,
+    facts: &'a Facts,
+    source: &str,
+) -> Vec<&'a CiRequirement> {
+    let explicit = policy.ownership.dependents.get(source);
+    facts
+        .ci_required
+        .iter()
+        .flatten()
+        .filter(|requirement| {
+            requirement.project != source
+                && explicit.is_none_or(|targets| targets.contains(&requirement.project))
+        })
+        .collect()
+}
+
 fn interface_changed(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
     rule.interface.iter().any(|pattern| {
         files.iter().any(|file| {
@@ -1345,10 +1382,7 @@ fn automatic_reviewers(
         if !applicable(rule, change) || !interface_changed(rule, files) {
             continue;
         }
-        for requirement in facts.ci_required.iter().flatten() {
-            if requirement.project == *source {
-                continue;
-            }
+        for requirement in interface_dependents(policy, facts, source) {
             for dependent in policy.ownership.rules.iter().filter(|dependent| {
                 dependent.project.as_deref() == Some(requirement.project.as_str())
                     && applicable(dependent, change)
@@ -1963,10 +1997,7 @@ fn checklist_at(
                         if let (Some(source), true) =
                             (&rule.project, interface_changed(rule, files))
                         {
-                            for requirement in facts.ci_required.iter().flatten() {
-                                if requirement.project == *source {
-                                    continue;
-                                }
+                            for requirement in interface_dependents(policy, facts, source) {
                                 if !policy.require_ci {
                                     let observed = latest_for(
                                         &requirement.project,
@@ -4745,11 +4776,17 @@ mod tests {
         rule.project = Some("api".into());
         rule.interface = vec!["src/lib.rs".into()];
         assert!(validate_policy(&literal).is_ok());
-        let mut duplicate = base;
+        let mut duplicate = base.clone();
         let rule = duplicate.ownership.rules.first_mut().required()?;
         rule.project = Some("api".into());
         rule.interface = vec!["src/**".into(), "src/**".into()];
         assert_eq!(reject(&duplicate)?, "invalid_policy");
+        let mut self_dependent = base;
+        self_dependent
+            .ownership
+            .dependents
+            .insert("api".into(), ["api".into()].into_iter().collect());
+        assert_eq!(reject(&self_dependent)?, "invalid_policy");
         Ok(())
     }
 

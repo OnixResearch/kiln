@@ -7,5 +7,5 @@
 
 ## Phase 2: Contracts and verification
 
-- [x] [serial] Update the Nickel ownership contract and operator docs. r[kiln.review.interface.policy]
+- [x] [serial] Add explicit policy-declared dependents, the Nickel ownership contract and operator docs. r[kiln.review.interface.policy] r[kiln.review.interface.boundary]
 - [x] [serial] Run focused and full core tests, clippy, rustfmt, Nickel and Cairn validation. r[kiln.review.interface.boundary]

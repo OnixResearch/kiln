@@ -53,9 +53,11 @@ r[kiln.review.interface.ci.scenario.non_interface]
 ### Requirement: Conservative facts boundary
 
 r[kiln.review.interface.boundary] The first cut MUST use the shell-provided
-affected-project requirements and MUST treat every other affected project as a
-dependent. It MUST NOT infer a dependency edge or a class from authorship or
-content. Missing affected facts MUST NOT fabricate dependents.
+affected-project requirements. Policy MAY declare explicit `ownership.dependents`
+from a source project to dependent projects; a missing source falls back to every
+other affected project, while an empty set declares none. It MUST NOT infer a
+dependency edge or a class from authorship or content. Missing affected facts
+MUST NOT fabricate dependents.
 
 #### Scenario: Missing affected facts
 r[kiln.review.interface.boundary.scenario.missing]

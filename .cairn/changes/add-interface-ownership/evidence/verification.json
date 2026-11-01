@@ -32,7 +32,7 @@
     "matching": "interface patterns match current and renamed old changed paths",
     "ci": "when require_ci is false, every other affected required project needs a separate full clean exact-commit item at its current scope identity",
     "ack": "each applicable ownership rule linked to an affected project needs one eligible non-author owner approval; automatic reviewers include those owners",
-    "boundary": "every other affected project is conservatively treated as dependent; missing affected facts add no fabricated dependents"
+    "boundary": "explicit policy dependents narrow dependents; missing source entries fall back to every other affected project and empty sets declare none; missing affected facts add no fabricated dependents"
   },
   "non_claims": [
     "explicit monorepo dependency edges are not yet used to narrow dependents",
