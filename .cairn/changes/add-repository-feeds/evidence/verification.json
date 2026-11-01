@@ -140,7 +140,7 @@
     "behavior": "retains pending subscriptions without network fetch; background cadence or manual Refresh fetches them",
     "authority": "operator only; viewer import is denied",
     "test": "feed unit OPML parsing; runtime import adds a pending subscription and denies a viewer",
-    "request_bound": "API bounds expose max_import_bytes from the service max_request_bytes; the UI rejects larger files before upload",
+    "request_bound": "API exposes a conservative max_import_bytes = (max_request_bytes - 512) / 2 to allow for JSON escaping and the request envelope; the UI rejects larger files before upload",
     "reporting": "the import response reports added and skipped counts; invalid, duplicate, existing and over-capacity outlines are skipped"
   },
   "feed_filter": {
@@ -157,5 +157,6 @@
   },
   "refresh_backoff": "consecutive failures double the base cadence up to 24 hours; success or 304 resets the failure count",
   "add_failure_message": "a failed add returns 502 with the bounded fetch reason; no subscription is retained",
-  "feed_token_bearer": "GET feed paths accept the dedicated token as the single token query value or as Authorization: Bearer; a wrong bearer is denied, and the query takes precedence when both are present"
+  "feed_token_bearer": "GET feed paths accept the dedicated token as the single token query value or as Authorization: Bearer; a wrong bearer is denied, and the query takes precedence when both are present",
+  "entry_deduplication": "RSS, RSS 1.0/RDF and Atom parsing retain the first entry for each stable id"
 }

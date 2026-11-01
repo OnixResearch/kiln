@@ -544,11 +544,15 @@ fn parse_rss(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<Parsed
         .ok_or("RSS feed has no channel")?;
     let title = direct_text(channel, "title").map(|text| truncate(&text, MAX_TITLE_BYTES));
     let mut entries = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
     for item in channel
         .children()
         .filter(|node| node.is_element() && node.tag_name().name() == "item")
     {
-        entries.push(rss_entry(item));
+        let entry = rss_entry(item);
+        if seen.insert(entry.id.clone()) {
+            entries.push(entry);
+        }
         if entries.len() >= max_entries {
             break;
         }
@@ -564,11 +568,15 @@ fn parse_rdf(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<Parsed
         .and_then(|channel| direct_text(channel, "title"))
         .map(|text| truncate(&text, MAX_TITLE_BYTES));
     let mut entries = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
     for item in root
         .descendants()
         .filter(|node| node.is_element() && node.tag_name().name() == "item")
     {
-        entries.push(rss_entry(item));
+        let entry = rss_entry(item);
+        if seen.insert(entry.id.clone()) {
+            entries.push(entry);
+        }
         if entries.len() >= max_entries {
             break;
         }
@@ -602,6 +610,7 @@ fn rss_entry(item: roxmltree::Node<'_, '_>) -> FeedEntry {
 fn parse_atom(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<ParsedFeed, String> {
     let title = direct_text(root, "title").map(|text| truncate(&text, MAX_TITLE_BYTES));
     let mut entries = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
     for entry in root
         .children()
         .filter(|node| node.is_element() && node.tag_name().name() == "entry")
@@ -620,13 +629,16 @@ fn parse_atom(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<Parse
             .filter(|value| !value.is_empty())
             .or_else(|| link.clone())
             .unwrap_or_else(|| entry_fallback_id(&title, published.as_deref()));
-        entries.push(FeedEntry {
+        let entry = FeedEntry {
             id: truncate(&id, MAX_URL_BYTES),
             title,
             link,
             published,
             summary,
-        });
+        };
+        if seen.insert(entry.id.clone()) {
+            entries.push(entry);
+        }
         if entries.len() >= max_entries {
             break;
         }
@@ -1002,6 +1014,13 @@ mod tests {
         let parsed = parse(many.as_bytes(), 3).unwrap_or_else(|_| unreachable!());
         assert_eq!(parsed.entries.len(), 3);
         assert!(parsed.entries.iter().all(|entry| entry.link.is_none()));
+        let duplicates = br#"<rss><channel><item><title>one</title><guid>same</guid></item><item><title>two</title><guid>same</guid></item></channel></rss>"#;
+        let parsed = parse(duplicates, 10).unwrap_or_else(|_| unreachable!());
+        assert_eq!(parsed.entries.len(), 1);
+        assert_eq!(
+            parsed.entries.first().map(|entry| entry.title.as_str()),
+            Some("one")
+        );
     }
 
     #[test]
