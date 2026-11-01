@@ -76,6 +76,7 @@ impl Engine {
             decision: decision.chars().take(128).collect(),
             status,
             run_id,
+            agent: principal.and_then(|principal| principal.agent.clone()),
         });
         self.persist()
     }

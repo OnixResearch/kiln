@@ -60,6 +60,9 @@ pub struct AuditRecord {
     pub decision: String,
     pub status: u16,
     pub run_id: Option<String>,
+    /// Declared agent identity of the principal, when present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<crate::access::AgentDeclaration>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

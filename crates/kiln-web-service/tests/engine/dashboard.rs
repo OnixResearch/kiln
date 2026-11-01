@@ -66,7 +66,8 @@ fn viewer_denials_are_attributable_and_before_effects() {
     assert!(items.iter().any(
         |item| item.get("audit").is_some_and(|audit| audit.get("actor_id")
             == Some(&json!("tailscale:42"))
-            && audit.get("status") == Some(&json!(403)))
+            && audit.get("status") == Some(&json!(403))
+            && audit.pointer("/agent/harness") == Some(&json!("omp")))
     ));
     let session = value(&checked(engine.api_as("GET", "/api/session", &[], &viewer)));
     assert_eq!(
