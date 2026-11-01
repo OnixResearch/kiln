@@ -1499,9 +1499,10 @@
       const cadence = result.bounds?.refresh_interval_ms;
       const note = element("p", `Copy an Atom URL into any feed reader. The URL carries a dedicated read-only feed token, so treat it as a secret. ${cadence ? `External subscriptions refresh every ${Math.max(1, Math.round(cadence / 60000))} minutes.` : "External subscriptions refresh only when you press Refresh."} This page reloads its observations every 60 seconds while open.`, "small");
       section.append(note);
-      const list = element("div", undefined, "project-grid");
+      section.append(element("p", `${publication.length} repositories`, "small"));
+      const list = element("div", undefined, "feed-grid");
       for (const repository of publication) {
-        const card = element("article", undefined, "project-card panel");
+        const card = element("article", undefined, "feed-card panel");
         card.append(element("h3", text(repository.label)), element("p", `${repository.runs} retained runs · ${repository.key.slice(0, 12)}…`, "small"));
         const actions = element("div", undefined, "cluster");
         const subscribe = repository.subscribe_url;

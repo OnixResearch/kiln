@@ -76,9 +76,10 @@ the export and format gates.
 - The runtime round-trip starts the actual service, publishes an Atom feed,
   rejects wrong/missing tokens, adds an external feed, retains entries after a
   failed refresh, and removes the subscription.
-- A disposable browser session signed in, rendered 15 repository cards, added
-  an external feed, displayed its retained entry with no console errors, and
-  was removed with its temporary profile after verification.
+- A disposable browser session signed in, rendered 15 compact repository cards
+  in an auto-fill grid, added an external feed, displayed its retained entry
+  with no console errors, and was removed with its temporary profile after
+  verification.
 - Clippy, rustfmt and Cairn validation pass.
 
 ## Non-claims

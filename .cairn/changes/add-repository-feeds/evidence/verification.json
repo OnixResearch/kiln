@@ -73,7 +73,13 @@
       "wrong_token": 403,
       "missing_token": 400
     },
-    "screenshot": "captured inline during the disposable browser session; the disposable instance and temporary profile were removed after verification"
+    "screenshot": "captured inline during the disposable browser session; the disposable instance and temporary profile were removed after verification",
+    "layout": {
+      "screenshot": "/var/tmp/kiln-feeds-layout.png",
+      "cards": 15,
+      "grid_visible": true,
+      "checks": "compact auto-fill repository grid; titles, counts, Atom/RSS links and OPML export remain visible"
+    }
   },
   "security_cases": {
     "userinfo": "rejected",

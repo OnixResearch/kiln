@@ -479,6 +479,12 @@ button.account-button[aria-expanded="true"], #app-menu-toggle[aria-expanded="tru
 .project-forms .panel { min-width: 0; }
 #project-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--space-4); }
 #project-cards .project-card { padding: var(--space-4); }
+.feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--space-3); }
+.feed-grid .feed-card { min-height: 0; padding: var(--space-3); }
+.feed-grid .feed-card > * + * { margin-top: var(--space-2); }
+.feed-grid .feed-card h3 { margin: 0; overflow-wrap: anywhere; font-size: var(--text-sm); }
+.feed-grid .feed-card p { margin: 0; }
+.feed-grid .feed-card .cluster { flex-wrap: wrap; gap: var(--space-2); }
 #project-cards .project-card > * + * { margin-top: var(--space-2); }
 #project-cards .facts { gap: .35rem .7rem; font-size: var(--text-xs); }
 /* r[impl kiln.web.page_consistency] Project card actions share the attention-card action row: bordered link buttons, one quiet button. */
