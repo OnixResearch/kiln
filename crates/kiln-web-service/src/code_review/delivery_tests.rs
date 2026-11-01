@@ -41,6 +41,7 @@ fn review() -> domain::ReviewState {
                 author: "alice".into(),
                 created_ms: 1,
                 authorship: domain::Authorship::Undeclared,
+                submitted_by: None,
             }],
             reviewers: BTreeMap::new(),
             votes: Vec::new(),

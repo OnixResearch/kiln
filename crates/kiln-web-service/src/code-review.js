@@ -732,11 +732,13 @@
     drawQueue(aside, Array.isArray(state.detail.queue) ? state.detail.queue : state.detail.queue ? [state.detail.queue] : arr(state.snapshot.queue).filter(e => e.change === c.id));
     drawSubscriptions(aside); drawOperations(aside); drawAuthorActions(aside);
   }
+  // r[impl kiln.review.agent.console]
   function drawIdentity(root) {
     const c = state.detail.change, count = arr(c.revisions).length, card = panel(root, "Identities and revisions", "identity", false, `${count} revision${count === 1 ? "" : "s"}`);
     facts(card, [["Stable change", c.id], ["State", `${label(c.state)}${c.wip ? " · Work in progress" : ""}`], ["Owner", c.owner], ["Project / repository", `${c.project} / ${c.repository}`], ["Target ref", c.target_ref], ["Observed target", state.detail.source?.current_target], ["Current revision", current()?.id], ["Current commit", current()?.commit], ["Authorship (self-declared, unverified)", authorshipClassLabel(c.authorship)]]);
     const log = node("ol", null, "cr-history");
-    for (const item of arr(c.revisions)) { const li = node("li"), meta = node("span", null, "cr-muted"); if (item.id === revision()) li.setAttribute("aria-current", "true"); meta.append(`${item.author} · `, when(item.created_ms), ` · ${authorshipLabel(item.authorship)}`); li.append(link(`Revision ${item.number}`, { review_revision: item.id, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, node("code", item.commit)); log.append(li); }
+    for (const item of arr(c.revisions)) { const li = node("li"), meta = node("span", null, "cr-muted"); if (item.id === revision()) li.setAttribute("aria-current", "true"); meta.append(`${item.author} · `, when(item.created_ms), ` · ${authorshipLabel(item.authorship)}`, item.submitted_by ? ` · attested agent ${item.submitted_by}` : ""); li.append(link(`Revision ${item.number}`, { review_revision: item.id, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, node("code", item.commit)); log.append(li); }
+    if (current()?.submitted_by) card.append(node("p", `The current revision was submitted by the attested agent principal ${current().submitted_by}. Authorship above remains self-declared and unverified.`, "cr-muted"));
     card.append(log);
   }
   // r[impl kiln.review.jj_intake.evolog] jj facts are provider observations; each row links the interdiff from the previous revision.

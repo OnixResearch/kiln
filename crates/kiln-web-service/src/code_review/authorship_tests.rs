@@ -283,11 +283,10 @@ fn declared_authorship_is_journaled_replayed_and_shown() -> TestResult {
         &agent()
     );
     let decoded: Pending = serde_json::from_value(journaled.clone())?;
-    let Completion::Register {
-        command: domain::Command::Create { revision, .. },
-        ..
-    } = decoded.completion
-    else {
+    let Completion::Register { command, .. } = decoded.completion else {
+        return Err("register create completion expected".into());
+    };
+    let domain::Command::Create { revision, .. } = *command else {
         return Err("register create completion expected".into());
     };
     assert_eq!(

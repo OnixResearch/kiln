@@ -1,0 +1,42 @@
+{
+  "schema": "kiln.review.attested-agent-submissions.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core agent_submission_rejects",
+      "result": "1 passed; agent human authorship is rejected without mutation, agent submissions are attested and human submissions remain unattested"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/code-review.js",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "attestation": "Create and Upload by a declared agent principal record submitted_by on the revision from trusted facts",
+    "rejection": "agent principals declaring human authorship fail with agent_authorship_mismatch before mutation",
+    "compatibility": "human and unattested revisions omit submitted_by, preserving existing journal bytes",
+    "surface": "the review identity view labels the exact attested agent principal separately from self-declared authorship"
+  },
+  "non_claims": [
+    "self-declared authorship remains unverified; submitted_by attests the configured principal only",
+    "harness and model metadata are not recorded in this first cut",
+    "access-profile derivation and signed per-request agent credentials remain future work",
+    "the browser label grants no authority or merge effect"
+  ]
+}

@@ -99,6 +99,7 @@ fn revision(id: &str, number: u32, commit: &str, author: &str) -> Revision {
         author: author.into(),
         created_ms: 0,
         authorship: Authorship::Undeclared,
+        submitted_by: None,
     }
 }
 

@@ -15,7 +15,7 @@ pub(super) struct Pending {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub(super) enum Completion {
     Register {
-        command: domain::Command,
+        command: Box<domain::Command>,
         change: String,
     },
     Submit {
@@ -357,7 +357,7 @@ impl Workspace {
                 effect = Some((
                     ReviewOperation::Register { commit },
                     Completion::Register {
-                        command: command.clone(),
+                        command: Box::new(command.clone()),
                         change: id.clone(),
                     },
                     target_ref,
@@ -390,7 +390,7 @@ impl Workspace {
                 effect = Some((
                     ReviewOperation::Register { commit },
                     Completion::Register {
-                        command: command.clone(),
+                        command: Box::new(command.clone()),
                         change: change_id.clone(),
                     },
                     change.target_ref.clone(),
@@ -832,6 +832,7 @@ impl Workspace {
             author: actor.into(),
             created_ms: now_ms,
             authorship,
+            submitted_by: None,
         })
     }
     fn admit_anchor(
@@ -1010,7 +1011,7 @@ impl Workspace {
                 if &commit != expected {
                     return reject(503, "review_effect_mismatch");
                 }
-                domain::apply(&mut next.review, &pending.actor, command, &facts)?;
+                domain::apply(&mut next.review, &pending.actor, *command, &facts)?;
                 bump(&mut next, &change)?;
                 result_change = change;
             }

@@ -252,6 +252,11 @@ pub struct Revision {
     /// Omitted when undeclared so pre-authorship journals keep identical bytes.
     #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
     pub authorship: Authorship,
+    /// Agent principal attested by the review-profile agent list at submission.
+    /// Omitted for human and unattested submissions, preserving old bytes.
+    // r[impl kiln.review.agent.attestation]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub submitted_by: Option<String>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Vote {
@@ -1271,6 +1276,12 @@ fn revision_valid(
 ) -> ReviewResult<()> {
     fresh(state, &revision.id)?;
     validate_authorship(&revision.authorship)?;
+    if facts.agents.contains(actor) && revision.authorship == Authorship::Human {
+        return fail(
+            "agent_authorship_mismatch",
+            "an agent principal cannot submit human-declared authorship",
+        );
+    }
     if revision.commit.is_empty()
         || revision.base.is_empty()
         || revision.author != actor
@@ -1895,8 +1906,9 @@ pub fn apply(
             title,
             description,
             wip,
-            revision,
+            mut revision,
         } => {
+            revision.submitted_by = facts.agents.contains(actor).then(|| actor.into());
             fresh(state, &id)?;
             body_valid(&title)?;
             if project.is_empty()
@@ -1952,8 +1964,9 @@ pub fn apply(
         Command::Upload {
             change,
             expected_revision,
-            revision,
+            mut revision,
         } => {
+            revision.submitted_by = facts.agents.contains(actor).then(|| actor.into());
             let current = get(state, &change, &expected_revision)?;
             owner(current, actor)?;
             open(current)?;
@@ -2946,6 +2959,7 @@ mod tests {
             author: "alice".into(),
             created_ms: 0,
             authorship: Authorship::Undeclared,
+            submitted_by: None,
         }
     }
     fn create(state: &mut ReviewState, facts: &mut Facts, id: &str) -> ReviewResult<()> {
@@ -5287,6 +5301,64 @@ mod tests {
         }
         validate_authorship(&agent(&bounded, Some(&bounded)))?;
         upload_declared(&mut state, &mut facts, 2, agent(&bounded, Some(&bounded)))?;
+        Ok(())
+    }
+
+    #[test]
+    fn agent_submission_rejects_human_authorship_and_records_attestation() -> ReviewResult<()> {
+        let create = |revision: Revision| Command::Create {
+            id: "c".into(),
+            project: "project".into(),
+            repository: "source-repository".into(),
+            target_ref: "refs/heads/main".into(),
+            title: "Review".into(),
+            description: "Agent change".into(),
+            wip: false,
+            revision,
+        };
+        let mut facts = self::facts();
+        facts.agents.insert("alice".into());
+        let mut state = ReviewState::default();
+        let mut human = revision("c-r1", 1, "commit-c");
+        human.authorship = Authorship::Human;
+        assert_eq!(
+            send(&mut state, &mut facts, "alice", create(human))
+                .err()
+                .map(|error| error.code),
+            Some("agent_authorship_mismatch".into())
+        );
+        assert!(state.changes.is_empty());
+        let undeclared = revision("c-r1", 1, "commit-c");
+        send(&mut state, &mut facts, "alice", create(undeclared))?;
+        assert_eq!(
+            state
+                .changes
+                .get("c")
+                .required()?
+                .revisions
+                .first()
+                .required()?
+                .submitted_by
+                .as_deref(),
+            Some("alice")
+        );
+        // A human principal keeps today's un-attested behavior.
+        let mut facts = self::facts();
+        let mut state = ReviewState::default();
+        let mut human = revision("c-r1", 1, "commit-c");
+        human.authorship = Authorship::Human;
+        send(&mut state, &mut facts, "alice", create(human))?;
+        assert!(
+            state
+                .changes
+                .get("c")
+                .required()?
+                .revisions
+                .first()
+                .required()?
+                .submitted_by
+                .is_none()
+        );
         Ok(())
     }
 
