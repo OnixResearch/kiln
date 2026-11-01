@@ -427,7 +427,7 @@
   }
   function clearFields(...keys) { for (const key of keys) state.forms.delete(memoryKey(key)); }
   function route(patch) {
-    if (["review_q", "review_view", "review_status", "review_advisory"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_offset")) patch = { ...patch, review_offset: "" };
+    if (["review_q", "review_view", "review_status", "review_advisory", "review_agent"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_offset")) patch = { ...patch, review_offset: "" };
     // Choosing a revision or base leaves any interdiff or commit-range view unless the patch names one.
     if (["review_change", "review_revision", "review_base"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_interdiff")) patch = { review_interdiff: "", review_interdiff_change: "", review_commits: "", ...patch };
     if (Object.hasOwn(patch, "review_revision")) state.pinnedRevision = patch.review_revision || "";
