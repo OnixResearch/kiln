@@ -19,7 +19,11 @@
       "result": "selected core, observation, dashboard and web-service test binaries passed"
     },
     {
-      "command": "cargo clippy -p kiln-observe-core -p kiln-dashboard -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
       "result": "pass"
     },
     {

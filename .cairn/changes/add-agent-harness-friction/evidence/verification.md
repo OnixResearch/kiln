@@ -11,7 +11,7 @@ metadata are not assigned one. Empty maps preserve earlier identities.
 - Observation tests cover window projection, aggregation and identity changes.
 - Dashboard tests cover plain and HTML rendering.
 - Selected core, observation, dashboard and web-service suites pass.
-- Clippy, rustfmt and Cairn validation pass.
+- Workspace check, workspace-wide Clippy, rustfmt and Cairn validation pass.
 
 ## Non-claims
 
