@@ -4,6 +4,31 @@ Kiln can publish read-only Atom feeds for its canonical repositories and let an
 operator subscribe to external repository RSS/Atom feeds. Feeds are
 observations, not CI evidence, acceptance, or release authority.
 
+## Quick start
+
+1. Create a dedicated feed token outside the repository:
+
+   ```console
+   kiln-web-service feed-token --path /etc/kiln-web-service/credentials/feed.token
+   ```
+
+2. Add the `feeds` object below to the service profile and restart the service.
+   The token file must be mode `0600` or `0400` and distinct from all other
+   credentials.
+
+3. Verify the publication:
+
+   ```console
+   curl -sk "https://localhost:9443/feeds.xml?token=$(cat /etc/kiln-web-service/credentials/feed.token)"
+   curl -sk "https://localhost:9443/feeds.opml?token=$(cat /etc/kiln-web-service/credentials/feed.token)"
+   ```
+
+4. Use the token-bearing Atom or RSS URL shown on the Feeds page in a feed
+   reader, or import the OPML export to subscribe to every repository.
+
+5. External feeds are added or imported on the same page. With a non-zero
+   cadence they refresh automatically; otherwise use Refresh per feed.
+
 ## Configure
 
 Add a `feeds` object to the service profile. The optional `feeds` field is also
