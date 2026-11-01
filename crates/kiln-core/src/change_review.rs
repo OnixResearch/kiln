@@ -4749,6 +4749,45 @@ mod tests {
                 .iter()
                 .any(|item| item.key.starts_with("interface"))
         );
+        state
+            .changes
+            .get_mut("c")
+            .required()?
+            .revisions
+            .first_mut()
+            .required()?
+            .files = vec!["src/lib.rs".into()];
+        facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
+            complete: true,
+            files: vec![ChangedFile {
+                path: "src/lib.rs".into(),
+                old_path: None,
+            }],
+        });
+        facts
+            .policy
+            .as_mut()
+            .required()?
+            .ownership
+            .dependents
+            .insert("api".into(), ["web".into()].into_iter().collect());
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "interface_ci:api:web")?);
+        assert!(evidence_item(&checks, "interface:api:web")?);
+        facts
+            .policy
+            .as_mut()
+            .required()?
+            .ownership
+            .dependents
+            .insert("api".into(), BTreeSet::new());
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(
+            !checks
+                .items
+                .iter()
+                .any(|item| item.key.starts_with("interface"))
+        );
         Ok(())
     }
 
