@@ -4695,7 +4695,7 @@ mod tests {
             agent_harness: None,
             agent_model: None,
         };
-        let base = serde_json::to_string(&base).expect("serialize base query");
+        let base = serde_json::to_string(&base).ok().required()?;
         assert!(!base.contains("agent_harness"));
         assert!(!base.contains("agent_model"));
         let filtered = SearchQuery {
@@ -4707,9 +4707,11 @@ mod tests {
             agent_harness: Some("omp".into()),
             agent_model: Some("deepseek".into()),
         };
-        let encoded = serde_json::to_string(&filtered).expect("serialize agent query");
+        let encoded = serde_json::to_string(&filtered).ok().required()?;
         assert_eq!(
-            serde_json::from_str::<SearchQuery>(&encoded).expect("deserialize agent query"),
+            serde_json::from_str::<SearchQuery>(&encoded)
+                .ok()
+                .required()?,
             filtered
         );
         Ok(())
