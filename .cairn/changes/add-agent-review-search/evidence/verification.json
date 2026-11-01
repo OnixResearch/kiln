@@ -11,8 +11,8 @@
       "result": "1 passed; `agent=with` and `agent=without` are parsed and return the expected change set"
     },
     {
-      "command": "cargo test -p kiln-core -p kiln-web-service",
-      "result": "all core and web-service test binaries passed"
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
     },
     {
       "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",

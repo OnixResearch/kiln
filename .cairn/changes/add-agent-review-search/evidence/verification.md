@@ -11,7 +11,7 @@ form and saved views carry the same filter.
 
 - Core search test covers with, without and absent modes.
 - Web integration test verifies shell parsing and returned change counts.
-- Full core and web-service suites pass.
+- The complete workspace test suite passes.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
 
 ## Non-claims
