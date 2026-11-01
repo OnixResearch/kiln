@@ -11,7 +11,8 @@ revision remains the trigger's `after`.
 
 - `cargo check --workspace --all-targets` passed.
 - Radicle CI tests pass, including branch/tag event and alias projection,
-  canonical tag profile admission and candidate bindings.
+  canonical tag profile admission, mismatched canonical reference refusal and
+  candidate bindings.
 - Full workspace tests and workspace-wide Clippy pass.
 - `cargo fmt` and Cairn validation pass.
 

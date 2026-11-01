@@ -815,6 +815,14 @@ pub(crate) mod tests {
             identity_commit: "5".repeat(40),
             reference: "refs/tags/release/v1".into(),
         });
+        let mut mismatched = profile.clone();
+        mismatched
+            .source
+            .canonical
+            .as_mut()
+            .unwrap_or_else(|| unreachable!("canonical request"))
+            .reference = "refs/tags/release/v2".into();
+        assert!(mismatched.admit().is_err());
         profile.admit().unwrap_or_else(|_| unreachable!());
         let trigger = profile
             .trigger(&intent.source)
