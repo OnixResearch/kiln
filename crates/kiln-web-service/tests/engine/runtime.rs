@@ -264,6 +264,13 @@ fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart(
         let health = format!("{}/healthz", profile.origin);
         let response = checked(client.get(&health).send());
         assert_eq!(response.status(), 200);
+        assert_eq!(
+            response
+                .headers()
+                .get("cache-control")
+                .and_then(|value| value.to_str().ok()),
+            Some("no-store")
+        );
         assert_eq!(checked(response.text()), "{\"status\":\"ok\"}");
         for navigation in [
             "/?page=runs&run=retained-run&view=logs&node=build",
@@ -475,6 +482,12 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .and_then(|value| value.to_str().ok())
         .unwrap_or_else(|| unreachable!("fixture etag"))
         .to_string();
+    assert_eq!(
+        feed.headers()
+            .get("cache-control")
+            .and_then(|value| value.to_str().ok()),
+        Some("no-cache")
+    );
     let xml = checked(feed.text());
     assert!(xml.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
     let conditional = checked(
