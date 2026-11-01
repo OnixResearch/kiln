@@ -1362,8 +1362,8 @@ fn review_views_equal_the_accepted_projection_and_render_every_surface() {
     let html = kiln_dashboard::render::html::render_html(&html_report);
     assert!(html.contains("<h2 id=\"review-friction-heading\">Review friction</h2>"));
     assert!(html.contains("authorship is self-declared and unverified"));
-    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td></tr>"));
-    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td><td>0</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td><td>0</td></tr>"));
     assert!(html.contains("<h2 id=\"suggestion-anchors-heading\">Suggestion anchors</h2>"));
     assert!(html.contains("<tr><td class=\"mono\">src/lib.rs</td><td class=\"mono\">core</td><td>3</td><td>2</td></tr>"));
     assert!(html.contains("<tr><td class=\"mono\">README.md</td><td class=\"mono\">unowned</td><td>1</td><td>1</td></tr>"));
@@ -1447,8 +1447,8 @@ fn advisory_counts_equal_the_projection_and_render_on_every_surface() {
     assert_eq!(html_report.report.views.review, report.views.review);
     let html = kiln_dashboard::render::html::render_html(&html_report);
     assert!(html.contains("<th scope=\"col\">advisory approvals (non-binding)</th><th scope=\"col\">advised changes</th>"));
-    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td><td>3</td><td>1</td></tr>"));
-    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>3</td><td>2</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">human</th><td>2</td><td>2</td><td class=\"mono\">2000 / 2000 / 4000</td><td class=\"mono\">1 / 1 / 2</td><td class=\"mono\">1 / 0 / 1</td><td>2</td><td>1</td><td>500</td><td>3</td><td>1</td><td>0</td></tr>"));
+    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>3</td><td>2</td><td>0</td></tr>"));
     assert!(html.contains("Advisory approvals are non-binding; never counted as approvals."));
 }
 

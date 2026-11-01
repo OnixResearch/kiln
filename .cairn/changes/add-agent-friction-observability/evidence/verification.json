@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.observe.agent-friction.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-observe-core friction_counts_attested_agent_submissions",
+      "result": "1 passed; an attested agent-submitted change contributes once to the friction count"
+    },
+    {
+      "command": "cargo test -p kiln-observe-core -p kiln-dashboard -p kiln-core -p kiln-web-service",
+      "result": "all selected core, observation, dashboard and web-service test binaries passed"
+    },
+    {
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo clippy -p kiln-observe-core -p kiln-dashboard -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "fact": "review window changes mark whether any admitted revision has attested agent identity",
+    "count": "review friction reports agent_submitted_changes per declared authorship class",
+    "identity": "zero counts are omitted and preserve earlier identities; non-zero counts use a separate trailing tag",
+    "surface": "the dashboard review-friction table includes an agent-submitted column"
+  },
+  "non_claims": [
+    "attestation is declared principal identity, not verified harness/model execution",
+    "the count changes no authorship basis, review authority, CI requirement, merge readiness or release eligibility",
+    "historical review windows are not backfilled"
+  ]
+}

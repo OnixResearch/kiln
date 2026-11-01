@@ -46,10 +46,17 @@ pub struct ReviewChangeFact {
     // r[impl kiln.observe.review.advisory]
     #[serde(default, skip_serializing_if = "is_zero_u32")]
     pub advisory_approvals: u32,
+    /// Any admitted patch set carries attested agent submission identity.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub agent_submitted: bool,
 }
 
 fn is_zero_u32(value: &u32) -> bool {
     *value == 0
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 fn is_zero_u64(value: &u64) -> bool {
@@ -110,6 +117,9 @@ pub struct AuthorshipFrictionView {
     /// Changes with at least one advisory approval.
     #[serde(default, skip_serializing_if = "is_zero_u64")]
     pub advised_changes: u64,
+    /// Changes with at least one attested agent-submitted revision.
+    #[serde(default, skip_serializing_if = "is_zero_u64")]
+    pub agent_submitted_changes: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -240,6 +250,9 @@ pub fn review_window(
                 .map(|submission| submission.submitted_ms)
                 .filter(|merged_ms| *merged_ms < end_ms),
             // r[impl kiln.observe.review.advisory] Non-binding; never an approval.
+            agent_submitted: revisions
+                .iter()
+                .any(|revision| revision.submitted_by.is_some()),
             advisory_approvals: u32::try_from(
                 change
                     .advisory
@@ -480,6 +493,12 @@ pub(crate) fn project_review_friction(window: &ReviewWindow) -> ReviewFrictionVi
                     changes
                         .iter()
                         .filter(|change| change.advisory_approvals > 0)
+                        .count(),
+                ),
+                agent_submitted_changes: count(
+                    changes
+                        .iter()
+                        .filter(|change| change.agent_submitted)
                         .count(),
                 ),
             }

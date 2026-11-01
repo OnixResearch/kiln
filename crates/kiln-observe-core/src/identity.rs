@@ -321,20 +321,31 @@ fn encode_review_change(output: &mut Vec<u8>, change: &ReviewChangeFact) {
         output,
         change.merged_ms.map(|merged_ms| merged_ms.to_be_bytes()),
         &[u64::from(change.advisory_approvals)],
+        u64::from(change.agent_submitted),
     );
 }
 
 /// Bit set on a trailing option tag when non-zero advisory counts follow.
 const ADVISORY_TAG_BIT: u8 = 2;
+/// Bit set on a trailing option tag when an agent-submission count follows.
+const AGENT_TAG_BIT: u8 = 4;
 
-/// Encode the trailing option of a record, followed by advisory counts only
-/// when any is non-zero. The counts are flagged by `ADVISORY_TAG_BIT` on the
-/// option tag, so records without advisory approvals keep their exact
-/// pre-advisory encoding while non-zero counts stay injective.
+/// Encode the trailing option of a record, followed by advisory and
+/// agent-submission counts only when any is non-zero. The counts are flagged by
+/// their tag bits, so records without those counts keep their exact earlier
+/// encoding while non-zero counts stay injective.
 // r[impl kiln.observe.review.advisory]
-fn encode_trailing_option(output: &mut Vec<u8>, value: Option<[u8; 8]>, advisory: &[u64]) {
+fn encode_trailing_option(
+    output: &mut Vec<u8>,
+    value: Option<[u8; 8]>,
+    advisory: &[u64],
+    agent: u64,
+) {
     let advised = advisory.iter().any(|count| *count != 0);
-    let tag = u8::from(value.is_some()) | if advised { ADVISORY_TAG_BIT } else { 0 };
+    let agent = agent != 0;
+    let tag = u8::from(value.is_some())
+        | if advised { ADVISORY_TAG_BIT } else { 0 }
+        | if agent { AGENT_TAG_BIT } else { 0 };
     output.push(tag);
     if let Some(bytes) = value {
         output.extend_from_slice(&bytes);
@@ -343,6 +354,9 @@ fn encode_trailing_option(output: &mut Vec<u8>, value: Option<[u8; 8]>, advisory
         for count in advisory {
             push_u64(output, *count);
         }
+    }
+    if agent {
+        push_u64(output, 1);
     }
 }
 
@@ -370,6 +384,7 @@ fn encode_friction_row(output: &mut Vec<u8>, row: &AuthorshipFrictionView) {
         row.merged_without_suggestion_per_mille
             .map(|value| value.to_be_bytes()),
         &[row.advisory_approvals, row.advised_changes],
+        row.agent_submitted_changes,
     );
 }
 

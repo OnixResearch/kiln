@@ -576,7 +576,7 @@ fn review_friction_section(friction: &ReviewFrictionView) -> String {
     out.push_str("<div class=\"table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Review friction by declared authorship\"><table>\n<thead><tr><th scope=\"col\">authorship</th><th scope=\"col\">changes</th><th scope=\"col\">approved</th><th scope=\"col\">approval latency ms (min / median / max)</th><th scope=\"col\">patch sets before approval (min / median / max)</th><th scope=\"col\">suggestions per change (total / median / max)</th><th scope=\"col\">merged</th><th scope=\"col\">merged without suggestion</th><th scope=\"col\">share per mille</th><th scope=\"col\">advisory approvals (non-binding)</th><th scope=\"col\">advised changes</th></tr></thead>\n<tbody>\n");
     for class in &friction.classes {
         out.push_str(&format!(
-            "<tr><th scope=\"row\">{}</th><td>{}</td><td>{}</td><td class=\"mono\">{}</td><td class=\"mono\">{}</td><td class=\"mono\">{} / {} / {}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
+            "<tr><th scope=\"row\">{}</th><td>{}</td><td>{}</td><td class=\"mono\">{}</td><td class=\"mono\">{}</td><td class=\"mono\">{} / {} / {}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
             escape(authorship_label(class.authorship)),
             class.changes,
             class.approved_changes,
@@ -589,7 +589,8 @@ fn review_friction_section(friction: &ReviewFrictionView) -> String {
             class.merged_without_suggestion,
             distribution_value(class.merged_without_suggestion_per_mille),
             class.advisory_approvals,
-            class.advised_changes
+            class.advised_changes,
+            class.agent_submitted_changes
         ));
     }
     out.push_str("</tbody>\n</table></div>\n");

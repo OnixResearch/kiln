@@ -191,6 +191,7 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_without_suggestion_per_mille: Some(500),
             advisory_approvals: 0,
             advised_changes: 0,
+            agent_submitted_changes: 0,
         },
         AuthorshipFrictionView {
             authorship: AuthorshipClass::Agent,
@@ -204,6 +205,7 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_without_suggestion_per_mille: Some(500),
             advisory_approvals: 0,
             advised_changes: 0,
+            agent_submitted_changes: 0,
         },
         AuthorshipFrictionView {
             authorship: AuthorshipClass::Mixed,
@@ -217,6 +219,7 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_without_suggestion_per_mille: None,
             advisory_approvals: 0,
             advised_changes: 0,
+            agent_submitted_changes: 0,
         },
         AuthorshipFrictionView {
             authorship: AuthorshipClass::Undeclared,
@@ -230,6 +233,7 @@ fn fixture_journal_replays_to_window_with_known_friction() {
             merged_without_suggestion_per_mille: None,
             advisory_approvals: 0,
             advised_changes: 0,
+            agent_submitted_changes: 0,
         },
     ];
     assert_eq!(view.classes, expected);
@@ -910,3 +914,21 @@ const LEGACY_FRICTION_IDENTITY: &str =
     "9608269f3ef060dd0be8de580ddd4e6cc3090271f705bf021bfc6f6969b822d7";
 const LEGACY_ANCHORS_IDENTITY: &str =
     "6dd4a50aa7e4f071011219a29c126ccf2c9a2578fdfdee5d0af987fd31774531";
+
+#[test]
+fn friction_counts_attested_agent_submissions() {
+    let mut window = fixture_window();
+    let first = window
+        .changes
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture change"));
+    first.agent_submitted = true;
+    let view = friction(window);
+    assert_eq!(
+        view.classes
+            .iter()
+            .map(|row| row.agent_submitted_changes)
+            .sum::<u64>(),
+        1
+    );
+}

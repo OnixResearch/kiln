@@ -87,14 +87,17 @@ the CI journal. Per declared authorship class (`human`, `agent`, `mixed`,
 - patch sets before approval;
 - anchored suggestions per change;
 - the share of merged changes that had no suggestion, that is, changes merged
-  on required CI alone.
+  on required CI alone;
+- changes carrying at least one attested agent-submitted revision, reported as
+  `agent_submitted_changes`.
 
 `suggestion_anchors` ranks the most frequent suggestion anchors by path and
 owning ownership rule. Use it as input for turning a recurring review comment
 into a required CI check.
 
 Authorship is self-declared by the contributor and unverified. Kiln never infers
-it. A change counts as `undeclared` unless a patch set declares otherwise, and
+it. Attested agent identity is a separate principal fact and does not make the
+declared authorship verified or grant authority. A change counts as `undeclared` unless a patch set declares otherwise, and
 pre-authorship journals replay as `undeclared`.
 
 The views follow the existing redaction, paging and window-admission rules, and
