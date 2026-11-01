@@ -55,9 +55,14 @@ let AgentVotes =
     value == "advisory" || value == "binding"
   )
 in
+let AgentText =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.trim value == value
+  )
+in
 let AgentIdentity = {
-  harness | Text 128,
-  model | Text 128 | optional,
+  harness | Text 128 | AgentText,
+  model | Text 128 | AgentText | optional,
 }
 in
 let Ownership = {

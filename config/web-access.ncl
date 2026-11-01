@@ -25,6 +25,11 @@ let UserID =
   )
 in
 let Role = std.contract.from_predicate (fun value => value == "viewer" || value == "operator") in
+let AgentText =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.trim value == value
+  )
+in
 fun input =>
   let settings =
     input
@@ -34,7 +39,12 @@ fun input =>
             id | Identifier,
             label | Label,
             token_file | c.AbsolutePath,
-            agent | { harness | Label, model | Label | optional } | optional,
+            agent
+              | {
+                harness | Label | AgentText,
+                model | Label | AgentText | optional,
+              }
+              | optional,
           }
           | default
           = [],

@@ -150,11 +150,11 @@ impl Profile {
             || self.agent_principals.iter().any(|p| !writers.contains(p))
             || self.agent_metadata.iter().any(|(principal, identity)| {
                 !agents.contains(principal)
-                    || !valid_text(&identity.harness, MAX_IDENTITY_BYTES)
+                    || !agent_text(&identity.harness, MAX_IDENTITY_BYTES)
                     || identity
                         .model
                         .as_ref()
-                        .is_some_and(|model| !valid_text(model, MAX_IDENTITY_BYTES))
+                        .is_some_and(|model| !agent_text(model, MAX_IDENTITY_BYTES))
             })
             || self.policy.eligible_reviewers.len() > MAX_PRINCIPALS
             || self.policy.submitters.len() > MAX_PRINCIPALS
@@ -278,6 +278,9 @@ fn valid_principal(value: &str) -> bool {
 }
 fn valid_text(value: &str, max: usize) -> bool {
     !value.trim().is_empty() && value.len() <= max && !value.chars().any(char::is_control)
+}
+fn agent_text(value: &str, max: usize) -> bool {
+    valid_text(value, max) && value.trim() == value
 }
 fn hash(value: &impl Serialize) -> Result<String, Failure> {
     serde_json::to_vec(value)

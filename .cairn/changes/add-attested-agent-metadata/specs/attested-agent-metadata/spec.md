@@ -11,7 +11,7 @@ review surface. The metadata is identity configuration, not execution proof.
 
 r[kiln.review.agent.metadata] A review profile MAY declare `agent_metadata` for
 principals in its agent list. Keys MUST name declared agents; harness and
-optional model MUST be bounded non-control text. Access agent declarations MUST
+optional model MUST be bounded, trimmed, non-control text. Access agent declarations MUST
 merge by exact principal with duplicate suppression; conflicting explicit
 metadata MUST fail startup. A Create or Upload by a declared agent MUST record an
 `AttestedSubmission` containing the exact principal and any declared identity.

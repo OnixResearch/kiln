@@ -1771,14 +1771,16 @@ fn review_profile_agent_metadata_must_name_a_declared_agent_with_bounded_text() 
     );
     assert!(profile.admit().is_err());
     profile.agent_metadata.clear();
-    profile.agent_metadata.insert(
-        BOB.into(),
-        kiln_core::change_review::AgentIdentity {
-            harness: String::new(),
-            model: None,
-        },
-    );
-    assert!(profile.admit().is_err());
+    for harness in [String::new(), " omp".into(), "omp ".into()] {
+        profile.agent_metadata.insert(
+            BOB.into(),
+            kiln_core::change_review::AgentIdentity {
+                harness,
+                model: None,
+            },
+        );
+        assert!(profile.admit().is_err());
+    }
     Ok(())
 }
 
