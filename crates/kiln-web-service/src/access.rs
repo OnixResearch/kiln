@@ -150,14 +150,23 @@ impl AccessProfile {
         }
         Ok(())
     }
+    /// Exact review principal ids and declarations for agent viewer bindings.
+    #[must_use]
+    pub fn agent_bindings(&self) -> std::collections::BTreeMap<String, AgentDeclaration> {
+        self.viewers
+            .iter()
+            .filter_map(|viewer| {
+                viewer
+                    .agent
+                    .clone()
+                    .map(|agent| (format!("viewer:{}", viewer.id), agent))
+            })
+            .collect()
+    }
     /// Exact review principal ids declared as agents by viewer bindings.
     #[must_use]
     pub fn agent_principals(&self) -> BTreeSet<String> {
-        self.viewers
-            .iter()
-            .filter(|viewer| viewer.agent.is_some())
-            .map(|viewer| format!("viewer:{}", viewer.id))
-            .collect()
+        self.agent_bindings().into_keys().collect()
     }
     pub(crate) fn forwarded(&self, id: &str) -> Option<Principal> {
         let user_id = id.strip_prefix("tailscale:")?;
@@ -428,6 +437,7 @@ mod agent_tests {
             valid.agent_principals(),
             ["viewer:agent".into()].into_iter().collect()
         );
+        assert_eq!(valid.agent_bindings().get("viewer:agent"), Some(&agent));
         for invalid in [
             AgentDeclaration {
                 harness: String::new(),

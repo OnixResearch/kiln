@@ -31,6 +31,7 @@
   },
   read_principals = ["author", "reviewer", "operator"],
   agent_principals = ["reviewer"],
+  agent_metadata = { reviewer = { harness = "omp", model = "deepseek" } },
   write_principals = ["author", "reviewer", "operator"],
   signature_name = "Kiln review service",
   signature_email = "kiln@localhost",

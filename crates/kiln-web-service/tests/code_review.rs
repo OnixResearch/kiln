@@ -92,6 +92,7 @@ impl Fixture {
             queue: None,
             review: None,
             agent_principals: Vec::new(),
+            agent_metadata: std::collections::BTreeMap::new(),
         };
         Ok(Self {
             _temp: temp,
@@ -1744,5 +1745,65 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         vote.get("actor").and_then(Value::as_str) == Some(BOB)
             && vote.get("agent").and_then(Value::as_bool) == Some(true)
     }));
+    Ok(())
+}
+
+#[test]
+fn review_profile_agent_metadata_must_name_a_declared_agent_with_bounded_text() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let mut profile = fixture.profile.clone();
+    profile.agent_principals = vec![BOB.into()];
+    profile.agent_metadata.insert(
+        BOB.into(),
+        kiln_core::change_review::AgentIdentity {
+            harness: "omp".into(),
+            model: Some("deepseek".into()),
+        },
+    );
+    profile.admit()?;
+    profile.agent_metadata.clear();
+    profile.agent_metadata.insert(
+        CAROL.into(),
+        kiln_core::change_review::AgentIdentity {
+            harness: "omp".into(),
+            model: None,
+        },
+    );
+    assert!(profile.admit().is_err());
+    profile.agent_metadata.clear();
+    profile.agent_metadata.insert(
+        BOB.into(),
+        kiln_core::change_review::AgentIdentity {
+            harness: String::new(),
+            model: None,
+        },
+    );
+    assert!(profile.admit().is_err());
+    Ok(())
+}
+
+#[test]
+fn merging_access_agent_metadata_is_deduplicated_and_conflict_checked() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let mut profile = fixture.profile.clone();
+    let identity = kiln_core::change_review::AgentIdentity {
+        harness: "omp".into(),
+        model: Some("deepseek".into()),
+    };
+    profile.merge_agent(BOB.into(), identity.clone())?;
+    profile.merge_agent(BOB.into(), identity.clone())?;
+    assert_eq!(profile.agent_principals, vec![BOB.to_string()]);
+    assert_eq!(profile.agent_metadata.get(BOB), Some(&identity));
+    assert!(
+        profile
+            .merge_agent(
+                BOB.into(),
+                kiln_core::change_review::AgentIdentity {
+                    harness: "other".into(),
+                    model: None,
+                },
+            )
+            .is_err()
+    );
     Ok(())
 }

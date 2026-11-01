@@ -2631,7 +2631,9 @@ A viewer binding may declare `agent = { harness, model? }`; when code review is
 configured, its exact `viewer:<id>` principal is merged into the review agent
 list so advisory/binding vote policy and submission attestation apply. The
 declaration must name a review write principal or startup fails. Harness/model
-text is bounded; it is configuration, not verified execution metadata.
+text is bounded; it is configuration, not verified execution metadata. When
+present, it is recorded on revisions submitted by that agent and shown with the
+attested principal.
 Viewer requests can inspect retained facts but cannot enroll, run, control or
 configure automation. Worker credentials remain limited to exact worker ingress.
 Denied writes are attributable audit observations, not canonical CI events.
@@ -3114,7 +3116,10 @@ The exported `kiln.code-review-profile.v1` declares:
   `binding` is an explicit policy opt-in that counts agent approvals exactly
   like human approvals. Agent `NeedsRevision` and `Veto` votes keep their
   existing blocking effect in either mode; no merge authority is granted. The
-  review detail marks agent votes and states the advisory default.
+  review detail marks agent votes and states the advisory default. Optional
+  `agent_metadata` maps these principals to declared `{ harness, model? }`
+  metadata; a key must name a declared agent. Access viewer declarations are
+  merged into both fields at startup, and conflicting metadata fails startup.
 - `policy`: named eligible reviewers and submitters, nonzero required approvals
   and explicit `require_ci`. Owner approval, ineligible votes, stale votes,
   unresolved blocking threads, WIP and unmet dependencies cannot authorize submit.

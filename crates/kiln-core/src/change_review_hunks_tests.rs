@@ -37,6 +37,7 @@ fn base_facts() -> Facts {
         ci_required: None,
         hunks: None,
         agents: BTreeSet::new(),
+        agent_identities: BTreeMap::new(),
     }
 }
 

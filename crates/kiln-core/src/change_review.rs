@@ -240,6 +240,22 @@ pub fn authorship_class_of(revisions: &[Revision]) -> AuthorshipClass {
         AuthorshipClass::Mixed
     }
 }
+/// Declared agent harness/model attached to an attested submission. This is
+/// operator-supplied identity metadata, not proof of execution.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentIdentity {
+    pub harness: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AttestedSubmission {
+    pub principal: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentIdentity>,
+}
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Revision {
     pub id: String,
@@ -252,11 +268,11 @@ pub struct Revision {
     /// Omitted when undeclared so pre-authorship journals keep identical bytes.
     #[serde(default, skip_serializing_if = "Authorship::is_undeclared")]
     pub authorship: Authorship,
-    /// Agent principal attested by the review-profile agent list at submission.
+    /// Attested agent principal and optional declared harness/model at submission.
     /// Omitted for human and unattested submissions, preserving old bytes.
     // r[impl kiln.review.agent.attestation]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub submitted_by: Option<String>,
+    pub submitted_by: Option<AttestedSubmission>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Vote {
@@ -633,6 +649,9 @@ pub struct Facts {
     /// Declared agent principals; trusted shell facts, never request assertions.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub agents: BTreeSet<String>,
+    /// Declared harness/model metadata for agent principals.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub agent_identities: BTreeMap<String, AgentIdentity>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ChecklistItem {
@@ -1908,7 +1927,10 @@ pub fn apply(
             wip,
             mut revision,
         } => {
-            revision.submitted_by = facts.agents.contains(actor).then(|| actor.into());
+            revision.submitted_by = facts.agents.contains(actor).then(|| AttestedSubmission {
+                principal: actor.into(),
+                agent: facts.agent_identities.get(actor).cloned(),
+            });
             fresh(state, &id)?;
             body_valid(&title)?;
             if project.is_empty()
@@ -1966,7 +1988,10 @@ pub fn apply(
             expected_revision,
             mut revision,
         } => {
-            revision.submitted_by = facts.agents.contains(actor).then(|| actor.into());
+            revision.submitted_by = facts.agents.contains(actor).then(|| AttestedSubmission {
+                principal: actor.into(),
+                agent: facts.agent_identities.get(actor).cloned(),
+            });
             let current = get(state, &change, &expected_revision)?;
             owner(current, actor)?;
             open(current)?;
@@ -2930,6 +2955,7 @@ mod tests {
             ci_required: None,
             hunks: None,
             agents: BTreeSet::new(),
+            agent_identities: BTreeMap::new(),
         }
     }
     fn send(
@@ -5318,6 +5344,13 @@ mod tests {
         };
         let mut facts = self::facts();
         facts.agents.insert("alice".into());
+        facts.agent_identities.insert(
+            "alice".into(),
+            AgentIdentity {
+                harness: "omp".into(),
+                model: Some("deepseek".into()),
+            },
+        );
         let mut state = ReviewState::default();
         let mut human = revision("c-r1", 1, "commit-c");
         human.authorship = Authorship::Human;
@@ -5330,17 +5363,20 @@ mod tests {
         assert!(state.changes.is_empty());
         let undeclared = revision("c-r1", 1, "commit-c");
         send(&mut state, &mut facts, "alice", create(undeclared))?;
+        let attested = state
+            .changes
+            .get("c")
+            .required()?
+            .revisions
+            .first()
+            .required()?
+            .submitted_by
+            .as_ref()
+            .required()?;
+        assert_eq!(attested.principal, "alice");
         assert_eq!(
-            state
-                .changes
-                .get("c")
-                .required()?
-                .revisions
-                .first()
-                .required()?
-                .submitted_by
-                .as_deref(),
-            Some("alice")
+            attested.agent.as_ref().map(|agent| agent.harness.as_str()),
+            Some("omp")
         );
         // A human principal keeps today's un-attested behavior.
         let mut facts = self::facts();

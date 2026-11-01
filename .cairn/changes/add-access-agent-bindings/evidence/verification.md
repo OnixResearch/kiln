@@ -18,7 +18,7 @@ review startup.
 ## Non-claims
 
 The harness/model declaration is configuration, not verified execution
-metadata. Revision attestation still records only the principal; access-derived
-harness/model are not copied onto revisions. Signed per-request agent
-credentials remain future work. The declaration grants no review, execution or
+metadata. Harness/model recording is implemented by the follow-up
+`add-attested-agent-metadata` change. Signed per-request agent credentials
+remain future work. The declaration grants no review, execution or
 merge authority by itself.

@@ -1,0 +1,54 @@
+{
+  "schema": "kiln.review.attested-agent-metadata.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core agent_submission_rejects",
+      "result": "1 passed; an agent revision records its exact principal and declared harness/model while human revision bytes remain unattested"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test code_review review_profile_agent_metadata",
+      "result": "1 passed; metadata must name a declared agent and bounded harness/model text is enforced"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test code_review merging_access_agent_metadata",
+      "result": "1 passed; merge is deduplicated and conflicting metadata is rejected"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/code-review.js",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/web-access.ncl config/web-code-review.ncl; nickel export config/fixtures/web-access-positive.ncl config/fixtures/web-code-review-speculative-positive.ncl",
+      "result": "pass; review output now includes agent_principals and agent_metadata instead of dropping them"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "attestation": "AttestedSubmission records principal and optional declared AgentIdentity harness/model",
+    "profile": "agent_metadata is bounded, control-free and restricted to declared agent principals",
+    "merge": "access declarations deduplicate principals and conflict-check explicit review metadata before admission",
+    "export": "optional agent profile fields are included in Nickel output when present",
+    "surface": "review identity view shows the attested principal and declared harness/model separately from self-declared authorship"
+  },
+  "non_claims": [
+    "harness/model remain operator-declared configuration, not proof of which model or harness executed",
+    "signed per-request agent credentials remain future work",
+    "historical revisions are not backfilled and metadata grants no review, execution or merge authority"
+  ]
+}

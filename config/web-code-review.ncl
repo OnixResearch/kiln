@@ -55,6 +55,11 @@ let AgentVotes =
     value == "advisory" || value == "binding"
   )
 in
+let AgentIdentity = {
+  harness | Text 128,
+  model | Text 128 | optional,
+}
+in
 let Ownership = {
   teams | { _ | Array Principal },
   classes | Array ChangeClass | optional,
@@ -245,6 +250,7 @@ fun input =>
           },
         read_principals | Array Principal | PrincipalBound,
         agent_principals | Array Principal | PrincipalBound | optional,
+        agent_metadata | { _ | AgentIdentity } | optional,
         write_principals | Array Principal | PrincipalBound,
         signature_name | Text 128,
         signature_email | Text 254,
@@ -269,5 +275,7 @@ fun input =>
     delivery = admitted.delivery,
     queue = admitted.queue,
   }
-  # Absent `review` exports nothing, so existing profiles stay byte-identical.
+  # Absent optional fields export nothing, so existing profiles stay byte-identical.
   & (if std.record.has_field "review" admitted then { review = admitted.review } else {})
+  & (if std.record.has_field "agent_principals" admitted then { agent_principals = admitted.agent_principals } else {})
+  & (if std.record.has_field "agent_metadata" admitted then { agent_metadata = admitted.agent_metadata } else {})

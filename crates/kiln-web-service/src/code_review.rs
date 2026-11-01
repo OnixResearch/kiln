@@ -92,6 +92,9 @@ pub struct Profile {
     /// Exact write principals treated as agents for vote policy.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub agent_principals: Vec<String>,
+    /// Optional declared harness/model metadata for agent principals.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub agent_metadata: BTreeMap<String, domain::AgentIdentity>,
 }
 
 impl Profile {
@@ -101,6 +104,27 @@ impl Profile {
             serde_json::from_slice(&bytes).map_err(|_| "review profile malformed")?;
         profile.admit()?;
         Ok(profile)
+    }
+
+    /// Merge one trusted access agent declaration into this profile. Explicit
+    /// conflicting metadata is rejected rather than silently overwritten.
+    pub fn merge_agent(
+        &mut self,
+        principal: String,
+        identity: domain::AgentIdentity,
+    ) -> Result<(), String> {
+        if self
+            .agent_metadata
+            .get(&principal)
+            .is_some_and(|existing| existing != &identity)
+        {
+            return Err("access/review agent metadata conflict".into());
+        }
+        if !self.agent_principals.contains(&principal) {
+            self.agent_principals.push(principal.clone());
+        }
+        self.agent_metadata.insert(principal, identity);
+        Ok(())
     }
 
     pub fn admit(&self) -> Result<(), String> {
@@ -124,6 +148,14 @@ impl Profile {
             || agents.len() > MAX_PRINCIPALS
             || agents.len() != self.agent_principals.len()
             || self.agent_principals.iter().any(|p| !writers.contains(p))
+            || self.agent_metadata.iter().any(|(principal, identity)| {
+                !agents.contains(principal)
+                    || !valid_text(&identity.harness, MAX_IDENTITY_BYTES)
+                    || identity
+                        .model
+                        .as_ref()
+                        .is_some_and(|model| !valid_text(model, MAX_IDENTITY_BYTES))
+            })
             || self.policy.eligible_reviewers.len() > MAX_PRINCIPALS
             || self.policy.submitters.len() > MAX_PRINCIPALS
             || self
@@ -895,6 +927,7 @@ impl Workspace {
             ci_required,
             hunks: None,
             agents: profile.agent_principals.iter().cloned().collect(),
+            agent_identities: profile.agent_metadata.clone(),
         };
         self.populate_changed_files(provider, revision, &mut facts)?;
         Ok((facts, evaluation))

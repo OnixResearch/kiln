@@ -40,7 +40,7 @@
   },
   "non_claims": [
     "harness and model declarations are configuration, not verified execution metadata",
-    "revision attestation still records the principal only; harness/model are not yet copied onto revisions",
+    "harness/model recording is implemented by add-attested-agent-metadata",
     "signed per-request agent credentials remain future work",
     "an agent declaration grants no review, execution or merge authority by itself"
   ]

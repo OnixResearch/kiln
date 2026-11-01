@@ -124,6 +124,7 @@ impl Workspace {
             ci_required: None,
             hunks: None,
             agents: profile.agent_principals.iter().cloned().collect(),
+            agent_identities: profile.agent_metadata.clone(),
         };
         let mut contribution = None;
         if let Action::Contribute {

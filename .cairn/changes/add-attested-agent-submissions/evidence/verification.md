@@ -17,7 +17,8 @@ separately from self-declared, unverified authorship.
 
 ## Non-claims
 
-Authorship remains self-declared and unverified; `submitted_by` attests the
-configured review-profile principal, not the model or harness that ran. Access
-binding derivation and signed per-request agent credentials remain future work.
+Authorship remains self-declared and unverified; principal attestation does not
+verify execution. Harness/model recording is extended by
+`add-attested-agent-metadata`; signed per-request agent credentials remain
+future work.
 The browser label grants no authority or merge effect.

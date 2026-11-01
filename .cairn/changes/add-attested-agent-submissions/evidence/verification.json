@@ -35,7 +35,7 @@
   },
   "non_claims": [
     "self-declared authorship remains unverified; submitted_by attests the configured principal only",
-    "harness and model metadata are not recorded in this first cut",
+    "original principal-only attestation is extended by add-attested-agent-metadata",
     "access-profile derivation and signed per-request agent credentials remain future work",
     "the browser label grants no authority or merge effect"
   ]

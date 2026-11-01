@@ -122,7 +122,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
     let access = options.access_profile()?;
     let access_identity = access.identity()?;
-    let access_agents = access.agent_principals();
+    let access_agents = access.agent_bindings();
     let credentials = Credentials::load(&profile, access)?;
     let automation = options.automation_profile()?;
     let cache = options
@@ -169,10 +169,12 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         .map(crate::code_review::Profile::load)
         .transpose()?;
     if let Some(profile) = &mut review_profile {
-        for agent in access_agents {
-            if !profile.agent_principals.contains(&agent) {
-                profile.agent_principals.push(agent);
-            }
+        for (principal, declaration) in access_agents {
+            let identity = kiln_core::change_review::AgentIdentity {
+                harness: declaration.harness,
+                model: declaration.model,
+            };
+            profile.merge_agent(principal, identity)?;
         }
     }
     let code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
