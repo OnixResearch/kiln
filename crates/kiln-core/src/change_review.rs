@@ -1317,20 +1317,19 @@ fn rule_matches(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
 }
 
 fn interface_dependents<'a>(
-    policy: &Policy,
+    policy: &'a Policy,
     facts: &'a Facts,
-    source: &str,
-) -> Vec<&'a CiRequirement> {
+    source: &'a str,
+) -> impl Iterator<Item = &'a CiRequirement> + 'a {
     let explicit = policy.ownership.dependents.get(source);
     facts
         .ci_required
         .iter()
         .flatten()
-        .filter(|requirement| {
+        .filter(move |requirement| {
             requirement.project != source
                 && explicit.is_none_or(|targets| targets.contains(&requirement.project))
         })
-        .collect()
 }
 
 fn interface_changed(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
