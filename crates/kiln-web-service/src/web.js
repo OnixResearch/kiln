@@ -3131,7 +3131,9 @@
       for (const row of result[key] || []) {
         const form = element("form", undefined, "record-card automation-form"); form.append(element("h3", text(row.id)));
         const scope = kind === "trigger" ? ui.scopeSummary(row) : null;
-        const facts = element("dl", undefined, "facts"); addFacts(facts, [["Project", projectLabel(row.project_id) === row.project_id ? row.project_id : `${projectLabel(row.project_id)} · ${row.project_id}`], ["Reference", row.reference], ...(scope ? [["Path scope", scopeLine(scope, true)]] : []), ["Last status", CANONICAL_OUTCOMES.has(row.last_status) ? ui.statusPill(row.last_status) : row.last_status]]); form.append(facts);
+        const facts = element("dl", undefined, "facts"), filter = row.filter || {}, filterParts = [];
+        for (const [label, values] of [["branches", filter.branches], ["tags", filter.tags], ["types", filter.types], ["paths", filter.paths]]) if (Array.isArray(values) && values.length) filterParts.push(`${label}: ${values.join(", ")}`);
+        addFacts(facts, [["Project", projectLabel(row.project_id) === row.project_id ? row.project_id : `${projectLabel(row.project_id)} · ${row.project_id}`], ["Reference", row.reference], ...(filterParts.length ? [["Filter", filterParts.join(" · ")]] : []), ...(scope ? [["Path scope", scopeLine(scope, true)]] : []), ["Last status", CANONICAL_OUTCOMES.has(row.last_status) ? ui.statusPill(row.last_status) : row.last_status]]); form.append(facts);
         const inputs = { enabled: field(form, "Enabled", "checkbox", row.enabled) };
         if (kind === "trigger") {
           inputs.push = field(form, "Signed push events", "checkbox", row.push); inputs.pull_request = field(form, "Signed pull request events", "checkbox", row.pull_request);
