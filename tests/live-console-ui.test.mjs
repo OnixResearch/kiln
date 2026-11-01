@@ -669,6 +669,22 @@ test("saved review queries preserve every agent filter and omit absent fields", 
   });
 });
 
+// r[verify kiln.review.agent.search]
+test("saved review views normalize every agent filter when applied", () => {
+  const savedView = reviewContext.window.KilnCodeReview.savedView;
+  assert.deepEqual(plain(savedView({ query: {} })), {
+    review_q: "", review_view: "all", review_status: "",
+    review_advisory: "", review_agent: "", review_agent_harness: "", review_agent_model: "",
+  });
+  assert.deepEqual(plain(savedView({ query: {
+    kind: "awaiting_review", text: "fix", status: "open",
+    advisory: false, agent: false, agent_harness: " omp ", agent_model: "deepseek\u0085",
+  } })), {
+    review_q: "fix", review_view: "awaiting_review", review_status: "open",
+    review_advisory: "without", review_agent: "without", review_agent_harness: "omp", review_agent_model: "",
+  });
+});
+
 // r[verify kiln.review.keyboard] r[verify kiln.review.keyboard.navigation] r[verify kiln.review.keyboard.actions]
 const reviewKeys = reviewContext.window.KilnCodeReview.keys;
 const shortcut = (key, extra = {}) => ({ key, shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, isComposing: false, ...extra });

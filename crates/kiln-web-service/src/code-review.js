@@ -242,6 +242,17 @@
       ...(route.review_agent_model ? { agent_model: route.review_agent_model } : {}),
     };
   }
+  function savedViewRoute(view) {
+    return {
+      review_q: view.query.text || "",
+      review_view: view.query.kind || "all",
+      review_status: view.query.status || "",
+      review_advisory: advisoryRoute(view.query.advisory),
+      review_agent: agentRoute(view.query.agent),
+      review_agent_harness: ui().agentText(view.query.agent_harness || ""),
+      review_agent_model: ui().agentText(view.query.agent_model || ""),
+    };
+  }
   function authorshipPayload(kind, harness = "", model = "") {
     switch (kind || "undeclared") {
       case "undeclared": return null;
@@ -632,8 +643,8 @@
     if (savedViews.length) {
       const list = node("ul", null, "cr-saved-views"); list.setAttribute("aria-label", "Saved personal views");
       for (const view of savedViews) {
-        const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "") && advisoryRoute(view.query.advisory) === (state.route.review_advisory || "") && agentRoute(view.query.agent) === (state.route.review_agent || "") && ui().agentText(view.query.agent_harness || "") === (state.route.review_agent_harness || "") && ui().agentText(view.query.agent_model || "") === (state.route.review_agent_model || "");
-        const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "", review_advisory: advisoryRoute(view.query.advisory), review_agent: agentRoute(view.query.agent), review_agent_harness: ui().agentText(view.query.agent_harness || ""), review_agent_model: ui().agentText(view.query.agent_model || "") }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
+        const savedRoute = savedViewRoute(view), applied = savedRoute.review_view === kind && savedRoute.review_q === (state.route.review_q || "") && savedRoute.review_status === (state.route.review_status || "") && savedRoute.review_advisory === (state.route.review_advisory || "") && savedRoute.review_agent === (state.route.review_agent || "") && savedRoute.review_agent_harness === (state.route.review_agent_harness || "") && savedRoute.review_agent_model === (state.route.review_agent_model || "");
+        const apply = button(view.name, () => { clearFields("search"); route(savedRoute); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
         li.append(apply, iconOnly(writeButton(`Delete view ${view.name}…`, () => command({ type: "delete_view", id: view.id }, null, { title: `Delete personal view "${view.name}"?`, verb: "Delete view", danger: true, facts: [["Name", view.name], ["Query", JSON.stringify(view.query)]] }), "quiet"), icon("x"))); list.append(li);
       }
       views.append(list);
@@ -1333,5 +1344,5 @@
     draw();
     return refresh();
   }
-  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), savedQuery: savedQueryForRoute });
+  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), savedQuery: savedQueryForRoute, savedView: savedViewRoute });
 })();

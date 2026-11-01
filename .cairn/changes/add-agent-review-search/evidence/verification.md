@@ -21,9 +21,9 @@ form and saved views carry the same filters.
 - The complete workspace test suite and workspace-wide Clippy pass for the
   agent, harness and model filters.
 - Live-console tests pass, including the saved-query builder preserving every
-  agent filter, omitting absent fields and normalizing route and saved-view
-  application text to the same shared agent-text limit, UTF-8 byte and
-  control-free bounds, including two- and four-byte characters.
+  agent filter, omitting absent fields, and saved-view application normalizing
+  route text to the same shared agent-text limit, UTF-8 byte and control-free
+  bounds, including two- and four-byte characters.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
 
 ## Non-claims
