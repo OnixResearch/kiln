@@ -19,9 +19,17 @@
   const AGENT_TEXT_BYTES = 128;
   // Review-query admission trims declared agent text and admits only bounded,
   // control-free values; route state uses the same normalization.
+  const utf8Bytes = text => {
+    let bytes = 0;
+    for (const ch of String(text)) {
+      const point = ch.codePointAt(0);
+      bytes += point < 0x80 ? 1 : point < 0x800 ? 2 : point < 0x10000 ? 3 : 4;
+    }
+    return bytes;
+  };
   const agentText = value => {
     const text = (value || "").trim();
-    return text.length <= AGENT_TEXT_BYTES && !/[\u0000-\u001f\u007f]/.test(text) ? text : "";
+    return utf8Bytes(text) <= AGENT_TEXT_BYTES && !/[\u0000-\u001f\u007f]/.test(text) ? text : "";
   };
   const SVG_NS = "http://www.w3.org/2000/svg";
 

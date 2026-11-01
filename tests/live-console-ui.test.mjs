@@ -44,6 +44,9 @@ test("agent route text matches review-query admission", () => {
   assert.equal(ui.agentText("o\u0007mp"), "");
   assert.equal(ui.agentText("x".repeat(128)), "x".repeat(128));
   assert.equal(ui.agentText("x".repeat(129)), "");
+  // 64 two-byte characters are exactly 128 bytes; one more exceeds the byte bound.
+  assert.equal(ui.agentText("é".repeat(64)), "é".repeat(64));
+  assert.equal(ui.agentText("é".repeat(65)), "");
 });
 const source = context.window.KilnSource;
 // Plain copies: values built inside the vm realm carry that realm's prototypes.

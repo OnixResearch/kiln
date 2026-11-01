@@ -19,7 +19,7 @@ form and saved views carry the same filters.
   agent, harness and model filters.
 - Live-console tests pass, including the saved-query builder preserving every
   agent filter, omitting absent fields and normalizing route text to the same
-  trimmed bound.
+  trimmed UTF-8 byte bound.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
 
 ## Non-claims
