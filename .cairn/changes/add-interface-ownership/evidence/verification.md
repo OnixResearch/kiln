@@ -14,7 +14,7 @@ interface rule's own owner approval remains required.
   reviewer expansion, non-interface behavior and policy admission.
 - Service admission rejects interface and dependent links to unknown projects
   and admits a known project link.
-- Full core and web-service suites pass.
+- The complete workspace test suite passes.
 - Clippy, rustfmt, Nickel typecheck/export and Cairn validation pass.
 
 ## Non-claims

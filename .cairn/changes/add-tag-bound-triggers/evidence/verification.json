@@ -11,6 +11,10 @@
       "result": "1 passed; wrong-namespace, non-matching tag filters and tag-bound schedules are rejected"
     },
     {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
+    },
+    {
       "command": "cargo test -p kiln-core -p kiln-web-service",
       "result": "all core and web-service test binaries passed"
     },
