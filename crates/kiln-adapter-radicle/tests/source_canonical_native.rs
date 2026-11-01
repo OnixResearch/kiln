@@ -8,7 +8,8 @@ use cob_git2 as git2;
 use git2::{Oid, Repository};
 use heartwood_canonical::identity::Did;
 use kiln_adapter_radicle::source::{RadicleSourceProfile, RadicleSourceShell};
-use kiln_provider_api::PortFailure;
+use kiln_core::types::{Alias, ExternalRef};
+use kiln_provider_api::{PortFailure, SourceRepositoryPort};
 use kiln_radicle_source_contract::{
     CONTRACT_SCHEMA_VERSION, CanonicalRequest, SnapshotLimits, SourceRequest,
 };
@@ -318,6 +319,22 @@ fn lightweight_tag_source_uses_its_commit_directly() -> Result<(), Box<dyn Error
     assert_eq!(evidence.object_kind, "commit");
     assert_eq!(evidence.revision, fixture.object.to_string());
     assert_eq!(result.receipt.snapshot.revision, fixture.object.to_string());
+    Ok(())
+}
+
+#[test]
+fn tag_source_resolution_exposes_the_tag_alias() -> Result<(), Box<dyn Error>> {
+    let fixture = fixture_with_reference(TAG_REFERENCE, true, 1, &[81], &[(81, false)], None)?;
+    let shell = port(RadicleSourceShell::new(fixture.profile.clone()))?;
+    let symbolic = ExternalRef::new("radicle", "reference", TAG_REFERENCE)
+        .map_err(|error| io::Error::other(format!("{error:?}")))?;
+    let observation = port(shell.resolve(&symbolic))?;
+    assert_eq!(observation.symbolic, symbolic);
+    assert_eq!(
+        observation.alias,
+        Some(Alias::new("release/v1").map_err(|error| io::Error::other(format!("{error:?}")))?)
+    );
+    assert_eq!(observation.exact_revisions.len(), 1);
     Ok(())
 }
 

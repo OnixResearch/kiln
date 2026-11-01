@@ -12,8 +12,8 @@ older evidence without `revision` keep their behavior.
 
 - Source-contract tests pass, including matching tag-reference admission and
   empty branch/tag name rejection.
-- Native canonical tests pass for branches, lightweight and annotated tags, and
-  a non-commit tag target; the positive tag test asserts a commit snapshot and tag/revision
+- Native canonical tests pass for branches, lightweight and annotated tags,
+  tag alias resolution and a non-commit tag target; the positive tag test asserts a commit snapshot and tag/revision
   evidence, and the negative test fails before snapshot acquisition.
 - Full workspace tests and workspace-wide Clippy pass.
 - `cargo fmt` and Cairn validation pass.

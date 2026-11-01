@@ -8,7 +8,7 @@
     },
     {
       "command": "cargo test -p kiln-adapter-radicle --features source-native-fixtures --test source_canonical_native",
-      "result": "7 passed; branch, lightweight-tag, annotated-tag and non-commit tag failure cases"
+      "result": "8 passed; branch, lightweight-tag, annotated-tag, tag alias and non-commit tag failure cases"
     },
     {
       "command": "cargo test --workspace --no-fail-fast",
