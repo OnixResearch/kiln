@@ -600,6 +600,7 @@
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
     search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_agent: agent.value, review_change: "" }); }); list.append(search);
     const active = [];
+    if ((state.route.review_view || "all") !== "all") active.push(`view: ${state.route.review_view}`);
     if (state.route.review_q) active.push(`text: ${state.route.review_q}`);
     if (state.route.review_status) active.push(`state: ${state.route.review_status}`);
     if (state.route.review_advisory) active.push(`advisory: ${state.route.review_advisory}`);
