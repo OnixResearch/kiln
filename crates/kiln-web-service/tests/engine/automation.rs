@@ -349,7 +349,14 @@ fn signed_tag_push_dispatches_a_tag_bound_run() {
         .clone();
     let repo = checked(git2::Repository::open(&repository_path));
     let commit = checked(checked(repo.revparse_single(&revision)).peel_to_commit());
-    checked(repo.reference(tag, commit.id(), true, "test tag"));
+    let signature = checked(git2::Signature::now("test", "test@example.invalid"));
+    checked(repo.tag(
+        "v1.0.0",
+        commit.as_object(),
+        &signature,
+        "test annotated tag",
+        false,
+    ));
     profile
         .projects
         .first_mut()

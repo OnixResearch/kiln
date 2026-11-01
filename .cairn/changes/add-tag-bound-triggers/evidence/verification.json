@@ -4,7 +4,7 @@
   "commands": [
     {
       "command": "cargo test -p kiln-web-service --test engine signed_tag_push_dispatches_a_tag_bound_run",
-      "result": "1 passed; a signed tag push creates a run bound to the exact tag commit"
+      "result": "1 passed; a signed annotated-tag push creates a run bound to the exact tagged commit"
     },
     {
       "command": "cargo test -p kiln-web-service --test engine tag_trigger_filter_namespaces_and_schedule_references_are_rejected",

@@ -10,8 +10,8 @@ Schedules remain branch-bound.
 
 ## Evidence
 
-- End-to-end signed tag-push dispatch test passes through real local Git tag
-  creation, signature admission, source resolution and dispatch.
+- End-to-end signed annotated-tag push dispatch passes through real local Git
+  tag creation, signature admission, source resolution and dispatch.
 - Admission tests reject a tag reference with branch filters, a tag filter that
   does not admit the bound tag, a tag-bound pull-request trigger and a tag-bound
   schedule.
