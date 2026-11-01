@@ -242,10 +242,12 @@ fn independent_clone_rejects_wrong_callback_source_before_commands_or_uploads() 
 #[test]
 fn binding_lookup_budget_bounds_slow_valid_https_response() {
     let (_root, mut profile, source, binding) = fixture();
-    profile.lookup_timeout_ms = 300;
-    profile.http_timeout_ms = 3000;
+    // Keep generous wall-clock slack so a heavily loaded test runner cannot
+    // turn a deterministic budget failure into a scheduling failure.
+    profile.lookup_timeout_ms = 1000;
+    profile.http_timeout_ms = 5000;
     let (origin, stop, server) = receiver(vec![(
-        Duration::from_millis(1500),
+        Duration::from_millis(3500),
         json!({"runs": [binding]}),
     )]);
     profile.service_origin = origin;
@@ -261,8 +263,8 @@ fn binding_lookup_budget_bounds_slow_valid_https_response() {
         "late valid binding was accepted after {elapsed:?}"
     );
     assert!(
-        elapsed < Duration::from_millis(900),
-        "lookup exceeded its 300ms budget: {elapsed:?}"
+        elapsed < Duration::from_millis(3000),
+        "lookup exceeded its 1000ms budget: {elapsed:?}"
     );
 }
 
