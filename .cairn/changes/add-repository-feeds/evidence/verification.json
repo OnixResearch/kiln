@@ -133,7 +133,8 @@
     "admission": "bounded unique xmlUrl outlines, HTTPS/private policy, control-byte labels, capacity and durable-state preflight",
     "behavior": "retains pending subscriptions without network fetch; background cadence or manual Refresh fetches them",
     "authority": "operator only; viewer import is denied",
-    "test": "feed unit OPML parsing; runtime import adds a pending subscription and denies a viewer"
+    "test": "feed unit OPML parsing; runtime import adds a pending subscription and denies a viewer",
+    "request_bound": "API bounds expose max_import_bytes from the service max_request_bytes; the UI rejects larger files before upload"
   },
   "feed_filter": {
     "query": "GET /api/feeds?q=<percent-encoded up to 256 bytes>",

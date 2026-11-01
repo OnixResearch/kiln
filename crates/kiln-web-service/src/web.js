@@ -1579,7 +1579,8 @@
         if (!selected) return;
         importButton.disabled = true;
         try {
-          if (selected.size > 1_048_576) throw new Error("The OPML file exceeds 1 MiB.");
+          const maxImport = result.bounds?.max_import_bytes || 1_048_576;
+          if (selected.size > maxImport) throw new Error(`The OPML file exceeds the ${maxImport}-byte request bound.`);
           const opml = await selected.text();
           const result = await api("/api/feeds/import", { method: "POST", body: { opml } });
           notice(`Imported ${result.added} subscription${result.added === 1 ? "" : "s"}.`, "success");

@@ -145,6 +145,7 @@ impl Engine {
                     "max_subscriptions": profile.max_subscriptions,
                     "max_entries_per_feed": profile.max_entries_per_feed,
                     "max_feed_bytes": profile.max_feed_bytes,
+                    "max_import_bytes": self.profile.bounds.max_request_bytes,
                     "refresh_interval_ms": profile.refresh_interval_ms,
                 },
                 "subscriptions": subscriptions,

@@ -553,6 +553,10 @@ fn repository_feeds_and_external_subscription_round_trip() {
     );
     assert_eq!(feeds.status(), 200);
     let feeds: serde_json::Value = checked(feeds.json());
+    assert_eq!(
+        feeds.pointer("/bounds/max_import_bytes"),
+        Some(&serde_json::Value::from(profile.bounds.max_request_bytes))
+    );
     let subscriptions = feeds
         .get("subscriptions")
         .and_then(serde_json::Value::as_array)
