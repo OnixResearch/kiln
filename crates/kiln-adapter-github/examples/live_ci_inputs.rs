@@ -18,21 +18,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let admitted = load_config(Path::new(&profile_path))
         .map_err(|error| format!("profile admission failed: {error:?}"))?;
     let plan = workflow_plan(
-        &admitted.config.workflow,
-        &admitted.identity,
-        &admitted.pipeline_identity,
-        &admitted.identity,
+        &admitted.config().workflow,
+        admitted.identity(),
+        admitted.pipeline_identity(),
+        admitted.identity(),
         None,
     )
     .map_err(|error| format!("workflow admission failed: {error:?}"))?;
-    let native = lower_request(&admitted.lattice, &plan)
+    let native = lower_request(admitted.lattice(), &plan)
         .map_err(|error| format!("native lowering failed: {error:?}"))?;
     let output = serde_json::json!({
         "schema": "kiln.live-ci-native-inputs.v1",
-        "service_identity": admitted.identity,
-        "pipeline_identity": admitted.pipeline_identity,
-        "contract": admitted.lattice.contract,
-        "transport": admitted.transport,
+        "service_identity": admitted.identity().clone(),
+        "pipeline_identity": admitted.pipeline_identity().clone(),
+        "contract": admitted.lattice().contract.clone(),
+        "transport": admitted.transport().clone(),
         "profile_identity": native.profile_identity,
         "graph_identity": native.graph.identity,
         "nodes": native.graph.nodes,

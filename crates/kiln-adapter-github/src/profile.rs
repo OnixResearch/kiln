@@ -115,13 +115,54 @@ pub struct GithubConfig {
     pub non_claims: Vec<String>,
 }
 
+/// A GitHub service configuration that passed reviewed admission.
+///
+/// Only `admit_config` constructs one; every field is crate-private.
+///
+/// ```compile_fail
+/// # use kiln_adapter_github::profile::AdmittedGithubConfig;
+/// let _ = AdmittedGithubConfig {
+///     config: unreachable!(),
+///     identity: unreachable!(),
+///     pipeline_identity: unreachable!(),
+///     lattice: unreachable!(),
+///     transport: unreachable!(),
+/// };
+/// ```
 #[derive(Debug)]
 pub struct AdmittedGithubConfig {
-    pub config: GithubConfig,
-    pub identity: ContentId,
-    pub pipeline_identity: ContentId,
-    pub lattice: LatticeProfile,
-    pub transport: TransportProfile,
+    pub(crate) config: GithubConfig,
+    pub(crate) identity: ContentId,
+    pub(crate) pipeline_identity: ContentId,
+    pub(crate) lattice: LatticeProfile,
+    pub(crate) transport: TransportProfile,
+}
+
+impl AdmittedGithubConfig {
+    /// Reviewed service configuration.
+    pub fn config(&self) -> &GithubConfig {
+        &self.config
+    }
+
+    /// Effective adapter identity.
+    pub fn identity(&self) -> &ContentId {
+        &self.identity
+    }
+
+    /// Pipeline identity.
+    pub fn pipeline_identity(&self) -> &ContentId {
+        &self.pipeline_identity
+    }
+
+    /// Reviewed Lattice profile.
+    pub fn lattice(&self) -> &LatticeProfile {
+        &self.lattice
+    }
+
+    /// Reviewed transport profile.
+    pub fn transport(&self) -> &TransportProfile {
+        &self.transport
+    }
 }
 
 // r[impl kiln.github.profile]

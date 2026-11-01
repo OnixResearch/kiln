@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.github.proof.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github -p kiln-hosted",
+      "result": "pass, including compile-fail doc tests"
+    },
+    {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "external construction rejected": "compile-fail doc test on AdmittedGithubConfig",
+    "admitted facts readable": "accessors used by example, hosted and adapter consumers",
+    "hosted re-admission": "config cloned and passed through admit_config",
+    "audit record": "modified audit records every proof type sealed"
+  },
+  "non_claims": [
+    "the seal does not prove in-crate admission discipline",
+    "the seal does not prove service-config semantic correctness",
+    "accessors return borrowed values"
+  ]
+}

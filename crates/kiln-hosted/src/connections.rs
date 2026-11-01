@@ -51,10 +51,10 @@ fn names(project: &str, connection: &str) -> Result<(), String> {
     Ok(())
 }
 fn profile_bounds(profile: &AdmittedGithubConfig) -> Result<(), String> {
-    if profile.config.maximum_run_records > MAX_HOSTED_RUNS
-        || profile.config.maximum_delivery_records > MAX_HOSTED_RUNS * 16
-        || profile.config.maximum_body_bytes > MAX_HOSTED_BODY_BYTES
-        || profile.config.maximum_record_bytes > MAX_HOSTED_RECORD_BYTES
+    if profile.config().maximum_run_records > MAX_HOSTED_RUNS
+        || profile.config().maximum_delivery_records > MAX_HOSTED_RUNS * 16
+        || profile.config().maximum_body_bytes > MAX_HOSTED_BODY_BYTES
+        || profile.config().maximum_record_bytes > MAX_HOSTED_RECORD_BYTES
     {
         return Err("GitHub profile exceeds hosted runtime bounds".into());
     }
@@ -120,7 +120,7 @@ fn read_profile(path: &Path, digest: &str) -> Result<(Vec<u8>, AdmittedGithubCon
     let config: GithubConfig =
         serde_json::from_slice(&bytes).map_err(|_| "invalid source profile JSON")?;
     let admitted = admit_config(config).map_err(provider)?;
-    if loaded.identity != admitted.identity {
+    if loaded.identity() != admitted.identity() {
         return Err("source profile changed during admission".into());
     }
     profile_bounds(&admitted)?;
@@ -143,7 +143,7 @@ pub fn admit_profile(db: &mut Connection, path: &Path, exact_blake3: &str) -> Re
         .optional()
         .map_err(storage)?;
     if let Some((prior, identity)) = prior {
-        if prior != bytes || identity != admitted.identity.as_str() {
+        if prior != bytes || identity != admitted.identity().as_str() {
             return Err("source profile identity conflict".into());
         }
         tx.execute(
@@ -162,7 +162,7 @@ pub fn admit_profile(db: &mut Connection, path: &Path, exact_blake3: &str) -> Re
         }
         tx.execute(
             "INSERT INTO hosted_source_profiles VALUES(?1,?2,?3,?4,1)",
-            params![exact_blake3, path, bytes, admitted.identity.as_str()],
+            params![exact_blake3, path, bytes, admitted.identity().as_str()],
         )
         .map_err(storage)?;
     }
@@ -188,7 +188,7 @@ fn admitted_profile(
         admit_config(serde_json::from_slice(&bytes).map_err(|_| "invalid retained profile")?)
             .map_err(provider)?
     };
-    if admitted.identity.as_str() != identity {
+    if admitted.identity().as_str() != identity {
         return Err("retained adapter profile identity changed".into());
     }
     Ok(admitted)
@@ -266,7 +266,7 @@ fn generation_profile(
         serde_json::from_slice(&bytes).map_err(|_| "invalid retained connection profile")?,
     )
     .map_err(provider)?;
-    if admitted.identity.as_str() != identity {
+    if admitted.identity().as_str() != identity {
         return Err("connection profile integrity failure".into());
     }
     profile_bounds(&admitted)?;
@@ -345,11 +345,11 @@ pub fn replay_paths(db: &Connection) -> Result<Vec<std::path::PathBuf>, String> 
             serde_json::from_slice(&bytes).map_err(|_| "invalid retained generation profile")?,
         )
         .map_err(provider)?;
-        if admitted.config != expected || admitted.identity.as_str() != identity {
+        if admitted.config() != &expected || admitted.identity().as_str() != identity {
             return Err("backup native replay binding differs from pinned generation".into());
         }
         let native = Connection::open_with_flags(
-            &admitted.config.replay_database_path,
+            &admitted.config().replay_database_path,
             rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
         )
         .map_err(storage)?;
@@ -363,7 +363,7 @@ pub fn replay_paths(db: &Connection) -> Result<Vec<std::path::PathBuf>, String> 
         if metadata.0 != "kiln.github-replay.v1" || metadata.1 != identity {
             return Err("backup native store profile identity mismatch".into());
         }
-        paths.push(admitted.config.replay_database_path);
+        paths.push(admitted.config().replay_database_path.clone());
     }
     if i64::try_from(paths.len()).map_err(|_| "backup inventory overflow")? != total {
         return Err("native replay inventory has missing pinned profiles".into());
@@ -476,7 +476,7 @@ fn ingest_authorized(
     }
     let admitted = generation_profile(&tx, org, project, connection, generation, true)?;
     let secret = resolve_secret(
-        &admitted.config.webhook_secret,
+        &admitted.config().webhook_secret,
         "authenticate hosted GitHub webhook",
     )
     .map_err(provider)?;
@@ -500,11 +500,11 @@ fn ingest_admitted(
     } = scope;
     let Delivery { headers, body } = delivery;
     let Some(event) = admit_event(
-        &admitted.config.event_policy,
+        &admitted.config().event_policy,
         headers,
         body,
         secret,
-        admitted.config.maximum_body_bytes,
+        admitted.config().maximum_body_bytes,
     )
     .map_err(provider)?
     else {
@@ -524,7 +524,7 @@ fn ingest_admitted(
     } else {
         let count:i64=db.query_row("SELECT COUNT(*) FROM hosted_source_deliveries WHERE organization=?1 AND project=?2 AND connection=?3",params![org,project,connection],|r|r.get(0)).map_err(storage)?;
         if count
-            >= i64::try_from(admitted.config.maximum_delivery_records)
+            >= i64::try_from(admitted.config().maximum_delivery_records)
                 .map_err(|_| "delivery count overflow")?
         {
             return Err("connection delivery retention limit".into());
@@ -573,7 +573,7 @@ fn work_records(
     let store = open_store(admitted).map_err(provider)?;
     let mut records = Vec::new();
     let mut cursor: Option<String> = None;
-    for _ in 0..=admitted.config.maximum_run_records {
+    for _ in 0..=admitted.config().maximum_run_records {
         let Some(record) = store.next_work(cursor.as_deref()).map_err(provider)? else {
             break;
         };
@@ -743,7 +743,7 @@ pub fn status(
         runs.push(json!({"run":record.run_identity.as_str(),"phase":record.phase,"outcome":record.outcome().map_err(provider)?,"observation":observation,"statuses":statuses,"error_code":record.error_code}));
     }
     Ok(
-        json!({"project":project,"connection":connection,"generation":generation,"effective_adapter_identity":admitted.identity.as_str(),"pipeline_identity":admitted.pipeline_identity.as_str(),"workflow_policy_id":admitted.config.workflow.policy_id,"route_admission_required":true,"runs":runs}),
+        json!({"project":project,"connection":connection,"generation":generation,"effective_adapter_identity":admitted.identity().as_str(),"pipeline_identity":admitted.pipeline_identity().as_str(),"workflow_policy_id":admitted.config().workflow.policy_id,"route_admission_required":true,"runs":runs}),
     )
 }
 
@@ -770,14 +770,14 @@ pub fn handle(
                 &actor.organization,
                 &input.project,
             )?;
-            let mut admitted = admitted_profile(&tx, &input.profile_blake3, true)?;
-            if input.repository_id != admitted.config.event_policy.repository_id
+            let admitted = admitted_profile(&tx, &input.profile_blake3, true)?;
+            if input.repository_id != admitted.config().event_policy.repository_id
                 || !input
                     .owner
-                    .eq_ignore_ascii_case(&admitted.config.event_policy.owner)
+                    .eq_ignore_ascii_case(&admitted.config().event_policy.owner)
                 || !input
                     .name
-                    .eq_ignore_ascii_case(&admitted.config.event_policy.repository)
+                    .eq_ignore_ascii_case(&admitted.config().event_policy.repository)
             {
                 return Err("repository identity does not match operator profile".into());
             }
@@ -832,17 +832,17 @@ pub fn handle(
                 generation,
                 &input.profile_blake3,
             ))?;
-            let root = admitted
-                .config
+            let mut config = admitted.config().clone();
+            let root = config
                 .replay_database_path
                 .parent()
                 .ok_or("source replay root unavailable")?;
-            admitted.config.replay_database_path = root.join(format!("hosted-{namespace}.sqlite"));
+            config.replay_database_path = root.join(format!("hosted-{namespace}.sqlite"));
             // Policy participates in native pipeline/run/attempt identities. A private
             // replay file alone must not alias another tenant's provider effect keys.
-            admitted.config.workflow.policy_id = format!("hosted-{namespace}");
-            let admitted = admit_config(admitted.config).map_err(provider)?;
-            let bytes = serde_json::to_vec(&admitted.config)
+            config.workflow.policy_id = format!("hosted-{namespace}");
+            let admitted = admit_config(config).map_err(provider)?;
+            let bytes = serde_json::to_vec(&admitted.config())
                 .map_err(|_| "connection profile encoding failed")?;
             // Establish native replay namespace before publishing connection activation.
             open_store(&admitted).map_err(provider)?;
@@ -855,14 +855,14 @@ pub fn handle(
                     generation,
                     input.profile_blake3,
                     bytes,
-                    admitted.identity.as_str()
+                    admitted.identity().as_str()
                 ],
             )
             .map_err(storage)?;
-            tx.execute("INSERT INTO hosted_connections VALUES(?1,?2,?3,?4,?5,?6,?7,?8,1,?9) ON CONFLICT(organization,project,connection) DO UPDATE SET owner=excluded.owner,name=excluded.name,generation=excluded.generation,revision=excluded.revision,active=1,changed_by=excluded.changed_by",params![actor.organization,input.project,input.connection,input.repository_id.to_string(),admitted.config.event_policy.owner,admitted.config.event_policy.repository,generation,revision,actor.peer]).map_err(storage)?;
+            tx.execute("INSERT INTO hosted_connections VALUES(?1,?2,?3,?4,?5,?6,?7,?8,1,?9) ON CONFLICT(organization,project,connection) DO UPDATE SET owner=excluded.owner,name=excluded.name,generation=excluded.generation,revision=excluded.revision,active=1,changed_by=excluded.changed_by",params![actor.organization,input.project,input.connection,input.repository_id.to_string(),admitted.config().event_policy.owner,admitted.config().event_policy.repository,generation,revision,actor.peer]).map_err(storage)?;
             tx.commit().map_err(storage)?;
             Ok(
-                json!({"connection":input.connection,"project":input.project,"generation":generation,"revision":revision,"profile_blake3":input.profile_blake3,"effective_adapter_identity":admitted.identity.as_str(),"pipeline_identity":admitted.pipeline_identity.as_str(),"workflow_policy_id":admitted.config.workflow.policy_id,"route_admission_required":true}),
+                json!({"connection":input.connection,"project":input.project,"generation":generation,"revision":revision,"profile_blake3":input.profile_blake3,"effective_adapter_identity":admitted.identity().as_str(),"pipeline_identity":admitted.pipeline_identity().as_str(),"workflow_policy_id":admitted.config().workflow.policy_id,"route_admission_required":true}),
             )
         }
         "disconnect" => {
@@ -1174,10 +1174,10 @@ mod tests {
         let next = generation_profile(&f.db, "acme", "app", "origin", 2, false)
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert_ne!(
-            original.config.replay_database_path,
-            next.config.replay_database_path
+            original.config().replay_database_path,
+            next.config().replay_database_path
         );
-        assert_ne!(original.pipeline_identity, next.pipeline_identity);
+        assert_ne!(original.pipeline_identity(), next.pipeline_identity());
         assert!(ingest(&mut f.db, "acme", "app", "origin", 1, &headers, &body).is_err());
         assert!(ingest(&mut f.db, "acme", "app", "origin", 2, &headers, &body).is_err());
         let second = ingest(
@@ -1191,7 +1191,7 @@ mod tests {
         )
         .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert_ne!(second.get("run"), first.get("run"));
-        assert!(original.config.replay_database_path.exists());
+        assert!(original.config().replay_database_path.exists());
         assert!(handle(&mut f.db,&f.actor,"connect",json!({"project":"app","connection":"origin","repository_id":1296269,"owner":"octocat","name":"hello-world","profile_blake3":f.digest,"expected_revision":1}),1).is_err());
     }
     // r[verify kiln.hosted.connections.scenario.revoke]
@@ -1323,11 +1323,11 @@ mod tests {
         assert_eq!(
             paths,
             vec![
-                first.config.replay_database_path.clone(),
-                second.config.replay_database_path
+                first.config().replay_database_path.clone(),
+                second.config().replay_database_path.clone()
             ]
         );
-        let native = Connection::open(&first.config.replay_database_path)
+        let native = Connection::open(&first.config().replay_database_path)
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         native
             .execute(
