@@ -1283,12 +1283,15 @@ fn write_response<W: Write>(writer: &mut W, response: ApiResponse) -> std::io::R
         additional.push_str(value);
         additional.push_str("\r\n");
     }
+    let content_length = if response.status == 304 {
+        String::new()
+    } else {
+        format!("Content-Length: {}\r\n", response.body.len())
+    };
     write!(
         writer,
-        "HTTP/1.1 {} {reason}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n{cache}{SECURITY_HEADERS}{additional}",
-        response.status,
-        response.content_type,
-        response.body.len()
+        "HTTP/1.1 {} {reason}\r\nContent-Type: {}\r\n{content_length}Connection: close\r\n{cache}{SECURITY_HEADERS}{additional}",
+        response.status, response.content_type,
     )?;
     if let Some(name) = response.download_name {
         // The engine supplies a display name, never an HTTP header fragment.

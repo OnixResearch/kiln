@@ -500,6 +500,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .send(),
     );
     assert_eq!(conditional.status(), 304);
+    assert!(conditional.headers().get("content-length").is_none());
     assert!(checked(conditional.text()).is_empty());
 
     assert_eq!(
