@@ -1928,26 +1928,28 @@ fn checklist_at(
                                 if requirement.project == *source {
                                     continue;
                                 }
-                                let observed = latest_for(
-                                    &requirement.project,
-                                    Some(requirement.scope_identity.as_deref()),
-                                );
-                                items.push(ChecklistItem {
-                                    key: alloc::format!(
-                                        "interface_ci:{}:{}",
-                                        rule.id,
-                                        requirement.project
-                                    ),
-                                    satisfied: policy_valid
-                                        && observed.is_some_and(CiFact::satisfies_required),
-                                    detail: alloc::format!(
-                                        "interface {} of rule {} requires full clean CI for affected project {} at exact commit {} and its current scope identity",
-                                        rule.interface.join(", "),
-                                        rule.id,
-                                        requirement.project,
-                                        ci_commit
-                                    ),
-                                });
+                                if !policy.require_ci {
+                                    let observed = latest_for(
+                                        &requirement.project,
+                                        Some(requirement.scope_identity.as_deref()),
+                                    );
+                                    items.push(ChecklistItem {
+                                        key: alloc::format!(
+                                            "interface_ci:{}:{}",
+                                            rule.id,
+                                            requirement.project
+                                        ),
+                                        satisfied: policy_valid
+                                            && observed.is_some_and(CiFact::satisfies_required),
+                                        detail: alloc::format!(
+                                            "interface {} of rule {} requires full clean CI for affected project {} at exact commit {} and its current scope identity",
+                                            rule.interface.join(", "),
+                                            rule.id,
+                                            requirement.project,
+                                            ci_commit
+                                        ),
+                                    });
+                                }
                                 for dependent in policy.ownership.rules.iter().filter(|dependent| {
                                     dependent.project.as_deref()
                                         == Some(requirement.project.as_str())
@@ -4543,6 +4545,7 @@ mod tests {
             untrusted: None,
         });
         let policy = facts.policy.as_mut().required()?;
+        policy.require_ci = false;
         policy.ownership.rules.push(OwnershipRule {
             id: "api".into(),
             paths: vec!["src/**".into()],

@@ -30,7 +30,7 @@
   "behavior": {
     "policy": "project and interface fields; interface patterns must be unique and either exact rule-path members or literal paths matched by a rule path, with a bounded project",
     "matching": "interface patterns match current and renamed old changed paths",
-    "ci": "every other affected required project needs a full clean exact-commit run at its current scope identity",
+    "ci": "when require_ci is false, every other affected required project needs a separate full clean exact-commit item at its current scope identity",
     "ack": "each applicable ownership rule linked to an affected project needs one eligible non-author owner approval; automatic reviewers include those owners",
     "boundary": "every other affected project is conservatively treated as dependent; missing affected facts add no fabricated dependents"
   },

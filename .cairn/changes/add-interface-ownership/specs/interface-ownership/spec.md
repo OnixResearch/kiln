@@ -29,8 +29,8 @@ r[kiln.review.interface.ci] When an interface pattern matches a current or old
 changed path, review MUST require a full clean successful run for every other
 affected project in the current required set at the exact commit and current
 scope identity. Missing, stale, wrong-scope, non-clean or partial runs MUST leave
-the requirement unmet. The requirement MUST apply even when `require_ci` is
-false.
+the requirement unmet. The separate interface CI item MUST be added when
+`require_ci` is false, when global CI does not already cover affected projects.
 
 r[kiln.review.interface.ack] For each such affected project, each applicable
 ownership rule linked by `project` MUST require one eligible non-author owner

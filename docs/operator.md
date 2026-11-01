@@ -3147,8 +3147,8 @@ The exported `kiln.code-review-profile.v1` declares:
   `interface`. Interface patterns are either listed verbatim in `paths` or are
   literal paths matched by one of those patterns. When an interface pattern
   matches a changed path, the checklist
-  requires full clean CI for every other affected project in the current
-  required-project set, even when `require_ci` is false, plus one eligible
+  requires a separate full clean CI item for every other affected project in the
+  current required-project set when `require_ci` is false, plus one eligible
   non-author owner approval from each ownership rule linked to those affected
   projects. This first cut conservatively treats every affected project as a
   dependent; explicit dependency-edge evidence is not yet used.
