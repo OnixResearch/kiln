@@ -1805,6 +1805,16 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         )?,
         &json!(0)
     );
+    assert_eq!(
+        get(
+            &workspace,
+            &format!("/api/code-review?agent_harness={}", "x".repeat(129)),
+            ALICE,
+            &[]
+        )
+        .status,
+        400
+    );
     let snapshot = accepted(get(&workspace, "/api/code-review", ALICE, &[]))?;
     assert_eq!(field(&snapshot, "/agent_principals")?, &json!([BOB]));
     assert!(
