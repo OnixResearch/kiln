@@ -819,7 +819,7 @@ impl Workspace {
             .collect();
         let agents: BTreeSet<String> = profile.agent_principals.iter().cloned().collect();
         response(
-            json!({"change":enriched(change,&state,principal,&agents),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
+            json!({"change":enriched(change,&state,principal,&agents),"agent_votes":facts.policy.as_ref().map(|policy| policy.agent_votes).unwrap_or_default(),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
                 "subscribed":delivery::subscribed(&state.delivery,principal,id),"delivery_outcomes":delivery::outcomes(&state.delivery,principal,id),
                 "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some(),
                 "noise":noise::published(profile.review.as_ref()),

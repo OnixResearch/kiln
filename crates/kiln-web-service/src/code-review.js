@@ -811,7 +811,7 @@
       const list = node("ul", null, "cr-rows");
       for (const vote of c.votes) { const li = node("li", null, "list-row"), live = vote.revision === current()?.id; li.append(principalNode(vote.actor, "cr-row-title cr-principal"), pill(vote.value, "Vote"), exactId(vote.revision), chip(live ? "Current" : "Stale; no current authority", live ? "" : "cr-chip-stale")); if (vote.agent) li.append(chip("Agent")); list.append(li); }
       votes.append(list);
-      if (arr(c.votes).some(vote => vote.agent)) votes.append(node("p", "Agent votes are advisory unless the review policy explicitly sets agent_votes = binding.", "cr-muted"));
+      if (arr(c.votes).some(vote => vote.agent)) votes.append(node("p", state.detail.agent_votes === "binding" ? "Agent votes are binding under this policy." : "Agent votes are advisory under this policy.", "cr-muted"));
     } else votes.append(node("p", "No votes recorded.", "cr-muted"));
     card.append(votes);
     drawAdvisory(card, c);

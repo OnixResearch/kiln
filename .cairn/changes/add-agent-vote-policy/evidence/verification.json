@@ -12,7 +12,7 @@
     },
     {
       "command": "cargo test -p kiln-web-service --test code_review review_detail_marks_agent_votes",
-      "result": "1 passed; review detail marks the declared agent's vote"
+      "result": "1 passed; review detail marks the declared agent's vote and reports the advisory mode"
     },
     {
       "command": "cargo test -p kiln-core -p kiln-web-service",
@@ -46,7 +46,7 @@
     "binding": "explicit policy opt-in counts agent approvals like human approvals",
     "blocking": "agent needs-revision and veto votes keep their existing blocking effect in either mode",
     "authority": "no mode grants merge authority",
-    "surface": "review detail marks agent votes and states the advisory default"
+    "surface": "review detail marks agent votes and reports the effective advisory or binding mode"
   },
   "non_claims": [
     "agent principals are not yet derived from access-profile viewer bindings",

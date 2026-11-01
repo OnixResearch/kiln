@@ -3116,7 +3116,8 @@ The exported `kiln.code-review-profile.v1` declares:
   `binding` is an explicit policy opt-in that counts agent approvals exactly
   like human approvals. Agent `NeedsRevision` and `Veto` votes keep their
   existing blocking effect in either mode; no merge authority is granted. The
-  review detail marks agent votes and states the advisory default. Optional
+  review detail marks agent votes and reports the effective advisory or binding
+  mode. Optional
   `agent_metadata` maps these principals to declared, trimmed
   `{ harness, model? }` metadata; a key must name a declared agent. Access viewer declarations are
   merged into both fields at startup, and conflicting metadata fails startup.
