@@ -1869,7 +1869,24 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         .status,
         400
     );
+    accepted(post(
+        &workspace,
+        &global(
+            "agent-view",
+            json!({"type":"save_view","name":"Agent model view","query":{"kind":"all","text":"","status":null,"agent":true,"agent_harness":"omp","agent_model":"deepseek"}}),
+        ),
+        ALICE,
+        &[],
+    )?)?;
     let snapshot = accepted(get(&workspace, "/api/code-review", ALICE, &[]))?;
+    assert_eq!(
+        field(&snapshot, "/saved_views/0/query/agent_model")?,
+        &json!("deepseek")
+    );
+    assert_eq!(
+        field(&snapshot, "/saved_views/0/query/agent_harness")?,
+        &json!("omp")
+    );
     assert_eq!(field(&snapshot, "/agent_principals")?, &json!([BOB]));
     assert!(
         field(&snapshot, "/notifications")?

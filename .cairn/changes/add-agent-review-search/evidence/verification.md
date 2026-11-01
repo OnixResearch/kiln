@@ -11,8 +11,9 @@ form and saved views carry the same filters.
 
 - Core search test covers with, without and absent modes.
 - Saved-query coverage retains the agent filter.
-- Web integration test creates an agent-submitted change and verifies positive
-  and negative filters plus malformed-value rejection.
+- Web integration test creates an agent-submitted change, verifies positive and
+  negative filters, malformed-value rejection and a saved-view round trip for
+  harness and model.
 - The complete workspace test suite and workspace-wide Clippy pass for the
 agent, harness and model filters.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
