@@ -141,6 +141,9 @@ pub struct RunRecord {
     /// Requested symbolic reference for automation supersession, if supplied.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub requested_reference: Option<String>,
+    /// Pull-request number retained for supersession scoping.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_pull_request: Option<u64>,
     pub plan: WorkflowEffectPlan,
     pub events: Vec<Event>,
     #[serde(default)]

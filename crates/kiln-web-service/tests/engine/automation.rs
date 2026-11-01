@@ -169,6 +169,83 @@ fn new_trigger_supersedes_active_and_queued_runs_when_configured() {
 }
 
 #[test]
+fn pull_request_supersession_is_scoped_to_one_pull_request() {
+    let (root, profile, revision) = fixture();
+    let mut automation = policy(root.path());
+    if let Some(trigger) = automation.triggers.first_mut() {
+        trigger.supersede_queued = true;
+    }
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let first_body = checked(serde_json::to_vec(&json!({
+        "action": "opened",
+        "repository": repository(),
+        "number": 7,
+        "pull_request": {
+            "number": 7,
+            "state": "open",
+            "head": {"ref": "main", "sha": revision, "repo": repository()},
+            "base": {"ref": "main", "sha": revision, "repo": repository()}
+        }
+    })));
+    let first = checked(engine.automation_trigger(
+        "github",
+        &signed(
+            "00000000-0000-4000-8000-000000000021",
+            "pull_request",
+            &first_body,
+        ),
+        &first_body,
+    ));
+    assert_eq!(first.status, 202);
+    let first_id = run_id(&first);
+    let next = advance(&profile, "second");
+    let second_body = checked(serde_json::to_vec(&json!({
+        "action": "opened",
+        "repository": repository(),
+        "number": 8,
+        "pull_request": {
+            "number": 8,
+            "state": "open",
+            "head": {"ref": "main", "sha": next, "repo": repository()},
+            "base": {"ref": "main", "sha": next, "repo": repository()}
+        }
+    })));
+    let second = checked(engine.automation_trigger(
+        "github",
+        &signed(
+            "00000000-0000-4000-8000-000000000022",
+            "pull_request",
+            &second_body,
+        ),
+        &second_body,
+    ));
+    assert_eq!(second.status, 202);
+    let second_id = run_id(&second);
+    let first_run = value(&get(
+        &mut engine,
+        &format!("/api/runs/{first_id}"),
+        Role::Operator,
+    ));
+    assert_ne!(at(&first_run, "/outcome"), json!("Cancelled"));
+    assert_eq!(
+        at(
+            &value(&get(
+                &mut engine,
+                &format!("/api/runs/{second_id}"),
+                Role::Operator,
+            )),
+            "/phase"
+        ),
+        json!("queued")
+    );
+    assert_eq!(backend.lock().controls, 0);
+    assert_eq!(backend.lock().dispatches, 1);
+}
+
+#[test]
 fn signed_pull_request_and_stale_or_unregistered_sources_have_opposite_effects() {
     let (root, profile, revision) = fixture();
     let backend = Arc::new(Mutex::new(Backend::default()));

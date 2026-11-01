@@ -807,7 +807,12 @@ impl Engine {
         let mut head = None;
         let mut untrusted_event = None;
         let mut decisions = Vec::new();
+        let mut pull_request_number = None;
         if let Some(event) = event {
+            pull_request_number = match event.selector() {
+                EventSelector::PullRequest { number, .. } => Some(*number),
+                EventSelector::Push { .. } => None,
+            };
             let selected =
                 crate::automation::filters::selects(&registration, state, event.selector());
             if !selected {
@@ -988,6 +993,7 @@ impl Engine {
                     error_code: None,
                     project_id: trigger.project_id,
                     reference: trigger.reference,
+                    pull_request: pull_request_number,
                     source_revision: revision.clone(),
                     candidate_identity: candidate.clone(),
                     affected: evaluation.as_ref().map(|e| e.set.clone()),
@@ -1018,7 +1024,7 @@ impl Engine {
             return Ok(());
         }
         let request_id = format!("automation-{}", blake3::hash(id.as_bytes()).to_hex());
-        let body = match reservation.source_revision {
+        let mut body = match reservation.source_revision {
             Some(ref revision) => {
                 json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference,"source_revision":revision})
             }
@@ -1026,6 +1032,11 @@ impl Engine {
                 json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference})
             }
         };
+        if let Some(pull_request) = reservation.pull_request
+            && let Some(object) = body.as_object_mut()
+        {
+            object.insert("pull_request".into(), json!(pull_request));
+        }
         let principal = crate::access::Principal {
             id: format!(
                 "automation:{}:{}",
@@ -1116,9 +1127,17 @@ impl Engine {
         let mut queued = Vec::new();
         let mut active = Vec::new();
         for run in self.state.runs.values() {
+            let same_scope = match reservation.pull_request {
+                Some(pull_request) => run.requested_pull_request == Some(pull_request),
+                None => {
+                    run.requested_pull_request.is_none()
+                        && run.requested_reference.as_deref()
+                            == Some(reservation.reference.as_str())
+                }
+            };
             if run.id == new_run
                 || run.project_id != reservation.project_id
-                || run.requested_reference.as_deref() != Some(reservation.reference.as_str())
+                || !same_scope
                 || run.source.exact_revision == new_revision
                 || run.outcome().is_terminal()
             {
@@ -1238,6 +1257,7 @@ impl Engine {
                             error_code: None,
                             project_id: schedule.project_id.clone(),
                             reference: schedule.reference.clone(),
+                            pull_request: None,
                             source_revision: None,
                             candidate_identity: None,
                             affected: None,

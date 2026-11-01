@@ -368,6 +368,9 @@ pub struct SourceRecord {
     pub error_code: Option<String>,
     pub project_id: String,
     pub reference: String,
+    /// Pull-request number when the source is a pull-request event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pull_request: Option<u64>,
     pub source_revision: Option<String>,
     pub candidate_identity: Option<String>,
     /// Affected decision of the repository event this source belongs to.

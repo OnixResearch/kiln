@@ -3,6 +3,10 @@
   "date": "2026-11-01",
   "commands": [
     {
+      "command": "cargo test -p kiln-web-service --test engine pull_request_supersession_is_scoped_to_one_pull_request",
+      "result": "1 passed; a newer pull-request dispatch does not cancel an active run for another pull request"
+    },
+    {
       "command": "cargo test -p kiln-web-service --test engine new_trigger_supersedes_active_and_queued_runs",
       "result": "1 passed; older active and queued runs become Cancelled and the newest remains queued"
     },
@@ -25,7 +29,7 @@
   ],
   "behavior": {
     "policy": "supersede_queued defaults false and is optional in the Nickel trigger contract",
-    "match": "same project, same requested reference, different exact revision, nonterminal non-waiting runs",
+    "match": "same project and source scope (push reference or pull-request number), different exact revision, nonterminal non-waiting runs",
     "effect": "older queued runs use durable request replay; older active runs use one exact provider cancellation; failures are best-effort",
     "isolation": "awaiting-approval and terminal runs are untouched"
   },

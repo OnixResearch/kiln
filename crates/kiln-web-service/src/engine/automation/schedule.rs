@@ -98,6 +98,7 @@ impl Engine {
                 error_code: (!dispatch).then(|| "schedule_source_unavailable".into()),
                 project_id: schedule.project_id.clone(),
                 reference: schedule.reference.clone(),
+                pull_request: None,
                 source_revision: revision,
                 candidate_identity: None,
                 affected: None,
