@@ -75,6 +75,8 @@ let Ownership = {
       owners | Array Principal,
       teams | Array (Text 128),
       target_refs | Array Target,
+      project | Text 128 | optional,
+      interface | Array (Text 1024) | optional,
       required_evidence | Array OwnershipEvidence | optional,
       approval | { _ | ApprovalMode } | optional,
     },

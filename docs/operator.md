@@ -3143,6 +3143,13 @@ The exported `kiln.code-review-profile.v1` declares:
   requirement and is rejected for undeclared classes. Missing or incomplete
   changed-file facts fail ownership evaluation before classification. Ordinary
   approvals, vetoes, blocking threads, CI and merge preflight still apply.
+  A rule may name a monorepo `project` and a subset of its `paths` as
+  `interface`. When an interface pattern matches a changed path, the checklist
+  requires full clean CI for every other affected project in the current
+  required-project set, even when `require_ci` is false, plus one eligible
+  non-author owner approval from each ownership rule linked to those affected
+  projects. This first cut conservatively treats every affected project as a
+  dependent; explicit dependency-edge evidence is not yet used.
   Changed paths come from the provider comparison, including renamed old paths;
   incomplete observations cannot silently satisfy ownership. Registration and
   upload automatically request eligible owners. An empty rules list disables

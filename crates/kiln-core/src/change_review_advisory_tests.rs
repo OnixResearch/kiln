@@ -20,6 +20,8 @@ fn policy(ownership: bool, minimum_approvals: u32) -> Policy {
             target_refs: BTreeSet::new(),
             required_evidence: Vec::new(),
             approval: BTreeMap::new(),
+            project: None,
+            interface: Vec::new(),
         });
     }
     Policy {

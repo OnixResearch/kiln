@@ -580,6 +580,13 @@ pub struct OwnershipRule {
     pub teams: BTreeSet<String>,
     /// Exact target refs; empty means every target.
     pub target_refs: BTreeSet<String>,
+    /// Monorepo project this rule owns; enables interface dependency checks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project: Option<String>,
+    /// Interface globs, each also present in `paths`. An interface change
+    /// requires dependent-project CI and owner acknowledgement.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub interface: Vec<String>,
     /// Additional exact-revision evidence this matching rule requires.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required_evidence: Vec<OwnershipEvidence>,
@@ -1090,6 +1097,16 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
                 .iter()
                 .all(|team| policy.ownership.teams.contains_key(team))
             || rule_owners(policy, rule).next().is_none()
+            || rule.project.as_ref().is_some_and(|project| {
+                project.trim().is_empty() || project.trim() != project || project.len() > 128
+            })
+            || rule.interface.len() > rule.paths.len()
+            || !rule
+                .interface
+                .iter()
+                .all(|pattern| paths::valid_pattern(pattern) && rule.paths.contains(pattern))
+            || rule.interface.iter().collect::<BTreeSet<_>>().len() != rule.interface.len()
+            || (!rule.interface.is_empty() && rule.project.is_none())
             || rule.target_refs.iter().any(|target| {
                 !target.starts_with("refs/heads/")
                     || !paths::canonical(target)
@@ -1235,6 +1252,18 @@ fn rule_matches(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
     })
 }
 
+fn interface_changed(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
+    rule.interface.iter().any(|pattern| {
+        files.iter().any(|file| {
+            paths::matches(pattern, &file.path)
+                || file
+                    .old_path
+                    .as_ref()
+                    .is_some_and(|path| paths::matches(pattern, path))
+        })
+    })
+}
+
 fn automatic_reviewers(
     change: &Change,
     revision: &Revision,
@@ -1263,6 +1292,31 @@ fn automatic_reviewers(
                     })
                     .cloned(),
             );
+        }
+    }
+    for rule in &policy.ownership.rules {
+        let Some(source) = &rule.project else {
+            continue;
+        };
+        if !applicable(rule, change) || !interface_changed(rule, files) {
+            continue;
+        }
+        for requirement in facts.ci_required.iter().flatten() {
+            if requirement.project == *source {
+                continue;
+            }
+            for dependent in policy.ownership.rules.iter().filter(|dependent| {
+                dependent.project.as_deref() == Some(requirement.project.as_str())
+                    && applicable(dependent, change)
+            }) {
+                reviewers.extend(
+                    rule_owners(policy, dependent)
+                        .filter(|principal| {
+                            **principal != change.owner && **principal != revision.author
+                        })
+                        .cloned(),
+                );
+            }
         }
     }
     Ok(reviewers)
@@ -1861,6 +1915,65 @@ fn checklist_at(
                                     rule.id, evidence.project, ci_commit
                                 ),
                             });
+                        }
+                        if let (Some(source), true) =
+                            (&rule.project, interface_changed(rule, files))
+                        {
+                            for requirement in facts.ci_required.iter().flatten() {
+                                if requirement.project == *source {
+                                    continue;
+                                }
+                                let observed = latest_for(
+                                    &requirement.project,
+                                    Some(requirement.scope_identity.as_deref()),
+                                );
+                                items.push(ChecklistItem {
+                                    key: alloc::format!(
+                                        "interface_ci:{}:{}",
+                                        rule.id,
+                                        requirement.project
+                                    ),
+                                    satisfied: policy_valid
+                                        && observed.is_some_and(CiFact::satisfies_required),
+                                    detail: alloc::format!(
+                                        "interface {} of rule {} requires full clean CI for affected project {} at exact commit {} and its current scope identity",
+                                        rule.interface.join(", "),
+                                        rule.id,
+                                        requirement.project,
+                                        ci_commit
+                                    ),
+                                });
+                                for dependent in policy.ownership.rules.iter().filter(|dependent| {
+                                    dependent.project.as_deref()
+                                        == Some(requirement.project.as_str())
+                                        && applicable(dependent, change)
+                                }) {
+                                    let approved =
+                                        change.votes.iter().filter(counts_for_approval).any(
+                                            |vote| {
+                                                vote.value == VoteValue::Approve
+                                                    && rule_owners(policy, dependent)
+                                                        .any(|owner| owner == &vote.actor)
+                                            },
+                                        );
+                                    items.push(ChecklistItem {
+                                        key: alloc::format!(
+                                            "interface:{}:{}",
+                                            rule.id,
+                                            dependent.id
+                                        ),
+                                        satisfied: policy_valid && approved,
+                                        detail: alloc::format!(
+                                            "interface {} of rule {} requires one eligible non-author owner of dependent project {} rule {} to approve exact revision {}",
+                                            rule.interface.join(", "),
+                                            rule.id,
+                                            requirement.project,
+                                            dependent.id,
+                                            revision.id
+                                        ),
+                                    });
+                                }
+                            }
                         }
                     }
                 }
@@ -3103,6 +3216,8 @@ mod tests {
             target_refs: ["refs/heads/main".into()].into_iter().collect(),
             required_evidence: Vec::new(),
             approval: BTreeMap::new(),
+            project: None,
+            interface: Vec::new(),
         });
         facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
             complete: true,
@@ -3654,6 +3769,8 @@ mod tests {
             target_refs: BTreeSet::new(),
             required_evidence: Vec::new(),
             approval: BTreeMap::new(),
+            project: None,
+            interface: Vec::new(),
         });
         let mut state = ReviewState::default();
         create(&mut state, &mut facts, "c")?;
@@ -4371,6 +4488,121 @@ mod tests {
         let checks = checklist(&state, "c", &facts)?;
         assert!(evidence_item(&checks, "approvals")?);
         assert!(evidence_item(&checks, "owner:core")?);
+        Ok(())
+    }
+
+    #[test]
+    fn interface_change_requires_dependent_ci_and_owner_acknowledgement() -> ReviewResult<()> {
+        let mut facts = self::facts();
+        facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
+            complete: true,
+            files: vec![ChangedFile {
+                path: "src/lib.rs".into(),
+                old_path: None,
+            }],
+        });
+        facts.ci_required = Some(vec![
+            CiRequirement {
+                project: "api".into(),
+                scope_identity: None,
+            },
+            CiRequirement {
+                project: "web".into(),
+                scope_identity: None,
+            },
+        ]);
+        facts.ci.push(CiFact {
+            project: "api".into(),
+            repository: "source-repository".into(),
+            revision: "commit-c".into(),
+            run_id: "api-run".into(),
+            ordinal: 2,
+            success: true,
+            full_run: true,
+            clean: true,
+            scope_identity: None,
+            terminal: true,
+            untrusted: None,
+        });
+        facts.ci.push(CiFact {
+            project: "web".into(),
+            repository: "source-repository".into(),
+            revision: "commit-c".into(),
+            run_id: "web-run".into(),
+            ordinal: 3,
+            success: true,
+            full_run: true,
+            clean: true,
+            scope_identity: None,
+            terminal: true,
+            untrusted: None,
+        });
+        let policy = facts.policy.as_mut().required()?;
+        policy.ownership.rules.push(OwnershipRule {
+            id: "api".into(),
+            paths: vec!["src/**".into()],
+            owners: ["bob".into()].into_iter().collect(),
+            teams: BTreeSet::new(),
+            target_refs: BTreeSet::new(),
+            project: Some("api".into()),
+            interface: vec!["src/**".into()],
+            required_evidence: Vec::new(),
+            approval: BTreeMap::new(),
+        });
+        policy.ownership.rules.push(OwnershipRule {
+            id: "web".into(),
+            paths: vec!["web/**".into()],
+            owners: ["carol".into()].into_iter().collect(),
+            teams: BTreeSet::new(),
+            target_refs: BTreeSet::new(),
+            project: Some("web".into()),
+            interface: Vec::new(),
+            required_evidence: Vec::new(),
+            approval: BTreeMap::new(),
+        });
+        let mut state = ReviewState::default();
+        create(&mut state, &mut facts, "c")?;
+        assert!(state
+            .changes
+            .get("c")
+            .required()?
+            .reviewers
+            .contains_key("carol"));
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "interface_ci:api:web")?);
+        assert!(!evidence_item(&checks, "interface:api:web")?);
+        facts.ci.last_mut().required()?.clean = false;
+        assert!(!evidence_item(
+            &checklist(&state, "c", &facts)?,
+            "interface_ci:api:web"
+        )?);
+        facts.ci.last_mut().required()?.clean = true;
+        vote(&mut state, &mut facts, "carol", VoteValue::Approve)?;
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "interface_ci:api:web")?);
+        assert!(evidence_item(&checks, "interface:api:web")?);
+        Ok(())
+    }
+
+    #[test]
+    fn interface_policy_admission_requires_project_and_subset_patterns() -> ReviewResult<()> {
+        let facts = owned_facts()?;
+        let base = facts.policy.as_ref().required()?.clone();
+        let reject = |policy: &Policy| -> ReviewResult<String> {
+            validate_policy(policy)
+                .err()
+                .required()
+                .map(|error| error.code)
+        };
+        let mut outside = base.clone();
+        let rule = outside.ownership.rules.first_mut().required()?;
+        rule.project = Some("api".into());
+        rule.interface = vec!["other/**".into()];
+        assert_eq!(reject(&outside)?, "invalid_policy");
+        let mut missing_project = base;
+        let rule = missing_project.ownership.rules.first_mut().required()?;
+        rule.interface = vec!["src/**".into()];
+        assert_eq!(reject(&missing_project)?, "invalid_policy");
         Ok(())
     }
 
@@ -5414,6 +5646,8 @@ mod tests {
                 target_refs: target.into_iter().map(Into::into).collect(),
                 required_evidence: Vec::new(),
                 approval: BTreeMap::new(),
+                project: None,
+                interface: Vec::new(),
             });
         }
         assert_eq!(
