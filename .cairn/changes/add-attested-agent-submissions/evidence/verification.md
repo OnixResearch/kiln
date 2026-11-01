@@ -5,7 +5,7 @@
 Revisions submitted by a declared agent principal now record that exact
 principal in `submitted_by`. An agent principal declaring human authorship is
 rejected before mutation. Human and unattested submissions remain
-byte-compatible. The review header and identity view show the attested principal
+byte-compatible. The review list, header and identity view show the attested principal
 separately from self-declared, unverified authorship.
 
 ## Evidence

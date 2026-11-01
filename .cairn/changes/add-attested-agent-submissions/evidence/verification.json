@@ -31,7 +31,7 @@
     "attestation": "Create and Upload by a declared agent principal record submitted_by on the revision from trusted facts",
     "rejection": "agent principals declaring human authorship fail with agent_authorship_mismatch before mutation",
     "compatibility": "human and unattested revisions omit submitted_by, preserving existing journal bytes",
-    "surface": "the review header and identity view label the exact attested agent principal separately from self-declared authorship"
+    "surface": "the review list, header and identity view label the exact attested agent principal separately from self-declared authorship"
   },
   "non_claims": [
     "self-declared authorship remains unverified; submitted_by attests the configured principal only",

@@ -624,6 +624,7 @@
         const meta = node("p", null, "cr-muted cr-change-meta"); meta.append(exactId(change.id));
         if (change.unresolved) meta.append(chip(`${change.unresolved} unresolved`));
         if (change.advisory_current) meta.append(chip(`${change.advisory_current} advisory (non-binding)`, "cr-chip-advisory"));
+        if (latest?.submitted_by) meta.append(chip(`Agent: ${latest.submitted_by.principal} (declared)`));
         const attention = arr(change.attention), others = attention.filter(p => p !== state.context.principal);
         if (others.length < attention.length) meta.append(chip("Needs your attention", "cr-chip-attention"));
         if (others.length) { const who = node("span", `${others.length < attention.length ? "Also" : "Attention"}: `); others.forEach((p, i) => who.append(...(i ? [", "] : []), principalNode(p))); meta.append(who); }

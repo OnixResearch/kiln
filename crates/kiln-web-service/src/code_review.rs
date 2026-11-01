@@ -1232,7 +1232,7 @@ fn enriched(
         "advisory":change.advisory,"advisory_current":domain::current_advisory(change).count()})
 }
 fn summary(change: &domain::Change, state: &State) -> Value {
-    let revision = change.revisions.last().map(|revision|json!({"id":revision.id,"number":revision.number,"commit":revision.commit,"base":revision.base,"author":revision.author,"created_ms":revision.created_ms}));
+    let revision = change.revisions.last().map(|revision|json!({"id":revision.id,"number":revision.number,"commit":revision.commit,"base":revision.base,"author":revision.author,"created_ms":revision.created_ms,"submitted_by":revision.submitted_by}));
     json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),"project":change.project,"repository":change.repository,"target_ref":change.target_ref,"owner":change.owner,"title":change.title,"state":change.state,"wip":change.wip,"authorship":domain::authorship_class(change),"revisions":revision.into_iter().collect::<Vec<_>>(),"reviewers":change.reviewers,"attention":change.attention,"unresolved":change.threads.iter().filter(|t| !t.resolved).count(),"advisory_current":domain::current_advisory(change).count()})
 }
 fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery, Failure> {
