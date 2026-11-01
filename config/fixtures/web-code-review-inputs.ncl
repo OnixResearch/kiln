@@ -16,6 +16,7 @@
     ownership = {
       teams = { maintainers = ["reviewer"] },
       classes = [{ id = "docs", paths = ["docs/**"] }],
+      dependents = { fixture = [] },
       rules = [
         {
           id = "source",
@@ -23,6 +24,8 @@
           owners = [],
           teams = ["maintainers"],
           target_refs = [],
+          project = "fixture",
+          interface = ["src/**"],
           required_evidence = [{ kind = "project_ci", project = "fixture" }],
           approval = { docs = "evidence_only" },
         }
