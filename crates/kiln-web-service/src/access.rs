@@ -60,6 +60,8 @@ pub struct TailnetBinding {
     pub login_name: String,
     pub label: String,
     pub role: BrowserRole,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentDeclaration>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -141,6 +143,10 @@ impl AccessProfile {
                     || !label(&binding.label)
                     || !label(&binding.login_name)
                     || binding.login_name.contains('*')
+                    || binding.agent.as_ref().is_some_and(|agent| {
+                        !agent_text(&agent.harness)
+                            || agent.model.as_ref().is_some_and(|model| !agent_text(model))
+                    })
                     || !users.insert(&binding.user_id)
                     || !logins.insert(&binding.login_name)
                 {
@@ -153,15 +159,20 @@ impl AccessProfile {
     /// Exact review principal ids and declarations for agent viewer bindings.
     #[must_use]
     pub fn agent_bindings(&self) -> std::collections::BTreeMap<String, AgentDeclaration> {
-        self.viewers
-            .iter()
-            .filter_map(|viewer| {
-                viewer
-                    .agent
-                    .clone()
-                    .map(|agent| (format!("viewer:{}", viewer.id), agent))
-            })
-            .collect()
+        let mut agents = std::collections::BTreeMap::new();
+        for viewer in &self.viewers {
+            if let Some(agent) = &viewer.agent {
+                agents.insert(format!("viewer:{}", viewer.id), agent.clone());
+            }
+        }
+        if let Some(proxy) = &self.proxy {
+            for binding in &proxy.principals {
+                if let Some(agent) = &binding.agent {
+                    agents.insert(format!("tailscale:{}", binding.user_id), agent.clone());
+                }
+            }
+        }
+        agents
     }
     /// Exact review principal ids declared as agents by viewer bindings.
     #[must_use]
@@ -281,7 +292,7 @@ impl IdentityResolver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn proxy() -> ProxyProfile {
+    pub(super) fn proxy() -> ProxyProfile {
         ProxyProfile {
             listen_address: "127.0.0.1:8089"
                 .parse()
@@ -293,6 +304,7 @@ mod tests {
                 login_name: "operator@example.com".into(),
                 label: "Operator".into(),
                 role: BrowserRole::Viewer,
+                agent: None,
             }],
         }
     }
@@ -426,7 +438,7 @@ mod agent_tests {
     }
 
     #[test]
-    fn viewer_agent_declarations_are_bounded_and_collected() {
+    fn agent_declarations_are_bounded_and_collected() {
         let agent = AgentDeclaration {
             harness: "omp".into(),
             model: Some("deepseek".into()),
@@ -438,6 +450,18 @@ mod agent_tests {
             ["viewer:agent".into()].into_iter().collect()
         );
         assert_eq!(valid.agent_bindings().get("viewer:agent"), Some(&agent));
+        let mut tailnet = AccessProfile {
+            proxy: Some(self::tests::proxy()),
+            ..AccessProfile::default()
+        };
+        tailnet
+            .proxy
+            .as_mut()
+            .and_then(|proxy| proxy.principals.first_mut())
+            .unwrap_or_else(|| unreachable!("proxy fixture missing"))
+            .agent = Some(agent.clone());
+        assert!(tailnet.admit().is_ok());
+        assert_eq!(tailnet.agent_bindings().get("tailscale:123"), Some(&agent));
         for invalid in [
             AgentDeclaration {
                 harness: String::new(),

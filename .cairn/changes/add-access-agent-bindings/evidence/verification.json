@@ -3,7 +3,7 @@
   "date": "2026-11-01",
   "commands": [
     {
-      "command": "cargo test -p kiln-web-service --lib viewer_agent_declarations",
+      "command": "cargo test -p kiln-web-service --lib agent_declarations",
       "result": "1 passed; valid declarations are collected as exact viewer principals and empty, untrimmed, control-containing or over-bound text is rejected"
     },
     {
@@ -33,7 +33,7 @@
   ],
   "behavior": {
     "declaration": "optional viewer agent { harness, model? } with bounded trimmed non-control text",
-    "derivation": "each declared viewer contributes the exact viewer:<id> principal",
+    "derivation": "each declared viewer or tailnet binding contributes the exact viewer:<id> or tailscale:<user-id> principal",
     "merge": "the server unions access agents into review agent_principals without duplicates before review admission",
     "authority": "review write-principal admission still applies; a non-writer agent fails startup",
     "compatibility": "viewers without an agent declaration remain unchanged"

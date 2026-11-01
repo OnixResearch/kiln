@@ -2627,9 +2627,9 @@ inputs and pass their JSON outputs as `--access` and `--automation` to both
 `check` and `serve`. They do not replace the original service/worker profiles.
 Access policy admits independent viewer credentials and, optionally, exact
 Tailscale user ID/login/role bindings with a distinct private proxy credential.
-A viewer binding may declare `agent = { harness, model? }`; when code review is
-configured, its exact `viewer:<id>` principal is merged into the review agent
-list so advisory/binding vote policy and submission attestation apply. The
+A viewer or tailnet binding may declare `agent = { harness, model? }`; when code
+review is configured, its exact `viewer:<id>` or `tailscale:<user-id>` principal
+is merged into the review agent list so advisory/binding vote policy and submission attestation apply. The
 declaration must name a review write principal or startup fails. Harness/model
 text is bounded; it is configuration, not verified execution metadata. When
 present, it is recorded on revisions submitted by that agent and shown with the

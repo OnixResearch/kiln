@@ -69,6 +69,7 @@ fun input =>
               login_name | Label,
               label | Label,
               role | Role,
+              agent | { harness | Label | AgentText, model | Label | AgentText | optional } | optional,
             },
         }
   in

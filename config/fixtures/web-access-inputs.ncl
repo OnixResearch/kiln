@@ -17,6 +17,7 @@
         login_name = "operator@example.com",
         label = "Registered operator",
         role = "operator",
+        agent = { harness = "omp", model = "deepseek" },
       }
     ],
   },

@@ -9,7 +9,7 @@ review-principal derivation.
 
 ### Requirement: Bounded viewer agent declarations
 
-r[kiln.access.agent.declaration] A viewer binding MAY declare
+r[kiln.access.agent.declaration] A viewer or tailnet binding MAY declare
 `agent = { harness, model? }`. Harness and optional model MUST be non-empty,
 trimmed, non-control text bounded to 128 bytes. Invalid declarations MUST reject
 the access policy. Existing viewers without an agent declaration MUST remain
@@ -23,8 +23,9 @@ r[kiln.access.agent.declaration.scenario.invalid]
 
 ### Requirement: Exact review agent derivation
 
-r[kiln.access.agent.derivation] Access MUST expose the exact `viewer:<id>`
-principal for every viewer with an agent declaration. When code review is
+r[kiln.access.agent.derivation] Access MUST expose the exact `viewer:<id>` or
+`tailscale:<user-id>` principal for every viewer or tailnet binding with an agent
+declaration. When code review is
 configured, the service MUST union those principals into the review agent list
 without duplicates before review profile admission. Review admission MUST still
 require every agent to be an admitted review write principal. The declaration

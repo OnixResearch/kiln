@@ -2,7 +2,8 @@
 
 ## Result
 
-Access viewer bindings may declare an agent harness and optional model. The
+Access viewer and tailnet bindings may declare an agent harness and optional
+model. The
 service derives the exact `viewer:<id>` principal and merges it into the review
 agent list before review admission, so advisory/binding vote policy and
 submission attestation use the access-declared identity. Non-writer agents fail
