@@ -819,7 +819,7 @@ impl Workspace {
             .collect();
         let agents: BTreeSet<String> = profile.agent_principals.iter().cloned().collect();
         response(
-            json!({"change":enriched(change,&state,principal,&agents),"agent_votes":facts.policy.as_ref().map(|policy| policy.agent_votes).unwrap_or_default(),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
+            json!({"change":enriched(change,&state,principal,&agents,&profile.agent_metadata),"agent_votes":facts.policy.as_ref().map(|policy| policy.agent_votes).unwrap_or_default(),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
                 "subscribed":delivery::subscribed(&state.delivery,principal,id),"delivery_outcomes":delivery::outcomes(&state.delivery,principal,id),
                 "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some(),
                 "noise":noise::published(profile.review.as_ref()),
@@ -1205,6 +1205,7 @@ fn enriched(
     state: &State,
     principal: &str,
     agents: &BTreeSet<String>,
+    agent_metadata: &BTreeMap<String, domain::AgentIdentity>,
 ) -> Value {
     let reviewed: Vec<_> = domain::reviewed(change, principal).collect();
     let reviewed_hunks: Vec<_> = domain::reviewed_hunks(change, principal).collect();
@@ -1212,6 +1213,19 @@ fn enriched(
         .reviewers
         .keys()
         .filter(|principal| agents.contains(*principal))
+        .collect();
+    let agent_reviewer_metadata: Vec<Value> = change
+        .reviewers
+        .keys()
+        .filter(|principal| agents.contains(*principal))
+        .map(|principal| {
+            let identity = agent_metadata.get(principal);
+            json!({
+                "principal": principal,
+                "harness": identity.map(|identity| identity.harness.as_str()),
+                "model": identity.and_then(|identity| identity.model.as_deref()),
+            })
+        })
         .collect();
     let votes: Vec<Value> = change
         .votes
@@ -1223,7 +1237,7 @@ fn enriched(
     json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),
         "project":change.project,"repository":change.repository,"target_ref":change.target_ref,
         "owner":change.owner,"title":change.title,"description":change.description,"state":change.state,
-        "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"agent_reviewers":agent_reviewers,"votes":votes,
+        "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"agent_reviewers":agent_reviewers,"agent_reviewer_metadata":agent_reviewer_metadata,"votes":votes,
         "threads":change.threads,"reviewed":reviewed,"reviewed_hunks":reviewed_hunks,
         "last_viewed":change.last_viewed.get(principal),"attention":change.attention,
         "dependencies":change.dependencies,"candidate":change.candidate,"submission":change.submission,
