@@ -549,7 +549,7 @@
     meta.append(pill(c.state, "Change state")); if (c.wip) meta.append(chip("Work in progress"));
     meta.append(chip(`Authorship: ${authorshipClassLabel(c.authorship)}`));
     const selectedRevision = arr(c.revisions).find(item => item.id === revision()) || current();
-    if (selectedRevision?.submitted_by) meta.append(chip(`Agent: ${selectedRevision.submitted_by.principal} (declared)`));
+    if (selectedRevision?.submitted_by) { const attested = selectedRevision.submitted_by; meta.append(chip(`Agent: ${attested.principal}${attested.agent ? ` · ${attested.agent.harness}${attested.agent.model ? ` / ${attested.agent.model}` : ""}` : ""} (declared)`)); }
     const target = node("span", null, "cr-muted"), owner = node("span", "Owner ", "cr-muted"); target.append(exactId(c.repository), " → ", node("code", c.target_ref)); owner.append(principalNode(c.owner)); meta.append(owner, target);
     // One-glance attention: the observed submit readiness links to the requirements card (also below the main column on narrow screens).
     const items = arr(state.detail.checklist?.items), ready = state.detail.checklist?.ready === true, readiness = node("a", null, "cr-readiness"); readiness.href = "#cr-requirements";
@@ -624,7 +624,7 @@
         const meta = node("p", null, "cr-muted cr-change-meta"); meta.append(exactId(change.id));
         if (change.unresolved) meta.append(chip(`${change.unresolved} unresolved`));
         if (change.advisory_current) meta.append(chip(`${change.advisory_current} advisory (non-binding)`, "cr-chip-advisory"));
-        if (latest?.submitted_by) meta.append(chip(`Agent: ${latest.submitted_by.principal} (declared)`));
+        if (latest?.submitted_by) { const attested = latest.submitted_by; meta.append(chip(`Agent: ${attested.principal}${attested.agent ? ` · ${attested.agent.harness}${attested.agent.model ? ` / ${attested.agent.model}` : ""}` : ""} (declared)`)); }
         const attention = arr(change.attention), others = attention.filter(p => p !== state.context.principal);
         if (others.length < attention.length) meta.append(chip("Needs your attention", "cr-chip-attention"));
         if (others.length) { const who = node("span", `${others.length < attention.length ? "Also" : "Attention"}: `); others.forEach((p, i) => who.append(...(i ? [", "] : []), principalNode(p))); meta.append(who); }
