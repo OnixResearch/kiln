@@ -1101,10 +1101,15 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
                 project.trim().is_empty() || project.trim() != project || project.len() > 128
             })
             || rule.interface.len() > rule.paths.len()
-            || !rule
-                .interface
-                .iter()
-                .all(|pattern| paths::valid_pattern(pattern) && rule.paths.contains(pattern))
+            || !rule.interface.iter().all(|pattern| {
+                paths::valid_pattern(pattern)
+                    && (rule.paths.contains(pattern)
+                        || (!pattern.contains(['*', '?'])
+                            && rule
+                                .paths
+                                .iter()
+                                .any(|allowed| paths::matches(allowed, pattern))))
+            })
             || rule.interface.iter().collect::<BTreeSet<_>>().len() != rule.interface.len()
             || (!rule.interface.is_empty() && rule.project.is_none())
             || rule.target_refs.iter().any(|target| {
@@ -4562,12 +4567,14 @@ mod tests {
         });
         let mut state = ReviewState::default();
         create(&mut state, &mut facts, "c")?;
-        assert!(state
-            .changes
-            .get("c")
-            .required()?
-            .reviewers
-            .contains_key("carol"));
+        assert!(
+            state
+                .changes
+                .get("c")
+                .required()?
+                .reviewers
+                .contains_key("carol")
+        );
         let checks = checklist(&state, "c", &facts)?;
         assert!(evidence_item(&checks, "interface_ci:api:web")?);
         assert!(!evidence_item(&checks, "interface:api:web")?);
@@ -4599,10 +4606,15 @@ mod tests {
         rule.project = Some("api".into());
         rule.interface = vec!["other/**".into()];
         assert_eq!(reject(&outside)?, "invalid_policy");
-        let mut missing_project = base;
+        let mut missing_project = base.clone();
         let rule = missing_project.ownership.rules.first_mut().required()?;
         rule.interface = vec!["src/**".into()];
         assert_eq!(reject(&missing_project)?, "invalid_policy");
+        let mut literal = base;
+        let rule = literal.ownership.rules.first_mut().required()?;
+        rule.project = Some("api".into());
+        rule.interface = vec!["src/lib.rs".into()];
+        assert!(validate_policy(&literal).is_ok());
         Ok(())
     }
 

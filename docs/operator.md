@@ -3144,7 +3144,9 @@ The exported `kiln.code-review-profile.v1` declares:
   changed-file facts fail ownership evaluation before classification. Ordinary
   approvals, vetoes, blocking threads, CI and merge preflight still apply.
   A rule may name a monorepo `project` and a subset of its `paths` as
-  `interface`. When an interface pattern matches a changed path, the checklist
+  `interface`. Interface patterns are either listed verbatim in `paths` or are
+  literal paths matched by one of those patterns. When an interface pattern
+  matches a changed path, the checklist
   requires full clean CI for every other affected project in the current
   required-project set, even when `require_ci` is false, plus one eligible
   non-author owner approval from each ownership rule linked to those affected

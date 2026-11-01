@@ -19,6 +19,7 @@ interface rule's own owner approval remains required.
 
 This first cut treats every other affected project as a dependent because
 explicit dependency edges are not yet carried into review facts. Interface
-patterns must be exact members of the rule paths. Dependent requirements do not
+patterns must be exact rule-path members or literal paths matched by a rule
+path. Dependent requirements do not
 replace the interface rule's owner approval. Passing tests do not prove provider
 execution correctness or release readiness.

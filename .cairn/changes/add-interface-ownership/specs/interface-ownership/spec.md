@@ -11,8 +11,9 @@ rule's own approval.
 ### Requirement: Bounded interface policy
 
 r[kiln.review.interface.policy] An ownership rule MAY declare `project` and
-`interface`. Interface patterns MUST be valid, unique and listed verbatim in the
-rule's `paths`; an interface MUST have a project. Project identities MUST be
+`interface`. Interface patterns MUST be valid and unique. Each MUST either appear verbatim
+in the rule's `paths` or be a literal path matched by one of those patterns; an
+interface MUST have a project. Project identities MUST be
 non-empty, trimmed and bounded. Invalid combinations MUST reject the policy.
 Empty optional fields MUST serialize as absent.
 
