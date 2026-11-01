@@ -1,0 +1,36 @@
+{
+  "schema": "kiln.access.agent-audit.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --test engine viewer_denials_are_attributable_and_before_effects",
+      "result": "1 passed; the denied viewer audit record carries the declared agent harness and role"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "attribution": "authenticated agent principals add their declared harness/model to audit records",
+    "omission": "non-agent and anonymous records omit the field and keep their existing shape",
+    "authority": "audit attribution changes no access, review, execution or merge decision"
+  },
+  "non_claims": [
+    "the declaration is configuration, not verified execution metadata",
+    "historical audit records are not backfilled",
+    "signed per-request agent credentials remain future work"
+  ]
+}
