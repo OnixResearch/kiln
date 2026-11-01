@@ -548,6 +548,8 @@
     const c = state.detail.change, header = node("section", null, "card cr-change-header"), heading = node("div", null, "cr-change-heading"), meta = node("div", null, "cr-header-meta"), actions = node("div", null, "cr-change-actions");
     meta.append(pill(c.state, "Change state")); if (c.wip) meta.append(chip("Work in progress"));
     meta.append(chip(`Authorship: ${authorshipClassLabel(c.authorship)}`));
+    const selectedRevision = arr(c.revisions).find(item => item.id === revision()) || current();
+    if (selectedRevision?.submitted_by) meta.append(chip(`Agent: ${selectedRevision.submitted_by.principal} (declared)`));
     const target = node("span", null, "cr-muted"), owner = node("span", "Owner ", "cr-muted"); target.append(exactId(c.repository), " → ", node("code", c.target_ref)); owner.append(principalNode(c.owner)); meta.append(owner, target);
     // One-glance attention: the observed submit readiness links to the requirements card (also below the main column on narrow screens).
     const items = arr(state.detail.checklist?.items), ready = state.detail.checklist?.ready === true, readiness = node("a", null, "cr-readiness"); readiness.href = "#cr-requirements";

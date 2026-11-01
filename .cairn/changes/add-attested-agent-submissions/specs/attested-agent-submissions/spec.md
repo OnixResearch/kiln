@@ -30,9 +30,9 @@ r[kiln.review.agent.attestation.scenario.human]
 
 ### Requirement: Attested identity is visibly separate
 
-r[kiln.review.agent.console] The review identity view MUST show an attested agent
-principal separately from self-declared authorship and MUST state that
-authorship remains self-declared and unverified. The display MUST add no
+r[kiln.review.agent.console] The review header and identity view MUST show an
+attested agent principal separately from self-declared authorship and MUST
+state that authorship remains self-declared and unverified. The display MUST add no
 authority or merge effect.
 
 #### Scenario: Attested principal label
