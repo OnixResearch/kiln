@@ -1,0 +1,46 @@
+{
+  "schema": "kiln.observe.agent-harness-friction.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-observe-core friction_aggregates_declared_agent_harnesses",
+      "result": "1 passed; a declared harness is counted once and changes the friction identity"
+    },
+    {
+      "command": "cargo test -p kiln-observe-core review_window_marks_attested_agent_revisions",
+      "result": "1 passed; attested revision harness metadata reaches the window change"
+    },
+    {
+      "command": "cargo test -p kiln-dashboard review_friction_renders_agent_submitted_counts",
+      "result": "1 passed; harness counts render in plain and HTML reports"
+    },
+    {
+      "command": "cargo test -p kiln-observe-core -p kiln-dashboard -p kiln-core -p kiln-web-service",
+      "result": "selected core, observation, dashboard and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-observe-core -p kiln-dashboard -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "fact": "review-window changes carry declared harnesses from attested revisions",
+    "count": "top-level agent_harnesses counts changes once per harness",
+    "identity": "empty maps preserve earlier identities; non-empty maps are encoded",
+    "surface": "dashboard plain and HTML friction reports show harness counts"
+  },
+  "non_claims": [
+    "declared harnesses are not verified execution",
+    "agents without harness metadata are not assigned a synthetic harness",
+    "historical windows and revisions are not backfilled",
+    "harness counts grant no review, CI, merge or release authority"
+  ]
+}

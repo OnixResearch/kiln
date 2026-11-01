@@ -121,7 +121,8 @@ first patch set lies in the window, and it clips every later fact to before
   applies to the anchor path and change target;
 - a change is merged when its submission was recorded before `end_ms`;
 - `agent_submitted` is true when any admitted revision carries attested agent
-  submission identity.
+  submission identity;
+- `agent_harnesses` lists the declared harnesses among those attested revisions.
 
 `review_friction` reports one row per class in the fixed order `human`,
 `agent`, `mixed`, `undeclared`. Each row has:
@@ -133,7 +134,9 @@ first patch set lies in the window, and it clips every later fact to before
 - `merged_changes`, `merged_without_suggestion` (merged on required CI alone),
   and `merged_without_suggestion_per_mille`;
 - `agent_submitted_changes`, counting changes with attested agent identity while
-  keeping the authorship class self-declared and unverified.
+  keeping the authorship class self-declared and unverified;
+- a top-level `agent_harnesses` map counting changes per declared harness.
+  Agents without declared harness metadata are not assigned one.
 
 `suggestion_anchors` groups suggestions by path and owner. It ranks them by
 suggestion count descending, then distinct changes descending, then path and

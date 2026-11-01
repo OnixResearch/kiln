@@ -398,6 +398,14 @@ fn encode_review_friction(output: &mut Vec<u8>, view: &ReviewFrictionView) {
     for row in &view.classes {
         encode_friction_row(output, row);
     }
+    if !view.agent_harnesses.is_empty() {
+        output.push(1);
+        push_len(output, view.agent_harnesses.len());
+        for (harness, count) in &view.agent_harnesses {
+            push_str(output, harness);
+            push_u64(output, *count);
+        }
+    }
 }
 
 fn encode_anchor(output: &mut Vec<u8>, anchor: &SuggestionAnchorView) {

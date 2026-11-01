@@ -574,6 +574,7 @@ fn review_window_export_is_bounded_and_read_only() -> TestResult {
             merged_ms: None,
             advisory_approvals: 0,
             agent_submitted: false,
+            agent_harnesses: BTreeSet::new(),
         }
     );
     let human_fact = parsed

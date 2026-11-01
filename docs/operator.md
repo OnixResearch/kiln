@@ -89,7 +89,8 @@ the CI journal. Per declared authorship class (`human`, `agent`, `mixed`,
 - the share of merged changes that had no suggestion, that is, changes merged
   on required CI alone;
 - changes carrying at least one attested agent-submitted revision, reported as
-  `agent_submitted_changes`.
+  `agent_submitted_changes`;
+- declared harness counts across those changes, reported as `agent_harnesses`.
 
 `suggestion_anchors` ranks the most frequent suggestion anchors by path and
 owning ownership rule. Use it as input for turning a recurring review comment

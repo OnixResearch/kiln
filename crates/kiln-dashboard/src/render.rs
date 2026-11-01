@@ -483,6 +483,18 @@ fn render_review_friction(out: &mut String, painter: &Painter, review: &ReviewVi
             &class.agent_submitted_changes.to_string(),
         );
     }
+    if !friction.agent_harnesses.is_empty() {
+        push_pair(
+            out,
+            "agent harnesses",
+            &friction
+                .agent_harnesses
+                .iter()
+                .map(|(harness, count)| format!("{harness}: {count}"))
+                .collect::<Vec<_>>()
+                .join("   "),
+        );
+    }
     out.push('\n');
 }
 

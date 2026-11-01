@@ -49,6 +49,9 @@ pub struct ReviewChangeFact {
     /// Any admitted patch set carries attested agent submission identity.
     #[serde(default, skip_serializing_if = "is_false")]
     pub agent_submitted: bool,
+    /// Declared harnesses among attested revisions, for friction aggregation.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub agent_harnesses: BTreeSet<String>,
 }
 
 fn is_zero_u32(value: &u32) -> bool {
@@ -129,6 +132,9 @@ pub struct ReviewFrictionView {
     pub end_ms: i64,
     pub authorship_basis: AuthorshipBasis,
     pub classes: Vec<AuthorshipFrictionView>,
+    /// Changes per declared attested harness; omitted when empty.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub agent_harnesses: BTreeMap<String, u64>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -253,6 +259,11 @@ pub fn review_window(
             agent_submitted: revisions
                 .iter()
                 .any(|revision| revision.submitted_by.is_some()),
+            agent_harnesses: revisions
+                .iter()
+                .filter_map(|revision| revision.submitted_by.as_ref()?.agent.as_ref())
+                .map(|agent| agent.harness.clone())
+                .collect(),
             advisory_approvals: u32::try_from(
                 change
                     .advisory
@@ -504,11 +515,18 @@ pub(crate) fn project_review_friction(window: &ReviewWindow) -> ReviewFrictionVi
             }
         })
         .collect();
+    let mut agent_harnesses = BTreeMap::new();
+    for change in &window.changes {
+        for harness in &change.agent_harnesses {
+            *agent_harnesses.entry(harness.clone()).or_insert(0) += 1;
+        }
+    }
     ReviewFrictionView {
         start_ms: window.start_ms,
         end_ms: window.end_ms,
         authorship_basis: AuthorshipBasis::SelfDeclaredUnverified,
         classes,
+        agent_harnesses,
     }
 }
 

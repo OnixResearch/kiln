@@ -594,6 +594,18 @@ fn review_friction_section(friction: &ReviewFrictionView) -> String {
         ));
     }
     out.push_str("</tbody>\n</table></div>\n");
+    if !friction.agent_harnesses.is_empty() {
+        out.push_str("<p class=\"note\">Agent harnesses: ");
+        out.push_str(
+            &friction
+                .agent_harnesses
+                .iter()
+                .map(|(harness, count)| format!("{} ({count})", escape(harness)))
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+        out.push_str(".</p>\n");
+    }
     out
 }
 

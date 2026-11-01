@@ -947,6 +947,7 @@ fn review_window_marks_attested_agent_revisions() {
         .find(|change| change.change_id == change_id)
         .unwrap_or_else(|| unreachable!("change in window"));
     assert!(change.agent_submitted);
+    assert!(change.agent_harnesses.contains("omp"));
 }
 
 #[test]
@@ -994,4 +995,29 @@ fn agent_submission_counts_change_friction_identity_only_when_non_zero() {
         .unwrap_or_else(|| unreachable!("fixture change"))
         .agent_submitted = true;
     assert_ne!(attested_identity, identity(two));
+}
+
+#[test]
+fn friction_aggregates_declared_agent_harnesses() {
+    let identity = |window: ReviewWindow| {
+        project(
+            &profile(),
+            ViewRequest::ReviewFriction,
+            &ObservationWindow::review(window),
+        )
+        .unwrap_or_else(|_| unreachable!("friction projection"))
+        .identity
+    };
+    let baseline = fixture_window();
+    let baseline_identity = identity(baseline.clone());
+    let mut harnessed = baseline;
+    harnessed
+        .changes
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture change"))
+        .agent_harnesses
+        .insert("omp".into());
+    let view = friction(harnessed.clone());
+    assert_eq!(view.agent_harnesses.get("omp"), Some(&1));
+    assert_ne!(baseline_identity, identity(harnessed));
 }
