@@ -15,7 +15,9 @@ optional model MUST be bounded, trimmed, non-control text. Access agent declarat
 merge by exact principal with duplicate suppression; conflicting explicit
 metadata MUST fail startup. A Create or Upload by a declared agent MUST record an
 `AttestedSubmission` containing the exact principal and any declared identity.
-Human and unattested revisions MUST omit the field, preserving old bytes.
+Human and unattested revisions MUST omit the field, preserving old bytes. A
+legacy bare-principal string in an existing journal MUST deserialize as a
+principal-only `AttestedSubmission`.
 
 #### Scenario: Declared metadata is attested
 r[kiln.review.agent.metadata.scenario.attest]

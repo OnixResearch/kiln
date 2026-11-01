@@ -2,7 +2,7 @@
 
 - [x] [serial] Add trusted agent identities, structured attested submissions and bounded metadata facts. r[kiln.review.agent.metadata]
 - [x] [serial] Attest agent Create/Upload revisions with optional declared harness/model while preserving human bytes. r[kiln.review.agent.metadata]
-- [x] [serial] Add positive and negative core metadata tests. r[kiln.review.agent.metadata]
+- [x] [serial] Add positive and negative core metadata tests, including legacy principal-only attestation compatibility. r[kiln.review.agent.metadata]
 
 ## Phase 2: Profile, access and surface
 

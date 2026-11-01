@@ -256,6 +256,29 @@ pub struct AttestedSubmission {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent: Option<AgentIdentity>,
 }
+
+/// Read journals written before attestation gained structured agent metadata.
+/// A bare principal string remains a valid principal-only submission.
+fn deserialize_submitted_by<'de, D>(deserializer: D) -> Result<Option<AttestedSubmission>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(serde::Deserialize)]
+    #[serde(untagged)]
+    enum Repr {
+        Principal(String),
+        Structured(AttestedSubmission),
+    }
+    Ok(
+        Option::<Repr>::deserialize(deserializer)?.map(|repr| match repr {
+            Repr::Principal(principal) => AttestedSubmission {
+                principal,
+                agent: None,
+            },
+            Repr::Structured(submission) => submission,
+        }),
+    )
+}
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Revision {
     pub id: String,
@@ -271,7 +294,11 @@ pub struct Revision {
     /// Attested agent principal and optional declared harness/model at submission.
     /// Omitted for human and unattested submissions, preserving old bytes.
     // r[impl kiln.review.agent.attestation]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_submitted_by",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub submitted_by: Option<AttestedSubmission>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -4496,6 +4523,23 @@ mod tests {
         assert!(evidence_item(&checks, "approvals")?);
         assert!(evidence_item(&checks, "owner:core")?);
         Ok(())
+    }
+
+    #[test]
+    fn legacy_principal_only_attestation_deserializes() {
+        let mut value = serde_json::to_value(revision("c-r1", 1, "commit-c"))
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error}"));
+        value
+            .as_object_mut()
+            .unwrap_or_else(|| unreachable!("fixture serialized object"))
+            .insert("submitted_by".into(), serde_json::json!("alice"));
+        let decoded: Revision = serde_json::from_value(value)
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error}"));
+        let attested = decoded
+            .submitted_by
+            .unwrap_or_else(|| unreachable!("legacy attestation missing"));
+        assert_eq!(attested.principal, "alice");
+        assert!(attested.agent.is_none());
     }
 
     #[test]

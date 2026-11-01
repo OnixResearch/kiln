@@ -11,7 +11,8 @@ beside the attested principal.
 
 ## Evidence
 
-- Core tests cover structured attestation and human-byte compatibility.
+- Core tests cover structured attestation, legacy bare-principal
+  deserialization and human-byte compatibility.
 - Review profile tests cover metadata admission, merge deduplication and conflict
   rejection.
 - `check` and `serve` share one review-profile loader, so startup validation

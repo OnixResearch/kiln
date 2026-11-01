@@ -7,6 +7,10 @@
       "result": "1 passed; an agent revision records its exact principal and declared harness/model while human revision bytes remain unattested"
     },
     {
+      "command": "cargo test -p kiln-core legacy_principal_only_attestation",
+      "result": "1 passed; a legacy bare principal deserializes as principal-only attestation"
+    },
+    {
       "command": "cargo test -p kiln-web-service --test code_review review_profile_agent_metadata",
       "result": "1 passed; metadata must name a declared agent and bounded harness/model text is enforced"
     },
@@ -40,7 +44,7 @@
     }
   ],
   "behavior": {
-    "attestation": "AttestedSubmission records principal and optional declared AgentIdentity harness/model",
+    "attestation": "AttestedSubmission records principal and optional declared AgentIdentity harness/model; legacy bare principal strings deserialize compatibly",
     "profile": "agent_metadata is bounded, trimmed, control-free and restricted to declared agent principals",
     "merge": "access declarations deduplicate principals and conflict-check explicit review metadata before admission",
     "startup parity": "check and serve load the same access/review agent merge before review admission",
