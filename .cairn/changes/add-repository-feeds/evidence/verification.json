@@ -149,5 +149,6 @@
     "content": "escaped RSS 2.0 channel/items with RFC 2822 pubDate and console links",
     "console": "operators receive an RSS link per repository"
   },
-  "refresh_backoff": "consecutive failures double the base cadence up to 24 hours; success or 304 resets the failure count"
+  "refresh_backoff": "consecutive failures double the base cadence up to 24 hours; success or 304 resets the failure count",
+  "add_failure_message": "a failed add returns 502 with the bounded fetch reason; no subscription is retained"
 }

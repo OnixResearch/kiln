@@ -641,6 +641,23 @@ fn repository_feeds_and_external_subscription_round_trip() {
         Some(0)
     );
 
+    let failed_add = checked(
+        client
+            .post(format!("{}/api/feeds", profile.origin))
+            .bearer_auth(&operator)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({"url": "http://127.0.0.1:1/feed.xml"}))
+            .send(),
+    );
+    assert_eq!(failed_add.status(), 502);
+    let failed_add: serde_json::Value = checked(failed_add.json());
+    assert!(
+        failed_add
+            .get("message")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|message| !message.is_empty())
+    );
+
     let viewer_feeds = checked(
         client
             .get(format!("{}/api/feeds", profile.origin))

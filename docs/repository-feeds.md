@@ -64,8 +64,8 @@ refresh failures double the retry interval from the base cadence up to one day;
 a successful refresh or `304` resets the backoff. `0` keeps refresh
 operator-only. Subscription URLs are omitted from viewer responses; entries and
 errors remain readable. Add fetches
-immediately; refresh replaces entries on success and retains previous entries
-with a bounded error on failure. Viewers can read subscriptions but cannot
+immediately and returns a bounded failure reason on error; refresh replaces
+entries on success and retains previous entries with a bounded error on failure. Viewers can read subscriptions but cannot
 mutate them. Kiln does not claim continuous freshness; refresh is explicit.
 
 ## Network and parsing bounds

@@ -327,9 +327,19 @@ impl Engine {
                 etag,
                 last_modified,
             }) => (feed, etag, last_modified),
-            Ok(FetchOutcome::NotModified { .. }) | Err(_) => {
+            Ok(FetchOutcome::NotModified { .. }) => {
                 self.append_audit(method, target, Some(principal), "denied", 502)?;
                 return error(502, "feed_unavailable");
+            }
+            Err(message) => {
+                self.append_audit(method, target, Some(principal), "denied", 502)?;
+                return json_response(
+                    502,
+                    json!({
+                        "code": "feed_unavailable",
+                        "message": message.chars().take(256).collect::<String>()
+                    }),
+                );
             }
         };
         let subscription = FeedSubscription {
