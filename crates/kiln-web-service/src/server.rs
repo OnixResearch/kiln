@@ -973,6 +973,31 @@ fn feed_api(
     let Some(profile) = &context.profile.feeds else {
         return error_response(404, "feeds_disabled");
     };
+    if request.method == "POST" && path == "/api/feeds/import" {
+        let admitted = match context.engine.lock() {
+            Ok(engine) => engine.prepare_feed_import(&request.body),
+            Err(_) => return error_response(503, "service_unavailable"),
+        };
+        let admitted = match admitted {
+            Ok(admitted) => admitted,
+            Err(message) => {
+                let (status, code) = if message.contains("not configured") {
+                    (404, "feeds_disabled")
+                } else if message.contains("bound") {
+                    (409, "feed_retention")
+                } else {
+                    (400, "feed_import_invalid")
+                };
+                return error_response(status, code);
+            }
+        };
+        return match context.engine.lock() {
+            Ok(mut engine) => engine
+                .finish_feed_import(admitted, &request.method, &request.target, principal)
+                .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
+    }
     if request.method == "POST" && path == "/api/feeds" {
         let admitted = match context.engine.lock() {
             Ok(engine) => engine.prepare_feed_add(&request.body),

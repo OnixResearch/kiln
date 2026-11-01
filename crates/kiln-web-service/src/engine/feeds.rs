@@ -18,6 +18,12 @@ struct AddFeed {
     label: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ImportFeeds {
+    opml: String,
+}
+
 pub(crate) struct AdmittedFeed {
     pub id: String,
     pub url: String,
@@ -128,26 +134,120 @@ impl Engine {
             .ok_or("feeds are not configured")?;
         let request: AddFeed =
             serde_json::from_slice(body).map_err(|_| "feed request is malformed")?;
-        let parsed = admit_url(&request.url, profile.allow_private_destinations)?;
-        let id = subscription_id(parsed.as_str());
-        if !self.state.feeds.subscriptions.contains_key(&id)
+        let admitted = self.admit_feed(&request.url, request.label.as_deref())?;
+        if !self.state.feeds.subscriptions.contains_key(&admitted.id)
             && self.state.feeds.subscriptions.len() >= profile.max_subscriptions
         {
             return Err("feed subscription bound reached".to_string());
         }
-        let label = request
-            .label
+        Ok(admitted)
+    }
+
+    /// Validate an OPML import without fetching or mutating state.
+    pub(crate) fn prepare_feed_import(&self, body: &[u8]) -> Result<Vec<AdmittedFeed>, String> {
+        let profile = self
+            .profile
+            .feeds
+            .as_ref()
+            .ok_or("feeds are not configured")?;
+        let request: ImportFeeds =
+            serde_json::from_slice(body).map_err(|_| "feed import is malformed")?;
+        let outlines =
+            crate::feeds::parse_opml(request.opml.as_bytes(), crate::feeds::MAX_OPML_OUTLINES)?;
+        let remaining = profile
+            .max_subscriptions
+            .saturating_sub(self.state.feeds.subscriptions.len());
+        if remaining == 0 {
+            return Err("feed subscription bound reached".to_string());
+        }
+        let mut admitted = Vec::new();
+        let mut ids = std::collections::BTreeSet::new();
+        for (url, label) in outlines {
+            if admitted.len() >= remaining {
+                break;
+            }
+            let Ok(feed) = self.admit_feed(&url, label.as_deref()) else {
+                continue;
+            };
+            if self.state.feeds.subscriptions.contains_key(&feed.id) {
+                continue;
+            }
+            if ids.insert(feed.id.clone()) {
+                admitted.push(feed);
+            }
+        }
+        if admitted.is_empty() {
+            return Err("feed import has no new admitted URLs".to_string());
+        }
+        Ok(admitted)
+    }
+
+    fn admit_feed(&self, url: &str, label: Option<&str>) -> Result<AdmittedFeed, String> {
+        let profile = self
+            .profile
+            .feeds
+            .as_ref()
+            .ok_or("feeds are not configured")?;
+        let parsed = admit_url(url, profile.allow_private_destinations)?;
+        let label = label
             .filter(|label| !label.trim().is_empty())
-            .unwrap_or_else(|| parsed.host_str().unwrap_or("repository feed").to_string());
-        let label = label.trim().to_string();
+            .unwrap_or_else(|| parsed.host_str().unwrap_or("repository feed"))
+            .trim()
+            .to_string();
         if label.len() > 128 || label.chars().any(char::is_control) {
             return Err("feed label is invalid".to_string());
         }
         Ok(AdmittedFeed {
-            id,
+            id: subscription_id(parsed.as_str()),
             url: parsed.to_string(),
             label,
         })
+    }
+
+    pub(crate) fn finish_feed_import(
+        &mut self,
+        feeds: Vec<AdmittedFeed>,
+        method: &str,
+        target: &str,
+        principal: &Principal,
+    ) -> Result<ApiResponse, String> {
+        self.append_audit(method, target, Some(principal), "admitted", 0)?;
+        let mut candidate = self.state.clone();
+        let mut added = 0;
+        for feed in feeds {
+            if candidate.feeds.subscriptions.contains_key(&feed.id) {
+                continue;
+            }
+            let id = feed.id;
+            candidate.feeds.subscriptions.insert(
+                id.clone(),
+                FeedSubscription {
+                    id,
+                    url: feed.url,
+                    label: feed.label,
+                    title: None,
+                    fetched_at_ms: None,
+                    error: None,
+                    etag: None,
+                    last_modified: None,
+                    entries: Vec::new(),
+                },
+            );
+            added += 1;
+        }
+        if serde_json::to_vec(&candidate).map_or(true, |bytes| {
+            bytes.len() > self.profile.bounds.max_state_bytes
+        }) {
+            self.append_audit(method, target, Some(principal), "denied", 409)?;
+            return error(409, "feed_retention");
+        }
+        self.state = candidate;
+        self.persist()?;
+        self.append_audit(method, target, Some(principal), "accepted", 201)?;
+        json_response(
+            201,
+            json!({"added": added, "subscriptions": self.state.feeds.subscriptions.len()}),
+        )
     }
 
     pub(crate) fn finish_feed_add(

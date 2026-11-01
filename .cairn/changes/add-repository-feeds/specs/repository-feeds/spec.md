@@ -91,6 +91,12 @@ r[kiln.web.feeds.subscriptions.scenario.background]
 - WHEN a background tick runs
 - THEN at most the declared per-tick count MUST refresh, oldest attempt first, and a failed refresh MUST retain entries.
 
+#### Scenario: OPML import adds pending subscriptions
+r[kiln.web.feeds.subscriptions.scenario.import]
+- GIVEN an OPML file with bounded unique outlines and available capacity
+- WHEN an operator imports it
+- THEN admitted feeds MUST be retained without network fetch, duplicates and invalid URLs skipped, and viewers MUST remain denied.
+
 ### Requirement: Bounded feed destinations and bytes
 
 r[kiln.web.feeds.security] Public subscriptions MUST use HTTPS without userinfo,

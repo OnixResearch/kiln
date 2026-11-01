@@ -22,6 +22,7 @@ pub const DEFAULT_REFRESH_INTERVAL_MS: u64 = 900_000;
 pub const MIN_REFRESH_INTERVAL_MS: u64 = 60_000;
 pub const MAX_REFRESH_INTERVAL_MS: u64 = 86_400_000;
 pub const MAX_BACKGROUND_REFRESHES_PER_TICK: usize = 2;
+pub const MAX_OPML_OUTLINES: usize = 256;
 pub const MAX_URL_BYTES: usize = 2_048;
 pub const MAX_TITLE_BYTES: usize = 512;
 pub const MAX_SUMMARY_BYTES: usize = 4_096;
@@ -86,6 +87,52 @@ impl FeedsState {
 pub struct ParsedFeed {
     pub title: Option<String>,
     pub entries: Vec<FeedEntry>,
+}
+
+/// Extract bounded subscription URLs from an OPML 2.0 document.
+///
+/// Only outlines with an `xmlUrl` are returned. Labels use `text` or `title`.
+/// Duplicate URLs are collapsed. DTD and entity declarations are refused.
+pub fn parse_opml(
+    bytes: &[u8],
+    max_outlines: usize,
+) -> Result<Vec<(String, Option<String>)>, String> {
+    if bytes.is_empty() || bytes.len() > ABSOLUTE_MAX_FEED_BYTES {
+        return Err("OPML bytes are empty or exceed the absolute bound".into());
+    }
+    let text = std::str::from_utf8(bytes).map_err(|_| "OPML is not UTF-8")?;
+    reject_unsafe_xml(text)?;
+    let document = roxmltree::Document::parse(text).map_err(|_| "OPML XML is malformed")?;
+    if document.root_element().tag_name().name() != "opml" {
+        return Err("document is not OPML".into());
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    let mut outlines = Vec::new();
+    for node in document
+        .descendants()
+        .filter(|node| node.is_element() && node.tag_name().name() == "outline")
+    {
+        let Some(url) = node.attribute("xmlUrl").map(str::trim) else {
+            continue;
+        };
+        if url.is_empty() || url.len() > MAX_URL_BYTES || !seen.insert(url.to_string()) {
+            continue;
+        }
+        let label = node
+            .attribute("text")
+            .or_else(|| node.attribute("title"))
+            .map(clean_text)
+            .filter(|label| !label.is_empty())
+            .map(|label| truncate(&label, 128));
+        outlines.push((url.to_string(), label));
+        if outlines.len() >= max_outlines {
+            break;
+        }
+    }
+    if outlines.is_empty() {
+        return Err("OPML contains no subscription outlines".into());
+    }
+    Ok(outlines)
 }
 
 /// One subscription selected for background refresh.
@@ -444,10 +491,7 @@ pub fn parse(bytes: &[u8], max_entries: usize) -> Result<ParsedFeed, String> {
         return Err("external feed bytes are empty or exceed the absolute bound".into());
     }
     let text = std::str::from_utf8(bytes).map_err(|_| "external feed is not UTF-8")?;
-    let lower = text.to_ascii_lowercase();
-    if lower.contains("<!doctype") || lower.contains("<!entity") {
-        return Err("external feed DTD and entity declarations are refused".into());
-    }
+    reject_unsafe_xml(text)?;
     let document =
         roxmltree::Document::parse(text).map_err(|_| "external feed XML is malformed")?;
     let root = document.root_element();
@@ -457,6 +501,14 @@ pub fn parse(bytes: &[u8], max_entries: usize) -> Result<ParsedFeed, String> {
         "feed" => parse_atom(root, max_entries),
         _ => Err("external feed is neither RSS nor Atom".into()),
     }
+}
+
+fn reject_unsafe_xml(text: &str) -> Result<(), String> {
+    let lower = text.to_ascii_lowercase();
+    if lower.contains("<!doctype") || lower.contains("<!entity") {
+        return Err("DTD and entity declarations are refused".into());
+    }
+    Ok(())
 }
 
 fn parse_rss(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<ParsedFeed, String> {
@@ -987,6 +1039,34 @@ mod tests {
         assert!(!is_due(59_999, Some(0), 60_000));
         assert!(is_due(60_000, Some(0), 60_000));
         assert!(!is_due(10, Some(100), 60_000));
+    }
+
+    #[test]
+    fn opml_import_extracts_bounded_unique_outlines() {
+        let xml = br#"<?xml version="1.0"?><opml version="2.0"><body>
+            <outline text="One" title="One title" xmlUrl="https://example.invalid/one.xml"/>
+            <outline text="Duplicate" xmlUrl="https://example.invalid/one.xml"/>
+            <outline text="Folder"><outline text="Nested" xmlUrl="https://example.invalid/nested.xml"/></outline>
+            <outline text="No URL"/>
+        </body></opml>"#;
+        let outlines = parse_opml(xml, 10).unwrap_or_else(|_| unreachable!());
+        assert_eq!(outlines.len(), 2);
+        assert_eq!(
+            outlines.first().map(|outline| outline.0.as_str()),
+            Some("https://example.invalid/one.xml")
+        );
+        assert_eq!(
+            outlines.first().and_then(|outline| outline.1.as_deref()),
+            Some("One")
+        );
+        assert_eq!(
+            outlines.get(1).and_then(|outline| outline.1.as_deref()),
+            Some("Nested")
+        );
+        assert!(parse_opml(xml, 1).unwrap_or_else(|_| unreachable!()).len() == 1);
+        assert!(parse_opml(b"<!DOCTYPE x><opml/>", 10).is_err());
+        assert!(parse_opml(b"<rss/>", 10).is_err());
+        assert!(parse_opml(b"<opml><body/></opml>", 10).is_err());
     }
 
     #[test]

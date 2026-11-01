@@ -1546,6 +1546,32 @@
         } finally { submit.disabled = false; }
       });
       root.append(form);
+      const importForm = element("form", undefined, "panel");
+      importForm.append(element("h2", "Import OPML"));
+      const fileLabel = element("label", "OPML file");
+      fileLabel.htmlFor = "feed-opml";
+      const file = element("input");
+      file.id = "feed-opml"; file.type = "file"; file.accept = ".opml,.xml,text/xml,application/xml,text/x-opml"; file.required = true;
+      const importButton = element("button", "Import subscriptions");
+      importButton.type = "submit";
+      importForm.append(fileLabel, file, importButton,
+        element("p", "Imported feeds are retained without blocking this request; background refresh fetches them at the configured cadence, or use Refresh per feed.", "small"));
+      importForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const selected = file.files?.[0];
+        if (!selected) return;
+        importButton.disabled = true;
+        try {
+          if (selected.size > 1_048_576) throw new Error("The OPML file exceeds 1 MiB.");
+          const opml = await selected.text();
+          const result = await api("/api/feeds/import", { method: "POST", body: { opml } });
+          notice(`Imported ${result.added} subscription${result.added === 1 ? "" : "s"}.`, "success");
+          await loadFeeds();
+        } catch (error) {
+          notice(explain(error));
+        } finally { importButton.disabled = false; }
+      });
+      root.append(importForm);
     }
     const scheduleRefresh = () => {
       if (!result.configured) return;

@@ -12,11 +12,11 @@
   "commands": [
     {
       "command": "cargo test -p kiln-web-service --lib feeds::",
-      "result": "14 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom escaping, OPML escaping, run filtering/order/limit, due selection and cadence monotonicity"
+      "result": "15 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom/OPML escaping, OPML import parsing, run filtering/order/limit, due selection and cadence monotonicity"
     },
     {
       "command": "cargo test -p kiln-web-service --lib",
-      "result": "148 passed, 0 failed, 1 ignored"
+      "result": "149 passed, 0 failed, 1 ignored"
     },
     {
       "command": "cargo test -p kiln-web-service --test engine",
@@ -92,7 +92,7 @@
     "DNS pinning and private-address checks reduce common SSRF paths but do not prove hostile-network safety",
     "the optional profile keeps feeds disabled by default; this change performs no deployment",
     "allow_private_destinations is an explicit test/private-network exception, not a production claim",
-    "the post-increment full workspace command was blocked by another workspace holding the shared cargo target lock; focused suites and lint passed"
+    "the post-import full workspace command was not run; focused library and engine suites passed"
   ],
   "background_refresh": {
     "cadence": "feeds.refresh_interval_ms; default 900000 ms, 0 disables background refresh",
@@ -127,5 +127,12 @@
     "content": "one OPML 2.0 outline per canonical repository with escaped label and token-bearing Atom URL",
     "console": "operators receive an Export OPML link; viewers receive no token-bearing OPML URL",
     "test": "feed unit OPML escaping; runtime OPML 200/content-type/content; viewer omits opml_subscribe_url"
+  },
+  "opml_import": {
+    "endpoint": "POST /api/feeds/import with {\"opml\": \"<OPML 2.0>\"}",
+    "admission": "bounded unique xmlUrl outlines, HTTPS/private policy, control-byte labels, capacity and durable-state preflight",
+    "behavior": "retains pending subscriptions without network fetch; background cadence or manual Refresh fetches them",
+    "authority": "operator only; viewer import is denied",
+    "test": "feed unit OPML parsing; runtime import adds a pending subscription and denies a viewer"
   }
 }

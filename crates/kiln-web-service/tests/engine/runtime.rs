@@ -602,6 +602,51 @@ fn repository_feeds_and_external_subscription_round_trip() {
     );
     assert_eq!(viewer_write.status(), 403);
 
+    let imported = checked(
+        client
+            .post(format!("{}/api/feeds/import", profile.origin))
+            .bearer_auth(&operator)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({
+                "opml": "<?xml version=\"1.0\"?><opml version=\"2.0\"><body><outline text=\"Imported\" xmlUrl=\"https://example.invalid/imported.xml\"/></body></opml>"
+            }))
+            .send(),
+    );
+    assert_eq!(imported.status(), 201);
+    let imported: serde_json::Value = checked(imported.json());
+    assert_eq!(imported.get("added"), Some(&serde_json::Value::from(1)));
+    let after_import = checked(
+        client
+            .get(format!("{}/api/feeds", profile.origin))
+            .bearer_auth(&operator)
+            .send(),
+    );
+    let after_import: serde_json::Value = checked(after_import.json());
+    let imported_rows = after_import
+        .get("subscriptions")
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| unreachable!("fixture subscriptions"));
+    assert_eq!(imported_rows.len(), 2);
+    let pending = imported_rows
+        .iter()
+        .find(|row| row.get("id").and_then(serde_json::Value::as_str) != Some(id.as_str()))
+        .unwrap_or_else(|| unreachable!("fixture imported subscription"));
+    assert!(pending.get("fetched_at_ms").is_none());
+    assert!(
+        pending
+            .get("entries")
+            .is_none_or(|value| value.as_array().is_some_and(Vec::is_empty))
+    );
+    let viewer_import = checked(
+        client
+            .post(format!("{}/api/feeds/import", profile.origin))
+            .bearer_auth(&viewer_token)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({"opml": "<opml/>"}))
+            .send(),
+    );
+    assert_eq!(viewer_import.status(), 403);
+
     let refreshed = checked(
         client
             .post(format!("{}/api/feeds/{id}/refresh", profile.origin))
