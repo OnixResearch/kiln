@@ -3274,7 +3274,10 @@ event, delivery or recipient, and grant no write capability. A new revision make
 them historical. The change detail lists them under "Advisory approvals
 (non-binding)", separately from votes. The change list shows the current count,
 and the search form's **Advisory approvals** filter (`advisory=with|without`) can
-be saved in personal views. Older journals and saved views replay unchanged.
+be saved in personal views. The separate **Agent submission** filter
+(`agent=with|without`) matches whether the current revision carries attested
+agent submission identity; it is also saved in personal views. Older journals
+and saved views replay unchanged.
 
 Line selection seeds a private draft with the revision, comparison-base commit,
 side, file and range. Save drafts before selecting them for atomic publication
