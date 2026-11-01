@@ -597,7 +597,7 @@
     const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], ["open", "Open"], ["abandoned", "Abandoned"], ["submitted", "Submitted"]]);
     const advisory = field(search, "Advisory approvals", "select", state.route.review_advisory || "", [["", "Any advisory state"], ["with", "With advisory approvals"], ["without", "Without advisory approvals"]]);
     const agent = field(search, "Agent submission", "select", state.route.review_agent || "", [["", "Any agent state"], ["with", "Agent-submitted revision"], ["without", "No agent attestation"]]);
-    const harnesses = [...new Set(Object.values(state.snapshot.agent_metadata || {}).map(identity => identity.harness))].sort();
+    const harnesses = [...new Set([...Object.values(state.snapshot.agent_metadata || {}).map(identity => identity.harness), ...(state.route.review_agent_harness ? [state.route.review_agent_harness] : [])])].sort();
     const agentHarness = field(search, "Agent harness", "select", state.route.review_agent_harness || "", [["", "Any declared harness"], ...harnesses.map(harness => [harness, harness])]);
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
     search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_agent: agent.value, review_agent_harness: agentHarness.value, review_change: "" }); }); list.append(search);
