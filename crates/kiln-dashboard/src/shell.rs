@@ -372,7 +372,7 @@ pub fn admit_input(options: &Options) -> Result<AdmittedJournal, String> {
         }
     };
     if let Some(path) = &options.review {
-        journal.review = Some(load_review_window(path)?);
+        journal = journal.with_review(Some(load_review_window(path)?));
     }
     Ok(journal)
 }

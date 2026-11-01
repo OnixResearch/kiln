@@ -171,7 +171,7 @@ fn summary_reports_admitted_run_and_attempt_counts() {
     assert_eq!(summary.run_count, 3);
     assert_eq!(summary.attempt_count, 3);
     assert_eq!(summary.hold_count, 0);
-    assert_eq!(journal.state.revision, 3);
+    assert_eq!(journal.state().revision, 3);
 }
 
 #[test]
@@ -251,9 +251,9 @@ fn dashboard_view_matches_the_accepted_projection() {
         .unwrap_or_else(|_| unreachable!());
     let direct = project_observation(
         &profile.observation,
-        &journal.state,
+        journal.state(),
         &ObservationRequest {
-            state_revision: journal.state.revision,
+            state_revision: journal.state().revision,
             view: ViewRequest::RunList {
                 after: None,
                 limit: profile.run_page_limit,
@@ -310,7 +310,7 @@ fn event_tail_reports_the_bounded_window_tail() {
     assert_eq!(events.page.returned, 4);
     assert!(events.page.has_earlier);
     assert!(events.page.capped);
-    assert_eq!(events.page.end_revision, journal.state.revision);
+    assert_eq!(events.page.end_revision, journal.state().revision);
 }
 
 // r[verify kiln.observe.dashboard.journal]
@@ -318,8 +318,8 @@ fn event_tail_reports_the_bounded_window_tail() {
 #[test]
 fn canonical_journal_is_admitted() {
     let journal = admitted(2);
-    assert_eq!(journal.records.len(), 2);
-    assert_eq!(journal.state.revision, 2);
+    assert_eq!(journal.records().len(), 2);
+    assert_eq!(journal.state().revision, 2);
 }
 
 // r[verify kiln.observe.dashboard.journal.scenario.substituted_event]
@@ -409,8 +409,8 @@ fn canonical_prefix_is_admitted_with_its_observed_revision() {
     let bytes = serde_json::to_vec(&value).unwrap_or_else(|_| unreachable!());
     let document = JournalDocument::parse(&bytes).unwrap_or_else(|_| unreachable!());
     let journal = admit_document(&document).unwrap_or_else(|_| unreachable!());
-    assert_eq!(journal.records.len(), 2);
-    assert_eq!(journal.state.revision, 2);
+    assert_eq!(journal.records().len(), 2);
+    assert_eq!(journal.state().revision, 2);
     let profile = dashboard_profile();
     let report = build_report(&profile, &journal, &DashboardSelection::default())
         .unwrap_or_else(|_| unreachable!());
@@ -460,7 +460,7 @@ fn canonical_json_identity_convention_is_admitted() {
     let bytes = serde_json::to_vec(&document).unwrap_or_else(|_| unreachable!());
     let parsed = JournalDocument::parse(&bytes).unwrap_or_else(|_| unreachable!());
     let journal = admit_document(&parsed).unwrap_or_else(|_| unreachable!());
-    assert_eq!(journal.state.revision, 1);
+    assert_eq!(journal.state().revision, 1);
 }
 
 #[test]
@@ -667,8 +667,8 @@ fn sqlite_event_store_is_admitted_and_projected() {
 
     let journal = kiln_dashboard::store::admit_store(&path, &profile, &stream)
         .unwrap_or_else(|_| unreachable!());
-    assert_eq!(journal.records.len(), 2);
-    assert_eq!(journal.state.revision, 2);
+    assert_eq!(journal.records().len(), 2);
+    assert_eq!(journal.state().revision, 2);
     let report = build_report(
         &dashboard_profile(),
         &journal,
@@ -702,7 +702,7 @@ fn sqlite_event_store_is_read_only_for_the_dashboard() {
     let before = std::fs::metadata(&path).unwrap_or_else(|_| unreachable!());
     let journal = kiln_dashboard::store::admit_store(&path, &profile, &stream)
         .unwrap_or_else(|_| unreachable!());
-    assert_eq!(journal.records.len(), 0);
+    assert_eq!(journal.records().len(), 0);
     let after = std::fs::metadata(&path).unwrap_or_else(|_| unreachable!());
     assert_eq!(before.len(), after.len());
     assert_eq!(
@@ -792,9 +792,9 @@ fn html_details_cover_only_paged_runs_and_explicit_selection_with_exact_views() 
             };
             let direct = project_observation(
                 &profile.observation,
-                &journal.state,
+                journal.state(),
                 &ObservationRequest {
-                    state_revision: journal.state.revision,
+                    state_revision: journal.state().revision,
                     view: ViewRequest::RunDetail {
                         run_id: detail.run.run_id.clone(),
                     },
@@ -819,9 +819,9 @@ fn html_details_cover_only_paged_runs_and_explicit_selection_with_exact_views() 
             };
             let direct = project_observation(
                 &profile.observation,
-                &journal.state,
+                journal.state(),
                 &ObservationRequest {
-                    state_revision: journal.state.revision,
+                    state_revision: journal.state().revision,
                     view: ViewRequest::AttemptDetail {
                         attempt_id: detail.attempt_id.clone(),
                     },
@@ -1282,9 +1282,8 @@ fn review_window() -> kiln_observe_core::ReviewWindow {
 }
 
 fn reviewed(window: kiln_observe_core::ReviewWindow) -> kiln_dashboard::journal::AdmittedJournal {
-    let mut journal = admitted(2);
-    journal.review = Some(window);
-    journal
+    let journal = admitted(2);
+    journal.with_review(Some(window))
 }
 
 // r[verify kiln.observe.review.parity]
@@ -1303,9 +1302,9 @@ fn review_views_equal_the_accepted_projection_and_render_every_surface() {
     let direct = |view: ViewRequest| {
         project_observation(
             &profile.observation,
-            &journal.state,
+            journal.state(),
             &ObservationRequest {
-                state_revision: journal.state.revision,
+                state_revision: journal.state().revision,
                 view,
             },
             &ObservationWindow::review(review_window()),
@@ -1412,9 +1411,9 @@ fn advisory_counts_equal_the_projection_and_render_on_every_surface() {
         .unwrap_or_else(|| unreachable!());
     let direct = project_observation(
         &profile.observation,
-        &journal.state,
+        journal.state(),
         &ObservationRequest {
-            state_revision: journal.state.revision,
+            state_revision: journal.state().revision,
             view: ViewRequest::ReviewFriction,
         },
         &ObservationWindow::review(window),

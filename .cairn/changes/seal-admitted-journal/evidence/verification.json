@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.dashboard.proof.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-dashboard",
+      "result": "41 dashboard tests passed; compile-fail doc test passed"
+    },
+    {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
+    },
+    {
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass after accessor updates"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "external construction rejected": "compile-fail doc test on AdmittedJournal",
+    "admitted facts readable": "dashboard tests read state and records through accessors",
+    "review attachment": "shell and external test helper use with_review",
+    "audit record": "modified github-event-proof audit records AdmittedJournal sealed"
+  },
+  "non_claims": [
+    "the seal does not prove in-crate construction discipline",
+    "the seal does not prove journal semantic correctness",
+    "with_review can replace an attached review window"
+  ]
+}

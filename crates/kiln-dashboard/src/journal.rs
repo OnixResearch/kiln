@@ -45,14 +45,63 @@ impl EventIdentityConvention {
 }
 
 /// A journal document admitted into canonical Kiln state.
+///
+/// Only the admission functions construct one; every field is crate-private.
+/// External consumers read admitted facts through the accessors and attach a
+/// review window only through [`AdmittedJournal::with_review`].
+///
+/// ```compile_fail
+/// # use kiln_dashboard::journal::AdmittedJournal;
+/// let _ = AdmittedJournal {
+///     state: unreachable!(),
+///     records: Vec::new(),
+///     schema: None,
+///     declared_identity: None,
+///     review: None,
+/// };
+/// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedJournal {
-    pub state: State,
-    pub records: Vec<JournalRecord>,
-    pub schema: Option<String>,
-    pub declared_identity: Option<String>,
+    pub(crate) state: State,
+    pub(crate) records: Vec<JournalRecord>,
+    pub(crate) schema: Option<String>,
+    pub(crate) declared_identity: Option<String>,
     /// The shell-supplied review window observed beside this journal, if any.
-    pub review: Option<ReviewWindow>,
+    pub(crate) review: Option<ReviewWindow>,
+}
+
+impl AdmittedJournal {
+    /// Replayed canonical state.
+    pub fn state(&self) -> &State {
+        &self.state
+    }
+
+    /// Admitted journal records in canonical order.
+    pub fn records(&self) -> &[JournalRecord] {
+        &self.records
+    }
+
+    /// Admitted journal schema, when the source document declared one.
+    pub fn schema(&self) -> Option<&str> {
+        self.schema.as_deref()
+    }
+
+    /// Declared source identity, when the source document declared one.
+    pub fn declared_identity(&self) -> Option<&str> {
+        self.declared_identity.as_deref()
+    }
+
+    /// Shell-supplied review window observed beside this journal, if any.
+    pub fn review(&self) -> Option<&ReviewWindow> {
+        self.review.as_ref()
+    }
+
+    /// Attach the reviewed shell observation after journal admission.
+    #[must_use]
+    pub fn with_review(mut self, review: Option<ReviewWindow>) -> Self {
+        self.review = review;
+        self
+    }
 }
 
 /// The canonical record stream of one Kiln journal document.
