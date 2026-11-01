@@ -1,7 +1,7 @@
 //! Real disposable Git + SQLite integration; no network, installed keys or real refs.
 // r[verify kiln.review.workflow]
 // r[verify kiln.review.authority]
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::os::unix::fs::{PermissionsExt, symlink};
 
@@ -1869,5 +1869,36 @@ fn review_detail_reports_binding_agent_votes() -> Result<()> {
     )?;
     let full = detail(&workspace, &change, ALICE, &[])?;
     assert_eq!(field(&full, "/agent_votes")?, &json!("binding"));
+    Ok(())
+}
+
+#[test]
+fn service_rejects_ownership_links_to_unknown_projects() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let service = monorepo_service(&fixture)?;
+    let mut unknown_rule = fixture.profile.clone();
+    unknown_rule
+        .policy
+        .ownership
+        .rules
+        .push(kiln_core::change_review::OwnershipRule {
+            id: "api".into(),
+            paths: vec!["src/**".into()],
+            owners: [BOB.into()].into_iter().collect(),
+            teams: BTreeSet::new(),
+            target_refs: BTreeSet::new(),
+            project: Some("unknown".into()),
+            interface: vec!["src/**".into()],
+            required_evidence: Vec::new(),
+            approval: BTreeMap::new(),
+        });
+    assert!(Workspace::for_service(Some(unknown_rule), &service).is_err());
+    let mut unknown_dependents = fixture.profile;
+    unknown_dependents
+        .policy
+        .ownership
+        .dependents
+        .insert("unknown".into(), BTreeSet::new());
+    assert!(Workspace::for_service(Some(unknown_dependents), &service).is_err());
     Ok(())
 }

@@ -255,6 +255,29 @@ impl Profile {
         {
             return Err("review CI repository or target binding rejected".into());
         }
+        let project_ids: BTreeSet<&str> = service
+            .projects
+            .iter()
+            .map(|project| project.id.as_str())
+            .collect();
+        if self.policy.ownership.rules.iter().any(|rule| {
+            rule.project
+                .as_ref()
+                .is_some_and(|project| !project_ids.contains(project.as_str()))
+        }) || self
+            .policy
+            .ownership
+            .dependents
+            .iter()
+            .any(|(source, targets)| {
+                !project_ids.contains(source.as_str())
+                    || targets
+                        .iter()
+                        .any(|target| !project_ids.contains(target.as_str()))
+            })
+        {
+            return Err("ownership interface project is not a service project".into());
+        }
         Ok(())
     }
 

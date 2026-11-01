@@ -3,6 +3,10 @@
   "date": "2026-11-01",
   "commands": [
     {
+      "command": "cargo test -p kiln-web-service --test code_review service_rejects_ownership_links_to_unknown_projects",
+      "result": "1 passed; unknown interface and dependent project links are rejected at service admission"
+    },
+    {
       "command": "cargo test -p kiln-core interface",
       "result": "2 passed; interface changes require exact affected-project CI and dependent-owner approval; invalid interface policy is rejected"
     },

@@ -12,6 +12,7 @@ interface rule's own owner approval remains required.
 
 - Focused core tests cover interface CI, dependent acknowledgement, automatic
   reviewer expansion, non-interface behavior and policy admission.
+- Service admission rejects interface and dependent links to unknown projects.
 - Full core and web-service suites pass.
 - Clippy, rustfmt, Nickel typecheck/export and Cairn validation pass.
 
