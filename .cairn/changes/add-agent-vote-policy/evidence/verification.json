@@ -15,8 +15,8 @@
       "result": "1 passed; review detail marks the declared agent reviewer and vote, includes reviewer harness metadata and reports the advisory mode"
     },
     {
-      "command": "cargo test -p kiln-core -p kiln-web-service",
-      "result": "all core and web-service test binaries passed"
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
     },
     {
       "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
