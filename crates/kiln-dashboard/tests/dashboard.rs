@@ -1666,6 +1666,10 @@ fn review_friction_renders_agent_submitted_counts() {
         .agent_submitted = true;
     let journal = reviewed(window);
     let profile = dashboard_profile();
+    let report = build_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let text = render_report(&report, RenderStyle::Plain);
+    assert!(text.contains("  agent-submitted   1\n"));
     let html_report = build_html_report(&profile, &journal, &DashboardSelection::default())
         .unwrap_or_else(|_| unreachable!());
     let html = kiln_dashboard::render::html::render_html(&html_report);

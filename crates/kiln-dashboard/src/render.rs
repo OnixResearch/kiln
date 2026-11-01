@@ -477,6 +477,11 @@ fn render_review_friction(out: &mut String, painter: &Painter, review: &ReviewVi
                 class.advisory_approvals, class.advised_changes
             ),
         );
+        push_pair(
+            out,
+            "  agent-submitted",
+            &class.agent_submitted_changes.to_string(),
+        );
     }
     out.push('\n');
 }
