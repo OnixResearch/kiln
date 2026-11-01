@@ -128,7 +128,8 @@ impl RadicleSourceProfile {
     }
 }
 
-/// Read-only authority for one repository, signer namespace and branch.
+/// Read-only authority for one repository, signer namespace and branch or tag
+/// reference.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RadicleSourceSelection {
