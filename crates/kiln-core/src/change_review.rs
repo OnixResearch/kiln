@@ -4681,6 +4681,21 @@ mod tests {
         };
         assert_eq!(search(&state, "alice", &by_model("deepseek")).len(), 1);
         assert!(search(&state, "alice", &by_model("other")).is_empty());
+        state
+            .changes
+            .get_mut("c")
+            .required()?
+            .revisions
+            .first_mut()
+            .required()?
+            .submitted_by
+            .as_mut()
+            .required()?
+            .agent
+            .as_mut()
+            .required()?
+            .model = None;
+        assert!(search(&state, "alice", &by_model("deepseek")).is_empty());
         Ok(())
     }
 

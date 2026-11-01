@@ -9,7 +9,8 @@ form and saved views carry the same filters.
 
 ## Evidence
 
-- Core search test covers with, without and absent modes.
+- Core search test covers with, without and absent modes, plus the rule that a
+  revision without a declared model never matches a model filter.
 - Web coverage verifies empty harness/model values do not filter, C0/C1
   controls are rejected, and the 128-byte bound counts UTF-8 bytes, not
   characters.
