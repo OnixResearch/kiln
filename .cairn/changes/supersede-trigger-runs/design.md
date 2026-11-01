@@ -13,9 +13,12 @@ state transition with request replay.
 - Matching requires the same project, the same requested reference, a different
   exact revision, and a non-new run id. Runs with no recorded reference are not
   matched.
-- Only `phase = queued` runs are cancelled. Running, paused, unknown and
-  awaiting-approval runs are untouched, so this change has no provider control
-  effect.
+- Older queued runs complete through the durable queued-control path. Older
+  active runs use the existing exact provider control path with the run's
+  attempt, revision, sequence and execution, after a refresh. Awaiting-approval
+  and terminal runs are untouched.
+- A provider refusal, stale control or unsupported cancellation is best-effort
+  and never fails the new dispatch.
 - Cancellation uses the existing request-replay and durable queue path with a
   deterministic supersession request id. Failed cancellation is best-effort and
   never fails the new dispatch.
@@ -23,8 +26,8 @@ state transition with request replay.
 
 ## Risks
 
-- Queue timing is inherently racy; a run that leaves the queued phase before
-  supersession is not cancelled.
-- Queued-only supersession does not implement running-run cancellation from the
-  wider issue.
+- Supersession is racy; a run that reaches a terminal state first is not
+  cancelled.
+- Provider cancellation may be refused or ambiguous; this behavior is bounded
+  to the admitted provider-control result.
 - The existing one-active-run-per-project queue remains the execution limiter.

@@ -110,7 +110,7 @@ fn signed_push_is_exact_once_across_restart_and_bad_signature_never_dispatches()
     assert_eq!(backend.lock().dispatches, 1);
 }
 #[test]
-fn new_trigger_cancels_older_queued_runs_when_configured() {
+fn new_trigger_supersedes_active_and_queued_runs_when_configured() {
     let (root, profile, first_revision) = fixture();
     let mut automation = policy(root.path());
     if let Some(trigger) = automation.triggers.first_mut() {
@@ -152,13 +152,20 @@ fn new_trigger_cancels_older_queued_runs_when_configured() {
         Role::Operator,
     ));
     assert_eq!(at(&superseded, "/outcome"), json!("Cancelled"));
+    let superseded_active = value(&get(
+        &mut engine,
+        &format!("/api/runs/{running}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&superseded_active, "/outcome"), json!("Cancelled"));
+    assert_eq!(backend.lock().controls, 1);
     let current = value(&get(
         &mut engine,
         &format!("/api/runs/{}", run_id(&third)),
         Role::Operator,
     ));
     assert_eq!(at(&current, "/phase"), json!("queued"));
-    assert_eq!(backend.lock().dispatches, 1);
+    assert_eq!(backend.lock().dispatches, 2);
 }
 
 #[test]

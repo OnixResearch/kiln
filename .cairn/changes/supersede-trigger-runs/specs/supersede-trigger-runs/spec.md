@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Defines opt-in cancellation of stale queued runs when a new trigger dispatch
-succeeds for the same project and requested reference.
+Defines opt-in cancellation of stale active and queued runs when a new trigger
+dispatch succeeds for the same project and requested reference.
 
 ## Requirements
 
@@ -37,15 +37,25 @@ r[kiln.web.supersede.identity.scenario.reference]
 - WHEN a trigger dispatches
 - THEN that run MUST NOT be cancelled.
 
-### Requirement: Queued-only cancellation
+### Requirement: Queued and active cancellation
 
-r[kiln.web.supersede.cancel] Supersession MUST cancel only runs still in the
-queued phase, MUST complete them with outcome Cancelled through the durable
-request-replay path, and MUST NOT issue provider control effects. Failure to
-cancel an older run MUST NOT fail the new dispatch.
+r[kiln.web.supersede.cancel] Supersession MUST complete older queued runs as
+Cancelled through the durable request-replay path. Failure to cancel an older
+run MUST NOT fail the new dispatch.
 
-#### Scenario: Running run is untouched
-r[kiln.web.supersede.cancel.scenario.running]
-- GIVEN an active running run for the same project
+r[kiln.web.supersede.active] Supersession MUST cancel older active runs through
+the exact admitted provider control path, using the run's admitted attempt,
+revision, sequence and execution. Provider refusal or stale control MUST be
+best-effort. Awaiting-approval and terminal runs MUST NOT be cancelled.
+
+#### Scenario: Active run is cancelled
+r[kiln.web.supersede.active.scenario.running]
+- GIVEN an active running run for the same project/reference
 - WHEN a newer push dispatches
-- THEN the running run MUST NOT receive a provider cancellation.
+- THEN the running run MUST receive exactly one provider cancellation and complete as Cancelled.
+
+#### Scenario: Awaiting approval is untouched
+r[kiln.web.supersede.active.scenario.awaiting]
+- GIVEN an awaiting-approval run
+- WHEN a newer push dispatches
+- THEN the awaiting-approval run MUST NOT be cancelled.

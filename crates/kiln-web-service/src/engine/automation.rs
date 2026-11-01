@@ -1098,13 +1098,13 @@ impl Engine {
                 .is_some_and(|trigger| trigger.supersede_queued)
         {
             if let Some(new_run) = record.run_id.clone() {
-                self.supersede_queued_runs(&reservation, &new_run);
+                self.supersede_runs(&reservation, &new_run);
             }
         }
         self.persist()
     }
 
-    fn supersede_queued_runs(&mut self, reservation: &SourceRecord, new_run: &str) {
+    fn supersede_runs(&mut self, reservation: &SourceRecord, new_run: &str) {
         let Some(new_revision) = self
             .state
             .runs
@@ -1113,31 +1113,63 @@ impl Engine {
         else {
             return;
         };
-        let ids: Vec<String> = self
-            .state
-            .runs
-            .values()
-            .filter(|run| {
-                run.id != new_run
-                    && run.phase == "queued"
-                    && run.project_id == reservation.project_id
-                    && run.requested_reference.as_deref() == Some(reservation.reference.as_str())
-                    && run.source.exact_revision != new_revision
-            })
-            .map(|run| run.id.clone())
-            .collect();
-        for id in ids {
+        let mut queued = Vec::new();
+        let mut active = Vec::new();
+        for run in self.state.runs.values() {
+            if run.id == new_run
+                || run.project_id != reservation.project_id
+                || run.requested_reference.as_deref() != Some(reservation.reference.as_str())
+                || run.source.exact_revision == new_revision
+                || run.outcome().is_terminal()
+            {
+                continue;
+            }
+            if run.waiting() {
+                if run.phase == "queued" {
+                    queued.push(run.id.clone());
+                }
+            } else {
+                active.push(run.id.clone());
+            }
+        }
+        // r[impl kiln.web.supersede.active]
+        for id in active {
+            let request_id = format!(
+                "supersede-{}",
+                blake3::hash(format!("{id}\0{new_run}").as_bytes()).to_hex()
+            );
+            let Some(run) = self.state.runs.get(&id) else {
+                continue;
+            };
+            let Some(observation) = run.observation.as_ref() else {
+                continue;
+            };
+            let body = serde_json::json!({
+                "request_id": request_id,
+                "attempt_id": run.plan.attempt_id,
+                "expected_revision": run.state.revision,
+                "expected_sequence": observation.sequence,
+                "execution": observation.execution,
+                "action": "cancel"
+            });
+            let Ok(body) = serde_json::to_vec(&body) else {
+                continue;
+            };
+            let _ = self.control(&id, &body);
+        }
+        for id in queued {
             let request_id = format!(
                 "supersede-{}",
                 blake3::hash(format!("{id}\0{new_run}").as_bytes()).to_hex()
             );
             let body = serde_json::json!({"request_id": request_id, "action": "cancel"});
             let Ok(body) = serde_json::to_vec(&body) else {
-                return;
+                continue;
             };
             let _ = self.cancel_queued(&id, &body);
         }
     }
+
     /// Reserve bounded notification work under the lock without notification I/O.
     pub fn tick_automation(&mut self) -> Result<Vec<NotificationWork>, String> {
         if self.storage_failed {

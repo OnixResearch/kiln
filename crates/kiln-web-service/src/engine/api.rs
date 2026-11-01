@@ -456,7 +456,7 @@ impl Engine {
         error(404, "route_missing")
     }
     // r[impl kiln.web.controls]
-    fn control(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
+    pub(super) fn control(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
         let queued_action = serde_json::from_slice::<Value>(body).ok().is_some_and(|v| {
             v.get("attempt_id").is_none()
                 && v.get("action").and_then(Value::as_str) == Some("cancel")

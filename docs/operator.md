@@ -2848,13 +2848,15 @@ Monorepo project scopes still decide which projects are affected; trigger `paths
 
 A filtered run never satisfies required CI. A review policy may declare `optional_ci = [{ project, paths }]`; a missing required check is then waived only when every exact changed file of the change matches those paths. A failed run still blocks.
 
-##### Queued supersession
+##### Trigger supersession
 
 A trigger may set `supersede_queued = true`. After a new dispatch succeeds,
-older **queued** runs for the same project and requested reference with a
-different exact revision are completed as `Cancelled` through the durable queue
-control path. Running and awaiting-approval runs are untouched, and no provider
-cancellation is issued. Absence or `false` keeps the previous behavior.
+older runs for the same project and requested reference with a different exact
+revision are superseded: queued runs complete as `Cancelled` through durable
+queue control, and active runs receive one exact provider cancellation through
+the admitted control path. Awaiting-approval and terminal runs are untouched.
+Provider refusals are best-effort and never fail the new dispatch. Absence or
+`false` keeps the previous behavior.
 
 ##### Calendar schedules
 
