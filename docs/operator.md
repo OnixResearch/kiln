@@ -3109,6 +3109,10 @@ The exported `kiln.code-review-profile.v1` declares:
 - `policy.ownership`: `teams` maps names to exact eligible review principals;
   `rules` declares IDs, path patterns, owners, teams and optional target-ref
   scopes. Every matching rule needs a current requested non-author owner vote.
+  Optional `required_evidence` adds named exact-revision checks, currently
+  `{ kind = "project_ci", project = ... }`: a full clean run for that project at
+  the exact submitted commit and its current scope identity must pass in
+  addition to the owner vote. Evidence never grants merge authority.
   Changed paths come from the provider comparison, including renamed old paths;
   incomplete observations cannot silently satisfy ownership. Registration and
   upload automatically request eligible owners. An empty rules list disables

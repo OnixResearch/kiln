@@ -15,7 +15,16 @@
     require_ci = true,
     ownership = {
       teams = { maintainers = ["reviewer"] },
-      rules = [{ id = "source", paths = ["src/**"], owners = [], teams = ["maintainers"], target_refs = [] }],
+      rules = [
+        {
+          id = "source",
+          paths = ["src/**"],
+          owners = [],
+          teams = ["maintainers"],
+          target_refs = [],
+          required_evidence = [{ kind = "project_ci", project = "fixture" }],
+        }
+      ],
     },
   },
   read_principals = ["author", "reviewer", "operator"],

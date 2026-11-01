@@ -1,0 +1,47 @@
+{
+  "schema": "kiln.review.ownership-evidence.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core ownership_evidence",
+      "result": "3 passed; exact current-project CI, scoped other-project CI and bounded unique policy admission"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed, including existing review journals and policy fixtures"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/web-code-review.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/web-code-review-speculative-positive.ncl",
+      "result": "pass with required_evidence present in the ownership fixture"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "policy": "optional required_evidence on ownership rules; only project_ci is admitted; at most eight per rule; project identities must be unique, non-empty and trimmed",
+    "evidence": "one evidence:<rule>:project_ci:<project> checklist item per matching requirement",
+    "binding": "full clean run for the exact submitted commit, repository, project and current scope identity",
+    "authority": "evidence is additive; the owner approval item and merge authority are unchanged",
+    "serialization": "an empty evidence list is omitted, so existing policies and journals retain their bytes"
+  },
+  "non_claims": [
+    "evidence does not grant merge authority or replace owner approval",
+    "evidence_only approval classes and non-CI evidence kinds remain future work",
+    "the project identity is policy-declared; this change does not infer a project scope outside the shell-provided required set",
+    "passing tests do not prove provider execution correctness or release readiness"
+  ]
+}

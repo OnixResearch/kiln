@@ -489,6 +489,25 @@ pub struct OwnershipPolicy {
     pub teams: BTreeMap<String, BTreeSet<String>>,
     pub rules: Vec<OwnershipRule>,
 }
+/// Bounded named evidence a matching ownership rule requires in addition to
+/// its owner approval. Evidence is collected by the shell, never asserted by
+/// a request body.
+// r[impl kiln.review.evidence.policy]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OwnershipEvidenceKind {
+    ProjectCi,
+}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OwnershipEvidence {
+    pub kind: OwnershipEvidenceKind,
+    /// Project whose current-scope CI must satisfy this evidence.
+    pub project: String,
+}
+/// Named bound for evidence attached to one ownership rule.
+pub const MAX_OWNERSHIP_EVIDENCE: usize = 8;
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OwnershipRule {
@@ -499,6 +518,9 @@ pub struct OwnershipRule {
     pub teams: BTreeSet<String>,
     /// Exact target refs; empty means every target.
     pub target_refs: BTreeSet<String>,
+    /// Additional exact-revision evidence this matching rule requires.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_evidence: Vec<OwnershipEvidence>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -986,6 +1008,27 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
                 "invalid_policy",
                 "ownership rule needs unique identity, valid paths, known eligible owners and exact target refs",
             );
+        }
+    }
+    for rule in &policy.ownership.rules {
+        if rule.required_evidence.len() > MAX_OWNERSHIP_EVIDENCE {
+            return fail(
+                "invalid_policy",
+                "ownership rule evidence exceeds its named bound",
+            );
+        }
+        let mut projects = BTreeSet::new();
+        for evidence in &rule.required_evidence {
+            if evidence.project.trim().is_empty()
+                || evidence.project.trim() != evidence.project
+                || evidence.project.len() > 128
+                || !projects.insert(evidence.project.as_str())
+            {
+                return fail(
+                    "invalid_policy",
+                    "ownership evidence needs a unique bounded project identity",
+                );
+            }
         }
     }
     optional_ci::validate(policy)?;
@@ -1629,6 +1672,35 @@ fn checklist_at(
                                 rule.id, rule.paths, rule.owners, rule.teams, revision.id
                             ),
                         });
+                        // r[impl kiln.review.evidence.project_ci]
+                        for evidence in &rule.required_evidence {
+                            let scope = if let Some(required) = &facts.ci_required {
+                                required
+                                    .iter()
+                                    .find(|required| required.project == evidence.project)
+                                    .map(|required| Some(required.scope_identity.as_deref()))
+                            } else if evidence.project == change.project {
+                                Some(None)
+                            } else {
+                                None
+                            };
+                            let observed =
+                                scope.and_then(|scope| latest_for(&evidence.project, scope));
+                            let satisfied =
+                                policy_valid && observed.is_some_and(CiFact::satisfies_required);
+                            items.push(ChecklistItem {
+                                key: alloc::format!(
+                                    "evidence:{}:project_ci:{}",
+                                    rule.id,
+                                    evidence.project
+                                ),
+                                satisfied,
+                                detail: alloc::format!(
+                                    "ownership rule {} requires full clean CI for project {} at exact commit {} and its current scope identity",
+                                    rule.id, evidence.project, ci_commit
+                                ),
+                            });
+                        }
                     }
                 }
             }
@@ -2856,6 +2928,7 @@ mod tests {
             owners: BTreeSet::new(),
             teams: ["maintainers".into()].into_iter().collect(),
             target_refs: ["refs/heads/main".into()].into_iter().collect(),
+            required_evidence: Vec::new(),
         });
         facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
             complete: true,
@@ -3405,6 +3478,7 @@ mod tests {
             owners: ["carol".into()].into_iter().collect(),
             teams: BTreeSet::new(),
             target_refs: BTreeSet::new(),
+            required_evidence: Vec::new(),
         });
         let mut state = ReviewState::default();
         create(&mut state, &mut facts, "c")?;
@@ -3801,6 +3875,156 @@ mod tests {
             "Here is why"
         );
         assert!(!checklist(&state, "c", &facts).required()?.ready);
+        Ok(())
+    }
+
+    fn evidence_item(checks: &Checklist, key: &str) -> ReviewResult<bool> {
+        checks
+            .items
+            .iter()
+            .find(|item| item.key == key)
+            .map(|item| item.satisfied)
+            .ok_or_else(|| ReviewError {
+                code: "missing_fixture".into(),
+                message: format!("checklist item {key}"),
+            })
+    }
+
+    #[test]
+    fn ownership_evidence_requires_exact_current_project_ci() -> ReviewResult<()> {
+        let mut facts = owned_facts()?;
+        facts
+            .policy
+            .as_mut()
+            .required()?
+            .ownership
+            .rules
+            .first_mut()
+            .required()?
+            .required_evidence
+            .push(OwnershipEvidence {
+                kind: OwnershipEvidenceKind::ProjectCi,
+                project: "project".into(),
+            });
+        let mut state = ReviewState::default();
+        create(&mut state, &mut facts, "c")?;
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "evidence:core:project_ci:project")?);
+        assert!(!evidence_item(&checks, "owner:core")?);
+        assert!(!checks.ready);
+        facts.ci.first_mut().required()?.revision = "older-commit".into();
+        assert!(!evidence_item(
+            &checklist(&state, "c", &facts)?,
+            "evidence:core:project_ci:project"
+        )?);
+        facts.ci.first_mut().required()?.revision = "commit-c".into();
+        facts.ci.first_mut().required()?.clean = false;
+        assert!(!evidence_item(
+            &checklist(&state, "c", &facts)?,
+            "evidence:core:project_ci:project"
+        )?);
+        facts.ci.first_mut().required()?.clean = true;
+        facts.ci.first_mut().required()?.full_run = false;
+        assert!(!evidence_item(
+            &checklist(&state, "c", &facts)?,
+            "evidence:core:project_ci:project"
+        )?);
+        Ok(())
+    }
+
+    #[test]
+    fn ownership_evidence_binds_another_project_scope() -> ReviewResult<()> {
+        let mut facts = owned_facts()?;
+        facts
+            .policy
+            .as_mut()
+            .required()?
+            .ownership
+            .rules
+            .first_mut()
+            .required()?
+            .required_evidence
+            .push(OwnershipEvidence {
+                kind: OwnershipEvidenceKind::ProjectCi,
+                project: "api".into(),
+            });
+        facts.ci_required = Some(vec![CiRequirement {
+            project: "api".into(),
+            scope_identity: Some("api-scope".into()),
+        }]);
+        facts.ci.push(CiFact {
+            project: "api".into(),
+            repository: "source-repository".into(),
+            revision: "commit-c".into(),
+            run_id: "api-run".into(),
+            ordinal: 2,
+            success: true,
+            full_run: true,
+            clean: true,
+            scope_identity: None,
+            terminal: true,
+            untrusted: None,
+        });
+        let mut state = ReviewState::default();
+        create(&mut state, &mut facts, "c")?;
+        let key = "evidence:core:project_ci:api";
+        assert!(!evidence_item(&checklist(&state, "c", &facts)?, key)?);
+        facts.ci.last_mut().required()?.scope_identity = Some("api-scope".into());
+        assert!(evidence_item(&checklist(&state, "c", &facts)?, key)?);
+        facts.ci.last_mut().required()?.scope_identity = Some("other-scope".into());
+        assert!(!evidence_item(&checklist(&state, "c", &facts)?, key)?);
+        Ok(())
+    }
+
+    #[test]
+    fn ownership_evidence_policy_admission_is_bounded_and_unique() -> ReviewResult<()> {
+        let facts = owned_facts()?;
+        let base = facts.policy.as_ref().required()?.clone();
+        let reject = |policy: &Policy| -> ReviewResult<String> {
+            validate_policy(policy)
+                .err()
+                .required()
+                .map(|error| error.code)
+        };
+        let mut empty = base.clone();
+        empty
+            .ownership
+            .rules
+            .first_mut()
+            .required()?
+            .required_evidence
+            .push(OwnershipEvidence {
+                kind: OwnershipEvidenceKind::ProjectCi,
+                project: " ".into(),
+            });
+        assert_eq!(reject(&empty)?, "invalid_policy");
+        let mut duplicate = base.clone();
+        for _ in 0..2 {
+            duplicate
+                .ownership
+                .rules
+                .first_mut()
+                .required()?
+                .required_evidence
+                .push(OwnershipEvidence {
+                    kind: OwnershipEvidenceKind::ProjectCi,
+                    project: "api".into(),
+                });
+        }
+        assert_eq!(reject(&duplicate)?, "invalid_policy");
+        let mut over_bound = base;
+        over_bound
+            .ownership
+            .rules
+            .first_mut()
+            .required()?
+            .required_evidence = (0..=MAX_OWNERSHIP_EVIDENCE)
+            .map(|index| OwnershipEvidence {
+                kind: OwnershipEvidenceKind::ProjectCi,
+                project: format!("project-{index}"),
+            })
+            .collect();
+        assert_eq!(reject(&over_bound)?, "invalid_policy");
         Ok(())
     }
 
@@ -4774,6 +4998,7 @@ mod tests {
                 owners: BTreeSet::new(),
                 teams: BTreeSet::new(),
                 target_refs: target.into_iter().map(Into::into).collect(),
+                required_evidence: Vec::new(),
             });
         }
         assert_eq!(

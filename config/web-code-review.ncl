@@ -35,6 +35,11 @@ let Capability =
     std.array.elem value ["inspect", "compare", "register", "submit", "rebase", "revert", "cherry_pick", "apply_suggestions", "build_integration", "speculative_integration"]
   )
 in
+let OwnershipEvidence = {
+  kind | std.contract.from_predicate (fun value => value == "project_ci"),
+  project | Text 128,
+}
+in
 let Ownership = {
   teams | { _ | Array Principal },
   rules
@@ -44,6 +49,7 @@ let Ownership = {
       owners | Array Principal,
       teams | Array (Text 128),
       target_refs | Array Target,
+      required_evidence | Array OwnershipEvidence | optional,
     },
 }
 in

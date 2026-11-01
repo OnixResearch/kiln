@@ -18,6 +18,7 @@ fn policy(ownership: bool, minimum_approvals: u32) -> Policy {
             owners: ["carol".into()].into_iter().collect(),
             teams: BTreeSet::new(),
             target_refs: BTreeSet::new(),
+            required_evidence: Vec::new(),
         });
     }
     Policy {
