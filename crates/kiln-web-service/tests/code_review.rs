@@ -1760,14 +1760,16 @@ fn review_detail_marks_agent_votes() -> Result<()> {
             && vote.get("agent").and_then(Value::as_bool) == Some(true)
     }));
     let snapshot = accepted(get(&workspace, "/api/code-review", ALICE, &[]))?;
-    assert!(field(&snapshot, "/notifications")?
-        .as_array()
-        .ok_or("notifications array")?
-        .iter()
-        .any(|notification| {
-            notification.get("actor").and_then(Value::as_str) == Some(BOB)
-                && notification.get("agent").and_then(Value::as_bool) == Some(true)
-        }));
+    assert!(
+        field(&snapshot, "/notifications")?
+            .as_array()
+            .ok_or("notifications array")?
+            .iter()
+            .any(|notification| {
+                notification.get("actor").and_then(Value::as_str) == Some(BOB)
+                    && notification.get("agent").and_then(Value::as_bool) == Some(true)
+            })
+    );
     Ok(())
 }
 
@@ -1830,5 +1832,33 @@ fn merging_access_agent_metadata_is_deduplicated_and_conflict_checked() -> Resul
             )
             .is_err()
     );
+    Ok(())
+}
+
+#[test]
+fn review_detail_reports_binding_agent_votes() -> Result<()> {
+    let mut fixture = Fixture::new()?;
+    fixture.profile.agent_principals = vec![BOB.into()];
+    fixture.profile.policy.agent_votes = kiln_core::change_review::AgentVotes::Binding;
+    let workspace = fixture.workspace()?;
+    let change = create(&workspace, &fixture, "binding-create")?;
+    let change = change_after(
+        &workspace,
+        "binding-reviewer",
+        &change,
+        json!({"type":"set_reviewer","principal":BOB,"role":"reviewer"}),
+        ALICE,
+        &[],
+    )?;
+    let change = change_after(
+        &workspace,
+        "binding-approval",
+        &change,
+        json!({"type":"vote","value":"approve"}),
+        BOB,
+        &[],
+    )?;
+    let full = detail(&workspace, &change, ALICE, &[])?;
+    assert_eq!(field(&full, "/agent_votes")?, &json!("binding"));
     Ok(())
 }
