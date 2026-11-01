@@ -4685,6 +4685,37 @@ mod tests {
     }
 
     #[test]
+    fn agent_saved_query_fields_are_optional_and_round_trip() -> ReviewResult<()> {
+        let base = SearchQuery {
+            kind: SearchKind::All,
+            text: String::new(),
+            status: None,
+            advisory: None,
+            agent: None,
+            agent_harness: None,
+            agent_model: None,
+        };
+        let base = serde_json::to_string(&base).expect("serialize base query");
+        assert!(!base.contains("agent_harness"));
+        assert!(!base.contains("agent_model"));
+        let filtered = SearchQuery {
+            kind: SearchKind::All,
+            text: String::new(),
+            status: None,
+            advisory: None,
+            agent: Some(true),
+            agent_harness: Some("omp".into()),
+            agent_model: Some("deepseek".into()),
+        };
+        let encoded = serde_json::to_string(&filtered).expect("serialize agent query");
+        assert_eq!(
+            serde_json::from_str::<SearchQuery>(&encoded).expect("deserialize agent query"),
+            filtered
+        );
+        Ok(())
+    }
+
+    #[test]
     fn interface_change_requires_dependent_ci_and_owner_acknowledgement() -> ReviewResult<()> {
         let mut facts = self::facts();
         facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {

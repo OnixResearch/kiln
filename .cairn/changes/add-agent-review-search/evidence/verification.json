@@ -3,6 +3,10 @@
   "date": "2026-11-01",
   "commands": [
     {
+      "command": "cargo test -p kiln-core agent_saved_query_fields_are_optional_and_round_trip",
+      "result": "1 passed; absent agent fields keep bytes stable and harness/model fields round trip"
+    },
+    {
       "command": "cargo test -p kiln-core agent_search_filters_current_revision_attestation",
       "result": "1 passed; with/without filters match current-revision attestation and absence does not filter"
     },
