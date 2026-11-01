@@ -306,6 +306,53 @@ fn annotated_tag_source_peels_to_its_commit_and_retains_tag_evidence() -> Result
     Ok(())
 }
 
+// r[verify kiln.radicle.canonical_tag.scenario.revision]
+#[test]
+fn tag_target_that_is_not_a_commit_fails_before_snapshot() -> Result<(), Box<dyn Error>> {
+    let mut fixture = fixture_with_reference(TAG_REFERENCE, true, 1, &[61], &[(61, false)], None)?;
+    let repository = Repository::open(&fixture.profile.repository_path)?;
+    let key = signer(61);
+    let node = key.verifying_key().public_key().to_string();
+    let document = identity_document(
+        &[*key.verifying_key().public_key()],
+        1,
+        TAG_REFERENCE,
+    );
+    let blob = repository.blob(b"not a commit")?;
+    let target = repository.find_object(blob, None)?;
+    let signature = git2::Signature::now("Kiln fixture", "kiln@invalid.example")?;
+    let tag = repository.tag("bad-release/v1", &target, &signature, "bad tag", false)?;
+    let sigrefs = sigrefs_commit(
+        &repository,
+        &key,
+        &document,
+        fixture.identity,
+        TAG_REFERENCE,
+        tag,
+    )?;
+    repository.reference(
+        &format!("refs/namespaces/{node}/refs/rad/sigrefs"),
+        sigrefs,
+        true,
+        "bad tag sigrefs",
+    )?;
+    repository.reference(
+        &format!("refs/namespaces/{node}/{TAG_REFERENCE}"),
+        tag,
+        true,
+        "bad tag source",
+    )?;
+    fixture.profile.request.expected_sigrefs_commit = sigrefs.to_string();
+    let shell = port(RadicleSourceShell::new(fixture.profile))?;
+    match shell.resolve_and_acquire() {
+        Err(PortFailure::Infrastructure(error)) => {
+            assert_eq!(error.code, "radicle_source_git");
+        }
+        other => return Err(format!("expected a non-commit tag failure, got {other:?}").into()),
+    }
+    Ok(())
+}
+
 // r[verify kiln.radicle.canonical_source.scenario.insufficient]
 #[test]
 fn a_single_vote_never_reaches_the_threshold() -> Result<(), Box<dyn Error>> {
