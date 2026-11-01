@@ -83,7 +83,8 @@ revision, and a console link. Text is XML-escaped.
 
 ## External subscriptions
 
-Operators can add an external feed URL, refresh it, and remove it. When
+Operators can add an external feed URL, refresh it, rename its display label,
+and remove it. When
 `refresh_interval_ms` is non-zero, the service refreshes due subscriptions in
 the background, oldest attempt first and at most two per tick. Consecutive
 refresh failures double the retry interval from the base cadence up to one day;

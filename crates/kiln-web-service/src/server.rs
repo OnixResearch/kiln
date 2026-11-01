@@ -1087,6 +1087,20 @@ fn feed_api(
     if id.is_empty() || parts.next().is_some() {
         return error_response(404, "feed_route_invalid");
     }
+    if request.method == "POST" && action == Some("label") {
+        return match context.engine.lock() {
+            Ok(mut engine) => engine
+                .rename_feed(
+                    id,
+                    &request.body,
+                    &request.method,
+                    &request.target,
+                    principal,
+                )
+                .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
+    }
     if request.method == "POST" && action == Some("remove") {
         return match context.engine.lock() {
             Ok(mut engine) => engine

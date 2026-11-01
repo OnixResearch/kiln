@@ -86,6 +86,12 @@ r[kiln.web.feeds.subscriptions.scenario.refresh]
 - WHEN refresh runs
 - THEN previous entries MUST remain and the error MUST be recorded and reported.
 
+#### Scenario: Subscription label is renamed
+r[kiln.web.feeds.subscriptions.scenario.rename]
+- GIVEN an existing subscription
+- WHEN an operator renames it with a bounded control-free label
+- THEN the new label MUST be retained and viewers MUST remain unable to rename it.
+
 #### Scenario: Viewer cannot mutate
 r[kiln.web.feeds.subscriptions.scenario.viewer]
 - GIVEN a viewer session

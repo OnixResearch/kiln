@@ -1633,6 +1633,20 @@
           catch (error) { notice(explain(error)); await loadFeeds(); }
           finally { refresh.disabled = false; }
         });
+        const rename = element("button", "Rename", "quiet");
+        rename.type = "button";
+        rename.addEventListener("click", async () => {
+          const next = window.prompt("Feed label", subscription.label);
+          if (next === null) return;
+          rename.disabled = true;
+          try {
+            await api(`/api/feeds/${encodeURIComponent(subscription.id)}/label`, { method: "POST", body: { label: next.trim() } });
+            notice("Feed label updated.", "success");
+            await loadFeeds();
+          } catch (error) {
+            notice(explain(error));
+          } finally { rename.disabled = false; }
+        });
         const remove = element("button", "Remove", "quiet danger");
         remove.type = "button";
         remove.addEventListener("click", async () => {
@@ -1641,7 +1655,7 @@
           catch (error) { notice(explain(error)); }
           finally { remove.disabled = false; }
         });
-        actions.append(refresh, remove);
+        actions.append(refresh, rename, remove);
         card.append(actions);
       }
       const entries = element("ul", undefined, "activity-feed");

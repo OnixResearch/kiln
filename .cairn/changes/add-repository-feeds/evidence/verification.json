@@ -158,5 +158,6 @@
   "refresh_backoff": "consecutive failures double the base cadence up to 24 hours; success or 304 resets the failure count",
   "add_failure_message": "a failed add returns 502 with the bounded fetch reason; no subscription is retained",
   "feed_token_bearer": "GET feed paths accept the dedicated token as the single token query value or as Authorization: Bearer; a wrong bearer is denied, and the query takes precedence when both are present",
-  "entry_deduplication": "RSS, RSS 1.0/RDF and Atom parsing retain the first entry for each stable id"
+  "entry_deduplication": "RSS, RSS 1.0/RDF and Atom parsing retain the first entry for each stable id",
+  "rename_subscription": "POST /api/feeds/{id}/label renames a bounded label; operator only, persisted and state-preflighted"
 }

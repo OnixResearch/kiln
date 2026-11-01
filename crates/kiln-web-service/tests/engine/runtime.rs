@@ -681,6 +681,30 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .is_some_and(|message| !message.is_empty())
     );
 
+    let renamed = checked(
+        client
+            .post(format!("{}/api/feeds/{id}/label", profile.origin))
+            .bearer_auth(&operator)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({"label": "Renamed repository"}))
+            .send(),
+    );
+    assert_eq!(renamed.status(), 200);
+    let renamed: serde_json::Value = checked(renamed.json());
+    assert_eq!(
+        renamed.pointer("/subscription/label"),
+        Some(&serde_json::Value::String("Renamed repository".into()))
+    );
+    let viewer_rename = checked(
+        client
+            .post(format!("{}/api/feeds/{id}/label", profile.origin))
+            .bearer_auth(&viewer_token)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({"label": "Viewer label"}))
+            .send(),
+    );
+    assert_eq!(viewer_rename.status(), 403);
+
     let viewer_feeds = checked(
         client
             .get(format!("{}/api/feeds", profile.origin))

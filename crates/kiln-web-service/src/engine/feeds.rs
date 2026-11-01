@@ -24,6 +24,12 @@ struct ImportFeeds {
     opml: String,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RenameFeed {
+    label: String,
+}
+
 pub(crate) struct AdmittedFeed {
     pub id: String,
     pub url: String,
@@ -449,6 +455,41 @@ impl Engine {
                 json!({"code":"feed_unavailable","message":"External feed refresh failed; retained entries were kept","subscription":candidate}),
             );
         }
+        self.append_audit(method, target, Some(principal), "accepted", 200)?;
+        json_response(200, json!({"subscription": candidate}))
+    }
+
+    pub(crate) fn rename_feed(
+        &mut self,
+        id: &str,
+        body: &[u8],
+        method: &str,
+        target: &str,
+        principal: &Principal,
+    ) -> Result<ApiResponse, String> {
+        self.append_audit(method, target, Some(principal), "admitted", 0)?;
+        let request: RenameFeed =
+            serde_json::from_slice(body).map_err(|_| "feed label request is malformed")?;
+        let label = request.label.trim().to_string();
+        if label.is_empty() || label.len() > 128 || label.chars().any(char::is_control) {
+            self.append_audit(method, target, Some(principal), "denied", 400)?;
+            return error(400, "feed_label_invalid");
+        }
+        let Some(existing) = self.state.feeds.subscriptions.get(id).cloned() else {
+            self.append_audit(method, target, Some(principal), "denied", 404)?;
+            return error(404, "feed_missing");
+        };
+        let mut candidate = existing;
+        candidate.label = label;
+        if !self.feed_state_fits(id, &candidate) {
+            self.append_audit(method, target, Some(principal), "denied", 409)?;
+            return error(409, "feed_retention");
+        }
+        self.state
+            .feeds
+            .subscriptions
+            .insert(id.to_string(), candidate.clone());
+        self.persist()?;
         self.append_audit(method, target, Some(principal), "accepted", 200)?;
         json_response(200, json!({"subscription": candidate}))
     }
