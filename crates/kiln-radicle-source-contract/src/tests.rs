@@ -56,8 +56,11 @@ fn accepts_matching_tag_references() {
         reference: "refs/tags/release/v1".to_string(),
     });
     assert_eq!(admit_request(&request), Ok(()));
-    request.canonical.as_mut().expect("canonical request").reference =
-        "refs/tags/release/v2".to_string();
+    request
+        .canonical
+        .as_mut()
+        .unwrap_or_else(|| unreachable!("canonical request"))
+        .reference = "refs/tags/release/v2".to_string();
     assert_eq!(
         admit_request(&request),
         Err(AdmissionError::Linkage {
