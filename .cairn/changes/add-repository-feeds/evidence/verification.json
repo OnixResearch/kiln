@@ -12,11 +12,11 @@
   "commands": [
     {
       "command": "cargo test -p kiln-web-service --lib feeds::",
-      "result": "15 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom/OPML escaping, OPML import parsing, run filtering/order/limit, due selection and cadence monotonicity"
+      "result": "16 passed, 0 failed: RSS 2.0/RSS 1.0/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom/OPML escaping, OPML import parsing, run filtering/order/limit, due selection and cadence monotonicity"
     },
     {
       "command": "cargo test -p kiln-web-service --lib",
-      "result": "149 passed, 0 failed, 1 ignored"
+      "result": "150 passed, 0 failed, 1 ignored"
     },
     {
       "command": "cargo test -p kiln-web-service --test engine",

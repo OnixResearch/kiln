@@ -498,8 +498,9 @@ pub fn parse(bytes: &[u8], max_entries: usize) -> Result<ParsedFeed, String> {
     let root_name = root.tag_name().name();
     match root_name {
         "rss" => parse_rss(root, max_entries),
+        "RDF" => parse_rdf(root, max_entries),
         "feed" => parse_atom(root, max_entries),
-        _ => Err("external feed is neither RSS nor Atom".into()),
+        _ => Err("external feed is not RSS, RSS 1.0/RDF or Atom".into()),
     }
 }
 
@@ -522,31 +523,55 @@ fn parse_rss(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<Parsed
         .children()
         .filter(|node| node.is_element() && node.tag_name().name() == "item")
     {
-        let title = direct_text(item, "title")
-            .map(|text| truncate(&text, MAX_TITLE_BYTES))
-            .unwrap_or_else(|| "(untitled)".to_string());
-        let link = direct_text(item, "link").and_then(|link| safe_link(&link));
-        let published = direct_text(item, "pubDate")
-            .or_else(|| direct_text(item, "published"))
-            .map(|text| truncate(&text, MAX_DATE_BYTES));
-        let summary =
-            direct_text(item, "description").map(|text| truncate(&text, MAX_SUMMARY_BYTES));
-        let id = direct_text(item, "guid")
-            .filter(|value| !value.is_empty())
-            .or_else(|| link.clone())
-            .unwrap_or_else(|| entry_fallback_id(&title, published.as_deref()));
-        entries.push(FeedEntry {
-            id: truncate(&id, MAX_URL_BYTES),
-            title,
-            link,
-            published,
-            summary,
-        });
+        entries.push(rss_entry(item));
         if entries.len() >= max_entries {
             break;
         }
     }
     Ok(ParsedFeed { title, entries })
+}
+
+/// RSS 1.0/RDF places items beside the channel, not inside it.
+fn parse_rdf(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<ParsedFeed, String> {
+    let title = root
+        .descendants()
+        .find(|node| node.is_element() && node.tag_name().name() == "channel")
+        .and_then(|channel| direct_text(channel, "title"))
+        .map(|text| truncate(&text, MAX_TITLE_BYTES));
+    let mut entries = Vec::new();
+    for item in root
+        .descendants()
+        .filter(|node| node.is_element() && node.tag_name().name() == "item")
+    {
+        entries.push(rss_entry(item));
+        if entries.len() >= max_entries {
+            break;
+        }
+    }
+    Ok(ParsedFeed { title, entries })
+}
+
+fn rss_entry(item: roxmltree::Node<'_, '_>) -> FeedEntry {
+    let title = direct_text(item, "title")
+        .map(|text| truncate(&text, MAX_TITLE_BYTES))
+        .unwrap_or_else(|| "(untitled)".to_string());
+    let link = direct_text(item, "link").and_then(|link| safe_link(&link));
+    let published = direct_text(item, "pubDate")
+        .or_else(|| direct_text(item, "published"))
+        .or_else(|| direct_text(item, "date"))
+        .map(|text| truncate(&text, MAX_DATE_BYTES));
+    let summary = direct_text(item, "description").map(|text| truncate(&text, MAX_SUMMARY_BYTES));
+    let id = direct_text(item, "guid")
+        .filter(|value| !value.is_empty())
+        .or_else(|| link.clone())
+        .unwrap_or_else(|| entry_fallback_id(&title, published.as_deref()));
+    FeedEntry {
+        id: truncate(&id, MAX_URL_BYTES),
+        title,
+        link,
+        published,
+        summary,
+    }
 }
 
 fn parse_atom(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<ParsedFeed, String> {
@@ -857,6 +882,20 @@ mod tests {
                 .as_deref(),
             Some("2024-10-02T13:00:00Z")
         );
+    }
+
+    #[test]
+    fn rss_one_rdf_feeds_parse() {
+        let rdf = r#"<?xml version="1.0"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>RDF feed</title></channel><item><title>RDF one</title><link>https://example.invalid/rdf</link><dc:date>2024-10-02T13:00:00Z</dc:date><description>RDF summary</description></item></rdf:RDF>"#;
+        let parsed = parse(rdf.as_bytes(), 10).unwrap_or_else(|_| unreachable!());
+        assert_eq!(parsed.title.as_deref(), Some("RDF feed"));
+        assert_eq!(parsed.entries.len(), 1);
+        let entry = parsed
+            .entries
+            .first()
+            .unwrap_or_else(|| unreachable!("fixture entry"));
+        assert_eq!(entry.title, "RDF one");
+        assert_eq!(entry.published.as_deref(), Some("2024-10-02T13:00:00Z"));
     }
 
     #[test]
