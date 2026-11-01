@@ -605,7 +605,7 @@
     if (state.route.review_advisory) active.push(`advisory: ${state.route.review_advisory}`);
     if (state.route.review_agent) active.push(`agent: ${state.route.review_agent}`);
     if (active.length) {
-      const row = node("p", null, "cr-muted"), clear = button("Clear filters", () => route({ review_q: "", review_status: "", review_advisory: "", review_agent: "", review_offset: "" }), "chip");
+      const row = node("p", null, "cr-muted"), clear = button("Clear filters", () => route({ review_q: "", review_status: "", review_advisory: "", review_agent: "", review_view: "all", review_offset: "" }), "chip");
       row.append(`Active filters — ${active.join(" · ")} `, clear); list.append(row);
     }
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
