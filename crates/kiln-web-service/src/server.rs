@@ -1012,6 +1012,17 @@ fn feed_api(
         Ok(now) => now,
         Err(_) => return error_response(503, "clock_unavailable"),
     };
+    if request.method == "GET" && path == "/api/feeds/export" {
+        if principal.role != crate::engine::Role::Operator {
+            return error_response(403, "operator_required");
+        }
+        return match context.engine.lock() {
+            Ok(engine) => engine
+                .feeds_opml()
+                .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
+    }
     if request.method == "GET" && path == "/api/feeds" {
         let query = match feed_query(&request.target) {
             Ok(query) => query,

@@ -563,6 +563,30 @@ impl Engine {
 
     /// Render a repository Atom feed. The caller has already verified the
     /// dedicated feed token and passes the path without its query string.
+    pub(crate) fn feeds_opml(&self) -> Result<ApiResponse, String> {
+        if self.profile.feeds.is_none() {
+            return error(404, "feeds_disabled");
+        }
+        let feeds: Vec<(String, String)> = self
+            .state
+            .feeds
+            .subscriptions
+            .values()
+            .map(|subscription| (subscription.label.clone(), subscription.url.clone()))
+            .collect();
+        let borrowed: Vec<(&str, &str)> = feeds
+            .iter()
+            .map(|(label, url)| (label.as_str(), url.as_str()))
+            .collect();
+        Ok(ApiResponse {
+            status: 200,
+            content_type: "text/x-opml; charset=utf-8",
+            body: render_opml("Kiln external feeds", &borrowed).into_bytes(),
+            download_name: Some("kiln-external-feeds.opml".to_string()),
+            headers: vec![("Cache-Control", "no-store".to_string())],
+        })
+    }
+
     fn repository_feed(&self, key: &str) -> Option<(String, Vec<crate::feeds::FeedRun>)> {
         let projects: BTreeMap<String, &crate::profile::ProjectProfile> = self
             .profile

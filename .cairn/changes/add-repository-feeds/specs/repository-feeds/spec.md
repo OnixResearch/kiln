@@ -94,6 +94,12 @@ r[kiln.web.feeds.subscriptions.scenario.refresh]
 - WHEN refresh runs
 - THEN previous entries MUST remain and the error MUST be recorded and reported.
 
+#### Scenario: External subscriptions are exported
+r[kiln.web.feeds.subscriptions.scenario.export]
+- GIVEN retained external subscriptions
+- WHEN an operator requests the subscription OPML export
+- THEN it MUST return the bounded labels and URLs as OPML; viewers MUST be denied.
+
 #### Scenario: Subscription refresh is paused
 r[kiln.web.feeds.subscriptions.scenario.pause]
 - GIVEN an existing subscription

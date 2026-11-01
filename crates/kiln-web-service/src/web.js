@@ -1581,6 +1581,19 @@
       importButton.type = "submit";
       importForm.append(fileLabel, file, importButton,
         element("p", "Imported feeds are retained without blocking this request; background refresh fetches them at the configured cadence, or use Refresh per feed.", "small"));
+      const exportButton = element("button", "Export subscriptions", "quiet");
+      exportButton.type = "button";
+      exportButton.addEventListener("click", async () => {
+        exportButton.disabled = true;
+        try {
+          const blob = await api("/api/feeds/export", { kind: "blob" });
+          saveBlob(blob, "kiln-external-feeds.opml");
+          notice("Subscription OPML export prepared.", "success");
+        } catch (error) {
+          notice(explain(error));
+        } finally { exportButton.disabled = false; }
+      });
+      importForm.append(exportButton);
       importForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const selected = file.files?.[0];

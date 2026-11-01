@@ -766,6 +766,34 @@ fn repository_feeds_and_external_subscription_round_trip() {
     );
     assert_eq!(viewer_rename.status(), 403);
 
+    let exported = checked(
+        client
+            .get(format!("{}/api/feeds/export", profile.origin))
+            .bearer_auth(&operator)
+            .send(),
+    );
+    assert_eq!(exported.status(), 200);
+    assert_eq!(
+        exported
+            .headers()
+            .get("content-type")
+            .and_then(|value| value.to_str().ok()),
+        Some("text/x-opml; charset=utf-8")
+    );
+    let exported = checked(exported.text());
+    assert!(exported.contains("xmlUrl=\""));
+    assert!(exported.contains(&feed_url));
+    assert_eq!(
+        checked(
+            client
+                .get(format!("{}/api/feeds/export", profile.origin))
+                .bearer_auth(&viewer_token)
+                .send()
+        )
+        .status(),
+        403
+    );
+
     let viewer_feeds = checked(
         client
             .get(format!("{}/api/feeds", profile.origin))
