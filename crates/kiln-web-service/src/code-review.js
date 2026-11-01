@@ -604,7 +604,10 @@
     if (state.route.review_status) active.push(`state: ${state.route.review_status}`);
     if (state.route.review_advisory) active.push(`advisory: ${state.route.review_advisory}`);
     if (state.route.review_agent) active.push(`agent: ${state.route.review_agent}`);
-    if (active.length) { const row = node("p", `Active filters — ${active.join(" · ")}`, "cr-muted"); list.append(row); }
+    if (active.length) {
+      const row = node("p", null, "cr-muted"), clear = button("Clear filters", () => route({ review_q: "", review_status: "", review_advisory: "", review_agent: "", review_offset: "" }), "chip");
+      row.append(`Active filters — ${active.join(" · ")} `, clear); list.append(row);
+    }
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
     for (const [text, value] of [["All changes", "all"], ["Awaiting my review", "awaiting_review"], ["My changes needing revision", "owned_needs_revision"], ["Unresolved discussions", "unresolved"]]) { const b = button(text, () => { clearFields("search"); route({ review_view: value }); }); b.setAttribute("aria-pressed", String(value === kind)); group.append(b); }
     views.append(group);
