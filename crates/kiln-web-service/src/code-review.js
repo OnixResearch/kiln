@@ -599,6 +599,12 @@
     const agent = field(search, "Agent submission", "select", state.route.review_agent || "", [["", "Any agent state"], ["with", "Agent-submitted revision"], ["without", "No agent attestation"]]);
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
     search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_agent: agent.value, review_change: "" }); }); list.append(search);
+    const active = [];
+    if (state.route.review_q) active.push(`text: ${state.route.review_q}`);
+    if (state.route.review_status) active.push(`state: ${state.route.review_status}`);
+    if (state.route.review_advisory) active.push(`advisory: ${state.route.review_advisory}`);
+    if (state.route.review_agent) active.push(`agent: ${state.route.review_agent}`);
+    if (active.length) { const row = node("p", `Active filters — ${active.join(" · ")}`, "cr-muted"); list.append(row); }
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
     for (const [text, value] of [["All changes", "all"], ["Awaiting my review", "awaiting_review"], ["My changes needing revision", "owned_needs_revision"], ["Unresolved discussions", "unresolved"]]) { const b = button(text, () => { clearFields("search"); route({ review_view: value }); }); b.setAttribute("aria-pressed", String(value === kind)); group.append(b); }
     views.append(group);
