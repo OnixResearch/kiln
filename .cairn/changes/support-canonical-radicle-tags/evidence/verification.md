@@ -10,8 +10,8 @@ older evidence without `revision` keep their behavior.
 
 ## Evidence
 
-- Source-contract tests pass, including matching tag-reference admission and
-  empty branch/tag name rejection.
+- Source-contract tests pass, including matching tag-reference admission,
+  mismatched canonical tags and empty branch/tag name rejection.
 - Native canonical tests pass for branches, lightweight and annotated tags,
   tag alias resolution and a non-commit tag target; the positive tag test asserts a commit snapshot and tag/revision
   evidence, and the negative test fails before snapshot acquisition.

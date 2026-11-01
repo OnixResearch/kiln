@@ -4,7 +4,7 @@
   "commands": [
     {
       "command": "cargo test -p kiln-radicle-source-contract",
-      "result": "12 passed; matching tag-reference admission and empty branch/tag names covered"
+      "result": "12 passed; matching tag-reference admission, mismatched canonical tags and empty branch/tag names covered"
     },
     {
       "command": "cargo test -p kiln-adapter-radicle --features source-native-fixtures --test source_canonical_native",
