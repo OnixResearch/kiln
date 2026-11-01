@@ -238,6 +238,25 @@ impl Drop for Service {
 fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart() {
     use std::os::unix::net::UnixDatagram;
     let (root, profile, path) = runtime_fixture();
+    let viewer_token = "d".repeat(64);
+    let viewer_token_path = root.path().join("viewer.token");
+    checked(fs::write(&viewer_token_path, &viewer_token));
+    checked(fs::set_permissions(
+        &viewer_token_path,
+        fs::Permissions::from_mode(0o400),
+    ));
+    let access_path = root.path().join("access.json");
+    checked(fs::write(
+        &access_path,
+        checked(serde_json::to_vec(&serde_json::json!({
+            "schema": "kiln.web-access.v1",
+            "viewers": [{
+                "id": "reader",
+                "label": "Read-only fixture",
+                "token_file": viewer_token_path,
+            }],
+        }))),
+    ));
     let socket_path = root.path().join("notify.sock");
     let receiver = checked(UnixDatagram::bind(&socket_path));
     checked(receiver.set_read_timeout(Some(Duration::from_secs(10))));
@@ -401,6 +420,8 @@ fn repository_feeds_and_external_subscription_round_trip() {
         Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
             .args(["serve", "--profile"])
             .arg(&path)
+            .arg("--access")
+            .arg(&access_path)
             .env("NOTIFY_SOCKET", &socket_path)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -536,6 +557,34 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .and_then(serde_json::Value::as_str)
         .unwrap_or_else(|| unreachable!("fixture subscription id"))
         .to_string();
+
+    let viewer_feeds = checked(
+        client
+            .get(format!("{}/api/feeds", profile.origin))
+            .bearer_auth(&viewer_token)
+            .send(),
+    );
+    assert_eq!(viewer_feeds.status(), 200);
+    let viewer_feeds: serde_json::Value = checked(viewer_feeds.json());
+    let viewer_subscription = viewer_feeds
+        .get("subscriptions")
+        .and_then(|value| value.get(0))
+        .unwrap_or_else(|| unreachable!("fixture viewer subscription"));
+    assert!(viewer_subscription.get("url").is_none());
+    assert!(
+        viewer_feeds
+            .pointer("/publication/repositories/0/subscribe_url")
+            .is_none()
+    );
+    let viewer_write = checked(
+        client
+            .post(format!("{}/api/feeds", profile.origin))
+            .bearer_auth(&viewer_token)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({"url": "https://example.invalid/feed"}))
+            .send(),
+    );
+    assert_eq!(viewer_write.status(), 403);
 
     let refreshed = checked(
         client

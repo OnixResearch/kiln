@@ -62,7 +62,7 @@ the export and format gates.
   admission, body bound, one-hop redirect, UTC formatting, Atom escaping and
   repository run filtering/order/limit, conditional 304, due selection and cadence monotonicity.
 - 147 web-service library tests and 70 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
-- The workspace passes 1228 tests. The Feeds page reloads its observations every
+- The workspace passes 1229 tests. The Feeds page reloads its observations every
   60 seconds while open and stops on navigation or logout.
 - The runtime round-trip starts the actual service, publishes an Atom feed,
   rejects wrong/missing tokens, adds an external feed, retains entries after a
