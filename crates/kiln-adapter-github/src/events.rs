@@ -7,12 +7,11 @@
 //! ## Admitted proof-type audit
 //!
 //! The other `Admitted*` types were audited with this change:
-//! `AdmittedGithubConfig` and `AdmittedAspenRuntimeProfile` are proofs of
-//! reviewed profile admission; each is to be sealed in a separate change.
-//! `AdmittedJournal` and `AdmittedRadicleConfig` are sealed by their dedicated
-//! changes. `AdmittedResult` is a plain record embedded in persisted
-//! semantic-merge state, not the output of a check, so it keeps its fields and
-//! deserialization.
+//! `AdmittedGithubConfig` is the remaining proof of reviewed profile admission
+//! to seal in a separate change. `AdmittedJournal`, `AdmittedRadicleConfig` and
+//! `AdmittedAspenRuntimeProfile` are sealed by their dedicated changes.
+//! `AdmittedResult` is a plain record embedded in persisted semantic-merge
+//! state, not the output of a check, so it keeps its fields and deserialization.
 //!
 // r[impl kiln.github.event_proof.audit]
 // r[verify kiln.github.event_proof.audit.scenario.names]

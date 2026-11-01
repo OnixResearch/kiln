@@ -17,16 +17,16 @@ pub(crate) fn validate_request(
     request: &CallbackRequest,
 ) -> Result<(), String> {
     if request.schema != CALLBACK_REQUEST_SCHEMA
-        || request.protocol_schema != profile.profile.extension_protocol_schema
-        || request.profile_identity != profile.profile_identity
-        || request.generation != profile.profile.generation
+        || request.protocol_schema != profile.profile().extension_protocol_schema
+        || request.profile_identity != *profile.profile_identity()
+        || request.generation != profile.profile().generation
         || request.prior_state.schema != CALLBACK_STATE_SCHEMA
         || request.prior_state.generation != request.generation
         || request.sequence != request.prior_state.revision.saturating_add(1)
         || request.deadline_tick == 0
-        || request.authority_ref != profile.profile.authority_ref
-        || request.policy_ref != profile.profile.policy_ref
-        || request.resource_ref != profile.profile.resource_ref
+        || request.authority_ref != profile.profile().authority_ref
+        || request.policy_ref != profile.profile().policy_ref
+        || request.resource_ref != profile.profile().resource_ref
     {
         return Err("callback request does not match the active exact Aspen profile".to_string());
     }
@@ -52,7 +52,7 @@ pub(crate) fn workflow_effect(
     let operation_id = ExternalRef::new("molten", "transport-operation-blake3", &digest)
         .map_err(diagnostic_string)?;
     let provider_profile =
-        ProviderProfileId::new(profile.profile.workflow_provider_profile.clone())
+        ProviderProfileId::new(profile.profile().workflow_provider_profile.clone())
             .map_err(diagnostic_string)?;
     map_provider_effect(
         profile,

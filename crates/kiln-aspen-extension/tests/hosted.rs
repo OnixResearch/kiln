@@ -16,7 +16,7 @@ use support::{admitted, trigger};
 #[test]
 fn local_service_accepts_rejects_replays_and_recovers_after_restart() {
     let profile = admitted();
-    let journal = LocalServiceJournal::new(profile.profile.generation);
+    let journal = LocalServiceJournal::new(profile.profile().generation);
     let service = LocalAspenService::new(
         profile.clone(),
         journal.clone(),
@@ -66,7 +66,7 @@ fn local_service_accepts_rejects_replays_and_recovers_after_restart() {
 #[test]
 fn post_accept_disconnect_is_unknown_until_exact_reconciliation() {
     let profile = admitted();
-    let journal = LocalServiceJournal::new(profile.profile.generation);
+    let journal = LocalServiceJournal::new(profile.profile().generation);
     journal
         .set_next_fault(LocalServiceFault::DisconnectAfterCommit)
         .unwrap_or_else(|_| unreachable!("fault"));

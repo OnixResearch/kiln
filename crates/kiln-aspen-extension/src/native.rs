@@ -21,7 +21,7 @@ const STOPPED: &str = "stopped";
 impl KilnAspenCallback {
     // r[impl kiln.aspen_runtime.callback] r[impl kiln.aspen_runtime.conformance]
     pub fn invoke_aspen_native(&self, bytes: &[u8]) -> Result<Vec<u8>, String> {
-        let bounds = &self.profile.profile.bounds;
+        let bounds = &self.profile.profile().bounds;
         let envelope = decode_aspen_native_envelope(
             bytes,
             bounds.max_callback_input_bytes,
@@ -69,7 +69,7 @@ fn validate_envelope(
 ) -> Result<(), String> {
     if envelope.extension_id != KILN_EXTENSION_ID
         || envelope.service_id != KILN_EXTENSION_SERVICE_ID
-        || envelope.generation != profile.profile.generation
+        || envelope.generation != profile.profile().generation
         || envelope.deadline_tick < envelope.logical_tick
         || envelope.manifest_ref.is_empty()
         || envelope.executable_ref.is_empty()
@@ -116,7 +116,7 @@ fn callback_request(
                 .ok_or_else(|| "request callback requires materialized input".to_string())?;
             let input = decode_hosted_callback_input(
                 &payload.bytes,
-                profile.profile.bounds.max_materialized_value_bytes,
+                profile.profile().bounds.max_materialized_value_bytes,
             )
             .map_err(protocol_string)?;
             validate_hosted_input(profile, &input)?;
@@ -132,9 +132,9 @@ fn callback_request(
             let command = completion_command(profile, envelope, &prior_state)?;
             (
                 lifecycle_operation(&envelope.event_ref)?,
-                profile.profile.authority_ref.clone(),
-                profile.profile.policy_ref.clone(),
-                profile.profile.resource_ref.clone(),
+                profile.profile().authority_ref.clone(),
+                profile.profile().policy_ref.clone(),
+                profile.profile().resource_ref.clone(),
                 command,
             )
         }
@@ -155,8 +155,8 @@ fn callback_request(
     };
     Ok(CallbackRequest {
         schema: kiln_adapter_aspen::protocol::CALLBACK_REQUEST_SCHEMA.to_string(),
-        protocol_schema: profile.profile.extension_protocol_schema.clone(),
-        profile_identity: profile.profile_identity.clone(),
+        protocol_schema: profile.profile().extension_protocol_schema.clone(),
+        profile_identity: profile.profile_identity().clone(),
         generation: envelope.generation,
         sequence: envelope.sequence,
         operation_id,
@@ -176,9 +176,9 @@ fn lifecycle_request(
 ) -> Result<(ExternalRef, String, String, String, CallbackCommand), String> {
     Ok((
         lifecycle_operation(&envelope.event_ref)?,
-        profile.profile.authority_ref.clone(),
-        profile.profile.policy_ref.clone(),
-        profile.profile.resource_ref.clone(),
+        profile.profile().authority_ref.clone(),
+        profile.profile().policy_ref.clone(),
+        profile.profile().resource_ref.clone(),
         command,
     ))
 }
@@ -188,11 +188,11 @@ fn validate_hosted_input(
     input: &HostedCallbackInput,
 ) -> Result<(), String> {
     if input.schema != HOSTED_CALLBACK_INPUT_SCHEMA
-        || input.protocol_schema != profile.profile.extension_protocol_schema
-        || input.profile_identity != profile.profile_identity
-        || input.authority_ref != profile.profile.authority_ref
-        || input.policy_ref != profile.profile.policy_ref
-        || input.resource_ref != profile.profile.resource_ref
+        || input.protocol_schema != profile.profile().extension_protocol_schema
+        || input.profile_identity != *profile.profile_identity()
+        || input.authority_ref != profile.profile().authority_ref
+        || input.policy_ref != profile.profile().policy_ref
+        || input.resource_ref != profile.profile().resource_ref
     {
         return Err("hosted callback input does not match the admitted Kiln profile".to_string());
     }

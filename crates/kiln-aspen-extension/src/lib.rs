@@ -36,7 +36,7 @@ impl KilnAspenCallback {
             } => {
                 let observed_identity = canonical_trigger_identity(
                     trigger,
-                    self.profile.profile.bounds.max_callback_input_bytes,
+                    self.profile.profile().bounds.max_callback_input_bytes,
                 )
                 .map_err(|error| format!("{error:?}"))?;
                 if &observed_identity != trigger_identity {
@@ -181,7 +181,7 @@ impl KilnAspenCallback {
         let status = status(&state);
         Ok(CallbackOutcome {
             schema: CALLBACK_OUTCOME_SCHEMA.to_string(),
-            protocol_schema: self.profile.profile.extension_protocol_schema.clone(),
+            protocol_schema: self.profile.profile().extension_protocol_schema.clone(),
             generation: request.generation,
             operation_id: request.operation_id.clone(),
             decision,
@@ -202,7 +202,7 @@ impl HostedCallback for KilnAspenCallback {
     ) -> Result<Vec<u8>, CallbackInvocationError> {
         let decoded = decode_callback_request(
             request,
-            self.profile.profile.bounds.max_callback_input_bytes,
+            self.profile.profile().bounds.max_callback_input_bytes,
         )
         .map_err(|error| CallbackInvocationError::Denied(error.to_string()))?;
         let outcome = self

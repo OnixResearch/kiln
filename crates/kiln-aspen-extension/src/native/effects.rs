@@ -23,7 +23,7 @@ pub(super) fn completion_command(
         .ok_or_else(|| "message callback requires a materialized completion".to_string())?;
     let completion = decode_aspen_effect_completion(
         &payload.bytes,
-        profile.profile.bounds.max_materialized_value_bytes,
+        profile.profile().bounds.max_materialized_value_bytes,
     )
     .map_err(protocol_string)?;
     if completion.generation != envelope.generation {
@@ -45,7 +45,7 @@ pub(super) fn completion_command(
     })?;
     let provider_completion = decode_hosted_provider_completion(
         &output.bytes,
-        profile.profile.bounds.max_materialized_value_bytes,
+        profile.profile().bounds.max_materialized_value_bytes,
     )
     .map_err(protocol_string)?;
     let terminal =
@@ -70,7 +70,7 @@ pub(super) fn native_effects(
     profile: &AdmittedAspenRuntimeProfile,
     effects: &[CallbackEffectPlan],
 ) -> Result<Vec<AspenNativeEffect>, String> {
-    if effects.len() > profile.profile.bounds.max_effects {
+    if effects.len() > profile.profile().bounds.max_effects {
         return Err("callback effect count exceeds the admitted bound".to_string());
     }
     effects
@@ -80,13 +80,13 @@ pub(super) fn native_effects(
                 .map_err(|error| format!("{}: {}", error.code, error.message))?;
             let purpose = purpose(effect.kind);
             let binding = profile
-                .profile
+                .profile()
                 .ports
                 .iter()
                 .find(|binding| binding.purpose == purpose)
                 .ok_or_else(|| "callback effect has no exact Aspen port binding".to_string())?;
             let bytes = serde_json::to_vec(effect).map_err(|error| error.to_string())?;
-            if bytes.len() > profile.profile.bounds.max_materialized_value_bytes {
+            if bytes.len() > profile.profile().bounds.max_materialized_value_bytes {
                 return Err("callback effect body exceeds the materialized-value bound".to_string());
             }
             let accounted_bytes = u64::try_from(bytes.len())

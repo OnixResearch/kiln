@@ -260,11 +260,11 @@ fn run_aspen(
         return Err(argument_error("Aspen composition selected another runtime"));
     };
     let maximum_frame_bytes = profile
-        .profile
+        .profile()
         .bounds
         .max_callback_input_bytes
-        .max(profile.profile.bounds.max_callback_output_bytes);
-    let timeout = Duration::from_millis(profile.profile.bounds.callback_timeout_millis);
+        .max(profile.profile().bounds.max_callback_output_bytes);
+    let timeout = Duration::from_millis(profile.profile().bounds.callback_timeout_millis);
     let transport = UnixAspenServiceTransport::new(socket_path, maximum_frame_bytes, timeout)
         .map_err(argument_error)?;
     let mut service = AspenTriggerClient::new(*profile, IngressSource::Radicle, transport);

@@ -70,7 +70,7 @@ pub fn prepare_request(
         source_identity: profile.source_identity.clone(),
         job_identity: profile.job_identity.clone(),
         pilot_profile_identity: identity(profile)?,
-        runtime_profile_identity: runtime.profile_identity,
+        runtime_profile_identity: runtime.profile_identity().clone(),
         run_id: hosted_run_id(&ingress.trigger_identity)
             .map_err(|error| format!("run: {error:?}"))?,
         attempt_id: profile.build_plan.attempt_id.clone(),

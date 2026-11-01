@@ -212,8 +212,31 @@ pub struct AspenRuntimeProfile {
     pub non_claims: Vec<String>,
 }
 
+/// An Aspen runtime profile that passed reviewed admission.
+///
+/// Only `admit_profile` constructs one; every field is crate-private.
+///
+/// ```compile_fail
+/// # use kiln_adapter_aspen::profile::AdmittedAspenRuntimeProfile;
+/// let _ = AdmittedAspenRuntimeProfile {
+///     profile: unreachable!(),
+///     profile_identity: unreachable!(),
+/// };
+/// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedAspenRuntimeProfile {
-    pub profile: AspenRuntimeProfile,
-    pub profile_identity: ContentId,
+    pub(crate) profile: AspenRuntimeProfile,
+    pub(crate) profile_identity: ContentId,
+}
+
+impl AdmittedAspenRuntimeProfile {
+    /// Reviewed runtime profile.
+    pub fn profile(&self) -> &AspenRuntimeProfile {
+        &self.profile
+    }
+
+    /// Content identity of the reviewed runtime profile.
+    pub fn profile_identity(&self) -> &ContentId {
+        &self.profile_identity
+    }
 }

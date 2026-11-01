@@ -1,0 +1,40 @@
+{
+  "schema": "kiln.aspen.proof.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-aspen -p kiln-aspen-extension -p kiln-radicle-ci -p kiln-onixos-pilot",
+      "result": "pass, including compile-fail doc tests"
+    },
+    {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "external construction rejected": "compile-fail doc test on AdmittedAspenRuntimeProfile",
+    "admitted facts readable": "accessors used by Aspen extension, Radicle CI and pilot consumers",
+    "audit record": "modified github-event-proof audit records AdmittedAspenRuntimeProfile sealed"
+  },
+  "non_claims": [
+    "the seal does not prove in-crate admission discipline",
+    "the seal does not prove profile semantic correctness",
+    "accessors return borrowed values"
+  ]
+}

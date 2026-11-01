@@ -32,7 +32,7 @@ fn write_non_default_profile(directory: &tempfile::TempDir) -> (std::path::PathB
     let bytes = serde_json::to_vec(&document)
         .unwrap_or_else(|_| unreachable!("profile document must encode"));
     std::fs::write(&path, bytes).unwrap_or_else(|_| unreachable!("profile document must write"));
-    (path, admitted.profile_identity.as_str().to_string())
+    (path, admitted.profile_identity().as_str().to_string())
 }
 
 // r[verify kiln.aspen_host.extension_profile_binding.accepted]
@@ -46,10 +46,10 @@ fn exact_non_default_runtime_profile_is_admitted() {
     let admitted = load_runtime_profile(&arguments)
         .unwrap_or_else(|_| unreachable!("matching runtime profile must admit"));
     assert_eq!(
-        admitted.profile.bounds.callback_timeout_millis,
+        admitted.profile().bounds.callback_timeout_millis,
         TEST_CALLBACK_TIMEOUT_MILLISECONDS,
     );
-    assert_eq!(admitted.profile_identity.as_str(), identity);
+    assert_eq!(admitted.profile_identity().as_str(), identity);
 }
 
 // r[verify kiln.aspen_host.extension_profile_binding.rejected]

@@ -62,7 +62,7 @@ fn callback_rejects_stale_authority_and_duplicate_completion() {
         schema: CALLBACK_COMPLETION_SCHEMA.to_string(),
         effect_id: effect.effect_id.clone(),
         operation_id: effect.operation_id,
-        generation: profile.profile.generation,
+        generation: profile.profile().generation,
         terminal: CallbackEffectTerminal::Success,
         observation_ref: reference("lattice", "observation", "complete-1"),
     };
@@ -98,7 +98,7 @@ fn callback_rejects_stale_authority_and_duplicate_completion() {
 fn callback_checkpoints_recovers_drains_and_stops_with_generation_fencing() {
     let profile = admitted();
     let callback = KilnAspenCallback::new(profile.clone());
-    let state = CallbackState::initial(profile.profile.generation);
+    let state = CallbackState::initial(profile.profile().generation);
     let checkpointed = callback
         .handle(&request(
             &profile,

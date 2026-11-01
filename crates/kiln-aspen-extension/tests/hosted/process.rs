@@ -19,7 +19,7 @@ fn separate_callback_process_accepts_canonical_input_and_rejects_bad_frames() {
     let (_runtime_profile_directory, runtime_profile) = runtime_profile_file();
     let request = request(
         &profile,
-        CallbackState::initial(profile.profile.generation),
+        CallbackState::initial(profile.profile().generation),
         CallbackCommand::Status,
         "process-status",
     );
@@ -28,15 +28,15 @@ fn separate_callback_process_accepts_canonical_input_and_rejects_bad_frames() {
     let output = run_callback_process(
         executable,
         &runtime_profile,
-        profile.profile_identity.as_str(),
+        profile.profile_identity().as_str(),
         &bytes,
     );
     assert!(output.status.success());
     let native = decode_aspen_native_outcome(
         &output.stdout,
-        profile.profile.bounds.max_callback_output_bytes,
-        profile.profile.bounds.max_materialized_value_bytes,
-        profile.profile.bounds.max_materialized_values,
+        profile.profile().bounds.max_callback_output_bytes,
+        profile.profile().bounds.max_materialized_value_bytes,
+        profile.profile().bounds.max_materialized_values,
     )
     .unwrap_or_else(|_| unreachable!("native decode"));
     let callback_output = native
@@ -45,8 +45,8 @@ fn separate_callback_process_accepts_canonical_input_and_rejects_bad_frames() {
         .unwrap_or_else(|| unreachable!("callback output"));
     let outcome = decode_callback_outcome(
         &callback_output.bytes,
-        profile.profile.bounds.max_materialized_value_bytes,
-        profile.profile.bounds.max_effects,
+        profile.profile().bounds.max_materialized_value_bytes,
+        profile.profile().bounds.max_effects,
     )
     .unwrap_or_else(|_| unreachable!("Kiln decode"));
     assert_eq!(outcome.decision, CallbackDecision::Status);
@@ -61,7 +61,7 @@ fn separate_callback_process_accepts_canonical_input_and_rejects_bad_frames() {
     let malformed = run_callback_process(
         executable,
         &runtime_profile,
-        profile.profile_identity.as_str(),
+        profile.profile_identity().as_str(),
         b"not-preserves",
     );
     assert_eq!(malformed.status.code(), Some(PROCESS_FAILURE_EXIT_CODE));
@@ -71,7 +71,7 @@ fn separate_callback_process_accepts_canonical_input_and_rejects_bad_frames() {
     let overbound = run_callback_process(
         executable,
         &runtime_profile,
-        profile.profile_identity.as_str(),
+        profile.profile_identity().as_str(),
         &oversized,
     );
     assert_eq!(overbound.status.code(), Some(PROCESS_FAILURE_EXIT_CODE));
@@ -89,13 +89,13 @@ fn native_host_frames_repeat_and_denials_release_no_effects() {
     let first = run_callback_process(
         executable,
         &runtime_profile,
-        profile.profile_identity.as_str(),
+        profile.profile_identity().as_str(),
         &accepted_frame,
     );
     let second = run_callback_process(
         executable,
         &runtime_profile,
-        profile.profile_identity.as_str(),
+        profile.profile_identity().as_str(),
         &accepted_frame,
     );
     assert!(first.status.success());
@@ -109,7 +109,7 @@ fn native_host_frames_repeat_and_denials_release_no_effects() {
     let rejected = run_callback_process(
         executable,
         &runtime_profile,
-        profile.profile_identity.as_str(),
+        profile.profile_identity().as_str(),
         &rejected_frame,
     );
     assert!(rejected.status.success());
@@ -123,7 +123,7 @@ fn native_host_frames_repeat_and_denials_release_no_effects() {
     let denied = run_callback_process(
         executable,
         &runtime_profile,
-        profile.profile_identity.as_str(),
+        profile.profile_identity().as_str(),
         &denied_frame,
     );
     assert_eq!(denied.status.code(), Some(PROCESS_FAILURE_EXIT_CODE));
@@ -133,9 +133,9 @@ fn native_host_frames_repeat_and_denials_release_no_effects() {
 fn decode_process_outcome(profile: &AdmittedAspenRuntimeProfile, bytes: &[u8]) -> CallbackOutcome {
     let native = decode_aspen_native_outcome(
         bytes,
-        profile.profile.bounds.max_callback_output_bytes,
-        profile.profile.bounds.max_materialized_value_bytes,
-        profile.profile.bounds.max_materialized_values,
+        profile.profile().bounds.max_callback_output_bytes,
+        profile.profile().bounds.max_materialized_value_bytes,
+        profile.profile().bounds.max_materialized_values,
     )
     .unwrap_or_else(|_| unreachable!("native process outcome"));
     let output = native
@@ -144,8 +144,8 @@ fn decode_process_outcome(profile: &AdmittedAspenRuntimeProfile, bytes: &[u8]) -
         .unwrap_or_else(|| unreachable!("Kiln process output"));
     decode_callback_outcome(
         &output.bytes,
-        profile.profile.bounds.max_materialized_value_bytes,
-        profile.profile.bounds.max_effects,
+        profile.profile().bounds.max_materialized_value_bytes,
+        profile.profile().bounds.max_effects,
     )
     .unwrap_or_else(|_| unreachable!("Kiln process outcome"))
 }

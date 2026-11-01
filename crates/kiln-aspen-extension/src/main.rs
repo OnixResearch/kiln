@@ -43,7 +43,7 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let arguments = parse_arguments(arguments)?;
     let admitted = load_runtime_profile(&arguments)?;
     let read_limit = admitted
-        .profile
+        .profile()
         .bounds
         .max_callback_input_bytes
         .checked_add(READ_OVERFLOW_SENTINEL_BYTES)
@@ -56,10 +56,10 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
         .take(read_limit)
         .read_to_end(&mut input)
         .map_err(|error| format!("callback input read failed: {error}"))?;
-    if input.len() > admitted.profile.bounds.max_callback_input_bytes {
+    if input.len() > admitted.profile().bounds.max_callback_input_bytes {
         return Err("callback input exceeds its named byte bound".to_string());
     }
-    let maximum_output_bytes = admitted.profile.bounds.max_callback_output_bytes;
+    let maximum_output_bytes = admitted.profile().bounds.max_callback_output_bytes;
     let callback = KilnAspenCallback::new(admitted);
     let output = callback
         .invoke_aspen_native(&input)
@@ -141,7 +141,7 @@ fn load_runtime_profile(arguments: &Arguments) -> Result<AdmittedAspenRuntimePro
         .map_err(|error| format!("{}: {}", error.code, error.message))?;
     let admitted =
         admit_profile(&profile).map_err(|error| format!("{}: {}", error.code, error.message))?;
-    if admitted.profile_identity.as_str() != arguments.runtime_profile_identity {
+    if admitted.profile_identity().as_str() != arguments.runtime_profile_identity {
         return Err("runtime profile identity differs from the host binding".to_string());
     }
     Ok(admitted)

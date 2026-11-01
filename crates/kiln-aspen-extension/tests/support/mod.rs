@@ -62,13 +62,13 @@ pub fn request(
     CallbackRequest {
         schema: CALLBACK_REQUEST_SCHEMA.to_string(),
         protocol_schema: KILN_EXTENSION_PROTOCOL_SCHEMA.to_string(),
-        profile_identity: profile.profile_identity.clone(),
-        generation: profile.profile.generation,
+        profile_identity: profile.profile_identity().clone(),
+        generation: profile.profile().generation,
         sequence: state.revision.saturating_add(1),
         operation_id: reference("molten", "operation", label),
-        authority_ref: profile.profile.authority_ref.clone(),
-        policy_ref: profile.profile.policy_ref.clone(),
-        resource_ref: profile.profile.resource_ref.clone(),
+        authority_ref: profile.profile().authority_ref.clone(),
+        policy_ref: profile.profile().policy_ref.clone(),
+        resource_ref: profile.profile().resource_ref.clone(),
         deadline_tick: DEFAULT_CALLBACK_TIMEOUT_MILLIS,
         prior_state: state,
         command,
@@ -81,17 +81,19 @@ pub fn native_request_frame(
 ) -> Vec<u8> {
     let hosted = HostedCallbackInput {
         schema: HOSTED_CALLBACK_INPUT_SCHEMA.to_string(),
-        protocol_schema: profile.profile.extension_protocol_schema.clone(),
-        profile_identity: profile.profile_identity.clone(),
+        protocol_schema: profile.profile().extension_protocol_schema.clone(),
+        profile_identity: profile.profile_identity().clone(),
         operation_id: request.operation_id.clone(),
         authority_ref: request.authority_ref.clone(),
         policy_ref: request.policy_ref.clone(),
         resource_ref: request.resource_ref.clone(),
         command: request.command.clone(),
     };
-    let payload_bytes =
-        encode_hosted_callback_input(&hosted, profile.profile.bounds.max_materialized_value_bytes)
-            .unwrap_or_else(|_| unreachable!("hosted input"));
+    let payload_bytes = encode_hosted_callback_input(
+        &hosted,
+        profile.profile().bounds.max_materialized_value_bytes,
+    )
+    .unwrap_or_else(|_| unreachable!("hosted input"));
     let state_bytes =
         serde_json::to_vec(&request.prior_state).unwrap_or_else(|_| unreachable!("state bytes"));
     let manifest_ref = aspen_content_ref(b"kiln-host-manifest-v2");
@@ -104,8 +106,8 @@ pub fn native_request_frame(
         manifest_ref,
         executable_ref,
         instance_id: "kiln-host-instance-v2".to_string(),
-        extension_id: profile.profile.extension_id.clone(),
-        service_id: profile.profile.service_id.clone(),
+        extension_id: profile.profile().extension_id.clone(),
+        service_id: profile.profile().service_id.clone(),
         generation: request.generation,
         callback: "request".to_string(),
         sequence: request.sequence,
@@ -120,9 +122,9 @@ pub fn native_request_frame(
     };
     encode_aspen_native_envelope(
         &envelope,
-        profile.profile.bounds.max_callback_input_bytes,
-        profile.profile.bounds.max_materialized_value_bytes,
-        profile.profile.bounds.max_materialized_values,
+        profile.profile().bounds.max_callback_input_bytes,
+        profile.profile().bounds.max_materialized_value_bytes,
+        profile.profile().bounds.max_materialized_values,
     )
     .unwrap_or_else(|_| unreachable!("native envelope"))
 }
