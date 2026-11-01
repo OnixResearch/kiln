@@ -317,6 +317,17 @@ fn tag_trigger_filter_namespaces_and_schedule_references_are_rejected() {
     trigger.pull_request = true;
     trigger.filter.tags = vec!["v*".into()];
     assert!(engine.configure_automation(tag_filter).is_err());
+    let mut mismatched_tag = policy(root.path());
+    let trigger = mismatched_tag
+        .triggers
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture trigger"));
+    trigger.reference = "refs/tags/v1".into();
+    trigger.push = true;
+    trigger.pull_request = false;
+    trigger.pull_request_base = None;
+    trigger.filter.tags = vec!["v2*".into()];
+    assert!(engine.configure_automation(mismatched_tag).is_err());
     let mut schedule = policy(root.path());
     schedule
         .schedules
