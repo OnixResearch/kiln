@@ -823,7 +823,7 @@
     facts(rules, [["Policy", policy?.id], ["Eligible reviewers", arr(policy?.eligible_reviewers).join(", ")], ["Required approvals", policy?.minimum_approvals], ["Required CI", policy ? String(policy.require_ci) : "Policy unavailable; submit is blocked"]]);
     if (arr(policy?.ownership?.rules).length) {
       rules.append(node("h4", "Configured ownership and protected target rules (checklist remains authority)"));
-      for (const rule of policy.ownership.rules) { const article = node("article", null, "cr-operation"); facts(article, [["Rule", rule.id], ["Path patterns", arr(rule.paths).join(", ")], ["Protected targets", arr(rule.target_refs).join(", ") || "All admitted targets"], ["Owners", arr(rule.owners).join(", ")], ["Teams", arr(rule.teams).map(team => `${team}: ${arr(policy.ownership.teams?.[team]).join(", ")}`).join("; ")]]); rules.append(article); }
+      for (const rule of policy.ownership.rules) { const article = node("article", null, "cr-operation"); facts(article, [["Rule", rule.id], ["Project", rule.project || "unassigned"], ["Path patterns", arr(rule.paths).join(", ")], ["Interface patterns", arr(rule.interface).join(", ") || "none"], ["Protected targets", arr(rule.target_refs).join(", ") || "All admitted targets"], ["Owners", arr(rule.owners).join(", ")], ["Teams", arr(rule.teams).map(team => `${team}: ${arr(policy.ownership.teams?.[team]).join(", ")}`).join("; ")]]); rules.append(article); }
     }
   }
   const advisoryRoute = value => value === true ? "with" : value === false ? "without" : "";
