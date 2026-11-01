@@ -1806,6 +1806,30 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         &json!(0)
     );
     assert_eq!(
+        field(
+            &accepted(get(
+                &workspace,
+                "/api/code-review?agent_model=deepseek",
+                ALICE,
+                &[]
+            ))?,
+            "/total"
+        )?,
+        &json!(1)
+    );
+    assert_eq!(
+        field(
+            &accepted(get(
+                &workspace,
+                "/api/code-review?agent_model=other",
+                ALICE,
+                &[]
+            ))?,
+            "/total"
+        )?,
+        &json!(0)
+    );
+    assert_eq!(
         get(
             &workspace,
             &format!("/api/code-review?agent_harness={}", "x".repeat(129)),

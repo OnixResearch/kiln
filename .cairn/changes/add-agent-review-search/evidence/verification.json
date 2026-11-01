@@ -12,7 +12,7 @@
     },
     {
       "command": "cargo test -p kiln-web-service --test code_review review_detail_marks_agent_votes",
-      "result": "1 passed; agent/harness filters, human negatives, malformed, untrimmed and over-bound harness values are covered"
+      "result": "1 passed; agent/harness filters, human negatives, malformed, untrimmed and over-bound harness/model values are covered"
     },
     {
       "command": "cargo test --workspace --no-fail-fast",

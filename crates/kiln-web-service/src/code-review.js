@@ -427,7 +427,7 @@
   }
   function clearFields(...keys) { for (const key of keys) state.forms.delete(memoryKey(key)); }
   function route(patch) {
-    if (["review_q", "review_view", "review_status", "review_advisory", "review_agent", "review_agent_harness"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_offset")) patch = { ...patch, review_offset: "" };
+    if (["review_q", "review_view", "review_status", "review_advisory", "review_agent", "review_agent_harness", "review_agent_model"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_offset")) patch = { ...patch, review_offset: "" };
     // Choosing a revision or base leaves any interdiff or commit-range view unless the patch names one.
     if (["review_change", "review_revision", "review_base"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_interdiff")) patch = { review_interdiff: "", review_interdiff_change: "", review_commits: "", ...patch };
     if (Object.hasOwn(patch, "review_revision")) state.pinnedRevision = patch.review_revision || "";
@@ -493,7 +493,7 @@
     if (!state.container?.isConnected || !state.context) return;
     const epoch = state.epoch, id = selected(), request = ++state.request, context = state.context;
     try {
-      const root = await context.api(`${ROOT}?${new URLSearchParams({ q: state.route.review_q || "", view: state.route.review_view || "all", offset: state.route.review_offset || "0", notification_offset: state.route.review_notification_offset || "0", operation_offset: state.route.review_operation_offset || "0", ...(state.route.review_status ? { status: state.route.review_status } : {}), ...(state.route.review_advisory ? { advisory: state.route.review_advisory } : {}), ...(state.route.review_agent ? { agent: state.route.review_agent } : {}), ...(state.route.review_agent_harness ? { agent_harness: state.route.review_agent_harness } : {}) })}`);
+      const root = await context.api(`${ROOT}?${new URLSearchParams({ q: state.route.review_q || "", view: state.route.review_view || "all", offset: state.route.review_offset || "0", notification_offset: state.route.review_notification_offset || "0", operation_offset: state.route.review_operation_offset || "0", ...(state.route.review_status ? { status: state.route.review_status } : {}), ...(state.route.review_advisory ? { advisory: state.route.review_advisory } : {}), ...(state.route.review_agent ? { agent: state.route.review_agent } : {}), ...(state.route.review_agent_harness ? { agent_harness: state.route.review_agent_harness } : {}), ...(state.route.review_agent_model ? { agent_model: state.route.review_agent_model } : {}) })}`);
       if (!active(epoch, id) || request !== state.request) return;
       if (root?.schema !== "kiln.code-review.v1" || root.principal !== context.principal) throw new Error("Review snapshot schema or principal does not match this authenticated session.");
       state.snapshot = root;
@@ -599,8 +599,10 @@
     const agent = field(search, "Agent submission", "select", state.route.review_agent || "", [["", "Any agent state"], ["with", "Agent-submitted revision"], ["without", "No agent attestation"]]);
     const harnesses = [...new Set([...Object.values(state.snapshot.agent_metadata || {}).map(identity => identity.harness), ...(state.route.review_agent_harness ? [state.route.review_agent_harness] : [])])].sort();
     const agentHarness = field(search, "Agent harness", "select", state.route.review_agent_harness || "", [["", "Any declared harness"], ...harnesses.map(harness => [harness, harness])]);
+    const models = [...new Set([...Object.values(state.snapshot.agent_metadata || {}).map(identity => identity.model).filter(Boolean), ...(state.route.review_agent_model ? [state.route.review_agent_model] : [])])].sort();
+    const agentModel = field(search, "Agent model", "select", state.route.review_agent_model || "", [["", "Any declared model"], ...models.map(model => [model, model])]);
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
-    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_agent: agent.value, review_agent_harness: agentHarness.value, review_change: "" }); }); list.append(search);
+    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_agent: agent.value, review_agent_harness: agentHarness.value, review_agent_model: agentModel.value, review_change: "" }); }); list.append(search);
     const active = [];
     if ((state.route.review_view || "all") !== "all") active.push(`view: ${state.route.review_view}`);
     if (state.route.review_q) active.push(`text: ${state.route.review_q}`);
@@ -608,8 +610,9 @@
     if (state.route.review_advisory) active.push(`advisory: ${state.route.review_advisory}`);
     if (state.route.review_agent) active.push(`agent: ${state.route.review_agent}`);
     if (state.route.review_agent_harness) active.push(`harness: ${state.route.review_agent_harness}`);
+    if (state.route.review_agent_model) active.push(`model: ${state.route.review_agent_model}`);
     if (active.length) {
-      const row = node("p", null, "cr-muted"), clear = button("Clear filters", () => route({ review_q: "", review_status: "", review_advisory: "", review_agent: "", review_view: "all", review_offset: "" }), "chip");
+      const row = node("p", null, "cr-muted"), clear = button("Clear filters", () => route({ review_q: "", review_status: "", review_advisory: "", review_agent: "", review_agent_harness: "", review_agent_model: "", review_view: "all", review_offset: "" }), "chip");
       row.append(`Active filters — ${active.join(" · ")} `, clear); list.append(row);
     }
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
@@ -619,13 +622,13 @@
     if (savedViews.length) {
       const list = node("ul", null, "cr-saved-views"); list.setAttribute("aria-label", "Saved personal views");
       for (const view of savedViews) {
-        const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "") && advisoryRoute(view.query.advisory) === (state.route.review_advisory || "") && agentRoute(view.query.agent) === (state.route.review_agent || "") && (view.query.agent_harness || "") === (state.route.review_agent_harness || "");
-        const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "", review_advisory: advisoryRoute(view.query.advisory), review_agent: agentRoute(view.query.agent), review_agent_harness: view.query.agent_harness || "" }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
+        const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "") && advisoryRoute(view.query.advisory) === (state.route.review_advisory || "") && agentRoute(view.query.agent) === (state.route.review_agent || "") && (view.query.agent_harness || "") === (state.route.review_agent_harness || "") && (view.query.agent_model || "") === (state.route.review_agent_model || "");
+        const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "", review_advisory: advisoryRoute(view.query.advisory), review_agent: agentRoute(view.query.agent), review_agent_harness: view.query.agent_harness || "", review_agent_model: view.query.agent_model || "" }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
         li.append(apply, iconOnly(writeButton(`Delete view ${view.name}…`, () => command({ type: "delete_view", id: view.id }, null, { title: `Delete personal view "${view.name}"?`, verb: "Delete view", danger: true, facts: [["Name", view.name], ["Query", JSON.stringify(view.query)]] }), "quiet"), icon("x"))); list.append(li);
       }
       views.append(list);
     }
-    const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: { kind: state.route.review_view || "all", text: state.route.review_q || "", status: state.route.review_status || null, ...(state.route.review_advisory ? { advisory: state.route.review_advisory === "with" } : {}) } }, null); clearFields("view-name"); }));
+    const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: { kind: state.route.review_view || "all", text: state.route.review_q || "", status: state.route.review_status || null, ...(state.route.review_advisory ? { advisory: state.route.review_advisory === "with" } : {}), ...(state.route.review_agent ? { agent: state.route.review_agent === "with" } : {}), ...(state.route.review_agent_harness ? { agent_harness: state.route.review_agent_harness } : {}), ...(state.route.review_agent_model ? { agent_model: state.route.review_agent_model } : {}) } }, null); clearFields("view-name"); }));
     disclosure(views, "Save current query as a personal view").append(save); list.append(views);
     const changes = arr(state.snapshot.changes), offset = Number(state.route.review_offset) || 0;
     if (changes.length) {

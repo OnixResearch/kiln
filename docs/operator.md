@@ -3289,7 +3289,10 @@ and the search form's **Advisory approvals** filter (`advisory=with|without`) ca
 be saved in personal views. The separate **Agent submission** filter
 (`agent=with|without`) matches whether the current revision carries attested
 agent submission identity. **Agent harness** (`agent_harness=<declared harness>`)
-matches that exact declared harness. Both are saved in personal views. Older journals
+matches that exact declared harness, and **Agent model**
+(`agent_model=<declared model>`) matches that exact declared model. A revision
+with no declared model never matches a model filter. All three are saved in
+personal views. Older journals
 and saved views replay unchanged.
 
 Line selection seeds a private draft with the revision, comparison-base commit,

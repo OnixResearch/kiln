@@ -1310,17 +1310,8 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
         Some("without") => Some(false),
         _ => return reject(400, "review_query_invalid"),
     };
-    let agent_harness = match query.get("agent_harness").map(String::as_str) {
-        None | Some("") => None,
-        Some(value)
-            if value.len() <= crate::access::MAX_AGENT_TEXT_BYTES
-                && value.trim() == value
-                && !value.chars().any(char::is_control) =>
-        {
-            Some(value.to_string())
-        }
-        Some(_) => return reject(400, "review_query_invalid"),
-    };
+    let agent_harness = optional_agent_text(query, "agent_harness")?;
+    let agent_model = optional_agent_text(query, "agent_model")?;
     let agent = match query.get("agent").map(String::as_str) {
         None | Some("") => None,
         Some("with") => Some(true),
@@ -1334,7 +1325,24 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
         advisory,
         agent,
         agent_harness,
+        agent_model,
     })
+}
+fn optional_agent_text(
+    query: &BTreeMap<String, String>,
+    key: &str,
+) -> Result<Option<String>, Failure> {
+    match query.get(key).map(String::as_str) {
+        None | Some("") => Ok(None),
+        Some(value)
+            if value.len() <= crate::access::MAX_AGENT_TEXT_BYTES
+                && value.trim() == value
+                && !value.chars().any(char::is_control) =>
+        {
+            Ok(Some(value.to_string()))
+        }
+        Some(_) => reject(400, "review_query_invalid"),
+    }
 }
 fn parse_target(target: &str) -> Result<(String, BTreeMap<String, String>), Failure> {
     let (path, query) = target.split_once('?').unwrap_or((target, ""));

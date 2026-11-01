@@ -485,6 +485,9 @@ pub struct SearchQuery {
     /// Exact declared harness on the current revision's attested agent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_harness: Option<String>,
+    /// Exact declared model on the current revision's attested agent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_model: Option<String>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -1003,6 +1006,16 @@ pub fn search<'a>(state: &'a ReviewState, actor: &str, query: &SearchQuery) -> V
                     .as_ref()
                     .and_then(|submission| submission.agent.as_ref())
                     .is_none_or(|agent| &agent.harness != harness)
+            {
+                return false;
+            }
+            if let Some(model) = &query.agent_model
+                && revision
+                    .submitted_by
+                    .as_ref()
+                    .and_then(|submission| submission.agent.as_ref())
+                    .and_then(|agent| agent.model.as_ref())
+                    .is_none_or(|declared| declared != model)
             {
                 return false;
             }
@@ -4021,6 +4034,7 @@ mod tests {
                     advisory: None,
                     agent: None,
                     agent_harness: None,
+                    agent_model: None,
                 }
             )
             .first()
@@ -4630,7 +4644,7 @@ mod tests {
             principal: "alice".into(),
             agent: Some(AgentIdentity {
                 harness: "omp".into(),
-                model: None,
+                model: Some("deepseek".into()),
             }),
         });
         let query = |agent| SearchQuery {
@@ -4640,6 +4654,7 @@ mod tests {
             advisory: None,
             agent,
             agent_harness: None,
+            agent_model: None,
         };
         assert_eq!(search(&state, "alice", &query(Some(true))).len(), 1);
         assert!(search(&state, "alice", &query(Some(false))).is_empty());
@@ -4651,9 +4666,21 @@ mod tests {
             advisory: None,
             agent: Some(true),
             agent_harness: Some(harness.into()),
+            agent_model: None,
         };
         assert_eq!(search(&state, "alice", &by_harness("omp")).len(), 1);
         assert!(search(&state, "alice", &by_harness("other")).is_empty());
+        let by_model = |model: &str| SearchQuery {
+            kind: SearchKind::All,
+            text: String::new(),
+            status: None,
+            advisory: None,
+            agent: Some(true),
+            agent_harness: None,
+            agent_model: Some(model.into()),
+        };
+        assert_eq!(search(&state, "alice", &by_model("deepseek")).len(), 1);
+        assert!(search(&state, "alice", &by_model("other")).is_empty());
         Ok(())
     }
 
@@ -5148,6 +5175,7 @@ mod tests {
                 advisory: None,
                 agent: Some(false),
                 agent_harness: None,
+                agent_model: None,
             },
         };
         send(

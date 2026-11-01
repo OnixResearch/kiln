@@ -1250,6 +1250,7 @@
       review_advisory: ["with", "without"].includes(params.get("review_advisory")) ? params.get("review_advisory") : "",
       review_agent: ["with", "without"].includes(params.get("review_agent")) ? params.get("review_agent") : "",
       review_agent_harness: (params.get("review_agent_harness") || "").slice(0, 128),
+      review_agent_model: (params.get("review_agent_model") || "").slice(0, 128),
       review_offset: /^[0-9]{1,8}$/.test(params.get("review_offset") || "") ? params.get("review_offset") : "",
       review_notification_offset: /^[0-9]{1,8}$/.test(params.get("review_notification_offset") || "") ? params.get("review_notification_offset") : "",
       review_operation_offset: /^[0-9]{1,8}$/.test(params.get("review_operation_offset") || "") ? params.get("review_operation_offset") : "",
