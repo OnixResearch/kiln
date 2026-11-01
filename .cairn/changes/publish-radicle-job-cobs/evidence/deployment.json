@@ -1,0 +1,42 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "date": "2026-10-31",
+  "authority": "Operator explicitly requested commit, push to main, and deploy.",
+  "package": "/nix/store/lg8vwxjqb04pxb1wi1xvr2j4bk0d8c36-kiln-web-service-0.1.0",
+  "executable_blake3": "910f1724a6070b904736e8c5b7cba5ed668eed28cecb5c71edfdd68f291c10fd",
+  "previous_package": "/nix/store/wqrijva8fyvy8iavjxp0vmdmi08n0sj1-kiln-web-service-0.1.0",
+  "build": "nix build path:$PWD#web-service --option builders '' (the configured remote Aspen builder failed on an overlong lock path; local build succeeded)",
+  "migration": {
+    "reason": "ScheduleProfile.interval_ms changed from u64 to Option<u64>; packed canonical identity changes even though automation.json is unchanged.",
+    "scope": "Updated only automation.policy_identity in service.sqlite; settings, runs, requests, sources and deliveries were retained.",
+    "old_identity": "816b7304b5a575d7bb21ab1f0f5fd1fd5988a4a64f87d649a88d094b4cc80e61",
+    "new_identity": "81c90595273ffc9b89d809247cd8cca0e41e1d2d13b2fa1589f0e09e7b2f8eed",
+    "automation_config": "/home/brittonr/.config/kiln/web-service/automation.json unchanged since 2026-10-27",
+    "backup": "/home/brittonr/git/.kiln-web-service/web-live/service.sqlite.pre-job-deploy-20261031",
+    "backup_blake3": "585da7b3448fe96f70b6360607f20c3da54377162a1b300ed2bb9df34f469ca7"
+  },
+  "verification": {
+    "health": {"status": "ok"},
+    "anonymous_api": 401,
+    "available_projects": 15,
+    "enrolled_projects": 15,
+    "retained_runs": 19,
+    "retained_requests": 35,
+    "automation_schedules": 1,
+    "automation_status": "disabled",
+    "service_active": true,
+    "deployed_profile": "/nix/store/lg8vwxjqb04pxb1wi1xvr2j4bk0d8c36-kiln-web-service-0.1.0/bin/kiln-web-service"
+  },
+  "notes": [
+    "The first start after adding the new package refused the retained automation identity and was rolled back to the previous package.",
+    "The health check must use https://localhost:9443 with the configured Host; https://127.0.0.1:9443 is origin-denied.",
+    "A backup of the pre-migration SQLite state is retained outside the repository with mode 0600."
+  ],
+  "rollback": [
+    "systemctl --user stop kiln-web-service.service",
+    "copy service.sqlite.pre-job-deploy-20261031 over service.sqlite and remove service.sqlite-wal/service.sqlite-shm",
+    "nix profile remove kiln-web-service",
+    "nix profile add /nix/store/wqrijva8fyvy8iavjxp0vmdmi08n0sj1-kiln-web-service-0.1.0",
+    "systemctl --user daemon-reload && systemctl --user start kiln-web-service.service"
+  ]
+}
