@@ -3325,6 +3325,7 @@ dependencies = [
  "bounded-exec",
  "bounded-exec-core",
  "fs2",
+ "getrandom 0.3.4",
  "git2 0.20.4",
  "git2 0.21.0",
  "hmac 0.12.1",

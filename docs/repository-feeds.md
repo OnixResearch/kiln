@@ -22,8 +22,15 @@ accepted by `config/web-service.ncl` and its positive/negative fixtures:
 }
 ```
 
-The token file is a 64-character hexadecimal credential, mode `0600` or
-`0400`, distinct from the operator, worker, viewer and proxy credentials.
+Create the token with the service binary so it is fresh and private:
+
+```console
+kiln-web-service feed-token --path /etc/kiln-web-service/credentials/feed.token
+```
+
+The command refuses an existing path and writes one 64-character hexadecimal
+credential with mode `0600`. The token is distinct from the operator, worker,
+viewer and proxy credentials.
 Omitting `feeds` disables both publication and external subscriptions. A feeds
 policy is not admitted through `extend-projects`; restart with a reviewed
 profile to change it.

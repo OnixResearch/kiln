@@ -32,6 +32,7 @@ fn main() {
         Some("reviewed-request") => reviewed_request(arguments),
         Some("worker-target") => worker_target(arguments),
         Some("extend-projects") => extend_projects(arguments),
+        Some("feed-token") => feed_token(arguments),
         Some("--help" | "-h") | None => {
             usage();
             0
@@ -43,7 +44,8 @@ fn main() {
 
 fn usage() -> i32 {
     eprintln!(
-        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service heartbeat --profile <path> --identity <blake3>\n       kiln-web-service ci --profile <path> --identity <blake3> <submit|watch|logs|cancel|retry> [arguments]\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>"
+        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service heartbeat --profile <path> --identity <blake3>\n       kiln-web-service ci --profile <path> --identity <blake3> <submit|watch|logs|cancel|retry> [arguments]\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>
+       kiln-web-service feed-token --path <absolute-new-path>"
     );
     eprintln!(
         "       kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>"
@@ -58,6 +60,24 @@ fn status(result: Result<(), String>) -> i32 {
             eprintln!("kiln-web-service: {message}");
             1
         }
+    }
+}
+
+fn feed_token(mut arguments: impl Iterator<Item = String>) -> i32 {
+    match (arguments.next(), arguments.next(), arguments.next()) {
+        (Some(flag), Some(path), None) if flag == "--path" => {
+            match kiln_web_service::profile::write_feed_token(std::path::Path::new(&path)) {
+                Ok(()) => {
+                    println!("{path}");
+                    0
+                }
+                Err(message) => {
+                    eprintln!("kiln-web-service: {message}");
+                    1
+                }
+            }
+        }
+        _ => usage(),
     }
 }
 

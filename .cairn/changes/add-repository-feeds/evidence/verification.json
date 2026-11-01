@@ -111,5 +111,11 @@
     "positive_fixture": "config/fixtures/web-service-feeds-positive.ncl exports the feeds object",
     "negative_fixture": "config/fixtures/negative-web-service-feeds-fast-refresh.ncl is refused for a 1000 ms cadence",
     "gate": "direct dev-shell gates: nickel export positive, negative refused, nickel format --check on the builder and both fixtures"
+  },
+  "feed_token_creation": {
+    "command": "kiln-web-service feed-token --path <absolute-new-path>",
+    "entropy": "getrandom 32 bytes rendered as 64 lowercase hex characters",
+    "file": "exclusive create, mode 0600, file and parent sync; existing, symlink or relative paths refused",
+    "test": "engine feed_token_writer_creates_private_hex_and_refuses_overwrite"
   }
 }

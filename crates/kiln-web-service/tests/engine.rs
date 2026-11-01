@@ -794,6 +794,27 @@ fn restart_discards_unadmitted_artifact_bytes_without_inventing_metadata() {
 
 // r[verify kiln.web.feeds.bounds]
 #[test]
+fn feed_token_writer_creates_private_hex_and_refuses_overwrite() {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = root.path().join("feed.token");
+    kiln_web_service::profile::write_feed_token(&path)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let token = std::fs::read_to_string(&path).unwrap_or_else(|_| unreachable!());
+    assert_eq!(token.len(), 64);
+    assert!(token.bytes().all(|byte| byte.is_ascii_hexdigit()));
+    let mode = std::fs::metadata(&path)
+        .unwrap_or_else(|_| unreachable!())
+        .permissions()
+        .mode()
+        & 0o777;
+    assert_eq!(mode, 0o600);
+    assert!(kiln_web_service::profile::write_feed_token(&path).is_err());
+    assert!(kiln_web_service::profile::write_feed_token(std::path::Path::new("relative")).is_err());
+}
+
+#[test]
 fn feeds_refresh_cadence_is_bounded_and_defaults_to_fifteen_minutes() {
     let (_root, profile, _) = fixture();
     let mut value = serde_json::to_value(&profile)

@@ -42,6 +42,13 @@ validators and the attempt time, and requires no body. A `304` without a
 supplied validator is refused. Redirects clear validators because they belong
 to the issuing origin.
 
+## Feed token creation
+
+`kiln-web-service feed-token --path <absolute-new-path>` generates 32 CSPRNG
+bytes as 64 lowercase hex characters, creates the file exclusively with mode
+`0600`, and refuses an existing or relative path. The engine test reads back the
+token, checks the mode and confirms overwrite refusal.
+
 ## Nickel policy
 
 `config/web-service.ncl` accepts the optional feeds policy with matching bounds.

@@ -131,6 +131,43 @@ pub fn worker_target_identity(
     ))
 }
 
+/// Generate a 32-byte feed capability token as 64 lowercase hex bytes.
+///
+/// The file is created exclusively with mode 0600. An existing file, symlink
+/// or relative path is refused; the token is never printed or logged.
+pub fn write_feed_token(path: &Path) -> Result<(), String> {
+    use std::io::Write as _;
+    if !path.is_absolute() {
+        return Err("feed token path must be absolute".into());
+    }
+    let mut seed = [0_u8; 32];
+    getrandom::fill(&mut seed).map_err(|_| "feed token randomness unavailable")?;
+    let mut token = String::with_capacity(64);
+    for byte in seed {
+        use std::fmt::Write as _;
+        write!(&mut token, "{byte:02x}").map_err(|_| "feed token encoding failed")?;
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.mode(0o600);
+    }
+    let mut file = options
+        .open(path)
+        .map_err(|_| "feed token path must be new and writable")?;
+    file.write_all(token.as_bytes())
+        .map_err(|_| "feed token write failed")?;
+    file.sync_all().map_err(|_| "feed token sync failed")?;
+    if let Some(parent) = path.parent() {
+        if let Ok(directory) = std::fs::File::open(parent) {
+            let _ = directory.sync_all();
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn read_token(path: &Path) -> Result<Vec<u8>, String> {
     let bytes = crate::worker::files::regular(path, 64, true)
         .map_err(|_| "credential must be a bounded owned private regular file")?;
