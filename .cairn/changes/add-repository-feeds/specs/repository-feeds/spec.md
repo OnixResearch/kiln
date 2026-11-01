@@ -158,6 +158,12 @@ r[kiln.web.feeds.config.scenario.disabled]
 
 r[kiln.web.feeds.ui] The console MUST expose a Feeds page listing repository Atom URLs, external subscriptions and their entries, with operator controls, and MUST render feed text as text, never HTML.
 
+#### Scenario: Console filters feeds
+r[kiln.web.feeds.ui.scenario.search]
+- GIVEN a filter matching a subscription label, URL or entry text
+- WHEN the Feeds page loads with that filter
+- THEN only matching subscriptions and entries MUST be returned, bounded to the named filter limit.
+
 #### Scenario: Console shows feeds
 r[kiln.web.feeds.config.scenario.console]
 - GIVEN configured feeds and retained subscriptions

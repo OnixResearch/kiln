@@ -574,6 +574,42 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .unwrap_or_else(|| unreachable!("fixture subscription id"))
         .to_string();
 
+    let searched = checked(
+        client
+            .get(format!("{}/api/feeds?q=release", profile.origin))
+            .bearer_auth(&operator)
+            .send(),
+    );
+    assert_eq!(searched.status(), 200);
+    let searched: serde_json::Value = checked(searched.json());
+    assert_eq!(
+        searched
+            .get("subscriptions")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::len),
+        Some(1)
+    );
+    assert_eq!(
+        searched
+            .pointer("/subscriptions/0/entries/0/title")
+            .and_then(serde_json::Value::as_str),
+        Some("External release")
+    );
+    let no_match = checked(
+        client
+            .get(format!("{}/api/feeds?q=missing", profile.origin))
+            .bearer_auth(&operator)
+            .send(),
+    );
+    let no_match: serde_json::Value = checked(no_match.json());
+    assert_eq!(
+        no_match
+            .get("subscriptions")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::len),
+        Some(0)
+    );
+
     let viewer_feeds = checked(
         client
             .get(format!("{}/api/feeds", profile.origin))

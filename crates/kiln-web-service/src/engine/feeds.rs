@@ -33,28 +33,55 @@ pub(crate) struct AdmittedFeed {
 // r[impl kiln.web.feeds.subscriptions]
 // r[impl kiln.web.feeds.publish]
 impl Engine {
-    pub(crate) fn feeds_view(&self, role: Role) -> Result<ApiResponse, String> {
+    pub(crate) fn feeds_view(
+        &self,
+        role: Role,
+        query: Option<&str>,
+    ) -> Result<ApiResponse, String> {
         let Some(profile) = &self.profile.feeds else {
             return json_response(200, json!({"configured":false,"subscriptions":[]}));
         };
-        let subscriptions: Vec<serde_json::Value> = self
-            .state
-            .feeds
-            .subscriptions
-            .values()
-            .map(serde_json::to_value)
-            .collect::<Result<Vec<serde_json::Value>, serde_json::Error>>()
-            .map_err(|_| "feed state encoding failed")?
-            .into_iter()
-            .map(|mut subscription| {
-                if role != Role::Operator {
-                    if let Some(object) = subscription.as_object_mut() {
-                        object.remove("url");
+        let needle = query
+            .map(str::to_lowercase)
+            .filter(|query| !query.is_empty());
+        let mut subscriptions: Vec<serde_json::Value> = Vec::new();
+        for subscription in self.state.feeds.subscriptions.values() {
+            let label_match = needle.as_ref().is_none_or(|query| {
+                subscription.label.to_lowercase().contains(query)
+                    || subscription
+                        .title
+                        .as_deref()
+                        .is_some_and(|title| title.to_lowercase().contains(query))
+                    || subscription.url.to_lowercase().contains(query)
+            });
+            let mut entries = subscription.entries.clone();
+            if let Some(query) = &needle {
+                if !label_match {
+                    entries.retain(|entry| {
+                        entry.title.to_lowercase().contains(query)
+                            || entry
+                                .summary
+                                .as_deref()
+                                .is_some_and(|summary| summary.to_lowercase().contains(query))
+                    });
+                    if entries.is_empty() {
+                        continue;
                     }
                 }
-                subscription
-            })
-            .collect();
+            }
+            let mut value =
+                serde_json::to_value(subscription).map_err(|_| "feed state encoding failed")?;
+            if let Some(object) = value.as_object_mut() {
+                object.insert(
+                    "entries".into(),
+                    serde_json::to_value(entries).map_err(|_| "feed state encoding failed")?,
+                );
+                if role != Role::Operator {
+                    object.remove("url");
+                }
+            }
+            subscriptions.push(value);
+        }
         let mut repositories: BTreeMap<String, (String, usize, u64)> = BTreeMap::new();
         for project in &self.profile.projects {
             let key = project.repository_key();
@@ -85,6 +112,11 @@ impl Engine {
         };
         let publication: Vec<serde_json::Value> = repositories
             .into_iter()
+            .filter(|(key, (label, _, _))| {
+                needle
+                    .as_ref()
+                    .is_none_or(|query| label.to_lowercase().contains(query) || key.contains(query))
+            })
             .map(|(key, (label, runs, _))| {
                 let path = format!("/feeds/{key}.xml");
                 let url = format!("{}{}", self.profile.origin, path);

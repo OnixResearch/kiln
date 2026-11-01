@@ -1243,7 +1243,8 @@
       review_interdiff_change: /^[k-z]{32}$/.test(params.get("review_interdiff_change") || "") ? params.get("review_interdiff_change") : "",
       review_commits: /^[0-9a-f]{40}\.\.[0-9a-f]{40}$/.test(params.get("review_commits") || "") ? params.get("review_commits") : "",
       review_mode: params.get("review_mode") === "structural" ? "structural" : "",
-      review_q: (params.get("review_q") || "").slice(0, 256), review_view: ["all", "awaiting_review", "owned_needs_revision", "unresolved"].includes(params.get("review_view")) ? params.get("review_view") : "", review_status: ["open", "abandoned", "submitted"].includes(params.get("review_status")) ? params.get("review_status") : "",
+      review_q: (params.get("review_q") || "").slice(0, 256),
+      feed_q: (params.get("feed_q") || "").slice(0, 256), review_view: ["all", "awaiting_review", "owned_needs_revision", "unresolved"].includes(params.get("review_view")) ? params.get("review_view") : "", review_status: ["open", "abandoned", "submitted"].includes(params.get("review_status")) ? params.get("review_status") : "",
       review_advisory: ["with", "without"].includes(params.get("review_advisory")) ? params.get("review_advisory") : "",
       review_offset: /^[0-9]{1,8}$/.test(params.get("review_offset") || "") ? params.get("review_offset") : "",
       review_notification_offset: /^[0-9]{1,8}$/.test(params.get("review_notification_offset") || "") ? params.get("review_notification_offset") : "",
@@ -1468,13 +1469,29 @@
   // r[impl kiln.web.feeds.config.scenario.console]
   async function loadFeeds() {
     stopFeedsTimer();
-    const result = await api("/api/feeds");
+    const query = state.route?.feed_q || "";
+    const result = await api(`/api/feeds${query ? `?q=${encodeURIComponent(query)}` : ""}`);
     const root = $("feeds-content");
     root.replaceChildren();
     if (!result?.configured) {
       root.append(emptyState("Feeds are not configured", "Add a feeds policy with a dedicated token file to the service profile, then restart the service."));
       return;
     }
+    const search = element("form", undefined, "inline-form toolbar");
+    const searchLabel = element("label", "Filter feeds");
+    searchLabel.htmlFor = "feed-search";
+    const searchInput = element("input");
+    searchInput.id = "feed-search"; searchInput.type = "search"; searchInput.maxLength = 256;
+    searchInput.placeholder = "Label, URL, entry title or summary…";
+    searchInput.value = query;
+    const searchButton = element("button", "Filter");
+    searchButton.type = "submit";
+    search.append(searchLabel, searchInput, searchButton);
+    search.addEventListener("submit", (event) => {
+      event.preventDefault();
+      navigate({ page: "feeds", feed_q: searchInput.value.trim() });
+    });
+    root.append(search);
     const publication = result.publication?.repositories || [];
     if (publication.length > 0) {
       const section = element("section", undefined, "panel");
@@ -1582,7 +1599,10 @@
     };
     const subscriptions = result.subscriptions || [];
     if (subscriptions.length === 0) {
-      root.append(emptyState("No external feeds", "Subscriptions added here are fetched on add and on explicit refresh."));
+      root.append(emptyState(
+        query ? "No matching feeds" : "No external feeds",
+        query ? "No retained subscription or entry matches this filter." : "Subscriptions added here are fetched on add and on explicit refresh."
+      ));
       scheduleRefresh();
       return;
     }

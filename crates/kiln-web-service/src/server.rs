@@ -952,6 +952,21 @@ fn feed_target(target: &str) -> Option<(&str, &str)> {
 }
 
 // r[impl kiln.web.feeds.subscriptions.scenario.viewer]
+fn feed_query(target: &str) -> Result<Option<String>, ()> {
+    let Some((_, query)) = target.split_once('?') else {
+        return Ok(None);
+    };
+    let value = query.strip_prefix("q=").ok_or(())?;
+    if value.len() > 1024 || value.contains('&') {
+        return Err(());
+    }
+    let decoded = crate::engine::api::decoded(value)?;
+    if decoded.len() > 256 || decoded.chars().any(char::is_control) {
+        return Err(());
+    }
+    Ok(Some(decoded))
+}
+
 fn feed_api(
     request: &Request,
     context: &Context<'_>,
@@ -963,9 +978,13 @@ fn feed_api(
         Err(_) => return error_response(503, "clock_unavailable"),
     };
     if request.method == "GET" && path == "/api/feeds" {
+        let query = match feed_query(&request.target) {
+            Ok(query) => query,
+            Err(()) => return error_response(400, "feed_query_invalid"),
+        };
         return match context.engine.lock() {
             Ok(engine) => engine
-                .feeds_view(principal.role)
+                .feeds_view(principal.role, query.as_deref())
                 .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
             Err(_) => error_response(503, "service_unavailable"),
         };

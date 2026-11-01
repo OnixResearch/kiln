@@ -134,5 +134,11 @@
     "behavior": "retains pending subscriptions without network fetch; background cadence or manual Refresh fetches them",
     "authority": "operator only; viewer import is denied",
     "test": "feed unit OPML parsing; runtime import adds a pending subscription and denies a viewer"
+  },
+  "feed_filter": {
+    "query": "GET /api/feeds?q=<percent-encoded up to 256 bytes>",
+    "scope": "repository labels/keys, subscription labels/titles/URLs, entry titles/summaries",
+    "ui": "URL-restored feed_q filter input on the Feeds page; auto-refresh preserves it",
+    "test": "runtime search returns the matching subscription/entry and zero for a missing term"
   }
 }
