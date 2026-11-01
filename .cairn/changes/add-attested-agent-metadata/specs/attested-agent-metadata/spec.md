@@ -5,7 +5,7 @@
 Defines declared harness/model metadata for attested agent submissions and its
 review surface. The metadata is identity configuration, not execution proof.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Trusted bounded agent metadata
 

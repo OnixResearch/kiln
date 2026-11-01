@@ -5,7 +5,7 @@
 Defines bounded Atom publication and external RSS/Atom subscriptions for the
 single-tenant Kiln console.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Repository Atom publication
 

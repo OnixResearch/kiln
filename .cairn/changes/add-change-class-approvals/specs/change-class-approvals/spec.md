@@ -5,7 +5,7 @@
 Defines ordered policy-declared change classes and explicit evidence-only
 approval for matching ownership rules. Ordinary review authority is unchanged.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Bounded class policy
 

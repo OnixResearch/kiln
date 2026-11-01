@@ -5,7 +5,7 @@
 Defines trusted principal attestation for revisions submitted by declared agent
 principals. It does not verify the declared authorship or model execution.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Trusted agent submission attestation
 

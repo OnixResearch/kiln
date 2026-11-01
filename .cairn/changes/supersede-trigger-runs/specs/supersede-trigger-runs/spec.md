@@ -5,7 +5,7 @@
 Defines opt-in cancellation of stale active and queued runs when a new trigger
 dispatch succeeds for the same project and requested reference.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Opt-in trigger policy
 

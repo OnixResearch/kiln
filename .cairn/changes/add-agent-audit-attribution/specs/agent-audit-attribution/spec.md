@@ -4,7 +4,7 @@
 
 Defines optional declared agent identity on attributable audit records.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Audit records carry declared agent identity
 

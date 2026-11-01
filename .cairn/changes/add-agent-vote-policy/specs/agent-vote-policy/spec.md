@@ -5,7 +5,7 @@
 Defines explicit agent principals and how their review votes count. Agent
 identity is a trusted shell fact; no content or authorship inference is added.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Explicit bounded agent principals
 

@@ -5,7 +5,7 @@
 Defines optional agent declarations on access viewer bindings and their exact
 review-principal derivation.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Bounded viewer agent declarations
 

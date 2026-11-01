@@ -4,7 +4,7 @@
 
 Defines declared-harness aggregation in review-friction observation.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Harness aggregation
 

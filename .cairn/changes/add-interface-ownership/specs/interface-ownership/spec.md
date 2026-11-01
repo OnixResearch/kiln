@@ -6,7 +6,7 @@ Defines interface-scoped ownership requirements over the current affected-projec
 facts. It adds dependent CI and owner acknowledgement without replacing the
 rule's own approval.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Bounded interface policy
 

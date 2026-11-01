@@ -5,7 +5,7 @@
 Defines named, exact-revision evidence attached to matching ownership rules.
 Evidence is additive to owner approval and never grants merge authority.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Bounded evidence policy
 

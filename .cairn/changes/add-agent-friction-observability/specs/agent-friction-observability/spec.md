@@ -4,7 +4,7 @@
 
 Defines attested-agent contribution counts in the review-friction observation.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Agent-submitted change counts
 

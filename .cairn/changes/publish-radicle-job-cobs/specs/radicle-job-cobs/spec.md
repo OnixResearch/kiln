@@ -5,7 +5,7 @@
 Defines the `radicle-job-cobs` capability: bounded publication of
 `xyz.radworks.job` objects compatible with Tangled/Radicle CI.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Wire-compatible job publication
 

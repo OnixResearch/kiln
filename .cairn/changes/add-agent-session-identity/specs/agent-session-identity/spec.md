@@ -5,7 +5,7 @@
 Defines optional declared agent identity on authenticated access principals and
 the workspace session surface.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Session carries declared agent identity
 

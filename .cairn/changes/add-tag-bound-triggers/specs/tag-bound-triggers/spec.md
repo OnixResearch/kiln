@@ -5,7 +5,7 @@
 Defines exact signed tag-push triggers for hosted automation while keeping pull
 requests and schedules branch-bound.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Exact tag trigger admission
 
