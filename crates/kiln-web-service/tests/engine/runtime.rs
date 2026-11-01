@@ -238,25 +238,6 @@ impl Drop for Service {
 fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart() {
     use std::os::unix::net::UnixDatagram;
     let (root, profile, path) = runtime_fixture();
-    let viewer_token = "d".repeat(64);
-    let viewer_token_path = root.path().join("viewer.token");
-    checked(fs::write(&viewer_token_path, &viewer_token));
-    checked(fs::set_permissions(
-        &viewer_token_path,
-        fs::Permissions::from_mode(0o400),
-    ));
-    let access_path = root.path().join("access.json");
-    checked(fs::write(
-        &access_path,
-        checked(serde_json::to_vec(&serde_json::json!({
-            "schema": "kiln.web-access.v1",
-            "viewers": [{
-                "id": "reader",
-                "label": "Read-only fixture",
-                "token_file": viewer_token_path,
-            }],
-        }))),
-    ));
     let socket_path = root.path().join("notify.sock");
     let receiver = checked(UnixDatagram::bind(&socket_path));
     checked(receiver.set_read_timeout(Some(Duration::from_secs(10))));
@@ -396,6 +377,25 @@ fn repository_feeds_and_external_subscription_round_trip() {
         allow_private_destinations: true,
     });
     checked(fs::write(&path, checked(serde_json::to_vec(&profile))));
+    let viewer_token = "d".repeat(64);
+    let viewer_token_path = root.path().join("viewer.token");
+    checked(fs::write(&viewer_token_path, &viewer_token));
+    checked(fs::set_permissions(
+        &viewer_token_path,
+        fs::Permissions::from_mode(0o400),
+    ));
+    let access_path = root.path().join("access.json");
+    checked(fs::write(
+        &access_path,
+        checked(serde_json::to_vec(&serde_json::json!({
+            "schema": "kiln.web-access.v1",
+            "viewers": [{
+                "id": "reader",
+                "label": "Read-only fixture",
+                "token_file": viewer_token_path,
+            }],
+        }))),
+    ));
 
     let body = r#"<?xml version="1.0"?><rss version="2.0"><channel><title>External repository</title><item><title>External release</title><link>https://example.invalid/release</link><guid>release-1</guid></item></channel></rss>"#;
     let listener = checked(std::net::TcpListener::bind("127.0.0.1:0"));
@@ -516,6 +516,22 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .status(),
         404
     );
+    let opml = checked(
+        client
+            .get(format!("{}/feeds.opml?token={feed_token}", profile.origin))
+            .send(),
+    );
+    assert_eq!(opml.status(), 200);
+    assert!(
+        opml.headers()
+            .get("content-type")
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("text/x-opml"))
+    );
+    let opml = checked(opml.text());
+    assert!(opml.contains("<opml version=\"2.0\">"));
+    assert!(opml.contains("xmlUrl=\""));
+    assert!(opml.contains("token="));
 
     let added = checked(
         client

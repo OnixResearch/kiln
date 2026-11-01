@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use kiln_core::domain::Outcome;
 use serde::Deserialize;
@@ -7,7 +7,7 @@ use serde_json::json;
 use super::{ApiResponse, Engine, Role, api::error, api::json_response};
 use crate::access::Principal;
 use crate::feeds::{
-    AtomItem, FeedSubscription, FetchOutcome, admit_url, render_atom, subscription_id,
+    AtomItem, FeedSubscription, FetchOutcome, admit_url, render_atom, render_opml, subscription_id,
 };
 
 #[derive(Deserialize)]
@@ -82,17 +82,23 @@ impl Engine {
             .map(|(key, (label, runs, _))| {
                 let path = format!("/feeds/{key}.xml");
                 let url = format!("{}{}", self.profile.origin, path);
-                let subscribe_url = token.map(|token| format!("{url}?token={token}"));
-                json!({
+                let mut row = json!({
                     "key": key,
                     "label": label,
                     "runs": runs,
                     "url": url,
-                    "subscribe_url": subscribe_url,
-                })
+                });
+                if let Some(token) = token {
+                    if let Some(object) = row.as_object_mut() {
+                        object.insert(
+                            "subscribe_url".into(),
+                            json!(format!("{url}?token={token}")),
+                        );
+                    }
+                }
+                row
             })
             .collect();
-        let index_token = token.map(|token| format!("token={token}"));
         json_response(
             200,
             json!({
@@ -104,12 +110,11 @@ impl Engine {
                     "refresh_interval_ms": profile.refresh_interval_ms,
                 },
                 "subscriptions": subscriptions,
-                "publication": {
-                    "index_url": format!("{}/feeds.xml", self.profile.origin),
-                    "index_subscribe_url": index_token
-                        .map(|query| format!("{}/feeds.xml?{query}", self.profile.origin)),
-                    "repositories": publication,
-                }
+                "publication": publication_view(
+                    &self.profile.origin,
+                    token,
+                    &publication,
+                ),
             }),
         )
     }
@@ -320,6 +325,29 @@ impl Engine {
         let profile = self.profile.feeds.as_ref()?;
         let token = self.feeds_token.as_ref()?;
         let origin = &self.profile.origin;
+        if path == "/feeds.opml" {
+            let mut seen = BTreeSet::new();
+            let mut feeds = Vec::new();
+            for project in &self.profile.projects {
+                let key = project.repository_key();
+                if seen.insert(key.clone()) {
+                    feeds.push((
+                        project.label.clone(),
+                        format!("{origin}/feeds/{key}.xml?token={}", token.as_str()),
+                    ));
+                }
+            }
+            let borrowed: Vec<(&str, &str)> = feeds
+                .iter()
+                .map(|(label, url)| (label.as_str(), url.as_str()))
+                .collect();
+            return Some(ApiResponse {
+                status: 200,
+                content_type: "text/x-opml; charset=utf-8",
+                body: render_opml("Kiln repositories", &borrowed).into_bytes(),
+                download_name: None,
+            });
+        }
         if path == "/feeds.xml" {
             let mut repositories: BTreeMap<String, (String, usize, u64)> = BTreeMap::new();
             for project in &self.profile.projects {
@@ -416,6 +444,29 @@ impl Engine {
             download_name: None,
         })
     }
+}
+
+fn publication_view(
+    origin: &str,
+    token: Option<&str>,
+    repositories: &[serde_json::Value],
+) -> serde_json::Value {
+    let mut publication = json!({
+        "index_url": format!("{origin}/feeds.xml"),
+        "opml_url": format!("{origin}/feeds.opml"),
+        "repositories": repositories,
+    });
+    if let (Some(token), Some(object)) = (token, publication.as_object_mut()) {
+        object.insert(
+            "index_subscribe_url".into(),
+            json!(format!("{origin}/feeds.xml?token={token}")),
+        );
+        object.insert(
+            "opml_subscribe_url".into(),
+            json!(format!("{origin}/feeds.opml?token={token}")),
+        );
+    }
+    publication
 }
 
 fn refreshed_candidate(

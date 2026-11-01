@@ -660,7 +660,9 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         return denied(&request, context, None, 401, "proxy_identity_denied");
     }
     if request.method == "GET"
-        && (request.target.starts_with("/feeds.xml") || request.target.starts_with("/feeds/"))
+        && (request.target.starts_with("/feeds.xml")
+            || request.target.starts_with("/feeds.opml")
+            || request.target.starts_with("/feeds/"))
     {
         return feed_publication(&request, context);
     }

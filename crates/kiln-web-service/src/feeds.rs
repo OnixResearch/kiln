@@ -640,6 +640,27 @@ pub fn repository_atom(
     )
 }
 
+/// Render an OPML 2.0 subscription list for repository feeds.
+#[must_use]
+pub fn render_opml(title: &str, feeds: &[(&str, &str)]) -> String {
+    let mut output = String::with_capacity(256 + feeds.len() * 256);
+    output.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    output.push_str("<opml version=\"2.0\"><head><title>");
+    output.push_str(&escape(title));
+    output.push_str("</title></head><body>\n");
+    for (label, url) in feeds {
+        output.push_str("<outline type=\"rss\" text=\"");
+        output.push_str(&escape(label));
+        output.push_str("\" title=\"");
+        output.push_str(&escape(label));
+        output.push_str("\" xmlUrl=\"");
+        output.push_str(&escape(url));
+        output.push_str("\"/>\n");
+    }
+    output.push_str("</body></opml>\n");
+    output
+}
+
 /// One Atom entry for a repository or the feed index.
 #[derive(Debug)]
 pub struct AtomItem {
@@ -966,6 +987,18 @@ mod tests {
         assert!(!is_due(59_999, Some(0), 60_000));
         assert!(is_due(60_000, Some(0), 60_000));
         assert!(!is_due(10, Some(100), 60_000));
+    }
+
+    #[test]
+    fn opml_export_escapes_labels_and_urls() {
+        let xml = render_opml(
+            "Kiln & repositories",
+            &[("A & B", "https://localhost/feeds/abc.xml?token=def&x=1")],
+        );
+        assert!(xml.starts_with("<?xml"));
+        assert!(xml.contains("<opml version=\"2.0\">"));
+        assert!(xml.contains("text=\"A &amp; B\""));
+        assert!(xml.contains("xmlUrl=\"https://localhost/feeds/abc.xml?token=def&amp;x=1\""));
     }
 
     // r[verify kiln.web.feeds.publish.scenario.rendered]

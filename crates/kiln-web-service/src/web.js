@@ -1509,6 +1509,14 @@
         list.append(card);
       }
       section.append(list);
+      const opml = result.publication?.opml_subscribe_url;
+      if (opml) {
+        const exportLink = element("a", "Export OPML for all repositories", "button-link");
+        exportLink.href = opml;
+        exportLink.target = "_blank";
+        exportLink.rel = "noreferrer";
+        section.append(exportLink);
+      }
       root.append(section);
     }
     if (canOperate()) {

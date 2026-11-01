@@ -14,6 +14,13 @@ that repository, newest first, bounded by the configured entry limit. Text is
 XML-escaped; links use the HTTPS origin. The token is accepted only on GET feed
 paths, never audited or echoed. Viewers receive no token-bearing URLs.
 
+## OPML export
+
+`GET /feeds.opml?token=<feed-token>` returns OPML 2.0 with one outline per
+canonical repository. Labels and URLs are XML-escaped; URLs carry the feed
+token. Operators receive an Export OPML link, while viewer responses contain no
+token-bearing OPML URL.
+
 ## Subscriptions
 
 Operators can add, refresh and remove subscriptions; viewers are read-only.
@@ -58,11 +65,13 @@ the export and format gates.
 
 ## Evidence
 
-- 13 feed unit tests pass: RSS/Atom, DTD rejection, URL/private-address
+- 14 feed unit tests pass: RSS/Atom, DTD rejection, URL/private-address
   admission, body bound, one-hop redirect, UTC formatting, Atom escaping and
-  repository run filtering/order/limit, conditional 304, due selection and cadence monotonicity.
-- 147 web-service library tests and 70 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
-- The workspace passes 1229 tests. The Feeds page reloads its observations every
+  repository run filtering/order/limit, conditional 304, OPML escaping, due selection and cadence monotonicity.
+- 148 web-service library tests and 71 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
+- The workspace passed 1229 tests before the OPML increment. The post-increment
+  full workspace command was blocked by another workspace holding the shared
+  Cargo target lock; 148 library and 71 engine tests passed and Clippy was clean. The Feeds page reloads its observations every
   60 seconds while open and stops on navigation or logout.
 - The runtime round-trip starts the actual service, publishes an Atom feed,
   rejects wrong/missing tokens, adds an external feed, retains entries after a

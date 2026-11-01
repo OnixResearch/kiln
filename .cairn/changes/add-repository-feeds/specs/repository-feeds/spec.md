@@ -14,7 +14,8 @@ r[kiln.web.feeds.publish] Kiln MUST publish `/feeds.xml` and one
 repository feed MUST contain only retained runs whose project belongs to that
 repository, newest first and bounded by the configured entry limit. Entry text
 MUST be XML-escaped and links MUST use the configured HTTPS origin. A missing or
-foreign repository key MUST return no feed. The feed endpoint MUST be GET-only
+foreign repository key MUST return no feed. An OPML 2.0 export MUST list each
+repository feed with its token-bearing URL. The feed endpoint MUST be GET-only
 and MUST NOT mutate state.
 
 #### Scenario: Repository feed is rendered
@@ -28,6 +29,12 @@ r[kiln.web.feeds.publish.scenario.missing]
 - GIVEN an unknown or malformed repository key
 - WHEN a feed is requested
 - THEN it MUST return no feed.
+
+#### Scenario: OPML lists repository feeds
+r[kiln.web.feeds.publish.scenario.opml]
+- GIVEN configured feeds and several canonical repositories
+- WHEN the OPML export is requested with the feed token
+- THEN it MUST return escaped OPML outlines for each repository feed.
 
 ### Requirement: Dedicated feed token
 

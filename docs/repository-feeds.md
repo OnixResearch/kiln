@@ -40,6 +40,8 @@ profile to change it.
 - `GET /feeds.xml?token=<feed-token>` lists canonical repositories.
 - `GET /feeds/<repository-key>.xml?token=<feed-token>` lists retained runs for
   that repository, newest first.
+- `GET /feeds.opml?token=<feed-token>` exports all repository feeds as an OPML
+  2.0 subscription list.
 
 The repository key is the existing BLAKE3 `repository_key` shown by the
 projects API. The token is accepted only as the single `token` query

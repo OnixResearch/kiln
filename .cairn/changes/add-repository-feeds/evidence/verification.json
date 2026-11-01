@@ -12,19 +12,19 @@
   "commands": [
     {
       "command": "cargo test -p kiln-web-service --lib feeds::",
-      "result": "13 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom escaping, run filtering/order/limit, due selection and cadence monotonicity"
+      "result": "14 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom escaping, OPML escaping, run filtering/order/limit, due selection and cadence monotonicity"
     },
     {
       "command": "cargo test -p kiln-web-service --lib",
-      "result": "147 passed, 0 failed, 1 ignored"
+      "result": "148 passed, 0 failed, 1 ignored"
     },
     {
       "command": "cargo test -p kiln-web-service --test engine",
-      "result": "70 passed, 0 failed"
+      "result": "71 passed, 0 failed"
     },
     {
       "command": "cargo test --workspace",
-      "result": "1229 passed, 0 failed"
+      "result": "1229 passed before the OPML increment. The post-increment full workspace command was blocked by another workspace holding the shared Cargo target lock; post-increment focused runs passed 148 library and 71 engine tests."
     },
     {
       "command": "cargo clippy -p kiln-web-service --all-targets -- -D warnings",
@@ -91,7 +91,8 @@
     "external subscriptions are retained observations, not continuous freshness or remote completeness",
     "DNS pinning and private-address checks reduce common SSRF paths but do not prove hostile-network safety",
     "the optional profile keeps feeds disabled by default; this change performs no deployment",
-    "allow_private_destinations is an explicit test/private-network exception, not a production claim"
+    "allow_private_destinations is an explicit test/private-network exception, not a production claim",
+    "the post-increment full workspace command was blocked by another workspace holding the shared cargo target lock; focused suites and lint passed"
   ],
   "background_refresh": {
     "cadence": "feeds.refresh_interval_ms; default 900000 ms, 0 disables background refresh",
@@ -119,5 +120,12 @@
     "entropy": "getrandom 32 bytes rendered as 64 lowercase hex characters",
     "file": "exclusive create, mode 0600, file and parent sync; existing, symlink or relative paths refused",
     "test": "engine feed_token_writer_creates_private_hex_and_refuses_overwrite"
+  },
+  "opml_export": {
+    "endpoint": "GET /feeds.opml?token=<feed-token>",
+    "content_type": "text/x-opml; charset=utf-8",
+    "content": "one OPML 2.0 outline per canonical repository with escaped label and token-bearing Atom URL",
+    "console": "operators receive an Export OPML link; viewers receive no token-bearing OPML URL",
+    "test": "feed unit OPML escaping; runtime OPML 200/content-type/content; viewer omits opml_subscribe_url"
   }
 }
