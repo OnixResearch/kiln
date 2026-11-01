@@ -372,6 +372,7 @@ impl Engine {
             content_type: "application/octet-stream",
             body: bytes,
             download_name: Some(filename),
+            headers: Vec::new(),
         })
     }
 }

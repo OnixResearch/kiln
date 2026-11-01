@@ -1237,7 +1237,7 @@ fn decode(value: &str) -> Result<String, Failure> {
     String::from_utf8(bytes).map_err(|_| Failure::Api(400, "review_query_invalid".into()))
 }
 fn unavailable() -> ApiResponse {
-    ApiResponse {status:503,content_type:"application/json",body:br#"{"code":"review_store_unavailable","message":"Review storage is unavailable, busy, unsafe or exceeded its admitted bounds"}"#.to_vec(),download_name:None}
+    ApiResponse {status:503,content_type:"application/json",body:br#"{"code":"review_store_unavailable","message":"Review storage is unavailable, busy, unsafe or exceeded its admitted bounds"}"#.to_vec(),download_name:None,headers:Vec::new()}
 }
 fn page_offset(query: &BTreeMap<String, String>, key: &str) -> Result<usize, Failure> {
     query

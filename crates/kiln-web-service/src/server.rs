@@ -112,7 +112,7 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
 const ACCEPT_INTERVAL: Duration = Duration::from_millis(25);
 const FEED_REFRESH_TICK: Duration = Duration::from_secs(10);
 const MAX_HEADER_FIELDS: usize = 64;
-const SECURITY_HEADERS: &str = "Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\nStrict-Transport-Security: max-age=31536000\r\n";
+const SECURITY_HEADERS: &str = "X-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\nStrict-Transport-Security: max-age=31536000\r\n";
 
 pub fn run(path: &Path) -> Result<(), String> {
     run_with_options(path, &Options::default())
@@ -881,6 +881,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             content_type,
             body: bytes.to_vec(),
             download_name: None,
+            headers: Vec::new(),
         }
     } else {
         error_response(405, "method_denied")
@@ -940,7 +941,25 @@ fn feed_publication(request: &Request, context: &Context<'_>) -> ApiResponse {
     }
     match context.engine.lock() {
         Ok(engine) => match engine.render_feed(path) {
-            Some(response) => response,
+            Some(mut response) => {
+                let etag = format!("\"{}\"", blake3::hash(&response.body).to_hex());
+                response.headers.push(("ETag", etag.clone()));
+                response
+                    .headers
+                    .push(("Cache-Control", "no-cache".to_string()));
+                let not_modified = header(request, "if-none-match").is_some_and(|value| {
+                    value == "*"
+                        || value
+                            .split(',')
+                            .map(str::trim)
+                            .any(|candidate| candidate == etag)
+                });
+                if not_modified {
+                    response.status = 304;
+                    response.body.clear();
+                }
+                response
+            }
             None => error_response(404, "feed_missing"),
         },
         Err(_) => error_response(503, "service_unavailable"),
@@ -1210,6 +1229,7 @@ fn error_response(status: u16, code: &str) -> ApiResponse {
         body: format!("{{\"code\":\"{code}\",\"message\":\"Request could not be admitted\"}}")
             .into_bytes(),
         download_name: None,
+        headers: Vec::new(),
     }
 }
 
@@ -1229,12 +1249,32 @@ fn write_response<W: Write>(writer: &mut W, response: ApiResponse) -> std::io::R
         413 => "Content Too Large",
         415 => "Unsupported Media Type",
         431 => "Request Header Fields Too Large",
+        304 => "Not Modified",
         503 => "Service Unavailable",
         _ => "Response",
     };
+    let custom_cache = response
+        .headers
+        .iter()
+        .any(|(name, _)| name.eq_ignore_ascii_case("cache-control"));
+    let cache = if custom_cache {
+        String::new()
+    } else {
+        "Cache-Control: no-store\r\n".to_string()
+    };
+    let mut additional = String::new();
+    for (name, value) in &response.headers {
+        if value.contains(['\r', '\n']) {
+            continue;
+        }
+        additional.push_str(name);
+        additional.push_str(": ");
+        additional.push_str(value);
+        additional.push_str("\r\n");
+    }
     write!(
         writer,
-        "HTTP/1.1 {} {reason}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n{SECURITY_HEADERS}",
+        "HTTP/1.1 {} {reason}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n{cache}{SECURITY_HEADERS}{additional}",
         response.status,
         response.content_type,
         response.body.len()

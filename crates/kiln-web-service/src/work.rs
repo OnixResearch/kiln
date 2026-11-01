@@ -256,5 +256,6 @@ fn unavailable() -> ApiResponse {
         content_type: "application/json",
         body: br#"{"code":"work_store_unavailable","message":"Work storage is unavailable or exceeded its admitted bounds"}"#.to_vec(),
         download_name: None,
+        headers: Vec::new(),
     }
 }

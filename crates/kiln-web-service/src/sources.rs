@@ -141,6 +141,7 @@ impl Browser {
                 content_type: "application/json",
                 body: br#"{"code":"source_read_unavailable","message":"Source read exceeded its bounds or is unavailable"}"#.to_vec(),
                 download_name: None,
+                headers: Vec::new(),
             },
         }
     }

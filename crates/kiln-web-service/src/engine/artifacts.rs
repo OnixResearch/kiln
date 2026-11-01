@@ -167,6 +167,7 @@ impl Engine {
             content_type: "application/octet-stream",
             body: bytes,
             download_name: Some(artifact.name.clone()),
+            headers: Vec::new(),
         })
     }
 }

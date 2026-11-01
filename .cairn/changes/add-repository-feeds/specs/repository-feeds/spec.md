@@ -30,6 +30,12 @@ r[kiln.web.feeds.publish.scenario.missing]
 - WHEN a feed is requested
 - THEN it MUST return no feed.
 
+#### Scenario: Feed responses revalidate
+r[kiln.web.feeds.publish.scenario.revalidate]
+- GIVEN a published feed with an ETag
+- WHEN a client sends the matching If-None-Match
+- THEN Kiln MUST return 304 without a body and the client MUST be able to reuse its cached representation.
+
 #### Scenario: RSS 2.0 publication
 r[kiln.web.feeds.publish.scenario.rss]
 - GIVEN configured feeds and retained runs

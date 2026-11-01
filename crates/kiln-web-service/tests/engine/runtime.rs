@@ -469,8 +469,25 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .and_then(|value| value.to_str().ok())
             .is_some_and(|value| value.starts_with("application/atom+xml"))
     );
+    let etag = feed
+        .headers()
+        .get("etag")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_else(|| unreachable!("fixture etag"))
+        .to_string();
     let xml = checked(feed.text());
     assert!(xml.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
+    let conditional = checked(
+        client
+            .get(format!(
+                "{}/feeds/{key}.xml?token={feed_token}",
+                profile.origin
+            ))
+            .header("If-None-Match", &etag)
+            .send(),
+    );
+    assert_eq!(conditional.status(), 304);
+    assert!(checked(conditional.text()).is_empty());
 
     assert_eq!(
         checked(

@@ -79,6 +79,7 @@ impl Browser {
                 content_type: "application/json",
                 body: br#"{"code":"review_read_unavailable","message":"Review receipt read exceeded its bounds or is unavailable"}"#.to_vec(),
                 download_name: None,
+                headers: Vec::new(),
             },
         }
     }

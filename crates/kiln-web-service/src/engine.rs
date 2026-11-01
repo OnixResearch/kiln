@@ -43,6 +43,7 @@ pub struct ApiResponse {
     pub content_type: &'static str,
     pub body: Vec<u8>,
     pub download_name: Option<String>,
+    pub headers: Vec<(&'static str, String)>,
 }
 
 pub struct Engine {

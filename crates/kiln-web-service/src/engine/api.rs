@@ -15,6 +15,7 @@ pub(crate) fn json_response(status: u16, value: impl Serialize) -> Result<ApiRes
         content_type: "application/json",
         body: serde_json::to_vec(&value).map_err(|_| "response encoding failed")?,
         download_name: None,
+        headers: Vec::new(),
     })
 }
 pub(crate) fn error(status: u16, code: &str) -> Result<ApiResponse, String> {
@@ -398,6 +399,7 @@ impl Engine {
                 content_type: "text/event-stream",
                 body: frame.into_bytes(),
                 download_name: None,
+                headers: Vec::new(),
             });
         }
         if let Some((id, resource, artifact)) = run_route {

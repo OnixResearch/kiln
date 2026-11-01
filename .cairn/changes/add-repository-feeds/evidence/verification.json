@@ -163,5 +163,6 @@
   "rename_subscription": "POST /api/feeds/{id}/label renames a bounded label; operator only, persisted and state-preflighted",
   "feed_token_rotation": "the feed token verifier caches file metadata and reloads on change; an unreadable replacement falls back to the last valid verifier",
   "last_success": "subscriptions retain last_success_ms separately from the last attempt; a failed refresh does not overwrite it",
-  "pause_resume": "POST /api/feeds/{id}/enabled toggles background admission; disabled subscriptions retain entries and can still be refreshed manually"
+  "pause_resume": "POST /api/feeds/{id}/enabled toggles background admission; disabled subscriptions retain entries and can still be refreshed manually",
+  "feed_revalidation": "published feeds carry a body ETag and Cache-Control: no-cache; matching If-None-Match returns 304 with an empty body"
 }

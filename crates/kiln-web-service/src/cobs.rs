@@ -126,6 +126,7 @@ impl Browser {
                 content_type: "application/json",
                 body: br#"{"code":"cob_read_unavailable","message":"COB read exceeded its bounds or is unavailable"}"#.to_vec(),
                 download_name: None,
+                headers: Vec::new(),
             },
         }
     }

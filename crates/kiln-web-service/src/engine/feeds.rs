@@ -627,6 +627,7 @@ impl Engine {
                 content_type: "text/x-opml; charset=utf-8",
                 body: render_opml("Kiln repositories", &borrowed).into_bytes(),
                 download_name: None,
+                headers: Vec::new(),
             });
         }
         if path == "/feeds.xml" {
@@ -671,6 +672,7 @@ impl Engine {
                 content_type: "application/atom+xml; charset=utf-8",
                 body: xml.into_bytes(),
                 download_name: None,
+                headers: Vec::new(),
             });
         }
         if path == "/feeds.rss" {
@@ -713,6 +715,7 @@ impl Engine {
                 content_type: "application/rss+xml; charset=utf-8",
                 body: xml.into_bytes(),
                 download_name: None,
+                headers: Vec::new(),
             });
         }
         let rest = path.strip_prefix("/feeds/")?;
@@ -755,6 +758,7 @@ impl Engine {
             },
             body: xml.into_bytes(),
             download_name: None,
+            headers: Vec::new(),
         })
     }
 }

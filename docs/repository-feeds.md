@@ -81,7 +81,8 @@ responses do not echo it. Operators can copy token-bearing URLs from the Feeds
 page; viewers never receive them.
 
 Feed entries contain the project label, outcome, retained run id, exact source
-revision, and a console link. Text is XML-escaped.
+revision, and a console link. Text is XML-escaped. Responses carry an ETag and
+`Cache-Control: no-cache`; a matching `If-None-Match` returns 304 without a body.
 
 ## External subscriptions
 
