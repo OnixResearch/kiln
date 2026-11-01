@@ -16,7 +16,7 @@
     },
     {
       "command": "cargo test --workspace --no-fail-fast",
-      "result": "all workspace test binaries and doc tests passed with the agent and harness filters"
+      "result": "all workspace test binaries and doc tests passed with the agent, harness and model filters"
     },
     {
       "command": "cargo clippy --workspace --all-targets -- -D warnings",
