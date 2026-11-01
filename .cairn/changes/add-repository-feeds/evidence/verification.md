@@ -36,11 +36,13 @@ text nodes rather than HTML.
 
 ## Evidence
 
-- 10 feed unit tests pass: RSS/Atom, DTD rejection, URL/private-address
+- 12 feed unit tests pass: RSS/Atom, DTD rejection, URL/private-address
   admission, body bound, one-hop redirect, UTC formatting, Atom escaping and
-  repository run filtering/order/limit.
-- 144 web-service library tests and 69 engine tests pass.
-- The workspace passes 1224 tests.
+  repository run filtering/order/limit, due selection and cadence monotonicity.
+- 144 web-service library tests and 70 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
+- The workspace passed 1224 tests before this increment. The post-increment
+  full workspace command was blocked by another workspace holding the shared
+  Cargo target lock; the post-increment 146 library and 70 engine tests passed.
 - The runtime round-trip starts the actual service, publishes an Atom feed,
   rejects wrong/missing tokens, adds an external feed, retains entries after a
   failed refresh, and removes the subscription.

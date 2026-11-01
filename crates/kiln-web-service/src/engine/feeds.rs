@@ -101,6 +101,7 @@ impl Engine {
                     "max_subscriptions": profile.max_subscriptions,
                     "max_entries_per_feed": profile.max_entries_per_feed,
                     "max_feed_bytes": profile.max_feed_bytes,
+                    "refresh_interval_ms": profile.refresh_interval_ms,
                 },
                 "subscriptions": subscriptions,
                 "publication": {
@@ -200,7 +201,43 @@ impl Engine {
             .map(|subscription| subscription.url.clone())
     }
 
-    // r[impl kiln.web.feeds.subscriptions.scenario.refresh]
+    /// Subscriptions whose cadence elapsed, oldest attempt first.
+    pub(crate) fn due_feeds(&self, now_ms: u64) -> Vec<(String, String)> {
+        let Some(profile) = &self.profile.feeds else {
+            return Vec::new();
+        };
+        if profile.refresh_interval_ms == 0 {
+            return Vec::new();
+        }
+        crate::feeds::due_subscriptions(
+            self.state.feeds.subscriptions.values(),
+            now_ms,
+            profile.refresh_interval_ms,
+            crate::feeds::MAX_BACKGROUND_REFRESHES_PER_TICK,
+        )
+    }
+
+    /// Record one background refresh. Missing subscriptions are ignored.
+    pub(crate) fn record_feed_refresh(
+        &mut self,
+        id: &str,
+        fetched: Result<ParsedFeed, String>,
+        now_ms: u64,
+    ) -> Result<(), String> {
+        let Some(existing) = self.state.feeds.subscriptions.get(id).cloned() else {
+            return Ok(());
+        };
+        let candidate = refreshed_candidate(existing, fetched, now_ms);
+        if !self.feed_state_fits(id, &candidate) {
+            return Ok(());
+        }
+        self.state
+            .feeds
+            .subscriptions
+            .insert(id.to_string(), candidate);
+        self.persist()
+    }
+
     // r[impl kiln.web.feeds.subscriptions.scenario.refresh]
     pub(crate) fn finish_feed_refresh(
         &mut self,
@@ -216,19 +253,7 @@ impl Engine {
             self.append_audit(method, target, Some(principal), "denied", 404)?;
             return error(404, "feed_missing");
         };
-        let mut candidate = existing;
-        match fetched {
-            Ok(parsed) => {
-                candidate.title = parsed.title;
-                candidate.entries = parsed.entries;
-                candidate.error = None;
-                candidate.fetched_at_ms = Some(now_ms);
-            }
-            Err(message) => {
-                candidate.error = Some(message.chars().take(256).collect());
-                candidate.fetched_at_ms = Some(now_ms);
-            }
-        }
+        let candidate = refreshed_candidate(existing, fetched, now_ms);
         if !self.feed_state_fits(id, &candidate) {
             self.append_audit(method, target, Some(principal), "denied", 409)?;
             return error(409, "feed_retention");
@@ -380,6 +405,27 @@ impl Engine {
             download_name: None,
         })
     }
+}
+
+fn refreshed_candidate(
+    existing: FeedSubscription,
+    fetched: Result<ParsedFeed, String>,
+    now_ms: u64,
+) -> FeedSubscription {
+    let mut candidate = existing;
+    match fetched {
+        Ok(parsed) => {
+            candidate.title = parsed.title;
+            candidate.entries = parsed.entries;
+            candidate.error = None;
+            candidate.fetched_at_ms = Some(now_ms);
+        }
+        Err(message) => {
+            candidate.error = Some(message.chars().take(256).collect());
+            candidate.fetched_at_ms = Some(now_ms);
+        }
+    }
+    candidate
 }
 
 fn run_updated(run: &super::model::RunRecord) -> u64 {

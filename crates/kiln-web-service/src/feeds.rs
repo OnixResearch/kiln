@@ -15,6 +15,10 @@ pub const ABSOLUTE_MAX_ENTRIES_PER_FEED: usize = 200;
 pub const ABSOLUTE_MAX_FEED_BYTES: usize = 4_194_304;
 pub const ABSOLUTE_MAX_REDIRECTS: usize = 5;
 pub const ABSOLUTE_MAX_TIMEOUT_SECONDS: u64 = 30;
+pub const DEFAULT_REFRESH_INTERVAL_MS: u64 = 900_000;
+pub const MIN_REFRESH_INTERVAL_MS: u64 = 60_000;
+pub const MAX_REFRESH_INTERVAL_MS: u64 = 86_400_000;
+pub const MAX_BACKGROUND_REFRESHES_PER_TICK: usize = 2;
 pub const MAX_URL_BYTES: usize = 2_048;
 pub const MAX_TITLE_BYTES: usize = 512;
 pub const MAX_SUMMARY_BYTES: usize = 4_096;
@@ -79,6 +83,39 @@ pub struct ParsedFeed {
 #[must_use]
 pub fn subscription_id(url: &str) -> String {
     blake3::hash(url.as_bytes()).to_hex().to_string()
+}
+
+/// Whether a subscription is due for a background refresh.
+#[must_use]
+pub fn is_due(now_ms: u64, fetched_at_ms: Option<u64>, interval_ms: u64) -> bool {
+    interval_ms != 0
+        && fetched_at_ms.is_none_or(|fetched| now_ms.saturating_sub(fetched) >= interval_ms)
+}
+
+/// Select due subscriptions, oldest attempt first, up to the per-tick bound.
+#[must_use]
+pub fn due_subscriptions<'a>(
+    subscriptions: impl Iterator<Item = &'a FeedSubscription>,
+    now_ms: u64,
+    interval_ms: u64,
+    limit: usize,
+) -> Vec<(String, String)> {
+    if interval_ms == 0 || limit == 0 {
+        return Vec::new();
+    }
+    let mut due: Vec<(u64, String, String)> = subscriptions
+        .filter(|subscription| is_due(now_ms, subscription.fetched_at_ms, interval_ms))
+        .map(|subscription| {
+            (
+                subscription.fetched_at_ms.unwrap_or(0),
+                subscription.id.clone(),
+                subscription.url.clone(),
+            )
+        })
+        .collect();
+    due.sort_by_key(|(attempt, _, _)| *attempt);
+    due.truncate(limit);
+    due.into_iter().map(|(_, id, url)| (id, url)).collect()
 }
 
 /// Validate a subscription URL before any DNS or network effect.
@@ -751,6 +788,38 @@ mod tests {
             .is_err()
         );
         handle.join().unwrap_or_else(|_| unreachable!());
+    }
+
+    #[test]
+    fn due_selection_is_oldest_first_and_bounded() {
+        let subscription = |id: &str, fetched| FeedSubscription {
+            id: id.into(),
+            url: format!("https://example.invalid/{id}.xml"),
+            label: id.into(),
+            title: None,
+            fetched_at_ms: fetched,
+            error: None,
+            entries: Vec::new(),
+        };
+        let subscriptions = vec![
+            subscription("never", None),
+            subscription("newer", Some(50)),
+            subscription("oldest", Some(10)),
+        ];
+        let due = due_subscriptions(subscriptions.iter(), 100, 60, 2);
+        assert_eq!(due.len(), 2);
+        assert_eq!(due.first().map(|(id, _)| id.as_str()), Some("never"));
+        assert_eq!(due.get(1).map(|(id, _)| id.as_str()), Some("oldest"));
+        assert!(due_subscriptions(subscriptions.iter(), 100, 0, 2).is_empty());
+    }
+
+    #[test]
+    fn due_intervals_are_bounded_and_monotonic() {
+        assert!(!is_due(1_000, Some(0), 0));
+        assert!(is_due(60_000, None, 60_000));
+        assert!(!is_due(59_999, Some(0), 60_000));
+        assert!(is_due(60_000, Some(0), 60_000));
+        assert!(!is_due(10, Some(100), 60_000));
     }
 
     // r[verify kiln.web.feeds.publish.scenario.rendered]

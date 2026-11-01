@@ -1470,7 +1470,8 @@
     if (publication.length > 0) {
       const section = element("section", undefined, "panel");
       section.append(element("h2", "Repository subscriptions"));
-      const note = element("p", "Copy an Atom URL into any feed reader. The URL carries a dedicated read-only feed token, so treat it as a secret.", "small");
+      const cadence = result.bounds?.refresh_interval_ms;
+      const note = element("p", `Copy an Atom URL into any feed reader. The URL carries a dedicated read-only feed token, so treat it as a secret. ${cadence ? `External subscriptions refresh every ${Math.max(1, Math.round(cadence / 60000))} minutes.` : "External subscriptions refresh only when you press Refresh."}`, "small");
       section.append(note);
       const list = element("div", undefined, "project-grid");
       for (const repository of publication) {

@@ -305,7 +305,10 @@ fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart(
         );
         assert_eq!(feeds.status(), 200);
         let feeds: serde_json::Value = checked(feeds.json());
-        assert_eq!(feeds.get("configured"), Some(&serde_json::Value::Bool(false)));
+        assert_eq!(
+            feeds.get("configured"),
+            Some(&serde_json::Value::Bool(false))
+        );
         assert_eq!(
             checked(
                 client
@@ -370,6 +373,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
         max_feed_bytes: 65_536,
         max_redirects: 1,
         timeout_seconds: 5,
+        refresh_interval_ms: 0,
         allow_private_destinations: true,
     });
     checked(fs::write(&path, checked(serde_json::to_vec(&profile))));

@@ -52,7 +52,10 @@ r[kiln.web.feeds.token.scenario.operator]
 ### Requirement: External feed subscriptions
 
 r[kiln.web.feeds.subscriptions] An operator MUST be able to add, refresh and
-remove external RSS/Atom subscriptions. Add MUST fetch before reporting
+remove external RSS/Atom subscriptions. When a non-zero refresh cadence is
+declared, the service MUST refresh due subscriptions in the background, oldest
+attempt first and bounded per tick, without holding the engine lock across
+network I/O. Add MUST fetch before reporting
 success. Refresh failure MUST retain previous entries and record a bounded
 error. Subscriptions and entries MUST survive restart, and viewers MUST be
 read-only. The engine lock MUST NOT be held across network I/O.
@@ -74,6 +77,12 @@ r[kiln.web.feeds.subscriptions.scenario.viewer]
 - GIVEN a viewer session
 - WHEN add, refresh or remove is attempted
 - THEN the service MUST deny it without changing state.
+
+#### Scenario: Background refresh is bounded
+r[kiln.web.feeds.subscriptions.scenario.background]
+- GIVEN a non-zero refresh cadence and several due subscriptions
+- WHEN a background tick runs
+- THEN at most the declared per-tick count MUST refresh, oldest attempt first, and a failed refresh MUST retain entries.
 
 ### Requirement: Bounded feed destinations and bytes
 

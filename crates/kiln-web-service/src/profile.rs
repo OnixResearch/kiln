@@ -62,6 +62,10 @@ pub struct ProjectProfile {
 
 // r[impl kiln.web.feeds.config]
 // r[impl kiln.web.feeds.bounds]
+fn default_feed_refresh_interval_ms() -> u64 {
+    crate::feeds::DEFAULT_REFRESH_INTERVAL_MS
+}
+
 /// Optional repository feed publication and external subscription policy.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -73,6 +77,9 @@ pub struct FeedsProfile {
     pub max_feed_bytes: usize,
     pub max_redirects: usize,
     pub timeout_seconds: u64,
+    /// Background refresh cadence; `0` keeps refresh operator-only.
+    #[serde(default = "default_feed_refresh_interval_ms")]
+    pub refresh_interval_ms: u64,
     /// Explicit test/private-network admission. Production profiles keep this false.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub allow_private_destinations: bool,
@@ -249,6 +256,10 @@ impl ServiceProfile {
                 || feeds.max_redirects > crate::feeds::ABSOLUTE_MAX_REDIRECTS
                 || feeds.timeout_seconds == 0
                 || feeds.timeout_seconds > crate::feeds::ABSOLUTE_MAX_TIMEOUT_SECONDS
+                || (feeds.refresh_interval_ms != 0
+                    && !(crate::feeds::MIN_REFRESH_INTERVAL_MS
+                        ..=crate::feeds::MAX_REFRESH_INTERVAL_MS)
+                        .contains(&feeds.refresh_interval_ms))
             {
                 return Err("invalid repository feed policy".into());
             }

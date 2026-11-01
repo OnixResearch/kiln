@@ -792,6 +792,54 @@ fn restart_discards_unadmitted_artifact_bytes_without_inventing_metadata() {
     );
 }
 
+// r[verify kiln.web.feeds.bounds]
+#[test]
+fn feeds_refresh_cadence_is_bounded_and_defaults_to_fifteen_minutes() {
+    let (_root, profile, _) = fixture();
+    let mut value = serde_json::to_value(&profile)
+        .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"));
+    value
+        .as_object_mut()
+        .unwrap_or_else(|| unreachable!("fixture object"))
+        .insert(
+            "feeds".into(),
+            json!({
+                "token_file": "/tmp/kiln-feed.token",
+                "max_subscriptions": 4,
+                "max_entries_per_feed": 10,
+                "max_feed_bytes": 65536,
+                "max_redirects": 1,
+                "timeout_seconds": 5
+            }),
+        );
+    let defaulted: ServiceProfile =
+        serde_json::from_value(value.clone()).unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(
+        defaulted
+            .feeds
+            .as_ref()
+            .map(|feeds| feeds.refresh_interval_ms),
+        Some(900_000)
+    );
+    assert!(defaulted.admit().is_ok());
+    value
+        .pointer_mut("/feeds")
+        .and_then(serde_json::Value::as_object_mut)
+        .map(|feeds| feeds.insert("refresh_interval_ms".into(), json!(1_000)))
+        .unwrap_or_else(|| unreachable!("fixture feeds interval"));
+    let too_fast: ServiceProfile =
+        serde_json::from_value(value.clone()).unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(too_fast.admit().is_err());
+    value
+        .pointer_mut("/feeds")
+        .and_then(serde_json::Value::as_object_mut)
+        .map(|feeds| feeds.insert("refresh_interval_ms".into(), json!(0)))
+        .unwrap_or_else(|| unreachable!("fixture feeds interval"));
+    let manual: ServiceProfile =
+        serde_json::from_value(value).unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(manual.admit().is_ok());
+}
+
 // r[verify kiln.web.enrollment.scenario.denied]
 #[test]
 fn profile_load_accepts_reviewed_nested_fields_and_rejects_unknown_native_bounds() {

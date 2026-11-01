@@ -110,6 +110,7 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
 }
 
 const ACCEPT_INTERVAL: Duration = Duration::from_millis(25);
+const FEED_REFRESH_TICK: Duration = Duration::from_secs(10);
 const MAX_HEADER_FIELDS: usize = 64;
 const SECURITY_HEADERS: &str = "Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\nStrict-Transport-Security: max-age=31536000\r\n";
 
@@ -242,6 +243,54 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
                 std::thread::park_timeout(Duration::from_millis(profile.bounds.poll_interval_ms));
             }
         });
+        let feeds_policy = profile
+            .feeds
+            .as_ref()
+            .filter(|feeds| feeds.refresh_interval_ms != 0);
+        let feeds_refresh = feeds_policy.map(|feeds| {
+            let stop = stop_ref;
+            let failed = failed_ref;
+            let engine = engine_ref;
+            scope.spawn(move || {
+                while !stop.load(Ordering::Acquire) {
+                    let Ok(now) = crate::engine::host_time_ms() else {
+                        failed.store(true, Ordering::Release);
+                        stop.store(true, Ordering::Release);
+                        break;
+                    };
+                    let due = {
+                        let Ok(engine) = engine.lock() else {
+                            failed.store(true, Ordering::Release);
+                            stop.store(true, Ordering::Release);
+                            break;
+                        };
+                        engine.due_feeds(now)
+                    };
+                    for (id, url) in due {
+                        let fetched = crate::feeds::fetch(
+                            &url,
+                            feeds.max_feed_bytes,
+                            feeds.max_entries_per_feed,
+                            feeds.max_redirects,
+                            feeds.timeout_seconds,
+                            feeds.allow_private_destinations,
+                        );
+                        let Ok(mut engine) = engine.lock() else {
+                            failed.store(true, Ordering::Release);
+                            stop.store(true, Ordering::Release);
+                            break;
+                        };
+                        if engine.record_feed_refresh(&id, fetched, now).is_err() {
+                            failed.store(true, Ordering::Release);
+                            stop.store(true, Ordering::Release);
+                            break;
+                        }
+                    }
+                    std::thread::park_timeout(FEED_REFRESH_TICK);
+                }
+            })
+        });
+        let _feed_refresh_guard = feeds_refresh;
         println!("kiln-web-service: listening {}", profile.origin);
         while !stop.load(Ordering::Acquire) {
             match listener.accept() {

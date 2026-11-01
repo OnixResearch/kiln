@@ -16,6 +16,7 @@ Add a `feeds` object to the service profile:
   "max_feed_bytes": 1048576,
   "max_redirects": 3,
   "timeout_seconds": 10,
+  "refresh_interval_ms": 900000,
   "allow_private_destinations": false
 }
 ```
@@ -43,8 +44,11 @@ revision, and a console link. Text is XML-escaped.
 
 ## External subscriptions
 
-Operators can add an external feed URL, refresh it, and remove it. Subscription
-URLs are omitted from viewer responses; entries and errors remain readable. Add fetches
+Operators can add an external feed URL, refresh it, and remove it. When
+`refresh_interval_ms` is non-zero, the service refreshes due subscriptions in
+the background, oldest attempt first and at most two per tick. `0` keeps refresh
+operator-only. Subscription URLs are omitted from viewer responses; entries and
+errors remain readable. Add fetches
 immediately; refresh replaces entries on success and retains previous entries
 with a bounded error on failure. Viewers can read subscriptions but cannot
 mutate them. Kiln does not claim continuous freshness; refresh is explicit.
