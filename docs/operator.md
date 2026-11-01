@@ -1035,7 +1035,8 @@ worker-isolation and publication authority.
 Define operator-owned inputs for `config/radicle-ci-worker.ncl`:
 
 - `source`: absolute local repository path, exact RID, signer node, full
-  `refs/heads/...` branch, source profile ID and snapshot bounds;
+  `refs/heads/...` branch or `refs/tags/...` tag, source profile ID and snapshot
+  bounds;
 - absolute private `state_root`, exact evaluator profile/discovery plan, selected
   task alias, exact Nix build profile and build intent;
 - the existing explicit Onix profile when needed, never automatic stock/Onix

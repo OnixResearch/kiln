@@ -218,6 +218,7 @@ pub trait RemoteLifecyclePort: RemoteExecutionPort {
 pub enum TriggerEventKind {
     Push,
     Patch,
+    Tag,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

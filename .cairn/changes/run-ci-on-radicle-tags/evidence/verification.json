@@ -1,0 +1,40 @@
+{
+  "schema": "kiln.radicle_ci.tag.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p kiln-radicle-ci",
+      "result": "10 passed; branch/tag projection covered"
+    },
+    {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "tag projection": "refs/tags release/v1 projects Tag and alias release/v1",
+    "push unchanged": "refs/heads main projects Push and alias main",
+    "invalid references": "empty and non-branch/tag references are rejected"
+  },
+  "non_claims": [
+    "the broker does not emit tag events yet",
+    "tag CI adds no trust, approval or release authority",
+    "source and executor authority are unchanged"
+  ]
+}

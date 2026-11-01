@@ -112,22 +112,25 @@ pub fn identity(value: &impl Serialize) -> Result<ContentId> {
     ContentId::from_blake3_hex(blake3::hash(&bytes).to_hex().to_string()).map_err(text)
 }
 
+fn source_alias(reference: &str) -> Result<(&str, TriggerEventKind)> {
+    if let Some(name) = reference.strip_prefix("refs/heads/").filter(|name| !name.is_empty()) {
+        return Ok((name, TriggerEventKind::Push));
+    }
+    if let Some(name) = reference.strip_prefix("refs/tags/").filter(|name| !name.is_empty()) {
+        return Ok((name, TriggerEventKind::Tag));
+    }
+    Err("project source must be a non-empty signed branch or tag".into())
+}
+
 impl ProjectWorkerProfile {
     // r[impl kiln.radicle_ci.runtime]
     pub fn admit(&self) -> Result<()> {
         self.source.admit().map_err(text)?;
-        if self.schema != PROJECT_PROFILE_SCHEMA
-            || !absolute_normal(&self.state_root)
-            || !self.source.signed_reference.starts_with("refs/heads/")
-        {
-            return Err("invalid project profile schema, private state root or push branch".into());
+        if self.schema != PROJECT_PROFILE_SCHEMA || !absolute_normal(&self.state_root) {
+            return Err("invalid project profile schema or private state root".into());
         }
-        Alias::new(
-            self.source
-                .signed_reference
-                .trim_start_matches("refs/heads/"),
-        )
-        .map_err(text)?;
+        let (name, _) = source_alias(&self.source.signed_reference)?;
+        Alias::new(name).map_err(text)?;
         admit_plan(&self.discovery_profile, &self.discovery_plan).map_err(text)?;
         let build = self.build_profile.clone().into_profile().map_err(text)?;
         if self.discovery_plan.build_provider_profile != build.provider.profile_id
@@ -156,20 +159,16 @@ impl ProjectWorkerProfile {
                     .into(),
             );
         }
-        let branch = self
-            .source
-            .signed_reference
-            .strip_prefix("refs/heads/")
-            .ok_or("project supports only signed push branches")?;
+        let (name, event) = source_alias(&self.source.signed_reference)?;
         Ok(TriggerRequest {
             repository: ExternalRef::new("radicle", "repository", &source.repository)
                 .map_err(text)?,
             actor: ExternalRef::new("radicle", "actor", "broker").map_err(text)?,
             before: None,
             after: ExternalRef::new("radicle", "revision", &source.revision).map_err(text)?,
-            branch: Some(Alias::new(branch).map_err(text)?),
+            branch: Some(Alias::new(name).map_err(text)?),
             patch: None,
-            event: TriggerEventKind::Push,
+            event,
         })
     }
 
@@ -789,6 +788,22 @@ pub(crate) mod tests {
             worker,
         };
         (profile, identity, trigger, result)
+    }
+
+    // r[verify kiln.radicle_ci.tag] r[verify kiln.radicle_ci.tag.scenario.projection]
+    #[test]
+    fn branch_and_tag_sources_project_distinct_events_and_aliases() {
+        assert_eq!(
+            source_alias("refs/heads/main").unwrap_or_else(|_| unreachable!()),
+            ("main", TriggerEventKind::Push)
+        );
+        assert_eq!(
+            source_alias("refs/tags/release/v1").unwrap_or_else(|_| unreachable!()),
+            ("release/v1", TriggerEventKind::Tag)
+        );
+        for reference in ["refs/heads/", "refs/tags/", "main", "refs/notes/x"] {
+            assert!(source_alias(reference).is_err());
+        }
     }
 
     // r[verify kiln.radicle_ci.runtime] r[verify kiln.radicle_ci.source]
