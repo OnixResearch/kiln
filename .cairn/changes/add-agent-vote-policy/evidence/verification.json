@@ -46,7 +46,7 @@
     "binding": "explicit policy opt-in counts agent approvals like human approvals",
     "blocking": "agent needs-revision and veto votes keep their existing blocking effect in either mode",
     "authority": "no mode grants merge authority",
-    "surface": "review detail marks agent reviewers, votes and notifications, includes reviewer metadata, and reports the effective advisory or binding mode"
+    "surface": "review detail marks agent reviewers, votes and notifications, includes reviewer and notification metadata, and reports the effective advisory or binding mode"
   },
   "non_claims": [
     "agent principals are not yet derived from access-profile viewer bindings",

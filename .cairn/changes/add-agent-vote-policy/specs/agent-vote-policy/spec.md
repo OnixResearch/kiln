@@ -43,7 +43,7 @@ r[kiln.review.agent.votes.scenario.binding]
 - THEN ordinary approvals and ownership MAY be satisfied by that vote.
 
 The review detail MUST mark votes, reviewers and notifications that are
-declared agent principals, include declared reviewer harness/model metadata when present,
+declared agent principals, include declared reviewer/notification harness/model metadata when present,
 report the effective `agent_votes` mode, and state whether those votes are
 advisory or binding under the current policy.
 
