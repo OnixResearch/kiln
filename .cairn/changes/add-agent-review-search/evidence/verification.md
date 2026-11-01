@@ -10,7 +10,8 @@ form and saved views carry the same filters.
 ## Evidence
 
 - Core search test covers with, without and absent modes.
-- Web coverage verifies empty harness and model values do not filter.
+- Web coverage verifies empty harness/model values do not filter and the
+  128-byte bound counts UTF-8 bytes, not characters.
 - Saved-query coverage retains the agent filter.
 - Web integration test creates an agent-submitted change, verifies positive and
   negative filters, malformed-value rejection and a saved-view round trip for

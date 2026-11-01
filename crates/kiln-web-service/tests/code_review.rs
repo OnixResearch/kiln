@@ -1888,6 +1888,28 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         .status,
         400
     );
+    assert_eq!(
+        field(
+            &accepted(get(
+                &workspace,
+                &format!("/api/code-review?agent_harness={}", "é".repeat(64)),
+                ALICE,
+                &[]
+            ))?,
+            "/total"
+        )?,
+        &json!(0)
+    );
+    assert_eq!(
+        get(
+            &workspace,
+            &format!("/api/code-review?agent_harness={}", "é".repeat(65)),
+            ALICE,
+            &[]
+        )
+        .status,
+        400
+    );
     accepted(post(
         &workspace,
         &global(
