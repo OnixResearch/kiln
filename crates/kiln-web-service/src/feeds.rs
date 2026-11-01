@@ -23,6 +23,7 @@ pub const MIN_REFRESH_INTERVAL_MS: u64 = 60_000;
 pub const MAX_REFRESH_INTERVAL_MS: u64 = 86_400_000;
 pub const MAX_BACKGROUND_REFRESHES_PER_TICK: usize = 2;
 pub const MAX_OPML_OUTLINES: usize = 256;
+pub const MAX_FEED_DEPTH: usize = 64;
 pub const MAX_URL_BYTES: usize = 2_048;
 pub const MAX_TITLE_BYTES: usize = 512;
 pub const MAX_SUMMARY_BYTES: usize = 4_096;
@@ -535,6 +536,7 @@ pub fn parse(bytes: &[u8], max_entries: usize) -> Result<ParsedFeed, String> {
     let document =
         roxmltree::Document::parse(text).map_err(|_| "external feed XML is malformed")?;
     let root = document.root_element();
+    depth_admitted(root)?;
     let root_name = root.tag_name().name();
     match root_name {
         "rss" => parse_rss(root, max_entries),
@@ -542,6 +544,19 @@ pub fn parse(bytes: &[u8], max_entries: usize) -> Result<ParsedFeed, String> {
         "feed" => parse_atom(root, max_entries),
         _ => Err("external feed is not RSS, RSS 1.0/RDF or Atom".into()),
     }
+}
+
+fn depth_admitted(root: roxmltree::Node<'_, '_>) -> Result<(), String> {
+    let mut stack = vec![(root, 0_usize)];
+    while let Some((node, depth)) = stack.pop() {
+        if depth > MAX_FEED_DEPTH {
+            return Err("external feed nesting exceeds its bound".into());
+        }
+        for child in node.children().filter(|child| child.is_element()) {
+            stack.push((child, depth + 1));
+        }
+    }
+    Ok(())
 }
 
 fn reject_unsafe_xml(text: &str) -> Result<(), String> {
@@ -1007,6 +1022,19 @@ mod tests {
             .unwrap_or_else(|| unreachable!("fixture entry"));
         assert_eq!(entry.title, "RDF one");
         assert_eq!(entry.published.as_deref(), Some("2024-10-02T13:00:00Z"));
+    }
+
+    #[test]
+    fn parser_rejects_excessive_nesting() {
+        let mut deep = String::from("<rss><channel>");
+        for _ in 0..(MAX_FEED_DEPTH + 2) {
+            deep.push_str("<item>");
+        }
+        for _ in 0..(MAX_FEED_DEPTH + 2) {
+            deep.push_str("</item>");
+        }
+        deep.push_str("</channel></rss>");
+        assert!(parse(deep.as_bytes(), 10).is_err());
     }
 
     #[test]

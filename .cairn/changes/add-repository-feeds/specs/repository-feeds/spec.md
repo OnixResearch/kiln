@@ -153,7 +153,7 @@ r[kiln.web.feeds.security.scenario.redirect]
 
 #### Scenario: Malformed or oversized feed is refused
 r[kiln.web.feeds.security.scenario.malformed]
-- GIVEN DTD/entity XML, malformed XML, an unknown root, too many entries or an oversized body
+- GIVEN DTD/entity XML, malformed XML, excessive nesting, an unknown root, too many entries or an oversized body
 - WHEN parsing runs
 - THEN it MUST fail without changing retained entries.
 

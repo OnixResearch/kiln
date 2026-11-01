@@ -111,7 +111,7 @@ Modified` retains previous entries, clears the error and updates the validators
 without parsing a body. A `304` without a supplied validator is refused.
 
 RSS 2.0, RSS 1.0/RDF and Atom are parsed with `roxmltree`; DTD and entity
-declarations are refused. Titles, summaries, dates, links, entries and response bytes are
+declarations are refused, and element nesting is bounded to 64 levels. Titles, summaries, dates, links, entries and response bytes are
 bounded. Links are restricted to HTTP(S). The console renders feed text with
 text nodes, never HTML.
 
