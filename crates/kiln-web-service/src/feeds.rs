@@ -56,6 +56,9 @@ pub struct FeedSubscription {
     /// Consecutive failed refresh attempts, used for bounded backoff.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub failures: u32,
+    /// Background refresh admission; manual refresh remains available when paused.
+    #[serde(default = "default_enabled", skip_serializing_if = "is_enabled")]
+    pub enabled: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub entries: Vec<FeedEntry>,
 }
@@ -188,6 +191,14 @@ fn is_zero(value: &u32) -> bool {
     *value == 0
 }
 
+fn default_enabled() -> bool {
+    true
+}
+
+fn is_enabled(value: &bool) -> bool {
+    *value
+}
+
 /// Effective retry interval after consecutive failures.
 #[must_use]
 pub fn failure_backoff_ms(interval_ms: u64, failures: u32) -> u64 {
@@ -220,11 +231,12 @@ pub fn due_subscriptions<'a>(
     }
     let mut due: Vec<(u64, DueFeed)> = subscriptions
         .filter(|subscription| {
-            is_due(
-                now_ms,
-                subscription.fetched_at_ms,
-                failure_backoff_ms(interval_ms, subscription.failures),
-            )
+            subscription.enabled
+                && is_due(
+                    now_ms,
+                    subscription.fetched_at_ms,
+                    failure_backoff_ms(interval_ms, subscription.failures),
+                )
         })
         .map(|subscription| {
             (
@@ -1165,6 +1177,7 @@ mod tests {
             etag: None,
             last_modified: None,
             failures: 0,
+            enabled: true,
             entries: Vec::new(),
         };
         let subscriptions = vec![

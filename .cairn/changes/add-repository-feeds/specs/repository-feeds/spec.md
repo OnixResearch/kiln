@@ -88,6 +88,12 @@ r[kiln.web.feeds.subscriptions.scenario.refresh]
 - WHEN refresh runs
 - THEN previous entries MUST remain and the error MUST be recorded and reported.
 
+#### Scenario: Subscription refresh is paused
+r[kiln.web.feeds.subscriptions.scenario.pause]
+- GIVEN an existing subscription
+- WHEN an operator pauses it
+- THEN background refresh MUST skip it while its entries remain readable and manual refresh remains available.
+
 #### Scenario: Subscription label is renamed
 r[kiln.web.feeds.subscriptions.scenario.rename]
 - GIVEN an existing subscription

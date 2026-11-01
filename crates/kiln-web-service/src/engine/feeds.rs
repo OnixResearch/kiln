@@ -30,6 +30,12 @@ struct RenameFeed {
     label: String,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToggleFeed {
+    enabled: bool,
+}
+
 pub(crate) struct AdmittedFeed {
     pub id: String,
     pub url: String,
@@ -285,6 +291,7 @@ impl Engine {
                     etag: None,
                     last_modified: None,
                     failures: 0,
+                    enabled: true,
                     entries: Vec::new(),
                 },
             );
@@ -360,6 +367,7 @@ impl Engine {
             etag,
             last_modified,
             failures: 0,
+            enabled: true,
             entries: feed.entries,
         };
         if !self.feed_state_fits(&admitted.id, &subscription) {
@@ -457,6 +465,36 @@ impl Engine {
                 json!({"code":"feed_unavailable","message":"External feed refresh failed; retained entries were kept","subscription":candidate}),
             );
         }
+        self.append_audit(method, target, Some(principal), "accepted", 200)?;
+        json_response(200, json!({"subscription": candidate}))
+    }
+
+    pub(crate) fn set_feed_enabled(
+        &mut self,
+        id: &str,
+        body: &[u8],
+        method: &str,
+        target: &str,
+        principal: &Principal,
+    ) -> Result<ApiResponse, String> {
+        self.append_audit(method, target, Some(principal), "admitted", 0)?;
+        let request: ToggleFeed =
+            serde_json::from_slice(body).map_err(|_| "feed toggle request is malformed")?;
+        let Some(existing) = self.state.feeds.subscriptions.get(id).cloned() else {
+            self.append_audit(method, target, Some(principal), "denied", 404)?;
+            return error(404, "feed_missing");
+        };
+        let mut candidate = existing;
+        candidate.enabled = request.enabled;
+        if !self.feed_state_fits(id, &candidate) {
+            self.append_audit(method, target, Some(principal), "denied", 409)?;
+            return error(409, "feed_retention");
+        }
+        self.state
+            .feeds
+            .subscriptions
+            .insert(id.to_string(), candidate.clone());
+        self.persist()?;
         self.append_audit(method, target, Some(principal), "accepted", 200)?;
         json_response(200, json!({"subscription": candidate}))
     }

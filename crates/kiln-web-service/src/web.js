@@ -1619,7 +1619,11 @@
       const card = element("section", undefined, "panel");
       const heading = element("div", undefined, "section-heading");
       heading.append(element("h2", text(subscription.label || subscription.title || "External feed")));
-      heading.append(element("span", subscription.error ? "Needs attention" : "Observed", subscription.error ? "pill pill-failed" : "pill"));
+      heading.append(element(
+        "span",
+        subscription.enabled === false ? "Paused" : subscription.error ? "Needs attention" : "Observed",
+        subscription.enabled === false ? "pill" : subscription.error ? "pill pill-failed" : "pill"
+      ));
       card.append(heading);
       const lastSuccess = subscription.last_success_ms ? ` · Last success ${timestamp(subscription.last_success_ms)}` : "";
       card.append(element("p", `${subscription.url || "URL hidden for viewers"} · ${subscription.fetched_at_ms ? `Last attempt ${timestamp(subscription.fetched_at_ms)}` : "Not fetched"}${lastSuccess}`, "small mono"));
@@ -1633,6 +1637,17 @@
           try { await api(`/api/feeds/${encodeURIComponent(subscription.id)}/refresh`, { method: "POST", body: {} }); await loadFeeds(); }
           catch (error) { notice(explain(error)); await loadFeeds(); }
           finally { refresh.disabled = false; }
+        });
+        const toggle = element("button", subscription.enabled === false ? "Resume" : "Pause", "quiet");
+        toggle.type = "button";
+        toggle.addEventListener("click", async () => {
+          toggle.disabled = true;
+          try {
+            await api(`/api/feeds/${encodeURIComponent(subscription.id)}/enabled`, { method: "POST", body: { enabled: subscription.enabled === false } });
+            await loadFeeds();
+          } catch (error) {
+            notice(explain(error));
+          } finally { toggle.disabled = false; }
         });
         const rename = element("button", "Rename", "quiet");
         rename.type = "button";
@@ -1656,7 +1671,7 @@
           catch (error) { notice(explain(error)); }
           finally { remove.disabled = false; }
         });
-        actions.append(refresh, rename, remove);
+        actions.append(refresh, toggle, rename, remove);
         card.append(actions);
       }
       const entries = element("ul", undefined, "activity-feed");

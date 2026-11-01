@@ -15,6 +15,7 @@
 - [x] [serial] Accept the feed token through a bearer header as an alternative to the capability URL. r[kiln.web.feeds.token]
 - [x] [serial] Allow operators to rename subscription labels with bounded validation. r[kiln.web.feeds.subscriptions.scenario.rename]
 - [x] [serial] Reload a rotated feed token file without restarting the service. r[kiln.web.feeds.token]
+- [x] [serial] Allow operators to pause and resume background refresh while retaining entries. r[kiln.web.feeds.subscriptions.scenario.pause]
 - [x] [serial] Add conditional ETag/Last-Modified refresh with 304 retention and validator bounds. r[kiln.web.feeds.security.scenario.conditional]
 - [x] [serial] Add the Feeds console page with publication URLs, subscriptions and bounded external entries. r[kiln.web.feeds.ui]
 

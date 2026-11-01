@@ -685,6 +685,33 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .is_some_and(|message| !message.is_empty())
     );
 
+    let paused = checked(
+        client
+            .post(format!("{}/api/feeds/{id}/enabled", profile.origin))
+            .bearer_auth(&operator)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({"enabled": false}))
+            .send(),
+    );
+    assert_eq!(paused.status(), 200);
+    let paused: serde_json::Value = checked(paused.json());
+    assert_eq!(
+        paused.pointer("/subscription/enabled"),
+        Some(&serde_json::Value::Bool(false))
+    );
+    assert_eq!(
+        checked(
+            client
+                .post(format!("{}/api/feeds/{id}/enabled", profile.origin))
+                .bearer_auth(&operator)
+                .header("Origin", &profile.origin)
+                .json(&serde_json::json!({"enabled": true}))
+                .send()
+        )
+        .status(),
+        200
+    );
+
     let renamed = checked(
         client
             .post(format!("{}/api/feeds/{id}/label", profile.origin))
