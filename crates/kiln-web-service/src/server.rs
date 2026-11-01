@@ -606,6 +606,11 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
     {
         return denied(&request, context, None, 401, "proxy_identity_denied");
     }
+    if request.method == "GET"
+        && (request.target.starts_with("/feeds.xml") || request.target.starts_with("/feeds/"))
+    {
+        return feed_publication(&request, context);
+    }
     if let Some(id) = trigger_id(&request) {
         // Only this exact signed intake has an Origin/bearer exception. Authentication,
         // repository/ref binding and replay admission belong to the registered trigger.
@@ -656,6 +661,12 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
+        if path == "/api/feeds" || path.starts_with("/api/feeds/") {
+            if principal.role == crate::engine::Role::Worker {
+                return denied(&request, context, Some(&principal), 403, "feeds_forbidden");
+            }
+            return feed_api(&request, context, &principal, path);
+        }
         // r[impl kiln.review.authority]
         if path == "/api/code-review" || path.starts_with("/api/code-review/") {
             let now = match crate::engine::host_time_ms().and_then(|value| {
@@ -854,6 +865,150 @@ fn json_content(request: &Request) -> bool {
 }
 
 // r[impl kiln.web.authentication] r[impl kiln.web.network.boundaries]
+// r[impl kiln.web.feeds.token]
+fn feed_publication(request: &Request, context: &Context<'_>) -> ApiResponse {
+    let (path, token) = match feed_target(&request.target) {
+        Some(value) => value,
+        None => return error_response(400, "feed_invalid"),
+    };
+    if !context.credentials.feed_matches(token.as_bytes()) {
+        return error_response(403, "feed_denied");
+    }
+    match context.engine.lock() {
+        Ok(engine) => match engine.render_feed(path) {
+            Some(response) => response,
+            None => error_response(404, "feed_missing"),
+        },
+        Err(_) => error_response(503, "service_unavailable"),
+    }
+}
+
+/// Feed paths accept exactly one `token` query parameter with a 64-hex value.
+fn feed_target(target: &str) -> Option<(&str, &str)> {
+    let (path, query) = target.split_once('?')?;
+    if query.contains('&') {
+        return None;
+    }
+    let token = query.strip_prefix("token=")?;
+    if token.len() != 64 || !token.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
+    Some((path, token))
+}
+
+// r[impl kiln.web.feeds.subscriptions.scenario.viewer]
+fn feed_api(
+    request: &Request,
+    context: &Context<'_>,
+    principal: &Principal,
+    path: &str,
+) -> ApiResponse {
+    let now = match crate::engine::host_time_ms() {
+        Ok(now) => now,
+        Err(_) => return error_response(503, "clock_unavailable"),
+    };
+    if request.method == "GET" && path == "/api/feeds" {
+        return match context.engine.lock() {
+            Ok(engine) => engine
+                .feeds_view(principal.role)
+                .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
+    }
+    let Some(profile) = &context.profile.feeds else {
+        return error_response(404, "feeds_disabled");
+    };
+    if request.method == "POST" && path == "/api/feeds" {
+        let admitted = match context.engine.lock() {
+            Ok(engine) => engine.prepare_feed_add(&request.body),
+            Err(_) => return error_response(503, "service_unavailable"),
+        };
+        let admitted = match admitted {
+            Ok(admitted) => admitted,
+            Err(message) => {
+                let (status, code) = if message.contains("not configured") {
+                    (404, "feeds_disabled")
+                } else if message.contains("bound") {
+                    (409, "feed_retention")
+                } else {
+                    (400, "feed_invalid")
+                };
+                return error_response(status, code);
+            }
+        };
+        let url = admitted.url.clone();
+        let fetched = crate::feeds::fetch(
+            &url,
+            profile.max_feed_bytes,
+            profile.max_entries_per_feed,
+            profile.max_redirects,
+            profile.timeout_seconds,
+            profile.allow_private_destinations,
+        );
+        return match context.engine.lock() {
+            Ok(mut engine) => engine
+                .finish_feed_add(
+                    admitted,
+                    fetched,
+                    now,
+                    &request.method,
+                    &request.target,
+                    principal,
+                )
+                .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
+    }
+    let Some(rest) = path.strip_prefix("/api/feeds/") else {
+        return error_response(404, "feed_route_invalid");
+    };
+    let mut parts = rest.split('/');
+    let id = parts.next().unwrap_or_default();
+    let action = parts.next();
+    if id.is_empty() || parts.next().is_some() {
+        return error_response(404, "feed_route_invalid");
+    }
+    if request.method == "POST" && action == Some("remove") {
+        return match context.engine.lock() {
+            Ok(mut engine) => engine
+                .remove_feed(id, &request.method, &request.target, principal)
+                .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
+    }
+    if request.method == "POST" && action == Some("refresh") {
+        let url = match context.engine.lock() {
+            Ok(engine) => engine.feed_url(id),
+            Err(_) => return error_response(503, "service_unavailable"),
+        };
+        let Some(url) = url else {
+            return error_response(404, "feed_missing");
+        };
+        let fetched = crate::feeds::fetch(
+            &url,
+            profile.max_feed_bytes,
+            profile.max_entries_per_feed,
+            profile.max_redirects,
+            profile.timeout_seconds,
+            profile.allow_private_destinations,
+        );
+        return match context.engine.lock() {
+            Ok(mut engine) => engine
+                .finish_feed_refresh(
+                    id,
+                    fetched,
+                    now,
+                    &request.method,
+                    &request.target,
+                    principal,
+                )
+                .unwrap_or_else(|_| error_response(503, "feed_state_unavailable")),
+            Err(_) => error_response(503, "service_unavailable"),
+        };
+    }
+    error_response(404, "feed_route_invalid")
+}
+
 fn api_admission(
     request: &Request,
     origin: &str,

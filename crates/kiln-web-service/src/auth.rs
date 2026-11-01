@@ -39,6 +39,7 @@ pub(crate) struct Credentials {
     worker: TokenVerifier,
     viewers: Vec<(Principal, TokenVerifier)>,
     proxy: Option<TokenVerifier>,
+    feed: Option<TokenVerifier>,
     access: AccessProfile,
 }
 
@@ -47,7 +48,16 @@ impl Credentials {
         access.admit()?;
         let operator = Zeroizing::new(read_token(&profile.operator_token_file)?);
         let worker = Zeroizing::new(read_token(&profile.worker_token_file)?);
+        let feed = profile
+            .feeds
+            .as_ref()
+            .map(|feeds| read_token(&feeds.token_file))
+            .transpose()?
+            .map(Zeroizing::new);
         let mut secrets = vec![operator, worker];
+        if let Some(feed) = &feed {
+            secrets.push(feed.clone());
+        }
         for viewer in &access.viewers {
             secrets.push(Zeroizing::new(read_token(&viewer.token_file)?));
         }
@@ -64,6 +74,10 @@ impl Credentials {
         let mut verifiers = verifiers.into_iter();
         let operator = verifiers.next().ok_or("operator credential unavailable")?;
         let worker = verifiers.next().ok_or("worker credential unavailable")?;
+        let feed = match &feed {
+            Some(_) => Some(verifiers.next().ok_or("feed credential unavailable")?),
+            None => None,
+        };
         let viewers = access
             .viewers
             .iter()
@@ -85,6 +99,7 @@ impl Credentials {
             worker,
             viewers,
             proxy,
+            feed,
             access,
         })
     }
@@ -114,6 +129,12 @@ impl Credentials {
                 .find(|(_, verifier)| verifier.matches(candidate.as_bytes()))
                 .map(|(principal, _)| principal.clone())
         }
+    }
+
+    pub(crate) fn feed_matches(&self, candidate: &[u8]) -> bool {
+        self.feed
+            .as_ref()
+            .is_some_and(|feed| feed.matches(candidate))
     }
 
     pub(crate) fn authenticate_request(
@@ -160,6 +181,7 @@ mod tests {
             worker: TokenVerifier::new(worker.as_bytes()).unwrap_or_else(|_| unreachable!()),
             viewers: Vec::new(),
             proxy: None,
+            feed: None,
             access: AccessProfile::default(),
         };
         assert!(matches!(
@@ -222,6 +244,7 @@ mod tests {
                 TokenVerifier::new(secret.as_bytes())
                     .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}")),
             ),
+            feed: None,
             access,
         };
         let id = "tailscale:47256370424925063";

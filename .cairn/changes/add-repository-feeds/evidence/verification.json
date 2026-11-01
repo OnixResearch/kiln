@@ -1,0 +1,94 @@
+{
+  "schema": "kiln.web.repository-feeds.verification.v1",
+  "date": "2026-11-01",
+  "maintainer_owner": "kiln-web-service",
+  "profile": {
+    "schema": "kiln.web-service.v1",
+    "optional": "feeds",
+    "default": "disabled",
+    "public_scheme": "https",
+    "private_exception": "allow_private_destinations"
+  },
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --lib feeds::",
+      "result": "10 passed, 0 failed: RSS/Atom parsing, DTD rejection, URL and private-address admission, body bound, one-hop redirect, UTC timestamp, Atom escaping, repository run filtering/order/limit"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib",
+      "result": "144 passed, 0 failed, 1 ignored"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test engine",
+      "result": "69 passed, 0 failed"
+    },
+    {
+      "command": "cargo test --workspace",
+      "result": "1224 passed, 0 failed"
+    },
+    {
+      "command": "cargo clippy -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "{\"valid\":true,\"issues\":0}"
+    }
+  ],
+  "runtime_case": {
+    "test": "repository_feeds_and_external_subscription_round_trip",
+    "service": "actual kiln-web-service process over the fixture HTTPS certificate",
+    "external_feed": "local HTTP fixture with allow_private_destinations=true",
+    "checks": [
+      "operator GET /api/projects returns the canonical repository key",
+      "GET /feeds/<key>.xml?token=<feed-token> returns application/atom+xml",
+      "GET /feeds.xml?token=<feed-token> returns the index",
+      "a wrong feed token returns 403 and a missing token returns 400",
+      "POST /api/feeds fetches and stores an external RSS feed with one bounded entry",
+      "POST refresh after a 503 retains previous entries and records the error",
+      "POST remove deletes the subscription",
+      "GET /feeds.xml?token=<feed-token> returns the Atom index",
+      "GET an unknown 64-hex repository key returns 404",
+      "with no feeds policy, GET /api/feeds reports configured=false"
+    ]
+  },
+  "browser_case": {
+    "service": "disposable process on https://localhost:19443 with feeds enabled and private test destinations",
+    "checks": [
+      "signed in as operator and opened ?page=feeds",
+      "15 repository subscription cards rendered with Copy Atom URL and Open feed links",
+      "external feed form added http://127.0.0.1:39013/feed.xml",
+      "subscription card showed the label, fetch time, Refresh/Remove controls and the Disposable release entry",
+      "browser console contained no errors"
+    ],
+    "publication_http": {
+      "repository_feed": 200,
+      "index_feed": 200,
+      "wrong_token": 403,
+      "missing_token": 400
+    },
+    "screenshot": "captured inline during the disposable browser session; the disposable instance and temporary profile were removed after verification"
+  },
+  "security_cases": {
+    "userinfo": "rejected",
+    "public_http": "rejected",
+    "non_default_port": "rejected without the private exception",
+    "fragments": "rejected",
+    "loopback_private_link_local_documentation_multicast_unspecified": "rejected",
+    "dns": "resolved once, all addresses checked, connection pinned to the admitted address",
+    "redirects": "manual, bounded and re-admitted; proxy environment ignored",
+    "xml": "DTD/entity declarations refused; malformed or unknown roots refused; body and entry counts bounded",
+    "rendering": "feed text rendered with text nodes; links restricted to HTTP(S)"
+  },
+  "non_claims": [
+    "feeds are read-only run projections, not CI success, acceptance or release evidence",
+    "external subscriptions are retained observations, not continuous freshness or remote completeness",
+    "DNS pinning and private-address checks reduce common SSRF paths but do not prove hostile-network safety",
+    "the optional profile keeps feeds disabled by default; this change performs no deployment",
+    "allow_private_destinations is an explicit test/private-network exception, not a production claim"
+  ]
+}

@@ -1,0 +1,832 @@
+//! Bounded repository Atom publication and external RSS/Atom subscription support.
+
+use std::collections::BTreeMap;
+use std::io::Read as _;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs as _};
+use std::time::Duration;
+
+use reqwest::blocking::Client;
+use reqwest::header::{ACCEPT, CONTENT_LENGTH, LOCATION, USER_AGENT};
+use reqwest::{Url, redirect::Policy};
+use serde::{Deserialize, Serialize};
+
+pub const ABSOLUTE_MAX_SUBSCRIPTIONS: usize = 128;
+pub const ABSOLUTE_MAX_ENTRIES_PER_FEED: usize = 200;
+pub const ABSOLUTE_MAX_FEED_BYTES: usize = 4_194_304;
+pub const ABSOLUTE_MAX_REDIRECTS: usize = 5;
+pub const ABSOLUTE_MAX_TIMEOUT_SECONDS: u64 = 30;
+pub const MAX_URL_BYTES: usize = 2_048;
+pub const MAX_TITLE_BYTES: usize = 512;
+pub const MAX_SUMMARY_BYTES: usize = 4_096;
+pub const MAX_DATE_BYTES: usize = 128;
+pub const FEED_ACCEPT: &str =
+    "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8";
+const USER_AGENT_VALUE: &str = "kiln-web-service/repository-feeds";
+
+/// One external feed subscription and its most recent bounded entries.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FeedSubscription {
+    pub id: String,
+    pub url: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fetched_at_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entries: Vec<FeedEntry>,
+}
+
+/// One parsed external feed entry. Text is displayed as text, never HTML.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FeedEntry {
+    pub id: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub published: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FeedsState {
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub subscriptions: BTreeMap<String, FeedSubscription>,
+}
+
+impl FeedsState {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.subscriptions.is_empty()
+    }
+}
+
+/// One parsed external feed.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ParsedFeed {
+    pub title: Option<String>,
+    pub entries: Vec<FeedEntry>,
+}
+
+/// Stable identity for one subscription URL.
+#[must_use]
+pub fn subscription_id(url: &str) -> String {
+    blake3::hash(url.as_bytes()).to_hex().to_string()
+}
+
+/// Validate a subscription URL before any DNS or network effect.
+///
+/// Public destinations must be HTTPS with no userinfo. Plain HTTP is accepted
+/// only for an explicitly admitted private/test destination.
+pub fn admit_url(url: &str, allow_private: bool) -> Result<Url, String> {
+    if url.is_empty() || url.len() > MAX_URL_BYTES {
+        return Err("feed URL is empty or exceeds its named bound".into());
+    }
+    if url
+        .bytes()
+        .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
+    {
+        return Err("feed URL contains whitespace or control bytes".into());
+    }
+    let parsed = Url::parse(url).map_err(|_| "feed URL is not a valid absolute URL")?;
+    let scheme_ok = parsed.scheme() == "https" || (allow_private && parsed.scheme() == "http");
+    if !scheme_ok {
+        return Err("feed URL must use HTTPS".into());
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("feed URL must not embed credentials".into());
+    }
+    let host = parsed
+        .host_str()
+        .filter(|host| !host.is_empty())
+        .ok_or("feed URL has no host")?;
+    let bare = host
+        .strip_prefix('[')
+        .and_then(|host| host.strip_suffix(']'))
+        .unwrap_or(host);
+    if let Ok(ip) = bare.parse::<IpAddr>() {
+        if !allow_private && !globally_routable(ip) {
+            return Err("feed URL host is not a globally routable address".into());
+        }
+    }
+    if parsed.port().is_some() && parsed.port() != Some(443) && !allow_private {
+        return Err("feed URL must use the default HTTPS port".into());
+    }
+    if parsed.fragment().is_some() {
+        return Err("feed URL must not contain a fragment".into());
+    }
+    Ok(parsed)
+}
+
+/// Reject non-global destinations used for SSRF and local-service access.
+#[must_use]
+pub fn globally_routable(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => globally_routable_v4(v4),
+        IpAddr::V6(v6) => {
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                return globally_routable_v4(v4);
+            }
+            !(v6.is_unspecified()
+                || v6.is_loopback()
+                || v6.is_multicast()
+                || v6.is_unique_local()
+                || v6.is_unicast_link_local()
+                || (v6.segments()[0] & 0xffc0) == 0xfec0
+                || is_documentation_v6(v6))
+        }
+    }
+}
+
+fn is_documentation_v6(ip: Ipv6Addr) -> bool {
+    let segments = ip.segments();
+    segments[0] == 0x2001 && segments[1] == 0x0db8
+}
+
+fn globally_routable_v4(ip: Ipv4Addr) -> bool {
+    let octets = ip.octets();
+    !(ip.is_unspecified()
+        || ip.is_loopback()
+        || ip.is_private()
+        || ip.is_link_local()
+        || ip.is_broadcast()
+        || ip.is_documentation()
+        || ip.is_multicast()
+        || octets[0] == 0
+        || (octets[0] == 100 && (64..=127).contains(&octets[1]))
+        || (octets[0] == 198 && (18..=19).contains(&octets[1]))
+        || (octets[0] == 192 && octets[1] == 0 && octets[2] == 0)
+        || (octets[0] == 192 && octets[1] == 88 && octets[2] == 99)
+        || octets[0] >= 240)
+}
+
+// r[impl kiln.web.feeds.security]
+// r[impl kiln.web.feeds.bounds]
+/// Fetch and parse one external feed under the declared bounds.
+///
+/// DNS is resolved here, every address is admitted, and the connection is
+/// pinned to the admitted address so a second resolution cannot rebind it.
+/// Redirects are manual and re-admitted, and proxy environment variables are
+/// ignored.
+pub fn fetch(
+    url: &str,
+    max_bytes: usize,
+    max_entries: usize,
+    max_redirects: usize,
+    timeout_seconds: u64,
+    allow_private: bool,
+) -> Result<ParsedFeed, String> {
+    if max_bytes == 0 || max_bytes > ABSOLUTE_MAX_FEED_BYTES {
+        return Err("feed byte bound is invalid".into());
+    }
+    if max_entries == 0 || max_entries > ABSOLUTE_MAX_ENTRIES_PER_FEED {
+        return Err("feed entry bound is invalid".into());
+    }
+    if max_redirects > ABSOLUTE_MAX_REDIRECTS
+        || timeout_seconds == 0
+        || timeout_seconds > ABSOLUTE_MAX_TIMEOUT_SECONDS
+    {
+        return Err("feed fetch bounds are invalid".into());
+    }
+    let mut current = admit_url(url, allow_private)?;
+    for hop in 0..=max_redirects {
+        let client = pinned_client(&current, timeout_seconds, allow_private)?;
+        let response = client
+            .get(current.clone())
+            .header(ACCEPT, FEED_ACCEPT)
+            .header(USER_AGENT, USER_AGENT_VALUE)
+            .send()
+            .map_err(|_| "external feed could not be reached")?;
+        let status = response.status();
+        if status.is_redirection() {
+            if hop == max_redirects {
+                return Err("external feed exceeded its redirect bound".into());
+            }
+            let location = response
+                .headers()
+                .get(LOCATION)
+                .and_then(|value| value.to_str().ok())
+                .ok_or("external feed redirect has no valid location")?;
+            if location.len() > MAX_URL_BYTES {
+                return Err("external feed redirect location exceeds its bound".into());
+            }
+            current = current
+                .join(location)
+                .map_err(|_| "external feed redirect location is invalid")?;
+            current = admit_url(current.as_str(), allow_private)?;
+            continue;
+        }
+        if status != reqwest::StatusCode::OK {
+            return Err("external feed returned a non-success status".into());
+        }
+        if let Some(length) = response
+            .headers()
+            .get(CONTENT_LENGTH)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse::<usize>().ok())
+        {
+            if length > max_bytes {
+                return Err("external feed content length exceeds its bound".into());
+            }
+        }
+        let mut bytes = Vec::new();
+        response
+            .take((max_bytes as u64).saturating_add(1))
+            .read_to_end(&mut bytes)
+            .map_err(|_| "external feed body could not be read")?;
+        if bytes.len() > max_bytes {
+            return Err("external feed body exceeds its bound".into());
+        }
+        return parse(&bytes, max_entries);
+    }
+    Err("external feed exceeded its redirect bound".into())
+}
+
+fn pinned_client(url: &Url, timeout_seconds: u64, allow_private: bool) -> Result<Client, String> {
+    let host = url
+        .host_str()
+        .filter(|host| !host.is_empty())
+        .ok_or("feed URL has no host")?
+        .to_string();
+    let bare = host
+        .strip_prefix('[')
+        .and_then(|host| host.strip_suffix(']'))
+        .unwrap_or(host.as_str())
+        .to_string();
+    let port = url.port_or_known_default().ok_or("feed URL has no port")?;
+    let addresses: Vec<SocketAddr> = if let Ok(ip) = bare.parse::<IpAddr>() {
+        vec![SocketAddr::new(ip, port)]
+    } else {
+        (bare.as_str(), port)
+            .to_socket_addrs()
+            .map_err(|_| "feed host could not be resolved")?
+            .collect()
+    };
+    if addresses.is_empty() {
+        return Err("feed host resolved to no addresses".into());
+    }
+    if !allow_private
+        && addresses
+            .iter()
+            .any(|address| !globally_routable(address.ip()))
+    {
+        return Err("feed host resolved to a non-global address".into());
+    }
+    let pinned = addresses
+        .first()
+        .copied()
+        .ok_or("feed host resolved to no addresses")?;
+    let mut builder = Client::builder()
+        .redirect(Policy::none())
+        .no_proxy()
+        .timeout(Duration::from_secs(timeout_seconds))
+        .connect_timeout(Duration::from_secs(timeout_seconds))
+        .https_only(!allow_private);
+    if bare.parse::<IpAddr>().is_err() {
+        builder = builder.resolve(bare.as_str(), pinned);
+    }
+    let client = builder
+        .build()
+        .map_err(|_| "bounded feed client could not be created")?;
+    Ok(client)
+}
+
+// r[impl kiln.web.feeds.security.scenario.malformed]
+/// Parse RSS 2.0 or Atom into bounded text entries.
+pub fn parse(bytes: &[u8], max_entries: usize) -> Result<ParsedFeed, String> {
+    if bytes.is_empty() || bytes.len() > ABSOLUTE_MAX_FEED_BYTES {
+        return Err("external feed bytes are empty or exceed the absolute bound".into());
+    }
+    let text = std::str::from_utf8(bytes).map_err(|_| "external feed is not UTF-8")?;
+    let lower = text.to_ascii_lowercase();
+    if lower.contains("<!doctype") || lower.contains("<!entity") {
+        return Err("external feed DTD and entity declarations are refused".into());
+    }
+    let document =
+        roxmltree::Document::parse(text).map_err(|_| "external feed XML is malformed")?;
+    let root = document.root_element();
+    let root_name = root.tag_name().name();
+    match root_name {
+        "rss" => parse_rss(root, max_entries),
+        "feed" => parse_atom(root, max_entries),
+        _ => Err("external feed is neither RSS nor Atom".into()),
+    }
+}
+
+fn parse_rss(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<ParsedFeed, String> {
+    let channel = root
+        .children()
+        .find(|node| node.is_element() && node.tag_name().name() == "channel")
+        .ok_or("RSS feed has no channel")?;
+    let title = direct_text(channel, "title").map(|text| truncate(&text, MAX_TITLE_BYTES));
+    let mut entries = Vec::new();
+    for item in channel
+        .children()
+        .filter(|node| node.is_element() && node.tag_name().name() == "item")
+    {
+        let title = direct_text(item, "title")
+            .map(|text| truncate(&text, MAX_TITLE_BYTES))
+            .unwrap_or_else(|| "(untitled)".to_string());
+        let link = direct_text(item, "link").and_then(|link| safe_link(&link));
+        let published = direct_text(item, "pubDate")
+            .or_else(|| direct_text(item, "published"))
+            .map(|text| truncate(&text, MAX_DATE_BYTES));
+        let summary =
+            direct_text(item, "description").map(|text| truncate(&text, MAX_SUMMARY_BYTES));
+        let id = direct_text(item, "guid")
+            .filter(|value| !value.is_empty())
+            .or_else(|| link.clone())
+            .unwrap_or_else(|| entry_fallback_id(&title, published.as_deref()));
+        entries.push(FeedEntry {
+            id: truncate(&id, MAX_URL_BYTES),
+            title,
+            link,
+            published,
+            summary,
+        });
+        if entries.len() >= max_entries {
+            break;
+        }
+    }
+    Ok(ParsedFeed { title, entries })
+}
+
+fn parse_atom(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<ParsedFeed, String> {
+    let title = direct_text(root, "title").map(|text| truncate(&text, MAX_TITLE_BYTES));
+    let mut entries = Vec::new();
+    for entry in root
+        .children()
+        .filter(|node| node.is_element() && node.tag_name().name() == "entry")
+    {
+        let title = direct_text(entry, "title")
+            .map(|text| truncate(&text, MAX_TITLE_BYTES))
+            .unwrap_or_else(|| "(untitled)".to_string());
+        let link = atom_link(entry);
+        let published = direct_text(entry, "published")
+            .or_else(|| direct_text(entry, "updated"))
+            .map(|text| truncate(&text, MAX_DATE_BYTES));
+        let summary = direct_text(entry, "summary")
+            .or_else(|| direct_text(entry, "content"))
+            .map(|text| truncate(&text, MAX_SUMMARY_BYTES));
+        let id = direct_text(entry, "id")
+            .filter(|value| !value.is_empty())
+            .or_else(|| link.clone())
+            .unwrap_or_else(|| entry_fallback_id(&title, published.as_deref()));
+        entries.push(FeedEntry {
+            id: truncate(&id, MAX_URL_BYTES),
+            title,
+            link,
+            published,
+            summary,
+        });
+        if entries.len() >= max_entries {
+            break;
+        }
+    }
+    Ok(ParsedFeed { title, entries })
+}
+
+fn atom_link(entry: roxmltree::Node<'_, '_>) -> Option<String> {
+    let mut fallback = None;
+    for link in entry
+        .children()
+        .filter(|node| node.is_element() && node.tag_name().name() == "link")
+    {
+        let Some(href) = link.attribute("href") else {
+            continue;
+        };
+        let rel = link.attribute("rel").unwrap_or("alternate");
+        if rel == "alternate" {
+            return safe_link(href);
+        }
+        if fallback.is_none() {
+            fallback = safe_link(href);
+        }
+    }
+    fallback
+}
+
+fn direct_text(node: roxmltree::Node<'_, '_>, name: &str) -> Option<String> {
+    node.children()
+        .find(|child| child.is_element() && child.tag_name().name() == name)
+        .map(|child| clean_text(child.text().unwrap_or_default()))
+        .filter(|text| !text.is_empty())
+}
+
+fn clean_text(text: &str) -> String {
+    text.chars()
+        .filter(|character| !character.is_control() || *character == '\n' || *character == '\t')
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
+fn safe_link(value: &str) -> Option<String> {
+    let value = value.trim();
+    if value.is_empty() || value.len() > MAX_URL_BYTES {
+        return None;
+    }
+    let url = Url::parse(value).ok()?;
+    matches!(url.scheme(), "http" | "https").then(|| truncate(value, MAX_URL_BYTES))
+}
+
+fn entry_fallback_id(title: &str, published: Option<&str>) -> String {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(b"kiln-feed-entry-v1\0");
+    hasher.update(title.as_bytes());
+    hasher.update(b"\0");
+    hasher.update(published.unwrap_or_default().as_bytes());
+    hasher.finalize().to_hex().to_string()
+}
+
+fn truncate(text: &str, maximum: usize) -> String {
+    if text.len() <= maximum {
+        return text.to_string();
+    }
+    let mut end = maximum;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}…", &text[..end])
+}
+
+/// One retained run selected for a repository Atom feed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FeedRun {
+    pub id: String,
+    pub project_id: String,
+    pub project_label: String,
+    pub ordinal: u64,
+    pub updated_ms: u64,
+    pub outcome: String,
+    pub revision: String,
+}
+
+/// Select and render the newest retained runs for one repository.
+#[must_use]
+pub fn repository_atom(
+    origin: &str,
+    repository_key: &str,
+    title: &str,
+    token: &str,
+    runs: &mut Vec<FeedRun>,
+    max_items: usize,
+) -> String {
+    runs.sort_by(|left, right| right.ordinal.cmp(&left.ordinal));
+    runs.truncate(max_items);
+    let items: Vec<AtomItem> = runs
+        .iter()
+        .map(|run| AtomItem {
+            id: format!("urn:kiln:run:{}", run.id),
+            title: format!("{} · {}", run.project_label, run.outcome),
+            link: format!("{origin}/?page=runs&run={}", run.id),
+            updated_ms: run.updated_ms,
+            summary: format!("Run {} on {} — {}", run.id, run.revision, run.outcome),
+        })
+        .collect();
+    let newest = items.iter().map(|item| item.updated_ms).max().unwrap_or(0);
+    render_atom(
+        &format!("urn:kiln:repository:{repository_key}"),
+        title,
+        &format!("{origin}/feeds/{repository_key}.xml?token={token}"),
+        newest,
+        &items,
+    )
+}
+
+/// One Atom entry for a repository or the feed index.
+#[derive(Debug)]
+pub struct AtomItem {
+    pub id: String,
+    pub title: String,
+    pub link: String,
+    pub updated_ms: u64,
+    pub summary: String,
+}
+
+// r[impl kiln.web.feeds.publish]
+/// Render a bounded Atom 1.0 document.
+#[must_use]
+pub fn render_atom(
+    feed_id: &str,
+    title: &str,
+    self_link: &str,
+    updated_ms: u64,
+    items: &[AtomItem],
+) -> String {
+    let mut output = String::with_capacity(512 + items.len() * 512);
+    output.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    output.push_str("<feed xmlns=\"http://www.w3.org/2005/Atom\">\n");
+    output.push_str("<id>");
+    output.push_str(&escape(feed_id));
+    output.push_str("</id>\n<title type=\"text\">");
+    output.push_str(&escape(title));
+    output.push_str("</title>\n<updated>");
+    output.push_str(&rfc3339(updated_ms));
+    output.push_str("</updated>\n<link rel=\"self\" href=\"");
+    output.push_str(&escape(self_link));
+    output.push_str("\"/>\n<author><name>Kiln</name></author>\n");
+    for item in items {
+        output.push_str("<entry><id>");
+        output.push_str(&escape(&item.id));
+        output.push_str("</id><title type=\"text\">");
+        output.push_str(&escape(&item.title));
+        output.push_str("</title><link rel=\"alternate\" href=\"");
+        output.push_str(&escape(&item.link));
+        output.push_str("\"/><updated>");
+        output.push_str(&rfc3339(item.updated_ms));
+        output.push_str("</updated><summary type=\"text\">");
+        output.push_str(&escape(&item.summary));
+        output.push_str("</summary></entry>\n");
+    }
+    output.push_str("</feed>\n");
+    output
+}
+
+fn escape(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for character in text.chars() {
+        match character {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&apos;"),
+            _ => escaped.push(character),
+        }
+    }
+    escaped
+}
+
+/// RFC 3339 UTC timestamp for a non-negative epoch millisecond value.
+#[must_use]
+pub fn rfc3339(ms: u64) -> String {
+    let seconds = ms / 1_000;
+    let millis = ms % 1_000;
+    let days = (seconds / 86_400) as i64;
+    let day_seconds = seconds % 86_400;
+    let (year, month, day) = civil_from_days(days);
+    let hour = day_seconds / 3_600;
+    let minute = (day_seconds % 3_600) / 60;
+    let second = day_seconds % 60;
+    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}.{millis:03}Z")
+}
+
+fn civil_from_days(days_since_epoch: i64) -> (i64, u32, u32) {
+    let z = days_since_epoch + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let mut year = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+    if month <= 2 {
+        year += 1;
+    }
+    (year, month, day)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const RSS: &str = r#"<?xml version="1.0"?><rss version="2.0"><channel><title>Repo &amp; CI</title><item><title>Release 1.0</title><link>https://example.invalid/r1</link><guid>tag:r1</guid><pubDate>Wed, 02 Oct 2024 13:00:00 GMT</pubDate><description>First release</description></item><item><title>Second</title><link>https://example.invalid/r2</link><description>Second release</description></item></channel></rss>"#;
+    const ATOM: &str = r#"<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Repo feed</title><entry><title>Commit one</title><id>urn:commit:one</id><updated>2024-10-02T13:00:00Z</updated><link rel="alternate" href="https://example.invalid/c1"/><summary>Change one</summary></entry></feed>"#;
+
+    #[test]
+    fn rss_and_atom_parse_with_bounded_text() {
+        let rss = parse(RSS.as_bytes(), 50).unwrap_or_else(|_| unreachable!());
+        assert_eq!(rss.title.as_deref(), Some("Repo & CI"));
+        assert_eq!(rss.entries.len(), 2);
+        assert_eq!(
+            rss.entries.first().unwrap_or_else(|| unreachable!()).title,
+            "Release 1.0"
+        );
+        assert_eq!(
+            rss.entries.first().unwrap_or_else(|| unreachable!()).id,
+            "tag:r1"
+        );
+        assert_eq!(
+            rss.entries
+                .first()
+                .unwrap_or_else(|| unreachable!())
+                .link
+                .as_deref(),
+            Some("https://example.invalid/r1")
+        );
+        assert_eq!(
+            rss.entries.get(1).unwrap_or_else(|| unreachable!()).id,
+            "https://example.invalid/r2"
+        );
+        let atom = parse(ATOM.as_bytes(), 50).unwrap_or_else(|_| unreachable!());
+        assert_eq!(atom.title.as_deref(), Some("Repo feed"));
+        assert_eq!(
+            atom.entries
+                .first()
+                .unwrap_or_else(|| unreachable!())
+                .link
+                .as_deref(),
+            Some("https://example.invalid/c1")
+        );
+        assert_eq!(
+            atom.entries
+                .first()
+                .unwrap_or_else(|| unreachable!())
+                .published
+                .as_deref(),
+            Some("2024-10-02T13:00:00Z")
+        );
+    }
+
+    #[test]
+    // r[verify kiln.web.feeds.security.scenario.malformed]
+    fn parser_rejects_doctype_malformed_xml_and_unknown_roots() {
+        assert!(parse(b"<!DOCTYPE x [<!ENTITY y \"z\">]><rss/>", 10).is_err());
+        assert!(parse(b"<rss>", 10).is_err());
+        assert!(parse(b"<html/>", 10).is_err());
+        assert!(parse(b"", 10).is_err());
+    }
+
+    #[test]
+    fn parser_limits_entries_and_sanitizes_links() {
+        let many = format!(
+            "<rss><channel>{}</channel></rss>",
+            (0..10)
+                .map(|i| format!("<item><title>{i}</title><link>javascript:alert(1)</link></item>"))
+                .collect::<String>()
+        );
+        let parsed = parse(many.as_bytes(), 3).unwrap_or_else(|_| unreachable!());
+        assert_eq!(parsed.entries.len(), 3);
+        assert!(parsed.entries.iter().all(|entry| entry.link.is_none()));
+    }
+
+    #[test]
+    // r[verify kiln.web.feeds.security.scenario.private]
+    fn url_admission_rejects_public_http_and_private_addresses() {
+        assert!(admit_url("http://example.invalid/feed", false).is_err());
+        assert!(admit_url("https://user@example.invalid/feed", false).is_err());
+        assert!(admit_url("https://127.0.0.1/feed", false).is_err());
+        assert!(admit_url("https://[::1]/feed", false).is_err());
+        assert!(admit_url("https://10.0.0.1/feed", false).is_err());
+        assert!(admit_url("https://example.invalid:8443/feed", false).is_err());
+        assert!(admit_url("https://example.invalid/feed#x", false).is_err());
+        assert!(admit_url("http://127.0.0.1:8080/feed", true).is_ok());
+        assert!(admit_url("https://example.invalid/feed", false).is_ok());
+    }
+
+    fn serve(
+        responses: Vec<(&'static str, &'static str, &'static str)>,
+    ) -> (u16, std::thread::JoinHandle<()>) {
+        use std::io::{Read, Write};
+        let listener =
+            std::net::TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!());
+        let port = listener
+            .local_addr()
+            .unwrap_or_else(|_| unreachable!())
+            .port();
+        let handle = std::thread::spawn(move || {
+            for (status, headers, body) in responses {
+                let (mut stream, _) = listener.accept().unwrap_or_else(|_| unreachable!());
+                let mut request = [0_u8; 4096];
+                let _ = stream.read(&mut request);
+                let response = format!(
+                    "HTTP/1.1 {status}\r\n{headers}Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        (port, handle)
+    }
+
+    #[test]
+    // r[verify kiln.web.feeds.security.scenario.redirect]
+    fn bounded_fetch_reads_local_feed_and_follows_one_redirect() {
+        let (port, handle) = serve(vec![
+            ("302 Found", "Location: /feed.xml\r\n", ""),
+            ("200 OK", "", RSS),
+        ]);
+        let fetched = fetch(
+            &format!("http://127.0.0.1:{port}/start"),
+            65_536,
+            10,
+            1,
+            5,
+            true,
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert_eq!(fetched.entries.len(), 2);
+        handle.join().unwrap_or_else(|_| unreachable!());
+    }
+
+    #[test]
+    fn fetch_refuses_private_destinations_without_the_explicit_exception() {
+        assert!(fetch("https://127.0.0.1:9/feed.xml", 65_536, 10, 1, 5, false).is_err());
+        assert!(fetch("http://127.0.0.1:9/feed.xml", 65_536, 10, 1, 5, false).is_err());
+        assert!(fetch("https://10.0.0.1/feed.xml", 65_536, 10, 1, 5, false).is_err());
+    }
+
+    #[test]
+    // r[verify kiln.web.feeds.bounds]
+    fn fetch_enforces_the_body_bound() {
+        let (port, handle) = serve(vec![("200 OK", "", RSS)]);
+        assert!(
+            fetch(
+                &format!("http://127.0.0.1:{port}/feed.xml"),
+                16,
+                10,
+                0,
+                5,
+                true
+            )
+            .is_err()
+        );
+        handle.join().unwrap_or_else(|_| unreachable!());
+    }
+
+    // r[verify kiln.web.feeds.publish.scenario.rendered]
+    #[test]
+    fn repository_atom_filters_orders_limits_and_escapes_runs() {
+        let mut runs = vec![
+            FeedRun {
+                id: "run-old".into(),
+                project_id: "a".into(),
+                project_label: "A & B".into(),
+                ordinal: 1,
+                updated_ms: 1_000,
+                outcome: "Success".into(),
+                revision: "a".repeat(40),
+            },
+            FeedRun {
+                id: "run-new".into(),
+                project_id: "b".into(),
+                project_label: "Other".into(),
+                ordinal: 2,
+                updated_ms: 2_000,
+                outcome: "Failed".into(),
+                revision: "b".repeat(40),
+            },
+            FeedRun {
+                id: "run-third".into(),
+                project_id: "a".into(),
+                project_label: "A & B".into(),
+                ordinal: 3,
+                updated_ms: 3_000,
+                outcome: "Success".into(),
+                revision: "c".repeat(40),
+            },
+        ];
+        let xml = repository_atom(
+            "https://localhost:9443",
+            &"d".repeat(64),
+            "Repository runs",
+            "token",
+            &mut runs,
+            2,
+        );
+        assert!(!xml.contains("run-old"));
+        assert!(xml.contains("run-third"));
+        assert!(xml.contains("run-new"));
+        assert!(
+            xml.find("run-third").unwrap_or_default() < xml.find("run-new").unwrap_or_default()
+        );
+        assert!(xml.contains("A &amp; B"));
+        assert!(xml.contains("https://localhost:9443/?page=runs&amp;run=run-new"));
+    }
+
+    #[test]
+    fn timestamp_matches_known_utc_values() {
+        assert_eq!(rfc3339(0), "1970-01-01T00:00:00.000Z");
+        assert_eq!(rfc3339(1_709_385_000_000), "2024-03-02T13:10:00.000Z");
+    }
+
+    #[test]
+    fn atom_render_escapes_text_and_links() {
+        let xml = render_atom(
+            "urn:kiln:feed",
+            "Repo & <CI>",
+            "https://localhost/feeds/x.xml?token=abc",
+            0,
+            &[AtomItem {
+                id: "urn:run:1".into(),
+                title: "Run <one>".into(),
+                link: "https://localhost/?page=runs&run=1".into(),
+                updated_ms: 0,
+                summary: "A & B".into(),
+            }],
+        );
+        assert!(xml.contains("Repo &amp; &lt;CI&gt;"));
+        assert!(xml.contains("https://localhost/?page=runs&amp;run=1"));
+        assert!(xml.contains("A &amp; B"));
+        assert!(xml.starts_with("<?xml"));
+    }
+}

@@ -1104,7 +1104,9 @@ interrupted or unknown publication uses read reconciliation, not a blind
 second write. Current status profiles/actions require the exact source revision;
 incompatible historical actions fail closed. See [status authority and
 compatibility](radicle-status.md). Tangled/Radicle job objects use
-the separate [job publication](radicle-jobs.md) port. No command implicitly
+the separate [job publication](radicle-jobs.md) port. Repository Atom
+feeds and external feed subscriptions are configured through the
+[repository feeds](repository-feeds.md) policy. No command implicitly
 synchronizes peers.
 
 The worker imports unchanged acquired bytes through the measured Nix executable,

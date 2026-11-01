@@ -20,6 +20,7 @@ fn admit_extension(previous: &ServiceProfile, next: &ServiceProfile) -> Result<(
         || next.operator_token_file != previous.operator_token_file
         || next.worker_token_file != previous.worker_token_file
         || next.state_directory != previous.state_directory
+        || next.feeds != previous.feeds
         || next.bounds != bounds
     {
         return Err("project extension may only append projects and increase max_projects".into());

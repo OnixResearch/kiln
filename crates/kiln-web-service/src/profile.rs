@@ -60,6 +60,24 @@ pub struct ProjectProfile {
     pub untrusted_capable: bool,
 }
 
+// r[impl kiln.web.feeds.config]
+// r[impl kiln.web.feeds.bounds]
+/// Optional repository feed publication and external subscription policy.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FeedsProfile {
+    /// Dedicated read-only feed capability token, distinct from all role tokens.
+    pub token_file: PathBuf,
+    pub max_subscriptions: usize,
+    pub max_entries_per_feed: usize,
+    pub max_feed_bytes: usize,
+    pub max_redirects: usize,
+    pub timeout_seconds: u64,
+    /// Explicit test/private-network admission. Production profiles keep this false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub allow_private_destinations: bool,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServiceProfile {
@@ -73,6 +91,9 @@ pub struct ServiceProfile {
     pub state_directory: PathBuf,
     pub projects: Vec<ProjectProfile>,
     pub bounds: ServiceBounds,
+    /// Optional repository feeds; absent keeps both publication and subscriptions disabled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feeds: Option<FeedsProfile>,
 }
 
 pub(crate) fn absolute(path: &Path) -> bool {
@@ -215,6 +236,23 @@ impl ServiceProfile {
     }
     pub fn admit(&self) -> Result<(), String> {
         let b = &self.bounds;
+        if let Some(feeds) = &self.feeds {
+            if !absolute(&feeds.token_file)
+                || feeds.token_file == self.operator_token_file
+                || feeds.token_file == self.worker_token_file
+                || feeds.max_subscriptions == 0
+                || feeds.max_subscriptions > crate::feeds::ABSOLUTE_MAX_SUBSCRIPTIONS
+                || feeds.max_entries_per_feed == 0
+                || feeds.max_entries_per_feed > crate::feeds::ABSOLUTE_MAX_ENTRIES_PER_FEED
+                || feeds.max_feed_bytes < 4096
+                || feeds.max_feed_bytes > crate::feeds::ABSOLUTE_MAX_FEED_BYTES
+                || feeds.max_redirects > crate::feeds::ABSOLUTE_MAX_REDIRECTS
+                || feeds.timeout_seconds == 0
+                || feeds.timeout_seconds > crate::feeds::ABSOLUTE_MAX_TIMEOUT_SECONDS
+            {
+                return Err("invalid repository feed policy".into());
+            }
+        }
         if self.schema != PROFILE_SCHEMA
             || !identifier(&self.service_id)
             || self.listen_address.port() == 0

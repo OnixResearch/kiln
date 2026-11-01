@@ -1156,13 +1156,13 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  const pages = ["overview", "projects", "project", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
+  const pages = ["overview", "projects", "project", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "feeds", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   // Navigation group shown as the page-header eyebrow; matches the rail sections.
   const pageGroups = Object.freeze({
     work: "Work", inbox: "Work", planning: "Work", triage: "Work", workviews: "Work", "code-review": "Review",
     overview: "Continuous integration", projects: "Continuous integration", project: "Continuous integration", runs: "Continuous integration", workers: "Continuous integration",
-    source: "Inspect", reviews: "Inspect", activity: "Inspect", evidence: "Inspect",
+    source: "Inspect", reviews: "Inspect", activity: "Inspect", feeds: "Inspect", evidence: "Inspect",
     automation: "Administration", operations: "Administration", cobs: "Administration", settings: "Administration",
   });
   // r[impl kiln.web.console_layout] Wide screens show pipeline and logs together (side by side when the inspector has room);
@@ -1279,7 +1279,7 @@
     $("run-split").classList.toggle("has-run", Boolean(route.run));
     applyRunPanels();
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", project: "CI project", cobs: "Raw collaboration history", overview: "Overview", "code-review": "Code review", reviews: "Patchgate receipts" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
+    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", project: "CI project", cobs: "Raw collaboration history", overview: "Overview", "code-review": "Code review", reviews: "Patchgate receipts", feeds: "Feeds" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
     $("workspace-title").textContent = title;
     $("app-breadcrumb").textContent = title;
     document.title = `Kiln · ${title}`;
@@ -1452,6 +1452,132 @@
       if (!isAborted(error) && state.route === route) notice(`Run suggestions unavailable: ${explain(error)} You can still enter an exact retained run ID.`);
     }
   }
+  function feedDate(value) {
+    if (!value) return "Undated";
+    return text(value);
+  }
+  // r[impl kiln.web.feeds.ui]
+  // r[impl kiln.web.feeds.config.scenario.console]
+  async function loadFeeds() {
+    const result = await api("/api/feeds");
+    const root = $("feeds-content");
+    root.replaceChildren();
+    if (!result?.configured) {
+      root.append(emptyState("Feeds are not configured", "Add a feeds policy with a dedicated token file to the service profile, then restart the service."));
+      return;
+    }
+    const publication = result.publication?.repositories || [];
+    if (publication.length > 0) {
+      const section = element("section", undefined, "panel");
+      section.append(element("h2", "Repository subscriptions"));
+      const note = element("p", "Copy an Atom URL into any feed reader. The URL carries a dedicated read-only feed token, so treat it as a secret.", "small");
+      section.append(note);
+      const list = element("div", undefined, "project-grid");
+      for (const repository of publication) {
+        const card = element("article", undefined, "project-card panel");
+        card.append(element("h3", text(repository.label)), element("p", `${repository.runs} retained runs · ${repository.key.slice(0, 12)}…`, "small"));
+        const actions = element("div", undefined, "cluster");
+        const subscribe = repository.subscribe_url;
+        if (subscribe) {
+          const copy = element("button", undefined, "quiet");
+          copy.type = "button";
+          copy.textContent = "Copy Atom URL";
+          copy.addEventListener("click", async () => {
+            try { await navigator.clipboard.writeText(subscribe); notice("Atom URL copied.", "success"); }
+            catch { notice("The browser did not allow clipboard access. Open the URL in a new tab and copy it from the address bar."); }
+          });
+          actions.append(copy);
+          const open = element("a", "Open feed", "button-link");
+          open.href = subscribe;
+          open.target = "_blank";
+          open.rel = "noreferrer";
+          actions.append(open);
+        } else {
+          actions.append(element("span", "The token-bearing URL is available to operators.", "small"));
+        }
+        card.append(actions);
+        list.append(card);
+      }
+      section.append(list);
+      root.append(section);
+    }
+    if (canOperate()) {
+      const form = element("form", undefined, "panel");
+      form.append(element("h2", "Subscribe to an external repository feed"));
+      const urlLabel = element("label", "Feed URL");
+      urlLabel.htmlFor = "feed-url";
+      const url = element("input");
+      url.id = "feed-url"; url.type = "url"; url.required = true; url.maxLength = 2048; url.placeholder = "https://example.com/repository/releases.atom";
+      const labelLabel = element("label", "Label");
+      labelLabel.htmlFor = "feed-label";
+      const label = element("input");
+      label.id = "feed-label"; label.type = "text"; label.maxLength = 128; label.placeholder = "Optional display label";
+      const submit = element("button", "Subscribe");
+      submit.type = "submit";
+      form.append(urlLabel, url, labelLabel, label, submit,
+        element("p", "Only HTTPS destinations are fetched by public deployments. Redirects, response size, entries and total subscriptions are bounded.", "small"));
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        try {
+          await api("/api/feeds", { method: "POST", body: { url: url.value.trim(), label: label.value.trim() || undefined } });
+          notice("Feed subscription added.", "success");
+          await loadFeeds();
+        } catch (error) {
+          notice(explain(error));
+        } finally { submit.disabled = false; }
+      });
+      root.append(form);
+    }
+    const subscriptions = result.subscriptions || [];
+    if (subscriptions.length === 0) {
+      root.append(emptyState("No external feeds", "Subscriptions added here are fetched on add and on explicit refresh."));
+      return;
+    }
+    for (const subscription of subscriptions) {
+      const card = element("section", undefined, "panel");
+      const heading = element("div", undefined, "section-heading");
+      heading.append(element("h2", text(subscription.label || subscription.title || "External feed")));
+      heading.append(element("span", subscription.error ? "Needs attention" : "Observed", subscription.error ? "pill pill-failed" : "pill"));
+      card.append(heading);
+      card.append(element("p", `${subscription.url || "URL hidden for viewers"} · ${subscription.fetched_at_ms ? timestamp(subscription.fetched_at_ms) : "Not fetched"}`, "small mono"));
+      if (subscription.error) card.append(element("p", text(subscription.error), "warning"));
+      if (canOperate()) {
+        const actions = element("div", undefined, "cluster");
+        const refresh = element("button", "Refresh", "quiet");
+        refresh.type = "button";
+        refresh.addEventListener("click", async () => {
+          refresh.disabled = true;
+          try { await api(`/api/feeds/${encodeURIComponent(subscription.id)}/refresh`, { method: "POST", body: {} }); await loadFeeds(); }
+          catch (error) { notice(explain(error)); await loadFeeds(); }
+          finally { refresh.disabled = false; }
+        });
+        const remove = element("button", "Remove", "quiet danger");
+        remove.type = "button";
+        remove.addEventListener("click", async () => {
+          remove.disabled = true;
+          try { await api(`/api/feeds/${encodeURIComponent(subscription.id)}/remove`, { method: "POST", body: {} }); await loadFeeds(); }
+          catch (error) { notice(explain(error)); }
+          finally { remove.disabled = false; }
+        });
+        actions.append(refresh, remove);
+        card.append(actions);
+      }
+      const entries = element("ul", undefined, "activity-feed");
+      for (const entry of subscription.entries || []) {
+        const item = element("li");
+        const title = entry.link ? element("a", text(entry.title), "activity-feed-title") : element("span", text(entry.title), "activity-feed-title");
+        if (entry.link) { title.href = entry.link; title.target = "_blank"; title.rel = "noreferrer"; }
+        item.append(title);
+        if (entry.published) item.append(element("span", feedDate(entry.published), "small"));
+        if (entry.summary) item.append(element("p", text(entry.summary), "small"));
+        entries.append(item);
+      }
+      if (entries.childElementCount === 0) card.append(element("p", "No entries were retained from this feed.", "small"));
+      else card.append(entries);
+      root.append(card);
+    }
+  }
   async function loadPage() {
     const route = state.route;
     if (route.page === "code-review") {
@@ -1490,6 +1616,7 @@
       if (route.run) await renderEndpoint(`${pathFor(route.run)}/evidence`, "evidence-content", renderEvidence);
       else $("evidence-content").replaceChildren(element("p", "Enter a retained run ID. No evidence from another attempt is substituted.", "small"));
     }
+    if (route.page === "feeds") await loadFeeds();
     if (route.page === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
     if (route.page === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
     if (route.page === "cobs") await loadCobs();

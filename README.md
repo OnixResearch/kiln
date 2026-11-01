@@ -18,6 +18,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - exact stock and separately selected Onix Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - bounded local `xyz.radworks.job` publication for one exact commit, with deterministic run UUID replay, start/finish actions, and multi-writer extension of an existing job; see [job publication](docs/radicle-jobs.md);
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
+- optional repository Atom feeds plus operator-managed external RSS/Atom subscriptions with a dedicated read-only token, DNS-pinned bounded HTTPS, and a console Feeds page; see [repository feeds](docs/repository-feeds.md);
 - packed Preserves and BLAKE3 canonical identity;
 - bounded, deterministic, read-only observation projection over admitted state with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities, including review-friction and suggestion-anchor views over self-declared, unverified change authorship;
 - a bounded HTTPS observation shell with canonical JSON views, a bounded SSE event leg, Ed25519 or UCAN holder-invocation authentication, TLS, and no control surface;

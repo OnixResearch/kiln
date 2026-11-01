@@ -26,6 +26,7 @@ mod telemetry;
 mod worker_status;
 pub use worker_status::WorkerStatusProfile;
 mod change_review;
+mod feeds;
 pub(crate) mod untrusted;
 mod workers;
 
@@ -58,6 +59,9 @@ pub struct Engine {
     automation_affected: Option<crate::monorepo::RunAffected>,
     /// Untrusted gate handed from automation dispatch or retry to its new run.
     pending_untrusted: Option<kiln_core::untrusted::UntrustedGate>,
+    /// Raw dedicated feed capability token, used only to render operator-facing
+    /// subscription links and Atom self links.
+    feeds_token: Option<zeroize::Zeroizing<String>>,
     _lock: storage::StateLock,
 }
 
@@ -113,6 +117,16 @@ impl Engine {
                 return Err("workflow port capabilities differ from reviewed project".into());
             }
         }
+        let feeds_token = profile
+            .feeds
+            .as_ref()
+            .map(|feeds| {
+                crate::profile::read_token(&feeds.token_file).and_then(|bytes| {
+                    String::from_utf8(bytes).map_err(|_| "feed credential is not UTF-8".to_string())
+                })
+            })
+            .transpose()?
+            .map(zeroize::Zeroizing::new);
         let (store, state, lock) = storage::Store::open(&profile)?;
         Ok(Self {
             profile,
@@ -126,6 +140,7 @@ impl Engine {
             worker_status: None,
             automation_affected: None,
             pending_untrusted: None,
+            feeds_token,
             _lock: lock,
         })
     }

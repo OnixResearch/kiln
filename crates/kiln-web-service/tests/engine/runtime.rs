@@ -297,6 +297,15 @@ fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart(
             .status(),
             401
         );
+        let feeds = checked(
+            client
+                .get(format!("{}/api/feeds", profile.origin))
+                .bearer_auth("a".repeat(64))
+                .send(),
+        );
+        assert_eq!(feeds.status(), 200);
+        let feeds: serde_json::Value = checked(feeds.json());
+        assert_eq!(feeds.get("configured"), Some(&serde_json::Value::Bool(false)));
         assert_eq!(
             checked(
                 client
@@ -336,6 +345,236 @@ fn initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart(
             std::thread::sleep(Duration::from_millis(10));
         }
     }
+}
+
+// r[verify kiln.web.feeds.publish.scenario.rendered]
+// r[verify kiln.web.feeds.subscriptions.scenario.add]
+// r[verify kiln.web.feeds.subscriptions.scenario.refresh]
+// r[verify kiln.web.feeds.token.scenario.required]
+// r[verify kiln.web.feeds.config.scenario.console]
+#[test]
+fn repository_feeds_and_external_subscription_round_trip() {
+    use std::io::{Read, Write};
+    let (root, mut profile, path) = runtime_fixture();
+    let feed_token = "c".repeat(64);
+    let feed_token_path = root.path().join("feed.token");
+    checked(fs::write(&feed_token_path, &feed_token));
+    checked(fs::set_permissions(
+        &feed_token_path,
+        fs::Permissions::from_mode(0o400),
+    ));
+    profile.feeds = Some(kiln_web_service::profile::FeedsProfile {
+        token_file: feed_token_path,
+        max_subscriptions: 4,
+        max_entries_per_feed: 10,
+        max_feed_bytes: 65_536,
+        max_redirects: 1,
+        timeout_seconds: 5,
+        allow_private_destinations: true,
+    });
+    checked(fs::write(&path, checked(serde_json::to_vec(&profile))));
+
+    let body = r#"<?xml version="1.0"?><rss version="2.0"><channel><title>External repository</title><item><title>External release</title><link>https://example.invalid/release</link><guid>release-1</guid></item></channel></rss>"#;
+    let listener = checked(std::net::TcpListener::bind("127.0.0.1:0"));
+    let feed_port = checked(listener.local_addr()).port();
+    std::thread::spawn(move || {
+        let Ok((mut stream, _)) = listener.accept() else {
+            return;
+        };
+        let mut request = [0_u8; 4096];
+        let _ = stream.read(&mut request);
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let _ = stream.write_all(response.as_bytes());
+    });
+
+    let socket_path = root.path().join("notify.sock");
+    let receiver = checked(std::os::unix::net::UnixDatagram::bind(&socket_path));
+    checked(receiver.set_read_timeout(Some(Duration::from_secs(10))));
+    let _service = Service(checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args(["serve", "--profile"])
+            .arg(&path)
+            .env("NOTIFY_SOCKET", &socket_path)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn(),
+    ));
+    let mut notification = [0; 32];
+    let count = checked(receiver.recv(&mut notification));
+    assert_eq!(notification.get(..count), Some(b"READY=1".as_slice()));
+
+    let client = checked(
+        reqwest::blocking::Client::builder()
+            .add_root_certificate(checked(reqwest::Certificate::from_pem(CA)))
+            .timeout(Duration::from_secs(10))
+            .build(),
+    );
+    let operator = "a".repeat(64);
+    let projects = checked(
+        client
+            .get(format!("{}/api/projects", profile.origin))
+            .bearer_auth(&operator)
+            .send(),
+    );
+    assert_eq!(projects.status(), 200);
+    let projects: serde_json::Value = checked(projects.json());
+    let key = projects
+        .get("available")
+        .and_then(|value| value.get(0))
+        .and_then(|value| value.get("repository_key"))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_else(|| unreachable!("fixture repository key"))
+        .to_string();
+
+    let feed = checked(
+        client
+            .get(format!(
+                "{}/feeds/{key}.xml?token={feed_token}",
+                profile.origin
+            ))
+            .send(),
+    );
+    assert_eq!(feed.status(), 200);
+    assert!(
+        feed.headers()
+            .get("content-type")
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("application/atom+xml"))
+    );
+    let xml = checked(feed.text());
+    assert!(xml.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
+
+    assert_eq!(
+        checked(
+            client
+                .get(format!(
+                    "{}/feeds/{key}.xml?token={}",
+                    profile.origin,
+                    "d".repeat(64)
+                ))
+                .send()
+        )
+        .status(),
+        403
+    );
+    assert_eq!(
+        checked(
+            client
+                .get(format!("{}/feeds/{key}.xml", profile.origin))
+                .send()
+        )
+        .status(),
+        400
+    );
+    assert_eq!(
+        checked(
+            client
+                .get(format!("{}/feeds.xml?token={feed_token}", profile.origin))
+                .send()
+        )
+        .status(),
+        200
+    );
+    assert_eq!(
+        checked(
+            client
+                .get(format!(
+                    "{}/feeds/{}.xml?token={feed_token}",
+                    profile.origin,
+                    "f".repeat(64)
+                ))
+                .send()
+        )
+        .status(),
+        404
+    );
+
+    let added = checked(
+        client
+            .post(format!("{}/api/feeds", profile.origin))
+            .bearer_auth(&operator)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({
+                "url": format!("http://127.0.0.1:{feed_port}/feed.xml"),
+                "label": "External repository"
+            }))
+            .send(),
+    );
+    assert_eq!(added.status(), 201);
+    let feeds = checked(
+        client
+            .get(format!("{}/api/feeds", profile.origin))
+            .bearer_auth(&operator)
+            .send(),
+    );
+    assert_eq!(feeds.status(), 200);
+    let feeds: serde_json::Value = checked(feeds.json());
+    let subscriptions = feeds
+        .get("subscriptions")
+        .and_then(serde_json::Value::as_array)
+        .unwrap_or_else(|| unreachable!("fixture subscriptions"));
+    assert_eq!(subscriptions.len(), 1);
+    let first = subscriptions
+        .first()
+        .unwrap_or_else(|| unreachable!("fixture subscription"));
+    assert_eq!(
+        first
+            .get("entries")
+            .and_then(|value| value.get(0))
+            .and_then(|value| value.get("title")),
+        Some(&serde_json::Value::String("External release".into()))
+    );
+    let id = first
+        .get("id")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_else(|| unreachable!("fixture subscription id"))
+        .to_string();
+
+    let refreshed = checked(
+        client
+            .post(format!("{}/api/feeds/{id}/refresh", profile.origin))
+            .bearer_auth(&operator)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({}))
+            .send(),
+    );
+    assert_eq!(refreshed.status(), 502);
+    let retained = checked(
+        client
+            .get(format!("{}/api/feeds", profile.origin))
+            .bearer_auth(&operator)
+            .send(),
+    );
+    let retained: serde_json::Value = checked(retained.json());
+    let retained_first = retained
+        .get("subscriptions")
+        .and_then(|value| value.get(0))
+        .unwrap_or_else(|| unreachable!("fixture subscription"));
+    assert!(
+        retained_first
+            .get("error")
+            .is_some_and(serde_json::Value::is_string)
+    );
+    assert_eq!(
+        retained_first
+            .get("entries")
+            .and_then(|value| value.get(0))
+            .and_then(|value| value.get("title")),
+        Some(&serde_json::Value::String("External release".into()))
+    );
+
+    let removed = checked(
+        client
+            .post(format!("{}/api/feeds/{id}/remove", profile.origin))
+            .bearer_auth(&operator)
+            .header("Origin", &profile.origin)
+            .json(&serde_json::json!({}))
+            .send(),
+    );
+    assert_eq!(removed.status(), 200);
 }
 
 // r[verify kiln.web.deploy.runtime.scenario.denied]

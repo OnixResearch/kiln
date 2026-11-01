@@ -27,6 +27,8 @@ pub struct DurableState {
     pub access_policy_identity: Option<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub snapshots: BTreeMap<String, crate::snapshot::SnapshotRecord>,
+    #[serde(default, skip_serializing_if = "crate::feeds::FeedsState::is_empty")]
+    pub feeds: crate::feeds::FeedsState,
 }
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
