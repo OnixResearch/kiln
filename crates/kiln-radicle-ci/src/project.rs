@@ -806,6 +806,26 @@ pub(crate) mod tests {
         }
     }
 
+    // r[verify kiln.radicle_ci.tag] r[verify kiln.radicle_ci.tag.scenario.projection]
+    #[test]
+    fn tag_project_profile_projects_the_tag_event() {
+        let (mut profile, _, intent) = fixture();
+        profile.source.signed_reference = "refs/tags/release/v1".into();
+        if let Some(canonical) = profile.source.canonical.as_mut() {
+            canonical.reference = "refs/tags/release/v1".into();
+        }
+        profile.admit().unwrap_or_else(|_| unreachable!());
+        let trigger = profile
+            .trigger(&intent.source)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(trigger.event, TriggerEventKind::Tag);
+        assert_eq!(
+            trigger.branch.as_ref().map(Alias::as_str),
+            Some("release/v1")
+        );
+        assert_eq!(trigger.after.native_id.as_str(), intent.source.revision);
+    }
+
     // r[verify kiln.radicle_ci.runtime] r[verify kiln.radicle_ci.source]
     #[test]
     fn fixed_profile_has_distinct_candidate_bindings_and_unchanged_selector() {
