@@ -46,7 +46,8 @@ r[kiln.web.feeds.publish.scenario.opml]
 
 r[kiln.web.feeds.token] The feed token MUST be a 64-hex credential read from the
 feeds policy, distinct from operator, worker, viewer and proxy credentials. It
-MUST be accepted only as the single `token` query parameter on GET feed paths.
+MUST be accepted as the single `token` query parameter on GET feed paths, or as
+`Authorization: Bearer <feed-token>` when no query token is supplied.
 A missing, malformed or wrong token MUST be denied. Successful and denied feed
 requests MUST NOT write the token to audit records, logs or responses.
 

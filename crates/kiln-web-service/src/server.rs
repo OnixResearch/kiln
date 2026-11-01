@@ -923,9 +923,17 @@ fn json_content(request: &Request) -> bool {
 // r[impl kiln.web.authentication] r[impl kiln.web.network.boundaries]
 // r[impl kiln.web.feeds.token]
 fn feed_publication(request: &Request, context: &Context<'_>) -> ApiResponse {
-    let (path, token) = match feed_target(&request.target) {
+    let (path, query_token) = match feed_target(&request.target) {
         Some(value) => value,
         None => return error_response(400, "feed_invalid"),
+    };
+    let bearer_token = header(request, "authorization")
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .filter(|value| is_feed_token(value));
+    let token = match (query_token, bearer_token) {
+        (Some(token), _) => token,
+        (None, Some(token)) => token,
+        (None, None) => return error_response(400, "feed_invalid"),
     };
     if !context.credentials.feed_matches(token.as_bytes()) {
         return error_response(403, "feed_denied");
@@ -939,17 +947,24 @@ fn feed_publication(request: &Request, context: &Context<'_>) -> ApiResponse {
     }
 }
 
-/// Feed paths accept exactly one `token` query parameter with a 64-hex value.
-fn feed_target(target: &str) -> Option<(&str, &str)> {
-    let (path, query) = target.split_once('?')?;
+/// Feed paths accept one optional `token` query parameter with a 64-hex value.
+/// A missing query token may instead be supplied as a bearer header.
+fn feed_target(target: &str) -> Option<(&str, Option<&str>)> {
+    let Some((path, query)) = target.split_once('?') else {
+        return Some((target, None));
+    };
     if query.contains('&') {
         return None;
     }
     let token = query.strip_prefix("token=")?;
-    if token.len() != 64 || !token.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    if !is_feed_token(token) {
         return None;
     }
-    Some((path, token))
+    Some((path, Some(token)))
+}
+
+fn is_feed_token(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 // r[impl kiln.web.feeds.subscriptions.scenario.viewer]

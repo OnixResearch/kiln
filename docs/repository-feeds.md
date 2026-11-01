@@ -72,8 +72,9 @@ profile to change it.
   2.0 subscription list.
 
 The repository key is the existing BLAKE3 `repository_key` shown by the
-projects API. The token is accepted only as the single `token` query
-parameter on GET feed paths. It is never written to audit records, and feed
+projects API. The token is accepted as the single `token` query
+parameter on GET feed paths, or as `Authorization: Bearer <feed-token>` when
+the client supports request headers. It is never written to audit records, and feed
 responses do not echo it. Operators can copy token-bearing URLs from the Feeds
 page; viewers never receive them.
 

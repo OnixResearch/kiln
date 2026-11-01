@@ -156,5 +156,6 @@
     "console": "operators receive an RSS link per repository"
   },
   "refresh_backoff": "consecutive failures double the base cadence up to 24 hours; success or 304 resets the failure count",
-  "add_failure_message": "a failed add returns 502 with the bounded fetch reason; no subscription is retained"
+  "add_failure_message": "a failed add returns 502 with the bounded fetch reason; no subscription is retained",
+  "feed_token_bearer": "GET feed paths accept the dedicated token as the single token query value or as Authorization: Bearer; a wrong bearer is denied, and the query takes precedence when both are present"
 }

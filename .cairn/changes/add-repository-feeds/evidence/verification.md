@@ -11,8 +11,8 @@ service profile declares a policy and a dedicated 64-hex feed token.
 `/feeds.xml?token=...` lists canonical repositories. Each
 `/feeds/<repository-key>.xml?token=...` contains retained runs for projects on
 that repository, newest first, bounded by the configured entry limit. Text is
-XML-escaped; links use the HTTPS origin. The token is accepted only on GET feed
-paths, never audited or echoed. Viewers receive no token-bearing URLs.
+XML-escaped; links use the HTTPS origin. The token is accepted on GET feed paths as the
+query value or an `Authorization: Bearer` header, never audited or echoed. Viewers receive no token-bearing URLs.
 
 ## OPML export
 

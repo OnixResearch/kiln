@@ -516,6 +516,27 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .status(),
         404
     );
+    assert_eq!(
+        checked(
+            client
+                .get(format!("{}/feeds/{key}.xml", profile.origin))
+                .bearer_auth(&feed_token)
+                .send()
+        )
+        .status(),
+        200
+    );
+    assert_eq!(
+        checked(
+            client
+                .get(format!("{}/feeds/{key}.xml", profile.origin))
+                .bearer_auth("d".repeat(64))
+                .send()
+        )
+        .status(),
+        403
+    );
+
     let rss = checked(
         client
             .get(format!(
