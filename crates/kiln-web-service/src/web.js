@@ -1621,7 +1621,8 @@
       heading.append(element("h2", text(subscription.label || subscription.title || "External feed")));
       heading.append(element("span", subscription.error ? "Needs attention" : "Observed", subscription.error ? "pill pill-failed" : "pill"));
       card.append(heading);
-      card.append(element("p", `${subscription.url || "URL hidden for viewers"} · ${subscription.fetched_at_ms ? timestamp(subscription.fetched_at_ms) : "Not fetched"}`, "small mono"));
+      const lastSuccess = subscription.last_success_ms ? ` · Last success ${timestamp(subscription.last_success_ms)}` : "";
+      card.append(element("p", `${subscription.url || "URL hidden for viewers"} · ${subscription.fetched_at_ms ? `Last attempt ${timestamp(subscription.fetched_at_ms)}` : "Not fetched"}${lastSuccess}`, "small mono"));
       if (subscription.error) card.append(element("p", text(subscription.error), "warning"));
       if (canOperate()) {
         const actions = element("div", undefined, "cluster");

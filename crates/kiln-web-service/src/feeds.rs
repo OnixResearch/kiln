@@ -42,6 +42,9 @@ pub struct FeedSubscription {
     pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fetched_at_ms: Option<u64>,
+    /// Last successful fetch or 304, distinct from a failed attempt time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_success_ms: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     /// HTTP entity tag returned by the feed origin, when bounded and valid.
@@ -1157,6 +1160,7 @@ mod tests {
             label: id.into(),
             title: None,
             fetched_at_ms: fetched,
+            last_success_ms: fetched,
             error: None,
             etag: None,
             last_modified: None,

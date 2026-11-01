@@ -280,6 +280,7 @@ impl Engine {
                     label: feed.label,
                     title: None,
                     fetched_at_ms: None,
+                    last_success_ms: None,
                     error: None,
                     etag: None,
                     last_modified: None,
@@ -354,6 +355,7 @@ impl Engine {
             label: admitted.label,
             title: feed.title,
             fetched_at_ms: Some(now_ms),
+            last_success_ms: Some(now_ms),
             error: None,
             etag,
             last_modified,
@@ -761,6 +763,7 @@ fn refreshed_candidate(
             candidate.last_modified = last_modified;
             candidate.failures = 0;
             candidate.fetched_at_ms = Some(now_ms);
+            candidate.last_success_ms = Some(now_ms);
         }
         Ok(FetchOutcome::NotModified {
             etag,
@@ -771,6 +774,7 @@ fn refreshed_candidate(
             candidate.last_modified = last_modified.or(candidate.last_modified);
             candidate.failures = 0;
             candidate.fetched_at_ms = Some(now_ms);
+            candidate.last_success_ms = Some(now_ms);
         }
         Err(message) => {
             candidate.error = Some(message.chars().take(256).collect());

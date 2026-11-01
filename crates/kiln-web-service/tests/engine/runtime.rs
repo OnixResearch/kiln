@@ -627,6 +627,10 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .and_then(serde_json::Value::as_str)
         .unwrap_or_else(|| unreachable!("fixture subscription id"))
         .to_string();
+    let last_success = first
+        .get("last_success_ms")
+        .cloned()
+        .unwrap_or_else(|| unreachable!("fixture last success"));
 
     let searched = checked(
         client
