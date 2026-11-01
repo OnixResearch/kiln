@@ -68,7 +68,7 @@ the export and format gates.
 - 18 feed unit tests pass: RSS 2.0/RSS 1.0/Atom parsing with entry deduplication and RSS publication, DTD rejection, URL/private-address
   admission, body bound, one-hop redirect, UTC formatting, Atom escaping and
   repository run filtering/order/limit, conditional 304, OPML escaping, due selection and cadence monotonicity.
-- 152 web-service library tests and 71 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
+- 153 web-service library tests and 71 engine tests pass. Background refresh uses a dedicated scoped thread and a configurable cadence; due selection is oldest-first and bounded to two per tick.
 - The workspace passed 1229 tests before the OPML increment. The post-increment
   full workspace command was blocked by another workspace holding the shared
   Cargo target lock; 148 library and 71 engine tests passed and Clippy was clean. The Feeds page reloads its observations every

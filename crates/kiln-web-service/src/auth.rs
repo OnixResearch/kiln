@@ -1,3 +1,7 @@
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::SystemTime;
+
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
@@ -33,13 +37,72 @@ impl TokenVerifier {
     }
 }
 
+struct CachedFeedToken {
+    verifier: TokenVerifier,
+    fingerprint: Option<(SystemTime, u64)>,
+}
+
+/// Feed token that reloads when the operator rotates its file.
+pub(crate) struct FeedToken {
+    path: PathBuf,
+    cache: Mutex<Option<CachedFeedToken>>,
+}
+
+impl FeedToken {
+    fn new(path: PathBuf, verifier: TokenVerifier) -> Self {
+        let fingerprint = file_fingerprint(&path);
+        Self {
+            path,
+            cache: Mutex::new(Some(CachedFeedToken {
+                verifier,
+                fingerprint,
+            })),
+        }
+    }
+
+    fn matches(&self, candidate: &[u8]) -> bool {
+        let fingerprint = file_fingerprint(&self.path);
+        let mut cache = self.cache.lock().ok();
+        if let Some(cached) = cache.as_ref().and_then(|cache| cache.as_ref()) {
+            if cached.fingerprint == fingerprint {
+                return cached.verifier.matches(candidate);
+            }
+        }
+        match read_token(&self.path).and_then(|secret| TokenVerifier::new(&secret)) {
+            Ok(verifier) => {
+                let matched = verifier.matches(candidate);
+                if let Some(cache) = cache.as_mut() {
+                    **cache = Some(CachedFeedToken {
+                        verifier,
+                        fingerprint,
+                    });
+                }
+                matched
+            }
+            Err(_) => cache
+                .as_ref()
+                .and_then(|cache| cache.as_ref())
+                .is_some_and(|cached| cached.verifier.matches(candidate)),
+        }
+    }
+}
+
+fn file_fingerprint(path: &Path) -> Option<(SystemTime, u64)> {
+    std::fs::metadata(path).ok().and_then(|metadata| {
+        metadata
+            .modified()
+            .ok()
+            .map(|modified| (modified, metadata.len()))
+    })
+}
+
 // r[impl kiln.web.authentication]
 pub(crate) struct Credentials {
     operator: TokenVerifier,
     worker: TokenVerifier,
     viewers: Vec<(Principal, TokenVerifier)>,
     proxy: Option<TokenVerifier>,
-    feed: Option<TokenVerifier>,
+    feed: Option<FeedToken>,
     access: AccessProfile,
 }
 
@@ -74,8 +137,12 @@ impl Credentials {
         let mut verifiers = verifiers.into_iter();
         let operator = verifiers.next().ok_or("operator credential unavailable")?;
         let worker = verifiers.next().ok_or("worker credential unavailable")?;
-        let feed = match &feed {
-            Some(_) => Some(verifiers.next().ok_or("feed credential unavailable")?),
+        let feed_path = profile.feeds.as_ref().map(|feeds| feeds.token_file.clone());
+        let feed = match feed_path {
+            Some(path) => Some(FeedToken::new(
+                path,
+                verifiers.next().ok_or("feed credential unavailable")?,
+            )),
             None => None,
         };
         let viewers = access
@@ -170,6 +237,29 @@ fn token(candidate: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn feed_token_reloads_after_file_rotation() {
+        use std::os::unix::fs::PermissionsExt as _;
+
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let path = directory.path().join("feed.token");
+        let first = "a".repeat(64);
+        std::fs::write(&path, &first).unwrap_or_else(|_| unreachable!());
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+            .unwrap_or_else(|_| unreachable!());
+        let token = FeedToken::new(
+            path.clone(),
+            TokenVerifier::new(first.as_bytes()).unwrap_or_else(|_| unreachable!()),
+        );
+        assert!(token.matches(first.as_bytes()));
+        let second = "b".repeat(64);
+        std::fs::write(&path, &second).unwrap_or_else(|_| unreachable!());
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+            .unwrap_or_else(|_| unreachable!());
+        assert!(token.matches(second.as_bytes()));
+        assert!(!token.matches(first.as_bytes()));
+    }
 
     // r[verify kiln.web.authentication.scenario.operator] r[verify kiln.web.authentication.scenario.denied]
     #[test]

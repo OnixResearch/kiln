@@ -55,7 +55,9 @@ kiln-web-service feed-token --path /etc/kiln-web-service/credentials/feed.token
 
 The command refuses an existing path and writes one 64-character hexadecimal
 credential with mode `0600`. The token is distinct from the operator, worker,
-viewer and proxy credentials.
+viewer and proxy credentials. Replacing the token file is observed on the next
+feed request without restarting the service; an unreadable replacement keeps
+the last valid token until the file is fixed.
 Omitting `feeds` disables both publication and external subscriptions. A feeds
 policy is not admitted through `extend-projects`; restart with a reviewed
 profile to change it.
