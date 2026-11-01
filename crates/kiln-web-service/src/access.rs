@@ -42,7 +42,7 @@ pub struct AgentDeclaration {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
 }
-const MAX_AGENT_TEXT_BYTES: usize = 128;
+pub const MAX_AGENT_TEXT_BYTES: usize = 128;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

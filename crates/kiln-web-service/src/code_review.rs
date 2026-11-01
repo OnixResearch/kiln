@@ -150,11 +150,10 @@ impl Profile {
             || self.agent_principals.iter().any(|p| !writers.contains(p))
             || self.agent_metadata.iter().any(|(principal, identity)| {
                 !agents.contains(principal)
-                    || !agent_text(&identity.harness, MAX_IDENTITY_BYTES)
-                    || identity
-                        .model
-                        .as_ref()
-                        .is_some_and(|model| !agent_text(model, MAX_IDENTITY_BYTES))
+                    || !agent_text(&identity.harness, crate::access::MAX_AGENT_TEXT_BYTES)
+                    || identity.model.as_ref().is_some_and(|model| {
+                        !agent_text(model, crate::access::MAX_AGENT_TEXT_BYTES)
+                    })
             })
             || self.policy.eligible_reviewers.len() > MAX_PRINCIPALS
             || self.policy.submitters.len() > MAX_PRINCIPALS
@@ -1313,7 +1312,10 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
     };
     let agent_harness = match query.get("agent_harness").map(String::as_str) {
         None | Some("") => None,
-        Some(value) if value.len() <= 128 && !value.chars().any(char::is_control) => {
+        Some(value)
+            if value.len() <= crate::access::MAX_AGENT_TEXT_BYTES
+                && !value.chars().any(char::is_control) =>
+        {
             Some(value.to_string())
         }
         Some(_) => return reject(400, "review_query_invalid"),
