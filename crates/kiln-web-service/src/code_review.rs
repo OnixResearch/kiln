@@ -1208,6 +1208,11 @@ fn enriched(
 ) -> Value {
     let reviewed: Vec<_> = domain::reviewed(change, principal).collect();
     let reviewed_hunks: Vec<_> = domain::reviewed_hunks(change, principal).collect();
+    let agent_reviewers: Vec<&String> = change
+        .reviewers
+        .keys()
+        .filter(|principal| agents.contains(*principal))
+        .collect();
     let votes: Vec<Value> = change
         .votes
         .iter()
@@ -1218,7 +1223,7 @@ fn enriched(
     json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),
         "project":change.project,"repository":change.repository,"target_ref":change.target_ref,
         "owner":change.owner,"title":change.title,"description":change.description,"state":change.state,
-        "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"votes":votes,
+        "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"agent_reviewers":agent_reviewers,"votes":votes,
         "threads":change.threads,"reviewed":reviewed,"reviewed_hunks":reviewed_hunks,
         "last_viewed":change.last_viewed.get(principal),"attention":change.attention,
         "dependencies":change.dependencies,"candidate":change.candidate,"submission":change.submission,
