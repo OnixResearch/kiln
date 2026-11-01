@@ -1216,6 +1216,11 @@
   const CANONICAL_OUTCOMES = new Set(["Success", "DomainFailure", "Denied", "ProviderError", "TimedOut", "Cancelled", "Unknown", "Pending"]);
   // r[impl kiln.dashboard.source.view.scenario.restore]
   // r[impl kiln.dashboard.complete.navigation]
+  // Match review-query admission: trim, reject control bytes, and keep the 128-byte agent bound.
+  const reviewAgentText = value => {
+    const text = (value || "").trim();
+    return text.length <= 128 && !/[\u0000-\u001f\u007f]/.test(text) ? text : "";
+  };
   function readRoute() {
     const params = new URLSearchParams(location.search);
     // Accept catalog-style fragment links as well, but never read credentials from either location.
@@ -1249,8 +1254,8 @@
       feed_q: (params.get("feed_q") || "").slice(0, 256), review_view: ["all", "awaiting_review", "owned_needs_revision", "unresolved"].includes(params.get("review_view")) ? params.get("review_view") : "", review_status: ["open", "abandoned", "submitted"].includes(params.get("review_status")) ? params.get("review_status") : "",
       review_advisory: ["with", "without"].includes(params.get("review_advisory")) ? params.get("review_advisory") : "",
       review_agent: ["with", "without"].includes(params.get("review_agent")) ? params.get("review_agent") : "",
-      review_agent_harness: (params.get("review_agent_harness") || "").slice(0, 128),
-      review_agent_model: (params.get("review_agent_model") || "").slice(0, 128),
+      review_agent_harness: reviewAgentText(params.get("review_agent_harness")),
+      review_agent_model: reviewAgentText(params.get("review_agent_model")),
       review_offset: /^[0-9]{1,8}$/.test(params.get("review_offset") || "") ? params.get("review_offset") : "",
       review_notification_offset: /^[0-9]{1,8}$/.test(params.get("review_notification_offset") || "") ? params.get("review_notification_offset") : "",
       review_operation_offset: /^[0-9]{1,8}$/.test(params.get("review_operation_offset") || "") ? params.get("review_operation_offset") : "",
