@@ -59,7 +59,9 @@ pub fn check(path: &Path) -> Result<(), String> {
 
 pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
-    let _credentials = Credentials::load(&profile, options.access_profile()?)?;
+    let access = options.access_profile()?;
+    let access_agents = access.agent_bindings();
+    let _credentials = Credentials::load(&profile, access)?;
     let _automation = options.automation_profile()?;
     let _cobs = options
         .cobs
@@ -93,11 +95,7 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
             .map(crate::work::Profile::load)
             .transpose()?,
     )?;
-    let review_profile = options
-        .code_review
-        .as_deref()
-        .map(crate::code_review::Profile::load)
-        .transpose()?;
+    let review_profile = load_review_profile(options, access_agents)?;
     let _code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
     if let Some(cache) = &_cache {
         cache.preflight_for(&profile)?;
@@ -116,6 +114,31 @@ const SECURITY_HEADERS: &str = "X-Content-Type-Options: nosniff\r\nReferrer-Poli
 
 pub fn run(path: &Path) -> Result<(), String> {
     run_with_options(path, &Options::default())
+}
+
+/// Load the optional review profile and merge access declarations exactly once
+/// so `check` and `serve` admit the same runtime inputs.
+fn load_review_profile(
+    options: &Options,
+    access_agents: std::collections::BTreeMap<String, crate::access::AgentDeclaration>,
+) -> Result<Option<crate::code_review::Profile>, String> {
+    let mut review_profile = options
+        .code_review
+        .as_deref()
+        .map(crate::code_review::Profile::load)
+        .transpose()?;
+    if let Some(profile) = &mut review_profile {
+        for (principal, declaration) in access_agents {
+            profile.merge_agent(
+                principal,
+                kiln_core::change_review::AgentIdentity {
+                    harness: declaration.harness,
+                    model: declaration.model,
+                },
+            )?;
+        }
+    }
+    Ok(review_profile)
 }
 
 pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
@@ -163,20 +186,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
             .map(crate::work::Profile::load)
             .transpose()?,
     )?;
-    let mut review_profile = options
-        .code_review
-        .as_deref()
-        .map(crate::code_review::Profile::load)
-        .transpose()?;
-    if let Some(profile) = &mut review_profile {
-        for (principal, declaration) in access_agents {
-            let identity = kiln_core::change_review::AgentIdentity {
-                harness: declaration.harness,
-                model: declaration.model,
-            };
-            profile.merge_agent(principal, identity)?;
-        }
-    }
+    let review_profile = load_review_profile(options, access_agents)?;
     let code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;

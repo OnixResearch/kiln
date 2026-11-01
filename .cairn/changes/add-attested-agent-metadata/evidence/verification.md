@@ -14,6 +14,9 @@ beside the attested principal.
 - Core tests cover structured attestation and human-byte compatibility.
 - Review profile tests cover metadata admission, merge deduplication and conflict
   rejection.
+- `check` and `serve` share one review-profile loader, so startup validation
+  catches access/review agent metadata conflicts and non-writer agents before
+  listener creation.
 - Full core and web-service suites pass.
 - Clippy, rustfmt, JavaScript syntax, Nickel typecheck/export and Cairn
   validation pass.

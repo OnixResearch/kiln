@@ -43,6 +43,7 @@
     "attestation": "AttestedSubmission records principal and optional declared AgentIdentity harness/model",
     "profile": "agent_metadata is bounded, control-free and restricted to declared agent principals",
     "merge": "access declarations deduplicate principals and conflict-check explicit review metadata before admission",
+    "startup parity": "check and serve load the same access/review agent merge before review admission",
     "export": "optional agent profile fields are included in Nickel output when present",
     "surface": "review identity view shows the attested principal and declared harness/model separately from self-declared authorship"
   },

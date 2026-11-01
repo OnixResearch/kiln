@@ -9,6 +9,7 @@
 - [x] [serial] Add bounded review-profile agent metadata and merge access declarations with conflict rejection. r[kiln.review.agent.metadata]
 - [x] [serial] Export optional agent fields from the Nickel profile and update the fixture and docs. r[kiln.review.agent.metadata]
 - [x] [serial] Show attested harness/model in the review identity view. r[kiln.review.agent.metadata.surface]
+- [x] [serial] Use one review-profile loader so `check` and `serve` validate the same access/review agent merge. r[kiln.review.agent.metadata]
 
 ## Phase 3: Verification
 
