@@ -5106,7 +5106,7 @@ mod tests {
                 text: "review".into(),
                 status: Some(ChangeStatus::Open),
                 advisory: None,
-                agent: None,
+                agent: Some(false),
             },
         };
         send(

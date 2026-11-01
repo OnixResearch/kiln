@@ -10,6 +10,7 @@ form and saved views carry the same filter.
 ## Evidence
 
 - Core search test covers with, without and absent modes.
+- Saved-query coverage retains the agent filter.
 - Web integration test verifies shell parsing and returned change counts.
 - The complete workspace test suite passes.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.

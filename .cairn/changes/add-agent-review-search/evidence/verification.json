@@ -7,6 +7,10 @@
       "result": "1 passed; with/without filters match current-revision attestation and absence does not filter"
     },
     {
+      "command": "cargo test -p kiln-core saved_queries_draft_deletion_and_attention_are_principal_owned",
+      "result": "1 passed; a saved query retains the agent filter and still evaluates"
+    },
+    {
       "command": "cargo test -p kiln-web-service --test code_review review_detail_marks_agent_votes",
       "result": "1 passed; `agent=with` and `agent=without` are parsed and return the expected change set"
     },
