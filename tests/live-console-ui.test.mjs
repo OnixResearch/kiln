@@ -50,6 +50,8 @@ test("agent route text matches review-query admission", () => {
   assert.equal(ui.agentText("é".repeat(65)), "");
   assert.equal(ui.agentText("😀".repeat(32)), "😀".repeat(32));
   assert.equal(ui.agentText("😀".repeat(33)), "");
+  assert.equal(ui.utf8Bytes("é"), 2);
+  assert.equal(ui.utf8Bytes("😀"), 4);
 });
 const source = context.window.KilnSource;
 // Plain copies: values built inside the vm realm carry that realm's prototypes.
@@ -607,6 +609,7 @@ test("board projections are admitted only for their principal and state their co
 
 // Declared authorship: the console sends only validated self-declarations and labels them as unverified.
 const reviewContext = { window: {} };
+vm.runInNewContext(asset("ui.js"), reviewContext);
 vm.runInNewContext(asset("code-review.js"), reviewContext);
 const reviewAuthorship = reviewContext.window.KilnCodeReview.authorship;
 

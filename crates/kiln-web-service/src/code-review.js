@@ -224,12 +224,11 @@
   const AUTHORSHIP_TEXT_BYTES = 128;
   const AUTHORSHIP_KINDS = [["undeclared", "Undeclared"], ["human", "Human"], ["agent", "Agent"], ["mixed", "Mixed"]];
   const AUTHORSHIP_NOTE = "Self-declared and unverified. It is recorded for review-friction views and grants no authority.";
-  const utf8Bytes = text => { let bytes = 0; for (const ch of String(text)) { const point = ch.codePointAt(0); bytes += point < 0x80 ? 1 : point < 0x800 ? 2 : point < 0x10000 ? 3 : 4; } return bytes; };
   function authorshipText(name, value) {
     const text = String(value ?? "").trim();
     if (!text) throw new Error(`${name} is required for agent authorship.`);
     if (/\p{Cc}/u.test(text)) throw new Error(`${name} must not contain control characters.`);
-    if (utf8Bytes(text) > AUTHORSHIP_TEXT_BYTES) throw new Error(`${name} must be at most ${AUTHORSHIP_TEXT_BYTES} bytes.`);
+    if (ui().utf8Bytes(text) > AUTHORSHIP_TEXT_BYTES) throw new Error(`${name} must be at most ${AUTHORSHIP_TEXT_BYTES} bytes.`);
     return text;
   }
   function savedQueryForRoute(route) {
