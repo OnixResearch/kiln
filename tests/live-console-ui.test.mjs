@@ -667,6 +667,9 @@ test("saved review queries preserve every agent filter and omit absent fields", 
   assert.deepEqual(plain(query({ review_agent: "without", review_agent_harness: "omp" })), {
     kind: "all", text: "", status: null, agent: false, agent_harness: "omp",
   });
+  assert.deepEqual(plain(query({ review_agent_harness: " omp ", review_agent_model: "deepseek\u0007" })), {
+    kind: "all", text: "", status: null, agent_harness: "omp",
+  });
 });
 
 // r[verify kiln.review.agent.search]

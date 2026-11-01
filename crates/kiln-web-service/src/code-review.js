@@ -234,14 +234,15 @@
   const advisoryRoute = value => value === true ? "with" : value === false ? "without" : "";
   const agentRoute = value => value === true ? "with" : value === false ? "without" : "";
   function savedQueryForRoute(route) {
+    const harness = ui().agentText(route.review_agent_harness), model = ui().agentText(route.review_agent_model);
     return {
       kind: route.review_view || "all",
       text: route.review_q || "",
       status: route.review_status || null,
       ...(route.review_advisory ? { advisory: route.review_advisory === "with" } : {}),
       ...(route.review_agent ? { agent: route.review_agent === "with" } : {}),
-      ...(route.review_agent_harness ? { agent_harness: route.review_agent_harness } : {}),
-      ...(route.review_agent_model ? { agent_model: route.review_agent_model } : {}),
+      ...(harness ? { agent_harness: harness } : {}),
+      ...(model ? { agent_model: model } : {}),
     };
   }
   function savedViewRoute(view) {

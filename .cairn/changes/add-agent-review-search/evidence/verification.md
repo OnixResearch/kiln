@@ -23,8 +23,8 @@ form and saved views carry the same filters.
 - Live-console tests pass, including the saved-query builder preserving every
   agent filter, omitting absent fields, and saved-view application normalizing
   route text to the same shared agent-text limit, UTF-8 byte and control-free
-  bounds, including two- and four-byte characters. Shared route helpers are
-  initialized before saved-view construction.
+  bounds, including two- and four-byte characters. Saved-query construction
+  normalizes malformed values, and shared route helpers are initialized first.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
 
 ## Non-claims
