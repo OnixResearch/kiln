@@ -1889,6 +1889,26 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         400
     );
     assert_eq!(
+        get(
+            &workspace,
+            "/api/code-review?agent_harness=omp%07",
+            ALICE,
+            &[]
+        )
+        .status,
+        400
+    );
+    assert_eq!(
+        get(
+            &workspace,
+            "/api/code-review?agent_harness=omp%C2%85",
+            ALICE,
+            &[]
+        )
+        .status,
+        400
+    );
+    assert_eq!(
         field(
             &accepted(get(
                 &workspace,
