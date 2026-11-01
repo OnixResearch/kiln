@@ -2851,10 +2851,10 @@ A filtered run never satisfies required CI. A review policy may declare `optiona
 ##### Trigger supersession
 
 A trigger may set `supersede_queued = true`. After a new dispatch succeeds,
-older runs with the same source scope and a different exact revision are
+older runs from the same trigger with a different exact revision are
 superseded: a push matches its project and requested reference, while a pull
 request matches its project and pull-request number, so another pull request on
-the same base is never cancelled. Queued runs complete as `Cancelled` through
+the same base is never cancelled. Manual and scheduled runs are never matched. Queued runs complete as `Cancelled` through
 durable queue control, and active runs receive one exact provider cancellation
 through the admitted control path. Awaiting-approval and terminal runs are untouched.
 Provider refusals are best-effort and never fail the new dispatch. Absence or

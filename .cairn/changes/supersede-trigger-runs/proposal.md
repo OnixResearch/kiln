@@ -11,9 +11,9 @@ Issue: [#27](https://github.com/OnixResearch/kiln/issues/27).
 
 - Add an optional `supersede_queued` trigger policy, default off.
 - When a new trigger dispatch creates a run successfully, cancel older runs for
-  the same source scope whose exact source revision differs: project and
-  requested reference for pushes, or project and pull-request number for pull
-  requests.
+  the same source scope whose exact source revision differs: the same trigger
+  registration, project and requested reference for pushes, or the same trigger
+  registration, project and pull-request number for pull requests.
 - Complete older queued runs as `Cancelled` through the durable queued-control
   path, and cancel older running runs through the exact admitted provider
   control path.

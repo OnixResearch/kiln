@@ -28,14 +28,21 @@ r[kiln.web.supersede.policy.scenario.on]
 ### Requirement: Exact identity match
 
 r[kiln.web.supersede.identity] Supersession MUST match only runs with the same
-project and source scope and a different exact revision. A push's scope is its
-requested symbolic reference; a pull request's scope is its pull-request number.
-Runs without a recorded scope MUST NOT match.
+trigger registration, project and source scope and a different exact revision.
+A push's scope is its requested symbolic reference; a pull request's scope is
+its pull-request number. Manual and scheduled runs, and runs without a recorded
+trigger, MUST NOT match.
 
 #### Scenario: Other references are untouched
 r[kiln.web.supersede.identity.scenario.reference]
 - GIVEN a queued run for another project or requested reference
 - WHEN a push trigger dispatches
+- THEN that run MUST NOT be cancelled.
+
+#### Scenario: Manual and scheduled runs are untouched
+r[kiln.web.supersede.identity.scenario.origin]
+- GIVEN an active manual or scheduled run on the same project/reference
+- WHEN a trigger with supersession enabled dispatches
 - THEN that run MUST NOT be cancelled.
 
 #### Scenario: Other pull requests are untouched

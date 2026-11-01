@@ -10,10 +10,11 @@ state transition with request replay.
 - Supersession is trigger-scoped and opt-in. A trigger with
   `supersede_queued = true` cancels older queued runs after its new run is
   created.
-- Matching requires the same project and source scope, a different exact
-  revision, and a non-new run id. A push source matches its requested reference
-  and no pull-request number; a pull-request source matches its pull-request
-  number. Runs with no recorded scope are not matched.
+- Matching requires the same trigger registration, project and source scope, a
+  different exact revision, and a non-new run id. A push source matches its
+  requested reference and no pull-request number; a pull-request source matches
+  its pull-request number. Manual and scheduled runs have no trigger
+  registration and are never matched.
 - Older queued runs complete through the durable queued-control path. Older
   active runs use the existing exact provider control path with the run's
   attempt, revision, sequence and execution, after a refresh. Awaiting-approval

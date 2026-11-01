@@ -20,6 +20,8 @@ pub(super) struct StartRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pull_request: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_registration: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_revision: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub snapshot_id: Option<String>,
@@ -145,6 +147,7 @@ impl Engine {
             affected,
             None,
             None,
+            None,
         )
     }
 
@@ -226,6 +229,7 @@ impl Engine {
             affected,
             req.reference.clone(),
             req.pull_request,
+            req.source_registration.clone(),
         )
     }
     pub(super) fn rerun(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
@@ -343,6 +347,7 @@ impl Engine {
             affected,
             None,
             None,
+            None,
         );
         self.pending_untrusted = None;
         result
@@ -359,6 +364,7 @@ impl Engine {
         affected: Option<crate::monorepo::RunAffected>,
         requested_reference: Option<String>,
         requested_pull_request: Option<u64>,
+        requested_trigger: Option<String>,
     ) -> Result<ApiResponse, String> {
         let CandidateSource {
             resolution: source,
@@ -416,6 +422,7 @@ impl Engine {
             source,
             requested_reference,
             requested_pull_request,
+            requested_trigger,
             dirty_snapshot,
             affected,
             scope,

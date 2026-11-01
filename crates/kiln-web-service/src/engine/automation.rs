@@ -1026,10 +1026,10 @@ impl Engine {
         let request_id = format!("automation-{}", blake3::hash(id.as_bytes()).to_hex());
         let mut body = match reservation.source_revision {
             Some(ref revision) => {
-                json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference,"source_revision":revision})
+                json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference,"source_revision":revision,"source_registration":reservation.registration_id})
             }
             None => {
-                json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference})
+                json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference,"source_registration":reservation.registration_id})
             }
         };
         if let Some(pull_request) = reservation.pull_request
@@ -1137,6 +1137,7 @@ impl Engine {
             };
             if run.id == new_run
                 || run.project_id != reservation.project_id
+                || run.requested_trigger.as_deref() != Some(reservation.registration_id.as_str())
                 || !same_scope
                 || run.source.exact_revision == new_revision
                 || run.outcome().is_terminal()

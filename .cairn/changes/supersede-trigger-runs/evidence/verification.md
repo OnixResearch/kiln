@@ -10,6 +10,8 @@ untouched.
 
 ## Evidence
 
+- A manual run on the same project/reference is not cancelled by a trigger
+  dispatch.
 - A two-pull-request scenario on the same base leaves the first pull request's
   active run untouched.
 - A three-push automation scenario leaves one active run and two queued runs;

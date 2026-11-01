@@ -169,6 +169,50 @@ fn new_trigger_supersedes_active_and_queued_runs_when_configured() {
 }
 
 #[test]
+fn trigger_supersession_does_not_cancel_a_manual_run() {
+    let (root, profile, _revision) = fixture();
+    let mut automation = policy(root.path());
+    if let Some(trigger) = automation.triggers.first_mut() {
+        trigger.supersede_queued = true;
+    }
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let manual = checked(
+        engine.api(
+            "POST",
+            "/api/runs",
+            serde_json::to_vec(&json!({"project_id": "fixture", "request_id": "manual-run"}))
+                .as_deref()
+                .unwrap_or_default(),
+            Role::Operator,
+        ),
+    );
+    assert_eq!(manual.status, 201);
+    let manual_id = at(&value(&manual), "/id")
+        .as_str()
+        .map(str::to_string)
+        .unwrap_or_default();
+    let next = advance(&profile, "after-manual");
+    let body = push(&next);
+    let response = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000031", "push", &body),
+        &body,
+    ));
+    assert_eq!(response.status, 202);
+    let manual_run = value(&get(
+        &mut engine,
+        &format!("/api/runs/{manual_id}"),
+        Role::Operator,
+    ));
+    assert_ne!(at(&manual_run, "/outcome"), json!("Cancelled"));
+    assert_eq!(backend.lock().controls, 0);
+    assert_eq!(backend.lock().dispatches, 1);
+}
+
+#[test]
 fn pull_request_supersession_is_scoped_to_one_pull_request() {
     let (root, profile, revision) = fixture();
     let mut automation = policy(root.path());

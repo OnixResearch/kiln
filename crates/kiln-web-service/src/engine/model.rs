@@ -144,6 +144,9 @@ pub struct RunRecord {
     /// Pull-request number retained for supersession scoping.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub requested_pull_request: Option<u64>,
+    /// Source registration retained for supersession scoping.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_trigger: Option<String>,
     pub plan: WorkflowEffectPlan,
     pub events: Vec<Event>,
     #[serde(default)]
