@@ -2842,7 +2842,9 @@ the current operator owns enrollment and delivery policy.
 
 A trigger binds an exact `refs/heads/*` or `refs/tags/*` reference. Tag-bound
 pushes require the tag in the project's admitted references; pull-request
-triggers remain branch-bound, and schedules remain branch-bound.
+triggers remain branch-bound, and schedules remain branch-bound. For example,
+`reference = "refs/tags/v1.0.0"` with `push = true`, `pull_request = false` and
+`filter = { tags = ["v*"] }` is a reviewed release-tag trigger.
 
 A trigger may add an optional `filter`:
 
