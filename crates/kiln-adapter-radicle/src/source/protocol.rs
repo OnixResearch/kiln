@@ -257,34 +257,37 @@ pub(super) fn verify_signed_refs(
         }
     }
 
-    let signed_revision = refs
+    let signed_target = refs
         .get(&profile.request.signed_reference)
         .copied()
         .ok_or_else(|| {
             domain(
                 "radicle_source_signed_branch",
                 "radicle_source.reference",
-                "Requested branch is absent from the signed-reference map",
+                "Requested reference is absent from the signed-reference map",
             )
         })?;
+    let namespaced_target = reference_target(repository, &namespaced_source_reference(profile))?;
+    if namespaced_target != signed_target {
+        return Err(domain(
+            "radicle_source_namespace_substitution",
+            "radicle_source.reference",
+            "Namespaced reference target differs from its signed revision",
+        ));
+    }
+    let signed_revision = repository
+        .find_object(signed_target, None)
+        .map_err(git_failure)?
+        .peel_to_commit()
+        .map_err(git_failure)?
+        .id();
     if signed_revision != expected_revision {
         return Err(domain(
             "radicle_source_revision_substitution",
             "radicle_source.revision",
-            "Signed branch revision differs from the exact request",
+            "Signed reference revision differs from the exact request",
         ));
     }
-    let namespaced_revision = reference_target(repository, &namespaced_source_reference(profile))?;
-    if namespaced_revision != signed_revision {
-        return Err(domain(
-            "radicle_source_namespace_substitution",
-            "radicle_source.reference",
-            "Namespaced branch target differs from its signed revision",
-        ));
-    }
-    repository
-        .find_commit(signed_revision)
-        .map_err(git_failure)?;
     Ok(VerifiedSignedRefs {
         sigrefs_commit,
         sigrefs_parent: parent,

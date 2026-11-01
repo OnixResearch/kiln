@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.radicle.canonical-tag.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-radicle-source-contract",
+      "result": "11 passed; matching tag-reference admission covered"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-radicle --features source-native-fixtures --test source_canonical_native",
+      "result": "5 passed; branch and annotated-tag canonical evidence"
+    },
+    {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "tag references": "contract admits matching refs/tags references",
+    "peeled revision": "signed and canonical tag targets peel to the expected commit",
+    "evidence": "annotated tag object, kind tag and peeled revision retained",
+    "replay compatibility": "evidence without revision falls back to object"
+  },
+  "non_claims": [
+    "signed-refs verification does not prove global tag freshness",
+    "tag evidence does not prove release eligibility or peer convergence",
+    "arbitrary Radicle refs and patch CI remain out of scope"
+  ]
+}

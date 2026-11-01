@@ -10,6 +10,7 @@ const SHA1_HEX_LENGTH: usize = 40;
 const BLAKE3_HEX_LENGTH: usize = 64;
 const RADICLE_RID_PREFIX: &str = "rad:z";
 const BRANCH_REFERENCE_PREFIX: &str = "refs/heads/";
+const TAG_REFERENCE_PREFIX: &str = "refs/tags/";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AdmissionError {
@@ -144,6 +145,10 @@ fn admit_limits(limits: &SnapshotLimits) -> Result<(), AdmissionError> {
 }
 
 // r[impl kiln.radicle.source_contract.request]
+fn is_source_reference(reference: &str) -> bool {
+    reference.starts_with(BRANCH_REFERENCE_PREFIX) || reference.starts_with(TAG_REFERENCE_PREFIX)
+}
+
 pub fn admit_request(request: &SourceRequest) -> Result<(), AdmissionError> {
     admit_version(request.schema_version, "request.schema_version")?;
     admit_limits(&request.limits)?;
@@ -172,9 +177,7 @@ pub fn admit_request(request: &SourceRequest) -> Result<(), AdmissionError> {
         request.limits.max_reference_bytes,
         "request.signed_reference",
     )?;
-    if !request
-        .signed_reference
-        .starts_with(BRANCH_REFERENCE_PREFIX)
+    if !is_source_reference(&request.signed_reference)
         || request.signed_reference.contains("..")
         || request.signed_reference.contains('\\')
     {
@@ -197,7 +200,7 @@ pub fn admit_request(request: &SourceRequest) -> Result<(), AdmissionError> {
             request.limits.max_reference_bytes,
             "request.canonical.reference",
         )?;
-        if !canonical.reference.starts_with(BRANCH_REFERENCE_PREFIX)
+        if !is_source_reference(&canonical.reference)
             || canonical.reference.contains("..")
             || canonical.reference.contains('\\')
         {
@@ -363,14 +366,25 @@ pub fn admit_receipt(receipt: &SourceReceipt) -> Result<(), AdmissionError> {
             "receipt.canonical.reference",
         )?;
         admit_oid(&evidence.object, "receipt.canonical.object")?;
+        if !evidence.revision.is_empty() {
+            admit_oid(&evidence.revision, "receipt.canonical.revision")?;
+        }
+        let revision = if evidence.revision.is_empty() {
+            &evidence.object
+        } else {
+            &evidence.revision
+        };
         require_link(
-            evidence.object == request.expected_revision,
-            "receipt.canonical.object",
+            revision == &request.expected_revision,
+            "receipt.canonical.revision",
         )?;
         if evidence.object_kind != "commit" && evidence.object_kind != "tag" {
             return Err(AdmissionError::Reference {
                 field: "receipt.canonical.object_kind",
             });
+        }
+        if evidence.object_kind == "commit" {
+            require_link(evidence.object == *revision, "receipt.canonical.object")?;
         }
         if evidence.delegates.is_empty() {
             return Err(AdmissionError::Empty {

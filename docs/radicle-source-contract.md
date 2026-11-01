@@ -40,8 +40,10 @@ An accepted shell observation must establish these facts:
 2. `refs/rad/root` resolves to the declared RID.
 3. `refs/rad/sigrefs-parent` matches the commit parent when present.
 4. The recognized feature level is `parent`.
-5. The signed branch maps to the requested revision.
-6. The namespaced branch maps to the same revision.
+5. The signed reference target peels to the requested revision commit. A
+   `refs/heads/` target is the commit; a `refs/tags/` target may be an annotated
+   tag object.
+6. The namespaced reference maps to the same target object.
 7. The signed-refs reference equals the requested commit before and after acquisition.
 
 The request carries `expected_sigrefs_commit`. A floating signed-reference tip is not an accepted request.
@@ -52,14 +54,15 @@ The request carries `expected_sigrefs_commit`. A floating signed-reference tip i
 
 `SignedRefsObservation` preserves provider-native identities and explicit verification results.
 
-`SnapshotEvidence` preserves the exact revision, native Git tree, BLAKE3 canonical tree identity, entry count, and byte count.
+`SnapshotEvidence` preserves the exact revision commit, native Git tree, BLAKE3 canonical tree identity, entry count, and byte count.
 
 `SourceReceipt` links all three values. Pure admission rejects identity substitution, movement, feature downgrade, missing verification, malformed identities, and exceeded bounds.
 
 ## Canonical delegate mode
 
 A request may carry `canonical = { identity_commit, reference }`, and `reference`
-must equal the requested signed branch. In this mode the shell additionally:
+must equal the requested signed reference. The reference may be a
+`refs/heads/` branch or a `refs/tags/` tag. In this mode the shell additionally:
 
 1. reads the identity document at `identity_commit` (`embeds/radicle.json`);
 2. verifies every delegate's namespaced signed refs with the same signature,
@@ -71,11 +74,13 @@ must equal the requested signed branch. In this mode the shell additionally:
    [`vendor/heartwood-canonical.source.json`](../vendor/heartwood-canonical.source.json)),
    using the identity document's `xyz.radicle.crefs` rule for the reference, or
    the document's delegate threshold when no rule matches; and
-5. accepts the revision only when it equals that canonical head.
+5. peels the canonical object to a commit and accepts it only when that commit
+   equals the requested revision.
 
 `CanonicalEvidence` records the identity commit and root, threshold, delegate
-DIDs, the reference, the canonical object, and each delegate's verified
-observation. A delegate that publishes nothing or omits the reference has no
+DIDs, the reference, the canonical object and its peeled `revision`, and each
+delegate's verified observation. A receipt without `revision` uses `object` as
+its revision for replay compatibility. A delegate that publishes nothing or omits the reference has no
 vote; insufficient votes and diverging tips are refused. Requests and receipts
 without `canonical` keep their previous bytes.
 

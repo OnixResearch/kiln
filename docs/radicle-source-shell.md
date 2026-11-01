@@ -13,7 +13,7 @@ Each deployment must replace the fixture values with these exact local facts:
 - absolute bare repository path;
 - Radicle RID;
 - signer node identity;
-- branch reference;
+- branch or tag reference;
 - expected signed-refs commit;
 - expected source revision; and
 - entry, path, file, and total byte bounds.
@@ -38,8 +38,9 @@ The shell performs these steps:
 6. Verify the signature with the declared node key.
 7. Resolve `refs/rad/root` and compare its identity document with the RID.
 8. Require parent-level signed-reference linkage.
-9. Compare the signed branch target with the namespaced branch target.
-10. Acquire only the exact requested revision.
+9. Compare the signed reference target with the namespaced reference target,
+   peeling a tag target to its commit for the expected revision.
+10. Acquire only the exact requested revision commit.
 11. Build the canonical Git snapshot manifest under all bounds.
 12. Read the signed-refs reference again and reject movement.
 13. Admit the final contract receipt.

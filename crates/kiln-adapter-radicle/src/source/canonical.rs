@@ -364,11 +364,24 @@ pub(super) fn verify_canonical(
         Object::Commit { id } => (id, "commit"),
         Object::Tag { id } => (id, "tag"),
     };
-    if object.to_string() != profile.request.expected_revision {
+    let object = Oid::from_str(&object.to_string()).map_err(|_| {
+        domain(
+            "radicle_source_canonical_object",
+            "radicle_source.reference",
+            "Canonical object identity is not a valid Git object identity",
+        )
+    })?;
+    let revision = repository
+        .find_object(object, None)
+        .map_err(git_failure)?
+        .peel_to_commit()
+        .map_err(git_failure)?
+        .id();
+    if revision.to_string() != profile.request.expected_revision {
         return Err(domain(
             "radicle_source_canonical_revision",
             "radicle_source.revision",
-            "Requested revision is not the delegate-canonical head",
+            "Requested revision is not the delegate-canonical reference target",
         ));
     }
     votes.sort_by(|left, right| left.delegate.cmp(&right.delegate));
@@ -386,6 +399,7 @@ pub(super) fn verify_canonical(
         reference: request.reference.clone(),
         object: object.to_string(),
         object_kind: object_kind.to_owned(),
+        revision: revision.to_string(),
         observations: votes
             .into_iter()
             .map(|vote| CanonicalDelegateObservation {

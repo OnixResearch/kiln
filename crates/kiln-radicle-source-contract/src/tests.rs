@@ -48,6 +48,17 @@ fn rejects_floating_or_malformed_request_facts() {
 }
 
 #[test]
+fn accepts_matching_tag_references() {
+    let mut request = fixture_request();
+    request.signed_reference = "refs/tags/release/v1".to_string();
+    request.canonical = Some(CanonicalRequest {
+        identity_commit: "5555555555555555555555555555555555555555".to_string(),
+        reference: "refs/tags/release/v1".to_string(),
+    });
+    assert_eq!(admit_request(&request), Ok(()));
+}
+
+#[test]
 fn rejects_zero_and_inconsistent_bounds() {
     let mut request = fixture_request();
     request.limits.max_entries = 0;

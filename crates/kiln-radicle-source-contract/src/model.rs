@@ -88,6 +88,9 @@ pub struct CanonicalEvidence {
     pub reference: String,
     pub object: String,
     pub object_kind: String,
+    /// Peeled commit named by `object`; empty in receipts written before tag support.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub revision: String,
     pub observations: Vec<CanonicalDelegateObservation>,
 }
 

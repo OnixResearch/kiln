@@ -323,6 +323,12 @@ impl SourceRepositoryPort for RadicleSourceShell {
             .request
             .signed_reference
             .strip_prefix("refs/heads/")
+            .or_else(|| {
+                self.profile
+                    .request
+                    .signed_reference
+                    .strip_prefix("refs/tags/")
+            })
             .map(Alias::new)
             .transpose()?;
         Ok(SourceResolutionObservation {

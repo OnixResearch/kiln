@@ -27,6 +27,7 @@ const MAX_PATH_BYTES: u64 = 1024;
 const MAX_FILE_BYTES: u64 = 1_048_576;
 const MAX_TOTAL_BYTES: u64 = 16_777_216;
 const SOURCE_REFERENCE: &str = "refs/heads/main";
+const TAG_REFERENCE: &str = "refs/tags/release/v1";
 const IDENTITY_ROOT_REFERENCE: &str = "refs/rad/root";
 
 fn port<T>(result: Result<T, PortFailure>) -> Result<T, io::Error> {
@@ -49,13 +50,13 @@ fn did(key: &PublicKey) -> String {
     Did::from(key).encode()
 }
 
-fn identity_document(delegates: &[PublicKey], threshold: usize) -> Vec<u8> {
+fn identity_document(delegates: &[PublicKey], threshold: usize, reference: &str) -> Vec<u8> {
     serde_json::to_vec(&serde_json::json!({
         "version": 1,
         "payload": {
             "xyz.radicle.project": {"name": "canonical-fixture"},
             "xyz.radicle.crefs": {
-                "refs/heads/main": {"allow": "delegates", "threshold": threshold}
+                reference: {"allow": "delegates", "threshold": threshold}
             }
         },
         "delegates": delegates.iter().map(did).collect::<Vec<_>>(),
@@ -121,11 +122,12 @@ fn sigrefs_commit(
     signer: &SigningKey,
     document: &[u8],
     identity_root: Oid,
+    reference: &str,
     source: Oid,
 ) -> Result<Oid, Box<dyn Error>> {
     let refs = signed_refs(&BTreeMap::from([
         (IDENTITY_ROOT_REFERENCE.to_string(), identity_root),
-        (SOURCE_REFERENCE.to_string(), source),
+        (reference.to_string(), source),
     ]));
     let signature = signer.try_sign(&refs)?.to_vec();
     let refs_blob = repository.blob(&refs)?;
@@ -146,12 +148,15 @@ struct Fixture {
     _directory: TempDir,
     profile: RadicleSourceProfile,
     object: Oid,
+    tag_object: Option<Oid>,
     identity: Oid,
 }
 
 /// Build a repository where each delegate in `votes` publishes the reference.
 /// `alternate` is the second tip used by the divergence fixture.
-fn fixture(
+fn fixture_with_reference(
+    reference: &str,
+    annotated_tag: bool,
     threshold: usize,
     delegates: &[u8],
     votes: &[(u8, bool)],
@@ -165,9 +170,17 @@ fn fixture(
         .iter()
         .map(|key| *key.verifying_key().public_key())
         .collect();
-    let document = identity_document(&publics, threshold);
+    let document = identity_document(&publics, threshold, reference);
     let (identity, rid) = identity_root(&repository, &document)?;
     let object = source_commit(&repository, b"canonical source\n")?;
+    let tag_object = if annotated_tag {
+        let signature = git2::Signature::now("Kiln fixture", "kiln@invalid.example")?;
+        let target = repository.find_object(object, None)?;
+        Some(repository.tag("release/v1", &target, &signature, "fixture release", false)?)
+    } else {
+        None
+    };
+    let source_target = tag_object.unwrap_or(object);
     let alternate = alternate
         .map(|content| source_commit(&repository, content))
         .transpose()?;
@@ -178,9 +191,9 @@ fn fixture(
         let voted = if *use_alternate {
             alternate.ok_or("alternate vote without an alternate tip")?
         } else {
-            object
+            source_target
         };
-        let sigrefs = sigrefs_commit(&repository, &key, &document, identity, voted)?;
+        let sigrefs = sigrefs_commit(&repository, &key, &document, identity, reference, voted)?;
         repository.reference(
             &format!("refs/namespaces/{node}/refs/rad/sigrefs"),
             sigrefs,
@@ -188,7 +201,7 @@ fn fixture(
             "fixture sigrefs",
         )?;
         repository.reference(
-            &format!("refs/namespaces/{node}/{SOURCE_REFERENCE}"),
+            &format!("refs/namespaces/{node}/{reference}"),
             voted,
             true,
             "fixture source",
@@ -203,7 +216,7 @@ fn fixture(
         profile_id: "radicle-source-v1".to_string(),
         repository_id: rid.to_string(),
         signer_node_id: node,
-        signed_reference: SOURCE_REFERENCE.to_string(),
+        signed_reference: reference.to_string(),
         expected_sigrefs_commit: sigrefs.to_string(),
         expected_revision: object.to_string(),
         limits: SnapshotLimits {
@@ -216,7 +229,7 @@ fn fixture(
         },
         canonical: Some(CanonicalRequest {
             identity_commit: identity.to_string(),
-            reference: SOURCE_REFERENCE.to_string(),
+            reference: reference.to_string(),
         }),
     };
     let profile = RadicleSourceProfile::pinned(repository_path.clone(), request);
@@ -224,8 +237,18 @@ fn fixture(
         _directory: directory,
         profile,
         object,
+        tag_object,
         identity,
     })
+}
+
+fn fixture(
+    threshold: usize,
+    delegates: &[u8],
+    votes: &[(u8, bool)],
+    alternate: Option<&[u8]>,
+) -> Result<Fixture, Box<dyn Error>> {
+    fixture_with_reference(SOURCE_REFERENCE, false, threshold, delegates, votes, alternate)
 }
 
 // r[verify kiln.radicle.canonical_source] r[verify kiln.radicle.canonical_source.scenario.quorum]
@@ -257,6 +280,28 @@ fn two_of_three_delegates_accept_the_canonical_head() -> Result<(), Box<dyn Erro
     assert_eq!(
         result.resolution.exact_revision.native_id.as_str(),
         object.to_string()
+    );
+    Ok(())
+}
+
+// r[verify kiln.radicle.canonical_tag] r[verify kiln.radicle.canonical_tag.scenario.tag]
+#[test]
+fn annotated_tag_source_peels_to_its_commit_and_retains_tag_evidence() -> Result<(), Box<dyn Error>> {
+    let fixture = fixture_with_reference(TAG_REFERENCE, true, 1, &[51], &[(51, false)], None)?;
+    let tag_object = fixture.tag_object.ok_or("annotated tag object")?;
+    let shell = port(RadicleSourceShell::new(fixture.profile.clone()))?;
+    let result = shell
+        .resolve_and_acquire()
+        .map_err(|error| io::Error::other(format!("tag fixture: {error:?}")))?;
+    let evidence = result.receipt.canonical.as_ref().ok_or("canonical evidence")?;
+    assert_eq!(evidence.reference, TAG_REFERENCE);
+    assert_eq!(evidence.object, tag_object.to_string());
+    assert_eq!(evidence.object_kind, "tag");
+    assert_eq!(evidence.revision, fixture.object.to_string());
+    assert_eq!(result.receipt.snapshot.revision, fixture.object.to_string());
+    assert_eq!(
+        result.resolution.exact_revision.native_id.as_str(),
+        fixture.object.to_string()
     );
     Ok(())
 }
@@ -304,6 +349,7 @@ fn a_delegate_with_a_different_identity_revision_is_refused() -> Result<(), Box<
             *signer(42).verifying_key().public_key(),
         ],
         1,
+        SOURCE_REFERENCE,
     );
     let key = signer(42);
     let node = key.verifying_key().public_key().to_string();
@@ -312,6 +358,7 @@ fn a_delegate_with_a_different_identity_revision_is_refused() -> Result<(), Box<
         &key,
         &other_document,
         fixture.identity,
+        SOURCE_REFERENCE,
         fixture.object,
     )?;
     repository.reference(
