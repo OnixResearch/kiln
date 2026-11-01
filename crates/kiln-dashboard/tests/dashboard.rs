@@ -1655,3 +1655,19 @@ fn shell_renders_a_named_review_window_and_rejects_a_malformed_one() {
     let error = String::from_utf8(output.stderr).unwrap_or_else(|_| unreachable!());
     assert!(error.contains("review window document is not a canonical review window"));
 }
+
+#[test]
+fn review_friction_renders_agent_submitted_counts() {
+    let mut window = review_window();
+    window
+        .changes
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture change"))
+        .agent_submitted = true;
+    let journal = reviewed(window);
+    let profile = dashboard_profile();
+    let html_report = build_html_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let html = kiln_dashboard::render::html::render_html(&html_report);
+    assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td><td>1</td></tr>"));
+}

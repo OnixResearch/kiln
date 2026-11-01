@@ -7,6 +7,10 @@
       "result": "1 passed; an attested revision marks its review-window change"
     },
     {
+      "command": "cargo test -p kiln-dashboard review_friction_renders_agent_submitted_counts",
+      "result": "1 passed; a non-zero agent-submitted count renders in the friction table"
+    },
+    {
       "command": "cargo test -p kiln-observe-core friction_counts_attested_agent_submissions",
       "result": "1 passed; an attested agent-submitted change contributes once to the friction count"
     },

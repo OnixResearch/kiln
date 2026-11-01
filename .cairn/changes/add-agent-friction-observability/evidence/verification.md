@@ -8,6 +8,7 @@ shows the count. Zero counts preserve earlier observation identities.
 
 ## Evidence
 
+- A focused dashboard test verifies a non-zero agent-submitted count renders.
 - Focused observation tests verify attestation marks the review-window change and
   a single attested change contributes once and
   zero, one and two agent-submitted changes have distinct identities.
