@@ -31,12 +31,25 @@ impl From<BrowserRole> for Role {
     }
 }
 
+/// Bounded agent declaration attached to a viewer identity. This is operator
+/// configuration, not verified model execution.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentDeclaration {
+    pub harness: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+}
+const MAX_AGENT_TEXT_BYTES: usize = 128;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ViewerBinding {
     pub id: String,
     pub label: String,
     pub token_file: PathBuf,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentDeclaration>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -99,6 +112,10 @@ impl AccessProfile {
                 || !label(&viewer.label)
                 || !crate::profile::absolute(&viewer.token_file)
                 || !ids.insert(&viewer.id)
+                || viewer.agent.as_ref().is_some_and(|agent| {
+                    !agent_text(&agent.harness)
+                        || agent.model.as_ref().is_some_and(|model| !agent_text(model))
+                })
             {
                 return Err("viewer binding rejected".into());
             }
@@ -133,6 +150,15 @@ impl AccessProfile {
         }
         Ok(())
     }
+    /// Exact review principal ids declared as agents by viewer bindings.
+    #[must_use]
+    pub fn agent_principals(&self) -> BTreeSet<String> {
+        self.viewers
+            .iter()
+            .filter(|viewer| viewer.agent.is_some())
+            .map(|viewer| format!("viewer:{}", viewer.id))
+            .collect()
+    }
     pub(crate) fn forwarded(&self, id: &str) -> Option<Principal> {
         let user_id = id.strip_prefix("tailscale:")?;
         let binding = self
@@ -150,6 +176,12 @@ impl AccessProfile {
 }
 fn label(value: &str) -> bool {
     !value.is_empty() && value.len() <= 128 && value.bytes().all(|b| (b' '..=b'~').contains(&b))
+}
+fn agent_text(value: &str) -> bool {
+    !value.is_empty()
+        && value.trim() == value
+        && value.len() <= MAX_AGENT_TEXT_BYTES
+        && !value.chars().any(char::is_control)
 }
 
 /// Only facts returned by the private tailscaled LocalAPI may select a binding.
@@ -364,5 +396,62 @@ mod tests {
         responder
             .join()
             .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    }
+}
+
+#[cfg(test)]
+mod agent_tests {
+    use super::*;
+
+    fn profile(agent: Option<AgentDeclaration>) -> AccessProfile {
+        AccessProfile {
+            schema: "kiln.web-access.v1".into(),
+            viewers: vec![ViewerBinding {
+                id: "agent".into(),
+                label: "Agent viewer".into(),
+                token_file: PathBuf::from("/tmp/agent.token"),
+                agent,
+            }],
+            proxy: None,
+        }
+    }
+
+    #[test]
+    fn viewer_agent_declarations_are_bounded_and_collected() {
+        let agent = AgentDeclaration {
+            harness: "omp".into(),
+            model: Some("deepseek".into()),
+        };
+        let valid = profile(Some(agent.clone()));
+        assert!(valid.admit().is_ok());
+        assert_eq!(
+            valid.agent_principals(),
+            ["viewer:agent".into()].into_iter().collect()
+        );
+        for invalid in [
+            AgentDeclaration {
+                harness: String::new(),
+                model: None,
+            },
+            AgentDeclaration {
+                harness: " omp".into(),
+                model: None,
+            },
+            AgentDeclaration {
+                harness: "omp\n".into(),
+                model: None,
+            },
+            AgentDeclaration {
+                harness: "h".repeat(MAX_AGENT_TEXT_BYTES + 1),
+                model: None,
+            },
+            AgentDeclaration {
+                harness: "omp".into(),
+                model: Some(String::new()),
+            },
+        ] {
+            assert!(profile(Some(invalid)).admit().is_err());
+        }
+        assert!(profile(None).agent_principals().is_empty());
     }
 }

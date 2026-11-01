@@ -122,6 +122,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
     let access = options.access_profile()?;
     let access_identity = access.identity()?;
+    let access_agents = access.agent_principals();
     let credentials = Credentials::load(&profile, access)?;
     let automation = options.automation_profile()?;
     let cache = options
@@ -162,11 +163,18 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
             .map(crate::work::Profile::load)
             .transpose()?,
     )?;
-    let review_profile = options
+    let mut review_profile = options
         .code_review
         .as_deref()
         .map(crate::code_review::Profile::load)
         .transpose()?;
+    if let Some(profile) = &mut review_profile {
+        for agent in access_agents {
+            if !profile.agent_principals.contains(&agent) {
+                profile.agent_principals.push(agent);
+            }
+        }
+    }
     let code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;

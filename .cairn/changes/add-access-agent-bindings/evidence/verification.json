@@ -1,0 +1,47 @@
+{
+  "schema": "kiln.access.agent-bindings.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --lib viewer_agent_declarations",
+      "result": "1 passed; valid declarations are collected as exact viewer principals and empty, untrimmed, control-containing or over-bound text is rejected"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/web-access.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/web-access-positive.ncl",
+      "result": "pass with a viewer agent declaration in the positive fixture"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "declaration": "optional viewer agent { harness, model? } with bounded trimmed non-control text",
+    "derivation": "each declared viewer contributes the exact viewer:<id> principal",
+    "merge": "the server unions access agents into review agent_principals without duplicates before review admission",
+    "authority": "review write-principal admission still applies; a non-writer agent fails startup",
+    "compatibility": "viewers without an agent declaration remain unchanged"
+  },
+  "non_claims": [
+    "harness and model declarations are configuration, not verified execution metadata",
+    "revision attestation still records the principal only; harness/model are not yet copied onto revisions",
+    "signed per-request agent credentials remain future work",
+    "an agent declaration grants no review, execution or merge authority by itself"
+  ]
+}

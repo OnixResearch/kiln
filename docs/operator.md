@@ -2627,6 +2627,11 @@ inputs and pass their JSON outputs as `--access` and `--automation` to both
 `check` and `serve`. They do not replace the original service/worker profiles.
 Access policy admits independent viewer credentials and, optionally, exact
 Tailscale user ID/login/role bindings with a distinct private proxy credential.
+A viewer binding may declare `agent = { harness, model? }`; when code review is
+configured, its exact `viewer:<id>` principal is merged into the review agent
+list so advisory/binding vote policy and submission attestation apply. The
+declaration must name a review write principal or startup fails. Harness/model
+text is bounded; it is configuration, not verified execution metadata.
 Viewer requests can inspect retained facts but cannot enroll, run, control or
 configure automation. Worker credentials remain limited to exact worker ingress.
 Denied writes are attributable audit observations, not canonical CI events.

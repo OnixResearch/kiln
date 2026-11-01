@@ -29,7 +29,15 @@ fun input =>
   let settings =
     input
       | {
-        viewers | Array { id | Identifier, label | Label, token_file | c.AbsolutePath } | default = [],
+        viewers
+          | Array {
+            id | Identifier,
+            label | Label,
+            token_file | c.AbsolutePath,
+            agent | { harness | Label, model | Label | optional } | optional,
+          }
+          | default
+          = [],
         proxy | Dyn | default = null,
       }
   in
