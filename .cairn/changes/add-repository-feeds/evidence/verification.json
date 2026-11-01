@@ -134,7 +134,8 @@
     "behavior": "retains pending subscriptions without network fetch; background cadence or manual Refresh fetches them",
     "authority": "operator only; viewer import is denied",
     "test": "feed unit OPML parsing; runtime import adds a pending subscription and denies a viewer",
-    "request_bound": "API bounds expose max_import_bytes from the service max_request_bytes; the UI rejects larger files before upload"
+    "request_bound": "API bounds expose max_import_bytes from the service max_request_bytes; the UI rejects larger files before upload",
+    "reporting": "the import response reports added and skipped counts; invalid, duplicate, existing and over-capacity outlines are skipped"
   },
   "feed_filter": {
     "query": "GET /api/feeds?q=<percent-encoded up to 256 bytes>",

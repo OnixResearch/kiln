@@ -1583,7 +1583,7 @@
           if (selected.size > maxImport) throw new Error(`The OPML file exceeds the ${maxImport}-byte request bound.`);
           const opml = await selected.text();
           const result = await api("/api/feeds/import", { method: "POST", body: { opml } });
-          notice(`Imported ${result.added} subscription${result.added === 1 ? "" : "s"}.`, "success");
+          notice(`Imported ${result.added} subscription${result.added === 1 ? "" : "s"}; skipped ${result.skipped}.`, "success");
           await loadFeeds();
         } catch (error) {
           notice(explain(error));

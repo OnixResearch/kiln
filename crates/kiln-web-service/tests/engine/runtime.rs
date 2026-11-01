@@ -533,13 +533,14 @@ fn repository_feeds_and_external_subscription_round_trip() {
     assert!(opml.contains("xmlUrl=\""));
     assert!(opml.contains("token="));
 
+    let feed_url = format!("http://127.0.0.1:{feed_port}/feed.xml");
     let added = checked(
         client
             .post(format!("{}/api/feeds", profile.origin))
             .bearer_auth(&operator)
             .header("Origin", &profile.origin)
             .json(&serde_json::json!({
-                "url": format!("http://127.0.0.1:{feed_port}/feed.xml"),
+                "url": feed_url,
                 "label": "External repository"
             }))
             .send(),
@@ -648,13 +649,16 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .bearer_auth(&operator)
             .header("Origin", &profile.origin)
             .json(&serde_json::json!({
-                "opml": "<?xml version=\"1.0\"?><opml version=\"2.0\"><body><outline text=\"Imported\" xmlUrl=\"https://example.invalid/imported.xml\"/></body></opml>"
+                "opml": format!(
+                    "<?xml version=\"1.0\"?><opml version=\"2.0\"><body><outline text=\"Imported\" xmlUrl=\"https://example.invalid/imported.xml\"/><outline text=\"Invalid\" xmlUrl=\"javascript:alert(1)\"/><outline text=\"Existing\" xmlUrl=\"{feed_url}\"/></body></opml>"
+                )
             }))
             .send(),
     );
     assert_eq!(imported.status(), 201);
     let imported: serde_json::Value = checked(imported.json());
     assert_eq!(imported.get("added"), Some(&serde_json::Value::from(1)));
+    assert_eq!(imported.get("skipped"), Some(&serde_json::Value::from(2)));
     let after_import = checked(
         client
             .get(format!("{}/api/feeds", profile.origin))

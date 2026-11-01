@@ -30,6 +30,11 @@ pub(crate) struct AdmittedFeed {
     pub label: String,
 }
 
+pub(crate) struct AdmittedImport {
+    pub feeds: Vec<AdmittedFeed>,
+    pub skipped: usize,
+}
+
 // r[impl kiln.web.feeds.subscriptions]
 // r[impl kiln.web.feeds.publish]
 impl Engine {
@@ -177,7 +182,7 @@ impl Engine {
     }
 
     /// Validate an OPML import without fetching or mutating state.
-    pub(crate) fn prepare_feed_import(&self, body: &[u8]) -> Result<Vec<AdmittedFeed>, String> {
+    pub(crate) fn prepare_feed_import(&self, body: &[u8]) -> Result<AdmittedImport, String> {
         let profile = self
             .profile
             .feeds
@@ -195,6 +200,7 @@ impl Engine {
         }
         let mut admitted = Vec::new();
         let mut ids = std::collections::BTreeSet::new();
+        let outlines_len = outlines.len();
         for (url, label) in outlines {
             if admitted.len() >= remaining {
                 break;
@@ -212,7 +218,11 @@ impl Engine {
         if admitted.is_empty() {
             return Err("feed import has no new admitted URLs".to_string());
         }
-        Ok(admitted)
+        let skipped = outlines_len.saturating_sub(admitted.len());
+        Ok(AdmittedImport {
+            feeds: admitted,
+            skipped,
+        })
     }
 
     fn admit_feed(&self, url: &str, label: Option<&str>) -> Result<AdmittedFeed, String> {
@@ -239,7 +249,7 @@ impl Engine {
 
     pub(crate) fn finish_feed_import(
         &mut self,
-        feeds: Vec<AdmittedFeed>,
+        import: AdmittedImport,
         method: &str,
         target: &str,
         principal: &Principal,
@@ -247,7 +257,7 @@ impl Engine {
         self.append_audit(method, target, Some(principal), "admitted", 0)?;
         let mut candidate = self.state.clone();
         let mut added = 0;
-        for feed in feeds {
+        for feed in import.feeds {
             if candidate.feeds.subscriptions.contains_key(&feed.id) {
                 continue;
             }
@@ -279,7 +289,11 @@ impl Engine {
         self.append_audit(method, target, Some(principal), "accepted", 201)?;
         json_response(
             201,
-            json!({"added": added, "subscriptions": self.state.feeds.subscriptions.len()}),
+            json!({
+                "added": added,
+                "skipped": import.skipped,
+                "subscriptions": self.state.feeds.subscriptions.len()
+            }),
         )
     }
 
