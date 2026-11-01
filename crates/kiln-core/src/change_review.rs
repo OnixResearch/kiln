@@ -482,12 +482,34 @@ pub struct Policy {
 mod optional_ci;
 pub use optional_ci::{MAX_OPTIONAL_CI_PATTERNS, MAX_OPTIONAL_CI_RULES, OptionalCi};
 
-/// All matching rules apply cumulatively; each needs one expanded owner approval.
+/// All matching rules apply cumulatively; each needs one expanded owner approval
+/// unless its exact change class explicitly selects evidence-only approval.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OwnershipPolicy {
     pub teams: BTreeMap<String, BTreeSet<String>>,
     pub rules: Vec<OwnershipRule>,
+    /// Policy-wide change classes in precedence order; unmatched changes are
+    /// the reserved `logic` class.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub classes: Vec<ChangeClass>,
+}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChangeClass {
+    pub id: String,
+    /// Every changed path must match at least one pattern for the class to apply.
+    pub paths: Vec<String>,
+}
+/// Named bounds for policy-declared change classes.
+pub const MAX_CHANGE_CLASSES: usize = 8;
+pub const MAX_CHANGE_CLASS_PATTERNS: usize = 16;
+/// How a matching ownership rule treats the change's class.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OwnershipApprovalMode {
+    OwnerApproval,
+    EvidenceOnly,
 }
 /// Bounded named evidence a matching ownership rule requires in addition to
 /// its owner approval. Evidence is collected by the shell, never asserted by
@@ -521,6 +543,9 @@ pub struct OwnershipRule {
     /// Additional exact-revision evidence this matching rule requires.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required_evidence: Vec<OwnershipEvidence>,
+    /// Per-class approval mode; absence means owner approval.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub approval: BTreeMap<String, OwnershipApprovalMode>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -983,6 +1008,27 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
             );
         }
     }
+    if policy.ownership.classes.len() > MAX_CHANGE_CLASSES {
+        return fail(
+            "invalid_policy",
+            "ownership change classes exceed their named bound",
+        );
+    }
+    let mut classes = BTreeSet::new();
+    for class in &policy.ownership.classes {
+        if !principal_valid(&class.id)
+            || class.id == "logic"
+            || !classes.insert(class.id.as_str())
+            || class.paths.is_empty()
+            || class.paths.len() > MAX_CHANGE_CLASS_PATTERNS
+            || !class.paths.iter().all(|path| paths::valid_pattern(path))
+        {
+            return fail(
+                "invalid_policy",
+                "ownership change classes need unique non-logic identities and valid bounded paths",
+            );
+        }
+    }
     let mut ids = BTreeSet::new();
     for rule in &policy.ownership.rules {
         if !principal_valid(&rule.id)
@@ -1027,6 +1073,17 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
                 return fail(
                     "invalid_policy",
                     "ownership evidence needs a unique bounded project identity",
+                );
+            }
+        }
+        for (class, mode) in &rule.approval {
+            if (class != "logic" && !classes.contains(class.as_str()))
+                || (*mode == OwnershipApprovalMode::EvidenceOnly
+                    && rule.required_evidence.is_empty())
+            {
+                return fail(
+                    "invalid_policy",
+                    "ownership approval must name a declared class and evidence-only needs evidence",
                 );
             }
         }
@@ -1094,6 +1151,32 @@ pub fn owning_rule<'a>(
         })
         .map(|rule| rule.id.as_str())
 }
+/// The first policy class whose patterns match every current and old changed
+/// path. Empty or incomplete facts fall back to the reserved `logic` class.
+fn change_class<'a>(ownership: &'a OwnershipPolicy, files: &[ChangedFile]) -> &'a str {
+    if files.is_empty() {
+        return "logic";
+    }
+    ownership
+        .classes
+        .iter()
+        .find(|class| {
+            files.iter().all(|file| {
+                class
+                    .paths
+                    .iter()
+                    .any(|pattern| paths::matches(pattern, &file.path))
+                    && file.old_path.as_ref().is_none_or(|old| {
+                        class
+                            .paths
+                            .iter()
+                            .any(|pattern| paths::matches(pattern, old))
+                    })
+            })
+        })
+        .map_or("logic", |class| class.id.as_str())
+}
+
 fn rule_matches(rule: &OwnershipRule, files: &[ChangedFile]) -> bool {
     files.iter().any(|file| {
         rule.paths.iter().any(|pattern| {
@@ -1656,6 +1739,7 @@ fn checklist_at(
                     detail: error.message,
                 }),
                 Ok(files) => {
+                    let class = change_class(&policy.ownership, files);
                     for rule in &policy.ownership.rules {
                         if !applicable(rule, change) || !rule_matches(rule, files) {
                             continue;
@@ -1664,12 +1748,33 @@ fn checklist_at(
                             vote.value == VoteValue::Approve
                                 && rule_owners(policy, rule).any(|owner| owner == &vote.actor)
                         });
+                        let mode = rule
+                            .approval
+                            .get(class)
+                            .copied()
+                            .unwrap_or(OwnershipApprovalMode::OwnerApproval);
+                        let approval_required = mode == OwnershipApprovalMode::OwnerApproval;
                         items.push(ChecklistItem {
                             key: alloc::format!("owner:{}", rule.id),
-                            satisfied: policy_valid && approved,
+                            satisfied: policy_valid && (!approval_required || approved),
                             detail: alloc::format!(
-                                "ownership rule {} for changed paths {:?}: one eligible requested non-author owner from {:?} / teams {:?} must approve exact revision {}",
-                                rule.id, rule.paths, rule.owners, rule.teams, revision.id
+                                "ownership rule {} for changed paths {:?}, class {}{}: one eligible requested non-author owner from {:?} / teams {:?} {} exact revision {}",
+                                rule.id,
+                                rule.paths,
+                                class,
+                                if approval_required {
+                                    " requires owner approval;"
+                                } else {
+                                    " explicitly accepts evidence instead of owner approval;"
+                                },
+                                rule.owners,
+                                rule.teams,
+                                if approval_required {
+                                    "must approve"
+                                } else {
+                                    "is not required to approve"
+                                },
+                                revision.id
                             ),
                         });
                         // r[impl kiln.review.evidence.project_ci]
@@ -2929,6 +3034,7 @@ mod tests {
             teams: ["maintainers".into()].into_iter().collect(),
             target_refs: ["refs/heads/main".into()].into_iter().collect(),
             required_evidence: Vec::new(),
+            approval: BTreeMap::new(),
         });
         facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
             complete: true,
@@ -3479,6 +3585,7 @@ mod tests {
             teams: BTreeSet::new(),
             target_refs: BTreeSet::new(),
             required_evidence: Vec::new(),
+            approval: BTreeMap::new(),
         });
         let mut state = ReviewState::default();
         create(&mut state, &mut facts, "c")?;
@@ -4025,6 +4132,157 @@ mod tests {
             })
             .collect();
         assert_eq!(reject(&over_bound)?, "invalid_policy");
+        Ok(())
+    }
+
+    #[test]
+    fn evidence_only_class_skips_owner_approval_but_law_class_does_not() -> ReviewResult<()> {
+        let mut facts = owned_facts()?;
+        let policy = facts.policy.as_mut().required()?;
+        policy.ownership.classes.push(ChangeClass {
+            id: "docs".into(),
+            paths: vec!["docs/**".into()],
+        });
+        let rule = policy.ownership.rules.first_mut().required()?;
+        rule.paths = vec!["**".into()];
+        rule.required_evidence.push(OwnershipEvidence {
+            kind: OwnershipEvidenceKind::ProjectCi,
+            project: "project".into(),
+        });
+        rule.approval
+            .insert("docs".into(), OwnershipApprovalMode::EvidenceOnly);
+        let mut state = ReviewState::default();
+        create(&mut state, &mut facts, "c")?;
+        state
+            .changes
+            .get_mut("c")
+            .required()?
+            .revisions
+            .first_mut()
+            .required()?
+            .files = vec!["docs/guide.md".into()];
+        facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
+            complete: true,
+            files: vec![ChangedFile {
+                path: "docs/guide.md".into(),
+                old_path: None,
+            }],
+        });
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "evidence:core:project_ci:project")?);
+        assert!(evidence_item(&checks, "owner:core")?);
+        assert!(
+            checks
+                .items
+                .iter()
+                .any(|item| item.key == "owner:core" && item.detail.contains("docs"))
+        );
+        // A rename whose old path is outside the class falls back to logic.
+        facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
+            complete: true,
+            files: vec![ChangedFile {
+                path: "docs/guide.md".into(),
+                old_path: Some("src/old.rs".into()),
+            }],
+        });
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(!evidence_item(&checks, "owner:core")?);
+        // The same rule still requires an owner approval when the change is
+        // outside the declared class.
+        state
+            .changes
+            .get_mut("c")
+            .required()?
+            .revisions
+            .first_mut()
+            .required()?
+            .files = vec!["src/lib.rs".into()];
+        facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
+            complete: true,
+            files: vec![ChangedFile {
+                path: "src/lib.rs".into(),
+                old_path: None,
+            }],
+        });
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "evidence:core:project_ci:project")?);
+        assert!(!evidence_item(&checks, "owner:core")?);
+        assert!(
+            checks
+                .items
+                .iter()
+                .any(|item| item.key == "owner:core" && item.detail.contains("logic"))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn change_class_policy_admission_is_closed_bounded_and_explicit() -> ReviewResult<()> {
+        let facts = owned_facts()?;
+        let base = facts.policy.as_ref().required()?.clone();
+        let reject = |policy: &Policy| -> ReviewResult<String> {
+            validate_policy(policy)
+                .err()
+                .required()
+                .map(|error| error.code)
+        };
+        let mut unknown = base.clone();
+        unknown
+            .ownership
+            .rules
+            .first_mut()
+            .required()?
+            .approval
+            .insert("unknown".into(), OwnershipApprovalMode::OwnerApproval);
+        assert_eq!(reject(&unknown)?, "invalid_policy");
+        let mut missing_evidence = base.clone();
+        missing_evidence.ownership.classes.push(ChangeClass {
+            id: "docs".into(),
+            paths: vec!["docs/**".into()],
+        });
+        missing_evidence
+            .ownership
+            .rules
+            .first_mut()
+            .required()?
+            .approval
+            .insert("docs".into(), OwnershipApprovalMode::EvidenceOnly);
+        assert_eq!(reject(&missing_evidence)?, "invalid_policy");
+        let mut reserved = base.clone();
+        reserved.ownership.classes.push(ChangeClass {
+            id: "logic".into(),
+            paths: vec!["docs/**".into()],
+        });
+        assert_eq!(reject(&reserved)?, "invalid_policy");
+        let mut duplicate = base.clone();
+        for _ in 0..2 {
+            duplicate.ownership.classes.push(ChangeClass {
+                id: "docs".into(),
+                paths: vec!["docs/**".into()],
+            });
+        }
+        assert_eq!(reject(&duplicate)?, "invalid_policy");
+        let mut over_bound = base.clone();
+        over_bound.ownership.classes = (0..=MAX_CHANGE_CLASSES)
+            .map(|index| ChangeClass {
+                id: format!("class-{index}"),
+                paths: vec![format!("class-{index}/**")],
+            })
+            .collect();
+        assert_eq!(reject(&over_bound)?, "invalid_policy");
+        let mut valid = base;
+        valid.ownership.classes.push(ChangeClass {
+            id: "docs".into(),
+            paths: vec!["docs/**".into()],
+        });
+        let rule = valid.ownership.rules.first_mut().required()?;
+        rule.required_evidence.push(OwnershipEvidence {
+            kind: OwnershipEvidenceKind::ProjectCi,
+            project: "project".into(),
+        });
+        rule.approval
+            .insert("docs".into(), OwnershipApprovalMode::EvidenceOnly);
+        assert!(validate_policy(&valid).is_ok());
         Ok(())
     }
 
@@ -4999,6 +5257,7 @@ mod tests {
                 teams: BTreeSet::new(),
                 target_refs: target.into_iter().map(Into::into).collect(),
                 required_evidence: Vec::new(),
+                approval: BTreeMap::new(),
             });
         }
         assert_eq!(

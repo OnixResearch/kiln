@@ -15,6 +15,7 @@
     require_ci = true,
     ownership = {
       teams = { maintainers = ["reviewer"] },
+      classes = [{ id = "docs", paths = ["docs/**"] }],
       rules = [
         {
           id = "source",
@@ -23,6 +24,7 @@
           teams = ["maintainers"],
           target_refs = [],
           required_evidence = [{ kind = "project_ci", project = "fixture" }],
+          approval = { docs = "evidence_only" },
         }
       ],
     },

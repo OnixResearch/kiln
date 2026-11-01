@@ -3112,7 +3112,15 @@ The exported `kiln.code-review-profile.v1` declares:
   Optional `required_evidence` adds named exact-revision checks, currently
   `{ kind = "project_ci", project = ... }`: a full clean run for that project at
   the exact submitted commit and its current scope identity must pass in
-  addition to the owner vote. Evidence never grants merge authority.
+  addition to the owner vote. Evidence never grants merge authority. Optional
+  policy-wide `classes` declare ordered path sets; a change belongs to the
+  first class whose patterns match **every** current and old changed path,
+  otherwise the reserved `logic` class. A rule may map a class to
+  `evidence_only` to make its required evidence replace that rule's owner vote;
+  absence means `owner_approval`. `evidence_only` needs at least one evidence
+  requirement and is rejected for undeclared classes. Missing or incomplete
+  changed-file facts fail ownership evaluation before classification. Ordinary
+  approvals, vetoes, blocking threads, CI and merge preflight still apply.
   Changed paths come from the provider comparison, including renamed old paths;
   incomplete observations cannot silently satisfy ownership. Registration and
   upload automatically request eligible owners. An empty rules list disables

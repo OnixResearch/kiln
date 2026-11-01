@@ -40,8 +40,19 @@ let OwnershipEvidence = {
   project | Text 128,
 }
 in
+let ChangeClass = {
+  id | std.contract.from_predicate (fun value => value != "logic") | Text 128,
+  paths | Array (Text 1024),
+}
+in
+let ApprovalMode =
+  std.contract.from_predicate (fun value =>
+    value == "owner_approval" || value == "evidence_only"
+  )
+in
 let Ownership = {
   teams | { _ | Array Principal },
+  classes | Array ChangeClass | optional,
   rules
     | Array {
       id | Text 128,
@@ -50,6 +61,7 @@ let Ownership = {
       teams | Array (Text 128),
       target_refs | Array Target,
       required_evidence | Array OwnershipEvidence | optional,
+      approval | { _ | ApprovalMode } | optional,
     },
 }
 in

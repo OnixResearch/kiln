@@ -1,0 +1,47 @@
+{
+  "schema": "kiln.review.change-class-approvals.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core evidence",
+      "result": "7 passed; includes docs evidence-only approval, logic fallback and cross-boundary rename classification"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/web-code-review.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/web-code-review-speculative-positive.ncl",
+      "result": "pass with a docs class and evidence_only approval in the positive fixture"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "classes": "ordered policy-wide classes; first class matching every current and renamed old path wins; unmatched complete changes are logic",
+    "approval": "sparse per-rule map; absence means owner_approval; evidence_only must be explicit and accompanied by evidence",
+    "authority": "evidence_only replaces only the matching rule owner vote; evidence, ordinary approvals, vetoes, threads, dependencies, CI and merge preflight remain",
+    "owner_item": "always retained; states the selected class and whether owner approval is required",
+    "serialization": "empty classes and approval maps are omitted, so existing policies retain their bytes"
+  },
+  "non_claims": [
+    "classes are selected only by policy path globs, never authorship, labels or heuristics",
+    "empty or incomplete changed-file facts fail ownership before class selection",
+    "evidence_only does not grant merge authority or bypass ordinary review policy",
+    "passing tests do not prove provider execution correctness or release readiness"
+  ]
+}

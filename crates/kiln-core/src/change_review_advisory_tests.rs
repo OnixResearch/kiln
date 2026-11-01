@@ -19,6 +19,7 @@ fn policy(ownership: bool, minimum_approvals: u32) -> Policy {
             teams: BTreeSet::new(),
             target_refs: BTreeSet::new(),
             required_evidence: Vec::new(),
+            approval: BTreeMap::new(),
         });
     }
     Policy {
@@ -30,6 +31,7 @@ fn policy(ownership: bool, minimum_approvals: u32) -> Policy {
         ownership: OwnershipPolicy {
             teams: BTreeMap::new(),
             rules,
+            classes: Vec::new(),
         },
         optional_ci: Vec::new(),
     }
