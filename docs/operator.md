@@ -3129,7 +3129,8 @@ The exported `kiln.code-review-profile.v1` declares:
   like human approvals. Agent `NeedsRevision` and `Veto` votes keep their
   existing blocking effect in either mode; no merge authority is granted. The
   review detail marks agent reviewers and votes and reports the effective
-  advisory or binding mode. Optional
+  advisory or binding mode. The review snapshot exposes the declared agent
+  principals and metadata, and the console policy card labels them as declared. Optional
   `agent_metadata` maps these principals to declared, trimmed
   `{ harness, model? }` metadata; a key must name a declared agent. Access viewer declarations are
   merged into both fields at startup, and conflicting metadata fails startup.
