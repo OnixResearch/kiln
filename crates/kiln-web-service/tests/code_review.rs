@@ -1768,6 +1768,10 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         &[],
     ))?;
     assert_eq!(field(&without_agent, "/total")?, &json!(1));
+    assert_eq!(
+        get(&workspace, "/api/code-review?agent=maybe", ALICE, &[]).status,
+        400
+    );
     let snapshot = accepted(get(&workspace, "/api/code-review", ALICE, &[]))?;
     assert!(
         field(&snapshot, "/notifications")?

@@ -11,7 +11,8 @@ form and saved views carry the same filter.
 
 - Core search test covers with, without and absent modes.
 - Saved-query coverage retains the agent filter.
-- Web integration test verifies shell parsing and returned change counts.
+- Web integration test verifies shell parsing, returned change counts and
+  malformed-value rejection.
 - The complete workspace test suite passes.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
 
