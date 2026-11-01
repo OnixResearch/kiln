@@ -393,6 +393,45 @@ fn signed_tag_push_dispatches_a_tag_bound_run() {
 }
 
 #[test]
+fn deleted_tag_push_never_dispatches() {
+    let (root, mut profile, _) = fixture();
+    let tag = "refs/tags/v1.0.0";
+    profile
+        .projects
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture project"))
+        .admitted_references
+        .push(tag.into());
+    let mut automation = policy(root.path());
+    let trigger = automation
+        .triggers
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture trigger"));
+    trigger.reference = tag.into();
+    trigger.push = true;
+    trigger.pull_request = false;
+    trigger.pull_request_base = None;
+    trigger.filter.tags = vec!["v*".into()];
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let body = checked(serde_json::to_vec(&json!({
+        "repository": repository(),
+        "ref": tag,
+        "after": "0".repeat(40),
+        "deleted": true,
+    })));
+    let response = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000042", "push", &body),
+        &body,
+    ));
+    assert_eq!(response.status, 202);
+    assert_eq!(backend.lock().dispatches, 0);
+}
+
+#[test]
 fn signed_pull_request_and_stale_or_unregistered_sources_have_opposite_effects() {
     let (root, profile, revision) = fixture();
     let backend = Arc::new(Mutex::new(Backend::default()));

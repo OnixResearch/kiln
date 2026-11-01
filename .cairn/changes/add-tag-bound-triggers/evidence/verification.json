@@ -7,6 +7,10 @@
       "result": "1 passed; a signed annotated-tag push creates a run bound to the exact tagged commit"
     },
     {
+      "command": "cargo test -p kiln-web-service --test engine deleted_tag_push_never_dispatches",
+      "result": "1 passed; a deleted tag push is acknowledged without a run"
+    },
+    {
       "command": "cargo test -p kiln-web-service --test engine tag_trigger_filter_namespaces_and_schedule_references_are_rejected",
       "result": "1 passed; wrong-namespace, non-matching tag filters and tag-bound schedules are rejected"
     },
