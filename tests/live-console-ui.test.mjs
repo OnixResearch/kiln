@@ -42,6 +42,7 @@ test("agent route text matches review-query admission", () => {
   assert.equal(ui.agentText(""), "");
   assert.equal(ui.agentText(null), "");
   assert.equal(ui.agentText("o\u0007mp"), "");
+  assert.equal(ui.agentText("o\u0085mp"), "");
   assert.equal(ui.agentText("x".repeat(128)), "x".repeat(128));
   assert.equal(ui.agentText("x".repeat(129)), "");
   // 64 two-byte characters are exactly 128 bytes; one more exceeds the byte bound.

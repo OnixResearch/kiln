@@ -29,7 +29,7 @@
   };
   const agentText = value => {
     const text = (value || "").trim();
-    return utf8Bytes(text) <= AGENT_TEXT_BYTES && !/[\u0000-\u001f\u007f]/.test(text) ? text : "";
+    return utf8Bytes(text) <= AGENT_TEXT_BYTES && !/\p{Cc}/u.test(text) ? text : "";
   };
   const SVG_NS = "http://www.w3.org/2000/svg";
 
