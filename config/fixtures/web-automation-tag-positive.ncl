@@ -1,4 +1,4 @@
-# Web registrations bind refs/heads only: a tags filter is rejected.
+# Tag-bound push with a tag glob filter.
 let make = import "../web-automation.ncl" in
 make {
   max_records = 100,
@@ -9,13 +9,13 @@ make {
     {
       id = "github-fixture",
       project_id = "fixture",
-      reference = "refs/heads/main",
+      reference = "refs/tags/v1.0.0",
       repository = { owner = "fixture", repository = "source", repository_id = 42, allow_fork_pull_requests = false },
       secret_file = "/isolated-fixture/github.secret",
       enabled = false,
       push = true,
-      pull_request = true,
-      pull_request_base = "main",
+      pull_request = false,
+      pull_request_base = null,
       filter = { tags = ["v*"] },
     }
   ],

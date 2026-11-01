@@ -1284,6 +1284,7 @@
             nickel typecheck config/web-cobs.ncl
             nickel export config/fixtures/web-access-positive.ncl >/dev/null
             nickel export config/fixtures/web-automation-positive.ncl >/dev/null
+            nickel export config/fixtures/web-automation-tag-positive.ncl >/dev/null
             nickel export config/fixtures/web-automation-untrusted-positive.ncl >/dev/null
             nickel export config/fixtures/web-cobs-positive.ncl >/dev/null
             nickel typecheck config/web-work.ncl

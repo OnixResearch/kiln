@@ -22,9 +22,9 @@ r[kiln.triggers.tag.scenario.dispatch]
 
 ### Requirement: Namespace-correct filters
 
-r[kiln.triggers.tag.filter] Tag-bound pushes MUST accept `tags` globs and reject
-`branches`; branch-bound pushes MUST accept `branches` and reject `tags`; pull
-requests MUST reject `tags`. Tag patterns MUST admit the exact bound tag. Filter
+r[kiln.triggers.tag.filter] The Nickel trigger-filter contract MUST accept `tags`. Tag-bound
+pushes MUST accept `tags` globs and reject `branches`; branch-bound pushes MUST
+accept `branches` and reject `tags`; pull requests MUST reject `tags`. Tag patterns MUST admit the exact bound tag. Filter
 admission MUST reject invalid combinations before automation starts.
 
 #### Scenario: Wrong namespace filter

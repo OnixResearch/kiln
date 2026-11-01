@@ -6,4 +6,4 @@
 ## Phase 2: Verification
 
 - [x] [serial] Add an end-to-end signed tag-push dispatch test. r[kiln.triggers.tag.scenario.dispatch]
-- [x] [serial] Update the Nickel reference contract, docs and lifecycle evidence; run tests, Clippy, rustfmt, Nickel and Cairn checks. r[kiln.triggers.tag]
+- [x] [serial] Update the Nickel reference and filter contracts, positive fixture, docs and lifecycle evidence; run tests, Clippy, rustfmt, Nickel and Cairn checks. r[kiln.triggers.tag]

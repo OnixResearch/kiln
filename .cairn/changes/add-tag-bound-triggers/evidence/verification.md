@@ -15,6 +15,7 @@ Schedules remain branch-bound.
 - Admission tests reject a tag reference with branch filters, a tag-bound
   pull-request trigger and a tag-bound schedule.
 - Full core and web-service suites pass.
+- The Nickel contract exports a tag-bound trigger with a tags filter.
 - Clippy, rustfmt, Nickel typecheck and Cairn validation pass.
 
 ## Non-claims

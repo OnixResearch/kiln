@@ -23,6 +23,10 @@
       "result": "pass"
     },
     {
+      "command": "nickel export config/fixtures/web-automation-tag-positive.ncl",
+      "result": "pass; the contract admits a tag-bound trigger with a tags filter"
+    },
+    {
       "command": "nickel typecheck config/web-automation.ncl",
       "result": "pass"
     },

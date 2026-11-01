@@ -35,9 +35,11 @@ let PullRequestType =
     std.array.elem value ["opened", "reopened", "synchronize", "closed", "merged"]
   )
 in
-# Optional per-trigger filter; registrations bind refs/heads, so no tags.
+# Optional per-trigger filter. Tags apply only to tag-bound pushes; Rust
+# admission enforces the bound-reference namespace.
 let TriggerFilter = {
   branches | FilterPatterns | Array FilterPattern | optional,
+  tags | FilterPatterns | Array FilterPattern | optional,
   types | Array PullRequestType | optional,
   paths | FilterPatterns | Array FilterPattern | optional,
 }
