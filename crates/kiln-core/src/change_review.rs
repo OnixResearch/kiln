@@ -4591,6 +4591,28 @@ mod tests {
         let checks = checklist(&state, "c", &facts)?;
         assert!(evidence_item(&checks, "interface_ci:api:web")?);
         assert!(evidence_item(&checks, "interface:api:web")?);
+        state
+            .changes
+            .get_mut("c")
+            .required()?
+            .revisions
+            .first_mut()
+            .required()?
+            .files = vec!["other.txt".into()];
+        facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
+            complete: true,
+            files: vec![ChangedFile {
+                path: "other.txt".into(),
+                old_path: None,
+            }],
+        });
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(
+            !checks
+                .items
+                .iter()
+                .any(|item| item.key.starts_with("interface"))
+        );
         Ok(())
     }
 
@@ -4613,11 +4635,16 @@ mod tests {
         let rule = missing_project.ownership.rules.first_mut().required()?;
         rule.interface = vec!["src/**".into()];
         assert_eq!(reject(&missing_project)?, "invalid_policy");
-        let mut literal = base;
+        let mut literal = base.clone();
         let rule = literal.ownership.rules.first_mut().required()?;
         rule.project = Some("api".into());
         rule.interface = vec!["src/lib.rs".into()];
         assert!(validate_policy(&literal).is_ok());
+        let mut duplicate = base;
+        let rule = duplicate.ownership.rules.first_mut().required()?;
+        rule.project = Some("api".into());
+        rule.interface = vec!["src/**".into(), "src/**".into()];
+        assert_eq!(reject(&duplicate)?, "invalid_policy");
         Ok(())
     }
 
