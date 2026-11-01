@@ -221,7 +221,7 @@
   // r[impl kiln.review.authorship.console]
   // Self-declared, unverified authorship. Client checks mirror the service: trimmed, non-empty,
   // no control characters and at most AUTHORSHIP_TEXT_BYTES UTF-8 bytes; undeclared sends nothing.
-  const AUTHORSHIP_TEXT_BYTES = 128;
+  const AUTHORSHIP_TEXT_BYTES = ui().agentTextLimit;
   const AUTHORSHIP_KINDS = [["undeclared", "Undeclared"], ["human", "Human"], ["agent", "Agent"], ["mixed", "Mixed"]];
   const AUTHORSHIP_NOTE = "Self-declared and unverified. It is recorded for review-friction views and grants no authority.";
   function authorshipText(name, value) {

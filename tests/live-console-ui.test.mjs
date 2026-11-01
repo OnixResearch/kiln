@@ -612,6 +612,7 @@ const reviewContext = { window: {} };
 vm.runInNewContext(asset("ui.js"), reviewContext);
 vm.runInNewContext(asset("code-review.js"), reviewContext);
 const reviewAuthorship = reviewContext.window.KilnCodeReview.authorship;
+assert.equal(reviewAuthorship.limit, ui.agentTextLimit);
 
 // r[verify kiln.review.authorship.console]
 test("authorship payloads mirror the service bounds and send nothing when undeclared", () => {

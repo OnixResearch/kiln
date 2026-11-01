@@ -586,6 +586,6 @@
     return list;
   }
 
-  window.KilnUi = Object.freeze({ agentText, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList });
+  window.KilnUi = Object.freeze({ agentText, agentTextLimit: AGENT_TEXT_BYTES, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();
