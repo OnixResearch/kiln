@@ -16,6 +16,13 @@
   const JUST_NOW_LIMIT_MS = 45 * SECOND_MS;
   const RELATIVE_LIMIT_MS = 30 * DAY_MS;
   const NOT_RECORDED = "Not recorded";
+  const AGENT_TEXT_BYTES = 128;
+  // Review-query admission trims declared agent text and admits only bounded,
+  // control-free values; route state uses the same normalization.
+  const agentText = value => {
+    const text = (value || "").trim();
+    return text.length <= AGENT_TEXT_BYTES && !/[\u0000-\u001f\u007f]/.test(text) ? text : "";
+  };
   const SVG_NS = "http://www.w3.org/2000/svg";
 
   const exactNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
@@ -571,6 +578,6 @@
     return list;
   }
 
-  window.KilnUi = Object.freeze({ outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList });
+  window.KilnUi = Object.freeze({ agentText, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();

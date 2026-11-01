@@ -35,6 +35,16 @@ vm.runInNewContext(asset("ui.js"), context);
 vm.runInNewContext(asset("source.js"), context);
 const ui = context.window.KilnUi;
 const icons = context.window.KilnIcons;
+// Review-query route normalization must mirror the service's trimmed, bounded,
+// control-free agent text admission.
+test("agent route text matches review-query admission", () => {
+  assert.equal(ui.agentText("  omp  "), "omp");
+  assert.equal(ui.agentText(""), "");
+  assert.equal(ui.agentText(null), "");
+  assert.equal(ui.agentText("o\u0007mp"), "");
+  assert.equal(ui.agentText("x".repeat(128)), "x".repeat(128));
+  assert.equal(ui.agentText("x".repeat(129)), "");
+});
 const source = context.window.KilnSource;
 // Plain copies: values built inside the vm realm carry that realm's prototypes.
 const plain = (value) => JSON.parse(JSON.stringify(value));
