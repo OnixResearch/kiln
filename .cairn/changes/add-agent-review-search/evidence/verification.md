@@ -13,7 +13,7 @@ form and saved views carry the same filter.
 - Saved-query coverage retains the agent filter.
 - Web integration test creates an agent-submitted change and verifies positive
   and negative filters plus malformed-value rejection.
-- The complete workspace test suite passes.
+- The complete workspace test suite and workspace-wide Clippy pass.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
 
 ## Non-claims

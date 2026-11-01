@@ -16,10 +16,10 @@
     },
     {
       "command": "cargo test --workspace --no-fail-fast",
-      "result": "all workspace test binaries and doc tests passed"
+      "result": "all workspace test binaries and doc tests passed with the agent and harness filters"
     },
     {
-      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
       "result": "pass"
     },
     {
