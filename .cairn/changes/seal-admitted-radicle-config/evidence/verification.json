@@ -1,0 +1,44 @@
+{
+  "schema": "kiln.radicle.proof.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo check -p kiln-adapter-radicle -p kiln-onixos-pilot --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-radicle -p kiln-onixos-pilot -p kiln-dashboard",
+      "result": "pass, including compile-fail doc tests"
+    },
+    {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "external construction rejected": "compile-fail doc test on AdmittedRadicleConfig",
+    "admitted facts readable": "accessors used by the Radicle binary and Onix pilot",
+    "audit record": "modified github-event-proof audit records AdmittedRadicleConfig sealed"
+  },
+  "non_claims": [
+    "the seal does not prove in-crate admission discipline",
+    "the seal does not prove profile semantic correctness",
+    "accessors return borrowed profiles"
+  ]
+}

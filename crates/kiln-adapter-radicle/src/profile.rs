@@ -120,11 +120,40 @@ pub struct RadicleShellConfig {
     pub non_claims: Vec<String>,
 }
 
+/// A Radicle shell configuration that passed reviewed admission.
+///
+/// Only `admit_config` constructs one; every field is crate-private.
+///
+/// ```compile_fail
+/// # use kiln_adapter_radicle::profile::AdmittedRadicleConfig;
+/// let _ = AdmittedRadicleConfig {
+///     shell: unreachable!(),
+///     lattice: unreachable!(),
+///     transport: unreachable!(),
+/// };
+/// ```
 #[derive(Debug)]
 pub struct AdmittedRadicleConfig {
-    pub shell: RadicleShellConfig,
-    pub lattice: LatticeProfile,
-    pub transport: TransportProfile,
+    pub(crate) shell: RadicleShellConfig,
+    pub(crate) lattice: LatticeProfile,
+    pub(crate) transport: TransportProfile,
+}
+
+impl AdmittedRadicleConfig {
+    /// Reviewed shell configuration.
+    pub fn shell(&self) -> &RadicleShellConfig {
+        &self.shell
+    }
+
+    /// Reviewed Lattice profile.
+    pub fn lattice(&self) -> &LatticeProfile {
+        &self.lattice
+    }
+
+    /// Reviewed transport profile.
+    pub fn transport(&self) -> &TransportProfile {
+        &self.transport
+    }
 }
 
 // r[impl kiln.radicle.protocol]

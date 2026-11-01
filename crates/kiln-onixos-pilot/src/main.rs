@@ -39,7 +39,7 @@ fn native_workflow(config: &str, trigger: &str, effect_id: Option<&str>) -> Resu
     let admitted = kiln_adapter_radicle::admit_config(config)
         .map_err(|error| format!("Radicle config: {error:?}"))?;
     let mut record = kiln_adapter_radicle::plan_trigger(
-        &admitted.shell,
+        admitted.shell(),
         load_json(Path::new(trigger), MAX_CONFIG_BYTES)?,
     )
     .map_err(|error| format!("Radicle workflow plan: {error:?}"))?;
@@ -48,7 +48,7 @@ fn native_workflow(config: &str, trigger: &str, effect_id: Option<&str>) -> Resu
             .map_err(|error| format!("native callback effect: {error:?}"))?;
     }
     emit(
-        &kiln_adapter_lattice::lower_request(&admitted.lattice, &record.plan)
+        &kiln_adapter_lattice::lower_request(admitted.lattice(), &record.plan)
             .map_err(|error| format!("native Lattice request: {error:?}"))?,
     )
 }

@@ -199,7 +199,7 @@ fn run() -> Result<Vec<String>, PortFailure> {
     let admitted = admit_config(config)?;
     let policy = TriggerLifecyclePolicy {
         mode: TriggerWaitMode::Wait,
-        max_polls: admitted.shell.maximum_polls,
+        max_polls: admitted.shell().maximum_polls,
     };
     match arguments.runtime {
         Runtime::Lattice => run_lattice(arguments.protocol, &input, admitted, policy),
@@ -213,19 +213,19 @@ fn run_lattice(
     admitted: kiln_adapter_radicle::AdmittedRadicleConfig,
     policy: TriggerLifecyclePolicy,
 ) -> Result<Vec<String>, PortFailure> {
-    let maximum_records = admitted.shell.maximum_replay_records;
+    let maximum_records = admitted.shell().maximum_replay_records;
     let transport = UnixWorkflowExchange::new(
-        admitted.shell.socket_path.clone(),
-        admitted.transport,
-        admitted.lattice.contract.clone(),
+        admitted.shell().socket_path.clone(),
+        admitted.transport().clone(),
+        admitted.lattice().contract.clone(),
         maximum_records,
     )?;
-    let lattice = LatticeAdapter::new(admitted.lattice, transport)?;
+    let lattice = LatticeAdapter::new(admitted.lattice().clone(), transport)?;
     let replay = SqliteReplayStore::open(
-        &admitted.shell.replay_database_path,
-        admitted.shell.maximum_replay_records,
+        &admitted.shell().replay_database_path,
+        admitted.shell().maximum_replay_records,
     )?;
-    let mut service = RadicleWorkflowService::new(lattice, replay, admitted.shell);
+    let mut service = RadicleWorkflowService::new(lattice, replay, admitted.shell().clone());
     run_protocol(protocol, input, &mut service, policy)
 }
 
