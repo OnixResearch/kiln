@@ -50,6 +50,11 @@ let ApprovalMode =
     value == "owner_approval" || value == "evidence_only"
   )
 in
+let AgentVotes =
+  std.contract.from_predicate (fun value =>
+    value == "advisory" || value == "binding"
+  )
+in
 let Ownership = {
   teams | { _ | Array Principal },
   classes | Array ChangeClass | optional,
@@ -236,8 +241,10 @@ fun input =>
                 paths | Array String,
               }
               | optional,
+            agent_votes | AgentVotes | optional,
           },
         read_principals | Array Principal | PrincipalBound,
+        agent_principals | Array Principal | PrincipalBound | optional,
         write_principals | Array Principal | PrincipalBound,
         signature_name | Text 128,
         signature_email | Text 254,

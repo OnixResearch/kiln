@@ -81,6 +81,7 @@ impl Fixture {
                 require_ci: true,
                 ownership: Default::default(),
                 optional_ci: Vec::new(),
+                agent_votes: kiln_core::change_review::AgentVotes::Advisory,
             },
             read_principals: vec![ALICE.into(), BOB.into(), CAROL.into()],
             write_principals: vec![ALICE.into(), BOB.into(), CAROL.into()],
@@ -90,6 +91,7 @@ impl Fixture {
             delivery: None,
             queue: None,
             review: None,
+            agent_principals: Vec::new(),
         };
         Ok(Self {
             _temp: temp,
@@ -1693,5 +1695,24 @@ fn monorepo_review_requires_current_scope_ci_for_each_affected_project() -> Resu
         &[fixture.ci(&fixture.first, 1, true)],
     )?;
     assert!(ci_projects(&legacy).is_err());
+    Ok(())
+}
+
+#[test]
+fn review_profile_admits_only_bounded_unique_agent_write_principals() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let mut profile = fixture.profile.clone();
+    profile.agent_principals = vec![BOB.into()];
+    profile.admit()?;
+    profile.agent_principals = Vec::new();
+    profile.admit()?;
+    profile.agent_principals = vec![BOB.into(), BOB.into()];
+    assert!(profile.admit().is_err());
+    profile.agent_principals = vec!["local:not-admitted".into()];
+    assert!(profile.admit().is_err());
+    profile.agent_principals = vec!["".into()];
+    assert!(profile.admit().is_err());
+    profile.agent_principals = std::iter::repeat_n(BOB.into(), 129).collect();
+    assert!(profile.admit().is_err());
     Ok(())
 }

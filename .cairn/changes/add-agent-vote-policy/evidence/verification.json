@@ -1,0 +1,52 @@
+{
+  "schema": "kiln.review.agent-vote-policy.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core advisory_agent_votes",
+      "result": "1 passed; advisory agent approvals do not count until the policy explicitly binds them, and agent needs-revision still blocks"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test code_review review_profile_admits_only_bounded_unique_agent_write_principals",
+      "result": "1 passed; valid, empty, duplicate, non-writer and over-bound agent lists are handled"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/web-code-review.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/web-code-review-speculative-positive.ncl",
+      "result": "pass with an admitted agent principal in the positive fixture"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "identity": "agent principals are explicit trusted review-profile facts, bounded unique write principals",
+    "default": "agent_votes is advisory and omitted from serialization when default",
+    "advisory": "agent approvals remain stored but do not satisfy the approval count or ownership item",
+    "binding": "explicit policy opt-in counts agent approvals like human approvals",
+    "blocking": "agent needs-revision and veto votes keep their existing blocking effect in either mode",
+    "authority": "no mode grants merge authority"
+  },
+  "non_claims": [
+    "agent principals are not yet derived from access-profile viewer bindings",
+    "submitted_by attested authorship and separate browser agent identity display remain future work",
+    "agent identity is not inferred from content, commit metadata or behavior",
+    "passing tests do not prove provider execution correctness or release readiness"
+  ]
+}

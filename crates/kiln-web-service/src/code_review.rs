@@ -89,6 +89,9 @@ pub struct Profile {
     /// Display-only preferences (noise rules); never part of authority.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub review: Option<noise::ReviewDisplay>,
+    /// Exact write principals treated as agents for vote policy.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub agent_principals: Vec<String>,
 }
 
 impl Profile {
@@ -103,6 +106,7 @@ impl Profile {
     pub fn admit(&self) -> Result<(), String> {
         let readers: BTreeSet<_> = self.read_principals.iter().collect();
         let writers: BTreeSet<_> = self.write_principals.iter().collect();
+        let agents: BTreeSet<_> = self.agent_principals.iter().collect();
         if self.schema != "kiln.code-review-profile.v1"
             || !valid_text(&self.project, MAX_IDENTITY_BYTES)
             || !valid_text(&self.policy.id, MAX_IDENTITY_BYTES)
@@ -117,6 +121,9 @@ impl Profile {
                 .chain(&self.write_principals)
                 .any(|p| !valid_principal(p))
             || self.write_principals.iter().any(|p| !readers.contains(p))
+            || agents.len() > MAX_PRINCIPALS
+            || agents.len() != self.agent_principals.len()
+            || self.agent_principals.iter().any(|p| !writers.contains(p))
             || self.policy.eligible_reviewers.len() > MAX_PRINCIPALS
             || self.policy.submitters.len() > MAX_PRINCIPALS
             || self
@@ -886,6 +893,7 @@ impl Workspace {
             integration,
             ci_required,
             hunks: None,
+            agents: profile.agent_principals.iter().cloned().collect(),
         };
         self.populate_changed_files(provider, revision, &mut facts)?;
         Ok((facts, evaluation))

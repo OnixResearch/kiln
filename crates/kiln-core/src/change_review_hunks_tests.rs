@@ -16,6 +16,7 @@ fn base_facts() -> Facts {
             require_ci: false,
             ownership: OwnershipPolicy::default(),
             optional_ci: Vec::new(),
+            agent_votes: AgentVotes::Advisory,
         }),
         source: Some(SourceFact {
             project: "project".into(),
@@ -35,6 +36,7 @@ fn base_facts() -> Facts {
         integration: None,
         ci_required: None,
         hunks: None,
+        agents: BTreeSet::new(),
     }
 }
 

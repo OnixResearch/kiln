@@ -96,6 +96,7 @@ mod tests {
             require_ci: true,
             ownership: OwnershipPolicy::default(),
             optional_ci,
+            agent_votes: AgentVotes::Advisory,
         }
     }
 

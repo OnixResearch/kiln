@@ -3102,6 +3102,13 @@ The exported `kiln.code-review-profile.v1` declares:
   `local:operator` and `viewer:reviewer`, not wildcard grants or display names.
   Application-review writes do not grant access to CI operator routes; Worker
   credentials never grant review access.
+- `agent_principals`: exact write principals whose approvals are agent votes.
+  They are bounded, unique, and must also be write principals.
+  `policy.agent_votes` is `advisory` by default: agent approvals are displayed
+  but never satisfy the ordinary approval count or an ownership item.
+  `binding` is an explicit policy opt-in that counts agent approvals exactly
+  like human approvals. Agent `NeedsRevision` and `Veto` votes keep their
+  existing blocking effect in either mode; no merge authority is granted.
 - `policy`: named eligible reviewers and submitters, nonzero required approvals
   and explicit `require_ci`. Owner approval, ineligible votes, stale votes,
   unresolved blocking threads, WIP and unmet dependencies cannot authorize submit.

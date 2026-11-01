@@ -460,6 +460,21 @@ pub struct Projection<'a> {
     pub saved_queries: &'a [SavedQuery],
     pub inbox: &'a [Notification],
 }
+/// How declared agent principals' approvals count for policy gates.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentVotes {
+    /// Counted and displayed, but never satisfies approval or ownership items.
+    #[default]
+    Advisory,
+    /// Explicit policy opt-in: agent approvals count like human approvals.
+    Binding,
+}
+impl AgentVotes {
+    fn is_advisory(&self) -> bool {
+        *self == Self::Advisory
+    }
+}
 /// No default policy: missing policy blocks submission. All identities are explicit.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -476,6 +491,10 @@ pub struct Policy {
     /// Without a rule a filtered required check leaves CI unmet.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub optional_ci: Vec<OptionalCi>,
+    /// Whether declared agent approvals can satisfy approval and ownership
+    /// items. Defaults to advisory; absence serializes unchanged.
+    #[serde(default, skip_serializing_if = "AgentVotes::is_advisory")]
+    pub agent_votes: AgentVotes,
 }
 
 #[path = "change_review_optional_ci.rs"]
@@ -606,6 +625,9 @@ pub struct Facts {
     /// comparison. `None` means the shell did not observe them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hunks: Option<Vec<HunkFact>>,
+    /// Declared agent principals; trusted shell facts, never request assertions.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub agents: BTreeSet<String>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ChecklistItem {
@@ -1572,10 +1594,13 @@ fn checklist_at(
             && change.reviewers.get(&vote.actor) == Some(&ReviewerRole::Reviewer)
             && policy.is_some_and(|p| p.eligible_reviewers.contains(&vote.actor))
     };
+    let agent_votes_bind = policy.is_some_and(|policy| policy.agent_votes == AgentVotes::Binding);
+    let counts_for_approval =
+        |vote: &&Vote| eligible(vote) && (agent_votes_bind || !facts.agents.contains(&vote.actor));
     let approvals = change
         .votes
         .iter()
-        .filter(eligible)
+        .filter(counts_for_approval)
         .filter(|vote| vote.value == VoteValue::Approve)
         .count();
     let ci_commit = facts
@@ -1744,10 +1769,11 @@ fn checklist_at(
                         if !applicable(rule, change) || !rule_matches(rule, files) {
                             continue;
                         }
-                        let approved = change.votes.iter().filter(eligible).any(|vote| {
-                            vote.value == VoteValue::Approve
-                                && rule_owners(policy, rule).any(|owner| owner == &vote.actor)
-                        });
+                        let approved =
+                            change.votes.iter().filter(counts_for_approval).any(|vote| {
+                                vote.value == VoteValue::Approve
+                                    && rule_owners(policy, rule).any(|owner| owner == &vote.actor)
+                            });
                         let mode = rule
                             .approval
                             .get(class)
@@ -2851,6 +2877,7 @@ mod tests {
                 require_ci: true,
                 ownership: OwnershipPolicy::default(),
                 optional_ci: Vec::new(),
+                agent_votes: AgentVotes::Advisory,
             }),
             source: Some(SourceFact {
                 project: "project".into(),
@@ -2889,6 +2916,7 @@ mod tests {
             integration: None,
             ci_required: None,
             hunks: None,
+            agents: BTreeSet::new(),
         }
     }
     fn send(
@@ -4283,6 +4311,26 @@ mod tests {
         rule.approval
             .insert("docs".into(), OwnershipApprovalMode::EvidenceOnly);
         assert!(validate_policy(&valid).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn advisory_agent_votes_do_not_approve_until_policy_binds_them() -> ReviewResult<()> {
+        let mut facts = owned_facts()?;
+        facts.agents.insert("bob".into());
+        let mut state = ReviewState::default();
+        create(&mut state, &mut facts, "c")?;
+        vote(&mut state, &mut facts, "bob", VoteValue::NeedsRevision)?;
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(!evidence_item(&checks, "vetoes")?);
+        vote(&mut state, &mut facts, "bob", VoteValue::Approve)?;
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(!evidence_item(&checks, "approvals")?);
+        assert!(!evidence_item(&checks, "owner:core")?);
+        facts.policy.as_mut().required()?.agent_votes = AgentVotes::Binding;
+        let checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "approvals")?);
+        assert!(evidence_item(&checks, "owner:core")?);
         Ok(())
     }
 

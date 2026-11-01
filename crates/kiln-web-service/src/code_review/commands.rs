@@ -123,6 +123,7 @@ impl Workspace {
             integration: None,
             ci_required: None,
             hunks: None,
+            agents: profile.agent_principals.iter().cloned().collect(),
         };
         let mut contribution = None;
         if let Action::Contribute {

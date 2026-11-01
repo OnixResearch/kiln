@@ -30,6 +30,7 @@
     },
   },
   read_principals = ["author", "reviewer", "operator"],
+  agent_principals = ["reviewer"],
   write_principals = ["author", "reviewer", "operator"],
   signature_name = "Kiln review service",
   signature_email = "kiln@localhost",

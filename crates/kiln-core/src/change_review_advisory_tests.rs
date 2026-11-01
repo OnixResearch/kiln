@@ -34,6 +34,7 @@ fn policy(ownership: bool, minimum_approvals: u32) -> Policy {
             classes: Vec::new(),
         },
         optional_ci: Vec::new(),
+        agent_votes: AgentVotes::Advisory,
     }
 }
 
