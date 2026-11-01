@@ -3,7 +3,8 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use kiln_core::change_review::{
-    Authorship, AuthorshipClass, Command, Facts, OwnershipPolicy, ReviewState, Revision, apply,
+    AgentIdentity, AttestedSubmission, Authorship, AuthorshipClass, Command, Facts,
+    OwnershipPolicy, ReviewState, Revision, apply,
 };
 use kiln_core::domain::State;
 use kiln_core::types::{CoreResult, Diagnostic};
@@ -914,6 +915,39 @@ const LEGACY_FRICTION_IDENTITY: &str =
     "9608269f3ef060dd0be8de580ddd4e6cc3090271f705bf021bfc6f6969b822d7";
 const LEGACY_ANCHORS_IDENTITY: &str =
     "6dd4a50aa7e4f071011219a29c126ccf2c9a2578fdfdee5d0af987fd31774531";
+
+#[test]
+fn review_window_marks_attested_agent_revisions() {
+    let (fixture, mut state) = replay_fixture_journal();
+    let change_id = state
+        .changes
+        .keys()
+        .next()
+        .unwrap_or_else(|| unreachable!("fixture change"))
+        .clone();
+    state
+        .changes
+        .get_mut(&change_id)
+        .unwrap_or_else(|| unreachable!("fixture change"))
+        .revisions
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture revision"))
+        .submitted_by = Some(AttestedSubmission {
+        principal: "agent".into(),
+        agent: Some(AgentIdentity {
+            harness: "omp".into(),
+            model: None,
+        }),
+    });
+    let window = review_window(&state, None, fixture.start_ms, fixture.end_ms)
+        .unwrap_or_else(|_| unreachable!("review window"));
+    let change = window
+        .changes
+        .iter()
+        .find(|change| change.change_id == change_id)
+        .unwrap_or_else(|| unreachable!("change in window"));
+    assert!(change.agent_submitted);
+}
 
 #[test]
 fn friction_counts_attested_agent_submissions() {

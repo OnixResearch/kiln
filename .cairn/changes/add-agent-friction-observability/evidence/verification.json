@@ -3,6 +3,10 @@
   "date": "2026-11-01",
   "commands": [
     {
+      "command": "cargo test -p kiln-observe-core review_window_marks_attested_agent_revisions",
+      "result": "1 passed; an attested revision marks its review-window change"
+    },
+    {
       "command": "cargo test -p kiln-observe-core friction_counts_attested_agent_submissions",
       "result": "1 passed; an attested agent-submitted change contributes once to the friction count"
     },

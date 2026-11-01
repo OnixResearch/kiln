@@ -8,7 +8,8 @@ shows the count. Zero counts preserve earlier observation identities.
 
 ## Evidence
 
-- Focused observation tests verify a single attested change contributes once and
+- Focused observation tests verify attestation marks the review-window change and
+  a single attested change contributes once and
   zero, one and two agent-submitted changes have distinct identities.
 - The complete workspace test suite passes.
 - Workspace check, Clippy, rustfmt and Cairn validation pass.
