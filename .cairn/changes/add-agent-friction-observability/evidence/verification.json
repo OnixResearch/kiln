@@ -8,7 +8,7 @@
     },
     {
       "command": "cargo test -p kiln-observe-core agent_submission_counts_change_friction_identity_only_when_non_zero",
-      "result": "1 passed; a non-zero agent count changes the friction identity and zero counts preserve it"
+      "result": "1 passed; zero, one and two agent-submitted changes have distinct identities"
     },
     {
       "command": "cargo test --workspace --no-fail-fast",
@@ -34,7 +34,7 @@
   "behavior": {
     "fact": "review window changes mark whether any admitted revision has attested agent identity",
     "count": "review friction reports agent_submitted_changes per declared authorship class",
-    "identity": "zero counts are omitted and preserve earlier identities; non-zero counts use a separate trailing tag",
+    "identity": "zero counts are omitted and preserve earlier identities; non-zero counts encode their full value under a separate trailing tag",
     "surface": "the dashboard review-friction table includes an agent-submitted column"
   },
   "non_claims": [

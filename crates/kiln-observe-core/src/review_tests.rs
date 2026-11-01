@@ -952,6 +952,12 @@ fn agent_submission_counts_change_friction_identity_only_when_non_zero() {
         .first_mut()
         .unwrap_or_else(|| unreachable!("fixture change"))
         .agent_submitted = true;
-    let attested_identity = identity(attested);
+    let attested_identity = identity(attested.clone());
     assert_ne!(baseline_identity, attested_identity);
+    let mut two = attested;
+    two.changes
+        .get_mut(1)
+        .unwrap_or_else(|| unreachable!("fixture change"))
+        .agent_submitted = true;
+    assert_ne!(attested_identity, identity(two));
 }

@@ -342,10 +342,10 @@ fn encode_trailing_option(
     agent: u64,
 ) {
     let advised = advisory.iter().any(|count| *count != 0);
-    let agent = agent != 0;
+    let agent_present = agent != 0;
     let tag = u8::from(value.is_some())
         | if advised { ADVISORY_TAG_BIT } else { 0 }
-        | if agent { AGENT_TAG_BIT } else { 0 };
+        | if agent_present { AGENT_TAG_BIT } else { 0 };
     output.push(tag);
     if let Some(bytes) = value {
         output.extend_from_slice(&bytes);
@@ -355,8 +355,8 @@ fn encode_trailing_option(
             push_u64(output, *count);
         }
     }
-    if agent {
-        push_u64(output, 1);
+    if agent_present {
+        push_u64(output, agent);
     }
 }
 
