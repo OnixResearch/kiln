@@ -8,7 +8,9 @@ shows the count. Zero counts preserve earlier observation identities.
 
 ## Evidence
 
-- Focused observation test verifies a single attested change contributes once.
+- Focused observation tests verify a single attested change contributes once and
+  non-zero counts change the friction identity without altering zero-count
+  identities.
 - The complete workspace test suite passes.
 - Workspace check, Clippy, rustfmt and Cairn validation pass.
 

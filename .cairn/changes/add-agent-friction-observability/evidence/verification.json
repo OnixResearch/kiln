@@ -7,6 +7,10 @@
       "result": "1 passed; an attested agent-submitted change contributes once to the friction count"
     },
     {
+      "command": "cargo test -p kiln-observe-core agent_submission_counts_change_friction_identity_only_when_non_zero",
+      "result": "1 passed; a non-zero agent count changes the friction identity and zero counts preserve it"
+    },
+    {
       "command": "cargo test --workspace --no-fail-fast",
       "result": "all workspace test binaries and doc tests passed"
     },

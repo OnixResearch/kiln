@@ -932,3 +932,26 @@ fn friction_counts_attested_agent_submissions() {
         1
     );
 }
+
+#[test]
+fn agent_submission_counts_change_friction_identity_only_when_non_zero() {
+    let identity = |window: ReviewWindow| {
+        project(
+            &profile(),
+            ViewRequest::ReviewFriction,
+            &ObservationWindow::review(window),
+        )
+        .unwrap_or_else(|_| unreachable!("friction projection"))
+        .identity
+    };
+    let baseline = fixture_window();
+    let baseline_identity = identity(baseline.clone());
+    let mut attested = baseline;
+    attested
+        .changes
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture change"))
+        .agent_submitted = true;
+    let attested_identity = identity(attested);
+    assert_ne!(baseline_identity, attested_identity);
+}
