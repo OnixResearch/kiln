@@ -2,7 +2,7 @@
 
 ## Result
 
-Review search supports a read-only agent-attestation filter. `agent=with`
+Review search supports read-only agent-attestation and declared-harness filters. `agent=with`
 matches only changes whose current revision has `submitted_by`; `agent=without`
 matches only unattested current revisions; absence does not filter. The console
 form and saved views carry the same filter.

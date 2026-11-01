@@ -491,6 +491,7 @@ fn advisory_binds_the_current_revision_and_becomes_historical() {
         status: None,
         advisory: Some(advisory),
         agent: None,
+        agent_harness: None,
     };
     assert!(search(&state, "dave", &query(true)).is_empty());
     assert_eq!(search(&state, "dave", &query(false)).len(), 1);

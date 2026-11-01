@@ -482,6 +482,9 @@ pub struct SearchQuery {
     /// `Some(true)`: current revision carries attested agent submission identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent: Option<bool>,
+    /// Exact declared harness on the current revision's attested agent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_harness: Option<String>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -991,6 +994,15 @@ pub fn search<'a>(state: &'a ReviewState, actor: &str, query: &SearchQuery) -> V
             if query
                 .agent
                 .is_some_and(|wanted| wanted != revision.submitted_by.is_some())
+            {
+                return false;
+            }
+            if let Some(harness) = &query.agent_harness
+                && revision
+                    .submitted_by
+                    .as_ref()
+                    .and_then(|submission| submission.agent.as_ref())
+                    .is_none_or(|agent| &agent.harness != harness)
             {
                 return false;
             }
@@ -4008,6 +4020,7 @@ mod tests {
                     status: None,
                     advisory: None,
                     agent: None,
+                    agent_harness: None,
                 }
             )
             .first()
@@ -4626,10 +4639,21 @@ mod tests {
             status: None,
             advisory: None,
             agent,
+            agent_harness: None,
         };
         assert_eq!(search(&state, "alice", &query(Some(true))).len(), 1);
         assert!(search(&state, "alice", &query(Some(false))).is_empty());
         assert_eq!(search(&state, "alice", &query(None)).len(), 1);
+        let by_harness = |harness: &str| SearchQuery {
+            kind: SearchKind::All,
+            text: String::new(),
+            status: None,
+            advisory: None,
+            agent: Some(true),
+            agent_harness: Some(harness.into()),
+        };
+        assert_eq!(search(&state, "alice", &by_harness("omp")).len(), 1);
+        assert!(search(&state, "alice", &by_harness("other")).is_empty());
         Ok(())
     }
 
@@ -5123,6 +5147,7 @@ mod tests {
                 status: Some(ChangeStatus::Open),
                 advisory: None,
                 agent: Some(false),
+                agent_harness: None,
             },
         };
         send(

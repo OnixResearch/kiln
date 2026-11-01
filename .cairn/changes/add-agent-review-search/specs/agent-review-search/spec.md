@@ -8,10 +8,12 @@ Defines a read-only review search filter for attested agent submissions.
 
 ### Requirement: Current-revision agent filter
 
-r[kiln.review.agent.search] `SearchQuery` MAY carry `agent: Option<bool>`.
+r[kiln.review.agent.search] `SearchQuery` MAY carry `agent: Option<bool>` and
+`agent_harness: Option<String>`.
 `Some(true)` MUST match only changes whose current revision carries
 `submitted_by`; `Some(false)` MUST match only changes without it; absence MUST
-not filter. The field MUST be omitted when absent so existing saved-view bytes
+not filter. `agent_harness` MUST match only the exact declared harness on the
+current attested revision. The field MUST be omitted when absent so existing saved-view bytes
 remain unchanged. The shell MUST accept only `agent=with` or `agent=without`.
 
 #### Scenario: Attested change matches
@@ -19,6 +21,12 @@ r[kiln.review.agent.search.scenario.attested]
 - GIVEN a change whose current revision is attested agent-submitted
 - WHEN searching with `agent=with`
 - THEN the change is returned.
+
+#### Scenario: Harness matches
+r[kiln.review.agent.search.scenario.harness]
+- GIVEN a current revision attested with harness `omp`
+- WHEN searching with `agent_harness=omp`
+- THEN the change is returned; another harness does not match.
 
 #### Scenario: Unattested change excluded
 r[kiln.review.agent.search.scenario.unattested]

@@ -1311,6 +1311,13 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
         Some("without") => Some(false),
         _ => return reject(400, "review_query_invalid"),
     };
+    let agent_harness = match query.get("agent_harness").map(String::as_str) {
+        None | Some("") => None,
+        Some(value) if value.len() <= 128 && !value.chars().any(char::is_control) => {
+            Some(value.to_string())
+        }
+        Some(_) => return reject(400, "review_query_invalid"),
+    };
     let agent = match query.get("agent").map(String::as_str) {
         None | Some("") => None,
         Some("with") => Some(true),
@@ -1323,6 +1330,7 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
         status,
         advisory,
         agent,
+        agent_harness,
     })
 }
 fn parse_target(target: &str) -> Result<(String, BTreeMap<String, String>), Failure> {

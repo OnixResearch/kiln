@@ -12,7 +12,7 @@
     },
     {
       "command": "cargo test -p kiln-web-service --test code_review review_detail_marks_agent_votes",
-      "result": "1 passed; an agent-submitted change matches `with`, a human change matches `without`, and malformed values are rejected"
+      "result": "1 passed; agent/harness filters, human negatives and malformed values are covered"
     },
     {
       "command": "cargo test --workspace --no-fail-fast",
@@ -36,9 +36,9 @@
     }
   ],
   "behavior": {
-    "query": "SearchQuery.agent is optional and omitted when unset; with/without match the current revision's submitted_by",
+    "query": "SearchQuery.agent/harness are optional and omitted when unset; with/without match submitted_by and harness matches the current declared agent identity",
     "shell": "agent=with|without is admitted; malformed values are rejected",
-    "surface": "console search and saved views carry the same filter",
+    "surface": "console search, saved views and URL restoration carry the same filters",
     "authority": "read-only filter; no review, execution or merge authority"
   },
   "non_claims": [

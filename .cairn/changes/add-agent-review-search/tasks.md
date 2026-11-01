@@ -1,6 +1,6 @@
 ## Phase 1: Core and shell
 
-- [x] [serial] Add the optional current-revision agent search field and filter. r[kiln.review.agent.search]
+- [x] [serial] Add optional current-revision agent and exact-harness search fields and filters. r[kiln.review.agent.search]
 - [x] [serial] Parse `with`/`without` in the review query and expose the console form/saved-view field. r[kiln.review.agent.search]
 
 ## Phase 2: Verification

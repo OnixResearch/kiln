@@ -3288,7 +3288,8 @@ them historical. The change detail lists them under "Advisory approvals
 and the search form's **Advisory approvals** filter (`advisory=with|without`) can
 be saved in personal views. The separate **Agent submission** filter
 (`agent=with|without`) matches whether the current revision carries attested
-agent submission identity; it is also saved in personal views. Older journals
+agent submission identity. **Agent harness** (`agent_harness=<declared harness>`)
+matches that exact declared harness. Both are saved in personal views. Older journals
 and saved views replay unchanged.
 
 Line selection seeds a private draft with the revision, comparison-base commit,
