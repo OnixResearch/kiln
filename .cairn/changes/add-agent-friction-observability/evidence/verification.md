@@ -9,7 +9,7 @@ shows the count. Zero counts preserve earlier observation identities.
 ## Evidence
 
 - Focused observation test verifies a single attested change contributes once.
-- Selected core, observation, dashboard and web-service suites pass.
+- The complete workspace test suite passes.
 - Workspace check, Clippy, rustfmt and Cairn validation pass.
 
 ## Non-claims

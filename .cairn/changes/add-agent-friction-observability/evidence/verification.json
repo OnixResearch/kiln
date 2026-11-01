@@ -7,8 +7,8 @@
       "result": "1 passed; an attested agent-submitted change contributes once to the friction count"
     },
     {
-      "command": "cargo test -p kiln-observe-core -p kiln-dashboard -p kiln-core -p kiln-web-service",
-      "result": "all selected core, observation, dashboard and web-service test binaries passed"
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "all workspace test binaries and doc tests passed"
     },
     {
       "command": "cargo check --workspace --all-targets",

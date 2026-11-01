@@ -119,7 +119,9 @@ first patch set lies in the window, and it clips every later fact to before
 - an anchored suggestion is a review thread opened by someone other than the
   change owner. Its owner is the first ownership rule, in policy order, that
   applies to the anchor path and change target;
-- a change is merged when its submission was recorded before `end_ms`.
+- a change is merged when its submission was recorded before `end_ms`;
+- `agent_submitted` is true when any admitted revision carries attested agent
+  submission identity.
 
 `review_friction` reports one row per class in the fixed order `human`,
 `agent`, `mixed`, `undeclared`. Each row has:
@@ -129,7 +131,9 @@ first patch set lies in the window, and it clips every later fact to before
   approval latency in milliseconds, patch sets before approval, and anchored
   suggestions per change;
 - `merged_changes`, `merged_without_suggestion` (merged on required CI alone),
-  and `merged_without_suggestion_per_mille`.
+  and `merged_without_suggestion_per_mille`;
+- `agent_submitted_changes`, counting changes with attested agent identity while
+  keeping the authorship class self-declared and unverified.
 
 `suggestion_anchors` groups suggestions by path and owner. It ranks them by
 suggestion count descending, then distinct changes descending, then path and
@@ -138,8 +142,10 @@ above `max_page_items` is capped and reported, and a cursor past the total
 fails with `cursor_ahead`. The ranking is input for turning recurring review
 comments into required CI checks. It creates no checks itself.
 
-Authorship is self-declared by the contributor and unverified. Kiln never
-infers it from commits, principals, or diffs, and every `review_friction` body
+Authorship is self-declared by the contributor and unverified. Attested agent
+identity is a separate principal fact, not verified execution and not a change
+to the authorship basis. Kiln never infers authorship from commits, principals,
+or diffs, and every `review_friction` body
 carries `authorship_basis: self_declared_unverified`. Neither view nor the
 window gates, approves, merges, notifies, or alters review state.
 
