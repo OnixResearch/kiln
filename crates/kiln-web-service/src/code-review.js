@@ -797,7 +797,7 @@
     card.append(summary);
     if (c.submission) {
       const receipt = section(card, "Observed submission receipt"), outcome = c.submission;
-      facts(receipt, [["Submitted by", outcome.submitted_by], ["Submitted at", when(outcome.submitted_ms)], ["Candidate", outcome.candidate?.id], ["Exact source revision", outcome.candidate?.revision], ["Exact source commit", outcome.candidate?.commit], ["Target ref", outcome.candidate?.target_ref], ["Expected target commit", outcome.candidate?.target], ["Result commit", outcome.result_commit], ["CI run", outcome.candidate?.ci_run], ["Exact dependencies", JSON.stringify(outcome.candidate?.dependencies || [])]]);
+      facts(receipt, [["Submitted by", outcome.submitted_by], ...(outcome.agent ? [["Agent", `${text(outcome.agent.harness)}${outcome.agent.model ? ` · ${text(outcome.agent.model)}` : ""} (declared)`]] : []), ["Submitted at", when(outcome.submitted_ms)], ["Candidate", outcome.candidate?.id], ["Exact source revision", outcome.candidate?.revision], ["Exact source commit", outcome.candidate?.commit], ["Target ref", outcome.candidate?.target_ref], ["Expected target commit", outcome.candidate?.target], ["Result commit", outcome.result_commit], ["CI run", outcome.candidate?.ci_run], ["Exact dependencies", JSON.stringify(outcome.candidate?.dependencies || [])]]);
     }
     card.append(requirements(items));
     if (!checklist) card.append(node("p", "Checklist unavailable. Submission is blocked until the service can evaluate exact source, target, dependencies, approval and CI facts.", "cr-notice"));

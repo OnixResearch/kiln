@@ -2634,8 +2634,8 @@ declaration must name a review write principal or startup fails. Harness/model
 text is bounded; it is configuration, not verified execution metadata. The
 admitted session principal and attributable audit records carry the declaration,
 and the workspace and activity feed show it as declared identity, not as an authority grant. When
-present, it is recorded on revisions submitted by that agent and shown with the
-attested principal.
+present, it is recorded on revisions and submission receipts submitted by that
+agent and shown with the attested principal.
 Viewer requests can inspect retained facts but cannot enroll, run, control or
 configure automation. Worker credentials remain limited to exact worker ingress.
 Denied writes are attributable audit observations, not canonical CI events.

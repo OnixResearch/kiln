@@ -2,8 +2,8 @@
 
 ## Result
 
-Attested agent revisions now store the exact principal plus optional declared
-harness/model metadata. Review profile metadata is bounded and restricted to
+Attested agent revisions and submission receipts now store the exact principal
+plus optional declared harness/model metadata. Review profile metadata is bounded and restricted to
 declared agents; access declarations merge with deduplication and conflict
 rejection. The review Nickel contract exports both optional agent fields instead
 of silently dropping them, and the identity view shows the declared identity

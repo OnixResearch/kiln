@@ -388,6 +388,9 @@ pub struct SubmitOutcome {
     pub candidate: Candidate,
     pub result_commit: String,
     pub submitted_by: String,
+    /// Declared agent identity of the submitting principal, when present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentIdentity>,
     pub submitted_ms: i64,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -2904,6 +2907,11 @@ pub fn apply(
                 candidate,
                 result_commit,
                 submitted_by: actor.into(),
+                agent: facts
+                    .agents
+                    .contains(actor)
+                    .then(|| facts.agent_identities.get(actor).cloned())
+                    .flatten(),
                 submitted_ms: facts.now_ms,
             });
             current.state = ChangeStatus::Submitted;
@@ -3610,13 +3618,26 @@ mod tests {
         assert!(send(&mut state, &mut facts, "alice", command.clone()).is_err());
         assert_eq!(state, before);
         facts.source.as_mut().required()?.current_target = "merged-candidate".into();
+        facts.agents.insert("alice".into());
+        facts.agent_identities.insert(
+            "alice".into(),
+            AgentIdentity {
+                harness: "omp".into(),
+                model: Some("deepseek".into()),
+            },
+        );
         send(&mut state, &mut facts, "alice", command)?;
         let change = state.changes.get("c").required()?;
         assert_eq!(change.state, ChangeStatus::Submitted);
         assert_eq!(change.current()?.commit, "commit-c");
+        let submission = change.submission.as_ref().required()?;
+        assert_eq!(submission.result_commit, "merged-candidate");
         assert_eq!(
-            change.submission.as_ref().required()?.result_commit,
-            "merged-candidate"
+            submission
+                .agent
+                .as_ref()
+                .map(|agent| agent.harness.as_str()),
+            Some("omp")
         );
         Ok(())
     }

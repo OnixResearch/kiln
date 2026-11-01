@@ -44,7 +44,7 @@
     }
   ],
   "behavior": {
-    "attestation": "AttestedSubmission records principal and optional declared AgentIdentity harness/model; legacy bare principal strings deserialize compatibly",
+    "attestation": "revisions and submission receipts record principal plus optional declared AgentIdentity; legacy bare principal strings deserialize compatibly",
     "profile": "agent_metadata is bounded, trimmed, control-free and restricted to declared agent principals",
     "merge": "access declarations deduplicate principals and conflict-check explicit review metadata before admission",
     "startup parity": "check and serve load the same access/review agent merge before review admission",
