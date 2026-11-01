@@ -175,7 +175,8 @@ impl AutomationProfile {
             filters::admit_trigger(p)?;
         }
         for p in &self.schedules {
-            if p.min_interval_ms < 1000
+            if !p.reference.starts_with("refs/heads/")
+                || p.min_interval_ms < 1000
                 || p.max_interval_ms > 31_536_000_000
                 || p.min_interval_ms > p.max_interval_ms
                 || p.next_due_ms.is_some_and(|due| due > 9_007_199_254_740_991)
@@ -254,7 +255,7 @@ impl AutomationProfile {
     }
 }
 pub(crate) fn valid_reference(value: &str) -> bool {
-    value.starts_with("refs/heads/")
+    (value.starts_with("refs/heads/") || value.starts_with("refs/tags/"))
         && value.len() <= 512
         && !value.ends_with('/')
         && !value.contains("..")

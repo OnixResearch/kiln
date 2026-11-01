@@ -20,22 +20,50 @@ fn branch_matches(patterns: &[String], branch: &str) -> bool {
 }
 
 // r[impl kiln.triggers.filter]
-/// Registrations bind one exact `refs/heads` reference, so `tags` never apply;
-/// a push filter must admit that reference and `types` need pull requests.
+/// A trigger binds one exact branch or tag reference. Push filters must admit
+/// that exact reference; pull requests bind branch heads and reject tag filters.
 pub(crate) fn admit_trigger(p: &TriggerProfile) -> Result<(), String> {
     let invalid = |message: &str| format!("automation trigger {} filter invalid: {message}", p.id);
-    trigger_filter::admit_filter(EventKind::PullRequest, &p.filter)
-        .map_err(|e| invalid(&e.to_string()))?;
-    let branch = p.reference.strip_prefix(BRANCH_PREFIX).unwrap_or_default();
-    if p.push && !p.filter.branches.is_empty() && !branch_matches(&p.filter.branches, branch) {
-        return Err(invalid(
-            "push branches never admit the bound reference; use a pull-request-only registration",
-        ));
+    let branch = p.reference.strip_prefix(BRANCH_PREFIX);
+    let tag = p.reference.strip_prefix(trigger_filter::TAG_PREFIX);
+    if p.pull_request {
+        trigger_filter::admit_filter(EventKind::PullRequest, &p.filter)
+            .map_err(|e| invalid(&e.to_string()))?;
+    } else if p.push {
+        trigger_filter::admit_filter(EventKind::Push, &p.filter)
+            .map_err(|e| invalid(&e.to_string()))?;
+    } else {
+        trigger_filter::admit_filter(EventKind::PullRequest, &p.filter)
+            .map_err(|e| invalid(&e.to_string()))?;
     }
-    if !p.pull_request && !p.filter.types.is_empty() {
-        return Err(invalid("types apply only to pull requests"));
+    if p.push {
+        if tag.is_some() && !p.filter.branches.is_empty() {
+            return Err(invalid("branch filters never admit a tag reference"));
+        }
+        if branch.is_some() && !p.filter.tags.is_empty() {
+            return Err(invalid("tag filters never admit a branch reference"));
+        }
+        if let Some(tag) = tag {
+            if !p.filter.tags.is_empty() && !tag_matches(&p.filter.tags, tag) {
+                return Err(invalid("tag filters never admit the bound tag reference"));
+            }
+        }
+        if let Some(branch) = branch {
+            if !p.filter.branches.is_empty() && !branch_matches(&p.filter.branches, branch) {
+                return Err(invalid("branch filters never admit the bound reference"));
+            }
+        }
+    }
+    if p.pull_request && branch.is_none() {
+        return Err(invalid("pull requests require a branch reference"));
     }
     Ok(())
+}
+
+fn tag_matches(patterns: &[String], tag: &str) -> bool {
+    patterns
+        .iter()
+        .any(|pattern| kiln_core::paths::matches(pattern, tag))
 }
 
 /// Whether a registration admits a pull request into `base`: its exact

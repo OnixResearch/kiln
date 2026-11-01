@@ -291,6 +291,54 @@ fn pull_request_supersession_is_scoped_to_one_pull_request() {
 }
 
 #[test]
+fn signed_tag_push_dispatches_a_tag_bound_run() {
+    let (root, mut profile, revision) = fixture();
+    let tag = "refs/tags/v1.0.0";
+    let repository_path = profile
+        .projects
+        .first()
+        .unwrap_or_else(|| unreachable!("fixture project"))
+        .repository_path
+        .clone();
+    let repo = checked(git2::Repository::open(&repository_path));
+    let commit = checked(checked(repo.revparse_single(&revision)).peel_to_commit());
+    checked(repo.reference(tag, commit.id(), true, "test tag"));
+    profile
+        .projects
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture project"))
+        .admitted_references
+        .push(tag.into());
+    let mut automation = policy(root.path());
+    let trigger = automation
+        .triggers
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture trigger"));
+    trigger.reference = tag.into();
+    trigger.push = true;
+    trigger.pull_request = false;
+    trigger.pull_request_base = None;
+    trigger.filter.tags = vec!["v*".into()];
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let body = checked(serde_json::to_vec(&json!({
+        "repository": repository(),
+        "ref": tag,
+        "after": revision,
+        "deleted": false,
+    })));
+    let response = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000041", "push", &body),
+        &body,
+    ));
+    assert_eq!(response.status, 202);
+    assert_eq!(backend.lock().dispatches, 1);
+}
+
+#[test]
 fn signed_pull_request_and_stale_or_unregistered_sources_have_opposite_effects() {
     let (root, profile, revision) = fixture();
     let backend = Arc::new(Mutex::new(Backend::default()));

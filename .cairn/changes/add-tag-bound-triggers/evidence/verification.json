@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.triggers.tag-bound.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --test engine signed_tag_push_dispatches_a_tag_bound_run",
+      "result": "1 passed; a signed tag push creates a run bound to the exact tag commit"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/web-automation.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "admission": "exact heads/tags trigger references; schedules remain heads-only",
+    "filters": "tag-bound push requires tags and rejects branches; branch-bound push requires branches and rejects tags; pull requests remain branch-bound and reject tags",
+    "source": "the project admitted-reference list remains the source authority; the tag commit is resolved for the run",
+    "dispatch": "a signed tag push reserves and dispatches an ordinary CI run with no release side effect"
+  },
+  "non_claims": [
+    "the run is not release evidence and does not publish, move or trust tags",
+    "tag history is not used as the CI base; existing changed-file fallback semantics apply",
+    "passing tests do not prove provider execution correctness or release readiness"
+  ]
+}

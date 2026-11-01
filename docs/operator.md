@@ -2840,13 +2840,18 @@ the current operator owns enrollment and delivery policy.
 
 ##### Trigger filters
 
+A trigger binds an exact `refs/heads/*` or `refs/tags/*` reference. Tag-bound
+pushes require the tag in the project's admitted references; pull-request
+triggers remain branch-bound, and schedules remain branch-bound.
+
 A trigger may add an optional `filter`:
 
 - `branches`: globs that match the pushed branch, or a pull request's base branch.
+- `tags`: globs that match a pushed tag. Tags are push-only and cannot combine with pull-request triggers; a tag-bound trigger must admit its exact reference.
 - `types`: pull request actions (`opened`, `reopened`, `synchronize`, `closed` or `merged`). An empty list keeps today's `opened`/`reopened`/`synchronize`.
 - `paths`: globs that match any changed path, including a rename's old path.
 
-Globs use the shared review and scope matcher: `*` and `?` stay within one `/` segment, and a whole `**` segment spans directories. `tags`, negation, character classes and alternation are rejected, because registrations bind one exact `refs/heads` reference.
+Globs use the shared review and scope matcher: `*` and `?` stay within one `/` segment, and a whole `**` segment spans directories. Negation, character classes and alternation are rejected. A branch-bound trigger rejects a `tags` filter and a tag-bound trigger rejects a `branches` filter, because each registration binds one exact reference.
 
 With `branches`, a pull-request trigger may omit `pull_request_base` and admit every base that the globs match. Listing `closed` or `merged` admits closed pull requests for that repository; it is the only way they ever run.
 
