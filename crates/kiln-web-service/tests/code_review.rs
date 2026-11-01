@@ -1819,6 +1819,25 @@ fn review_detail_marks_agent_votes() -> Result<()> {
     );
     assert_eq!(
         field(
+            &accepted(get(&workspace, "/api/code-review?agent_model=", ALICE, &[]))?,
+            "/total"
+        )?,
+        &json!(2)
+    );
+    assert_eq!(
+        field(
+            &accepted(get(
+                &workspace,
+                "/api/code-review?agent_harness=",
+                ALICE,
+                &[]
+            ))?,
+            "/total"
+        )?,
+        &json!(2)
+    );
+    assert_eq!(
+        field(
             &accepted(get(
                 &workspace,
                 "/api/code-review?agent_model=other",
