@@ -231,6 +231,8 @@
     if (ui().utf8Bytes(text) > AUTHORSHIP_TEXT_BYTES) throw new Error(`${name} must be at most ${AUTHORSHIP_TEXT_BYTES} bytes.`);
     return text;
   }
+  const advisoryRoute = value => value === true ? "with" : value === false ? "without" : "";
+  const agentRoute = value => value === true ? "with" : value === false ? "without" : "";
   function savedQueryForRoute(route) {
     return {
       kind: route.review_view || "all",
@@ -865,8 +867,6 @@
       for (const rule of policy.ownership.rules) { const article = node("article", null, "cr-operation"); facts(article, [["Rule", rule.id], ["Project", rule.project || "unassigned"], ["Path patterns", arr(rule.paths).join(", ")], ["Interface patterns", arr(rule.interface).join(", ") || "none"], ["Protected targets", arr(rule.target_refs).join(", ") || "All admitted targets"], ["Owners", arr(rule.owners).join(", ")], ["Teams", arr(rule.teams).map(team => `${team}: ${arr(policy.ownership.teams?.[team]).join(", ")}`).join("; ")]]); rules.append(article); }
     }
   }
-  const advisoryRoute = value => value === true ? "with" : value === false ? "without" : "";
-  const agentRoute = value => value === true ? "with" : value === false ? "without" : "";
   // r[impl kiln.review.advisory.view] A separate, labelled, non-binding list; never part of the checklist above.
   function drawAdvisory(card, c) {
     const box = node("div", null, "cr-subsection cr-advisory"), live = current()?.id, records = arr(c.advisory), me = state.context.principal;
