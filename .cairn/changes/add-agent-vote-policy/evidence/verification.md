@@ -15,7 +15,8 @@ either mode.
 - Review-profile admission tests cover valid, empty, duplicate, non-writer and
   over-bound agent principal lists.
 - Review detail tests verify declared agent reviewers and votes are marked with
-  reviewer metadata and the effective advisory/binding mode is reported.
+  reviewer metadata and the effective advisory/binding mode is reported;
+  notifications carry the same agent marker.
 - Full core and web-service suites pass.
 - Clippy, rustfmt, Nickel typecheck/export and Cairn validation pass.
 

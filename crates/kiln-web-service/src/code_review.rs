@@ -673,11 +673,25 @@ impl Workspace {
                     .then_with(|| a.id.cmp(&b.id))
             });
             let notifications_total = inbox.len();
-            let notifications: Vec<_> = inbox
+            let agents: BTreeSet<&str> = profile
+                .agent_principals
+                .iter()
+                .map(String::as_str)
+                .collect();
+            let notifications: Vec<Value> = inbox
                 .into_iter()
                 .skip(notification_offset)
                 .take(NOTIFICATION_PAGE_SIZE)
-                .collect();
+                .map(|notification| {
+                    let mut value =
+                        serde_json::to_value(notification).map_err(|_| Failure::Unavailable)?;
+                    value.as_object_mut().ok_or(Failure::Unavailable)?.insert(
+                        "agent".into(),
+                        json!(agents.contains(notification.actor.as_str())),
+                    );
+                    Ok(value)
+                })
+                .collect::<Result<_, Failure>>()?;
             let next_notification_offset =
                 (notification_offset.saturating_add(notifications.len()) < notifications_total)
                     .then_some(notification_offset.saturating_add(notifications.len()));

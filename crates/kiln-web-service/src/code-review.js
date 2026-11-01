@@ -653,7 +653,7 @@
       for (const item of notifications) {
         // The notification kind and change title lead; actor, time, read state and the exact revision follow as metadata.
         const li = node("li", null, "list-row cr-notification"), text = node("div", null, "cr-row-main"), meta = node("p", null, "cr-muted"), title = titleFor(item.change); li.dataset.read = String(!!item.read);
-        meta.append(principalNode(item.actor), " · ", when(item.created_ms), ` · ${item.read ? "Read" : "Unread"} · `, exactId(item.revision)); text.append(changeLink(item.change, title ? `${human(item.kind)}: ${title}` : `${human(item.kind)} · ${short(item.revision)}`), meta);
+        meta.append(principalNode(item.actor), ...(item.agent ? [chip("Agent")] : []), " · ", when(item.created_ms), ` · ${item.read ? "Read" : "Unread"} · `, exactId(item.revision)); text.append(changeLink(item.change, title ? `${human(item.kind)}: ${title}` : `${human(item.kind)} · ${short(item.revision)}`), meta);
         li.append(text, writeButton(item.read ? "Mark unread" : "Mark read", () => command({ type: "read_notification", id: item.id, read: !item.read }, null), "quiet")); rows.append(li);
       }
       inbox.append(rows);
