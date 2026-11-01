@@ -811,6 +811,11 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .is_some_and(serde_json::Value::is_string)
     );
     assert_eq!(
+        retained_first.get("failures"),
+        Some(&serde_json::Value::from(1))
+    );
+    assert_eq!(retained_first.get("last_success_ms"), Some(&last_success));
+    assert_eq!(
         retained_first
             .get("entries")
             .and_then(|value| value.get(0))
