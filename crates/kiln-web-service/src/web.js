@@ -1519,6 +1519,13 @@
           open.target = "_blank";
           open.rel = "noreferrer";
           actions.append(open);
+          if (repository.rss_subscribe_url) {
+            const rss = element("a", "RSS", "button-link");
+            rss.href = repository.rss_subscribe_url;
+            rss.target = "_blank";
+            rss.rel = "noreferrer";
+            actions.append(rss);
+          }
         } else {
           actions.append(element("span", "The token-bearing URL is available to operators.", "small"));
         }

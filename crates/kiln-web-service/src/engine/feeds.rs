@@ -137,6 +137,10 @@ impl Engine {
                             "subscribe_url".into(),
                             json!(format!("{url}?token={token}")),
                         );
+                        object.insert(
+                            "rss_subscribe_url".into(),
+                            json!(format!("{url}.rss?token={token}")),
+                        );
                     }
                 }
                 row
@@ -466,6 +470,43 @@ impl Engine {
 
     /// Render a repository Atom feed. The caller has already verified the
     /// dedicated feed token and passes the path without its query string.
+    fn repository_feed(&self, key: &str) -> Option<(String, Vec<crate::feeds::FeedRun>)> {
+        let projects: BTreeMap<String, &crate::profile::ProjectProfile> = self
+            .profile
+            .projects
+            .iter()
+            .filter(|project| project.repository_key() == key)
+            .map(|project| (project.id.clone(), project))
+            .collect();
+        if projects.is_empty() {
+            return None;
+        }
+        let runs = self
+            .state
+            .runs
+            .values()
+            .filter(|run| projects.contains_key(&run.project_id))
+            .map(|run| crate::feeds::FeedRun {
+                id: run.id.clone(),
+                project_id: run.project_id.clone(),
+                project_label: projects
+                    .get(&run.project_id)
+                    .map(|project| project.label.clone())
+                    .unwrap_or_else(|| "unknown project".to_string()),
+                ordinal: run.ordinal,
+                updated_ms: run_updated(run),
+                outcome: outcome_label(run.outcome()).to_string(),
+                revision: run.source.exact_revision.native_id.as_str().to_string(),
+            })
+            .collect();
+        let label = projects
+            .values()
+            .next()
+            .map(|project| project.label.clone())
+            .unwrap_or_else(|| "Repository".to_string());
+        Some((label, runs))
+    }
+
     // r[impl kiln.web.feeds.publish.scenario.rendered]
     // r[impl kiln.web.feeds.publish.scenario.missing]
     pub(crate) fn render_feed(&self, path: &str) -> Option<ApiResponse> {
@@ -539,54 +580,86 @@ impl Engine {
                 download_name: None,
             });
         }
-        let key = path
-            .strip_prefix("/feeds/")?
-            .strip_suffix(".xml")
-            .filter(|key| key.len() == 64 && key.bytes().all(|byte| byte.is_ascii_hexdigit()))?;
-        let projects: BTreeMap<String, &crate::profile::ProjectProfile> = self
-            .profile
-            .projects
-            .iter()
-            .filter(|project| project.repository_key() == key)
-            .map(|project| (project.id.clone(), project))
-            .collect();
-        if projects.is_empty() {
+        if path == "/feeds.rss" {
+            let mut repositories: BTreeMap<String, (String, usize, u64)> = BTreeMap::new();
+            for project in &self.profile.projects {
+                let key = project.repository_key();
+                let runs: Vec<&super::model::RunRecord> = self
+                    .state
+                    .runs
+                    .values()
+                    .filter(|run| run.project_id == project.id)
+                    .collect();
+                let newest = runs.iter().map(|run| run_updated(run)).max().unwrap_or(0);
+                repositories
+                    .entry(key)
+                    .and_modify(|entry| {
+                        entry.1 += runs.len();
+                        entry.2 = entry.2.max(newest);
+                    })
+                    .or_insert((project.label.clone(), runs.len(), newest));
+            }
+            let items: Vec<AtomItem> = repositories
+                .into_iter()
+                .map(|(key, (label, runs, newest))| AtomItem {
+                    id: format!("urn:kiln:repository:{key}"),
+                    title: format!("{label} CI runs"),
+                    link: format!("{origin}/feeds/{key}.rss?token={}", token.as_str()),
+                    updated_ms: newest,
+                    summary: format!("{runs} retained runs for this repository"),
+                })
+                .collect();
+            let xml = crate::feeds::render_rss(
+                "Kiln repositories",
+                &format!("{origin}/feeds.rss?token={}", token.as_str()),
+                "Retained CI runs by repository",
+                &items,
+            );
+            return Some(ApiResponse {
+                status: 200,
+                content_type: "application/rss+xml; charset=utf-8",
+                body: xml.into_bytes(),
+                download_name: None,
+            });
+        }
+        let rest = path.strip_prefix("/feeds/")?;
+        let (key, rss) = if let Some(key) = rest.strip_suffix(".xml") {
+            (key, false)
+        } else if let Some(key) = rest.strip_suffix(".rss") {
+            (key, true)
+        } else {
+            return None;
+        };
+        if key.len() != 64 || !key.bytes().all(|byte| byte.is_ascii_hexdigit()) {
             return None;
         }
-        let mut runs: Vec<crate::feeds::FeedRun> = self
-            .state
-            .runs
-            .values()
-            .filter(|run| projects.contains_key(&run.project_id))
-            .map(|run| crate::feeds::FeedRun {
-                id: run.id.clone(),
-                project_id: run.project_id.clone(),
-                project_label: projects
-                    .get(&run.project_id)
-                    .map(|project| project.label.clone())
-                    .unwrap_or_else(|| "unknown project".to_string()),
-                ordinal: run.ordinal,
-                updated_ms: run_updated(run),
-                outcome: outcome_label(run.outcome()).to_string(),
-                revision: run.source.exact_revision.native_id.as_str().to_string(),
-            })
-            .collect();
-        let label = projects
-            .values()
-            .next()
-            .map(|project| project.label.as_str())
-            .unwrap_or("Repository");
-        let xml = crate::feeds::repository_atom(
-            origin,
-            key,
-            &format!("{label} CI runs"),
-            token.as_str(),
-            &mut runs,
-            profile.max_entries_per_feed,
-        );
+        let (label, mut runs) = self.repository_feed(key)?;
+        let xml = if rss {
+            let items =
+                crate::feeds::repository_items(origin, &mut runs, profile.max_entries_per_feed);
+            crate::feeds::render_rss(
+                &format!("{label} CI runs"),
+                &format!("{origin}/feeds/{key}.rss?token={}", token.as_str()),
+                &format!("Retained CI runs for {label}"),
+                &items,
+            )
+        } else {
+            crate::feeds::repository_atom(
+                origin,
+                key,
+                &format!("{label} CI runs"),
+                token.as_str(),
+                &mut runs,
+                profile.max_entries_per_feed,
+            )
+        };
         Some(ApiResponse {
             status: 200,
-            content_type: "application/atom+xml; charset=utf-8",
+            content_type: if rss {
+                "application/rss+xml; charset=utf-8"
+            } else {
+                "application/atom+xml; charset=utf-8"
+            },
             body: xml.into_bytes(),
             download_name: None,
         })

@@ -687,6 +687,20 @@ pub struct FeedRun {
 
 /// Select and render the newest retained runs for one repository.
 #[must_use]
+pub fn repository_items(origin: &str, runs: &mut Vec<FeedRun>, max_items: usize) -> Vec<AtomItem> {
+    runs.sort_by(|left, right| right.ordinal.cmp(&left.ordinal));
+    runs.truncate(max_items);
+    runs.iter()
+        .map(|run| AtomItem {
+            id: format!("urn:kiln:run:{}", run.id),
+            title: format!("{} · {}", run.project_label, run.outcome),
+            link: format!("{origin}/?page=runs&run={}", run.id),
+            updated_ms: run.updated_ms,
+            summary: format!("Run {} on {} — {}", run.id, run.revision, run.outcome),
+        })
+        .collect()
+}
+
 pub fn repository_atom(
     origin: &str,
     repository_key: &str,
@@ -695,18 +709,7 @@ pub fn repository_atom(
     runs: &mut Vec<FeedRun>,
     max_items: usize,
 ) -> String {
-    runs.sort_by(|left, right| right.ordinal.cmp(&left.ordinal));
-    runs.truncate(max_items);
-    let items: Vec<AtomItem> = runs
-        .iter()
-        .map(|run| AtomItem {
-            id: format!("urn:kiln:run:{}", run.id),
-            title: format!("{} · {}", run.project_label, run.outcome),
-            link: format!("{origin}/?page=runs&run={}", run.id),
-            updated_ms: run.updated_ms,
-            summary: format!("Run {} on {} — {}", run.id, run.revision, run.outcome),
-        })
-        .collect();
+    let items = repository_items(origin, runs, max_items);
     let newest = items.iter().map(|item| item.updated_ms).max().unwrap_or(0);
     render_atom(
         &format!("urn:kiln:repository:{repository_key}"),
@@ -714,6 +717,62 @@ pub fn repository_atom(
         &format!("{origin}/feeds/{repository_key}.xml?token={token}"),
         newest,
         &items,
+    )
+}
+
+/// Render a bounded RSS 2.0 document.
+#[must_use]
+pub fn render_rss(title: &str, link: &str, description: &str, items: &[AtomItem]) -> String {
+    let mut output = String::with_capacity(512 + items.len() * 512);
+    output.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    output.push_str("<rss version=\"2.0\"><channel><title>");
+    output.push_str(&escape(title));
+    output.push_str("</title><link>");
+    output.push_str(&escape(link));
+    output.push_str("</link><description>");
+    output.push_str(&escape(description));
+    output.push_str("</description>");
+    for item in items {
+        output.push_str("<item><title>");
+        output.push_str(&escape(&item.title));
+        output.push_str("</title><link>");
+        output.push_str(&escape(&item.link));
+        output.push_str("</link><guid isPermaLink=\"false\">");
+        output.push_str(&escape(&item.id));
+        output.push_str("</guid><pubDate>");
+        output.push_str(&rfc2822(item.updated_ms));
+        output.push_str("</pubDate><description>");
+        output.push_str(&escape(&item.summary));
+        output.push_str("</description></item>");
+    }
+    output.push_str("</channel></rss>\n");
+    output
+}
+
+/// RFC 2822 UTC timestamp for an epoch millisecond value.
+#[must_use]
+pub fn rfc2822(ms: u64) -> String {
+    const DAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const MONTHS: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let seconds = ms / 1_000;
+    let days = (seconds / 86_400) as i64;
+    let day_seconds = seconds % 86_400;
+    let (year, month, day) = civil_from_days(days);
+    let weekday = DAYS
+        .get(usize::try_from((days + 4).rem_euclid(7)).unwrap_or(0))
+        .copied()
+        .unwrap_or("");
+    let hour = day_seconds / 3_600;
+    let minute = (day_seconds % 3_600) / 60;
+    let second = day_seconds % 60;
+    format!(
+        "{weekday}, {day:02} {} {year:04} {hour:02}:{minute:02}:{second:02} +0000",
+        MONTHS
+            .get(usize::try_from(month.saturating_sub(1)).unwrap_or(0))
+            .copied()
+            .unwrap_or("")
     )
 }
 
@@ -1106,6 +1165,28 @@ mod tests {
         assert!(parse_opml(b"<!DOCTYPE x><opml/>", 10).is_err());
         assert!(parse_opml(b"<rss/>", 10).is_err());
         assert!(parse_opml(b"<opml><body/></opml>", 10).is_err());
+    }
+
+    #[test]
+    fn rss_publication_renders_channel_and_dates() {
+        let xml = render_rss(
+            "Repo & CI",
+            "https://localhost/feeds/x.rss",
+            "Retained runs",
+            &[AtomItem {
+                id: "urn:run:1".into(),
+                title: "Run <one>".into(),
+                link: "https://localhost/?page=runs&run=1".into(),
+                updated_ms: 1_709_385_000_000,
+                summary: "A & B".into(),
+            }],
+        );
+        assert!(xml.starts_with("<?xml"));
+        assert!(xml.contains("<rss version=\"2.0\">"));
+        assert!(xml.contains("<title>Repo &amp; CI</title>"));
+        assert!(xml.contains("<pubDate>Sat, 02 Mar 2024 13:10:00 +0000</pubDate>"));
+        assert!(xml.contains("https://localhost/?page=runs&amp;run=1"));
+        assert!(xml.contains("A &amp; B"));
     }
 
     #[test]

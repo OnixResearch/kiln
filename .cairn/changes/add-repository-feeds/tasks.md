@@ -11,6 +11,7 @@
 - [x] [serial] Export repository feeds as OPML and expose it in the console. r[kiln.web.feeds.publish.scenario.opml]
 - [x] [serial] Import OPML subscriptions as bounded pending feeds with operator-only admission. r[kiln.web.feeds.subscriptions.scenario.import]
 - [x] [serial] Add a URL-restored, bounded server-side filter to the Feeds page. r[kiln.web.feeds.ui.scenario.search]
+- [x] [serial] Publish RSS 2.0 repository and index feeds alongside Atom. r[kiln.web.feeds.publish.scenario.rss]
 - [x] [serial] Add conditional ETag/Last-Modified refresh with 304 retention and validator bounds. r[kiln.web.feeds.security.scenario.conditional]
 - [x] [serial] Add the Feeds console page with publication URLs, subscriptions and bounded external entries. r[kiln.web.feeds.ui]
 

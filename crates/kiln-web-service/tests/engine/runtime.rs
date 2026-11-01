@@ -516,6 +516,32 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .status(),
         404
     );
+    let rss = checked(
+        client
+            .get(format!(
+                "{}/feeds/{key}.rss?token={feed_token}",
+                profile.origin
+            ))
+            .send(),
+    );
+    assert_eq!(rss.status(), 200);
+    assert!(
+        rss.headers()
+            .get("content-type")
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("application/rss+xml"))
+    );
+    assert!(checked(rss.text()).contains("<rss version=\"2.0\">"));
+    assert_eq!(
+        checked(
+            client
+                .get(format!("{}/feeds.rss?token={feed_token}", profile.origin))
+                .send()
+        )
+        .status(),
+        200
+    );
+
     let opml = checked(
         client
             .get(format!("{}/feeds.opml?token={feed_token}", profile.origin))

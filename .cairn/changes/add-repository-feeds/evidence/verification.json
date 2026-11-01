@@ -12,11 +12,11 @@
   "commands": [
     {
       "command": "cargo test -p kiln-web-service --lib feeds::",
-      "result": "16 passed, 0 failed: RSS 2.0/RSS 1.0/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC formatting, Atom/OPML escaping, OPML import parsing, run filtering/order/limit, due selection and cadence monotonicity"
+      "result": "17 passed, 0 failed: RSS 2.0/RSS 1.0/Atom parsing, DTD rejection, URL/private-address admission, body bound, one-hop redirect, conditional 304, UTC/RFC 2822 formatting, Atom/OPML escaping, RSS publication, OPML import parsing, run filtering/order/limit, due selection and cadence monotonicity"
     },
     {
       "command": "cargo test -p kiln-web-service --lib",
-      "result": "150 passed, 0 failed, 1 ignored"
+      "result": "151 passed, 0 failed, 1 ignored"
     },
     {
       "command": "cargo test -p kiln-web-service --test engine",
@@ -142,5 +142,11 @@
     "scope": "repository labels/keys, subscription labels/titles/URLs, entry titles/summaries",
     "ui": "URL-restored feed_q filter input on the Feeds page; auto-refresh preserves it",
     "test": "runtime search returns the matching subscription/entry and zero for a missing term"
+  },
+  "rss_publication": {
+    "endpoints": "/feeds.rss and /feeds/<repository-key>.rss with the feed token",
+    "content_type": "application/rss+xml; charset=utf-8",
+    "content": "escaped RSS 2.0 channel/items with RFC 2822 pubDate and console links",
+    "console": "operators receive an RSS link per repository"
   }
 }

@@ -661,6 +661,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
     }
     if request.method == "GET"
         && (request.target.starts_with("/feeds.xml")
+            || request.target.starts_with("/feeds.rss")
             || request.target.starts_with("/feeds.opml")
             || request.target.starts_with("/feeds/"))
     {

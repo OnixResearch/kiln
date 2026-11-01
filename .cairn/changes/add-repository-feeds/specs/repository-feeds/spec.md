@@ -30,6 +30,12 @@ r[kiln.web.feeds.publish.scenario.missing]
 - WHEN a feed is requested
 - THEN it MUST return no feed.
 
+#### Scenario: RSS 2.0 publication
+r[kiln.web.feeds.publish.scenario.rss]
+- GIVEN configured feeds and retained runs
+- WHEN an `.rss` feed path is requested with the feed token
+- THEN it MUST return an escaped RSS 2.0 channel with RFC 2822 dates and console links.
+
 #### Scenario: OPML lists repository feeds
 r[kiln.web.feeds.publish.scenario.opml]
 - GIVEN configured feeds and several canonical repositories
