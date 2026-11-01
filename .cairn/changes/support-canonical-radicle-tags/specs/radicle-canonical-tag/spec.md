@@ -10,7 +10,7 @@ Defines source acquisition from reviewed canonical Radicle tag references.
 
 r[kiln.radicle.canonical_tag]
 A Radicle source request MAY name `refs/tags/` as its signed and canonical
-reference. The target object MUST peel to a commit, and that commit MUST equal
+reference. Branch and tag names MUST be non-empty. The target object MUST peel to a commit, and that commit MUST equal
 `expected_revision`. The canonical evidence MUST retain the target object,
 `object_kind = "tag"` for annotated tags, and the peeled commit as `revision`. Signed and canonical references MUST
 still match exactly.

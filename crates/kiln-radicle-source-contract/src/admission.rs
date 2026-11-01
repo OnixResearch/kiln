@@ -146,7 +146,10 @@ fn admit_limits(limits: &SnapshotLimits) -> Result<(), AdmissionError> {
 
 // r[impl kiln.radicle.source_contract.request]
 fn is_source_reference(reference: &str) -> bool {
-    reference.starts_with(BRANCH_REFERENCE_PREFIX) || reference.starts_with(TAG_REFERENCE_PREFIX)
+    reference
+        .strip_prefix(BRANCH_REFERENCE_PREFIX)
+        .or_else(|| reference.strip_prefix(TAG_REFERENCE_PREFIX))
+        .is_some_and(|name| !name.is_empty())
 }
 
 pub fn admit_request(request: &SourceRequest) -> Result<(), AdmissionError> {

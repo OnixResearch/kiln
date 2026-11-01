@@ -59,6 +59,20 @@ fn accepts_matching_tag_references() {
 }
 
 #[test]
+fn rejects_empty_source_reference_names() {
+    for reference in ["refs/heads/", "refs/tags/"] {
+        let mut request = fixture_request();
+        request.signed_reference = reference.to_string();
+        assert_eq!(
+            admit_request(&request),
+            Err(AdmissionError::Reference {
+                field: "request.signed_reference"
+            })
+        );
+    }
+}
+
+#[test]
 fn rejects_zero_and_inconsistent_bounds() {
     let mut request = fixture_request();
     request.limits.max_entries = 0;
