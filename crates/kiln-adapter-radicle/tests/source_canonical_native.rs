@@ -306,6 +306,21 @@ fn annotated_tag_source_peels_to_its_commit_and_retains_tag_evidence() -> Result
     Ok(())
 }
 
+// r[verify kiln.radicle.canonical_tag] r[verify kiln.radicle.canonical_tag.scenario.tag]
+#[test]
+fn lightweight_tag_source_uses_its_commit_directly() -> Result<(), Box<dyn Error>> {
+    let fixture = fixture_with_reference(TAG_REFERENCE, false, 1, &[71], &[(71, false)], None)?;
+    let shell = port(RadicleSourceShell::new(fixture.profile.clone()))?;
+    let result = port(shell.resolve_and_acquire())?;
+    let evidence = result.receipt.canonical.as_ref().ok_or("canonical evidence")?;
+    assert_eq!(evidence.reference, TAG_REFERENCE);
+    assert_eq!(evidence.object, fixture.object.to_string());
+    assert_eq!(evidence.object_kind, "commit");
+    assert_eq!(evidence.revision, fixture.object.to_string());
+    assert_eq!(result.receipt.snapshot.revision, fixture.object.to_string());
+    Ok(())
+}
+
 // r[verify kiln.radicle.canonical_tag.scenario.revision]
 #[test]
 fn tag_target_that_is_not_a_commit_fails_before_snapshot() -> Result<(), Box<dyn Error>> {
