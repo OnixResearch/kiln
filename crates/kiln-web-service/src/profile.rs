@@ -157,9 +157,16 @@ pub fn write_feed_token(path: &Path) -> Result<(), String> {
     let mut file = options
         .open(path)
         .map_err(|_| "feed token path must be new and writable")?;
-    file.write_all(token.as_bytes())
-        .map_err(|_| "feed token write failed")?;
-    file.sync_all().map_err(|_| "feed token sync failed")?;
+    if file.write_all(token.as_bytes()).is_err() {
+        drop(file);
+        let _ = std::fs::remove_file(path);
+        return Err("feed token write failed".into());
+    }
+    if file.sync_all().is_err() {
+        drop(file);
+        let _ = std::fs::remove_file(path);
+        return Err("feed token sync failed".into());
+    }
     if let Some(parent) = path.parent() {
         if let Ok(directory) = std::fs::File::open(parent) {
             let _ = directory.sync_all();
