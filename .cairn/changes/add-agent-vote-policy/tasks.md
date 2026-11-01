@@ -7,6 +7,7 @@
 
 - [x] [serial] Add bounded unique review-profile agent principals restricted to writers, and populate trusted facts. r[kiln.review.agent.profile]
 - [x] [serial] Add profile admission tests, Nickel contracts, fixture and operator documentation. r[kiln.review.agent.profile]
+- [x] [serial] Mark agent votes in the review detail and state their advisory default. r[kiln.review.agent.votes]
 
 ## Phase 3: Verification
 

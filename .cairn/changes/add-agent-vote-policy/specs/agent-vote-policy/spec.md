@@ -42,6 +42,9 @@ r[kiln.review.agent.votes.scenario.binding]
 - WHEN the checklist is evaluated
 - THEN ordinary approvals and ownership MAY be satisfied by that vote.
 
+The review detail MUST mark votes cast by declared agent principals, and MUST
+state that such votes are advisory unless the policy explicitly binds them.
+
 #### Scenario: Agent veto still blocks
 r[kiln.review.agent.votes.scenario.veto]
 - GIVEN an advisory agent NeedsRevision or Veto

@@ -782,8 +782,9 @@ impl Workspace {
                 *count <= CI_RUNS_PER_REVISION
             })
             .collect();
+        let agents: BTreeSet<String> = profile.agent_principals.iter().cloned().collect();
         response(
-            json!({"change":enriched(change,&state,principal),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
+            json!({"change":enriched(change,&state,principal,&agents),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
                 "subscribed":delivery::subscribed(&state.delivery,principal,id),"delivery_outcomes":delivery::outcomes(&state.delivery,principal,id),
                 "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some(),
                 "noise":noise::published(profile.review.as_ref()),
@@ -1163,13 +1164,25 @@ fn source_fact(
     }
 }
 // r[impl kiln.review.authorship]
-fn enriched(change: &domain::Change, state: &State, principal: &str) -> Value {
+fn enriched(
+    change: &domain::Change,
+    state: &State,
+    principal: &str,
+    agents: &BTreeSet<String>,
+) -> Value {
     let reviewed: Vec<_> = domain::reviewed(change, principal).collect();
     let reviewed_hunks: Vec<_> = domain::reviewed_hunks(change, principal).collect();
+    let votes: Vec<Value> = change
+        .votes
+        .iter()
+        .map(|vote| {
+            json!({"actor":vote.actor,"revision":vote.revision,"value":vote.value,"created_ms":vote.created_ms,"agent":agents.contains(&vote.actor)})
+        })
+        .collect();
     json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),
         "project":change.project,"repository":change.repository,"target_ref":change.target_ref,
         "owner":change.owner,"title":change.title,"description":change.description,"state":change.state,
-        "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"votes":change.votes,
+        "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"votes":votes,
         "threads":change.threads,"reviewed":reviewed,"reviewed_hunks":reviewed_hunks,
         "last_viewed":change.last_viewed.get(principal),"attention":change.attention,
         "dependencies":change.dependencies,"candidate":change.candidate,"submission":change.submission,

@@ -1716,3 +1716,33 @@ fn review_profile_admits_only_bounded_unique_agent_write_principals() -> Result<
     assert!(profile.admit().is_err());
     Ok(())
 }
+
+#[test]
+fn review_detail_marks_agent_votes() -> Result<()> {
+    let mut fixture = Fixture::new()?;
+    fixture.profile.agent_principals = vec![BOB.into()];
+    let workspace = fixture.workspace()?;
+    let change = create(&workspace, &fixture, "agent-create")?;
+    let change = change_after(
+        &workspace,
+        "agent-reviewer",
+        &change,
+        json!({"type":"set_reviewer","principal":BOB,"role":"reviewer"}),
+        ALICE,
+        &[],
+    )?;
+    let change = change_after(
+        &workspace,
+        "agent-approval",
+        &change,
+        json!({"type":"vote","value":"approve"}),
+        BOB,
+        &[],
+    )?;
+    let votes = field(&change, "/votes")?.as_array().ok_or("votes array")?;
+    assert!(votes.iter().any(|vote| {
+        vote.get("actor").and_then(Value::as_str) == Some(BOB)
+            && vote.get("agent").and_then(Value::as_bool) == Some(true)
+    }));
+    Ok(())
+}

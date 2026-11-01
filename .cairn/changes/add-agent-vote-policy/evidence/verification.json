@@ -11,6 +11,10 @@
       "result": "1 passed; valid, empty, duplicate, non-writer and over-bound agent lists are handled"
     },
     {
+      "command": "cargo test -p kiln-web-service --test code_review review_detail_marks_agent_votes",
+      "result": "1 passed; review detail marks the declared agent's vote"
+    },
+    {
       "command": "cargo test -p kiln-core -p kiln-web-service",
       "result": "all core and web-service test binaries passed"
     },
@@ -41,7 +45,8 @@
     "advisory": "agent approvals remain stored but do not satisfy the approval count or ownership item",
     "binding": "explicit policy opt-in counts agent approvals like human approvals",
     "blocking": "agent needs-revision and veto votes keep their existing blocking effect in either mode",
-    "authority": "no mode grants merge authority"
+    "authority": "no mode grants merge authority",
+    "surface": "review detail marks agent votes and states the advisory default"
   },
   "non_claims": [
     "agent principals are not yet derived from access-profile viewer bindings",
