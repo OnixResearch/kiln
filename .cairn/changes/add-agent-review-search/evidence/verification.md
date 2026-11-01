@@ -16,6 +16,8 @@ form and saved views carry the same filters.
   harness and model.
 - The complete workspace test suite and workspace-wide Clippy pass for the
 agent, harness and model filters.
+- Live-console tests pass, including the saved-query builder preserving every
+  agent filter and omitting absent fields.
 - Clippy, rustfmt, JavaScript syntax and Cairn validation pass.
 
 ## Non-claims

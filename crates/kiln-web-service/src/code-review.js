@@ -232,6 +232,17 @@
     if (utf8Bytes(text) > AUTHORSHIP_TEXT_BYTES) throw new Error(`${name} must be at most ${AUTHORSHIP_TEXT_BYTES} bytes.`);
     return text;
   }
+  function savedQueryForRoute(route) {
+    return {
+      kind: route.review_view || "all",
+      text: route.review_q || "",
+      status: route.review_status || null,
+      ...(route.review_advisory ? { advisory: route.review_advisory === "with" } : {}),
+      ...(route.review_agent ? { agent: route.review_agent === "with" } : {}),
+      ...(route.review_agent_harness ? { agent_harness: route.review_agent_harness } : {}),
+      ...(route.review_agent_model ? { agent_model: route.review_agent_model } : {}),
+    };
+  }
   function authorshipPayload(kind, harness = "", model = "") {
     switch (kind || "undeclared") {
       case "undeclared": return null;
@@ -628,7 +639,7 @@
       }
       views.append(list);
     }
-    const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: { kind: state.route.review_view || "all", text: state.route.review_q || "", status: state.route.review_status || null, ...(state.route.review_advisory ? { advisory: state.route.review_advisory === "with" } : {}), ...(state.route.review_agent ? { agent: state.route.review_agent === "with" } : {}), ...(state.route.review_agent_harness ? { agent_harness: state.route.review_agent_harness } : {}), ...(state.route.review_agent_model ? { agent_model: state.route.review_agent_model } : {}) } }, null); clearFields("view-name"); }));
+    const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: savedQueryForRoute(state.route) }, null); clearFields("view-name"); }));
     disclosure(views, "Save current query as a personal view").append(save); list.append(views);
     const changes = arr(state.snapshot.changes), offset = Number(state.route.review_offset) || 0;
     if (changes.length) {
@@ -1323,5 +1334,5 @@
     draw();
     return refresh();
   }
-  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }) });
+  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), savedQuery: savedQueryForRoute });
 })();

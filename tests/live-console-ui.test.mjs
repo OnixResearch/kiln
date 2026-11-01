@@ -632,6 +632,23 @@ test("change detail labels declared authorship as self-declared and absent as un
   assert.equal(reviewAuthorship.label({ kind: "agent", harness: "omp" }), "Agent · harness omp");
 });
 
+// r[verify kiln.review.agent.search]
+test("saved review queries preserve every agent filter and omit absent fields", () => {
+  const query = reviewContext.window.KilnCodeReview.savedQuery;
+  assert.deepEqual(plain(query({})), { kind: "all", text: "", status: null });
+  assert.deepEqual(plain(query({
+    review_view: "awaiting_review", review_q: "fix", review_status: "open",
+    review_advisory: "without", review_agent: "with",
+    review_agent_harness: "omp", review_agent_model: "deepseek",
+  })), {
+    kind: "awaiting_review", text: "fix", status: "open", advisory: false,
+    agent: true, agent_harness: "omp", agent_model: "deepseek",
+  });
+  assert.deepEqual(plain(query({ review_agent: "without", review_agent_harness: "omp" })), {
+    kind: "all", text: "", status: null, agent: false, agent_harness: "omp",
+  });
+});
+
 // r[verify kiln.review.keyboard] r[verify kiln.review.keyboard.navigation] r[verify kiln.review.keyboard.actions]
 const reviewKeys = reviewContext.window.KilnCodeReview.keys;
 const shortcut = (key, extra = {}) => ({ key, shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, isComposing: false, ...extra });
