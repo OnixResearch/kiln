@@ -11,6 +11,10 @@
       "result": "1 passed; a newer pull-request dispatch does not cancel an active run for another pull request"
     },
     {
+      "command": "cargo test -p kiln-web-service --test engine queued_cancel_reason_is_bounded_and_recorded",
+      "result": "1 passed; queued cancellation records superseded and rejects an unknown reason without mutation"
+    },
+    {
       "command": "cargo test -p kiln-web-service --test engine new_trigger_supersedes_active_and_queued_runs",
       "result": "1 passed; older active and queued runs become Cancelled and the newest remains queued"
     },
@@ -34,7 +38,7 @@
   "behavior": {
     "policy": "supersede_queued defaults false and is optional in the Nickel trigger contract",
     "match": "same trigger registration, project and source scope (push reference or pull-request number), different exact revision, nonterminal non-waiting runs",
-    "effect": "older queued runs use durable request replay; older active runs use one exact provider cancellation; failures are best-effort",
+    "effect": "older queued runs use durable request replay; older active runs use one exact provider cancellation; failures are best-effort; superseded runs expose error_code superseded",
     "isolation": "awaiting-approval and terminal runs are untouched"
   },
   "non_claims": [

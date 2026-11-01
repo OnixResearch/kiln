@@ -537,6 +537,46 @@ fn controls_reject_stale_and_unsupported_before_mutation_and_replay_exact_result
     assert_eq!(backend.lock().controls, 1);
 }
 
+#[test]
+fn queued_cancel_reason_is_bounded_and_recorded() {
+    let (_root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend.clone());
+    enroll(&mut engine);
+    assert_eq!(start(&mut engine, "active").status, 201);
+    let queued_response = start(&mut engine, "queued");
+    assert_eq!(queued_response.status, 202);
+    let queued = value(&queued_response);
+    let id = field(&queued, "id")
+        .as_str()
+        .unwrap_or_else(|| unreachable!("fixture string"));
+    let path = format!("/api/runs/{id}/control");
+    assert_eq!(
+        call(
+            &mut engine,
+            "POST",
+            &path,
+            json!({"request_id":"queue-cancel-bad","action":"cancel","reason":"other"}),
+            Role::Operator,
+        )
+        .status,
+        400
+    );
+    assert_eq!(field(&queued, "phase"), "queued");
+    let response = call(
+        &mut engine,
+        "POST",
+        &path,
+        json!({"request_id":"queue-cancel","action":"cancel","reason":"superseded"}),
+        Role::Operator,
+    );
+    assert_eq!(response.status, 200);
+    assert_eq!(field(&value(&response), "error_code"), "superseded");
+    assert_eq!(field(&value(&response), "outcome"), "Cancelled");
+    assert_eq!(backend.lock().dispatches, 1);
+    assert_eq!(backend.lock().controls, 0);
+}
+
 // r[verify kiln.web.artifacts.scenario.download] r[verify kiln.web.artifacts.scenario.denied]
 // r[verify kiln.web.authentication.scenario.denied]
 #[test]

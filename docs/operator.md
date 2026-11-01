@@ -2857,8 +2857,9 @@ request matches its project and pull-request number, so another pull request on
 the same base is never cancelled. Manual and scheduled runs are never matched. Queued runs complete as `Cancelled` through
 durable queue control, and active runs receive one exact provider cancellation
 through the admitted control path. Awaiting-approval and terminal runs are untouched.
-Provider refusals are best-effort and never fail the new dispatch. Absence or
-`false` keeps the previous behavior.
+Provider refusals are best-effort and never fail the new dispatch. Superseded
+runs expose `error_code = "superseded"`; an unknown queued-cancel reason is
+rejected without mutation. Absence or `false` keeps the previous behavior.
 
 ##### Calendar schedules
 

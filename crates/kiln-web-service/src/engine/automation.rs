@@ -1175,14 +1175,19 @@ impl Engine {
             let Ok(body) = serde_json::to_vec(&body) else {
                 continue;
             };
-            let _ = self.control(&id, &body);
+            if let Ok(response) = self.control(&id, &body)
+                && response.status == 200
+                && let Some(run) = self.state.runs.get_mut(&id)
+            {
+                run.error_code = Some("superseded".into());
+            }
         }
         for id in queued {
             let request_id = format!(
                 "supersede-{}",
                 blake3::hash(format!("{id}\0{new_run}").as_bytes()).to_hex()
             );
-            let body = serde_json::json!({"request_id": request_id, "action": "cancel"});
+            let body = serde_json::json!({"request_id": request_id, "action": "cancel", "reason": "superseded"});
             let Ok(body) = serde_json::to_vec(&body) else {
                 continue;
             };

@@ -516,12 +516,20 @@ impl Engine {
         struct Cancel {
             request_id: String,
             action: String,
+            #[serde(default)]
+            reason: Option<String>,
         }
         let req: Cancel = match serde_json::from_slice(body) {
             Ok(v) => v,
             Err(_) => return error(400, "queue_control_invalid"),
         };
-        if req.action != "cancel" || !crate::profile::identifier(&req.request_id) {
+        if req.action != "cancel"
+            || !crate::profile::identifier(&req.request_id)
+            || req
+                .reason
+                .as_deref()
+                .is_some_and(|reason| reason != "superseded")
+        {
             return error(400, "queue_control_invalid");
         }
         let fingerprint = identity(&(id, &req))?;
@@ -536,6 +544,7 @@ impl Engine {
             return error(409, "queue_control_stale");
         }
         run.complete(Outcome::Cancelled, None)?;
+        run.error_code = req.reason.clone();
         run.phase = "terminal".into();
         run.completed_at_ms = Some(host_time_ms()?);
         self.reserve_request(

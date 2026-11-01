@@ -158,6 +158,7 @@ fn new_trigger_supersedes_active_and_queued_runs_when_configured() {
         Role::Operator,
     ));
     assert_eq!(at(&superseded_active, "/outcome"), json!("Cancelled"));
+    assert_eq!(at(&superseded_active, "/error_code"), json!("superseded"));
     assert_eq!(backend.lock().controls, 1);
     let current = value(&get(
         &mut engine,
