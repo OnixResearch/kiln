@@ -12,8 +12,8 @@ interface rule's own owner approval remains required.
 
 - Focused core tests cover interface CI, dependent acknowledgement, automatic
   reviewer expansion, non-interface behavior and policy admission.
-- Service admission rejects interface and dependent links to unknown projects
-  and admits a known project link.
+- Service admission rejects interface, dependent and required-evidence project
+  links to unknown projects and admits a known project link.
 - The complete workspace test suite passes.
 - Clippy, rustfmt, Nickel typecheck/export and Cairn validation pass.
 

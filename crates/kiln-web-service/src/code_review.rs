@@ -264,6 +264,10 @@ impl Profile {
             rule.project
                 .as_ref()
                 .is_some_and(|project| !project_ids.contains(project.as_str()))
+                || rule
+                    .required_evidence
+                    .iter()
+                    .any(|evidence| !project_ids.contains(evidence.project.as_str()))
         }) || self
             .policy
             .ownership

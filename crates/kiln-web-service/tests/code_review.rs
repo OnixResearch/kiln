@@ -1904,7 +1904,7 @@ fn service_rejects_ownership_links_to_unknown_projects() -> Result<()> {
         .dependents
         .insert("unknown".into(), BTreeSet::new());
     assert!(Workspace::for_service(Some(unknown_dependents), &service).is_err());
-    let mut known = fixture.profile;
+    let mut known = fixture.profile.clone();
     known
         .policy
         .ownership
@@ -1920,6 +1920,19 @@ fn service_rejects_ownership_links_to_unknown_projects() -> Result<()> {
             required_evidence: Vec::new(),
             approval: BTreeMap::new(),
         });
+    let mut unknown_evidence = known.clone();
     assert!(Workspace::for_service(Some(known), &service).is_ok());
+    unknown_evidence
+        .policy
+        .ownership
+        .rules
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("fixture rule"))
+        .required_evidence
+        .push(kiln_core::change_review::OwnershipEvidence {
+            kind: kiln_core::change_review::OwnershipEvidenceKind::ProjectCi,
+            project: "unknown".into(),
+        });
+    assert!(Workspace::for_service(Some(unknown_evidence), &service).is_err());
     Ok(())
 }

@@ -3163,7 +3163,8 @@ The exported `kiln.code-review-profile.v1` declares:
   projects. Operators may declare `ownership.dependents` as an explicit source
   project to dependent-project map; when a source is absent, every other
   affected project is treated as a dependent, while an empty set declares none.
-  Every project link must name a configured review-service project or startup fails.
+  Every project link — including required evidence projects — must name a
+  configured review-service project or startup fails.
   Changed paths come from the provider comparison, including renamed old paths;
   incomplete observations cannot silently satisfy ownership. Registration and
   upload automatically request eligible owners. An empty rules list disables
