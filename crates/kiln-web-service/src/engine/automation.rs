@@ -1019,7 +1019,7 @@ impl Engine {
         }
         let request_id = format!("automation-{}", blake3::hash(id.as_bytes()).to_hex());
         let body = match reservation.source_revision {
-            Some(revision) => {
+            Some(ref revision) => {
                 json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference,"source_revision":revision})
             }
             None => {
@@ -1082,9 +1082,61 @@ impl Engine {
         let registration_key = key(&record.kind, &record.registration_id);
         let status = record.status.clone();
         if let Some(settings) = self.state.automation.settings.get_mut(&registration_key) {
-            settings.last_status = Some(status);
+            settings.last_status = Some(status.clone());
+        }
+        if status != super::untrusted::AWAITING_APPROVAL
+            && reservation.kind == "trigger"
+            && self
+                .automation_profile
+                .as_ref()
+                .and_then(|profile| {
+                    profile
+                        .triggers
+                        .iter()
+                        .find(|trigger| trigger.id == reservation.registration_id)
+                })
+                .is_some_and(|trigger| trigger.supersede_queued)
+        {
+            if let Some(new_run) = record.run_id.clone() {
+                self.supersede_queued_runs(&reservation, &new_run);
+            }
         }
         self.persist()
+    }
+
+    fn supersede_queued_runs(&mut self, reservation: &SourceRecord, new_run: &str) {
+        let Some(new_revision) = self
+            .state
+            .runs
+            .get(new_run)
+            .map(|run| run.source.exact_revision.clone())
+        else {
+            return;
+        };
+        let ids: Vec<String> = self
+            .state
+            .runs
+            .values()
+            .filter(|run| {
+                run.id != new_run
+                    && run.phase == "queued"
+                    && run.project_id == reservation.project_id
+                    && run.requested_reference.as_deref() == Some(reservation.reference.as_str())
+                    && run.source.exact_revision != new_revision
+            })
+            .map(|run| run.id.clone())
+            .collect();
+        for id in ids {
+            let request_id = format!(
+                "supersede-{}",
+                blake3::hash(format!("{id}\0{new_run}").as_bytes()).to_hex()
+            );
+            let body = serde_json::json!({"request_id": request_id, "action": "cancel"});
+            let Ok(body) = serde_json::to_vec(&body) else {
+                return;
+            };
+            let _ = self.cancel_queued(&id, &body);
+        }
     }
     /// Reserve bounded notification work under the lock without notification I/O.
     pub fn tick_automation(&mut self) -> Result<Vec<NotificationWork>, String> {

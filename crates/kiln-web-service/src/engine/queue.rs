@@ -141,6 +141,7 @@ impl Engine {
             None,
             Vec::new(),
             affected,
+            None,
         )
     }
 
@@ -220,6 +221,7 @@ impl Engine {
             None,
             Vec::new(),
             affected,
+            req.reference.clone(),
         )
     }
     pub(super) fn rerun(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
@@ -335,6 +337,7 @@ impl Engine {
             Some(id.to_owned()),
             selected.into_iter().collect(),
             affected,
+            None,
         );
         self.pending_untrusted = None;
         result
@@ -349,6 +352,7 @@ impl Engine {
         parent: Option<String>,
         selected: Vec<String>,
         affected: Option<crate::monorepo::RunAffected>,
+        requested_reference: Option<String>,
     ) -> Result<ApiResponse, String> {
         let CandidateSource {
             resolution: source,
@@ -404,6 +408,7 @@ impl Engine {
             project_id: project.id.clone(),
             pipeline_identity: pipeline,
             source,
+            requested_reference,
             dirty_snapshot,
             affected,
             scope,

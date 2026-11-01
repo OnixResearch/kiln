@@ -1,0 +1,37 @@
+{
+  "schema": "kiln.web.supersede-queued.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --test engine new_trigger_cancels_older_queued_runs",
+      "result": "1 passed; older queued run becomes Cancelled and the newest remains queued"
+    },
+    {
+      "command": "cargo test -p kiln-web-service",
+      "result": "all web-service library, engine, runtime, source, work and worker tests passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "nickel format --check config/web-automation.ncl",
+      "result": "pass"
+    }
+  ],
+  "behavior": {
+    "policy": "supersede_queued defaults false and is optional in the Nickel trigger contract",
+    "match": "same project, same requested reference, different exact revision, queued phase only",
+    "effect": "older runs complete as Cancelled via durable request-replay; no provider control call",
+    "isolation": "running and awaiting-approval runs are untouched"
+  },
+  "non_claims": [
+    "queued-only supersession does not implement running-run cancellation from the wider issue",
+    "best-effort cancellation may lose a race when the older run leaves the queued phase",
+    "passing automation tests does not prove provider execution correctness or release readiness"
+  ]
+}

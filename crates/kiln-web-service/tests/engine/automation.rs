@@ -110,6 +110,58 @@ fn signed_push_is_exact_once_across_restart_and_bad_signature_never_dispatches()
     assert_eq!(backend.lock().dispatches, 1);
 }
 #[test]
+fn new_trigger_cancels_older_queued_runs_when_configured() {
+    let (root, profile, first_revision) = fixture();
+    let mut automation = policy(root.path());
+    if let Some(trigger) = automation.triggers.first_mut() {
+        trigger.supersede_queued = true;
+    }
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let first_body = push(&first_revision);
+    let first = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000011", "push", &first_body),
+        &first_body,
+    ));
+    assert_eq!(first.status, 202);
+    let running = run_id(&first);
+    let second_revision = advance(&profile, "second");
+    let second_body = push(&second_revision);
+    let second = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000012", "push", &second_body),
+        &second_body,
+    ));
+    assert_eq!(second.status, 202);
+    let queued = run_id(&second);
+    assert_ne!(running, queued);
+    let third_revision = advance(&profile, "third");
+    let third_body = push(&third_revision);
+    let third = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000013", "push", &third_body),
+        &third_body,
+    ));
+    assert_eq!(third.status, 202);
+    let superseded = value(&get(
+        &mut engine,
+        &format!("/api/runs/{queued}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&superseded, "/outcome"), json!("Cancelled"));
+    let current = value(&get(
+        &mut engine,
+        &format!("/api/runs/{}", run_id(&third)),
+        Role::Operator,
+    ));
+    assert_eq!(at(&current, "/phase"), json!("queued"));
+    assert_eq!(backend.lock().dispatches, 1);
+}
+
+#[test]
 fn signed_pull_request_and_stale_or_unregistered_sources_have_opposite_effects() {
     let (root, profile, revision) = fixture();
     let backend = Arc::new(Mutex::new(Backend::default()));

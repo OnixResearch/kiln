@@ -42,6 +42,9 @@ pub struct TriggerProfile {
     pub push: bool,
     pub pull_request: bool,
     pub pull_request_base: Option<String>,
+    /// Cancel older queued runs for the same project/reference on a new trigger.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub supersede_queued: bool,
     /// Reviewed policy: may an approved untrusted run's result satisfy required
     /// CI (exact commit only). Valid only with `untrusted_pull_requests = approve`.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]

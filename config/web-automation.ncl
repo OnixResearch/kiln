@@ -107,6 +107,7 @@ fun input =>
             push | Bool,
             pull_request | Bool,
             pull_request_base | c.Nullable String,
+            supersede_queued | Bool | optional,
             untrusted_results_satisfy_required_ci | Bool | optional,
             filter | TriggerFilter | optional,
           }
