@@ -1759,6 +1759,15 @@ fn review_detail_marks_agent_votes() -> Result<()> {
         vote.get("actor").and_then(Value::as_str) == Some(BOB)
             && vote.get("agent").and_then(Value::as_bool) == Some(true)
     }));
+    let with_agent = accepted(get(&workspace, "/api/code-review?agent=with", ALICE, &[]))?;
+    assert_eq!(field(&with_agent, "/total")?, &json!(0));
+    let without_agent = accepted(get(
+        &workspace,
+        "/api/code-review?agent=without",
+        ALICE,
+        &[],
+    ))?;
+    assert_eq!(field(&without_agent, "/total")?, &json!(1));
     let snapshot = accepted(get(&workspace, "/api/code-review", ALICE, &[]))?;
     assert!(
         field(&snapshot, "/notifications")?

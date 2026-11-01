@@ -479,6 +479,9 @@ pub struct SearchQuery {
     /// `Some(false)`: none. Omitted when unset so saved views keep their bytes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub advisory: Option<bool>,
+    /// `Some(true)`: current revision carries attested agent submission identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<bool>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -977,6 +980,12 @@ pub fn search<'a>(state: &'a ReviewState, actor: &str, query: &SearchQuery) -> V
             if query
                 .advisory
                 .is_some_and(|wanted| wanted != current_advisory(change).next().is_some())
+            {
+                return false;
+            }
+            if query
+                .agent
+                .is_some_and(|wanted| wanted != revision.submitted_by.is_some())
             {
                 return false;
             }
@@ -3968,6 +3977,7 @@ mod tests {
                     text: String::new(),
                     status: None,
                     advisory: None,
+                    agent: None,
                 }
             )
             .first()
@@ -4564,6 +4574,36 @@ mod tests {
     }
 
     #[test]
+    fn agent_search_filters_current_revision_attestation() -> ReviewResult<()> {
+        let (mut state, _facts) = setup()?;
+        state
+            .changes
+            .get_mut("c")
+            .required()?
+            .revisions
+            .first_mut()
+            .required()?
+            .submitted_by = Some(AttestedSubmission {
+            principal: "alice".into(),
+            agent: Some(AgentIdentity {
+                harness: "omp".into(),
+                model: None,
+            }),
+        });
+        let query = |agent| SearchQuery {
+            kind: SearchKind::All,
+            text: String::new(),
+            status: None,
+            advisory: None,
+            agent,
+        };
+        assert_eq!(search(&state, "alice", &query(Some(true))).len(), 1);
+        assert!(search(&state, "alice", &query(Some(false))).is_empty());
+        assert_eq!(search(&state, "alice", &query(None)).len(), 1);
+        Ok(())
+    }
+
+    #[test]
     fn interface_change_requires_dependent_ci_and_owner_acknowledgement() -> ReviewResult<()> {
         let mut facts = self::facts();
         facts.source.as_mut().required()?.changed_files = Some(ChangedFiles {
@@ -4990,6 +5030,7 @@ mod tests {
                 text: "review".into(),
                 status: Some(ChangeStatus::Open),
                 advisory: None,
+                agent: None,
             },
         };
         send(

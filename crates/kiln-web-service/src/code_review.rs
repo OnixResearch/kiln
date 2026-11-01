@@ -1284,11 +1284,18 @@ fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery,
         Some("without") => Some(false),
         _ => return reject(400, "review_query_invalid"),
     };
+    let agent = match query.get("agent").map(String::as_str) {
+        None | Some("") => None,
+        Some("with") => Some(true),
+        Some("without") => Some(false),
+        _ => return reject(400, "review_query_invalid"),
+    };
     Ok(domain::SearchQuery {
         kind,
         text: query.get("q").cloned().unwrap_or_default(),
         status,
         advisory,
+        agent,
     })
 }
 fn parse_target(target: &str) -> Result<(String, BTreeMap<String, String>), Failure> {

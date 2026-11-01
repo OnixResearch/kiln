@@ -493,7 +493,7 @@
     if (!state.container?.isConnected || !state.context) return;
     const epoch = state.epoch, id = selected(), request = ++state.request, context = state.context;
     try {
-      const root = await context.api(`${ROOT}?${new URLSearchParams({ q: state.route.review_q || "", view: state.route.review_view || "all", offset: state.route.review_offset || "0", notification_offset: state.route.review_notification_offset || "0", operation_offset: state.route.review_operation_offset || "0", ...(state.route.review_status ? { status: state.route.review_status } : {}), ...(state.route.review_advisory ? { advisory: state.route.review_advisory } : {}) })}`);
+      const root = await context.api(`${ROOT}?${new URLSearchParams({ q: state.route.review_q || "", view: state.route.review_view || "all", offset: state.route.review_offset || "0", notification_offset: state.route.review_notification_offset || "0", operation_offset: state.route.review_operation_offset || "0", ...(state.route.review_status ? { status: state.route.review_status } : {}), ...(state.route.review_advisory ? { advisory: state.route.review_advisory } : {}), ...(state.route.review_agent ? { agent: state.route.review_agent } : {}) })}`);
       if (!active(epoch, id) || request !== state.request) return;
       if (root?.schema !== "kiln.code-review.v1" || root.principal !== context.principal) throw new Error("Review snapshot schema or principal does not match this authenticated session.");
       state.snapshot = root;
@@ -596,8 +596,9 @@
     const q = field(search, "Search change text", "search", state.route.review_q || "", [], "search");
     const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], ["open", "Open"], ["abandoned", "Abandoned"], ["submitted", "Submitted"]]);
     const advisory = field(search, "Advisory approvals", "select", state.route.review_advisory || "", [["", "Any advisory state"], ["with", "With advisory approvals"], ["without", "Without advisory approvals"]]);
+    const agent = field(search, "Agent submission", "select", state.route.review_agent || "", [["", "Any agent state"], ["with", "Agent-submitted revision"], ["without", "No agent attestation"]]);
     const submit = node("button"); submit.type = "submit"; submit.append(icon("search"), node("span", "Search")); search.append(submit);
-    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_change: "" }); }); list.append(search);
+    search.addEventListener("submit", event => { event.preventDefault(); route({ review_q: q.value, review_status: status.value, review_advisory: advisory.value, review_agent: agent.value, review_change: "" }); }); list.append(search);
     const kind = state.route.review_view || "all", views = node("div", null, "cr-views"), group = node("div", null, "segmented"); group.setAttribute("role", "group"); group.setAttribute("aria-label", "Personal views");
     for (const [text, value] of [["All changes", "all"], ["Awaiting my review", "awaiting_review"], ["My changes needing revision", "owned_needs_revision"], ["Unresolved discussions", "unresolved"]]) { const b = button(text, () => { clearFields("search"); route({ review_view: value }); }); b.setAttribute("aria-pressed", String(value === kind)); group.append(b); }
     views.append(group);
@@ -605,8 +606,8 @@
     if (savedViews.length) {
       const list = node("ul", null, "cr-saved-views"); list.setAttribute("aria-label", "Saved personal views");
       for (const view of savedViews) {
-        const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "") && advisoryRoute(view.query.advisory) === (state.route.review_advisory || "");
-        const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "", review_advisory: advisoryRoute(view.query.advisory) }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
+        const li = node("li"), applied = view.query.kind === kind && (view.query.text || "") === (state.route.review_q || "") && (view.query.status || "") === (state.route.review_status || "") && advisoryRoute(view.query.advisory) === (state.route.review_advisory || "") && agentRoute(view.query.agent) === (state.route.review_agent || "");
+        const apply = button(view.name, () => { clearFields("search"); route({ review_q: view.query.text, review_view: view.query.kind, review_status: view.query.status || "", review_advisory: advisoryRoute(view.query.advisory), review_agent: agentRoute(view.query.agent) }); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
         li.append(apply, iconOnly(writeButton(`Delete view ${view.name}…`, () => command({ type: "delete_view", id: view.id }, null, { title: `Delete personal view "${view.name}"?`, verb: "Delete view", danger: true, facts: [["Name", view.name], ["Query", JSON.stringify(view.query)]] }), "quiet"), icon("x"))); list.append(li);
       }
       views.append(list);
@@ -826,6 +827,7 @@
     }
   }
   const advisoryRoute = value => value === true ? "with" : value === false ? "without" : "";
+  const agentRoute = value => value === true ? "with" : value === false ? "without" : "";
   // r[impl kiln.review.advisory.view] A separate, labelled, non-binding list; never part of the checklist above.
   function drawAdvisory(card, c) {
     const box = node("div", null, "cr-subsection cr-advisory"), live = current()?.id, records = arr(c.advisory), me = state.context.principal;

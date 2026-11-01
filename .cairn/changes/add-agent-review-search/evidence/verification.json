@@ -1,0 +1,45 @@
+{
+  "schema": "kiln.review.agent-search.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core agent_search_filters_current_revision_attestation",
+      "result": "1 passed; with/without filters match current-revision attestation and absence does not filter"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test code_review review_detail_marks_agent_votes",
+      "result": "1 passed; `agent=with` and `agent=without` are parsed and return the expected change set"
+    },
+    {
+      "command": "cargo test -p kiln-core -p kiln-web-service",
+      "result": "all core and web-service test binaries passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/code-review.js",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <generated-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "behavior": {
+    "query": "SearchQuery.agent is optional and omitted when unset; with/without match the current revision's submitted_by",
+    "shell": "agent=with|without is admitted; malformed values are rejected",
+    "surface": "console search and saved views carry the same filter",
+    "authority": "read-only filter; no review, execution or merge authority"
+  },
+  "non_claims": [
+    "attestation is declared principal identity, not verified execution or authorship",
+    "historical revisions are not backfilled",
+    "filtering does not change review state or approval authority"
+  ]
+}
