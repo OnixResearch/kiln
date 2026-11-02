@@ -9,7 +9,10 @@ use bounded_exec::{
     CommandSpec, Disposition, EnvironmentMode, ExecutionLimits, Input, Operation as ExecOperation,
     OutcomePolicy, RunError, RunRequest, TerminationScope, run, run_with_cancellation,
 };
+use kiln_core::build::BuildInputObservation;
 use kiln_core::types::{ContentId, Diagnostic};
+use kiln_nix_store::derivation::ReferenceCandidate;
+use kiln_nix_store::nar::{NarBounds, StoreObjectFacts};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 
 const HASH_BUFFER_BYTES: usize = 65_536;
@@ -57,6 +60,36 @@ pub trait NixBuildRuntime {
         invocation: &ProcessInvocation,
         cancellation: &AtomicBool,
     ) -> PortResult<NixBuildProcessOutput>;
+
+    /// Read the exact derivation bytes under a named bound.
+    fn read_derivation(&self, _path: &Path, _max_bytes: u64) -> PortResult<Vec<u8>> {
+        Err(infrastructure(
+            "nix_derivation_read",
+            "Nix derivation bytes are unavailable in this runtime",
+        ))
+    }
+
+    /// Observe NAR/reference facts for a realized output or input path. The
+    /// default keeps runtimes that predate these facts working without claiming
+    /// an observation.
+    fn store_object_facts(
+        &self,
+        _path: &Path,
+        _candidates: &[ReferenceCandidate],
+        _candidates_complete: bool,
+        _bounds: NarBounds,
+    ) -> PortResult<Option<StoreObjectFacts>> {
+        Ok(None)
+    }
+
+    /// Observe exact input NAR facts. The default keeps older runtimes working.
+    fn input_facts(
+        &self,
+        _path: &Path,
+        _bounds: NarBounds,
+    ) -> PortResult<Option<BuildInputObservation>> {
+        Ok(None)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -90,6 +123,70 @@ impl NixBuildRuntime for BoundedNixBuildRuntime {
     ) -> PortResult<NixBuildProcessOutput> {
         execute(invocation, Some(cancellation))
     }
+
+    fn read_derivation(&self, path: &Path, max_bytes: u64) -> PortResult<Vec<u8>> {
+        read_bounded_bytes(path, max_bytes)
+    }
+
+    fn store_object_facts(
+        &self,
+        path: &Path,
+        candidates: &[ReferenceCandidate],
+        candidates_complete: bool,
+        bounds: NarBounds,
+    ) -> PortResult<Option<StoreObjectFacts>> {
+        kiln_nix_store::nar::observe_path(path, candidates, candidates_complete, bounds)
+            .map(Some)
+            .map_err(PortFailure::Domain)
+    }
+
+    fn input_facts(
+        &self,
+        path: &Path,
+        bounds: NarBounds,
+    ) -> PortResult<Option<BuildInputObservation>> {
+        kiln_nix_store::nar::input_facts(path, bounds)
+            .map(Some)
+            .map_err(PortFailure::Domain)
+    }
+}
+
+fn read_bounded_bytes(path: &Path, max_bytes: u64) -> PortResult<Vec<u8>> {
+    if max_bytes == 0 || !path.is_absolute() {
+        return Err(domain(
+            "nix_file_bound",
+            "nix.file",
+            "Nix file reading needs an absolute path and a positive bound",
+        ));
+    }
+    let file = File::open(path).map_err(|_| {
+        infrastructure(
+            "nix_file_open",
+            "Nix file is unavailable at the admitted path",
+        )
+    })?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| infrastructure("nix_file_metadata", "Nix file metadata is unavailable"))?;
+    if metadata.len() > max_bytes {
+        return Err(domain(
+            "nix_file_bound",
+            "nix.file",
+            "Nix file exceeds its named byte bound",
+        ));
+    }
+    let mut bytes = Vec::new();
+    file.take(max_bytes.saturating_add(1))
+        .read_to_end(&mut bytes)
+        .map_err(|_| infrastructure("nix_file_read", "Nix file could not be read"))?;
+    if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
+        return Err(domain(
+            "nix_file_bound",
+            "nix.file",
+            "Nix file exceeds its named byte bound",
+        ));
+    }
+    Ok(bytes)
 }
 
 fn execute(

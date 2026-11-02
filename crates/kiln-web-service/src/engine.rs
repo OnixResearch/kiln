@@ -83,6 +83,30 @@ pub(crate) fn identity<T: Serialize>(value: &T) -> Result<ContentId, String> {
 }
 
 impl Engine {
+    /// Bounded derived CI facts for the Work API. Reads only the admitted
+    /// project profile and retained run records; it dispatches nothing, reads
+    /// no clock and mutates no state.
+    #[must_use]
+    pub fn work_ci_facts(&self) -> crate::work::ci::CiFacts {
+        let projects = self
+            .profile
+            .projects
+            .iter()
+            .map(|project| crate::work::ci::CiProjectFact {
+                id: project.id.clone(),
+                label: project.label.clone(),
+                repository: crate::profile::canonical_repository(&project.repository_path),
+                repository_key: project.repository_key(),
+                scope_root: project.scope.as_ref().map(|scope| scope.root.clone()),
+            });
+        let runs = self
+            .state
+            .runs
+            .iter()
+            .map(|(id, run)| (id.clone(), run.project_id.clone()));
+        crate::work::ci::CiFacts::new(projects, runs)
+    }
+
     pub fn open(profile: ServiceProfile) -> Result<Self, String> {
         profile.admit()?;
         let mut ports: BTreeMap<String, Box<dyn WorkflowPort + Send>> = BTreeMap::new();

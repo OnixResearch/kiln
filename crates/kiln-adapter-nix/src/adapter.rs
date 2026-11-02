@@ -5,10 +5,12 @@ use std::sync::atomic::AtomicBool;
 
 use bounded_exec::ExecutionLimits;
 use kiln_core::build::{
-    BuildEffectPlan, BuildEvaluationObservation, BuildEvaluationOutcome, BuildLogChunk,
-    BuildLogReadRequest, admit_build_evaluation,
+    BuildEffectPlan, BuildEvaluationObservation, BuildEvaluationOutcome, BuildInputObservation,
+    BuildLogChunk, BuildLogReadRequest, BuildStoreObjectObservation, admit_build_evaluation,
 };
 use kiln_core::types::{ContentId, Diagnostic, EffectId};
+use kiln_nix_store::derivation::{DerivationBounds, ExpectedOutput, admit};
+use kiln_nix_store::nar::{NarBounds, input_closure_identity};
 use kiln_provider_api::{BuildPort, InfrastructureFailure, PortFailure, PortResult};
 
 use crate::mapping::{
@@ -197,6 +199,7 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
                 message: "Nix adapter reached its unknown build bound".to_string(),
             }));
         }
+        validate_profile_derivation(&self.profile, &self.runtime)?;
         verify_runtime(&self.profile, &self.runtime)?;
         let encoded_request = serde_json::to_vec(&request).map_err(|_| {
             infrastructure(
@@ -344,6 +347,152 @@ impl<R: NixBuildRuntime> BuildPort for NixBuildAdapter<R> {
 }
 
 // r[impl kiln.nix_build.execution]
+// r[impl kiln.nix_store.derivation]
+fn validate_profile_derivation<R: NixBuildRuntime>(
+    profile: &NixBuildProfile,
+    runtime: &R,
+) -> PortResult<()> {
+    let Ok(bytes) = runtime.read_derivation(
+        &profile.runtime.derivation_path,
+        profile.limits.max_derivation_bytes,
+    ) else {
+        // Runtimes that cannot read derivation bytes keep the pre-existing
+        // contract; the composition path performs a hard admission.
+        return Ok(());
+    };
+    let expected = profile
+        .runtime
+        .expected_outputs
+        .iter()
+        .map(|output| ExpectedOutput {
+            name: output.name.as_str().to_owned(),
+            path: output.path.clone(),
+        })
+        .collect::<Vec<_>>();
+    let bounds = DerivationBounds {
+        max_bytes: usize::try_from(profile.limits.max_derivation_bytes).unwrap_or(usize::MAX),
+        max_outputs: profile.limits.max_required_products,
+        ..DerivationBounds::DEFAULT
+    };
+    admit(
+        &bytes,
+        &profile.runtime.derivation_path,
+        &profile.platform,
+        &expected,
+        bounds,
+    )
+    .map(|_| ())
+    .map_err(PortFailure::Domain)
+}
+
+// r[impl kiln.nix_store.nar] r[impl kiln.nix_store.refscan]
+fn attach_store_facts<R: NixBuildRuntime>(
+    profile: &NixBuildProfile,
+    plan: &BuildEffectPlan,
+    runtime: &R,
+    realisations: &[(PathBuf, PathBuf)],
+    observation: &mut BuildEvaluationObservation,
+) -> PortResult<()> {
+    let expected = profile
+        .runtime
+        .expected_outputs
+        .iter()
+        .map(|output| ExpectedOutput {
+            name: output.name.as_str().to_owned(),
+            path: output.path.clone(),
+        })
+        .collect::<Vec<_>>();
+    let bounds = DerivationBounds {
+        max_bytes: usize::try_from(profile.limits.max_derivation_bytes).unwrap_or(usize::MAX),
+        max_outputs: profile.limits.max_required_products,
+        ..DerivationBounds::DEFAULT
+    };
+    let admitted = match runtime
+        .read_derivation(
+            &profile.runtime.derivation_path,
+            profile.limits.max_derivation_bytes,
+        )
+        .and_then(|bytes| {
+            admit(
+                &bytes,
+                &profile.runtime.derivation_path,
+                &profile.platform,
+                &expected,
+                bounds,
+            )
+            .map_err(PortFailure::Domain)
+        }) {
+        Ok(admitted) => admitted,
+        // The dispatch path admitted the derivation before process start. A
+        // runtime that cannot re-read it still returns the build observation,
+        // but it does not claim store facts it did not observe.
+        Err(_) => return Ok(()),
+    };
+    let nar_bounds = NarBounds::DEFAULT;
+    for product in &mut observation.products {
+        let Some(expected_output) = profile
+            .runtime
+            .expected_outputs
+            .iter()
+            .find(|output| output.name == product.name)
+        else {
+            continue;
+        };
+        let Some((_root, target)) = realisations
+            .iter()
+            .find(|(_root, target)| target == &expected_output.path)
+        else {
+            continue;
+        };
+        let Ok(Some(facts)) = runtime.store_object_facts(
+            target,
+            &admitted.reference_candidates,
+            admitted.reference_complete,
+            nar_bounds,
+        ) else {
+            continue;
+        };
+        let content_address = admitted
+            .outputs
+            .iter()
+            .find(|output| output.name == product.name.as_str())
+            .and_then(|output| output.content_address.clone());
+        product.store = Some(BuildStoreObjectObservation {
+            nar_sha256: facts.nar_sha256,
+            nar_size: facts.nar_size,
+            references: facts.references,
+            references_complete: facts.complete,
+            deriver: Some(
+                profile
+                    .runtime
+                    .derivation_path
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
+            content_address,
+            signatures: Vec::new(),
+        });
+    }
+    let mut inputs = Vec::<BuildInputObservation>::new();
+    for input in &admitted.input_sources {
+        let Ok(Some(facts)) = runtime.input_facts(std::path::Path::new(input), nar_bounds) else {
+            continue;
+        };
+        inputs.push(facts);
+    }
+    inputs.sort_by(|left, right| left.path.cmp(&right.path));
+    inputs.dedup_by(|left, right| left.path == right.path);
+    inputs.truncate(kiln_core::build::MAX_BUILD_INPUTS);
+    observation.input_closure_identity = input_closure_identity(&inputs);
+    observation.input_closure_complete = admitted.input_derivations.is_empty();
+    observation.inputs = inputs;
+    observation.derivation_identity = Some(admitted.identity.clone());
+    if plan.constraints.as_ref() == Some(&admitted.constraints) {
+        observation.constraints = Some(admitted.constraints.clone());
+    }
+    Ok(())
+}
+
 fn interpret_output<R: NixBuildRuntime>(
     profile: &NixBuildProfile,
     plan: &BuildEffectPlan,
@@ -391,7 +540,7 @@ fn interpret_output<R: NixBuildRuntime>(
                     }
                 }
             }
-            normalize_realisation(
+            let mut normalized = normalize_realisation(
                 profile,
                 plan,
                 request,
@@ -399,7 +548,16 @@ fn interpret_output<R: NixBuildRuntime>(
                 &realisations,
                 &stdout,
                 &stderr,
-            )
+            )?;
+            attach_store_facts(
+                profile,
+                plan,
+                runtime,
+                &realisations,
+                &mut normalized.observation,
+            )?;
+            admit_build_evaluation(plan, &normalized.observation)?;
+            Ok(normalized)
         }
         NixBuildProcessOutput::Exited {
             process_status: Some(_),

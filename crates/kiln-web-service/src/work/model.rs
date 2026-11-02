@@ -6,6 +6,8 @@ const MAX_TITLE: usize = 256;
 const MAX_DESCRIPTION: usize = 32_768;
 const MAX_BODY: usize = 16_384;
 const MAX_LABEL: usize = 64;
+/// Bound on comma-separated exact values in one saved-view filter.
+pub(super) const MAX_FILTER_VALUES: usize = 64;
 const MAX_STATUS: usize = 64;
 const MAX_SOURCE_URL: usize = 2_048;
 const MAX_EMOJI: usize = 32;
@@ -120,13 +122,42 @@ pub struct View {
     pub board: Option<Board>,
 }
 
+/// Which facts define a board's lanes. Status lanes keep the previous
+/// configuration and bytes; CI-project lanes use the bounded derived project
+/// facts in [`super::ci::CiFacts`].
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BoardLanes {
+    #[default]
+    Status,
+    CiProject,
+}
+
+impl BoardLanes {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Status => "status",
+            Self::CiProject => "ci_project",
+        }
+    }
+}
+
+fn status_lanes(lanes: &BoardLanes) -> bool {
+    *lanes == BoardLanes::Status
+}
+
 /// Kanban configuration of a view. It holds no card or task state: cards are
 /// the matching issues and their columns are the issues' canonical statuses.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Board {
-    /// Ordered status columns, 1..=MAX_BOARD_COLUMNS distinct statuses.
+    /// Ordered status columns, 1..=MAX_BOARD_COLUMNS distinct statuses. Empty
+    /// only when `lane_by` is `ci_project`.
     pub columns: Vec<String>,
+    /// Absent on views written before lane modes existed; absence is status
+    /// lanes and such views keep byte-identical serialization.
+    #[serde(default, skip_serializing_if = "status_lanes")]
+    pub lane_by: BoardLanes,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -853,7 +884,7 @@ fn validate_personal(
     Ok(())
 }
 
-// r[impl kiln.work.views]
+// r[impl kiln.work.views] r[impl kiln.work.monorepo.planning] r[impl kiln.work.monorepo.filter] r[impl kiln.work.monorepo.compat]
 fn validate_view(
     record: &Record,
     view: &View,
@@ -862,8 +893,16 @@ fn validate_view(
 ) -> Result<(), String> {
     if !["list", "board"].contains(&view.layout.as_str())
         || !["updated", "created", "priority", "title", "due"].contains(&view.sort.as_str())
-        || !["status", "assignee", "project", "priority", "team", "none"]
-            .contains(&view.group_by.as_str())
+        || ![
+            "status",
+            "assignee",
+            "project",
+            "priority",
+            "team",
+            "none",
+            "ci_project",
+        ]
+        .contains(&view.group_by.as_str())
     {
         return Err("unsupported view layout, sort or grouping".into());
     }
@@ -904,16 +943,45 @@ fn validate_view(
                 }
             }
             "label" => text(value, "label filter", MAX_LABEL, false, false)?,
-            "team" | "project" | "cycle" | "initiative" => {
+            // A planning-project set: every member must be an admitted project,
+            // so a signed view cannot name a project that does not exist.
+            "project" => {
+                for id in filter_set(value, "project filter")? {
+                    let target = graph.target(record, &id, actor)?;
+                    if target.kind != Kind::Project {
+                        return Err("invalid view filter reference kind".into());
+                    }
+                }
+            }
+            "team" | "cycle" | "initiative" => {
                 let target = graph.target(record, value, actor)?;
                 let expected = match key.as_str() {
                     "team" => Kind::Team,
-                    "project" => Kind::Project,
                     "cycle" => Kind::Cycle,
                     _ => Kind::Initiative,
                 };
                 if target.kind != expected {
                     return Err("invalid view filter reference kind".into());
+                }
+            }
+            // CI facts belong to the shell, so only shape is checked here. An
+            // id or key no longer admitted simply matches nothing.
+            "ci_project" => {
+                for id in filter_set(value, "CI project filter")? {
+                    if !crate::profile::identifier(&id) {
+                        return Err("invalid CI project filter".into());
+                    }
+                }
+            }
+            "ci_repository" => {
+                for key in filter_set(value, "CI repository filter")? {
+                    if key.len() != 64
+                        || !key
+                            .bytes()
+                            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                    {
+                        return Err("invalid CI repository filter".into());
+                    }
                 }
             }
             "q" => text(value, "query filter", MAX_TITLE, false, false)?,
@@ -923,20 +991,51 @@ fn validate_view(
     // r[impl kiln.work.kanban.config] Static shape only; whether a column's
     // status is still defined is checked when the column is introduced.
     if let Some(board) = &view.board {
-        if board.columns.is_empty() || board.columns.len() > MAX_BOARD_COLUMNS {
-            return Err(format!(
-                "board must configure 1..={MAX_BOARD_COLUMNS} status columns"
-            ));
-        }
-        let mut seen = BTreeSet::new();
-        for status in &board.columns {
-            text(status, "board column", MAX_STATUS, false, false)?;
-            if !seen.insert(status) {
-                return Err("duplicate board column".into());
+        match board.lane_by {
+            BoardLanes::Status => {
+                if board.columns.is_empty() || board.columns.len() > MAX_BOARD_COLUMNS {
+                    return Err(format!(
+                        "board must configure 1..={MAX_BOARD_COLUMNS} status columns"
+                    ));
+                }
+                let mut seen = BTreeSet::new();
+                for status in &board.columns {
+                    text(status, "board column", MAX_STATUS, false, false)?;
+                    if !seen.insert(status) {
+                        return Err("duplicate board column".into());
+                    }
+                }
+            }
+            BoardLanes::CiProject => {
+                if !board.columns.is_empty() {
+                    return Err("CI-project lanes do not configure status columns".into());
+                }
             }
         }
     }
     Ok(())
+}
+
+/// A bounded comma-separated exact set in one filter value. Values are trimmed,
+/// must be nonempty, unique and at most [`MAX_FILTER_VALUES`].
+fn filter_set(value: &str, name: &str) -> Result<Vec<String>, String> {
+    let values: Vec<String> = value
+        .split(',')
+        .map(|part| part.trim().to_owned())
+        .collect();
+    if values.is_empty() || values.len() > MAX_FILTER_VALUES {
+        return Err(format!(
+            "invalid {name}: at most {MAX_FILTER_VALUES} values"
+        ));
+    }
+    let mut seen = BTreeSet::new();
+    for part in &values {
+        identity(part, name)?;
+        if !seen.insert(part) {
+            return Err(format!("duplicate {name} value"));
+        }
+    }
+    Ok(values)
 }
 
 /// A status is defined when it is built-in or listed by any team workflow.

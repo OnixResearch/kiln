@@ -6,9 +6,10 @@ use std::sync::atomic::AtomicBool;
 use bounded_exec::ExecutionLimits;
 use kiln_core::build::{
     BuildEffectPlan, BuildEvaluationObservation, BuildEvaluationOutcome, BuildLogChunk,
-    BuildLogReadRequest, admit_build_evaluation,
+    BuildLogReadRequest, BuildStoreObjectObservation, admit_build_evaluation,
 };
 use kiln_core::types::{ContentId, Diagnostic, EffectId};
+use kiln_nix_store::nar::NarBounds;
 use kiln_provider_api::{BuildPort, PortFailure, PortResult};
 
 use crate::mapping::{NormalizedBuild, lower_request, normalize_native_report, shell_outcome};
@@ -141,7 +142,13 @@ impl<R: MantleRuntime> MantleAdapter<R> {
                 .run_with_cancellation(&invocation, cancellation)?,
             None => self.runtime.run(&invocation)?,
         };
-        let normalized = interpret_output(&self.profile, plan, &request, output)?;
+        let mut normalized = interpret_output(&self.profile, plan, &request, output)?;
+        attach_store_facts(
+            &self.profile,
+            &self.runtime,
+            &normalized.product_paths,
+            &mut normalized.observation,
+        )?;
         admit_build_evaluation(plan, &normalized.observation)?;
         let observation = normalized.observation.clone();
         self.builds.insert(
@@ -242,6 +249,34 @@ impl<R: MantleRuntime> BuildPort for MantleAdapter<R> {
         }
         Ok(record.observation.clone())
     }
+}
+
+// r[impl kiln.nix_store.nar]
+fn attach_store_facts<R: MantleRuntime>(
+    _profile: &MantleProfile,
+    runtime: &R,
+    paths: &BTreeMap<String, PathBuf>,
+    observation: &mut BuildEvaluationObservation,
+) -> PortResult<()> {
+    for product in &mut observation.products {
+        let Some(path) = paths.get(product.name.as_str()) else {
+            continue;
+        };
+        let Ok(Some(facts)) = runtime.store_object_facts(path, &[], true, NarBounds::DEFAULT)
+        else {
+            continue;
+        };
+        product.store = Some(BuildStoreObjectObservation {
+            nar_sha256: facts.nar_sha256,
+            nar_size: facts.nar_size,
+            references: facts.references,
+            references_complete: false,
+            deriver: None,
+            content_address: None,
+            signatures: Vec::new(),
+        });
+    }
+    Ok(())
 }
 
 fn interpret_output(

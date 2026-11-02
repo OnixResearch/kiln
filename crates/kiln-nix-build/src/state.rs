@@ -11,7 +11,9 @@ use kiln_core::types::Diagnostic;
 use kiln_provider_api::{PortFailure, PortResult};
 use serde::{Deserialize, Serialize};
 
-use crate::composition::{NixBuildIntent, plan_for_task, profile_for_task};
+use crate::composition::{
+    NixBuildIntent, admit_task_derivation, plan_for_admitted_task, profile_for_admitted_task,
+};
 
 pub const STATE_SCHEMA: &str = "kiln.nix-build-state.v1";
 const MAX_STATE_BYTES: u64 = 4_194_304;
@@ -143,11 +145,18 @@ impl NixBuildState {
             NixBuildProfileSource::Task { base, task, intent } => {
                 let base_profile = base.clone().into_profile()?;
                 let runtime = BoundedNixBuildRuntime;
+                let admitted = admit_task_derivation(&base_profile, task, &runtime)?;
                 let derivation_path = PathBuf::from(task.derivation.native_id.as_str());
                 let derivation_identity = runtime
                     .file_identity(&derivation_path, base_profile.limits.max_derivation_bytes)?;
-                let profile = profile_for_task(&base_profile, task, intent, derivation_identity)?;
-                let plan = plan_for_task(&base_profile, task, intent)?;
+                let profile = profile_for_admitted_task(
+                    &base_profile,
+                    task,
+                    intent,
+                    &admitted,
+                    derivation_identity,
+                )?;
+                let plan = plan_for_admitted_task(&base_profile, task, intent, &admitted)?;
                 if plan != self.plan {
                     return Err(domain(
                         "nix_state_plan",

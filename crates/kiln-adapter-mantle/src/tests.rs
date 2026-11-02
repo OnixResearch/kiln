@@ -7,6 +7,7 @@ use kiln_core::build::{BuildEffectPlan, BuildEvaluationOutcome, BuildLogReadRequ
 use kiln_core::types::{
     Alias, AttemptId, CandidateId, ContentId, EffectId, PipelineRevisionId, ProviderProfileId,
 };
+use kiln_nix_store::nar::{NarBounds, StoreObjectFacts};
 use kiln_provider_api::{BuildPort, PortResult};
 use serde::Deserialize;
 
@@ -100,6 +101,7 @@ fn plan() -> BuildEffectPlan {
             Alias::new("binary").unwrap_or_else(|_| unreachable!()),
             Alias::new("metadata").unwrap_or_else(|_| unreachable!()),
         ],
+        constraints: None,
     }
 }
 
@@ -159,6 +161,7 @@ struct FakeRuntime {
     outputs: VecDeque<MantleProcessOutput>,
     invocations: Vec<ProcessInvocation>,
     runs: usize,
+    store_facts: bool,
 }
 
 impl FakeRuntime {
@@ -171,6 +174,7 @@ impl FakeRuntime {
             outputs: outputs.into_iter().collect(),
             invocations: Vec::new(),
             runs: 0,
+            store_facts: false,
         }
     }
 }
@@ -205,6 +209,22 @@ impl MantleRuntime for FakeRuntime {
         _cancellation: &AtomicBool,
     ) -> PortResult<MantleProcessOutput> {
         self.run(invocation)
+    }
+
+    fn store_object_facts(
+        &self,
+        _path: &Path,
+        _candidates: &[kiln_nix_store::derivation::ReferenceCandidate],
+        _candidates_complete: bool,
+        _bounds: NarBounds,
+    ) -> PortResult<Option<StoreObjectFacts>> {
+        Ok(self.store_facts.then(|| StoreObjectFacts {
+            nar_sha256: "e".repeat(64),
+            nar_size: 9,
+            references: Vec::new(),
+            matches: Vec::new(),
+            complete: true,
+        }))
     }
 
     fn read_log(
@@ -468,5 +488,24 @@ fn core_and_provider_manifests_do_not_import_mantle_or_bounded_exec() {
     ] {
         assert!(!core_manifest.contains(forbidden));
         assert!(!provider_manifest.contains(forbidden));
+    }
+}
+
+// r[verify kiln.nix_store.nar.scenario.product]
+#[test]
+fn mantle_products_carry_nar_facts_when_the_runtime_observes_them() {
+    let mut runtime = FakeRuntime::with_outputs([exited(success_report(false, true))]);
+    runtime.store_facts = true;
+    let mut adapter = MantleAdapter::new(profile(), runtime).unwrap_or_else(|_| unreachable!());
+    let observation = adapter.dispatch(&plan()).unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.products.len(), 2);
+    for product in &observation.products {
+        let store = product
+            .store
+            .as_ref()
+            .unwrap_or_else(|| unreachable!("store facts absent"));
+        assert_eq!(store.nar_sha256, "e".repeat(64));
+        assert_eq!(store.nar_size, 9);
+        assert!(store.references.is_empty());
     }
 }

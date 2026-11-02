@@ -67,6 +67,7 @@ fn fixture() -> Result<(PilotProfile, SignedRequest, WorkerResult)> {
         provider_profile: discovery_plan.build_provider_profile.clone(),
         platform: discovery_plan.system.clone(),
         required_products: vec![core(Alias::new("out"))?],
+        constraints: None,
     };
     let profile = PilotProfile {
         schema: PROFILE_SCHEMA.into(),
@@ -164,10 +165,16 @@ fn fixture() -> Result<(PilotProfile, SignedRequest, WorkerResult)> {
         provider_profile: plan.provider_profile.clone(),
         platform: plan.platform.clone(),
         outcome: BuildEvaluationOutcome::Success,
+        constraints: None,
+        inputs: Vec::new(),
+        input_closure_identity: None,
+        input_closure_complete: true,
+        derivation_identity: None,
         products: vec![BuildProductObservation {
             name: core(Alias::new("out"))?,
             artifact_identity: content("artifact")?,
             store_identity: content("store")?,
+            store: None,
         }],
         builder_identity: content("builder")?,
         worker_identity: content("worker")?,

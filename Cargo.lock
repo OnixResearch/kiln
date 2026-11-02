@@ -2504,7 +2504,7 @@ dependencies = [
  "rustls-pki-types",
  "serde",
  "serde_bytes",
- "sha1",
+ "sha1 0.11.0-rc.2",
  "strum",
  "tokio",
  "tokio-rustls",
@@ -2874,6 +2874,7 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "kiln-core",
+ "kiln-nix-store",
  "kiln-provider-api",
  "serde",
  "serde_json",
@@ -2887,7 +2888,9 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "kiln-core",
+ "kiln-nix-store",
  "kiln-provider-api",
+ "nix-derivation",
  "serde",
  "serde_json",
  "tempfile",
@@ -3202,9 +3205,26 @@ dependencies = [
  "kiln-adapter-nix",
  "kiln-adapter-nix-eval",
  "kiln-core",
+ "kiln-nix-store",
  "kiln-provider-api",
+ "nix-derivation",
  "serde",
  "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "kiln-nix-store"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "kiln-core",
+ "nix-archive",
+ "nix-derivation",
+ "nix-narinfo",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
  "tempfile",
 ]
 
@@ -3606,6 +3626,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "md-5"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
+dependencies = [
+ "cfg-if",
+ "digest 0.10.7",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3853,6 +3883,50 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "memoffset",
+]
+
+[[package]]
+name = "nix-archive"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "033c9031c4b23ed3d19a97810eb4e89f81fc7fbdd0afba351c56f6684350265e"
+dependencies = [
+ "digest 0.10.7",
+ "libc",
+ "rustix 1.1.4",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "nix-derivation"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c24bef42be77590fa747d2b751790ebb9ad9200f89721285a052edfc447de09"
+dependencies = [
+ "base64 0.22.1",
+ "blake3",
+ "md-5",
+ "memchr",
+ "serde",
+ "serde_json",
+ "sha1 0.10.7",
+ "sha2 0.10.9",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "nix-narinfo"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "696ff5ec75bc052729d232f87debc60842ba96d187664e7cc86a8202e3e53e39"
+dependencies = [
+ "base64 0.22.1",
+ "ed25519-dalek 2.2.0",
+ "nix-derivation",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -5474,6 +5548,17 @@ checksum = "66cf8fedced2fcf12406bcb34223dffb92eaf34908ede12fed414c82b7f00b3e"
 dependencies = [
  "base16ct 1.0.0",
  "serde",
+]
+
+[[package]]
+name = "sha1"
+version = "0.10.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a978451301f4db1d02937a4ab3ccce137717b81826e79b7d49ffe3244a13c3b8"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.2.17",
+ "digest 0.10.7",
 ]
 
 [[package]]

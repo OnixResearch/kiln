@@ -113,10 +113,16 @@ pub fn identity(value: &impl Serialize) -> Result<ContentId> {
 }
 
 fn source_alias(reference: &str) -> Result<(&str, TriggerEventKind)> {
-    if let Some(name) = reference.strip_prefix("refs/heads/").filter(|name| !name.is_empty()) {
+    if let Some(name) = reference
+        .strip_prefix("refs/heads/")
+        .filter(|name| !name.is_empty())
+    {
         return Ok((name, TriggerEventKind::Push));
     }
-    if let Some(name) = reference.strip_prefix("refs/tags/").filter(|name| !name.is_empty()) {
+    if let Some(name) = reference
+        .strip_prefix("refs/tags/")
+        .filter(|name| !name.is_empty())
+    {
         return Ok((name, TriggerEventKind::Tag));
     }
     Err("project source must be a non-empty signed branch or tag".into())
@@ -391,11 +397,12 @@ pub fn admit_result(
         .find(|t| t.native_attribute.native_id.as_str() == profile.selected_task.as_str())
         .ok_or("selected actual discovery task is absent")?;
     let base = job.build_profile.into_profile().map_err(text)?;
-    let expected = plan_for_task(&base, task, &job.build_intent).map_err(text)?;
     let plan = worker
         .build_plan
         .as_ref()
         .ok_or("actual build plan is absent")?;
+    let mut expected = plan_for_task(&base, task, &job.build_intent).map_err(text)?;
+    expected.constraints = plan.constraints.clone();
     let observation = worker
         .build_observation
         .as_ref()
@@ -459,6 +466,7 @@ pub(crate) mod tests {
         GitObjectFormat, GitResolutionFacts, SourceNativeFacts, SourceResolution,
     };
     use kiln_core::types::{PipelineRevisionId, PolicyId, ProjectId, ProviderProfileId};
+    use kiln_nix_build::plan_for_task;
 
     fn observation(
         plan: &DiscoveryEffectPlan,
@@ -747,10 +755,16 @@ pub(crate) mod tests {
             provider_profile: plan.provider_profile.clone(),
             platform: plan.platform.clone(),
             outcome: BuildEvaluationOutcome::Success,
+            constraints: None,
+            inputs: Vec::new(),
+            input_closure_identity: None,
+            input_closure_complete: true,
+            derivation_identity: None,
             products: vec![BuildProductObservation {
                 name: alias("out"),
                 artifact_identity: content('8'),
                 store_identity: content('9'),
+                store: None,
             }],
             builder_identity: base.runtime.executable_identity,
             worker_identity: base.runtime.worker_identity,

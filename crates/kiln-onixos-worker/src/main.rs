@@ -13,7 +13,7 @@ use kiln_adapter_nix_eval::{NixEvalAdapter, NixEvalProfile, admit_plan};
 use kiln_core::build::{BuildEvaluationOutcome, BuildLogReadRequest};
 use kiln_core::discovery::{DiscoveryTerminal, admit_discovery_observation};
 use kiln_core::types::{ContentId, ProviderProfileId};
-use kiln_nix_build::{NixBuildState, build_task, plan_for_task};
+use kiln_nix_build::{NixBuildState, admit_task_derivation, build_task, plan_for_admitted_task};
 use kiln_onixos_pilot::WorkerResult;
 use kiln_provider_api::{BuildPort, DiscoveryPort};
 use serde::{Deserialize, Serialize};
@@ -235,7 +235,9 @@ fn run(job: &WorkerJob, job_identity: ContentId) -> Result<bool, String> {
                 "admitted discovery omitted the selected application task".to_string()
             })?;
         let base = job.build_profile.clone().into_profile().map_err(text)?;
-        let plan = plan_for_task(&base, task, &job.build_intent).map_err(text)?;
+        let admitted = admit_task_derivation(&base, task, &BoundedNixBuildRuntime).map_err(text)?;
+        let plan =
+            plan_for_admitted_task(&base, task, &job.build_intent, &admitted).map_err(text)?;
         let mut build_state = NixBuildState::new_task(
             job.build_profile.clone(),
             task.clone(),

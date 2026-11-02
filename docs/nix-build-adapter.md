@@ -77,7 +77,9 @@ GC-root directory, and every root target equals the exact expected store path
 bound in the profile. Each product binds a Kiln BLAKE3 artifact identity over
 the output name and path and a separate store-object identity over the path.
 The adapter deliberately uses the content-addressed store path as the bounded
-product identity; it does not query a separate NAR hash. The observation also records
+product identity. When the runtime can observe it, a separate store-object fact
+records the NAR SHA-256/size and references; that fact does not replace the
+product identity. The observation also records
 the executable identity as the builder identity, the profile worker and store
 identities, a native receipt, and one bounded stderr log identity.
 
@@ -124,6 +126,59 @@ profile because the task supplies the exact derivation and output paths.
 and expected outputs are already concrete. Both dispatch paths run the bounded
 preflight. `--release` removes the output GC roots after the observation is
 printed; omit it when a downstream durable handoff still needs the products.
+
+## Derivation admission
+
+Before dispatch, the composition reads the exact `.drv` under the profile's
+`max_derivation_bytes`, parses it with the Apache-2.0 `nix-derivation` crate, and
+admits it against the exact platform and task output paths. Admission requires a
+non-empty output set, matching output names, a matching `system`, a bounded
+builder, and exact declared output paths where the derivation supplies them.
+Input sources and input derivations are recorded. Input-addressed output paths
+that need input-modulo hashes are accepted only as task-bound expectations; Kiln
+does not claim it recomputed them. A mismatch fails before any preflight or
+build process starts.
+
+The admitted structural identity is recorded separately from the profile's
+file-content identity. The existing profile binding still hashes the `.drv`
+bytes; the admitted identity binds path, platform, outputs and inputs.
+
+## Product and input facts
+
+When the runtime can observe them, Kiln records per-product store facts:
+lowercase hexadecimal NAR SHA-256, NAR size, sorted references, reference
+completeness, deriver, content address and signatures. Native SHA-256/NAR
+values never replace Kiln BLAKE3 identities. Reference scanning uses the exact
+32-byte Nix-base32 hash parts of every provable input source, known input
+derivation path and output path. `references_complete` is false when an input
+derivation's outputs remain unresolved.
+
+Input sources are also observed as exact NAR facts, sorted by path, and bound by
+a BLAKE3 `input_closure_identity`; `input_closure_complete` is false when an
+unresolved input derivation prevents a complete input closure. Products from the Mantle adapter record NAR
+facts for exported paths; Mantle does not currently expose a complete input
+closure, so those products carry `references_complete = false`.
+
+The plan and observation also bind typed constraints: system, optional minimum
+memory, sorted read-only paths, network access and shell provision. The
+`kiln-nix-build` composition derives the system and shell policy from the
+admitted derivation. These facts do not prove hermeticity, sandbox completeness
+or build correctness.
+
+## Read-only cache projection
+
+`kiln-nix-cache render --document projection.json --output /absolute/dir`
+writes a bounded static Nix binary-cache projection: `nix-cache-info`,
+canonical `.narinfo` records and NAR bytes. The projection document is
+`kiln.nix-cache-projection.v1`; it names a store directory and exact product
+paths plus recorded NAR facts. Missing NAR files are encoded from the exact
+paths, while supplied NAR files are copied and verified against the recorded
+size and SHA-256. References must be complete. The command does not serve HTTP,
+sign with operator keys, substitute, or mutate a store.
+
+The Apache-2.0 `nix-derivation`, `nix-archive` and `nix-narinfo` crates provide
+the format semantics. Snix's GPL-3.0 crates are not linked into Kiln; Mantle
+retains its vendored Snix data layer under its own AGPL boundary.
 
 ### Durable state
 

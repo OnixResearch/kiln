@@ -1770,6 +1770,7 @@ fn board_view(columns: &[&str]) -> Fields {
             layout: "board".into(),
             board: Some(Board {
                 columns: columns.iter().map(|status| (*status).to_owned()).collect(),
+                lane_by: Default::default(),
             }),
             ..view(true)
         }),
@@ -1973,5 +1974,160 @@ fn set_status_changes_only_an_issue_status_within_its_team_workflow() {
             &records
         )
         .is_err()
+    );
+}
+
+// r[verify kiln.work.monorepo.planning] r[verify kiln.work.monorepo.planning.scenario.set]
+#[test]
+fn planning_project_sets_are_bounded_exact_and_validated() {
+    let mut records = BTreeMap::new();
+    for id in ["project-a", "project-b"] {
+        insert(&mut records, id, Kind::Project, fields(id));
+    }
+    let saved = |project: String| Fields {
+        view: Some(View {
+            filters: BTreeMap::from([("project".into(), project)]),
+            ..view(false)
+        }),
+        ..fields("Project set")
+    };
+    assert!(create(Kind::View, saved("project-a,project-b".into()), &records).is_ok());
+    assert!(create(Kind::View, saved("project-a, project-b".into()), &records).is_ok());
+    for invalid in [
+        "project-a".to_owned() + ",missing",
+        "project-a,project-a".into(),
+        "project-a,".into(),
+        String::new(),
+        (0..=MAX_FILTER_VALUES)
+            .map(|index| format!("project-{index}"))
+            .collect::<Vec<_>>()
+            .join(","),
+    ] {
+        assert!(
+            create(Kind::View, saved(invalid.clone()), &records).is_err(),
+            "{invalid:?}"
+        );
+    }
+}
+
+// r[verify kiln.work.monorepo.filter]
+#[test]
+fn ci_filter_values_are_shape_checked_without_profile_lookup() {
+    let records = BTreeMap::new();
+    let saved = |filters: BTreeMap<String, String>| Fields {
+        view: Some(View {
+            filters,
+            ..view(false)
+        }),
+        ..fields("CI view")
+    };
+    let key = "a".repeat(64);
+    assert!(
+        create(
+            Kind::View,
+            saved(BTreeMap::from([
+                ("ci_project".into(), "project-a,project-b".into()),
+                ("ci_repository".into(), format!("{key},{key}")),
+            ])),
+            &records
+        )
+        .is_err(),
+        "duplicate repository values are rejected"
+    );
+    assert!(
+        create(
+            Kind::View,
+            saved(BTreeMap::from([
+                ("ci_project".into(), "project-a,project-b".into()),
+                ("ci_repository".into(), key.clone()),
+            ])),
+            &records
+        )
+        .is_ok()
+    );
+    for invalid in [
+        ("ci_project", String::new()),
+        ("ci_project", "project/a".into()),
+        ("ci_project", "project-a,project-a".into()),
+        ("ci_repository", "A".repeat(64)),
+        ("ci_repository", "a".repeat(63)),
+        ("ci_repository", "g".repeat(64)),
+        (
+            "ci_project",
+            (0..=MAX_FILTER_VALUES)
+                .map(|index| format!("project-{index}"))
+                .collect::<Vec<_>>()
+                .join(","),
+        ),
+    ] {
+        assert!(
+            create(
+                Kind::View,
+                saved(BTreeMap::from([(invalid.0.to_owned(), invalid.1.clone())])),
+                &records
+            )
+            .is_err(),
+            "{invalid:?}"
+        );
+    }
+}
+
+// r[verify kiln.work.monorepo.grouping] r[verify kiln.work.monorepo.grouping.scenario.grouped] r[verify kiln.work.monorepo.board] r[verify kiln.work.monorepo.compat] r[verify kiln.work.monorepo.compat.scenario.invalid] r[verify kiln.work.monorepo.compat.scenario.old]
+#[test]
+fn ci_grouping_and_lane_configuration_preserve_old_view_bytes() {
+    let records = BTreeMap::new();
+    let grouped = Fields {
+        view: Some(View {
+            group_by: "ci_project".into(),
+            ..view(false)
+        }),
+        ..fields("Grouped")
+    };
+    assert!(create(Kind::View, grouped, &records).is_ok());
+    let lanes = Fields {
+        view: Some(View {
+            layout: "board".into(),
+            board: Some(Board {
+                columns: Vec::new(),
+                lane_by: BoardLanes::CiProject,
+            }),
+            ..view(false)
+        }),
+        ..fields("Monorepo lanes")
+    };
+    let encoded = serde_json::to_string(
+        &create(Kind::View, lanes, &records)
+            .unwrap_or_else(|error| unreachable!("lane view: {error}"))
+            .fields
+            .view,
+    )
+    .unwrap_or_else(|error| unreachable!("lane view serializes: {error}"));
+    assert!(encoded.contains("\"lane_by\":\"ci_project\""));
+    assert!(encoded.contains("\"columns\":[]"));
+    // A lane board cannot smuggle a status-column configuration.
+    let mixed = Fields {
+        view: Some(View {
+            layout: "board".into(),
+            board: Some(Board {
+                columns: vec!["backlog".into()],
+                lane_by: BoardLanes::CiProject,
+            }),
+            ..view(false)
+        }),
+        ..fields("Mixed lanes")
+    };
+    assert!(create(Kind::View, mixed, &records).is_err());
+    // The pre-lane form decodes and re-encodes byte-identically.
+    let old = r#"{"filters":{},"sort":"updated","group_by":"none","layout":"board","shared":false,"board":{"columns":["backlog"]}}"#;
+    let parsed: View =
+        serde_json::from_str(old).unwrap_or_else(|error| unreachable!("old view: {error}"));
+    assert_eq!(
+        parsed.board.as_ref().map(|board| board.lane_by),
+        Some(BoardLanes::Status)
+    );
+    assert_eq!(
+        serde_json::to_string(&parsed)
+            .unwrap_or_else(|error| unreachable!("old view serializes: {error}")),
+        old
     );
 }

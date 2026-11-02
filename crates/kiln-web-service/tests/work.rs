@@ -1475,3 +1475,162 @@ fn stale_and_concurrent_moves_never_overwrite_a_newer_head() -> Result<()> {
     assert!(["backlog", "triage"].contains(&text(&settled, "/fields/status")?));
     Ok(())
 }
+
+fn board_with_ci(
+    workspace: &Workspace,
+    query: &str,
+    actor: &str,
+    ci: &kiln_web_service::work::ci::CiFacts,
+) -> ApiResponse {
+    let target = if query.is_empty() {
+        "/api/work/board".to_owned()
+    } else {
+        format!("/api/work/board?{query}")
+    };
+    workspace.response_with_ci("GET", &target, &[], Role::Viewer, actor, 999, ci)
+}
+
+// r[verify kiln.work.monorepo.facts.scenario.resolved] r[verify kiln.work.monorepo.facts.scenario.unknown] r[verify kiln.work.monorepo.board.scenario.lanes] r[verify kiln.work.monorepo.filter.scenario.project] r[verify kiln.work.monorepo.filter.scenario.repository] r[verify kiln.work.monorepo.grouping.scenario.grouped]
+#[test]
+fn monorepo_work_views_join_exact_runs_group_and_lane_the_board() -> Result<()> {
+    use kiln_web_service::work::ci::{CiFacts, CiProjectFact};
+
+    let fixture = Fixture::new()?;
+    let workspace = fixture.workspace()?;
+    let linked = |request: &str, title: &str, run: &str| -> Result<Value> {
+        accepted(post(
+            &workspace,
+            &create(
+                request,
+                "issue",
+                json!({"title":title,"links":[{"kind":"run","id":run}]}),
+            ),
+            ALICE,
+            110,
+        )?)
+    };
+    let alpha = linked("linked-alpha", "Alpha work", "run-a")?;
+    let beta = linked("linked-beta", "Beta work", "run-b")?;
+    let lost = linked("linked-lost", "Lost work", "run-lost")?;
+    let unlinked = accepted(post(
+        &workspace,
+        &create("unlinked", "issue", json!({"title":"Unlinked work"})),
+        ALICE,
+        111,
+    )?)?;
+    let repository_key = "a".repeat(64);
+    let ci = CiFacts::new(
+        [
+            CiProjectFact {
+                id: "project-a".into(),
+                label: "Alpha project".into(),
+                repository: "/repo".into(),
+                repository_key: repository_key.clone(),
+                scope_root: Some("crates/alpha".into()),
+            },
+            CiProjectFact {
+                id: "project-b".into(),
+                label: "Beta project".into(),
+                repository: "/repo".into(),
+                repository_key: repository_key.clone(),
+                scope_root: Some("crates/beta".into()),
+            },
+        ],
+        [
+            ("run-a".to_owned(), "project-a".to_owned()),
+            ("run-b".to_owned(), "project-b".to_owned()),
+        ],
+    );
+    let listing =
+        body(&workspace.response_with_ci("GET", "/api/work", &[], Role::Viewer, ALICE, 999, &ci))?;
+    assert_eq!(field(&listing, "/ci/schema"), "kiln.work.ci.v1");
+    assert_eq!(field(&listing, "/ci/projects/0/id"), "project-a");
+    assert_eq!(
+        field(&listing, &format!("/ci/records/{}/0", text(&alpha, "/id")?)),
+        "project-a"
+    );
+    assert_eq!(
+        field(&listing, &format!("/ci/records/{}/0", text(&beta, "/id")?)),
+        "project-b"
+    );
+    assert_eq!(
+        field(&listing, "/ci/records")
+            .as_object()
+            .map(|records| records.contains_key(text(&lost, "/id").unwrap_or_default())),
+        Some(false)
+    );
+    assert_eq!(
+        field(&listing, "/ci/records")
+            .as_object()
+            .map(|records| records.contains_key(text(&unlinked, "/id").unwrap_or_default())),
+        Some(false)
+    );
+
+    let view = accepted(post(
+        &workspace,
+        &create(
+            "monorepo-view",
+            "view",
+            json!({
+                "title":"Monorepo board",
+                "view":{
+                    "filters":{},
+                    "sort":"updated",
+                    "group_by":"ci_project",
+                    "layout":"board",
+                    "shared":true,
+                    "board":{"columns":[],"lane_by":"ci_project"}
+                }
+            }),
+        ),
+        ALICE,
+        120,
+    )?)?;
+    let view_id = text(&view, "/id")?;
+    let board = body(&board_with_ci(
+        &workspace,
+        &format!("view={view_id}"),
+        ALICE,
+        &ci,
+    ))?;
+    assert_eq!(field(&board, "/lane_by"), "ci_project");
+    assert_eq!(column_statuses(&board)?, ["project-a", "project-b"]);
+    assert_eq!(field(&board, "/columns/0/ci/label"), "Alpha project");
+    assert_eq!(field(&board, "/columns/0/ci/repository"), "/repo");
+    assert_eq!(
+        card_ids(field(&board, "/columns/0")),
+        [text(&alpha, "/id")?]
+    );
+    assert_eq!(card_ids(field(&board, "/columns/1")), [text(&beta, "/id")?]);
+    assert_eq!(field(&board, "/columns/1/total"), 1);
+    let other = card_ids(field(&board, "/other"));
+    assert!(other.contains(&text(&lost, "/id")?.to_owned()));
+    assert!(other.contains(&text(&unlinked, "/id")?.to_owned()));
+    // Status moves keep status targets although the lanes are projects.
+    assert_eq!(field(&board, "/move_columns/0/status"), "triage");
+    assert!(board.pointer("/move_columns/0/ci").is_none());
+
+    // A URL CI filter narrows both matching issues and lanes without writing the view.
+    let filtered = body(&board_with_ci(
+        &workspace,
+        &format!("view={view_id}&ci_project=project-a"),
+        ALICE,
+        &ci,
+    ))?;
+    assert_eq!(filtered.pointer("/matched_issues"), Some(&json!(1)));
+    assert_eq!(column_statuses(&filtered)?, ["project-a"]);
+    assert_eq!(
+        card_ids(field(&filtered, "/columns/0")),
+        [text(&alpha, "/id")?]
+    );
+    // A repository filter spans both projects of the monorepo.
+    let repository = body(&board_with_ci(
+        &workspace,
+        &format!("view={view_id}&ci_repository={repository_key}"),
+        ALICE,
+        &ci,
+    ))?;
+    assert_eq!(column_statuses(&repository)?, ["project-a", "project-b"]);
+    assert_eq!(repository.pointer("/matched_issues"), Some(&json!(2)));
+    Ok(())
+}

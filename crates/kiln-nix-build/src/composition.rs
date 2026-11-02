@@ -8,6 +8,7 @@ use kiln_core::discovery::TaskProposal;
 use kiln_core::types::{
     Alias, AttemptId, CandidateId, ContentId, Diagnostic, EffectId, PipelineRevisionId,
 };
+use kiln_nix_store::derivation::{AdmittedDerivation, DerivationBounds, ExpectedOutput};
 use kiln_provider_api::{BuildPort, PortFailure, PortResult};
 use serde::{Deserialize, Serialize};
 
@@ -81,6 +82,127 @@ pub fn plan_for_task(
         provider_profile: base.provider.profile_id.clone(),
         platform: intent.platform.clone(),
         required_products,
+        constraints: None,
+    };
+    validate_build_effect_plan(&plan, base.limits.max_required_products)?;
+    Ok(plan)
+}
+
+// r[impl kiln.nix_build.composition] r[impl kiln.nix_store.derivation]
+/// Read and admit the exact task derivation before any process start.
+pub fn admit_task_derivation<R: NixBuildRuntime>(
+    base: &NixBuildProfile,
+    task: &TaskProposal,
+    runtime: &R,
+) -> PortResult<AdmittedDerivation> {
+    let path = task_derivation_path(base, task)?;
+    let bytes = runtime.read_derivation(&path, base.limits.max_derivation_bytes)?;
+    let expected = task_outputs(base, task)?
+        .into_iter()
+        .map(|output| ExpectedOutput {
+            name: output.name.as_str().to_owned(),
+            path: output.path,
+        })
+        .collect::<Vec<_>>();
+    let bounds = DerivationBounds {
+        max_bytes: usize::try_from(base.limits.max_derivation_bytes).unwrap_or(usize::MAX),
+        max_outputs: base.limits.max_required_products,
+        ..DerivationBounds::DEFAULT
+    };
+    kiln_nix_store::derivation::admit(&bytes, &path, &base.platform, &expected, bounds)
+        .map_err(PortFailure::Domain)
+}
+
+/// Bind the admitted derivation's outputs into a concrete profile.
+pub fn profile_for_admitted_task(
+    base: &NixBuildProfile,
+    task: &TaskProposal,
+    intent: &NixBuildIntent,
+    admitted: &AdmittedDerivation,
+    derivation_identity: ContentId,
+) -> PortResult<NixBuildProfile> {
+    let derivation_path = task_derivation_path(base, task)?;
+    let mut expected_outputs = admitted
+        .outputs
+        .iter()
+        .map(|output| {
+            Ok(NixOutputBinding {
+                name: Alias::new(output.name.clone()).map_err(|_| {
+                    domain(
+                        "nix_task_output",
+                        "nix.task.outputs",
+                        "admitted derivation output name is not a canonical alias",
+                    )
+                })?,
+                path: output.path.clone().into(),
+            })
+        })
+        .collect::<PortResult<Vec<_>>>()?;
+    expected_outputs.sort_by(|left, right| left.name.cmp(&right.name));
+    let mut profile = base.clone();
+    profile.runtime.derivation_path = derivation_path;
+    profile.runtime.derivation_identity = derivation_identity;
+    profile.runtime.plan_identity = intent.plan_identity.clone();
+    profile.runtime.policy_identity = intent.policy_identity.clone();
+    profile.runtime.expected_outputs = expected_outputs;
+    admit_profile(&profile)?;
+    Ok(profile)
+}
+
+/// Bind the admitted derivation's outputs and constraints into a plan.
+pub fn plan_for_admitted_task(
+    base: &NixBuildProfile,
+    task: &TaskProposal,
+    intent: &NixBuildIntent,
+    admitted: &AdmittedDerivation,
+) -> PortResult<BuildEffectPlan> {
+    if task.build_provider != base.provider.profile_id {
+        return Err(domain(
+            "nix_task_provider",
+            "nix.task.build_provider",
+            "Task build provider differs from the admitted Nix provider",
+        ));
+    }
+    if intent.platform.as_str() != base.platform {
+        return Err(domain(
+            "nix_task_platform",
+            "nix.task.intent.platform",
+            "Task intent platform differs from the admitted Nix platform",
+        ));
+    }
+    let mut required_products = admitted
+        .outputs
+        .iter()
+        .map(|output| {
+            Alias::new(output.name.clone()).map_err(|_| {
+                domain(
+                    "nix_task_output",
+                    "nix.task.outputs",
+                    "admitted derivation output name is not a canonical alias",
+                )
+            })
+        })
+        .collect::<PortResult<Vec<_>>>()
+        .map_err(|_| {
+            domain(
+                "nix_task_output",
+                "nix.task.outputs",
+                "admitted derivation output name is not a canonical alias",
+            )
+        })?;
+    required_products.sort();
+    let plan = BuildEffectPlan {
+        effect_id: intent.effect_id.clone(),
+        attempt_id: intent.attempt_id.clone(),
+        idempotency_key: intent.idempotency_key.clone(),
+        candidate_id: intent.candidate_id.clone(),
+        pipeline_revision: intent.pipeline_revision.clone(),
+        plan_identity: intent.plan_identity.clone(),
+        policy_identity: intent.policy_identity.clone(),
+        provider_profile: base.provider.profile_id.clone(),
+        platform: intent.platform.clone(),
+        required_products,
+        constraints: Some(admitted.constraints.clone()),
     };
     validate_build_effect_plan(&plan, base.limits.max_required_products)?;
     Ok(plan)
@@ -97,15 +219,21 @@ pub fn build_task<R: NixBuildRuntime>(
     BuildEffectPlan,
     BuildEvaluationObservation,
 )> {
-    let derivation_path = task_derivation_path(base, task)?;
-    let derivation_identity =
-        runtime.file_identity(&derivation_path, base.limits.max_derivation_bytes)?;
-    let profile = profile_for_task(base, task, intent, derivation_identity)?;
-    let plan = plan_for_task(base, task, intent)?;
+    let admitted = admit_task_derivation(base, task, &runtime)?;
+    let derivation_identity = runtime.file_identity(
+        &profile_derivation_path(base, task)?,
+        base.limits.max_derivation_bytes,
+    )?;
+    let profile = profile_for_admitted_task(base, task, intent, &admitted, derivation_identity)?;
+    let plan = plan_for_admitted_task(base, task, intent, &admitted)?;
     let mut adapter = NixBuildAdapter::new(profile, runtime)?;
     adapter.preflight()?;
     let observation = adapter.dispatch(&plan)?;
     Ok((adapter, plan, observation))
+}
+
+fn profile_derivation_path(base: &NixBuildProfile, task: &TaskProposal) -> PortResult<PathBuf> {
+    task_derivation_path(base, task)
 }
 
 fn task_derivation_path(base: &NixBuildProfile, task: &TaskProposal) -> PortResult<PathBuf> {

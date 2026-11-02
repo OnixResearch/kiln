@@ -1,8 +1,11 @@
 let Base = import "default.ncl" in
 let Accepted = std.array.at 0 Base.traceability_policy.profiles in
-# Every previously selected pending change has been accepted and archived. Add a
-# pending change's delta-spec root here only while it remains active.
-let ActiveRoots = [] in
+# The monorepo work-view change is in flight; its delta-spec root is selected
+# here until the change is accepted and archived. Add only active roots.
+let ActiveRoots = [
+  ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views",
+  ".cairn/changes/adapt-nix-store-facts/specs/nix-store-facts",
+] in
 let Active =
   Accepted
   & {

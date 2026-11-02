@@ -12,8 +12,11 @@ use kiln_core::build::{
     BuildEffectPlan, BuildEvaluationOutcome, BuildLogReadRequest, admit_build_evaluation,
 };
 use kiln_core::types::{
-    Alias, AttemptId, CandidateId, ContentId, EffectId, PipelineRevisionId, ProviderProfileId,
+    Alias, AttemptId, CandidateId, ContentId, Diagnostic, EffectId, PipelineRevisionId,
+    ProviderProfileId,
 };
+use kiln_nix_store::derivation::ReferenceCandidate;
+use kiln_nix_store::nar::{NarBounds, StoreObjectFacts};
 use kiln_provider_api::{BuildPort, InfrastructureFailure, PortFailure, PortResult};
 
 use super::*;
@@ -128,6 +131,7 @@ fn plan() -> BuildEffectPlan {
         provider_profile: ProviderProfileId::new("nix-build-v1").unwrap_or_else(|_| unreachable!()),
         platform: alias("x86_64-linux"),
         required_products: vec![alias("out")],
+        constraints: None,
     }
 }
 
@@ -170,6 +174,8 @@ struct FakeRuntime {
     cleaned: Vec<PathBuf>,
     invocations: Vec<ProcessInvocation>,
     runs: usize,
+    derivation_bytes: Option<Vec<u8>>,
+    store_facts: bool,
 }
 
 impl FakeRuntime {
@@ -187,6 +193,8 @@ impl FakeRuntime {
             cleaned: Vec::new(),
             invocations: Vec::new(),
             runs: 0,
+            derivation_bytes: None,
+            store_facts: false,
         }
     }
 
@@ -216,6 +224,43 @@ impl NixBuildRuntime for FakeRuntime {
     fn cleanup_gc_root_directory(&mut self, path: &Path, _max_roots: usize) -> PortResult<()> {
         self.cleaned.push(path.to_path_buf());
         Ok(())
+    }
+
+    fn read_derivation(&self, path: &Path, _max_bytes: u64) -> PortResult<Vec<u8>> {
+        if path == Path::new(DRV_PATH) {
+            if let Some(bytes) = &self.derivation_bytes {
+                return Ok(bytes.clone());
+            }
+        }
+        Err(PortFailure::Domain(Diagnostic::new(
+            "fixture_derivation",
+            "nix.derivation",
+            "fixture derivation is unavailable",
+        )))
+    }
+
+    fn store_object_facts(
+        &self,
+        _path: &Path,
+        _candidates: &[ReferenceCandidate],
+        _candidates_complete: bool,
+        _bounds: NarBounds,
+    ) -> PortResult<Option<StoreObjectFacts>> {
+        Ok(self.store_facts.then(|| StoreObjectFacts {
+            nar_sha256: "a".repeat(64),
+            nar_size: 7,
+            references: Vec::new(),
+            matches: Vec::new(),
+            complete: true,
+        }))
+    }
+
+    fn input_facts(
+        &self,
+        _path: &Path,
+        _bounds: NarBounds,
+    ) -> PortResult<Option<kiln_core::build::BuildInputObservation>> {
+        Ok(None)
     }
 
     fn read_link(&self, path: &Path) -> PortResult<PathBuf> {
@@ -255,6 +300,13 @@ fn adapter_with(
 
 fn adapter_with_runtime(runtime: FakeRuntime) -> NixBuildAdapter<FakeRuntime> {
     NixBuildAdapter::new(profile(), runtime).unwrap_or_else(|_| unreachable!())
+}
+
+fn adapter_with_profile_and_runtime(
+    profile: NixBuildProfile,
+    runtime: FakeRuntime,
+) -> NixBuildAdapter<FakeRuntime> {
+    NixBuildAdapter::new(profile, runtime).unwrap_or_else(|_| unreachable!())
 }
 
 // r[verify kiln.nix_build.cohort]
@@ -969,4 +1021,47 @@ fn live_multi_output_is_rooted_and_released() {
         .release_output_roots(&plan.effect_id)
         .unwrap_or_else(|_| unreachable!());
     assert!(!gc_root.exists());
+}
+
+// r[verify kiln.nix_store.nar.scenario.product]
+#[test]
+fn successful_build_attaches_exact_nar_facts_when_the_runtime_observes_them() {
+    use nix_derivation::DerivationBuilder;
+    let validated = DerivationBuilder::new("fixture", "x86_64-linux", "/bin/sh")
+        .input_addressed_output("out")
+        .build()
+        .unwrap_or_else(|_| unreachable!());
+    let target = validated
+        .resolved_outputs()
+        .get("out")
+        .and_then(|output| output.path.clone())
+        .unwrap_or_else(|| unreachable!())
+        .to_absolute_path();
+    let profile = profile_with_outputs(vec![output("out", &target)]);
+    let plan = plan();
+    let root = gc_root_directory(&profile, &plan.effect_id)
+        .unwrap_or_else(|_| unreachable!())
+        .join("root");
+    let stdout = format!("{}\n", root.display());
+    let roots = BTreeMap::from([(root, PathBuf::from(&target))]);
+    let mut runtime = FakeRuntime::with_roots(stdout.into_bytes(), roots);
+    runtime.derivation_bytes = Some(validated.as_derivation().to_aterm_bytes());
+    runtime.store_facts = true;
+    let observation = adapter_with_profile_and_runtime(profile, runtime)
+        .dispatch(&plan)
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    assert_eq!(
+        observation.outcome,
+        BuildEvaluationOutcome::Success,
+        "products: {:?}",
+        observation.products
+    );
+    let store = observation
+        .products
+        .first()
+        .and_then(|product| product.store.as_ref())
+        .unwrap_or_else(|| unreachable!("store facts absent"));
+    assert_eq!(store.nar_sha256, "a".repeat(64));
+    assert_eq!(store.nar_size, 7);
+    assert_eq!(observation.constraints, None);
 }

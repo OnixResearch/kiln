@@ -7,9 +7,9 @@
   const PRIORITIES = ["No priority", "Urgent", "High", "Normal", "Low"];
   const SORT_LABELS = { updated: "last update", created: "newest first", priority: "priority", title: "title", due: "due date" };
   const LINK_KINDS = ["source", "revision", "patch", "review", "run", "artifact", "cairn"];
-  const FILTERS = ["kind", "status", "assignee", "priority", "label", "team", "project", "cycle", "initiative", "q"];
+  const FILTERS = ["kind", "status", "assignee", "priority", "label", "team", "project", "cycle", "initiative", "ci_project", "ci_repository", "q"];
   const ROUTE_FILTERS = window.KilnWorkBoard.OVERRIDES;
-  const state = { parent: null, route: {}, records: [], configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, dialogs: new Set(), scroll: new Map(), pending: false, error: "", listCollapsed: false, board: null, boardRequest: 0, drag: null };
+  const state = { parent: null, route: {}, records: [], ci: { projects: [], records: {} }, configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, dialogs: new Set(), scroll: new Map(), pending: false, error: "", listCollapsed: false, board: null, boardRequest: 0, drag: null };
   const kit = () => window.KilnWorkBoard;
   const previewRequests = new WeakMap();
   const bridge = () => window.KilnWork;
@@ -25,6 +25,10 @@
   const writable = () => state.configured && state.canWrite && !!bridge()?.session()?.can_write && identity() === state.principal;
   const recordFor = id => state.records.find(record => record.id === id);
   const nameFor = id => recordFor(id)?.fields.title || id || "None";
+  const ciIds = record => kit().ciIds(state.ci, record.id);
+  const ciProject = id => kit().ciProject(state.ci, id);
+  const ciName = id => ciProject(id)?.label || id || "Unlinked";
+  const ciRepositoryName = project => project?.repository || "Unknown repository";
   const pathFor = id => `/api/work/objects/${encodeURIComponent(id)}`;
   const errorText = error => error?.message || String(error);
   function report(error) { if (identity()) bridge().notice(errorText(error)); }
@@ -77,7 +81,7 @@
     return link;
   }
   const recordLink = (text, id, cls = "work-relation-link") => navLink(text, { work_id: id }, cls);
-  const VIEW_RESET = { work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_sort: "", work_group: "", work_layout: "", work_id: "" };
+  const VIEW_RESET = { work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_ci_project: "", work_ci_repository: "", work_sort: "", work_group: "", work_layout: "", work_id: "" };
   const viewPatch = id => ({ page: "work", work_view: id, ...VIEW_RESET });
   function footer(form, save, close) {
     const actions = el("div", undefined, "work-actions work-dialog-footer"); actions.append(button("Cancel", close, "quiet"), save); form.append(actions); return actions;
@@ -131,7 +135,7 @@
   function clear() {
     state.generation++; state.load++; state.detail++; saveScroll();
     for (const dialog of state.dialogs) { if (dialog.open) dialog.close(); dialog.remove(); }
-    state.dialogs.clear(); state.records = []; state.parent?.replaceChildren(); state.parent = null;
+    state.dialogs.clear(); state.records = []; state.ci = { projects: [], records: {} }; state.parent?.replaceChildren(); state.parent = null;
     state.principal = ""; state.canWrite = false; state.configured = false; state.pending = false; state.error = ""; state.scroll.clear(); state.listCollapsed = false; state.board = null; state.boardRequest++; state.drag = null;
     headerActions(null, false);
   }
@@ -222,12 +226,30 @@
       const snapshot = await bridge().api("/api/work");
       if (!valid(generation, principal) || request !== state.load) return;
       if (snapshot?.schema !== "kiln.work.v1" || snapshot.bounded !== true || !Array.isArray(snapshot.objects) || snapshot.principal !== principal) throw new Error("The work snapshot is invalid or belongs to a different principal.");
+      state.ci = admitCi(snapshot.ci);
       state.records = snapshot.objects; state.configured = snapshot.configured === true; state.canWrite = snapshot.can_write === true; state.principal = principal; state.error = ""; state.board = null;
       draw();
     } catch (error) {
       if (!valid(generation, principal) || request !== state.load) return;
-      state.records = []; state.canWrite = false; state.error = errorText(error); draw();
+      state.records = []; state.ci = { projects: [], records: {} }; state.canWrite = false; state.error = errorText(error); draw();
     }
+  }
+  // Derived CI facts are admitted as display/filter metadata only. A malformed or absent section
+  // disables CI filters rather than failing the signed work snapshot or inventing project facts.
+  function admitCi(value) {
+    if (!value || value.schema !== "kiln.work.ci.v1" || !Array.isArray(value.projects)) return { projects: [], records: {} };
+    const projects = value.projects.filter(project => project && typeof project.id === "string" && project.id
+      && typeof project.label === "string" && typeof project.repository === "string"
+      && typeof project.repository_key === "string" && project.repository_key
+      && (project.scope_root === undefined || project.scope_root === null || typeof project.scope_root === "string"));
+    const known = new Set(projects.map(project => project.id));
+    const records = Object.create(null);
+    if (value.records && typeof value.records === "object" && !Array.isArray(value.records)) {
+      for (const [id, ids] of Object.entries(value.records)) {
+        if (typeof id === "string" && Array.isArray(ids)) records[id] = ids.filter(item => typeof item === "string" && known.has(item));
+      }
+    }
+    return { projects, records };
   }
   async function render(parent, route) {
     const principal = identity(); if (!principal) { clear(); return; }
@@ -255,7 +277,7 @@
     for (const [key, route] of Object.entries(ROUTE_FILTERS)) if (state.route[route]) filters[key] = state.route[route];
     return { filters, sort: state.route.work_sort || saved?.sort || "updated", group_by: state.route.work_group || saved?.group_by || "none", layout: state.route.work_layout || saved?.layout || "list" };
   }
-  const matches = (record, filters) => kit().matches(record, filters);
+  const matches = (record, filters) => kit().matches(record, filters, state.ci);
   function visibleRows(config) {
     if (state.route.work_view && !activeView()) return [];
     const page = state.route.page;
@@ -264,7 +286,7 @@
       if (page === "planning" && !PLANNING.includes(record.kind)) return false;
       if (page === "triage" && record.kind !== "request") return false;
       if (page === "workviews" && record.kind !== "view") return false;
-      if (page === "work") return kit().listed(record, config.filters, !!activeView());
+      if (page === "work") return kit().listed(record, config.filters, !!activeView(), state.ci);
       if (page === "inbox" && (!attention(record).length || personal().read?.[record.id] === record.head && !(personal().reminders?.[record.id] != null && personal().reminders[record.id] <= Date.now()))) return false;
       if (record.kind === "personal" && config.filters.kind !== "personal") return false;
       return matches(record, config.filters);
@@ -335,13 +357,13 @@
     headerActions(creationKind());
     if (state.route.page === "inbox") {
       const prefs = personalRecord(), tools = el("div", undefined, "work-actions work-toolbar"); tools.setAttribute("role", "group"); tools.setAttribute("aria-label", "Inbox preferences");
-      tools.append(el("span", "What reaches your inbox:", "meta work-toolbar-label"), button("Attention preferences…", () => prefs ? edit(prefs.id) : create("personal"), "quiet", true), navLink("All attention preferences", { page: "work", work_kind: "personal", work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" }, "work-toolbar-link"));
+      tools.append(el("span", "What reaches your inbox:", "meta work-toolbar-label"), button("Attention preferences…", () => prefs ? edit(prefs.id) : create("personal"), "quiet", true), navLink("All attention preferences", { page: "work", work_kind: "personal", work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_ci_project: "", work_ci_repository: "" }, "work-toolbar-link"));
       parent.append(tools);
     }
     if (state.route.page === "planning") {
       const categories = el("nav", undefined, "work-categories"); categories.setAttribute("aria-label", "Planning categories");
       for (const [value, label] of [["", "All planning"], ...PLANNING.map(value => [value, `${title(value)}s`])]) {
-        const tab = navLink(label, { work_kind: value, work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "" }, "work-category");
+        const tab = navLink(label, { work_kind: value, work_view: "", work_id: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_ci_project: "", work_ci_repository: "" }, "work-category");
         if ((config.filters.kind || "") === value) tab.setAttribute("aria-current", "page"); categories.append(tab);
       }
       parent.append(categories);
@@ -359,17 +381,29 @@
     const active = Object.entries(config.filters).filter(([key, value]) => key !== "q" && value && !(state.route.page === "planning" && key === "kind")).length;
     details.append(kui().disclosureSummary(`Filters & display${active ? ` · ${active} active` : ""}${config.layout === "board" ? " · Board" : ""}`));
     const filters = el("div", undefined, "work-filters"); details.append(filters); form.append(details);
-    for (const key of ["kind", "status", "assignee", "project"]) {
-      const options = key === "kind" ? [["", "All types"], ...KINDS.map(value => [value, title(kindLabel(value))])] : key === "status" ? [["", "All statuses"], ...statuses()] : key === "project" ? [["", "All projects"], ...state.records.filter(r => r.kind === "project").map(r => [r.id, r.fields.title])] : null;
+    for (const key of ["kind", "status", "assignee"]) {
+      const options = key === "kind" ? [["", "All types"], ...KINDS.map(value => [value, title(kindLabel(value))])] : key === "status" ? [["", "All statuses"], ...statuses()] : null;
       inputs[key] = field(filters, key === "kind" ? "Type" : title(key), options ? "select" : "text", config.filters[key] || "", options);
     }
+    // r[impl kiln.work.monorepo.planning] A saved view may span a project set.
+    inputs.project = relation(filters, "Projects", "project", split(config.filters.project || ""), true);
+    if (state.ci.projects.length) {
+      // r[impl kiln.work.monorepo.filter] Derived exact CI facts, never planning projects.
+      inputs.ci_project = field(filters, "CI project", "select", config.filters.ci_project || "", [["", "All CI projects"], ...state.ci.projects.map(project => [project.id, `${project.label} · ${project.repository}`])]);
+      const repositories = [...new Map(state.ci.projects.map(project => [project.repository_key, project])).values()];
+      inputs.ci_repository = field(filters, "CI repository", "select", config.filters.ci_repository || "", [["", "All CI repositories"], ...repositories.map(project => [project.repository_key, project.repository])]);
+    }
     const layout = field(filters, "Layout", "select", config.layout, ["list", "board"]);
-    const group = field(filters, "Group by", "select", config.group_by, ["none", "status", "assignee", "project", "priority", "team"]);
+    const group = field(filters, "Group by", "select", config.group_by, ["none", "status", "assignee", "project", "priority", "team", "ci_project"]);
     const sort = field(filters, "Sort by", "select", config.sort, ["updated", "created", "priority", "title", "due"]);
     const actions = el("div", undefined, "work-actions"); const submit = el("button", "Apply filters"); submit.type = "submit"; actions.append(submit);
-    actions.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" }), "quiet"), button("Save current view…", () => editor("view", null, { view: { ...config, shared: false, ...(activeView()?.board ? { board: clone(activeView().board) } : {}) } }), "quiet", true));
+    actions.append(button("Reset filters", () => bridge().navigate({ ...VIEW_RESET, work_id: state.route.work_id }), "quiet"), button("Save current view…", () => editor("view", null, { view: { ...config, shared: false, ...(activeView()?.board ? { board: clone(activeView().board) } : {}) } }), "quiet", true));
     filters.append(actions);
-    form.addEventListener("submit", event => { event.preventDefault(); const patch = { work_layout: layout.value, work_group: group.value, work_sort: sort.value }; for (const [key, input] of Object.entries(inputs)) patch[ROUTE_FILTERS[key]] = input.value.trim(); bridge().navigate(patch); });
+    form.addEventListener("submit", event => {
+      event.preventDefault(); const patch = { work_layout: layout.value, work_group: group.value, work_sort: sort.value };
+      for (const [key, input] of Object.entries(inputs)) patch[ROUTE_FILTERS[key]] = input.multiple ? selected(input).join(",") : input.value.trim();
+      bridge().navigate(patch);
+    });
     bar.append(form); parent.append(bar);
     if (state.route.work_view && !activeView()) {
       const missing = el("div", undefined, "error-state work-unavailable");
@@ -399,6 +433,9 @@
     if (key === "kind") return title(kindLabel(value));
     if (key === "status") return title(value);
     if (key === "priority") return PRIORITIES[value] || value;
+    if (key === "project") return split(value).map(nameFor).join(", ");
+    if (key === "ci_project") return split(value).map(ciName).join(", ");
+    if (key === "ci_repository") return split(value).map(key => state.ci.projects.find(project => project.repository_key === key)?.repository || key).join(", ");
     return nameFor(value);
   }
   function chip(text, removeLabel, remove, hint) {
@@ -447,6 +484,13 @@
     if (f.assignees?.length) meta.append(el("span", `Assigned: ${f.assignees.join(", ")}`, "work-assignees"));
     if (f.team) meta.append(el("span", nameFor(f.team)));
     if (f.project) meta.append(el("span", nameFor(f.project)));
+    // r[impl kiln.work.monorepo.grouping] Exact CI projects derived from declared run links only.
+    for (const id of ciIds(record)) {
+      const project = ciProject(id); if (!project) continue;
+      const chip = el("span", project.label, "work-ci");
+      chip.title = `${ciRepositoryName(project)}${project.scope_root != null ? ` · root ${project.scope_root || "whole repository"}` : ""}`;
+      meta.append(chip);
+    }
     for (const label of f.labels || []) meta.append(el("span", label, "work-label"));
     if (state.route.page === "inbox") for (const reason of attention(record)) meta.append(el("span", reason, "work-attention"));
     if (personal().favorites.includes(record.id)) { const mark = el("span", "Favorite", "work-favorite-mark"); mark.prepend(icon("star")); meta.append(mark); }
@@ -465,8 +509,17 @@
     const groupBy = config.group_by === "none" && config.layout === "board" ? "status" : config.group_by;
     const groups = new Map();
     for (const record of records) {
-      const raw = groupBy === "none" ? "Items" : groupBy === "assignee" ? record.fields.assignees?.join(", ") || "Unassigned" : groupBy === "priority" ? PRIORITIES[record.fields.priority] : record.fields[groupBy] || "Not set";
-      const label = ["project", "team"].includes(groupBy) ? nameFor(raw) : title(raw);
+      let raw, label;
+      if (groupBy === "ci_project") {
+        // Each record appears once: its first exact linked project in repository-then-id order,
+        // or the explicit unlinked group when no link resolves.
+        const group = kit().ciGroup(record, state.ci);
+        raw = group?.id || "";
+        label = group ? `CI project: ${group.label}` : "No linked CI project";
+      } else {
+        raw = groupBy === "none" ? "Items" : groupBy === "assignee" ? record.fields.assignees?.join(", ") || "Unassigned" : groupBy === "priority" ? PRIORITIES[record.fields.priority] : groupBy === "project" ? split(record.fields.project || "")[0] || "Not set" : record.fields[groupBy] || "Not set";
+        label = ["project", "team"].includes(groupBy) ? nameFor(raw) : title(raw);
+      }
       if (!groups.has(label)) groups.set(label, { raw, rows: [] }); groups.get(label).rows.push(record);
     }
     // r[impl kiln.web.page_consistency.scenario.states]
@@ -478,7 +531,7 @@
       const heading = page === "inbox" ? "You're all caught up" : filtered ? "No matching items" : page === "planning" ? `No ${state.route.work_kind ? `${state.route.work_kind}s` : "plans"} yet` : page === "triage" ? "No requests to triage" : page === "workviews" ? "Keep a useful view" : "Start with an issue";
       const help = page === "inbox" ? "Your unread assignments, mentions, watched changes and due reminders appear here. Opening an item never marks it read automatically." : filtered ? "Try a different search or reset filters. This list covers the current bounded snapshot." : page === "planning" ? "Create a project for an outcome, then link issues. Use milestones for checkpoints and cycles for time-boxed work." : page === "triage" ? "Capture a request with its original source, then accept, decline, snooze or route it." : page === "workviews" ? "Save filters and a list or board layout so you can return to them later." : "Capture something to do. Add a title and description now; ownership, planning and CI links can come later.";
       empty.append(el("h2", heading, "empty-state-title"), el("p", help, "empty-state-text"));
-      if (filtered) empty.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: page === "planning" ? state.route.work_kind || "" : "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_layout: "", work_group: "", work_sort: "" }), "quiet"));
+      if (filtered) empty.append(button("Reset filters", () => bridge().navigate({ work_view: "", work_kind: page === "planning" ? state.route.work_kind || "" : "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_ci_project: "", work_ci_repository: "", work_layout: "", work_group: "", work_sort: "" }), "quiet"));
       else if (page !== "inbox" && writable() && !document.getElementById(HEADER_SLOT)) empty.append(button(`New ${kindLabel(creationKind())}…`, () => create(creationKind()), undefined, true));
       parent.append(empty);
     }
@@ -530,21 +583,26 @@
     head.append(el("p", summary, "work-board-total"));
     for (const note of notes) head.append(el("p", note, "meta"));
     // r[impl kiln.work.kanban.boundary]
-    head.append(el("p", "Columns are planning status. Moving a card changes only that issue's status: it acquires no execution lease and proves no CI or release completion.", "meta work-board-boundary"));
+    head.append(el("p", "Lanes and columns are planning facts. Moving a card changes only that issue's status: it acquires no execution lease and proves no CI or release completion.", "meta work-board-boundary"));
     const live = el("p", "", "sr-only"); live.setAttribute("role", "status"); head.append(live); state.boardLive = live;
     const lanes = el("div", undefined, "work-board-lanes");
     for (const lane of p.columns) lanes.append(boardLane(p, lane, false));
-    // Issues whose status has no column are never hidden.
+    // Issues whose status or project has no lane are never hidden.
     if (p.other.total) lanes.append(boardLane(p, { status: "", builtin: false, teams: [], retired: false, ...p.other }, true));
     parent.append(head, lanes);
   }
   function boardLane(p, lane, other) {
     const column = el("section", undefined, "work-board-column"); column.dataset.status = lane.status;
     const heading = el("h3", undefined, "work-board-heading"); heading.id = `work-board-${crypto.randomUUID()}`; column.setAttribute("aria-labelledby", heading.id);
-    heading.append(other ? el("span", "Other statuses") : workStatus(lane.status), el("span", String(lane.total), "work-count"));
+    const ciLanes = p.lane_by === "ci_project";
+    const laneTitle = other ? (ciLanes ? "No linked CI project" : "Other statuses") : lane.ci ? lane.ci.label : workStatus(lane.status);
+    heading.append(el("span", laneTitle), el("span", String(lane.total), "work-count"));
     column.append(heading);
     const note = el("p", undefined, "meta work-board-note");
-    if (other) note.textContent = `No column on this board for: ${lane.statuses.map(item => `${title(item.status)} (${item.total})`).join(", ")}.`;
+    if (other) note.textContent = ciLanes
+      ? "Issues whose explicit run links do not resolve to an admitted CI project, or whose project has no lane."
+      : `No column on this board for: ${lane.statuses.map(item => `${title(item.status)} (${item.total})`).join(", ")}.`;
+    else if (lane.ci) note.textContent = `CI project · ${lane.ci.repository}${lane.ci.scope_root != null ? ` · root ${lane.ci.scope_root || "whole repository"}` : ""}`;
     else if (lane.retired) note.textContent = "Retired status: no team workflow defines it now. It is not a move target.";
     else if (!lane.builtin) note.textContent = `Team status · ${lane.teams.map(nameFor).join(", ")}`;
     if (note.textContent) column.append(note);
@@ -553,12 +611,15 @@
     for (const card of lane.cards) cards.append(boardCard(p, card));
     if (!lane.total) cards.append(el("p", "No issues", "meta work-board-empty"));
     column.append(cards);
-    if (!other) dropZone(column, p, lane);
+    // Drag-to-lane means "move to this status", so it is disabled on CI-project lanes.
+    if (!other && !lane.ci) dropZone(column, p, lane);
     return column;
   }
   // r[impl kiln.work.kanban.interaction]
   // Keyboard (Move… or M) and drag-and-drop open the same confirmation; a drop is only a target choice.
   function boardCard(p, card) {
+    // Status moves always target status columns; CI-project lanes are display lanes.
+    const statusColumns = p.move_columns?.length ? p.move_columns : p.columns;
     const node = el("article", undefined, "work-row work-board-card"); node.dataset.workId = card.id; node.tabIndex = 0;
     node.setAttribute("aria-label", `Issue: ${card.title}`);
     if (state.route.work_id === card.id) node.setAttribute("aria-current", "true");
@@ -572,16 +633,16 @@
     move.setAttribute("aria-label", `Move ${quoted(card.title)} to another column`); move.setAttribute("aria-keyshortcuts", "M");
     node.setAttribute("aria-keyshortcuts", "M");
     node.append(recordLink(card.title || "Untitled", card.id, "work-row-title"), meta, move);
-    node.draggable = writable();
+    node.draggable = writable() && p.lane_by !== "ci_project";
     node.addEventListener("keydown", event => {
       if ((event.target !== node && event.target !== move) || event.key.toLowerCase() !== "m" || event.ctrlKey || event.metaKey || event.altKey || !writable()) return;
       event.preventDefault(); Promise.resolve().then(() => moveDialog(p, card)).catch(report);
     });
     node.addEventListener("dragstart", event => {
-      if (!writable() || state.pending || event.target !== node) { event.preventDefault(); return; }
+      if (!writable() || p.lane_by === "ci_project" || state.pending || event.target !== node) { event.preventDefault(); return; }
       state.drag = { card, dropped: false }; event.dataTransfer.setData("text/plain", card.id); event.dataTransfer.effectAllowed = "move";
       node.classList.add("is-dragging");
-      const targets = new Map(kit().moveTargets(card, p.columns, Date.now()).map(target => [target.status, target.allowed]));
+      const targets = new Map(kit().moveTargets(card, statusColumns, Date.now()).map(target => [target.status, target.allowed]));
       for (const column of node.closest(".work-board-lanes")?.querySelectorAll(".work-board-column") || []) column.dataset.drop = targets.get(column.dataset.status) ? "allowed" : "blocked";
       announce(`Dragging ${quoted(card.title)}. Drop it on a highlighted column, or press Escape to cancel.`);
     });
@@ -606,6 +667,7 @@
   // conflict is shown, reloaded and left to the user; nothing is overwritten or sent automatically.
   function moveDialog(p, card, preselect = "") {
     if (!writable()) throw new Error("Moving cards requires an admitted work writer and writable native store.");
+    const statusColumns = p.move_columns?.length ? p.move_columns : p.columns;
     const generation = state.generation, principal = identity();
     const { dialog, close } = modal(`Move ${quoted(card.title)}`, "work-move-dialog");
     const form = el("form", undefined, "work-dialog-form"), factsBox = el("div"), fieldset = el("fieldset", undefined, "work-move-targets");
@@ -617,8 +679,8 @@
     const render = selected => {
       factsBox.replaceChildren(); facts(factsBox, [["Issue", subject.id], ["Expected head", subject.head], ["Current column", title(subject.status)]], "work-facts-mono");
       fieldset.replaceChildren(el("legend", "Target column"));
-      const choice = selected || kit().defaultTarget(subject, p.columns, Date.now());
-      for (const target of kit().moveTargets(subject, p.columns, Date.now())) {
+      const choice = selected || kit().defaultTarget(subject, statusColumns, Date.now());
+      for (const target of kit().moveTargets(subject, statusColumns, Date.now())) {
         const option = el("label", undefined, "work-move-option"), input = el("input"), text = el("span", undefined, "work-move-option-text");
         input.type = "radio"; input.name = "target"; input.value = target.status; input.disabled = !target.allowed; input.checked = target.allowed && target.status === choice;
         text.append(el("span", title(target.status))); if (target.reason) text.append(el("span", target.reason, "meta"));
@@ -968,17 +1030,37 @@
     const view = current || { filters: {}, sort: "updated", group_by: "none", layout: "list", shared: false };
     const panel = section(form, "Saved view definition", "work-form-section"); const inputs = {};
     for (const key of FILTERS) {
+      if (key === "project") { inputs[key] = relation(panel, "Projects", "project", split(view.filters?.project || ""), true); continue; }
+      if (key === "ci_project") {
+        if (!state.ci.projects.length) continue;
+        inputs[key] = field(panel, "CI project", "select", view.filters?.ci_project || "", [["", "Any CI project"], ...state.ci.projects.map(project => [project.id, `${project.label} · ${project.repository}`])]);
+        continue;
+      }
+      if (key === "ci_repository") {
+        if (!state.ci.projects.length) continue;
+        const repositories = [...new Map(state.ci.projects.map(project => [project.repository_key, project])).values()];
+        inputs[key] = field(panel, "CI repository", "select", view.filters?.ci_repository || "", [["", "Any CI repository"], ...repositories.map(project => [project.repository_key, project.repository])]);
+        continue;
+      }
       const options = key === "kind" ? [["", "Any kind"], ...KINDS] : key === "status" ? [["", "Any status"], ...statuses()] : key === "priority" ? [["", "Any priority"], ...PRIORITIES.map((label, index) => [index, label])] : PLANNING.includes(key) ? [["", `Any ${key}`], ...state.records.filter(r => r.kind === key).map(r => [r.id, r.fields.title])] : null;
       inputs[key] = field(panel, key === "q" ? "Search text" : title(key), options ? "select" : "text", view.filters?.[key] || "", options);
     }
-    const sort = field(panel, "Sort", "select", view.sort, ["updated", "created", "priority", "title", "due"]), group = field(panel, "Group by", "select", view.group_by, ["none", "status", "assignee", "project", "priority", "team"]), layout = field(panel, "Layout", "select", view.layout, ["list", "board"]), shared = field(panel, "Shared with this workspace", "checkbox", view.shared);
-    // r[impl kiln.work.kanban.config] Board columns are view configuration only; cards stay the issues themselves.
-    const columns = field(panel, "Board columns (ordered statuses, comma separated)", "text", (view.board?.columns || []).join(", ")); columns.closest(".work-field").classList.add("work-field-wide");
-    panel.append(el("p", `Leave empty for the default: ${["triage", "backlog", "started"].map(title).join(", ")}, then team statuses, then ${["completed", "cancelled", "snoozed", "duplicate"].map(title).join(", ")}. Empty columns stay visible; issues with other statuses appear under Other statuses. Group by applies to the list layout.`, "small"));
+    const sort = field(panel, "Sort", "select", view.sort, ["updated", "created", "priority", "title", "due"]), group = field(panel, "Group by", "select", view.group_by, ["none", "status", "assignee", "project", "priority", "team", "ci_project"]), layout = field(panel, "Layout", "select", view.layout, ["list", "board"]), shared = field(panel, "Shared with this workspace", "checkbox", view.shared);
+    // r[impl kiln.work.kanban.config] r[impl kiln.work.monorepo.board] Board lanes are view configuration only.
+    const lanes = field(panel, "Board lanes", "select", view.board?.lane_by || "status", [["status", "Status columns"], ["ci_project", "CI projects (monorepo)"]]);
+    const columns = field(panel, "Board status columns (ordered, comma separated)", "text", (view.board?.columns || []).join(", ")); columns.closest(".work-field").classList.add("work-field-wide");
+    panel.append(el("p", `Status lanes leave columns empty for the default: ${["triage", "backlog", "started"].map(title).join(", ")}, then team statuses, then ${["completed", "cancelled", "snoozed", "duplicate"].map(title).join(", ")}. CI-project lanes use the bounded derived projects from linked runs and ignore the status column list. Empty lanes stay visible; unlinked issues appear under Other. Group by applies to the list layout.`, "small"));
     shared.disabled = existing;
     if (existing) panel.append(el("p", "Visibility is fixed for this signed history. Create a separate saved view to change sharing without exposing prior private events.", "small"));
     panel.append(el("p", "Private views are visible only to their authenticated owner. Sharing exposes this view definition, not private records or hidden fields.", "small"));
-    return () => { const board = split(columns.value); return { filters: Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value.trim()]).filter(([, value]) => value)), sort: sort.value, group_by: group.value, layout: layout.value, shared: shared.checked, ...(board.length ? { board: { columns: board } } : {}) }; };
+    return () => {
+      const statusColumns = split(columns.value), laneBy = lanes.value;
+      const board = laneBy === "ci_project"
+        ? { columns: [], lane_by: "ci_project" }
+        : statusColumns.length ? { columns: statusColumns } : null;
+      const filters = Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.multiple ? selected(input).join(",") : input.value.trim()]).filter(([, value]) => value));
+      return { filters, sort: sort.value, group_by: group.value, layout: layout.value, shared: shared.checked, ...(board ? { board } : {}) };
+    };
   }
   function personalEditor(form, current) {
     const p = current || { watched: [], read: {}, favorites: [], reminders: {} }; const panel = section(form, "Private attention preferences", "work-form-section");

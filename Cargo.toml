@@ -28,6 +28,7 @@ members = [
   "crates/kiln-adapter-mantle",
   "crates/kiln-adapter-nix",
   "crates/kiln-nix-build",
+  "crates/kiln-nix-store",
   "crates/kiln-adapter-nix-eval",
   "crates/kiln-onixos-pilot",
   "crates/kiln-onixos-worker",
@@ -145,6 +146,10 @@ kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }
 kiln-adapter-nix-eval = { path = "crates/kiln-adapter-nix-eval" }
 kiln-adapter-nix = { path = "crates/kiln-adapter-nix" }
 kiln-nix-build = { path = "crates/kiln-nix-build" }
+kiln-nix-store = { path = "crates/kiln-nix-store" }
+nix-derivation = "=0.6.1"
+nix-archive = "=0.6.0"
+nix-narinfo = "=0.4.0"
 kiln-onixos-pilot = { path = "crates/kiln-onixos-pilot" }
 kiln-radicle-ci = { path = "crates/kiln-radicle-ci" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }

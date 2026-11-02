@@ -1,0 +1,51 @@
+{
+  "schema": "kiln.nix-store-facts.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-nix-store",
+      "result": "9 passed; derivation, NAR, reference, input closure and cache projection tests"
+    },
+    {
+      "command": "cargo test -p kiln-nix-build --test composition",
+      "result": "7 passed; admitted output/constraint binding and pre-process mismatch rejection"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-nix",
+      "result": "15 passed; including exact NAR fact attachment"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-mantle",
+      "result": "10 passed; including product NAR fact attachment"
+    },
+    {
+      "command": "cargo test -p kiln-core",
+      "result": "185 passed; additive compatibility and fact admission"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --all -- --check (per touched package)",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test --workspace --no-fail-fast",
+      "result": "pass"
+    },
+    {
+      "command": "kiln-nix-cache render --document <fixture> --output <disposable-dir>",
+      "result": "exit 0; nix-cache-info, canonical narinfo and NAR emitted with matching receipt"
+    },
+    {
+      "command": "cairn validate --root . --policy <development-policy>",
+      "result": "valid; no issues"
+    }
+  ],
+  "non_claims": [
+    "derivation admission is structural and does not recompute input-addressed output paths without input hashes",
+    "NAR facts do not prove build correctness, hermeticity, reproducibility or cache truth",
+    "cache projection is static and grants no HTTP, signing, substitution or store mutation authority"
+  ]
+}

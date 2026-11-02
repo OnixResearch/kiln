@@ -1987,6 +1987,29 @@ conflict is shown, not overwritten: reload, then apply the move to the current
 head with a new request, or keep the current status. WIP limits and manual card
 ordering are not provided.
 
+**Monorepo views.** A saved view may span a monorepo without losing its
+components. `ci_project` and `ci_repository` accept comma-separated exact CI
+project ids or BLAKE3 repository keys (at most 64 of either). A work record
+matches only when one of its explicit `run` links names a retained run that
+resolves to an admitted project in that set; an unlinked record, a removed
+project, a lost run or an unknown key matches nothing and is shown as unlinked.
+The planning `project` filter also accepts a bounded set (`project-a,project-b`),
+and every member must be an admitted planning project when the view is written.
+`group_by=ci_project` places each row once, under its first linked project in
+repository-then-id order or **No linked CI project**. A board view may set
+`board.lane_by=ci_project`; its lanes are the bounded, deterministically ordered
+CI projects matching the view's CI filters (every admitted project when the view
+names no CI filter), including empty lanes, and each card
+appears once (status stays on the card). Issues whose links do not resolve appear
+under **No linked CI project**. Status columns are rejected in lane mode; Move
+still targets the canonical status columns (`move_columns`) and drag-to-lane is
+available only on status boards. The console exposes the derived project and
+repository filters, multi-project selection, CI grouping and lane labels, and
+restores them from `work_ci_project`, `work_ci_repository` and `work_project` URL
+overrides. Derived facts are a read-only `kiln.work.ci.v1` listing section; they
+are never written into signed work records and do not prove CI success, execution
+or release authority.
+
 Board status is **planning state** only. Moving a card, including to Completed,
 does not acquire an agent or worker execution lease, dispatch or cancel runs, or
 grant any CI operator authority. It neither proves that CI passed nor that a

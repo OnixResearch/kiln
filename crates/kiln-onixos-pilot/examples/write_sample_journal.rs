@@ -150,6 +150,7 @@ fn pilot_profile(public_key: &str) -> Result<PilotProfile, String> {
         provider_profile: discovery_plan.build_provider_profile.clone(),
         platform: discovery_plan.system.clone(),
         required_products: vec![alias("out")?],
+        constraints: None,
     };
     Ok(PilotProfile {
         schema: PROFILE_SCHEMA.into(),

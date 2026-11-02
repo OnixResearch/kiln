@@ -592,6 +592,11 @@
           program = "${webServicePackageFor system}/bin/kiln-web-service";
           meta.description = "Run the authenticated source-bound single-tenant CI web service";
         };
+        kiln-nix-cache = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-nix-cache";
+          meta.description = "Render a bounded read-only Nix binary-cache projection";
+        };
         kiln-dashboard-refresh = {
           type = "app";
           program = "${dashboardToolsPackageFor system}/bin/kiln-dashboard-refresh";
@@ -979,6 +984,7 @@
             };
             buildPhase = ''
               runHook preBuild
+              cargo test -p kiln-nix-store --offline
               cargo test -p kiln-adapter-nix --offline
               cargo test -p kiln-nix-build --offline
               runHook postBuild
@@ -1454,7 +1460,7 @@
             pkgs.runCommand "kiln-live-console-ui" { nativeBuildInputs = [ pkgs.nodejs ]; }
               ''
                 ${copySource}
-                node --test tests/live-console-ui.test.mjs
+                node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs
                 touch "$out"
               '';
           # Property-based terminal rail for the operator dashboard. The

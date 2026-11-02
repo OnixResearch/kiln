@@ -1,0 +1,68 @@
+{
+  "schema": "kiln.work.monorepo-views.verification.v1",
+  "date": "2026-11-01",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --lib work::",
+      "result": "39 passed; model, board, CI-fact and compatibility tests"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test work",
+      "result": "15 passed; linked/unlinked listing facts, CI filters, monorepo lanes, Other and move_columns"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test engine work_ci_facts",
+      "result": "1 passed; admitted project facts, repository key/path and scope roots"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib -- --skip auth::tests::feed_token_reloads_after_file_rotation",
+      "result": "163 passed, 1 ignored; the skipped auth test is mtime-sensitive on this host's ZFS /tmp and targets untouched code"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --tests -- --skip auth::tests::feed_token_reloads_after_file_rotation",
+      "result": "all integration suites passed"
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs",
+      "result": "47 passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -p kiln-web-service -- --check",
+      "result": "pass"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/{work,work-board,web,work-interaction}.js",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root . --policy <development-coverage-policy>",
+      "result": "valid; no issues"
+    },
+    {
+      "command": "cairn traceability coverage --root . --policy <development-coverage-policy> --profile kiln-active-development --json",
+      "result": "missing requirements: none"
+    }
+  ],
+  "browser": {
+    "service": "disposable local HTTPS kiln-web-service with two scoped projects sharing one repository",
+    "observed": [
+      "lane board rendered API service and Web client lanes and No linked CI project with three unlinked issues",
+      "ci_project=api rendered only the API project lane with zero matches",
+      "multi-project planning view listed exactly the two assigned issues",
+      "list grouping by ci_project rendered the explicit unlinked group"
+    ],
+    "limits": [
+      "no linked runs were seeded in the browser exercise; linked facts and filters are covered by the native API test",
+      "no provider effect, remote publication or deployment occurred"
+    ]
+  },
+  "non_claims": [
+    "derived CI facts are read-only joins through explicit retained run links",
+    "unresolved links never satisfy a positive CI filter",
+    "the change grants no CI, execution, merge or release authority"
+  ]
+}

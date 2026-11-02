@@ -10,8 +10,11 @@ use crate::engine::api::{error, json_response};
 use crate::engine::{ApiResponse, Role};
 
 pub mod board;
+pub mod ci;
 pub mod model;
 mod store;
+
+use ci::{CI_FACTS_SCHEMA, CiFacts};
 
 const MAX_PROFILE_BYTES: usize = 262_144;
 const MAX_COMMAND_BYTES: usize = 262_144;
@@ -107,12 +110,37 @@ impl Workspace {
         principal: &str,
         now_ms: i64,
     ) -> ApiResponse {
-        match self.respond(method, target, body, role, principal, now_ms) {
+        self.response_with_ci(
+            method,
+            target,
+            body,
+            role,
+            principal,
+            now_ms,
+            &CiFacts::default(),
+        )
+    }
+
+    /// Respond with the bounded derived CI facts for this request. The facts
+    /// never enter signed work COBs and do not grant CI or release authority.
+    #[allow(clippy::too_many_arguments)] // One admission call carries the full request context.
+    pub fn response_with_ci(
+        &self,
+        method: &str,
+        target: &str,
+        body: &[u8],
+        role: Role,
+        principal: &str,
+        now_ms: i64,
+        ci: &CiFacts,
+    ) -> ApiResponse {
+        match self.respond(method, target, body, role, principal, now_ms, ci) {
             Ok(response) if response.body.len() <= MAX_RESPONSE_BYTES => response,
             _ => unavailable(),
         }
     }
 
+    #[allow(clippy::too_many_arguments)] // Mirrors response_with_ci's request context.
     fn respond(
         &self,
         method: &str,
@@ -121,6 +149,7 @@ impl Workspace {
         role: Role,
         principal: &str,
         now_ms: i64,
+        ci: &CiFacts,
     ) -> Result<ApiResponse, String> {
         if role == Role::Worker {
             return error(403, "worker_scope");
@@ -169,7 +198,8 @@ impl Workspace {
                 json_response(
                     200,
                     json!({"schema":"kiln.work.v1","configured":false,
-                    "principal":principal,"can_write":false,"objects":[],"bounded":true,"non_claims":NON_CLAIMS}),
+                    "principal":principal,"can_write":false,"objects":[],"bounded":true,
+                    "ci":ci_listing(ci, &[]),"non_claims":NON_CLAIMS}),
                 )
             } else {
                 error(404, "work_object_missing")
@@ -210,12 +240,13 @@ impl Workspace {
                             principal,
                             can_write,
                             non_claims: [NON_CLAIMS[0], NON_CLAIMS[1], BOARD_NON_CLAIM],
-                            board: board::project(
+                            board: board::project_with_ci(
                                 &result.records,
                                 principal,
                                 view,
                                 query,
                                 store::MAX_OBJECTS,
+                                ci,
                             ),
                         },
                     );
@@ -238,7 +269,8 @@ impl Workspace {
                 json_response(
                     200,
                     json!({"schema":"kiln.work.v1","configured":true,
-                    "principal":principal,"can_write":can_write,"objects":objects,"bounded":true,"non_claims":NON_CLAIMS}),
+                    "principal":principal,"can_write":can_write,"objects":objects,"bounded":true,
+                    "ci":ci_listing(ci, &objects),"non_claims":NON_CLAIMS}),
                 )
             }
             Err(store::Failure::Missing) => error(404, "work_object_missing"),
@@ -248,6 +280,20 @@ impl Workspace {
             Err(store::Failure::Unavailable) => error(503, "work_store_unavailable"),
         }
     }
+}
+
+/// Derived, non-canonical CI facts for one Work listing. `records` must already
+/// be the visible object set; unknown links contribute no entry.
+fn ci_listing(ci: &CiFacts, records: &[&model::Record]) -> serde_json::Value {
+    let (records, records_truncated) = ci.record_map(records.iter().copied());
+    json!({
+        "schema": CI_FACTS_SCHEMA,
+        "projects": ci.projects(),
+        "records": records,
+        "projects_truncated": ci.projects_truncated(),
+        "runs_truncated": ci.runs_truncated(),
+        "records_truncated": records_truncated,
+    })
 }
 
 fn unavailable() -> ApiResponse {

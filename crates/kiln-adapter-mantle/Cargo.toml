@@ -10,6 +10,7 @@ publish = false
 blake3.workspace = true
 bounded-exec.workspace = true
 kiln-core.workspace = true
+kiln-nix-store.workspace = true
 kiln-provider-api.workspace = true
 serde.workspace = true
 serde_json.workspace = true

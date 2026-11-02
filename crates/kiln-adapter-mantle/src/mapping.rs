@@ -33,6 +33,7 @@ const NATIVE_METRIC_COUNT: usize = 4;
 pub(crate) struct NormalizedBuild {
     pub observation: BuildEvaluationObservation,
     pub logs: BTreeMap<ContentId, PathBuf>,
+    pub product_paths: BTreeMap<String, PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -145,6 +146,7 @@ pub(crate) fn normalize_native_report(
         .map(|value| value.as_str())
         .collect::<BTreeSet<_>>();
     let mut products = BTreeMap::<String, ProductObservation>::new();
+    let mut product_paths = BTreeMap::<String, PathBuf>::new();
     let mut logs = BTreeMap::<ContentId, PathBuf>::new();
     let mut saw_cached = false;
     let mut saw_substitution = false;
@@ -180,6 +182,7 @@ pub(crate) fn normalize_native_report(
                 ));
             }
             saw_substitution |= output.substitution.is_some();
+            product_paths.insert(output.name.clone(), PathBuf::from(&output.path));
             products.insert(
                 output.name.clone(),
                 ProductObservation {
@@ -264,7 +267,11 @@ pub(crate) fn normalize_native_report(
     };
     contract.identity = observation_identity(&contract);
     let observation = admitted_contract(profile, plan, request, &contract)?;
-    Ok(NormalizedBuild { observation, logs })
+    Ok(NormalizedBuild {
+        observation,
+        logs,
+        product_paths,
+    })
 }
 
 pub(crate) fn shell_outcome(
@@ -333,6 +340,7 @@ pub(crate) fn shell_outcome(
     Ok(NormalizedBuild {
         observation,
         logs: BTreeMap::new(),
+        product_paths: BTreeMap::new(),
     })
 }
 
@@ -375,6 +383,11 @@ fn core_observation(
             BuildOutcome::TimedOut => BuildEvaluationOutcome::TimedOut,
             BuildOutcome::Unknown => BuildEvaluationOutcome::Unknown,
         },
+        constraints: None,
+        inputs: Vec::new(),
+        input_closure_identity: None,
+        input_closure_complete: true,
+        derivation_identity: None,
         products: contract
             .products
             .iter()
@@ -383,6 +396,7 @@ fn core_observation(
                     name: Alias::new(product.name.as_str())?,
                     artifact_identity: content_from_identity(&product.artifact_identity)?,
                     store_identity: content_from_identity(&product.store_identity)?,
+                    store: None,
                 })
             })
             .collect::<PortResult<Vec<_>>>()?,

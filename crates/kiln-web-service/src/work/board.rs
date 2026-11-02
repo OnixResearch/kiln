@@ -8,18 +8,27 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
 
-use super::model::{self, Board, Kind, MAX_BOARD_COLUMNS, Record, STATUSES};
+use super::ci::{CiFacts, CiProjectFact, exact_set};
+use super::model::{self, Board, BoardLanes, Kind, MAX_BOARD_COLUMNS, Record, STATUSES};
 
 /// Bound on cards returned per column (and for the Other lane).
 pub const MAX_BOARD_CARDS: usize = 100;
-/// Bound on one decoded query value; matches the longest view filter value.
-const MAX_QUERY_VALUE: usize = 256;
+/// Bound on one decoded query value; a filter set is bounded by the model.
+const MAX_QUERY_VALUE: usize = 16_384;
 /// Built-in statuses placed before team-defined columns by default.
 const OPEN_STATUSES: [&str; 3] = ["triage", "backlog", "started"];
 /// Built-in statuses placed after team-defined columns by default.
 const CLOSED_STATUSES: [&str; 4] = ["completed", "cancelled", "snoozed", "duplicate"];
 /// URL overrides the Work page applies on top of a saved view's filters.
-const OVERRIDES: [&str; 5] = ["kind", "status", "assignee", "project", "q"];
+const OVERRIDES: [&str; 7] = [
+    "kind",
+    "status",
+    "assignee",
+    "project",
+    "q",
+    "ci_project",
+    "ci_repository",
+];
 const SORTS: [&str; 5] = ["updated", "created", "priority", "title", "due"];
 
 /// Admitted read parameters of `GET /api/work/board`.
@@ -38,6 +47,10 @@ pub struct Column {
     pub teams: Vec<String>,
     /// Neither built-in nor defined by any team any more.
     pub retired: bool,
+    /// Present only for a CI-project lane; absent on status columns so old
+    /// board responses keep their shape.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ci: Option<CiProjectFact>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -93,10 +106,17 @@ pub struct Projection {
     pub filters: BTreeMap<String, String>,
     pub filtered: bool,
     pub sort: String,
+    /// `status` or `ci_project`; tells the client what the lanes mean.
+    pub lane_by: &'static str,
     pub columns: Vec<Lane>,
+    /// Status columns used by Move/status controls even when lanes are CI
+    /// projects; cards keep their canonical planning status.
+    pub move_columns: Vec<Column>,
     pub other: Other,
     /// Default columns dropped by `MAX_BOARD_COLUMNS`; their issues are in `other`.
     pub columns_truncated: usize,
+    pub ci_projects_truncated: usize,
+    pub ci_runs_truncated: usize,
     pub matched_issues: usize,
     pub shown_cards: usize,
     /// Matching non-issue records the list shows but the board does not.
@@ -133,9 +153,19 @@ pub(super) fn parse_query(params: &BTreeMap<&str, &str>) -> Result<Query, ()> {
     Ok(query)
 }
 
+/// The list's filter semantics without derived CI facts. Kept for callers and
+/// tests that predate monorepo work views; every CI filter matches nothing.
+pub fn matches(record: &Record, filters: &BTreeMap<String, String>) -> bool {
+    matches_with_ci(record, filters, &CiFacts::default())
+}
+
 /// The list's filter semantics (`KilnWorkBoard.matches` in `work-board.js`).
 /// Both sides are checked against one shared fixture.
-pub fn matches(record: &Record, filters: &BTreeMap<String, String>) -> bool {
+// r[impl kiln.work.monorepo.filter] r[impl kiln.work.monorepo.planning]
+pub fn matches_with_ci(record: &Record, filters: &BTreeMap<String, String>, ci: &CiFacts) -> bool {
+    if !ci.matches(record, filters) {
+        return false;
+    }
     let fields = &record.fields;
     filters.iter().all(|(key, value)| {
         if value.is_empty() {
@@ -166,16 +196,32 @@ pub fn matches(record: &Record, filters: &BTreeMap<String, String>) -> bool {
             "status" => fields.status == *value,
             "priority" => fields.priority.to_string() == *value,
             "team" => fields.team.as_ref() == Some(value),
-            "project" => fields.project.as_ref() == Some(value),
+            "project" => fields
+                .project
+                .as_deref()
+                .is_some_and(|project| exact_set(value).contains(project)),
             "cycle" => fields.cycle.as_ref() == Some(value),
             "initiative" => fields.initiative.as_ref() == Some(value),
+            // Already decided by the derived-facts matcher above.
+            "ci_project" | "ci_repository" => true,
             _ => false,
         }
     })
 }
 
-/// Whether the Work page list shows a record (`KilnWorkBoard.listed`).
+/// Whether the Work page list shows a record (`KilnWorkBoard.listed`) without
+/// derived CI facts.
 pub fn listed(record: &Record, filters: &BTreeMap<String, String>, view_active: bool) -> bool {
+    listed_with_ci(record, filters, view_active, &CiFacts::default())
+}
+
+/// Whether the Work page list shows a record, including CI filters.
+pub fn listed_with_ci(
+    record: &Record,
+    filters: &BTreeMap<String, String>,
+    view_active: bool,
+    ci: &CiFacts,
+) -> bool {
     let kind = filters.get("kind").filter(|kind| !kind.is_empty());
     if record.kind == Kind::Personal && kind.map(String::as_str) != Some("personal") {
         return false;
@@ -183,7 +229,7 @@ pub fn listed(record: &Record, filters: &BTreeMap<String, String>, view_active: 
     if kind.is_none() && !view_active && !matches!(record.kind, Kind::Issue | Kind::Request) {
         return false;
     }
-    matches(record, filters)
+    matches_with_ci(record, filters, ci)
 }
 
 fn kind_name(kind: Kind) -> &'static str {
@@ -232,6 +278,7 @@ pub fn columns(
             builtin,
             retired: !builtin && defining.is_empty(),
             teams: defining,
+            ci: None,
         }
     };
     if let Some(board) = board {
@@ -311,14 +358,36 @@ fn bounded(rows: &[&Record]) -> Vec<Card> {
 }
 
 // r[impl kiln.work.kanban.projection] r[impl kiln.work.kanban.columns]
-/// Project the board for one principal. `view` must already be admitted as a
-/// view visible to `principal`; `records` is the whole admitted snapshot.
+/// Project the board for one principal without derived CI facts. Every CI
+/// filter matches nothing, preserving callers and tests that predate monorepo
+/// work views.
 pub fn project(
     records: &BTreeMap<String, Record>,
     principal: &str,
     view: Option<&Record>,
     query: &Query,
     object_limit: usize,
+) -> Projection {
+    project_with_ci(
+        records,
+        principal,
+        view,
+        query,
+        object_limit,
+        &CiFacts::default(),
+    )
+}
+
+/// Project the board for one principal. `view` must already be admitted as a
+/// view visible to `principal`; `records` is the whole admitted snapshot.
+// r[impl kiln.work.kanban.projection] r[impl kiln.work.monorepo.board] r[impl kiln.work.monorepo.compat]
+pub fn project_with_ci(
+    records: &BTreeMap<String, Record>,
+    principal: &str,
+    view: Option<&Record>,
+    query: &Query,
+    object_limit: usize,
+    ci: &CiFacts,
 ) -> Projection {
     let saved = view.and_then(|record| record.fields.view.as_ref());
     let mut filters = saved.map(|view| view.filters.clone()).unwrap_or_default();
@@ -331,17 +400,19 @@ pub fn project(
         .clone()
         .or_else(|| saved.map(|view| view.sort.clone()))
         .unwrap_or_else(|| "updated".into());
-    let (columns, columns_truncated) = columns(
-        saved.and_then(|view| view.board.as_ref()),
-        filters.get("team").map(String::as_str),
-        records,
-    );
+    let board = saved.and_then(|view| view.board.as_ref());
+    let lane_by = board.map_or(BoardLanes::Status, |board| board.lane_by);
+    let team_scope = filters.get("team").map(String::as_str);
+    // Status columns always describe where a card may move, even when the
+    // visible lanes are CI projects.
+    let status_board = board.filter(|board| board.lane_by == BoardLanes::Status);
+    let (move_columns, status_truncated) = columns(status_board, team_scope, records);
     let mut issues = Vec::new();
     let mut list_only = 0;
     for record in records
         .values()
         .filter(|record| model::visible(record, principal))
-        .filter(|record| listed(record, &filters, view.is_some()))
+        .filter(|record| listed_with_ci(record, &filters, view.is_some(), ci))
     {
         if record.kind == Kind::Issue {
             issues.push(record);
@@ -350,6 +421,10 @@ pub fn project(
         }
     }
     issues.sort_by(|a, b| compare(&sort, a, b));
+    let (columns, columns_truncated) = match lane_by {
+        BoardLanes::Status => (move_columns.clone(), status_truncated),
+        BoardLanes::CiProject => ci_lane_columns(ci, &filters),
+    };
     let index: BTreeMap<&str, usize> = columns
         .iter()
         .enumerate()
@@ -359,11 +434,17 @@ pub fn project(
     let mut unplaced = Vec::new();
     let mut unknown: BTreeMap<&str, usize> = BTreeMap::new();
     for issue in &issues {
-        match index
-            .get(issue.fields.status.as_str())
-            .and_then(|position| grouped.get_mut(*position))
-        {
-            Some(rows) => rows.push(issue),
+        let position = match lane_by {
+            // A CI-project lane owns the issue once: the first lane, in
+            // deterministic order, that contains one of its exact projects.
+            BoardLanes::CiProject => ci
+                .projects_for(issue)
+                .into_iter()
+                .find_map(|project| index.get(project.id.as_str()).copied()),
+            BoardLanes::Status => index.get(issue.fields.status.as_str()).copied(),
+        };
+        match position.and_then(|position| grouped.get_mut(position)) {
+            Some(rows) => rows.push(*issue),
             None => {
                 unplaced.push(*issue);
                 *unknown.entry(issue.fields.status.as_str()).or_default() += 1;
@@ -403,9 +484,13 @@ pub fn project(
         filtered: !filters.is_empty(),
         filters,
         sort,
+        lane_by: lane_by.as_str(),
         columns: lanes,
+        move_columns,
         other,
         columns_truncated,
+        ci_projects_truncated: ci.projects_truncated(),
+        ci_runs_truncated: ci.runs_truncated(),
         matched_issues: issues.len(),
         shown_cards,
         list_only,
@@ -415,6 +500,40 @@ pub fn project(
         complete: shown_cards == issues.len(),
         bounded: true,
     }
+}
+
+/// CI-project lanes selected by the view's CI filters, in deterministic
+/// repository-then-id order and bounded by the board column bound. An empty
+/// filter selection means every admitted project; unknown selections yield no
+/// lane.
+fn ci_lane_columns(ci: &CiFacts, filters: &BTreeMap<String, String>) -> (Vec<Column>, usize) {
+    let project_filter = filters.get("ci_project").map(|value| exact_set(value));
+    let repository_filter = filters.get("ci_repository").map(|value| exact_set(value));
+    let mut projects: Vec<&CiProjectFact> = ci
+        .projects()
+        .iter()
+        .filter(|project| {
+            project_filter
+                .as_ref()
+                .is_none_or(|selected| selected.contains(project.id.as_str()))
+                && repository_filter
+                    .as_ref()
+                    .is_none_or(|selected| selected.contains(project.repository_key.as_str()))
+        })
+        .collect();
+    let truncated = projects.len().saturating_sub(MAX_BOARD_COLUMNS);
+    projects.truncate(MAX_BOARD_COLUMNS);
+    let columns = projects
+        .into_iter()
+        .map(|project| Column {
+            status: project.id.clone(),
+            builtin: false,
+            teams: Vec::new(),
+            retired: false,
+            ci: Some(project.clone()),
+        })
+        .collect();
+    (columns, truncated)
 }
 
 #[cfg(test)]

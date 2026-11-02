@@ -25,7 +25,8 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-patchgate` | Selected isolated review through an operator-installed Patchgate executable, bounded report admission and exact retained-evidence reconciliation; no source mutation authority. |
 | `kiln-adapter-mantle` | Exact Mantle build lowering, bounded execution, product admission, logs, and reconciliation. |
 | `kiln-adapter-nix` | Exact local Nix derivation execution, native realisation admission, rooted products, bounded logs, and reconciliation. |
-| `kiln-nix-build` | Discovery-task to exact Nix profile/plan mapping, durable build state, operator CLI, and output GC-root lifecycle. |
+| `kiln-nix-build` | Discovery-task to exact Nix profile/plan mapping, bounded derivation admission, durable build state, operator CLI, and output GC-root lifecycle. |
+| `kiln-nix-store` | Pure bounded Nix derivation admission, NAR/reference facts, input-closure facts and read-only cache projection over Apache-2.0 format crates; no Snix linkage or ambient I/O. |
 | `kiln-adapter-nix-eval` | Explicit exact stock/Onix evaluator cohorts, bounded job discovery, task mapping, and GC-root handoff; no Nix library linkage into Kiln. |
 | `kiln-onixos-pilot` | Isolated signed operator initiation, durable canonical journal and replay-backed UCAN observation; composes existing Aspen/Lattice ports without production status writes. |
 | `kiln-onixos-worker` | Exact source-bound discovery and rooted Nix build worker; fixed-profile Radicle project acquisition/import and explicit source/output-root release. |

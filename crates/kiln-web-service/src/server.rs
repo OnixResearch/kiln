@@ -770,7 +770,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 },
             );
         }
-        // r[impl kiln.work.authority]
+        // r[impl kiln.work.authority] r[impl kiln.work.monorepo.facts]
         if path == "/api/work" || path.starts_with("/api/work/") {
             let now = match crate::engine::host_time_ms().and_then(|value| {
                 i64::try_from(value).map_err(|_| "work clock exceeds bound".to_owned())
@@ -778,13 +778,20 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 Ok(value) => value,
                 Err(_) => return error_response(503, "clock_unavailable"),
             };
-            return context.work.response(
+            // Snapshot the derived facts under the engine lock, then release it
+            // before the work store performs signed reads or writes.
+            let ci = match context.engine.lock() {
+                Ok(engine) => engine.work_ci_facts(),
+                Err(_) => return error_response(503, "service_unavailable"),
+            };
+            return context.work.response_with_ci(
                 &request.method,
                 &request.target,
                 &request.body,
                 principal.role,
                 &principal.id,
                 now,
+                &ci,
             );
         }
         if path == "/api/reviews" || path.starts_with("/api/reviews/") {

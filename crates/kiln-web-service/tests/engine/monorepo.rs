@@ -843,3 +843,46 @@ fn pull_requests_diff_from_the_merge_base_and_fall_back_without_a_base_branch() 
         (2, 2, 1)
     );
 }
+
+// r[verify kiln.work.monorepo.facts]
+#[test]
+fn work_ci_facts_mirror_the_admitted_monorepo_without_dispatch() {
+    let root = checked(tempfile::tempdir());
+    let (repository, _) = workspace_repository(root.path());
+    let path = checked(repository.workdir().ok_or("workdir")).to_path_buf();
+    let profile = monorepo_profile(root.path(), &path);
+    let key = profile
+        .projects
+        .first()
+        .map(|project| project.repository_key())
+        .unwrap_or_default();
+    let (engine, _) = open_projects(profile);
+    let facts = engine.work_ci_facts();
+    assert_eq!(
+        facts
+            .projects()
+            .iter()
+            .map(|project| project.id.as_str())
+            .collect::<Vec<_>>(),
+        ["a", "b", "c", "whole"]
+    );
+    let canonical = path.to_string_lossy().trim_end_matches('/').to_owned();
+    assert!(
+        facts
+            .projects()
+            .iter()
+            .all(|project| project.repository_key == key && project.repository == canonical)
+    );
+    assert_eq!(
+        facts
+            .project("a")
+            .and_then(|project| project.scope_root.as_deref()),
+        Some("crates/a")
+    );
+    assert_eq!(
+        facts
+            .project("whole")
+            .and_then(|project| project.scope_root.as_deref()),
+        None
+    );
+}

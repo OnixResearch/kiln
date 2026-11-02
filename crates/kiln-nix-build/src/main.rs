@@ -7,7 +7,8 @@ use kiln_adapter_nix::{
 use kiln_core::build::{BuildEffectPlan, BuildEvaluationObservation, BuildLogReadRequest};
 use kiln_core::discovery::TaskProposal;
 use kiln_nix_build::{
-    NixBuildIntent, NixBuildProfileSource, NixBuildState, build_task, plan_for_task,
+    NixBuildIntent, NixBuildProfileSource, NixBuildState, admit_task_derivation, build_task,
+    plan_for_admitted_task,
 };
 use kiln_provider_api::{BuildPort, PortFailure};
 use serde::de::DeserializeOwned;
@@ -160,7 +161,9 @@ fn from_task(arguments: &[String]) -> Result<String, String> {
     let task: TaskProposal = load_document(task_path)?;
     let intent: NixBuildIntent = load_document(intent_path)?;
     let base = base_config.clone().into_profile().map_err(failure_text)?;
-    let plan = plan_for_task(&base, &task, &intent).map_err(failure_text)?;
+    let runtime = BoundedNixBuildRuntime;
+    let admitted = admit_task_derivation(&base, &task, &runtime).map_err(failure_text)?;
+    let plan = plan_for_admitted_task(&base, &task, &intent, &admitted).map_err(failure_text)?;
     if let Some(path) = state_path {
         if path.exists() {
             let state = NixBuildState::load(path)?;

@@ -250,7 +250,7 @@
           detail: [favorites.has(record.id) ? "Favorite" : "", kindName(record.kind), humanize(record.fields?.status)].filter(Boolean).join(" · "),
           exact: record.id,
           rank: favorites.has(record.id) ? 0 : record.kind === "view" ? 1 : 2,
-          run: () => record.kind === "view" ? bridge().navigate({ page: "work", work_view: record.id, work_id: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_sort: "", work_group: "", work_layout: "" }) : ui().open(record.id),
+          run: () => record.kind === "view" ? bridge().navigate({ page: "work", work_view: record.id, work_id: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_ci_project: "", work_ci_repository: "", work_sort: "", work_group: "", work_layout: "" }) : ui().open(record.id),
         })).sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label));
       }],
       ["CI projects", "/api/projects", (data) => {

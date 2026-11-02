@@ -138,6 +138,7 @@ pub(crate) fn normalize_realisation(
                 STORE_OBJECT_IDENTITY_DOMAIN,
                 &[target.as_os_str().as_encoded_bytes()],
             )?,
+            store: None,
         });
     }
     let receipt = content_identity(
@@ -249,6 +250,11 @@ fn observation(
         platform: plan.platform.clone(),
         outcome,
         products,
+        constraints: plan.constraints.clone(),
+        inputs: Vec::new(),
+        input_closure_identity: None,
+        input_closure_complete: true,
+        derivation_identity: None,
         builder_identity: profile.runtime.executable_identity.clone(),
         worker_identity: profile.runtime.worker_identity.clone(),
         store_identity: profile.runtime.store_identity.clone(),

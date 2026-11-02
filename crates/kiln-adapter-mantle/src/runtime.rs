@@ -9,6 +9,8 @@ use bounded_exec::{
     OutcomePolicy, RunError, RunRequest, TerminationScope, run, run_with_cancellation,
 };
 use kiln_core::types::{ContentId, Diagnostic};
+use kiln_nix_store::derivation::ReferenceCandidate;
+use kiln_nix_store::nar::{NarBounds, StoreObjectFacts};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 
 const HASH_BUFFER_BYTES: usize = 65_536;
@@ -51,6 +53,17 @@ pub trait MantleRuntime {
         max_bytes: usize,
         total_bound: usize,
     ) -> PortResult<(Vec<u8>, bool)>;
+
+    /// Observe bounded NAR facts for one exported product path.
+    fn store_object_facts(
+        &self,
+        _path: &Path,
+        _candidates: &[ReferenceCandidate],
+        _candidates_complete: bool,
+        _bounds: NarBounds,
+    ) -> PortResult<Option<StoreObjectFacts>> {
+        Ok(None)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -81,6 +94,18 @@ impl MantleRuntime for BoundedMantleRuntime {
         total_bound: usize,
     ) -> PortResult<(Vec<u8>, bool)> {
         read_bounded_file(path, offset, max_bytes, total_bound)
+    }
+
+    fn store_object_facts(
+        &self,
+        path: &Path,
+        candidates: &[ReferenceCandidate],
+        candidates_complete: bool,
+        bounds: NarBounds,
+    ) -> PortResult<Option<StoreObjectFacts>> {
+        kiln_nix_store::nar::observe_path(path, candidates, candidates_complete, bounds)
+            .map(Some)
+            .map_err(PortFailure::Domain)
     }
 }
 

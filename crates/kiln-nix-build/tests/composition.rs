@@ -10,12 +10,14 @@ use kiln_adapter_nix::{
 };
 use kiln_core::discovery::{CacheAdvisory, DiscoveredOutput, TaskProposal};
 use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId, TaskId};
-use kiln_nix_build::{NixBuildState, build_task, plan_for_task, profile_for_task};
+use kiln_nix_build::{
+    NixBuildState, admit_task_derivation, build_task, plan_for_admitted_task, plan_for_task,
+    profile_for_admitted_task, profile_for_task,
+};
 use kiln_provider_api::PortResult;
 use support::{alias, base, content, intent};
 
 const TASK_DRV: &str = "/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-task.drv";
-const OUT_PATH: &str = "/nix/store/cccccccccccccccccccccccccccccccc-task";
 
 fn task() -> TaskProposal {
     TaskProposal {
@@ -28,7 +30,7 @@ fn task() -> TaskProposal {
             .unwrap_or_else(|_| unreachable!()),
         outputs: vec![DiscoveredOutput {
             name: alias("out"),
-            path: ExternalRef::new("nix", "store-path", OUT_PATH)
+            path: ExternalRef::new("nix", "store-path", &task_output())
                 .unwrap_or_else(|_| unreachable!()),
         }],
         dependencies: Vec::new(),
@@ -79,7 +81,7 @@ fn task_maps_to_exact_profile_and_plan() {
         .first()
         .unwrap_or_else(|| unreachable!());
     assert_eq!(output.name.as_str(), "out");
-    assert_eq!(output.path, PathBuf::from(OUT_PATH));
+    assert_eq!(output.path, PathBuf::from(task_output()));
     let plan = plan_for_task(&base(), &task(), &intent()).unwrap_or_else(|_| unreachable!());
     assert_eq!(plan.required_products, vec![alias("out")]);
     assert_eq!(plan.provider_profile.as_str(), "nix-build-v1");
@@ -116,6 +118,7 @@ struct FakeRuntime {
     preflight_fails: bool,
     run_count: usize,
     cleaned: Vec<PathBuf>,
+    derivation_bytes: Option<Vec<u8>>,
 }
 
 impl FakeRuntime {
@@ -125,11 +128,47 @@ impl FakeRuntime {
             preflight_fails: false,
             run_count: 0,
             cleaned: Vec::new(),
+            derivation_bytes: None,
         }
     }
 }
 
+fn task_derivation() -> (Vec<u8>, String) {
+    use nix_derivation::DerivationBuilder;
+    let validated = DerivationBuilder::new("task", "x86_64-linux", "/bin/sh")
+        .input_addressed_output("out")
+        .build()
+        .unwrap_or_else(|_| unreachable!());
+    let output = validated
+        .resolved_outputs()
+        .get("out")
+        .and_then(|output| output.path.clone())
+        .unwrap_or_else(|| unreachable!())
+        .to_absolute_path();
+    (validated.as_derivation().to_aterm_bytes(), output)
+}
+
+fn task_output() -> String {
+    task_derivation().1
+}
+
 impl NixBuildRuntime for FakeRuntime {
+    fn read_derivation(&self, path: &Path, _max_bytes: u64) -> PortResult<Vec<u8>> {
+        if path == Path::new(TASK_DRV) {
+            return Ok(self
+                .derivation_bytes
+                .clone()
+                .unwrap_or_else(|| task_derivation().0));
+        }
+        Err(kiln_provider_api::PortFailure::Domain(
+            kiln_core::types::Diagnostic::new(
+                "fixture_derivation",
+                "nix.derivation",
+                "fixture derivation is unavailable",
+            ),
+        ))
+    }
+
     fn file_identity(&self, path: &Path, _max_bytes: u64) -> PortResult<ContentId> {
         if path == Path::new(kiln_adapter_nix::PINNED_NIX_EXECUTABLE_PATH)
             || path == Path::new(kiln_adapter_nix::PINNED_NIX_STORE_EXECUTABLE_PATH)
@@ -153,7 +192,7 @@ impl NixBuildRuntime for FakeRuntime {
     }
 
     fn read_link(&self, _path: &Path) -> PortResult<PathBuf> {
-        Ok(PathBuf::from(OUT_PATH))
+        Ok(PathBuf::from(task_output()))
     }
 
     fn run(&mut self, invocation: &ProcessInvocation) -> PortResult<NixBuildProcessOutput> {
@@ -201,12 +240,17 @@ impl NixBuildRuntime for FakeRuntime {
 fn task_build_is_admitted_and_rooted() {
     let (mut adapter, plan, observation) =
         build_task(&base(), &task(), &intent(), FakeRuntime::new())
-            .unwrap_or_else(|_| unreachable!());
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
     assert_eq!(
         observation.outcome,
         kiln_core::build::BuildEvaluationOutcome::Success
     );
     assert_eq!(observation.products.len(), 1);
+    assert_eq!(observation.constraints, plan.constraints);
+    assert_eq!(
+        plan.constraints.as_ref().map(|c| c.provide_bin_sh),
+        Some(true)
+    );
     assert_eq!(adapter.runtime().run_count, 2);
     adapter
         .release_output_roots(&plan.effect_id)
@@ -289,4 +333,34 @@ fn live_task_build_is_admitted_and_rooted() {
         .release_output_roots(&plan.effect_id)
         .unwrap_or_else(|_| unreachable!());
     assert!(!root.exists());
+}
+
+// r[verify kiln.nix_store.derivation.scenario.mismatch]
+#[test]
+fn mismatched_derivation_fails_before_any_process_start() {
+    let mut runtime = FakeRuntime::new();
+    runtime.derivation_bytes = Some(b"not a derivation".to_vec());
+    assert!(build_task(&base(), &task(), &intent(), runtime).is_err());
+}
+
+// r[verify kiln.nix_store.derivation.scenario.valid] r[verify kiln.nix_store.constraints]
+#[test]
+fn admitted_task_plan_binds_derivation_outputs_and_constraints() {
+    let runtime = FakeRuntime::new();
+    let admitted = admit_task_derivation(&base(), &task(), &runtime)
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    let plan = plan_for_admitted_task(&base(), &task(), &intent(), &admitted)
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    assert_eq!(plan.required_products, vec![alias("out")]);
+    let constraints = plan
+        .constraints
+        .as_ref()
+        .unwrap_or_else(|| unreachable!("constraints absent"));
+    assert_eq!(constraints.system.as_str(), "x86_64-linux");
+    assert!(constraints.provide_bin_sh);
+    assert!(!constraints.network_access);
+    let profile = profile_for_admitted_task(&base(), &task(), &intent(), &admitted, content('8'))
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    assert_eq!(profile.runtime.expected_outputs.len(), 1);
+    assert_eq!(profile.runtime.derivation_identity, content('8'));
 }
