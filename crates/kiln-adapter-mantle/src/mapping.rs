@@ -56,7 +56,7 @@ struct NativeBuildReport {
     output_dir: String,
     state_dir: String,
     store_dir: String,
-    scheduler_policy: serde_json::Value,
+    scheduler_policy: NativeSchedulingPolicy,
     hermeticity_mode: String,
     hermeticity_audit_events: Vec<serde_json::Value>,
     build_environment_reports: Vec<serde_json::Value>,
@@ -88,6 +88,16 @@ struct NativeBuildReport {
     outcomes: Vec<NativeOutcome>,
     failed: Vec<NativeFailure>,
     fod_mismatches: Vec<NativeFodMismatch>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NativeSchedulingPolicy {
+    schema: String,
+    policy_id: String,
+    preference_order: Vec<String>,
+    aged_after_epochs: u64,
+    protected_after_epochs: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -597,11 +607,17 @@ fn validate_report_surface(report: &NativeBuildReport) -> PortResult<()> {
         "mantle.report.file",
         "Mantle native report is missing its source file",
     )?;
-    if !report.scheduler_policy.is_object() {
+    if report.scheduler_policy.schema != "mantle-scheduling-policy-v1"
+        || report.scheduler_policy.policy_id.is_empty()
+        || report.scheduler_policy.preference_order.is_empty()
+        || !strictly_unique(&report.scheduler_policy.preference_order)
+        || report.scheduler_policy.aged_after_epochs
+            > report.scheduler_policy.protected_after_epochs
+    {
         return Err(domain(
             "mantle_native_report_policy",
             "mantle.report.scheduler_policy",
-            "Mantle native report scheduler policy must be an object",
+            "Mantle native report scheduler policy is malformed",
         ));
     }
     if !HERMETICITY_MODES.contains(&report.hermeticity_mode.as_str()) {
@@ -625,14 +641,15 @@ fn validate_report_surface(report: &NativeBuildReport) -> PortResult<()> {
 
 // r[impl kiln.mantle.native_report.store_binding]
 fn validate_report_binding(profile: &MantleProfile, report: &NativeBuildReport) -> PortResult<()> {
-    if Path::new(&report.store_dir) != profile.runtime.store_prefix.as_path()
+    if Path::new(&report.file) != profile.runtime.plan_path.as_path()
+        || Path::new(&report.store_dir) != profile.runtime.store_prefix.as_path()
         || Path::new(&report.output_dir) != profile.runtime.store_path.as_path()
         || Path::new(&report.state_dir) != profile.runtime.state_path.as_path()
     {
         return Err(domain(
             "mantle_native_report_binding",
             "mantle.report",
-            "Mantle native report logical store, output, or state root differs from the profile",
+            "Mantle native report plan or store roots differ from the profile",
         ));
     }
     Ok(())
@@ -746,6 +763,13 @@ fn require_non_empty(value: &str, field: &str, message: &str) -> PortResult<()> 
     } else {
         Ok(())
     }
+}
+
+fn strictly_unique(values: &[String]) -> bool {
+    let mut seen = BTreeSet::new();
+    values
+        .iter()
+        .all(|value| !value.is_empty() && seen.insert(value.as_str()))
 }
 
 fn require_path_under(value: &str, root: &Path, field: &str, message: &str) -> PortResult<()> {

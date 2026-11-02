@@ -154,7 +154,10 @@ fn success_report_value(cached: bool, include_metadata: bool) -> serde_json::Val
         "store_dir": "/mantle/store",
         "scheduler_policy": {
             "schema": "mantle-scheduling-policy-v1",
-            "policy_id": "mantle-lazy-priority-v1"
+            "policy_id": "mantle-lazy-priority-v1",
+            "preference_order": ["known-graph", "resource-fit", "locality-transfer"],
+            "aged_after_epochs": 4,
+            "protected_after_epochs": 8
         },
         "hermeticity_mode": "practical",
         "hermeticity_audit_events": [],
@@ -640,6 +643,13 @@ fn native_report_rejects_unknown_or_missing_top_level_fields() {
         .unwrap_or_else(|| unreachable!())
         .remove("scheduler_priority_decisions");
     assert!(report_is_rejected(missing_collection));
+
+    let mut malformed_policy = success_report_value(false, true);
+    malformed_policy
+        .pointer_mut("/scheduler_policy/preference_order")
+        .unwrap_or_else(|| unreachable!())
+        .take();
+    assert!(report_is_rejected(malformed_policy));
 }
 
 // r[verify kiln.mantle.native_report.surface.complete]
@@ -675,6 +685,7 @@ fn native_report_binds_distinct_logical_and_physical_roots() {
     assert_eq!(observation.outcome, BuildEvaluationOutcome::Success);
 
     for (field, value) in [
+        ("file", "/etc/kiln/other-plan.ncl"),
         ("store_dir", "/mantle/other"),
         ("output_dir", "/var/lib/kiln/other-store"),
         ("state_dir", "/var/lib/kiln/other-state"),

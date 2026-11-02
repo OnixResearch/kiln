@@ -27,12 +27,12 @@ r[kiln.mantle.native_report.surface.drift]
 
 ### Requirement: Distinct logical and physical roots
 
-r[kiln.mantle.native_report.store_binding] The profile MUST name one logical store prefix and one physical output directory separately, and dispatch MUST pass both explicitly.
+r[kiln.mantle.native_report.store_binding] The profile MUST name one plan path, one logical store prefix, and one physical output directory separately, and dispatch MUST pass the roots explicitly.
 
 #### Scenario: Report names the admitted roots
 
 r[kiln.mantle.native_report.store_binding.match]
-- GIVEN a report whose logical store prefix, physical output directory and state directory equal the profile
+- GIVEN a report whose plan path, logical store prefix, physical output directory and state directory equal the profile
 - WHEN completion admission runs
 - THEN product paths MUST be admitted beneath the physical output root
 - AND artifact logical paths MUST be admitted beneath the logical store prefix.
@@ -40,7 +40,7 @@ r[kiln.mantle.native_report.store_binding.match]
 #### Scenario: Report names another root
 
 r[kiln.mantle.native_report.store_binding.drift]
-- GIVEN a report whose logical store prefix, physical output directory, or state directory differs from the profile
+- GIVEN a report whose plan path, logical store prefix, physical output directory, or state directory differs from the profile
 - WHEN completion admission runs
 - THEN Kiln MUST reject the report before canonical completion.
 
