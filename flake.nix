@@ -1549,6 +1549,9 @@
                   | jq -e --arg revision '${mantleBuildRevision}' '.revision == $revision' >/dev/null
                 nickel export ${self}/config/mantle-build-profile.ncl \
                   | jq -e --arg revision '${mantleBuildRevision}' '.profile.revision == $revision' >/dev/null
+                nickel export ${self}/config/stack-profiles.ncl \
+                  | jq -e --arg revision '${mantleBuildRevision}' \
+                    'any(.. | objects; (.id? == "mantle-build-v1") and (.source_revision == $revision))' >/dev/null
                 cmp ${mantleBuildSource}/fixtures/mantle-build-contract/producer/fixtures-v1.json \
                   ${self}/fixtures/mantle/build-contract/d75158b00b080535f2ffea12430665ca3d57ea82/producer-fixtures-v1.json
                 cmp ${mantleBuildSource}/contracts/mantle-build-contract.ncl \
