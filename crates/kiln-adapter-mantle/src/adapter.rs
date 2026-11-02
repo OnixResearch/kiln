@@ -372,6 +372,8 @@ fn invocation(profile: &MantleProfile) -> ProcessInvocation {
         args: vec![
             OsString::from("--store"),
             profile.runtime.store_path.clone().into_os_string(),
+            OsString::from("--store-prefix"),
+            profile.runtime.store_prefix.clone().into_os_string(),
             OsString::from("--state-dir"),
             profile.runtime.state_path.clone().into_os_string(),
             OsString::from("--json"),

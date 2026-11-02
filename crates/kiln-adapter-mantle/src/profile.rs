@@ -60,6 +60,9 @@ pub struct MantleRuntimeBinding {
     pub plan_path: PathBuf,
     pub plan_identity: ContentId,
     pub policy_identity: ContentId,
+    /// Logical store prefix used for derivation and artifact identities.
+    pub store_prefix: PathBuf,
+    /// Physical export directory where Mantle materializes store objects.
     pub store_path: PathBuf,
     pub state_path: PathBuf,
     pub store_identity_path: PathBuf,
@@ -199,6 +202,7 @@ fn validate_paths(profile: &MantleProfile) -> PortResult<()> {
     let runtime = &profile.runtime;
     if !runtime.executable_path.is_absolute()
         || !runtime.plan_path.is_absolute()
+        || !runtime.store_prefix.is_absolute()
         || !runtime.store_path.is_absolute()
         || !runtime.state_path.is_absolute()
         || !runtime.store_identity_path.is_absolute()
@@ -206,7 +210,7 @@ fn validate_paths(profile: &MantleProfile) -> PortResult<()> {
         return Err(domain(
             "mantle_profile_path",
             "mantle.profile.runtime",
-            "Mantle executable, plan, store, and state paths must be absolute",
+            "Mantle executable, plan, store prefix, store, and state paths must be absolute",
         ));
     }
     Ok(())
@@ -220,6 +224,7 @@ fn validate_limits(limits: MantleAdapterLimits) -> PortResult<()> {
         || limits.max_logs == 0
         || limits.max_logs > crate::wire::MAXIMUM_LOGS
         || limits.max_metrics == 0
+        || limits.max_metrics < crate::mapping::NATIVE_REPORT_METRIC_COUNT
         || limits.max_metrics > crate::wire::MAXIMUM_METRICS
         || limits.max_request_bytes == 0
         || limits.max_result_bytes == 0

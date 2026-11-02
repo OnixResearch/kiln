@@ -1,0 +1,44 @@
+{
+  "schema": "kiln.mantle-native-report.verification.v1",
+  "date": "2026-11-02",
+  "commands": [
+    {
+      "command": "nix develop -c cargo test -p kiln-adapter-mantle",
+      "result": "19 passed; full native report admission, root binding, counts, failures, paths, optional collection defaults, cache metrics, substitution and captured failure report"
+    },
+    {
+      "command": "nix develop -c cargo clippy -p kiln-adapter-mantle --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop -c cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop -c cargo test --workspace --no-fail-fast",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop -c rustfmt --edition 2024 --check (touched adapter files)",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop -c nickel export config/mantle-build-profile.ncl",
+      "result": "pass; four negative mantle profile fixtures rejected"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; no issues or findings"
+    },
+    {
+      "command": "mantle --store <temp-store> --state-dir <temp-state> --json build examples/hello.ncl --no-substitute",
+      "result": "captured crunch-build-report-v1 failure report with every serialized native collection; fixture admitted by the adapter"
+    }
+  ],
+  "non_claims": [
+    "native evidence collection metrics prove observation shape and counts, not build correctness or cache truth",
+    "lexical path checks do not prove filesystem containment, symlink safety or source trust",
+    "the captured report fixture proves report-shape compatibility for the pinned schema, not that the mutable producer working tree is a cohort executable",
+    "nested Mantle evidence remains bound by the report receipt and is not CI or release authority"
+  ]
+}

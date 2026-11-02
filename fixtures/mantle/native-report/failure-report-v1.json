@@ -1,0 +1,141 @@
+{
+  "action_result_reports": [
+    {
+      "action_ref": "mantle-action://blake3/971d600896275bf794dc9c903d863f641c05c1ee4d4444dfcd5c9d9748aa445f",
+      "candidate_decisions": [],
+      "conflict_class": null,
+      "diagnostics": [],
+      "disposition": "miss",
+      "non_claims": [
+        "ca-mapping-presence-is-not-output-trust",
+        "executor-correctness",
+        "index-presence-is-not-output-trust"
+      ],
+      "phase": "discovery",
+      "publication_result_refs": [],
+      "schema": "mantle-action-result-runtime-report-v1",
+      "selected_result_ref": null,
+      "selected_source_class": null,
+      "selected_source_id": null,
+      "trust_basis": []
+    }
+  ],
+  "ast_grep_structural_evidence": [],
+  "ast_grep_structural_evidence_diagnostics": [],
+  "build_environment_reports": [
+    {
+      "action_name": "hello",
+      "digest_algorithm": "blake3",
+      "digest_blake3": "75871cfa9f5d0cd5dcf0f1e473ff76680bb2758409681dc458d924fec3457313",
+      "rejections": [],
+      "variable_count": 24
+    }
+  ],
+  "cargo_build_evidence": [],
+  "cargo_build_evidence_diagnostics": [],
+  "counts": {
+    "built_total": 0,
+    "cached_total": 0,
+    "failed_total": 1,
+    "succeeded_total": 0
+  },
+  "diagnostic_persistence_failures": [],
+  "failed": [
+    {
+      "drv_key": "/mantle/store/demo.drv",
+      "error_class": "sandbox",
+      "message": "store error: build: bubblewrap executable 'bwrap' not found; put 'bwrap' on PATH or set SNIX_BUILD_BWRAP to an executable bwrap path: No such file or directory (os error 2)",
+      "phase": "build",
+      "root": "hello",
+      "saved_log_path": "/var/lib/kiln/mantle-state/logs/demo.drv.log"
+    }
+  ],
+  "file": "/etc/kiln/mantle-plan.ncl",
+  "fod_mismatches": [],
+  "frontend_artifact_attestations": [],
+  "hermeticity_audit_events": [],
+  "hermeticity_mode": "practical",
+  "native_dynamic_plans": [],
+  "network_policy_reports": [
+    {
+      "action_name": "hello",
+      "audit_class": null,
+      "capability": null,
+      "diagnostic": null,
+      "fixed_output": null,
+      "mode": "offline",
+      "policy_basis": "ordinary derivation network access is denied by default",
+      "result": "denied"
+    }
+  ],
+  "outcomes": [],
+  "output_dir": "/var/lib/kiln/mantle-store",
+  "overlay_base_generations": [],
+  "remote_telemetry_events": [
+    {
+      "capability": "unknown",
+      "category": "assignment",
+      "measurement": "candidate-count",
+      "non_claim": "diagnostic runtime events do not prove compiler correctness, source reproducibility, release eligibility, CI success, or physical-target determinism",
+      "phase": "assigned",
+      "reason": "priority-selected",
+      "result": "accepted",
+      "retry": "none",
+      "route": "not-applicable",
+      "schema": "mantle-remote-telemetry-event-v1",
+      "transfer": "none",
+      "value": 1
+    }
+  ],
+  "scheduler_policy": {
+    "aged_after_epochs": 4,
+    "policy_id": "mantle-lazy-priority-v1",
+    "preference_order": [
+      "known-graph",
+      "resource-fit",
+      "locality-transfer"
+    ],
+    "protected_after_epochs": 8,
+    "schema": "mantle-scheduling-policy-v1"
+  },
+  "scheduler_priority_decisions": [
+    {
+      "age_epochs": 1,
+      "blocked_root_count": 1,
+      "blocked_root_count_saturated": false,
+      "candidate_snapshot_digest_blake3": "5363206e8fe2077ef51c124fe5dac0cdc25650d6bc50f212c5109b558f69492e",
+      "claim_scope": "configured-known-fact-ordering",
+      "competing_goal_count": 1,
+      "content_locality_class": "unknown",
+      "history_basis": "structural-fallback-missing",
+      "history_snapshot_digest_blake3": null,
+      "known_critical_path_nodes": 1,
+      "known_critical_path_work_units": 1,
+      "known_graph_basis": "known-graph",
+      "non_claims": [
+        "global-optimality",
+        "future-graph-knowledge",
+        "execution-success",
+        "output-trust",
+        "release-reproducibility"
+      ],
+      "operator_policy_class": "ordinary",
+      "policy_digest_blake3": "93aa5a487a960b14e51707f3c8d230253db9562dafc7b314b5ecc056a07ddd58",
+      "policy_id": "mantle-lazy-priority-v1",
+      "resource_fit_class": "unknown",
+      "runner_up": null,
+      "scheduling_epoch": 1,
+      "schema": "mantle-priority-decision-v1",
+      "selected_goal_key_blake3": "255216a580310ede2e8d99963d2e2edfc25359a51428ffb12e79b7e12c3df228",
+      "selection_reason": "sole-candidate",
+      "stable_tie_break_class": "stable-goal-key",
+      "starvation_class": "fresh",
+      "transfer_cost_class": "unknown"
+    }
+  ],
+  "schema": "crunch-build-report-v1",
+  "state_dir": "/var/lib/kiln/mantle-state",
+  "store_dir": "/mantle/store",
+  "store_layer_selections": [],
+  "workspace_reports": []
+}
