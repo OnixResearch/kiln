@@ -39,7 +39,7 @@ const NATIVE_FAILURE_CLASSES: [&str; 8] = [
     "builder",
 ];
 const HERMETICITY_MODES: [&str; 3] = ["practical", "strict", "impure"];
-pub(crate) const NATIVE_REPORT_METRIC_COUNT: usize = 35;
+pub(crate) const NATIVE_REPORT_METRIC_COUNT: usize = 39;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct NormalizedBuild {
@@ -232,6 +232,7 @@ pub(crate) fn normalize_native_report(
     let mut logs = BTreeMap::<ContentId, PathBuf>::new();
     let mut saw_cached = false;
     let mut saw_substitution = false;
+    let mut cache_admissions = 0_u64;
     let mut substitution_outputs = 0_u64;
     let mut substitution_transferred_bytes = 0_u64;
     let mut substitution_reused_bytes = 0_u64;
@@ -302,6 +303,11 @@ pub(crate) fn normalize_native_report(
                     &admission.reason,
                     "mantle.report.outcomes.outputs.cache_admission.reason",
                     "Mantle cache admission reason must not be empty",
+                )?;
+                checked_increment(
+                    &mut cache_admissions,
+                    1,
+                    "mantle.report.outcomes.outputs.cache_admission",
                 )?;
             }
             if let Some(substitution) = &output.substitution {
@@ -539,6 +545,19 @@ pub(crate) fn normalize_native_report(
     metrics.push(metric(
         "native-substitution-fallback-count",
         substitution_fallbacks,
+    )?);
+    metrics.push(metric("native-cache-admission-count", cache_admissions)?);
+    metrics.push(count_metric(
+        "native-scheduler-preference-count",
+        report.scheduler_policy.preference_order.len(),
+    )?);
+    metrics.push(metric(
+        "native-scheduler-aged-after-epochs",
+        report.scheduler_policy.aged_after_epochs,
+    )?);
+    metrics.push(metric(
+        "native-scheduler-protected-after-epochs",
+        report.scheduler_policy.protected_after_epochs,
     )?);
     metrics.push(metric(
         "native-overlay-plan-present",

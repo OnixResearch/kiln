@@ -100,7 +100,7 @@ r[kiln.mantle.native_report.failures.vocabulary]
 
 ### Requirement: Native facts are bounded observations
 
-r[kiln.mantle.native_report.facts] Every native evidence collection and cache transfer total MUST be projected into deterministic bounded observation metrics, and the exact report bytes MUST remain the receipt identity.
+r[kiln.mantle.native_report.facts] Every native evidence collection, cache admission, cache transfer total and scheduler policy fact MUST be projected into deterministic bounded observation metrics, and the exact report bytes MUST remain the receipt identity.
 
 #### Scenario: Native facts are observable
 
@@ -108,7 +108,7 @@ r[kiln.mantle.native_report.facts.metrics]
 - GIVEN a complete admitted report
 - WHEN completion admission runs
 - THEN each native collection MUST have a count metric
-- AND substitution bytes and fallback facts MUST have metrics.
+- AND substitution bytes, fallback facts, cache admissions and scheduler policy facts MUST have metrics.
 
 #### Scenario: Nested evidence is not promoted
 

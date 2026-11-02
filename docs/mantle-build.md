@@ -61,7 +61,7 @@ Native counts must equal the outcome, cached, built and failure arrays. A succes
 
 A successful native report must contain every required product exactly once. Cache and substitution observations remain advisory.
 
-The adapter records deterministic `native-*` metrics for every native evidence collection, the total output/log/product counts, substitution byte totals and fallback count, optional overlay/remote-observability presence, and the hermeticity mode. Nested producer evidence remains bound by the report receipt; it is not promoted to product, cache, CI or release authority.
+The adapter records deterministic `native-*` metrics for every native evidence collection, the total output/log/product counts, cache admission count, substitution byte totals and fallback count, scheduler preference/aging facts, optional overlay/remote-observability presence, and the hermeticity mode. Nested producer evidence remains bound by the report receipt; it is not promoted to product, cache, CI or release authority.
 
 Artifact, store-object, log, and report identities use domain-separated BLAKE3 framing. The native report bytes supply the receipt identity.
 
