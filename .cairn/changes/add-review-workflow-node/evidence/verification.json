@@ -19,6 +19,14 @@
       "result": "pass"
     },
     {
+      "command": "cargo test -p kiln-web-service --test engine review_node_retains --offline",
+      "result": "1 passed; a review node accepts a Patchgate receipt as a run-bound review report"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test engine --offline",
+      "result": "81 passed"
+    },
+    {
       "command": "nickel export config/fixtures/web-service-patchgate.ncl",
       "result": "pass; review/custom node is present"
     },
@@ -38,7 +46,7 @@
   "acceptance": {
     "lattice": "the pinned profile admits ordered build, review and test node kinds and build/test/custom effect classes",
     "configuration": "the GitHub workflow config maps custom to the core custom effect class",
-    "service": "the web service contract and Patchgate fixture export a review node with a custom effect class",
+    "service": "the web service contract and Patchgate fixture export a review node with a custom effect class, and a review run retains a Patchgate receipt as a review report",
     "negative": "unadmitted node kinds and effect classes still fail profile admission"
   },
   "non_claims": [

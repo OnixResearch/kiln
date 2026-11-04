@@ -1,3 +1,5 @@
+use kiln_adapter_github::profile::ConfigEffectClass;
+
 use super::*;
 fn report_body(run: &Value, name: &str, kind: &str, bytes: &[u8]) -> Value {
     json!({"run_id":run.pointer("/id").unwrap_or(&serde_json::Value::Null),"source_revision":run.pointer("/source_revision").unwrap_or(&serde_json::Value::Null),"attempt_id":run.pointer("/attempt_id").unwrap_or(&serde_json::Value::Null),"execution":run.pointer("/execution").unwrap_or(&serde_json::Value::Null),"node_id":"job","kind":kind,"name":name,"body_base64":base64::engine::general_purpose::STANDARD.encode(bytes),"blake3":blake3::hash(bytes).to_hex().as_str()})
@@ -351,5 +353,62 @@ fn unavailable_reports_and_recorded_review_never_invent_test_results_or_gate_aut
         )
         .status,
         409
+    );
+}
+
+#[test]
+fn review_node_retains_a_patchgate_receipt_as_run_bound_evidence() {
+    let (_root, mut profile, _) = fixture();
+    let review = &mut profile.projects[0].workflow.nodes[0];
+    review.id = "review".into();
+    review.kind = "review".into();
+    review.effect_class = ConfigEffectClass::Custom;
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend);
+    enroll(&mut engine);
+    let run = value(&start(&mut engine, "patchgate"));
+    let receipt = json!({
+        "schema": "kiln.patchgate.review.v1",
+        "request_identity": "0".repeat(64),
+        "observation": {"authorizes_acceptance": false, "reviews": []},
+        "native_report": "{}"
+    });
+    let bytes = serde_json::to_vec(&receipt).unwrap_or_else(|error| unreachable!("{error:?}"));
+    let mut upload = report_body(&run, "patchgate-review.json", "review", &bytes);
+    set(&mut upload, "node_id", json!("review"));
+    let response = call(
+        &mut engine,
+        "POST",
+        &report_path(&run),
+        upload,
+        Role::Worker,
+    );
+    assert_eq!(response.status, 201);
+    let record = value(&response);
+    assert_eq!(
+        record
+            .pointer("/report/evidence/document/schema")
+            .unwrap_or(&serde_json::Value::Null),
+        "kiln.patchgate.review.v1"
+    );
+    assert_eq!(
+        record
+            .pointer("/report/evidence/accepted_gate")
+            .unwrap_or(&serde_json::Value::Null),
+        false
+    );
+    let retained = value(&get(&mut engine, &report_path(&run), Role::Viewer));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&retained).unwrap_or_default()
+    );
+    assert!(
+        retained["reports"]
+            .as_array()
+            .is_some_and(|reports| reports.iter().any(|report| {
+                report["kind"] == "review"
+                    && report["report"]["evidence"]["document"]["schema"]
+                        == "kiln.patchgate.review.v1"
+            }))
     );
 }

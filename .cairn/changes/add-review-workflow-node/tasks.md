@@ -7,4 +7,5 @@
 ## Phase 2: Verification
 
 - [x] [serial] Add review/custom lowering and effect-class mapping tests plus a service review-node fixture. r[kiln.lattice.review_node]
+- [x] [serial] Exercise a review-node run that retains a Patchgate receipt as run-bound review evidence. r[kiln.lattice.review_node]
 - [x] [serial] Run focused crate tests, Nickel checks, formatting and lifecycle validation. r[kiln.lattice.review_node]

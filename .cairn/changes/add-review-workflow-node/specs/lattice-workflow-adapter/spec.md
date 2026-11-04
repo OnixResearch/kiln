@@ -19,6 +19,13 @@ mutation authority.
 - THEN the request MUST retain the review node kind and custom effect class and
   MUST remain an observation-only workflow.
 
+#### Scenario: Review receipt is retained
+
+- GIVEN a review-node run and a Patchgate receipt uploaded as a review report
+- WHEN the run reports are read
+- THEN the recorded review must retain the receipt document and claim boundary
+  without granting review acceptance.
+
 #### Scenario: Unsupported capability remains rejected
 
 - GIVEN a profile or plan with an unadmitted node kind, an unadmitted effect

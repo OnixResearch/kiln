@@ -14,6 +14,8 @@ a review/custom node.
   lowering case and the existing profile/transport fixtures.
 - GitHub and Gitea custom effect-class mapping tests pass.
 - All 166 web-service library tests pass (1 ignored).
+- All 81 engine integration tests pass, including a review-node run that accepts
+  a `kiln.patchgate.review.v1` receipt as a run-bound review report.
 - Nickel typecheck and export pass for the Lattice, service and Patchgate
   fixtures; every negative Lattice profile fixture remains rejected.
 - Formatting passes for all changed crates.
