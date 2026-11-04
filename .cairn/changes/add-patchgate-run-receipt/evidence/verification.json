@@ -33,6 +33,10 @@
     {
       "command": "cairn validate --root .",
       "result": "valid; 0 issues"
+    },
+    {
+      "command": "real producer: scripts/patchgate-review-job.py with installed Patchgate/Pijul and the built adapter run",
+      "result": "exit 0; receipt retained request 0044f9a0b5babd0ee752a91dc084ca728bb4960144ae129f644ca5b7c149af5f; source main/inbox unchanged"
     }
   ],
   "acceptance": {

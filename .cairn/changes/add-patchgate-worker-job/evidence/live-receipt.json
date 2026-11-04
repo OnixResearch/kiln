@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.patchgate.review.v1",
+  "request_identity": "0044f9a0b5babd0ee752a91dc084ca728bb4960144ae129f644ca5b7c149af5f",
+  "observation": {
+    "contract_version": 1,
+    "effect_id": "review-C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPS",
+    "idempotency_key": "79a1763851fc114c562f8de59e105c707a58c704b6ac1281feb02080df13b3de",
+    "candidate_id": "candidate-C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPS",
+    "candidate_root": "391678bb1041d3a2119914dad252e1c681186edc3e753e1193764bf7f65d4b08",
+    "pipeline_revision": "patchgate-review-v1",
+    "policy_identity": "bc6f6d5d32db1756b4b3cf9368e74edaabc942a072a41b74a335ad51ee5d0892",
+    "provider_profile": "patchgate-review-provider",
+    "native_binding_identity": "d2f5d5a21c3f631f0b4173d43cc60010c85123b918f0a95e50e12e639c77d70c",
+    "report_identity": "a4c566e8877a4f22db2e4e939b382f08e8e391945fd7a90f4bcc0abc339508c4",
+    "isolated": true,
+    "authorizes_acceptance": false,
+    "reviews": [
+      {
+        "change": {
+          "contract_version": 1,
+          "provider_namespace": "pijul",
+          "native_kind": "change",
+          "native_id": "B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC"
+        },
+        "decision": "accepted"
+      }
+    ]
+  },
+  "native_report": "{\n  \"schema_version\": 1,\n  \"dry_run\": true,\n  \"authorizes_acceptance\": false,\n  \"main\": {\n    \"channel\": \"main\",\n    \"state\": \"QGAUSOETCANVXYDR3EEZFL5GU7Q5T6GLMRPNAW2HOXV333JZFK2AC\"\n  },\n  \"inbox\": {\n    \"channel\": \"inbox\",\n    \"state\": \"C22M6J6LFIFCPIUDZMH5MVFGIRJU6QPSWYPKFZMULQXW4IJ3PLYAC\"\n  },\n  \"configuration\": {\n    \"source\": \"main\",\n    \"path\": \"patchgate.json\",\n    \"sha256\": \"917248d653a9afe40b0e8585905237ccfa9c78d0a8ead994dd167e7de87147b0\",\n    \"values\": {\n      \"policy_path\": \"POLICY.md\",\n      \"protected\": [\n        \"src/**\"\n      ],\n      \"documentation_paths\": [\n        \"docs/*\",\n        \"*.md\"\n      ],\n      \"max_change_chars\": 8000,\n      \"timeout_seconds\": 300.0,\n      \"check_timeout_seconds\": 900.0,\n      \"max_review_requests\": 128,\n      \"review_timeout_seconds\": 900.0\n    }\n  },\n  \"items\": [\n    {\n      \"hash\": \"B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC\",\n      \"message\": \"Clarify the guide wording\",\n      \"paths\": [\n        \"docs/guide.md\"\n      ],\n      \"state\": \"accepted\",\n      \"reason\": \"\",\n      \"needs\": [],\n      \"decided\": true,\n      \"merge\": null,\n      \"note\": \"\"\n    }\n  ],\n  \"records\": [\n    {\n      \"hash\": \"B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC\",\n      \"decision\": \"accept\",\n      \"message\": \"Clarify the guide wording\",\n      \"by\": \"gate\",\n      \"summary\": \"\",\n      \"reason\": \"The change touches only documentation paths (docs/guide.md). Deterministic secret checks and the trusted Nix checks apply, and the model does not review it.\",\n      \"at\": \"2026-11-04T23:45:15+00:00\",\n      \"provenance\": {\n        \"requests\": [],\n        \"verifiers\": {\n          \"schema_version\": 1,\n          \"patchgate\": \"0.1.0\",\n          \"pijul\": \"pijul 1.0.0-beta.24\",\n          \"nix\": null\n        }\n      },\n      \"configuration\": {\n        \"source\": \"main\",\n        \"path\": \"patchgate.json\",\n        \"sha256\": \"917248d653a9afe40b0e8585905237ccfa9c78d0a8ead994dd167e7de87147b0\",\n        \"values\": {\n          \"policy_path\": \"POLICY.md\",\n          \"protected\": [\n            \"src/**\"\n          ],\n          \"documentation_paths\": [\n            \"docs/*\",\n            \"*.md\"\n          ],\n          \"max_change_chars\": 8000,\n          \"timeout_seconds\": 300.0,\n          \"check_timeout_seconds\": 900.0,\n          \"max_review_requests\": 128,\n          \"review_timeout_seconds\": 900.0\n        }\n      }\n    }\n  ],\n  \"selection\": {\n    \"requested_changes\": [\n      \"B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC\"\n    ],\n    \"requested_authors\": [],\n    \"include_dependencies\": false,\n    \"selected\": [\n      \"B4RTGPI77UF4LTLXXVRNV2BRRFJ4NCMJDWN7EIAKWPGN53AVQ6IAC\"\n    ],\n    \"added_dependencies\": []\n  },\n  \"review_usage\": {\n    \"requests\": 0,\n    \"max_requests\": 128,\n    \"elapsed_seconds\": 0.167442669,\n    \"timeout_seconds\": 900.0,\n    \"stop\": null\n  }\n}\n"
+}

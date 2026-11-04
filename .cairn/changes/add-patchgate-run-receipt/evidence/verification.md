@@ -21,7 +21,10 @@ does not include the private native report body.
 
 ## Non-claims
 
-The fake producer proves command flow and publication, not a real
-Patchgate/Pijul review. This change does not generate intent from live Pijul
-state or upload the receipt through the worker API. Review evidence remains
-separate from acceptance, merge, gate and release authority.
+The fake producer proves command flow and publication. A separate live run with
+the installed pinned Patchgate/Pijul and the local review target accepted one
+pending docs change, retained request
+`0044f9a0b5babd0ee752a91dc084ca728bb4960144ae129f644ca5b7c149af5f`, and left
+the native main/inbox states unchanged. This change does not upload the receipt
+through the worker API by itself. Review evidence remains separate from
+acceptance, merge, gate and release authority.

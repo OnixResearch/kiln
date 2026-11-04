@@ -25,8 +25,12 @@ report admission binds the exact run, attempt, execution and node.
 
 ## Non-claims
 
-The fake-native smoke proves orchestration and receipt flow, not a live
-Patchgate/Pijul deployment, model review quality, source correctness, merge
-eligibility or release readiness. The worker step uploads review evidence only;
-it grants no acceptance, merge, gate or release authority. A missing report
-remains unavailable rather than passing.
+The fake-native smoke proves orchestration and receipt flow. A separate live
+smoke used the installed pinned Patchgate/Pijul and the local review target; it
+accepted one pending docs change, retained request
+`0044f9a0b5babd0ee752a91dc084ca728bb4960144ae129f644ca5b7c149af5f`, and left
+the native main/inbox states unchanged. The retained receipt is
+`evidence/live-receipt.json`. This does not prove model review quality, source
+correctness, merge eligibility or release readiness. The worker step uploads
+review evidence only; it grants no acceptance, merge, gate or release authority.
+A missing report remains unavailable rather than passing.

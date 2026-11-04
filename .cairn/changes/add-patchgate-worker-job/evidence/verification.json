@@ -45,6 +45,10 @@
     {
       "command": "cairn validate --root .",
       "result": "valid; 0 issues"
+    },
+    {
+      "command": "python3 scripts/patchgate-review-job.py --target /home/brittonr/git/patchgate-review-target --patchgate /home/brittonr/.nix-profile/bin/patchgate --adapter /home/brittonr/.cargo-target-kiln-web-verify/debug/kiln-patchgate-review --pijul /nix/store/xs68d2myk3ya7wxk7d3dk8frfbw3w62h-pijul-1.0.0-beta.24/bin/pijul --out /tmp/kiln-patchgate-live-receipt.json",
+      "result": "exit 0; live receipt accepted one docs change; request 0044f9a0b5babd0ee752a91dc084ca728bb4960144ae129f644ca5b7c149af5f; main/inbox states unchanged; review requests 0"
     }
   ],
   "acceptance": {
