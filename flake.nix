@@ -1253,6 +1253,7 @@
               config/fixtures/iroh-observation-positive.ncl \
               config/fixtures/negative-iroh-observation-*.ncl \
               config/patchgate-review.ncl \
+              config/patchgate-review-job.ncl \
               config/fixtures/*patchgate-review*.ncl
             nickel export config/default.ncl >/dev/null
             nickel export config/hosting-profile.ncl >/dev/null
@@ -1262,6 +1263,15 @@
             nickel export config/lattice-workflow-profile.ncl >/dev/null
             nickel export config/cairn-gate-profile.ncl >/dev/null
             nickel typecheck config/patchgate-review.ncl
+            nickel typecheck config/patchgate-review-job.ncl
+            nickel format --check config/patchgate-review.ncl config/patchgate-review-job.ncl config/fixtures/*patchgate-review*.ncl
+            nickel export config/fixtures/patchgate-review-job-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-patchgate-review-job-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative Patchgate job fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel format --check config/hosted-*.ncl config/fixtures/*hosted*.ncl
             for profile in config/hosted-*.ncl; do
               nickel typecheck "$profile"
@@ -1333,6 +1343,7 @@
             nickel export config/fixtures/web-service-feeds-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-monorepo-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-untrusted-positive.ncl >/dev/null
+            nickel export config/fixtures/web-service-patchgate.ncl >/dev/null
             for fixture in config/fixtures/negative-web-service-*.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then
                 echo "negative web service fixture passed: $fixture" >&2

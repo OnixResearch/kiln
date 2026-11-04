@@ -1,0 +1,35 @@
+(import "../web-worker.ncl") {
+  project_id = "fixture",
+  source_repository = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  repository_path = "/srv/kiln/repository",
+  service_origin = "https://localhost:9443",
+  token_file = "/run/kiln-worker/token",
+  tls_ca_path = "/run/kiln-worker/ca.pem",
+  work_root = "/srv/kiln/work",
+  execution = {
+    bubblewrap = "/usr/bin/bwrap",
+    probe_program = "/usr/bin/true",
+    read_only_mounts = ["/usr", "/lib", "/lib64"],
+    read_only_data_mounts = ["/srv/kiln/patchgate-review-target"],
+    network = "deny",
+    cpu_seconds = 60,
+    address_space_bytes = 268435456,
+    maximum_file_bytes = 16777216,
+    maximum_open_files = 64,
+  },
+  steps = [
+    (import "../patchgate-review-job.ncl") {
+      node_id = "review",
+      python = "/nix/store/00000000000000000000000000000000-python3/bin/python3",
+      script = "scripts/patchgate-review-job.py",
+      target = "/srv/kiln/patchgate-review-target",
+      adapter = "/nix/store/00000000000000000000000000000000-kiln/bin/kiln-patchgate-review",
+      patchgate = "/nix/store/00000000000000000000000000000000-patchgate/bin/patchgate",
+      pijul = "/nix/store/00000000000000000000000000000000-pijul/bin/pijul",
+      home = "/tmp/patchgate-review-home",
+      pipeline = "patchgate-review-v1",
+      output = "patchgate-review.json",
+      path = "/nix/store/00000000000000000000000000000000-b3sum/bin",
+    }
+  ],
+}

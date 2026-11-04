@@ -35,7 +35,7 @@ scripts/sync-lattice-workflow-fixtures.rs "$LATTICE_SOURCE" --check
 
 Review `config/lattice-workflow-profile.ncl`. The composition root can construct `UnixWorkflowExchange` with the explicit socket path, peer IDs, deadlines, frame limits, and record bound.
 
-The profile fixes platform, graph schema, node kinds, effect classes, adapter kinds, controls, byte limits, concurrency, and non-claims.
+The profile fixes platform, graph schema, node kinds, effect classes, adapter kinds, controls, byte limits, concurrency, and non-claims. The pinned profile admits ordered `build`, `review`, and `test` node kinds with `Build`, `Test`, and `Custom` effect classes; a review node is observation-only and grants no acceptance authority.
 
 The `local` and `remote` adapter labels admit capabilities and bind the exact
 reviewed graph; a label does not select placement. Remote whole-workflow execution

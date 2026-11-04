@@ -18,10 +18,12 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 const USAGE: &str = "usage: kiln-patchgate-review plan --profile PROFILE.json --intent INTENT.json
        kiln-patchgate-review review --profile PROFILE.json --plan PLAN.json
+       kiln-patchgate-review run --profile PROFILE.json --intent INTENT.json --output RECEIPT.json
        kiln-patchgate-review reconcile --profile PROFILE.json --plan PLAN.json --receipt RECEIPT.json
 
 Only isolated review evidence is supported. No command authorizes source acceptance.
-A successful exit means the evidence was admitted, not that every review was accepted.";
+A successful exit means the evidence was admitted, not that every review was accepted.
+run writes exactly one receipt atomically and prints only its retained-file summary.";
 const MAX_DOCUMENT_BYTES: usize = 16 * 1024 * 1024;
 // One native byte can require six JSON bytes; reserve one document for metadata.
 const MAX_JSON_ESCAPE_EXPANSION: usize = 6;
@@ -196,6 +198,7 @@ fn execute(arguments: Vec<String>) -> Result<String, CliError> {
     let allowed: &[&str] = match command {
         "plan" => &["--profile", "--intent"],
         "review" => &["--profile", "--plan"],
+        "run" => &["--profile", "--intent", "--output"],
         "reconcile" => &["--profile", "--plan", "--receipt"],
         _ => return Err(usage()),
     };
@@ -203,45 +206,54 @@ fn execute(arguments: Vec<String>) -> Result<String, CliError> {
     let options = parse_options(rest, allowed)?;
     let profile: PatchgateProfile = load_document(required(&options, "--profile")?)?;
     let mut adapter = PatchgateAdapter::new(profile).map_err(port_error)?;
+    if command == "run" {
+        let intent: ReviewIntent = load_document(required(&options, "--intent")?)?;
+        let plan = build_plan(&adapter, intent)?;
+        let observation = review(&mut adapter, &plan)?;
+        let request_identity = request_identity(&adapter, &plan)?;
+        let bytes = adapter
+            .raw_report()
+            .ok_or_else(|| "completed review has no retained native report".to_string())?;
+        let native_report = std::str::from_utf8(bytes)
+            .map_err(|_| "native review report is not UTF-8".to_string())?;
+        let decisions = observation
+            .reviews
+            .iter()
+            .map(|review| {
+                serde_json::json!({
+                    "change": &review.change.native_id,
+                    "decision": review.decision,
+                })
+            })
+            .collect::<Vec<_>>();
+        let summary = serde_json::json!({
+            "receipt": required(&options, "--output")?,
+            "schema": RECEIPT_SCHEMA,
+            "request_identity": request_identity,
+            "effect_id": &observation.effect_id,
+            "candidate_id": &observation.candidate_id,
+            "candidate_root": &observation.candidate_root,
+            "decisions": decisions,
+            "isolated": observation.isolated,
+            "authorizes_acceptance": observation.authorizes_acceptance,
+        });
+        let receipt = render(&ReviewReceipt {
+            schema: RECEIPT_SCHEMA,
+            request_identity,
+            observation,
+            native_report,
+        })?;
+        write_receipt(required(&options, "--output")?, receipt.as_bytes())?;
+        return render(&summary).map_err(Into::into);
+    }
     if command == "plan" {
         let intent: ReviewIntent = load_document(required(&options, "--intent")?)?;
-        let profile = adapter.profile_config();
-        let candidate = intent.candidate.into_candidate()?;
-        let root =
-            candidate_root(&candidate, profile.limits.max_request_bytes).map_err(port_error)?;
-        let binding = native_binding_identity(profile).map_err(port_error)?;
-        let policy = policy_identity(profile).map_err(port_error)?;
-        let (_, idempotency_key) = kiln_codec::encode_and_identify(
-            &(
-                IDEMPOTENCY_SCHEMA,
-                &intent.effect_id,
-                &root,
-                &intent.pipeline_revision,
-                &policy,
-                &profile.provider.profile_id,
-                &binding,
-            ),
-            profile.limits.max_request_bytes,
-        )
-        .map_err(|_| "review intent exceeds canonical request bounds".to_string())?;
-        let plan = ReviewEffectPlan {
-            effect_id: intent.effect_id,
-            idempotency_key,
-            candidate,
-            candidate_root: root,
-            pipeline_revision: intent.pipeline_revision,
-            policy_identity: policy,
-            provider_profile: profile.provider.profile_id.clone(),
-            native_binding_identity: binding,
-        };
-        adapter.validate_plan(&plan).map_err(port_error)?;
+        let plan = build_plan(&adapter, intent)?;
         return render(&PlanDocument::from(plan)).map_err(Into::into);
     }
     let document: PlanDocument = load_document(required(&options, "--plan")?)?;
     let plan = document.into_plan()?;
-    let request_bound = adapter.profile_config().limits.max_request_bytes;
-    let (_, request_identity) = kiln_codec::encode_and_identify(&plan, request_bound)
-        .map_err(|_| "review plan exceeds canonical request bounds".to_string())?;
+    let request_identity = request_identity(&adapter, &plan)?;
     let (observation, retained) = if command == "reconcile" {
         let bytes = load_bytes(required(&options, "--receipt")?, MAX_RECEIPT_BYTES)?;
         let receipt: RetainedReceipt = serde_json::from_slice(&bytes)
@@ -257,24 +269,7 @@ fn execute(arguments: Vec<String>) -> Result<String, CliError> {
             .map_err(port_error)?;
         (observation, Some(report))
     } else {
-        let cancellation = Arc::new(AtomicBool::new(false));
-        let mut registrations = Vec::new();
-        for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
-            match signal_hook::flag::register(signal, Arc::clone(&cancellation)) {
-                Ok(id) => registrations.push(id),
-                Err(_) => {
-                    for id in registrations {
-                        signal_hook::low_level::unregister(id);
-                    }
-                    return Err("could not register review cancellation".to_string().into());
-                }
-            }
-        }
-        let result = adapter.review_with_cancellation(&plan, &cancellation);
-        for id in registrations {
-            signal_hook::low_level::unregister(id);
-        }
-        (result.map_err(port_error)?, None)
+        (review(&mut adapter, &plan)?, None)
     };
     let bytes = retained
         .as_deref()
@@ -289,6 +284,116 @@ fn execute(arguments: Vec<String>) -> Result<String, CliError> {
         native_report,
     })
     .map_err(Into::into)
+}
+
+fn build_plan(
+    adapter: &PatchgateAdapter,
+    intent: ReviewIntent,
+) -> Result<ReviewEffectPlan, CliError> {
+    let profile = adapter.profile_config();
+    let candidate = intent.candidate.into_candidate()?;
+    let root = candidate_root(&candidate, profile.limits.max_request_bytes).map_err(port_error)?;
+    let binding = native_binding_identity(profile).map_err(port_error)?;
+    let policy = policy_identity(profile).map_err(port_error)?;
+    let (_, idempotency_key) = kiln_codec::encode_and_identify(
+        &(
+            IDEMPOTENCY_SCHEMA,
+            &intent.effect_id,
+            &root,
+            &intent.pipeline_revision,
+            &policy,
+            &profile.provider.profile_id,
+            &binding,
+        ),
+        profile.limits.max_request_bytes,
+    )
+    .map_err(|_| "review intent exceeds canonical request bounds".to_string())?;
+    let plan = ReviewEffectPlan {
+        effect_id: intent.effect_id,
+        idempotency_key,
+        candidate,
+        candidate_root: root,
+        pipeline_revision: intent.pipeline_revision,
+        policy_identity: policy,
+        provider_profile: profile.provider.profile_id.clone(),
+        native_binding_identity: binding,
+    };
+    adapter.validate_plan(&plan).map_err(port_error)?;
+    Ok(plan)
+}
+
+fn request_identity(
+    adapter: &PatchgateAdapter,
+    plan: &ReviewEffectPlan,
+) -> Result<ContentId, CliError> {
+    let bound = adapter.profile_config().limits.max_request_bytes;
+    kiln_codec::encode_and_identify(plan, bound)
+        .map(|(_, identity)| identity)
+        .map_err(|_| {
+            "review plan exceeds canonical request bounds"
+                .to_string()
+                .into()
+        })
+}
+
+fn review(
+    adapter: &mut PatchgateAdapter,
+    plan: &ReviewEffectPlan,
+) -> Result<ReviewEvaluationObservation, CliError> {
+    let cancellation = Arc::new(AtomicBool::new(false));
+    let mut registrations = Vec::new();
+    for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+        match signal_hook::flag::register(signal, Arc::clone(&cancellation)) {
+            Ok(id) => registrations.push(id),
+            Err(_) => {
+                for id in registrations {
+                    signal_hook::low_level::unregister(id);
+                }
+                return Err("could not register review cancellation".to_string().into());
+            }
+        }
+    }
+    let result = adapter.review_with_cancellation(plan, &cancellation);
+    for id in registrations {
+        signal_hook::low_level::unregister(id);
+    }
+    result.map_err(port_error)
+}
+
+fn write_receipt(path: &str, bytes: &[u8]) -> Result<(), String> {
+    if bytes.is_empty() || bytes.len() > MAX_RECEIPT_BYTES {
+        return Err("receipt is outside its byte bounds".to_string());
+    }
+    let destination = Path::new(path);
+    let parent = destination
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    match std::fs::symlink_metadata(destination) {
+        Ok(metadata) if !metadata.file_type().is_file() => {
+            return Err("receipt destination is not a regular file".to_string());
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(_) => return Err("receipt destination is unavailable".to_string()),
+    }
+    let mut temporary = tempfile::NamedTempFile::new_in(parent)
+        .map_err(|_| "receipt staging file is unavailable".to_string())?;
+    use std::io::Write as _;
+    temporary
+        .write_all(bytes)
+        .map_err(|_| "receipt staging write failed".to_string())?;
+    temporary
+        .as_file()
+        .sync_all()
+        .map_err(|_| "receipt staging sync failed".to_string())?;
+    temporary
+        .persist(destination)
+        .map_err(|_| "receipt publication failed".to_string())?;
+    File::open(parent)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|_| "receipt directory sync failed".to_string())?;
+    Ok(())
 }
 
 fn parse_options<'a>(
@@ -371,4 +476,41 @@ fn port_error(error: PortFailure) -> CliError {
         | PortFailure::Unknown(error) => format!("{}: {}", error.code, error.message),
     };
     CliError { message, exit_code }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn must<T, E: std::fmt::Debug>(result: Result<T, E>) -> T {
+        result.unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"))
+    }
+
+    fn text(path: &Path) -> &str {
+        path.to_str()
+            .unwrap_or_else(|| unreachable!("fixture path is not UTF-8"))
+    }
+
+    #[test]
+    fn receipt_publication_replaces_a_regular_file() {
+        let directory = must(tempfile::tempdir());
+        let path = directory.path().join("receipt.json");
+        must(write_receipt(text(&path), b"first"));
+        must(write_receipt(text(&path), b"second"));
+        assert_eq!(must(std::fs::read(&path)), b"second");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn receipt_publication_rejects_a_symlink_destination() {
+        use std::os::unix::fs::symlink;
+
+        let directory = must(tempfile::tempdir());
+        let target = directory.path().join("target.json");
+        let path = directory.path().join("receipt.json");
+        must(std::fs::write(&target, b"untouched"));
+        must(symlink(&target, &path));
+        assert!(write_receipt(text(&path), b"replacement").is_err());
+        assert_eq!(must(std::fs::read(&target)), b"untouched");
+    }
 }

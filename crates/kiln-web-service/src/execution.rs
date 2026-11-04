@@ -12,6 +12,10 @@ pub struct IsolationPolicy {
     pub bubblewrap: PathBuf,
     pub probe_program: PathBuf,
     pub read_only_mounts: Vec<PathBuf>,
+    /// Explicit operator-reviewed data roots. They are bound read-only into
+    /// the sandbox and never replace runtime or service-credential mounts.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub read_only_data_mounts: Vec<PathBuf>,
     pub network: NetworkPolicy,
     pub cpu_seconds: u64,
     pub address_space_bytes: u64,
@@ -30,6 +34,21 @@ pub(crate) struct ObservationMount<'a> {
     pub executable: &'a Path,
     pub arguments: &'a [OsString],
     pub directory: &'a Path,
+}
+
+const MAX_DATA_MOUNTS: usize = 4;
+const DATA_MOUNT_ROOTS: &[&str] = &["/srv", "/var/lib/kiln"];
+
+fn data_mount_allowed(path: &Path) -> bool {
+    path.is_absolute()
+        && path
+            .components()
+            .all(|component| matches!(component, Component::RootDir | Component::Normal(_)))
+        && path != Path::new("/")
+        && DATA_MOUNT_ROOTS.iter().any(|root| {
+            let root = Path::new(root);
+            path == root || path.starts_with(root)
+        })
 }
 
 impl IsolationPolicy {
@@ -55,6 +74,13 @@ impl IsolationPolicy {
                         .any(|root| p == Path::new(root))
                     || !mounts.insert(p)
             })
+            || self.read_only_data_mounts.len() > MAX_DATA_MOUNTS
+            || {
+                let mut data = std::collections::BTreeSet::new();
+                self.read_only_data_mounts
+                    .iter()
+                    .any(|p| !data_mount_allowed(p) || !data.insert(p))
+            }
             || self.cpu_seconds == 0
             || self.cpu_seconds > 86_400
             || self.address_space_bytes < 16_777_216
@@ -79,13 +105,41 @@ impl IsolationPolicy {
         observation: ObservationMount<'_>,
     ) -> Result<(PathBuf, Vec<String>), String> {
         self.admit()?;
-        if !directory.starts_with(checkout) {
-            return Err("isolated working directory is outside the checkout".into());
-        }
         if !self.read_only_mounts.iter().any(|p| program.starts_with(p)) {
             return Err("isolated executable is not in a reviewed runtime mount".into());
         }
+        let checkout = std::fs::canonicalize(checkout)
+            .map_err(|_| "isolated checkout is unavailable".to_string())?;
+        let directory = std::fs::canonicalize(directory)
+            .map_err(|_| "isolated working directory is unavailable".to_string())?;
+        if !directory.starts_with(&checkout) {
+            return Err("isolated working directory is outside the checkout".into());
+        }
+        let mut data_mounts = Vec::new();
+        for mount in &self.read_only_data_mounts {
+            if !data_mount_allowed(mount) {
+                return Err("worker data mount is outside reviewed roots".into());
+            }
+            let canonical = std::fs::canonicalize(mount)
+                .map_err(|_| "worker data mount is unavailable".to_string())?;
+            if canonical.as_path() != mount.as_path() {
+                return Err("worker data mount resolves through a link".into());
+            }
+            if !std::fs::metadata(&canonical)
+                .map(|metadata| metadata.is_dir())
+                .unwrap_or(false)
+            {
+                return Err("worker data mount is not a directory".into());
+            }
+            if canonical.starts_with(&checkout) {
+                return Err("worker data mount is inside the checkout".into());
+            }
+            data_mounts.push(canonical);
+        }
         let mut args = self.namespace_arguments();
+        for mount in &data_mounts {
+            args.extend(["--ro-bind".into(), text(mount)?, text(mount)?]);
+        }
         args.extend([
             "--ro-bind".into(),
             text(observation.executable)?,
@@ -99,10 +153,10 @@ impl IsolationPolicy {
         }
         args.extend([
             "--bind".into(),
-            text(checkout)?,
-            text(checkout)?,
+            text(&checkout)?,
+            text(&checkout)?,
             "--chdir".into(),
-            text(directory)?,
+            text(&directory)?,
             "--".into(),
             "/run/kiln-step-observer".into(),
         ]);
@@ -213,6 +267,7 @@ mod tests {
             bubblewrap: "/missing/bwrap".into(),
             probe_program: "/usr/bin/true".into(),
             read_only_mounts: vec!["/usr".into()],
+            read_only_data_mounts: Vec::new(),
             network: NetworkPolicy::Deny,
             cpu_seconds: 60,
             address_space_bytes: 268_435_456,
@@ -231,6 +286,53 @@ mod tests {
         credentials.read_only_mounts.push("/etc".into());
         assert!(credentials.admit().is_err());
     }
+    #[test]
+    fn data_mounts_are_bounded_read_only_and_outside_the_checkout() {
+        let mut p = policy();
+        p.read_only_data_mounts = vec!["/srv".into()];
+        assert!(p.admit().is_ok());
+        p.read_only_data_mounts.push("/srv".into());
+        assert!(p.admit().is_err());
+        p.read_only_data_mounts = vec!["/etc".into()];
+        assert!(p.admit().is_err());
+        p.read_only_data_mounts = vec!["/var/lib/kiln".into()];
+        assert!(p.admit().is_ok());
+        p.read_only_data_mounts = vec!["/srv".into()];
+        let (_, args) = p
+            .command(
+                Path::new("/tmp"),
+                Path::new("/tmp"),
+                Path::new("/usr/bin/true"),
+                &[],
+                &std::collections::BTreeMap::new(),
+                ObservationMount {
+                    executable: Path::new("/observer"),
+                    arguments: &[],
+                    directory: Path::new("/metrics"),
+                },
+            )
+            .unwrap_or_else(|_| unreachable!());
+        assert!(
+            args.windows(3)
+                .any(|window| window == ["--ro-bind", "/srv", "/srv"])
+        );
+        assert!(
+            p.command(
+                Path::new("/srv"),
+                Path::new("/srv"),
+                Path::new("/usr/bin/true"),
+                &[],
+                &std::collections::BTreeMap::new(),
+                ObservationMount {
+                    executable: Path::new("/observer"),
+                    arguments: &[],
+                    directory: Path::new("/metrics"),
+                },
+            )
+            .is_err()
+        );
+    }
+
     #[test]
     fn unrelated_mounts_and_unavailable_backend_fail_closed() {
         let mut p = policy();

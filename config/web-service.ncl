@@ -27,7 +27,7 @@ let Workflow = {
     | Array {
       id | c.NonEmpty,
       kind | c.NonEmpty,
-      effect_class | std.contract.from_predicate (fun value => value == "build" || value == "test"),
+      effect_class | std.contract.from_predicate (fun value => value == "build" || value == "test" || value == "custom"),
       adapter_kind | c.NonEmpty,
       operation_identity | c.Blake3,
     },

@@ -27,8 +27,8 @@ let GraphSchema = std.contract.from_predicate (fun value =>
   value == "lattice.workflow-graph.v1"
 ) in
 let Platform = std.contract.from_predicate (fun value => value == "linux-x86_64") in
-let RequiredNodes = std.contract.from_predicate (fun value => value == ["build", "test"]) in
-let RequiredEffects = std.contract.from_predicate (fun value => value == ["build", "test"]) in
+let RequiredNodes = std.contract.from_predicate (fun value => value == ["build", "review", "test"]) in
+let RequiredEffects = std.contract.from_predicate (fun value => value == ["build", "test", "custom"]) in
 let RequiredAdapters = std.contract.from_predicate (fun value => value == ["local", "remote"]) in
 let RequiredControls = std.contract.from_predicate (fun value =>
   value == { cancel = true, pause = true, resume = true }
@@ -93,8 +93,8 @@ let TransportUserId = 1000 in
     graph_schema = "lattice.workflow-graph.v1",
     endpoint_profile = "lattice-local-v1",
     platform = "linux-x86_64",
-    node_kinds = ["build", "test"],
-    effect_classes = ["build", "test"],
+    node_kinds = ["build", "review", "test"],
+    effect_classes = ["build", "test", "custom"],
     adapter_kinds = ["local", "remote"],
     controls = { cancel = true, pause = true, resume = true },
     observation_mode = "poll",

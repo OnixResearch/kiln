@@ -296,11 +296,14 @@ with another schema are listed under `skipped` with a reason, never as empty
 success. The directory is server-owned; names are bounded and traversal is
 rejected. Readers are authenticated viewers/operators; workers are denied.
 
-### Produce one receipt outside a run
+### Produce and retain one receipt
+
+#### Outside a run
 
 `scripts/patchgate-review-job.py` builds the profile and intent from live native
-states, computes one archive identity per pending inbox change, runs
-`kiln-patchgate-review plan` and `review`, and writes the receipt:
+states, computes one archive identity per pending inbox change, and invokes
+`kiln-patchgate-review run`, which admits the intent, reviews it and publishes
+one receipt atomically:
 
 ```console
 python3 scripts/patchgate-review-job.py \
@@ -316,6 +319,43 @@ never records, applies, merges or accepts. Its exit is the adapter's exit;
 successful evidence admission is not review acceptance. The receipt is only
 visible in the Reviews tab when a run uploads it while active, because report
 upload binds the run, node and attempt exactly.
+
+#### Run-bound worker step
+
+`config/patchgate-review-job.ncl` exports one typed `Step` for
+`config/web-worker.ncl`. Include it in the reviewed worker profile `steps`
+array with `node_id` equal to the admitted pipeline's review node:
+
+```ncl
+(import "config/patchgate-review-job.ncl") {
+  node_id = "review",
+  python = "/nix/store/.../bin/python3",
+  script = "scripts/patchgate-review-job.py",
+  target = "/srv/kiln/patchgate-review-target",
+  adapter = "/nix/store/.../bin/kiln-patchgate-review",
+  patchgate = "/nix/store/.../bin/patchgate",
+  pijul = "/nix/store/.../bin/pijul",
+  home = "/var/lib/kiln/patchgate-review-home",
+  pipeline = "patchgate-review-v1",
+  output = "patchgate-review.json",
+  path = "/run/current-system/sw/bin",
+}
+```
+
+The checkout supplies the script; `target` supplies `patchgate.json`, its
+policy, the native channels and the pending inbox. The target is an
+operator-provisioned local Pijul repository and need not be the Git checkout.
+Set `execution.read_only_data_mounts` to the target's canonical directory so a
+sandboxed worker can read it. Data mounts are limited to `/srv` and
+`/var/lib/kiln`, must be directories with no symlink resolution, and are bound
+read-only. The target must be inside the declared mount; the checkout, receipt
+output and `/tmp` review home remain the only writable locations. A missing or
+foreign target fails closed without account-authority fallback.
+`path` must resolve `b3sum`; the script passes `HOME` and `PATH` explicitly to
+Patchgate and Pijul. The step declares the receipt as a `review` report, so
+worker report upload binds the exact run, attempt, execution and node. A missing
+receipt is unavailable, not a clean review. The step grants no review, merge,
+gate or release authority.
 
 ### Real producer repeatability
 
@@ -3000,7 +3040,8 @@ Offline workers contribute no observed available capacity. Configured project
 slots remain separate from observed worker liveness and are not placement proof.
 
 Optional worker `execution` selects the exact reviewed bubblewrap executable,
-read-only toolchain mounts, network policy and per-command resource limits.
+read-only toolchain mounts, optional read-only data mounts under `/srv` or
+`/var/lib/kiln`, network policy and per-command resource limits.
 Preflight failure never falls back to account-authority execution. The command
 gets its private writable checkout/temp and explicit environment, not service
 credentials or the worker's repository backing store. This is bounded namespace

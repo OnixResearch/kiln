@@ -790,3 +790,11 @@ fn unsupported_graph_controls_and_unbounded_acknowledgement_fail_before_resource
     assert!(admit_config(invalid).is_err());
     assert!(!root.path().join("github.sqlite").exists());
 }
+
+#[test]
+fn custom_effect_class_maps_to_the_custom_workflow_class() {
+    assert_eq!(
+        WorkflowEffectClass::from(ConfigEffectClass::Custom),
+        WorkflowEffectClass::Custom
+    );
+}

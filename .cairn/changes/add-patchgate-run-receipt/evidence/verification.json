@@ -1,0 +1,50 @@
+{
+  "schema": "kiln.patchgate.verification.v1",
+  "date": "2026-11-02",
+  "commands": [
+    {
+      "command": "CARGO_TARGET_DIR=/home/brittonr/.cargo-target-kiln-patchgate-verify nix develop -c cargo check -p kiln-adapter-patchgate --bin kiln-patchgate-review --offline",
+      "result": "pass"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/home/brittonr/.cargo-target-kiln-patchgate-verify nix develop -c cargo test -p kiln-adapter-patchgate --bin kiln-patchgate-review --offline",
+      "result": "2 passed; regular-file replacement and symlink rejection"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/home/brittonr/.cargo-target-kiln-patchgate-verify nix develop -c cargo test -p kiln-adapter-patchgate --lib --offline",
+      "result": "12 passed; existing Patchgate admission, execution and non-claim tests"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/home/brittonr/.cargo-target-kiln-patchgate-verify nix develop -c cargo build -p kiln-adapter-patchgate --bin kiln-patchgate-review --offline",
+      "result": "pass"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/home/brittonr/.cargo-target-kiln-patchgate-verify nix develop -c cargo clippy -p kiln-adapter-patchgate --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "nix develop -c cargo fmt --check -p kiln-adapter-patchgate",
+      "result": "pass"
+    },
+    {
+      "command": "throwaway fake-producer smoke: run --profile PROFILE.json --intent INTENT.json --output RECEIPT.json",
+      "result": "exit 0; one kiln.patchgate.review.v1 receipt written; summary contained decisions but not native_report"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "run command": "admits one intent, performs the isolated review and publishes one receipt at the declared path",
+    "atomic publication": "stages and syncs a same-directory temporary file, renames into place and syncs the directory",
+    "destination admission": "a symlink or non-regular destination is rejected without changing its target",
+    "summary": "prints receipt path, request/effect/candidate identities and per-change decisions; does not copy the native report"
+  },
+  "non_claims": [
+    "the fake producer proves command flow and publication, not a real Patchgate/Pijul review",
+    "the change does not generate intent from live Pijul state",
+    "the change does not upload the receipt through the worker API",
+    "review evidence remains separate from acceptance, merge, gate and release authority"
+  ]
+}

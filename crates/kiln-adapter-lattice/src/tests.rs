@@ -328,6 +328,25 @@ fn pinned_profile_is_exact_and_admitted() {
 }
 
 #[test]
+fn reviewed_custom_review_node_is_admitted() {
+    let profile = profile();
+    let mut plan = plan();
+    plan.nodes = vec![WorkflowNode {
+        id: alias("review"),
+        kind: alias("review"),
+        effect_class: WorkflowEffectClass::Custom,
+        adapter_kind: alias("local"),
+        operation_identity: content('3'),
+    }];
+    plan.edges.clear();
+
+    let request = lower_request(&profile, &plan)
+        .unwrap_or_else(|error| panic!("review custom lowering failed: {error:?}"));
+    assert_eq!(request.graph.nodes.len(), 1);
+    assert_eq!(request.graph.nodes[0].kind.as_str(), "review");
+}
+
+#[test]
 fn profile_rejects_missing_operation_and_capability_drift() {
     let mut invalid = profile();
     invalid

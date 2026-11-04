@@ -46,8 +46,8 @@ impl LatticeProfile {
             schema: PROFILE_SCHEMA.to_string(),
             graph_schema: GRAPH_SCHEMA.to_string(),
             platforms: vec![label(PINNED_LATTICE_PLATFORM)?],
-            node_kinds: vec![label("build")?, label("test")?],
-            effect_classes: vec![EffectClass::Build, EffectClass::Test],
+            node_kinds: vec![label("build")?, label("review")?, label("test")?],
+            effect_classes: vec![EffectClass::Build, EffectClass::Test, EffectClass::Custom],
             adapter_kinds: vec![label("local")?, label("remote")?],
             controls: ControlCapabilities {
                 cancel: true,
@@ -148,8 +148,9 @@ pub fn admit_profile(profile: &LatticeProfile) -> PortResult<()> {
         || profile.provider.outcomes != required_outcomes()
         || profile.provider.limits != expected_provider_limits
         || profile.contract.platforms != vec![label(PINNED_LATTICE_PLATFORM)?]
-        || profile.contract.node_kinds != vec![label("build")?, label("test")?]
-        || profile.contract.effect_classes != vec![EffectClass::Build, EffectClass::Test]
+        || profile.contract.node_kinds != vec![label("build")?, label("review")?, label("test")?]
+        || profile.contract.effect_classes
+            != vec![EffectClass::Build, EffectClass::Test, EffectClass::Custom]
         || profile.contract.adapter_kinds != vec![label("local")?, label("remote")?]
         || profile.contract.controls
             != (ControlCapabilities {

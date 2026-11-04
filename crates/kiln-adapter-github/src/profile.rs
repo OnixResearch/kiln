@@ -45,6 +45,7 @@ pub struct AdapterLimits {
 pub enum ConfigEffectClass {
     Build,
     Test,
+    Custom,
 }
 
 impl From<ConfigEffectClass> for WorkflowEffectClass {
@@ -52,6 +53,7 @@ impl From<ConfigEffectClass> for WorkflowEffectClass {
         match value {
             ConfigEffectClass::Build => Self::Build,
             ConfigEffectClass::Test => Self::Test,
+            ConfigEffectClass::Custom => Self::Custom,
         }
     }
 }

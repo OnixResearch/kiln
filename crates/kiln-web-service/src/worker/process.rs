@@ -249,6 +249,7 @@ mod tests {
             bubblewrap: "/missing/kiln-bubblewrap".into(),
             probe_program: "/usr/bin/true".into(),
             read_only_mounts: vec!["/usr".into()],
+            read_only_data_mounts: Vec::new(),
             network: crate::execution::NetworkPolicy::Deny,
             cpu_seconds: 60,
             address_space_bytes: 268_435_456,

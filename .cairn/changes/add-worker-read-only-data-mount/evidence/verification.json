@@ -1,0 +1,50 @@
+{
+  "schema": "kiln.worker-data-mount.verification.v1",
+  "date": "2026-11-04",
+  "commands": [
+    {
+      "command": "nickel typecheck config/web-worker.ncl config/patchgate-review-job.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/web-worker-patchgate.ncl",
+      "result": "pass; read_only_data_mounts and review report declaration are present"
+    },
+    {
+      "command": "for fixture in config/fixtures/negative-patchgate-review-job-*.ncl; do nickel export \"$fixture\" >/dev/null 2>&1 && exit 1; done",
+      "result": "all four negative fixtures rejected"
+    },
+    {
+      "command": "nickel format --check config/web-worker.ncl config/fixtures/web-worker-patchgate.ncl config/patchgate-review-job.ncl config/fixtures/*patchgate-review*.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib --offline",
+      "result": "166 passed; 1 ignored"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib execution::tests --offline",
+      "result": "3 passed; data mount admission, read-only binding and checkout overlap cases"
+    },
+    {
+      "command": "cargo fmt -p kiln-web-service --check",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "admission": "at most four canonical paths under /srv or /var/lib/kiln; duplicates, foreign roots, traversal, missing paths and checkout overlap fail",
+    "binding": "admitted data mounts appear as read-only bubblewrap binds before the observer and checkout",
+    "patchgate profile": "the full worker profile exports with the external Pijul target mounted read-only, writable checkout output and /tmp review home",
+    "fallback": "unavailable selected isolation remains terminal with no account-authority fallback"
+  },
+  "non_claims": [
+    "data mounts are read-only but do not prove mounted data is non-sensitive or that hostile code is confined",
+    "the change does not prove a live Patchgate/Pijul review or review quality",
+    "the allowed roots are intentionally narrow; repositories outside /srv and /var/lib/kiln require a separate reviewed policy change",
+    "clippy is not used as a clean rail because the current direct toolchain reports unrelated pre-existing warnings in kiln-core and kiln-web-service"
+  ]
+}

@@ -117,6 +117,9 @@ fun input =>
                   std.array.elem value ["/nix/store", "/usr", "/bin", "/lib", "/lib64"]
                 )
               ),
+            # Explicit operator-reviewed data roots; Rust admits only /srv and
+            # /var/lib/kiln, binds them read-only, and rejects links.
+            read_only_data_mounts | Array AbsolutePath | optional,
             network | std.contract.from_predicate (fun value => std.array.elem value ["deny", "host"]),
             cpu_seconds | Integer 86400,
             address_space_bytes | Integer 1099511627776,

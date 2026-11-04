@@ -1,0 +1,50 @@
+{
+  "schema": "kiln.review-node.verification.v1",
+  "date": "2026-11-04",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-lattice --lib --offline",
+      "result": "20 passed; includes review/custom lowering and existing profile/transport fixtures"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --lib --offline",
+      "result": "52 GitHub library tests passed"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib --offline",
+      "result": "166 passed; 1 ignored"
+    },
+    {
+      "command": "nickel typecheck config/lattice-workflow-profile.ncl config/web-service.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/web-service-patchgate.ncl",
+      "result": "pass; review/custom node is present"
+    },
+    {
+      "command": "for fixture in config/fixtures/negative-lattice-workflow-*.ncl; do nickel export \"$fixture\" >/dev/null 2>&1 && exit 1; done",
+      "result": "all negative Lattice profile fixtures rejected"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-adapter-lattice -p kiln-adapter-github -p kiln-adapter-gitea -p kiln-web-service",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "lattice": "the pinned profile admits ordered build, review and test node kinds and build/test/custom effect classes",
+    "configuration": "the GitHub workflow config maps custom to the core custom effect class",
+    "service": "the web service contract and Patchgate fixture export a review node with a custom effect class",
+    "negative": "unadmitted node kinds and effect classes still fail profile admission"
+  },
+  "non_claims": [
+    "node admission does not prove the Lattice runtime executes custom review nodes",
+    "the review node remains observation-only and grants no acceptance, merge, gate or release authority",
+    "the change does not prove a live Patchgate/Pijul review or review quality",
+    "the Patchgate worker still requires an admitted worker step and accessible Pijul target"
+  ]
+}

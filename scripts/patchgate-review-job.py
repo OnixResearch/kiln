@@ -2,8 +2,9 @@
 """Produce one kiln.patchgate.review.v1 receipt for a pending Pijul inbox change.
 
 Runs inside a Kiln job checkout. Reads only the named local repositories, never
-contacts a model unless Patchgate itself decides a change needs one, and writes
-the receipt where the worker declares it for upload.
+contacts a model unless Patchgate itself decides a change needs one, and invokes
+the adapter once so it publishes the receipt atomically where the worker
+declares it for upload.
 """
 import argparse
 import hashlib
@@ -189,12 +190,9 @@ def main():
         intent_path = work / "intent.json"
         intent_path.write_text(json.dumps(intent, sort_keys=True, indent=2) + "\n")
 
-        plan = run([args.adapter, "plan", "--profile", profile_path, "--intent", intent_path])
-        (work / "plan.json").write_bytes(plan)
-        receipt = run([args.adapter, "review", "--profile", profile_path,
-                       "--plan", work / "plan.json"])
-        parsed = json.loads(receipt)
-        Path(args.out).write_bytes(receipt)
+        run([args.adapter, "run", "--profile", profile_path,
+             "--intent", intent_path, "--output", args.out])
+        parsed = json.loads(Path(args.out).read_bytes())
         summary = {
             "receipt": str(Path(args.out)),
             "schema": parsed.get("schema"),
