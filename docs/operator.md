@@ -220,8 +220,19 @@ the evaluated filesystem.
 cargo build --locked -p kiln-adapter-patchgate --bin kiln-patchgate-review
 kiln-patchgate-review plan --profile profile.json --intent intent.json > plan.json
 kiln-patchgate-review review --profile profile.json --plan plan.json > receipt.json
+kiln-patchgate-review run --profile profile.json --intent intent.json --output receipt.json
 kiln-patchgate-review reconcile --profile profile.json --plan plan.json --receipt receipt.json > reconciled.json
 ```
+
+`run` admits the intent, reviews it, and publishes exactly one
+`kiln.patchgate.review.v1` receipt by staging a temporary file in the destination
+directory, syncing it, renaming it into place, and syncing the directory. It
+rejects a symlink or non-regular destination and prints only a bounded summary
+(with the receipt path and decisions), not the private native report. A reviewed
+worker step can invoke `run` with `--output patchgate-review.json` and declare
+`reports = [{ kind = "review", path = "patchgate-review.json" }]`; the worker
+then uploads that exact receipt as run-bound review evidence. This retention
+path does not grant review, merge, gate or release authority.
 
 Use the installed binary or `cargo run --locked -p kiln-adapter-patchgate --bin
 kiln-patchgate-review --` when it is not on `PATH`. The root flake exports the
@@ -850,6 +861,37 @@ the exercised executables and selected producer files by BLAKE3. It covers exact
 source success/failure, restart duplicate suppression, and lost-status-response
 reconciliation against local fixtures. It also records scoped Lattice-wide gate
 results; it does not bind a clean producer release or prove deployment.
+
+## Gitea and Forgejo CI adapter
+
+The standalone Gitea/Forgejo shell uses `config/gitea-ci.ncl` and
+`config/gitea-job.ncl`. It is separate from the hosted connection composition
+and does not grant repository, merge, or release authority.
+
+1. Create a repository-scoped token with contents read and commit-status
+   read/write. Keep it in a SecretSpec reference distinct from the webhook
+   secret.
+2. Export the service profile with the numeric repository id, normalized
+   `status.api_base` ending in `/api/v1`, replay path, SecretSpec references,
+   and reviewed workflow profile.
+3. Create a Gitea or Forgejo JSON webhook to the externally reachable
+   `/gitea/webhook` URL with push and pull-request events and the same secret.
+4. Start `kiln-adapter-gitea --profile PROFILE.json`, inspect runs with
+   `status`, and recover ambiguous effects with `reconcile`.
+5. Export the job profile with the normalized `git_base`, reviewed argv,
+   environment, snapshot/transfer/deadline bounds, and optional source
+   SecretSpec reference. `kiln-gitea-job` verifies the BLAKE3 of the exact
+   profile bytes before acquisition.
+
+The listener is loopback-only; terminate TLS in front of it and forward the
+original body and header bytes. The adapter accepts `X-Gitea-*`,
+`X-Forgejo-*`, and GitHub-compatible headers, rejects duplicate/conflicting
+aliases, and admits only 40-hex SHA-1 revisions and JSON deliveries. Fork pull
+requests are denied. Status writes and reads use the Gitea commit-status API;
+ambiguous writes remain unknown and are reconciled read-only.
+
+See [the Gitea/Forgejo procedure](gitea-ci.md) for the exact profile fields,
+commands, failure behavior, and non-claims.
 
 ## Iroh remote workflow execution
 

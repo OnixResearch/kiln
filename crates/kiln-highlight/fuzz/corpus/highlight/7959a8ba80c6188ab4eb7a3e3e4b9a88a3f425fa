@@ -1,0 +1,4 @@
+fn  {
+  l }"{
+  value    println!("{value}");
+}

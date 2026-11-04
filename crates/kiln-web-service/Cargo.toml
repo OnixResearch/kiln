@@ -54,6 +54,7 @@ tempfile = "3.27.0"
 zeroize.workspace = true
 
 [features]
+fuzzing = []
 # Change-ID intake tests over fixture repositories built by a real `jj`
 # (KILN_JJ_EXE, else `jj` on PATH).
 jj-fixtures = ["kiln-adapter-jj/jj-fixtures"]

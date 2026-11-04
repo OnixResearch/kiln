@@ -1,13 +1,15 @@
 //! Pure core for the hosted Firecracker microVM backend.
 //!
-//! The library performs no I/O: it admits machine policy, plans the exact
-//! Firecracker configuration, drives the per-job VM lifecycle, defines the
-//! bounded vsock guest protocol and lays out the deterministic source archive.
+//! The library performs no I/O: it admits machine policy and host-observed
+//! confinement facts, plans the exact Firecracker configuration, drives the
+//! per-job VM lifecycle, defines the bounded vsock guest protocol and lays out
+//! the deterministic source archive.
 //! Hosted shells own processes, sockets, files and the journal. The
 //! `kiln-microvm-guest` binary is the guest-side shell.
 
 pub mod admission;
 pub mod archive;
+pub mod confinement;
 pub mod debug_hold;
 pub mod lifecycle;
 pub mod plan;

@@ -547,6 +547,18 @@ there is no network device (see [Guest networking (non-goal)](#guest-networking-
 The retained escape suite denied namespace creation, host `/proc`/`/sys`
 observation and IP or vsock egress.
 
+The shell observes that claim before the guest session. It adds
+`NoNewPrivileges=yes` to the attempt unit, reads the unit's `cgroup.procs`, and
+requires exactly one `firecracker` process with the service user's UID/GID,
+`CapEff` zero, `NoNewPrivs` one, `Seccomp` two, and the reviewed immutable
+executable path. For a warm pool the check follows `/snapshot/load`; for a cold
+boot it follows spawn. A failed or unavailable observation journals failure and
+never admits the guest. The `vm.confinement` receipt records the observed
+fields and reviewed executable BLAKE3 identity; the lifecycle gate is
+`ConfinementObserved`. This observes one process on one host; it is not a proof
+that the reviewed binary has no vulnerability or that another host reports the
+same facts.
+
 It does **not** claim:
 - hostile multi-tenant or production qualification;
 - resistance to KVM or Firecracker vulnerabilities on the host;

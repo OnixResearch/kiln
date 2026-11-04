@@ -22,6 +22,7 @@ members = [
   "crates/kiln-adapter-lattice",
   "crates/kiln-adapter-iroh",
   "crates/kiln-adapter-github",
+  "crates/kiln-adapter-gitea",
   "crates/kiln-adapter-tangled",
   "crates/kiln-adapter-cairn",
   "crates/kiln-adapter-patchgate",
@@ -46,6 +47,8 @@ members = [
   "crates/kiln-cli",
 ]
 exclude = [
+  "crates/kiln-web-service/fuzz",
+  "crates/kiln-highlight/fuzz",
   "vendor/lattice/crates/lattice-workflow-contract",
   "vendor/lattice/crates/lattice-workflow-contract/transport",
   "vendor/cairn",

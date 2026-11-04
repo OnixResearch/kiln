@@ -58,6 +58,20 @@ Kiln cannot promote itself into builder, checker, or signer roles. Imported evid
 
 `valence-core` uses `MPL-2.0`. Kiln consumes it as a pinned dependency and does not copy its source.
 
+## Gitea and Forgejo
+
+Gitea and Forgejo use the same raw webhook payload and commit-status shapes.
+Kiln authenticates the exact body with the Gitea, Forgejo, or GitHub-compatible
+HMAC-SHA256 header. Push and pull-request opened, reopened, synchronized, and
+closed/merged events select the exact head commit.
+
+Status writes use `POST /api/v1/repos/{owner}/{repo}/statuses/{sha}` with
+`state`, `context`, and `description`; reads use the same path and decode the
+Gitea `status` field. Payload-supplied clone, compare, HTML, and API URLs are
+never followed; the adapter derives them from the admitted normalized HTTPS
+origins. SHAs are 40-hex only, and fork pull requests are denied in the
+standalone profile.
+
 ## Webhook notifications
 
 `kiln-adapter-webhook` delivers notification intents only through registered HTTPS endpoint profiles. Requests cannot supply destination URLs.

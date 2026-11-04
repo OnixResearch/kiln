@@ -1467,6 +1467,25 @@ pub(crate) fn manager_request(
     ));
     Ok(run)
 }
+/// Reviewed systemd unit properties. `collect` marks the VMM unit, which also
+/// receives `NoNewPrivileges=yes`; customer step units do not.
+fn unit_properties(config: &Config, timeout_ms: u64, collect: bool) -> Vec<String> {
+    let mut properties = vec![
+        format!("MemoryMax={}", config.memory_bytes),
+        "MemorySwapMax=0".into(),
+        format!("TasksMax={}", config.processes),
+        format!("CPUQuota={}%", config.cpu_percent),
+        format!("RuntimeMaxSec={}ms", timeout_ms.saturating_add(1000)),
+        "KillMode=control-group".into(),
+        "SendSIGKILL=yes".into(),
+        "TimeoutStopSec=2s".into(),
+    ];
+    if collect {
+        properties.push("NoNewPrivileges=yes".into());
+    }
+    properties
+}
+
 /// `systemd-run` arguments placing one process tree in the attempt unit with the
 /// reviewed cgroup limits, followed by `env -i`. `collect` unloads the unit even
 /// after failure so a later process in the same attempt can reuse its name.
@@ -1485,23 +1504,17 @@ pub(crate) fn unit_command(
     if collect {
         service.push(OsString::from("--collect"));
     }
-    for property in [
-        format!("MemoryMax={}", config.memory_bytes),
-        "MemorySwapMax=0".into(),
-        format!("TasksMax={}", config.processes),
-        format!("CPUQuota={}%", config.cpu_percent),
-        format!("RuntimeMaxSec={}ms", timeout_ms.saturating_add(1000)),
-        "KillMode=control-group".into(),
-        "SendSIGKILL=yes".into(),
-        "TimeoutStopSec=2s".into(),
-    ] {
+    for property in unit_properties(config, timeout_ms, collect) {
         service.push(OsString::from(format!("--property={property}")));
     }
     service.push(config.env.verify()?.into_os_string());
     service.push(OsString::from("-i"));
     Ok(service)
 }
-fn systemctl(config: &Config, args: &[&str]) -> Result<bounded_exec::ExecutionOutput, String> {
+pub(crate) fn systemctl(
+    config: &Config,
+    args: &[&str],
+) -> Result<bounded_exec::ExecutionOutput, String> {
     bounded_exec::run(manager_request(
         config,
         config.systemctl.verify()?,
@@ -2012,6 +2025,14 @@ mod tests {
     fn admit(config: &Config) -> Result<(), String> {
         let backend = config.runners.get("vm").unwrap_or_else(|| unreachable!());
         admit_firecracker(config, "vm", backend)
+    }
+
+    // r[verify kiln.microvm.confinement.observation]
+    #[test]
+    fn vmm_unit_sets_no_new_privileges() {
+        let config = firecracker_config(firecracker_backend(json!({})), None);
+        assert!(unit_properties(&config, 1_000, true).contains(&"NoNewPrivileges=yes".into()));
+        assert!(!unit_properties(&config, 1_000, false).contains(&"NoNewPrivileges=yes".into()));
     }
 
     // r[verify kiln.hosted.microvm.admission]

@@ -557,6 +557,11 @@
           program = "${packageFor system}/bin/kiln-adapter-github";
           meta.description = "Run the Kiln GitHub webhook and recovery service";
         };
+        kiln-adapter-gitea = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-adapter-gitea";
+          meta.description = "Run the Kiln Gitea/Forgejo webhook and recovery service";
+        };
         kiln-adapter-iroh = {
           type = "app";
           program = "${packageFor system}/bin/kiln-adapter-iroh";
@@ -571,6 +576,11 @@
           type = "app";
           program = "${packageFor system}/bin/kiln-github-job";
           meta.description = "Run a pinned exact-source GitHub CI job";
+        };
+        kiln-gitea-job = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-gitea-job";
+          meta.description = "Run a pinned exact-source Gitea/Forgejo CI job";
         };
         kiln-radicle-ci = {
           type = "app";
@@ -812,6 +822,34 @@
               nickel export --format json fixtures/github/service-profile.ncl > github-service.json
               nickel export --format json fixtures/github/job-profile.ncl > github-job.json
               cargo test --locked -p kiln-adapter-github --features protocol-fixtures --offline
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
+          gitea-protocol-fixtures = rustPlatform.buildRustPackage {
+            pname = "kiln-gitea-protocol-fixtures";
+            version = "0.1.0";
+            src = self;
+            cargoLock.lockFile = ./Cargo.lock;
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+              pkgs.nickel
+              pkgs.git
+              pkgs.b3sum
+            ];
+            buildInputs = [
+              pkgs.zlib
+              pkgs.openssl
+            ];
+            buildPhase = ''
+              runHook preBuild
+              nickel export --format json fixtures/gitea/service-profile.ncl > gitea-service.json
+              nickel export --format json fixtures/gitea/job-profile.ncl > gitea-job.json
+              cargo test --locked -p kiln-adapter-gitea --features protocol-fixtures --offline
               runHook postBuild
             '';
             doCheck = false;
@@ -1383,6 +1421,12 @@
             nickel typecheck config/github-contracts.ncl
             nickel typecheck config/github-ci.ncl
             nickel typecheck config/github-job.ncl
+            nickel typecheck config/gitea-contracts.ncl
+            nickel typecheck config/gitea-ci.ncl
+            nickel typecheck config/gitea-job.ncl
+            nickel export --format json fixtures/gitea/service-profile.ncl >/dev/null
+            nickel export --format json fixtures/gitea/job-profile.ncl >/dev/null
+            nickel format --check config/gitea-contracts.ncl config/gitea-ci.ncl config/gitea-job.ncl fixtures/gitea/*.ncl
             nickel export --format json fixtures/github/service-profile.ncl >/dev/null
             nickel export --format json fixtures/github/job-profile.ncl >/dev/null
             nickel typecheck config/tangled-contracts.ncl

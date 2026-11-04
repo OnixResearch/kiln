@@ -36,6 +36,10 @@ pub enum State {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Event {
     Spawned,
+    /// Host-observed VMM confinement; `false` fails closed.
+    ConfinementObserved {
+        ok: bool,
+    },
     GuestConnected,
     StepReported,
     GuestDone,
@@ -54,6 +58,7 @@ pub enum Event {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Effect {
+    ObserveConfinement,
     AwaitGuest,
     SendRequest,
     AwaitReport,
@@ -69,6 +74,8 @@ pub struct Lifecycle {
     pub steps: usize,
     /// The guest reported completion of its session (`GuestDone`).
     guest_done: bool,
+    /// A successful host observation was recorded for this spawn.
+    confined: bool,
 }
 
 impl Lifecycle {
@@ -77,6 +84,7 @@ impl Lifecycle {
             state: State::Planned,
             steps,
             guest_done: false,
+            confined: false,
         }
     }
 
@@ -93,9 +101,25 @@ impl Lifecycle {
     pub fn advance(&mut self, event: Event) -> Result<Option<Effect>, String> {
         use {Effect as F, Event as E, State as S};
         let (state, effect) = match (self.state, event) {
-            (S::Planned, E::Spawned) => (S::Starting, Some(F::AwaitGuest)),
+            (S::Planned, E::Spawned) => {
+                self.confined = false;
+                (S::Starting, Some(F::ObserveConfinement))
+            }
             (S::Planned, E::Failed) => (S::Collected { completed: 0 }, Some(F::Journal)),
-            (S::Starting, E::GuestConnected) => (S::Ready, Some(F::SendRequest)),
+            (S::Starting, E::ConfinementObserved { ok: true }) => {
+                self.confined = true;
+                (S::Starting, Some(F::AwaitGuest))
+            }
+            (S::Starting, E::ConfinementObserved { ok: false }) => {
+                (S::Collected { completed: 0 }, Some(F::Journal))
+            }
+            (S::Starting, E::GuestConnected) if self.confined => (S::Ready, Some(F::SendRequest)),
+            (S::Starting, E::GuestConnected) => {
+                return Err(
+                    "illegal microVM lifecycle transition GuestConnected before confinement"
+                        .to_string(),
+                );
+            }
             (S::Ready, E::StepReported) => self.reported(0)?,
             (S::Running { completed }, E::StepReported) => self.reported(completed)?,
             (S::Ready, E::GuestDone) => {
@@ -178,6 +202,7 @@ mod tests {
             &mut vm,
             &[
                 Event::Spawned,
+                Event::ConfinementObserved { ok: true },
                 Event::GuestConnected,
                 Event::StepReported,
                 Event::StepReported,
@@ -189,6 +214,7 @@ mod tests {
         assert_eq!(
             effects,
             [
+                Some(Effect::ObserveConfinement),
                 Some(Effect::AwaitGuest),
                 Some(Effect::SendRequest),
                 Some(Effect::AwaitReport),
@@ -208,8 +234,17 @@ mod tests {
         for prefix in [
             vec![],
             vec![Event::Spawned],
-            vec![Event::Spawned, Event::GuestConnected],
-            vec![Event::Spawned, Event::GuestConnected, Event::StepReported],
+            vec![
+                Event::Spawned,
+                Event::ConfinementObserved { ok: true },
+                Event::GuestConnected,
+            ],
+            vec![
+                Event::Spawned,
+                Event::ConfinementObserved { ok: true },
+                Event::GuestConnected,
+                Event::StepReported,
+            ],
         ] {
             let mut vm = Lifecycle::new(3);
             drive(&mut vm, &prefix);
@@ -221,7 +256,12 @@ mod tests {
         let mut vm = Lifecycle::new(1);
         drive(
             &mut vm,
-            &[Event::Spawned, Event::GuestConnected, Event::StepReported],
+            &[
+                Event::Spawned,
+                Event::ConfinementObserved { ok: true },
+                Event::GuestConnected,
+                Event::StepReported,
+            ],
         );
         assert!(vm.advance(Event::StepReported).is_err(), "over-reporting");
     }
@@ -234,6 +274,7 @@ mod tests {
             &mut vm,
             &[
                 Event::Spawned,
+                Event::ConfinementObserved { ok: true },
                 Event::GuestConnected,
                 Event::StepReported,
                 Event::Failed,
@@ -256,6 +297,36 @@ mod tests {
         drive(&mut boot_failure, &[Event::DestroyObserved { clean: true }]);
         assert_eq!(boot_failure.state, State::Destroyed { journaled: false });
         assert!(boot_failure.advance(Event::Spawned).is_err(), "terminal");
+    }
+
+    // r[verify kiln.microvm.confinement.lifecycle]
+    #[test]
+    fn failed_confinement_journals_without_guest_connection() {
+        let mut vm = Lifecycle::new(1);
+        let effects = drive(
+            &mut vm,
+            &[
+                Event::Spawned,
+                Event::ConfinementObserved { ok: false },
+                Event::JournalFailed,
+                Event::DestroyObserved { clean: true },
+            ],
+        );
+        assert_eq!(
+            effects,
+            [
+                Some(Effect::ObserveConfinement),
+                Some(Effect::Journal),
+                Some(Effect::Destroy),
+                None,
+            ]
+        );
+        assert_eq!(vm.state, State::Destroyed { journaled: false });
+        let mut vm = Lifecycle::new(1);
+        drive(&mut vm, &[Event::Spawned]);
+        let before = vm;
+        assert!(vm.advance(Event::GuestConnected).is_err());
+        assert_eq!(vm, before);
     }
 
     use crate::debug_hold::Grants;
@@ -314,6 +385,7 @@ mod tests {
     fn base_events() -> Vec<Event> {
         vec![
             Event::Spawned,
+            Event::ConfinementObserved { ok: true },
             Event::GuestConnected,
             Event::StepReported,
             Event::GuestDone,
@@ -356,6 +428,7 @@ mod tests {
         use {Effect as F, Event as E, State as S};
         let failing_session = [
             E::Spawned,
+            E::ConfinementObserved { ok: true },
             E::GuestConnected,
             E::StepReported,
             E::GuestDone,
@@ -363,6 +436,7 @@ mod tests {
             E::DestroyObserved { clean: true },
         ];
         let today = vec![
+            (S::Starting, Some(F::ObserveConfinement)),
             (S::Starting, Some(F::AwaitGuest)),
             (S::Ready, Some(F::SendRequest)),
             (S::Running { completed: 1 }, Some(F::AwaitReport)),
@@ -382,7 +456,7 @@ mod tests {
         assert_eq!(
             shell_trace(&infrastructure, Some(disabled)),
             vec![
-                (S::Starting, Some(F::AwaitGuest)),
+                (S::Starting, Some(F::ObserveConfinement)),
                 (S::Collected { completed: 0 }, Some(F::Journal)),
                 (S::Destroying { journaled: false }, Some(F::Destroy)),
                 (S::Abandoned { journaled: false }, None),
@@ -447,6 +521,7 @@ mod tests {
             &mut infrastructure,
             &[
                 Event::Spawned,
+                Event::ConfinementObserved { ok: true },
                 Event::GuestConnected,
                 Event::Failed,
                 Event::Journaled,
@@ -459,6 +534,7 @@ mod tests {
             &mut unjournaled,
             &[
                 Event::Spawned,
+                Event::ConfinementObserved { ok: true },
                 Event::GuestConnected,
                 Event::StepReported,
                 Event::GuestDone,
@@ -472,6 +548,7 @@ mod tests {
             &mut collected,
             &[
                 Event::Spawned,
+                Event::ConfinementObserved { ok: true },
                 Event::GuestConnected,
                 Event::StepReported,
                 Event::GuestDone,
@@ -495,6 +572,7 @@ mod tests {
             &mut held,
             &[
                 Event::Spawned,
+                Event::ConfinementObserved { ok: true },
                 Event::GuestConnected,
                 Event::StepReported,
                 Event::GuestDone,
@@ -533,6 +611,7 @@ mod tests {
         let trace = shell_trace(
             &[
                 Event::Spawned,
+                Event::ConfinementObserved { ok: true },
                 Event::GuestConnected,
                 Event::StepReported,
                 Event::GuestDone,
@@ -542,7 +621,7 @@ mod tests {
             Some(eligible()),
         );
         assert_eq!(
-            trace.get(4..).map(<[_]>::to_vec),
+            trace.get(5..).map(<[_]>::to_vec),
             Some(vec![
                 (State::Journaled, Some(Effect::Destroy)),
                 (State::Held, Some(Effect::Hold)),

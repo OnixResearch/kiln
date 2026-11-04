@@ -15,19 +15,37 @@ use serde::{Deserialize, Serialize};
 
 pub const ABSOLUTE_MAX_SUBSCRIPTIONS: usize = 128;
 pub const ABSOLUTE_MAX_ENTRIES_PER_FEED: usize = 200;
+#[cfg(not(feature = "fuzzing"))]
 pub const ABSOLUTE_MAX_FEED_BYTES: usize = 4_194_304;
+#[cfg(feature = "fuzzing")]
+pub const ABSOLUTE_MAX_FEED_BYTES: usize = 16_384;
 pub const ABSOLUTE_MAX_REDIRECTS: usize = 5;
 pub const ABSOLUTE_MAX_TIMEOUT_SECONDS: u64 = 30;
 pub const DEFAULT_REFRESH_INTERVAL_MS: u64 = 900_000;
 pub const MIN_REFRESH_INTERVAL_MS: u64 = 60_000;
 pub const MAX_REFRESH_INTERVAL_MS: u64 = 86_400_000;
 pub const MAX_BACKGROUND_REFRESHES_PER_TICK: usize = 2;
+#[cfg(not(feature = "fuzzing"))]
 pub const MAX_OPML_OUTLINES: usize = 256;
+#[cfg(feature = "fuzzing")]
+pub const MAX_OPML_OUTLINES: usize = 8;
+#[cfg(not(feature = "fuzzing"))]
 pub const MAX_FEED_DEPTH: usize = 64;
+#[cfg(feature = "fuzzing")]
+pub const MAX_FEED_DEPTH: usize = 4;
 pub const MAX_URL_BYTES: usize = 2_048;
+#[cfg(not(feature = "fuzzing"))]
 pub const MAX_TITLE_BYTES: usize = 512;
+#[cfg(feature = "fuzzing")]
+pub const MAX_TITLE_BYTES: usize = 64;
+#[cfg(not(feature = "fuzzing"))]
 pub const MAX_SUMMARY_BYTES: usize = 4_096;
+#[cfg(feature = "fuzzing")]
+pub const MAX_SUMMARY_BYTES: usize = 256;
+#[cfg(not(feature = "fuzzing"))]
 pub const MAX_DATE_BYTES: usize = 128;
+#[cfg(feature = "fuzzing")]
+pub const MAX_DATE_BYTES: usize = 32;
 pub const FEED_ACCEPT: &str =
     "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8";
 const USER_AGENT_VALUE: &str = "kiln-web-service/repository-feeds";
@@ -922,6 +940,10 @@ fn escape(text: &str) -> String {
             '>' => escaped.push_str("&gt;"),
             '"' => escaped.push_str("&quot;"),
             '\'' => escaped.push_str("&apos;"),
+            // XML 1.0 permits tab, newline and carriage return only among
+            // C0 controls. Strip every other control character rather than
+            // emitting an invalid document.
+            character if character.is_control() && !matches!(character, '\n' | '\t' | '\r') => {}
             _ => escaped.push(character),
         }
     }
@@ -964,6 +986,52 @@ mod tests {
 
     const RSS: &str = r#"<?xml version="1.0"?><rss version="2.0"><channel><title>Repo &amp; CI</title><item><title>Release 1.0</title><link>https://example.invalid/r1</link><guid>tag:r1</guid><pubDate>Wed, 02 Oct 2024 13:00:00 GMT</pubDate><description>First release</description></item><item><title>Second</title><link>https://example.invalid/r2</link><description>Second release</description></item></channel></rss>"#;
     const ATOM: &str = r#"<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Repo feed</title><entry><title>Commit one</title><id>urn:commit:one</id><updated>2024-10-02T13:00:00Z</updated><link rel="alternate" href="https://example.invalid/c1"/><summary>Change one</summary></entry></feed>"#;
+
+    #[test]
+    fn rendered_xml_strips_controls_that_xml_1_0_forbids() {
+        let item = AtomItem {
+            id: "urn:kiln:item:1".into(),
+            title: "bad\u{1}title".into(),
+            link: "https://example.invalid/item".into(),
+            updated_ms: 1_700_000_000_000,
+            summary: "bad\u{2}summary".into(),
+        };
+        let atom = render_atom(
+            "urn:kiln:feed:1",
+            "bad\u{3}feed",
+            "https://example.invalid/feed",
+            1_700_000_000_000,
+            &[item],
+        );
+        assert!(!atom.contains('\u{1}'));
+        assert!(!atom.contains('\u{2}'));
+        assert!(!atom.contains('\u{3}'));
+        assert!(parse(atom.as_bytes(), 1).is_ok());
+
+        let rss = render_rss(
+            "bad\u{4}rss",
+            "https://example.invalid/rss",
+            "bad\u{5}description",
+            &[AtomItem {
+                id: "urn:kiln:item:2".into(),
+                title: "ok".into(),
+                link: "https://example.invalid/item2".into(),
+                updated_ms: 1_700_000_000_000,
+                summary: "ok".into(),
+            }],
+        );
+        assert!(!rss.contains('\u{4}'));
+        assert!(!rss.contains('\u{5}'));
+        assert!(parse(rss.as_bytes(), 1).is_ok());
+
+        let opml = render_opml(
+            "bad\u{6}opml",
+            &[("bad\u{7}label", "https://example.invalid/feed")],
+        );
+        assert!(!opml.contains('\u{6}'));
+        assert!(!opml.contains('\u{7}'));
+        assert!(parse_opml(opml.as_bytes(), 1).is_ok());
+    }
 
     #[test]
     fn rss_and_atom_parse_with_bounded_text() {

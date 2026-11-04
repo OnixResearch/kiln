@@ -1,0 +1,73 @@
+{
+  "schema": "kiln.fuzz.verification.v1",
+  "date": "2026-11-02",
+  "toolchain": {
+    "cargo_fuzz": "0.13.2",
+    "rust": "cargo 1.99.0-nightly (3efb1f477 2026-07-17)",
+    "sanitizers": "ASan via cargo-fuzz; C grammar UBSan via CFLAGS=-fsanitize=undefined -fno-sanitize-recover=all"
+  },
+  "commands": [
+    {
+      "command": "cargo check (crates/kiln-web-service/fuzz)",
+      "result": "pass; all six targets"
+    },
+    {
+      "command": "cargo check (crates/kiln-highlight/fuzz)",
+      "result": "pass; all three targets"
+    },
+    {
+      "command": "cargo fuzz run feed_parse -- -max_total_time=5",
+      "result": "36213 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run opml_parse -- -max_total_time=3",
+      "result": "26903 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run atom_roundtrip -- -max_total_time=3",
+      "result": "15644 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run opml_roundtrip -- -max_total_time=3",
+      "result": "20919 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run rss_roundtrip -- -max_total_time=3",
+      "result": "17567 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run admit_url -- -max_total_time=3",
+      "result": "25662 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run highlight -- -max_total_time=3 (ASan+UBSan)",
+      "result": "19136 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run highlight_diff -- -max_total_time=3 (ASan+UBSan)",
+      "result": "121038 runs, 0 findings"
+    },
+    {
+      "command": "cargo fuzz run structural_diff -- -max_total_time=3 (ASan+UBSan)",
+      "result": "26218 runs, 0 findings"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib",
+      "result": "165 passed, 1 ignored; includes XML control regression"
+    },
+    {
+      "command": "cargo test -p kiln-highlight",
+      "result": "normal unit and structural tests pass"
+    }
+  ],
+  "corpora": [
+    "crates/kiln-web-service/fuzz/corpus/feed_parse/atom.xml",
+    "crates/kiln-web-service/fuzz/corpus/opml_parse/list.opml",
+    "crates/kiln-highlight/fuzz/corpus/highlight/rust.rs"
+  ],
+  "non_claims": [
+    "smoke durations are not exhaustive fuzzing",
+    "clean runs do not prove parser correctness or Tree-sitter grammar memory safety",
+    "findings must be fixed locally or reported upstream with exact grammar version pins"
+  ]
+}

@@ -39,7 +39,7 @@ impl TokenVerifier {
 
 struct CachedFeedToken {
     verifier: TokenVerifier,
-    fingerprint: Option<(SystemTime, u64)>,
+    fingerprint: Option<(SystemTime, u64, [u8; 32])>,
 }
 
 /// Feed token that reloads when the operator rotates its file.
@@ -87,13 +87,17 @@ impl FeedToken {
     }
 }
 
-fn file_fingerprint(path: &Path) -> Option<(SystemTime, u64)> {
-    std::fs::metadata(path).ok().and_then(|metadata| {
-        metadata
-            .modified()
-            .ok()
-            .map(|modified| (modified, metadata.len()))
-    })
+fn file_fingerprint(path: &Path) -> Option<(SystemTime, u64, [u8; 32])> {
+    use std::io::Read as _;
+    let metadata = std::fs::metadata(path).ok()?;
+    let modified = metadata.modified().ok()?;
+    let file = std::fs::File::open(path).ok()?;
+    let mut bytes = Vec::new();
+    file.take(4_097).read_to_end(&mut bytes).ok()?;
+    if bytes.len() > 4_096 {
+        return None;
+    }
+    Some((modified, metadata.len(), *blake3::hash(&bytes).as_bytes()))
 }
 
 // r[impl kiln.web.authentication]

@@ -42,6 +42,7 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and declared single-writer patch reviews;
 - a fixed-profile Radicle source-event composition with verified materialization, real Nix discovery/build, canonical recovery and exact-revision status reconciliation, including exact branch or canonical tag sources and tag-triggered CI;
 - authenticated GitHub push/PR intake, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;
+- authenticated Gitea/Forgejo push/PR intake, exact HTTPS source jobs, durable replay, and bounded commit-status publication through the separate `kiln-adapter-gitea` shell;
 - a [Tangled spindle-compatible service](docs/tangled-integration.md) with service-auth-verified knot pushes, exact-commit acquisition, a reviewed `.tangled/workflows` subset, untrusted pull request approval and signed status projection; live knot interoperability is not yet established;
 - an optional [Iroh-connected hosted CI composition](docs/hosted-ci.md) with scoped accounts, upstream repository connections, financial admission, reviewed pipelines, explicit execution/fleet backends (including a [per-job Firecracker microVM backend](docs/hosted-ci.md#6-explicit-isolation-resource-limits-and-execution-recovery) that moves jobs off the host kernel, an opt-in bounded debug hold for failed jobs, and operator-declared untrusted-capable runners), workload identity and local recovery; this is not production or hostile-isolation qualification;
 - typed Nickel configuration and Nix checks.
@@ -191,6 +192,15 @@ do not prove live deployment, remote status writes, source trust, or confinement
 Recorded local outcomes, executable identities, and scoped producer-gate results are in
 the [scoped GitHub CI evidence](evidence/github-ci-local-runtime.ncl).
 
+For Gitea and Forgejo CI, use `config/gitea-ci.ncl` and `config/gitea-job.ncl`
+with the normalized instance API and Git bases, numeric repository id,
+SecretSpec references, and a reviewed workflow identity. The default package
+installs `kiln-adapter-gitea` and `kiln-gitea-job`, also available as Nix apps.
+Follow [the Gitea/Forgejo procedure](docs/gitea-ci.md) for webhook headers,
+status permissions, exact-source jobs, recovery, and the explicit scope
+boundary. The optional `kiln-hosted` connection composition remains
+GitHub-only in this change.
+
 For remote workflow execution over Iroh, use `kiln-adapter-iroh` with the existing
 consumer's Lattice socket setting. Follow [peer enrollment, private keys, profiles,
 startup, and recovery](docs/operator.md#iroh-remote-workflow-execution). The
@@ -283,7 +293,7 @@ Imperative shells persist events. They interpret requested effects through versi
 |---|---|
 | Source snapshots | Git, Pijul, Jujutsu |
 | Collaboration and review | GitHub, Radicle |
-| Triggers and status | GitHub, Radicle, local hooks |
+| Triggers and status | GitHub, Gitea/Forgejo, Radicle, local hooks |
 | Workflow execution | Lattice, a standalone runner |
 | Build execution | Mantle, a standalone executor |
 | Runtime and transport | Aspen/Molten, a local service shell |

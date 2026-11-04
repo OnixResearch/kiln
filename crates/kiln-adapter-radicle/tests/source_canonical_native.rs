@@ -249,7 +249,14 @@ fn fixture(
     votes: &[(u8, bool)],
     alternate: Option<&[u8]>,
 ) -> Result<Fixture, Box<dyn Error>> {
-    fixture_with_reference(SOURCE_REFERENCE, false, threshold, delegates, votes, alternate)
+    fixture_with_reference(
+        SOURCE_REFERENCE,
+        false,
+        threshold,
+        delegates,
+        votes,
+        alternate,
+    )
 }
 
 // r[verify kiln.radicle.canonical_source] r[verify kiln.radicle.canonical_source.scenario.quorum]
@@ -287,14 +294,19 @@ fn two_of_three_delegates_accept_the_canonical_head() -> Result<(), Box<dyn Erro
 
 // r[verify kiln.radicle.canonical_tag] r[verify kiln.radicle.canonical_tag.scenario.tag]
 #[test]
-fn annotated_tag_source_peels_to_its_commit_and_retains_tag_evidence() -> Result<(), Box<dyn Error>> {
+fn annotated_tag_source_peels_to_its_commit_and_retains_tag_evidence() -> Result<(), Box<dyn Error>>
+{
     let fixture = fixture_with_reference(TAG_REFERENCE, true, 1, &[51], &[(51, false)], None)?;
     let tag_object = fixture.tag_object.ok_or("annotated tag object")?;
     let shell = port(RadicleSourceShell::new(fixture.profile.clone()))?;
     let result = shell
         .resolve_and_acquire()
         .map_err(|error| io::Error::other(format!("tag fixture: {error:?}")))?;
-    let evidence = result.receipt.canonical.as_ref().ok_or("canonical evidence")?;
+    let evidence = result
+        .receipt
+        .canonical
+        .as_ref()
+        .ok_or("canonical evidence")?;
     assert_eq!(evidence.reference, TAG_REFERENCE);
     assert_eq!(evidence.object, tag_object.to_string());
     assert_eq!(evidence.object_kind, "tag");
@@ -313,7 +325,11 @@ fn lightweight_tag_source_uses_its_commit_directly() -> Result<(), Box<dyn Error
     let fixture = fixture_with_reference(TAG_REFERENCE, false, 1, &[71], &[(71, false)], None)?;
     let shell = port(RadicleSourceShell::new(fixture.profile.clone()))?;
     let result = port(shell.resolve_and_acquire())?;
-    let evidence = result.receipt.canonical.as_ref().ok_or("canonical evidence")?;
+    let evidence = result
+        .receipt
+        .canonical
+        .as_ref()
+        .ok_or("canonical evidence")?;
     assert_eq!(evidence.reference, TAG_REFERENCE);
     assert_eq!(evidence.object, fixture.object.to_string());
     assert_eq!(evidence.object_kind, "commit");
@@ -345,11 +361,7 @@ fn tag_target_that_is_not_a_commit_fails_before_snapshot() -> Result<(), Box<dyn
     let repository = Repository::open(&fixture.profile.repository_path)?;
     let key = signer(61);
     let node = key.verifying_key().public_key().to_string();
-    let document = identity_document(
-        &[*key.verifying_key().public_key()],
-        1,
-        TAG_REFERENCE,
-    );
+    let document = identity_document(&[*key.verifying_key().public_key()], 1, TAG_REFERENCE);
     let blob = repository.blob(b"not a commit")?;
     let target = repository.find_object(blob, None)?;
     let signature = git2::Signature::now("Kiln fixture", "kiln@invalid.example")?;

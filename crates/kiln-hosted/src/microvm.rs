@@ -19,10 +19,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{Scope, ScopedJoinHandle};
 use std::time::{Duration, Instant};
 
-use bounded_exec::{ExecutionOutput, Input, RunError};
+use bounded_exec::{Completion, ExecutionOutput, Input, RunError};
 use fs2::FileExt;
 use kiln_microvm::admission::MachinePolicy;
 use kiln_microvm::archive::{self, EntryKind, SourceEntry};
+use kiln_microvm::confinement::{
+    ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES, admit_status,
+};
 use kiln_microvm::debug_hold::{self as hold_policy, DebugHoldPolicy, Grants, HoldFacts};
 use kiln_microvm::lifecycle::{Event, Lifecycle, State};
 use kiln_microvm::plan::{self, VmPaths};
@@ -37,7 +40,7 @@ use serde_json::{Value, json};
 
 use crate::execution::{
     Backend, Config, Image, ProcessFacts, StepObservation, cleanup_unit,
-    infrastructure_failure_state, manager_request, step_observation, unit_command,
+    infrastructure_failure_state, manager_request, step_observation, systemctl, unit_command,
 };
 use crate::fleet::Executable;
 
@@ -344,6 +347,138 @@ fn spawn_vmm<'scope>(
         Input::Null,
     )?;
     Ok(scope.spawn(move || bounded_exec::run_with_cancellation(request, stop)))
+}
+
+struct ConfinementObservation {
+    pid: u32,
+    facts: ConfinementFacts,
+    exe_blake3: String,
+}
+
+fn confinement_value(result: &Result<ConfinementObservation, String>) -> Value {
+    match result {
+        Ok(observed) => json!({
+            "ok": true,
+            "pid": observed.pid,
+            "name": observed.facts.name,
+            "uid": observed.facts.uid,
+            "gid": observed.facts.gid,
+            "cap_eff": format!("{:016x}", observed.facts.cap_eff),
+            "no_new_privs": 1,
+            "seccomp": observed.facts.seccomp,
+            "exe": observed.facts.exe,
+            "exe_blake3": observed.exe_blake3,
+        }),
+        Err(error) => json!({"ok": false, "error": error}),
+    }
+}
+
+fn read_bounded(path: &Path, maximum: usize) -> Result<Vec<u8>, String> {
+    let file = File::open(path).map_err(|_| "confinement evidence is unreadable".to_string())?;
+    let mut bytes = Vec::new();
+    file.take(maximum as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "confinement evidence is unreadable".to_string())?;
+    if bytes.len() > maximum {
+        return Err("confinement evidence exceeds its bound".into());
+    }
+    Ok(bytes)
+}
+
+fn control_group(config: &Config, unit: &str) -> Result<String, String> {
+    let output = systemctl(config, &["show", unit, "--property=ControlGroup"])?;
+    if output.completion != Completion::Exited || output.stdout.truncated {
+        return Err("attempt cgroup is unavailable".into());
+    }
+    let text = std::str::from_utf8(&output.stdout.bytes)
+        .map_err(|_| "attempt cgroup evidence is not UTF-8".to_string())?;
+    let mut values = text
+        .lines()
+        .filter_map(|line| line.strip_prefix("ControlGroup="));
+    let group = values
+        .next()
+        .ok_or_else(|| "attempt cgroup is missing".to_string())?;
+    if values.next().is_some()
+        || group.is_empty()
+        || !group.starts_with('/')
+        || group.len() > 4096
+        || group.split('/').any(|part| part == "..")
+    {
+        return Err("attempt cgroup is malformed".into());
+    }
+    Ok(group.to_owned())
+}
+
+fn observe_confinement(
+    config: &Config,
+    unit: &str,
+    expected_exe: &Path,
+    exe_blake3: &str,
+    wait: Duration,
+) -> Result<ConfinementObservation, String> {
+    let deadline = Instant::now() + wait;
+    loop {
+        match observe_confinement_once(config, unit, expected_exe, exe_blake3) {
+            Ok(observation) => return Ok(observation),
+            Err(error) if Instant::now() >= deadline => return Err(error),
+            Err(_) => std::thread::sleep(Duration::from_millis(10)),
+        }
+    }
+}
+
+fn observe_confinement_once(
+    config: &Config,
+    unit: &str,
+    expected_exe: &Path,
+    exe_blake3: &str,
+) -> Result<ConfinementObservation, String> {
+    let group = control_group(config, unit)?;
+    let cgroup = Path::new("/sys/fs/cgroup").join(group.trim_start_matches('/'));
+    let processes = read_bounded(&cgroup.join("cgroup.procs"), 4096)?;
+    let processes = std::str::from_utf8(&processes)
+        .map_err(|_| "attempt cgroup processes are not UTF-8".to_string())?;
+    let mut pids = processes
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            line.parse::<u32>()
+                .map_err(|_| "attempt cgroup process is malformed".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    pids.sort_unstable();
+    pids.dedup();
+    let [pid] = pids.as_slice() else {
+        return Err("attempt cgroup must contain exactly one VMM process".into());
+    };
+    let status = read_bounded(
+        &Path::new("/proc").join(pid.to_string()).join("status"),
+        MAX_STATUS_BYTES,
+    )?;
+    let exe = fs::read_link(Path::new("/proc").join(pid.to_string()).join("exe"))
+        .map_err(|_| "VMM executable evidence is unavailable".to_string())?;
+    let exe = text(&exe)?.to_owned();
+    let expected = text(expected_exe)?;
+    // `/proc/self` is owned by the service user; no unsafe identity syscall is
+    // needed under the workspace's `unsafe_code = "forbid"` policy.
+    let identity = fs::metadata("/proc/self")
+        .map_err(|_| "service process identity is unavailable".to_string())?;
+    let (uid, gid) = (identity.uid(), identity.gid());
+    let facts = admit_status(
+        &status,
+        &exe,
+        ExpectedProcess {
+            uid,
+            gid,
+            exe: expected,
+        },
+    )
+    .map_err(str::to_owned)?;
+    Ok(ConfinementObservation {
+        pid: *pid,
+        facts,
+        exe_blake3: exe_blake3.to_owned(),
+    })
 }
 
 /// Accept the guest agent's single connection, then remove the listener so
@@ -736,6 +871,8 @@ struct Session {
     /// result never depends on a cancellation that arrives while held.
     cancel_at_hold: Option<bool>,
     debug_hold: Option<Value>,
+    /// Observed host confinement, recorded before the guest session.
+    confinement: Option<Value>,
 }
 
 /// The not-yet-connected guest of a VM that is starting or restoring.
@@ -1159,6 +1296,24 @@ pub(crate) fn run_job(
                         .inspect_err(|_| invalidate(held))?;
                         session.restore_api_ms = Some(millis(spawned));
                     }
+                    let confinement = observe_confinement(
+                        config,
+                        job.unit,
+                        &paths.firecracker,
+                        &runner.firecracker.blake3,
+                        Duration::from_millis(runner.policy.boot_timeout_ms.min(2_000)),
+                    );
+                    session.confinement = Some(confinement_value(&confinement));
+                    match &confinement {
+                        Ok(_) => {
+                            lifecycle.advance(Event::ConfinementObserved { ok: true })?;
+                        }
+                        Err(error) => {
+                            session.failure = Some(error.clone());
+                            lifecycle.advance(Event::ConfinementObserved { ok: false })?;
+                            return Err(error.clone());
+                        }
+                    }
                     let boot_deadline = (spawned
                         + Duration::from_millis(runner.policy.boot_timeout_ms))
                     .min(job_deadline);
@@ -1182,7 +1337,9 @@ pub(crate) fn run_job(
                     Ok(stream) => (hold_reserve_ms > 0).then_some(stream),
                     Err(error) => {
                         session.failure = Some(error);
-                        lifecycle.advance(Event::Failed)?;
+                        if !matches!(lifecycle.state, State::Collected { .. }) {
+                            lifecycle.advance(Event::Failed)?;
+                        }
                         None
                     }
                 };
@@ -1246,6 +1403,9 @@ pub(crate) fn run_job(
         if journal(db, job, final_state, None).is_err() {
             journaled = false;
         }
+    }
+    if let Some(confinement) = session.confinement.take() {
+        observe("confinement", confinement);
     }
     observe("ready_ms", json!(session.ready_ms));
     observe("restore_api_ms", json!(session.restore_api_ms));

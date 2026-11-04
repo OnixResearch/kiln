@@ -1,0 +1,5 @@
+fn main() {
+  l {
+  value = 0;
+    println!("{value}");
+}

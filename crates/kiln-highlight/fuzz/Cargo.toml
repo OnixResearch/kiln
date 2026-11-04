@@ -1,0 +1,36 @@
+[package]
+name = "kiln-highlight-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+rust-version = "1.88"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+kiln-highlight = { path = ".." }
+
+[[bin]]
+name = "highlight"
+path = "fuzz_targets/highlight.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "highlight_diff"
+path = "fuzz_targets/highlight_diff.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "structural_diff"
+path = "fuzz_targets/structural_diff.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

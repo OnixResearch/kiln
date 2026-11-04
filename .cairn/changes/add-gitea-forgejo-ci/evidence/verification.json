@@ -1,0 +1,60 @@
+{
+  "schema": "kiln.gitea.verification.v1",
+  "date": "2026-11-02",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-gitea --lib",
+      "result": "54 passed; profile, event, replay, status, DNS, secret and job admission"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-gitea --features protocol-fixtures --test local_ci_e2e --test job",
+      "result": "22 passed; exact-source pass/failure, duplicate delivery, restart recovery, fork denial, invalid signature/framing, ambiguous status reconciliation and conflict handling"
+    },
+    {
+      "command": "cargo test --workspace",
+      "result": "all workspace test binaries and doc tests passed on the final run"
+    },
+    {
+      "command": "cargo check --workspace --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -- --check",
+      "result": "pass; one pre-existing formatting-only normalization in the Radicle canonical-tag test"
+    },
+    {
+      "command": "nickel typecheck config/gitea-contracts.ncl config/gitea-ci.ncl config/gitea-job.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export --format json fixtures/gitea/service-profile.ncl fixtures/gitea/job-profile.ncl",
+      "result": "pass; conformance fixtures export"
+    },
+    {
+      "command": "nix build --option builders '' path:$PWD#checks.x86_64-linux.gitea-protocol-fixtures",
+      "result": "pass; sandboxed unit, exact-source job and local E2E tests"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "webhook aliases": "Gitea, Forgejo and GitHub-compatible delivery/event/signature headers are accepted; conflicting aliases fail",
+    "event admission": "push and pull-request opened/reopened/synchronized/closed selection uses the exact head commit; forks and SHA-256 revisions fail closed",
+    "replay": "equal deliveries and equivalent candidates reuse the original run; changed bytes and changed profiles fail closed",
+    "source job": "kiln-gitea-job verifies profile identity, fetches only the admitted repository/commit and executes reviewed argv without source credentials in the child environment",
+    "status": "Gitea state field, status field, API path, token authentication, bounded read-only reconciliation and ambiguous-write handling are exercised",
+    "packaging": "typed Nickel profiles, flake apps and the Gitea protocol-fixture check are present"
+  },
+  "non_claims": [
+    "local fixtures do not prove a live Gitea or Forgejo deployment or remote status mutation",
+    "the adapter does not prove source trust, workflow correctness, host confinement or release eligibility",
+    "the optional kiln-hosted account/connection composition remains GitHub-only",
+    "SHA-256 repositories and form-encoded webhook deliveries are not supported"
+  ]
+}

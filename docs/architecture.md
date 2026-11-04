@@ -34,6 +34,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-remote` | Remote execution compatibility. |
 | `kiln-adapter-radicle` | Exact local signed-source acquisition, trigger compatibility, bounded ci-job status publication, and declared single-writer patch reviews. |
 | `kiln-adapter-github` | Signed push/PR admission, profile-bound SQLite replay/lifecycle shell, exact HTTPS source job, SecretSpec resolution, and bounded commit-status publication through reviewed Lattice dispatch. |
+| `kiln-adapter-gitea` | Gitea/Forgejo signed push/PR admission, profile-bound SQLite replay/lifecycle shell, exact HTTPS source job, SecretSpec resolution, and bounded commit-status publication through reviewed Lattice dispatch. |
 | `kiln-adapter-cob` | Profile-driven COB observation mapping. |
 | `kiln-adapter-cdevents` | Bounded CDEvents and CloudEvents interchange. |
 | `kiln-adapter-opentelemetry` | Rebuildable telemetry projection and bounded OTLP shell. |
@@ -170,6 +171,15 @@ exact route/revision/node mapping, and `shell_environment` binding remain
 operator-reviewed prerequisites. Neither a temporary checkout nor bounded
 execution is host confinement; separate worker identity and isolation are
 operator responsibilities. Fork execution is denied by the Nickel contract.
+
+`kiln-adapter-gitea` is the corresponding provider shell for Gitea and Forgejo.
+It accepts the Gitea, Forgejo, and GitHub-compatible webhook header aliases,
+admits the Gitea pull-request action vocabulary (including `synchronized` and
+`pull_request_sync`), and projects status through the Gitea commit-status API.
+Status reads use the Gitea `status` field while writes use `state`. The job
+helper derives the clone URL only from the admitted normalized HTTPS Git base;
+payload-supplied URLs are observations. SHA-256 repositories and form-encoded
+deliveries fail closed. See [the Gitea/Forgejo procedure](gitea-ci.md).
 
 Kiln maintainers own adapter compatibility and the local repeatability rail;
 operators own HTTPS ingress, live tokens, route installation, replay retention,

@@ -382,6 +382,26 @@ fn assert_equivalence_receipt(label: &str, receipt: &Value) {
     assert_eq!(at(receipt, "/hostile_isolation_claim"), false);
     let build = job(receipt, "build");
     assert_eq!(at(build, "/state"), "succeeded", "{label}: {build:#}");
+    if at(build, "/microvm/backend") == "firecracker" {
+        assert_eq!(
+            at(build, "/microvm/confinement/ok"),
+            true,
+            "{label}: {build:#}"
+        );
+        assert_eq!(at(build, "/microvm/confinement/name"), "firecracker");
+        assert_eq!(
+            at(build, "/microvm/confinement/cap_eff"),
+            "0000000000000000"
+        );
+        assert_eq!(at(build, "/microvm/confinement/no_new_privs"), 1);
+        assert_eq!(at(build, "/microvm/confinement/seccomp"), 2);
+        assert!(
+            at(build, "/microvm/confinement/exe_blake3")
+                .as_str()
+                .is_some_and(|value| value.len() == 64),
+            "{label}: {build:#}"
+        );
+    }
     assert_eq!(
         at(build, "/steps/0/stdout"),
         "readme=hello from the reviewed source\ndata=nested-data\nlink=nested-data\n",

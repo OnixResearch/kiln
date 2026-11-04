@@ -1,0 +1,39 @@
+{
+  "schema": "kiln.microvm.confinement.verification.v1",
+  "date": "2026-11-02",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-microvm",
+      "result": "30 passed; status parser, bounds, executable admission and lifecycle ordering"
+    },
+    {
+      "command": "cargo test -p kiln-hosted --lib vmm_unit_sets_no_new_privileges",
+      "result": "pass; the VMM unit carries NoNewPrivileges=yes and step units do not"
+    },
+    {
+      "command": "KILN_MICROVM_GUEST=... KILN_MICROVM_REQUIRED=1 cargo test -p kiln-hosted --test microvm -- --nocapture",
+      "result": "cold boot, warm restore and held job pass; receipts report ok:true, seccomp:2, no_new_privs:1, cap_eff:0000000000000000 for Firecracker 1.15.1"
+    },
+    {
+      "command": "cargo check -p kiln-hosted --all-targets",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "lifecycle gate": "GuestConnected is illegal before ConfinementObserved { ok: true }; ok:false journals and fails",
+    "process evidence": "exactly one firecracker process, service UID/GID, CapEff zero, NoNewPrivs one, Seccomp two, reviewed executable path",
+    "cold and warm": "cold boot observes after spawn; warm restore observes after /snapshot/load",
+    "receipt": "vm.confinement records pid, name, uid, gid, cap_eff, no_new_privs, seccomp, exe and exe_blake3",
+    "preserved boundaries": "jailer:false and hostile_isolation_claim:false remain; canonical_outcome is unchanged"
+  },
+  "non_claims": [
+    "this observes one VMM process on one host cohort",
+    "it does not prove the reviewed Firecracker binary has no vulnerabilities",
+    "it does not add a jailer, guest network, root helper or hostile multi-tenant claim",
+    "it does not generalize to another host, VMM version or warm-pool state"
+  ]
+}
