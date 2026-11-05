@@ -111,6 +111,16 @@ let Backend =
               && !(std.string.is_match "\\x00" value)
             )
             | optional,
+          # Reviewed placement pool. Untrusted and workload-bearing runners must
+          # not share a domain; untrusted-capable runners require one.
+          trust_domain
+            | std.contract.from_predicate (fun value =>
+              std.is_string value
+              && std.string.length value > 0
+              && std.string.length value <= 128
+              && !(std.string.is_match "\\x00" value)
+            )
+            | optional,
           qualification_identity | c.Nullable c.Blake3 | default = null,
         }
         label

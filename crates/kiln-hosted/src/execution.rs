@@ -81,6 +81,10 @@ pub enum Backend {
         /// untrusted-capable runner; recorded by the receipt.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         host_preflight_override: Option<String>,
+        /// Reviewed trust-domain label. Runners sharing a domain are treated as
+        /// one placement pool; untrusted and workload-bearing pools must differ.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        trust_domain: Option<String>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -138,6 +142,45 @@ pub struct Config {
     pub maximum_timeout_ms: u64,
     pub maximum_output_bytes: usize,
 }
+fn validate_trust_domains(
+    runners: &std::collections::BTreeMap<String, Backend>,
+    workload: &[WorkloadPolicy],
+) -> Result<(), String> {
+    let mut domains: std::collections::BTreeMap<&str, (bool, bool)> =
+        std::collections::BTreeMap::new();
+    for (label, backend) in runners {
+        if let Backend::Firecracker {
+            trust_domain,
+            untrusted_capable,
+            ..
+        } = backend
+        {
+            if *untrusted_capable
+                && trust_domain.as_ref().is_none_or(|domain| {
+                    domain.trim().is_empty() || domain.len() > 128 || domain.contains('\0')
+                })
+            {
+                return Err("untrusted-capable Firecracker runner needs a trust domain".into());
+            }
+            let domain = trust_domain.as_deref().unwrap_or(label.as_str());
+            if domain.trim().is_empty() || domain.len() > 128 || domain.contains('\0') {
+                return Err("invalid Firecracker trust domain".into());
+            }
+            let workload = workload.iter().any(|policy| policy.runner == *label);
+            let entry = domains.entry(domain).or_default();
+            entry.0 |= *untrusted_capable;
+            entry.1 |= workload;
+        }
+    }
+    if domains
+        .values()
+        .any(|(untrusted, workload)| *untrusted && *workload)
+    {
+        return Err("untrusted and workload-bearing runners cannot share a trust domain".into());
+    }
+    Ok(())
+}
+
 impl Config {
     fn validate(&self) -> Result<(), String> {
         if self.maximum_concurrent == 0
@@ -208,6 +251,7 @@ impl Config {
                 return Err("invalid exact operator execution price".into());
             }
         }
+        validate_trust_domains(&self.runners, &self.workload)?;
         let mut grants = std::collections::BTreeSet::new();
         for policy in &self.workload {
             if !crate::identifier(&policy.organization)
@@ -2037,7 +2081,7 @@ mod tests {
             "kind": "firecracker", "firecracker": executable(), "kernel": executable(),
             "initrd": executable(), "guest_shell": "/bin/bash", "vcpus": 1, "memory_mib": 256,
             "boot_timeout_ms": 10_000, "source_image_mib": 64, "warm_pool": null,
-            "qualification_identity": null,
+            "qualification_identity": null, "trust_domain": "trusted",
         });
         if let (Some(fields), Some(extra)) = (backend.as_object_mut(), extra.as_object()) {
             fields.extend(extra.clone());
@@ -2422,6 +2466,51 @@ mod tests {
         assert_ne!(
             canonical_outcome(&receipt(interrupted, "failed", Value::Null)),
             Ok(identity)
+        );
+    }
+    #[test]
+    fn untrusted_and_workload_runners_cannot_share_a_trust_domain() {
+        let untrusted: Backend = serde_json::from_value(firecracker_backend(json!({
+            "untrusted_capable": true,
+            "trust_domain": "shared"
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let trusted: Backend = serde_json::from_value(firecracker_backend(json!({
+            "trust_domain": "shared"
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let runners = std::collections::BTreeMap::from([
+            ("untrusted".to_string(), untrusted.clone()),
+            ("trusted".to_string(), trusted.clone()),
+        ]);
+        let workload = vec![WorkloadPolicy {
+            organization: "acme".into(),
+            project: "app".into(),
+            runner: "trusted".into(),
+            audience: None,
+            secrets: Vec::new(),
+        }];
+        assert!(validate_trust_domains(&runners, &workload).is_err());
+        let mut separated = runners.clone();
+        separated.insert(
+            "trusted".into(),
+            serde_json::from_value(firecracker_backend(json!({
+                "trust_domain": "trusted"
+            })))
+            .unwrap_or_else(|error| unreachable!("{error}")),
+        );
+        assert!(validate_trust_domains(&separated, &workload).is_ok());
+        let missing: Backend = serde_json::from_value(firecracker_backend(json!({
+            "untrusted_capable": true,
+            "trust_domain": null
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(
+            validate_trust_domains(
+                &std::collections::BTreeMap::from([("untrusted".into(), missing)]),
+                &workload
+            )
+            .is_err()
         );
     }
 }

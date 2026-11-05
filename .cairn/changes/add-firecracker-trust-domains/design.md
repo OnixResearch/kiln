@@ -1,0 +1,27 @@
+## Context
+
+The hosted execution config maps labels to backends and workload policies to
+runner labels. There was no declared placement identity, so two labels could
+point at the same physical host without detection.
+
+## Decisions
+
+### Reviewed domain labels
+
+`trust_domain` is an operator-reviewed placement-pool label. Untrusted-capable
+runners require one. A workload policy runner's label is its default domain only
+when no explicit domain exists; all domain comparisons use the resolved label.
+A domain may not contain both untrusted-capable and workload-bearing runners.
+
+### Receipt
+
+The Firecracker `vm` object records the domain next to the observed host facts.
+This makes the static placement decision inspectable. It does not prove the
+operator configured physically separate hosts.
+
+## Risks
+
+- Two domains can still map to the same physical host or LLC unless the operator
+  enforces it outside Kiln.
+- Co-residency sets across attempts, core pinning, CAT/MBA and covert-channel
+  measurements remain open.

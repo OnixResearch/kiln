@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.firecracker-trust-domain.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-hosted --lib --offline",
+      "result": "63 passed; shared/separated/missing trust-domain cases included"
+    },
+    {
+      "command": "cargo check --workspace --all-targets --offline",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/hosted-service.ncl config/hosted-execution.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "domain requirement": "untrusted-capable runners require a non-empty reviewed domain",
+    "separation": "a domain containing both untrusted and workload-bearing runners is rejected",
+    "receipt": "the Firecracker vm object records the selected trust domain",
+    "configuration": "typed hosted profiles expose the optional domain"
+  },
+  "non_claims": [
+    "static domains do not prove physical host or LLC separation",
+    "cross-attempt co-residency sets, core pinning, CAT/MBA and covert-channel measurement remain open",
+    "the domain label grants no hostile-isolation claim"
+  ]
+}

@@ -148,6 +148,7 @@ pub(crate) struct Runner<'a> {
     pub(crate) policy: MachinePolicy<'a>,
     pub(crate) warm_pool: Option<&'a WarmPool>,
     pub(crate) debug_hold: Option<&'a DebugHoldPolicy>,
+    pub(crate) trust_domain: Option<&'a str>,
 }
 
 impl<'a> Runner<'a> {
@@ -158,6 +159,7 @@ impl<'a> Runner<'a> {
             initrd,
             warm_pool,
             debug_hold,
+            trust_domain,
             ..
         } = backend
         else {
@@ -170,6 +172,7 @@ impl<'a> Runner<'a> {
             policy: machine_policy(backend)?,
             warm_pool: warm_pool.as_ref(),
             debug_hold: debug_hold.as_ref(),
+            trust_domain: trust_domain.as_deref(),
         })
     }
 }
@@ -1260,6 +1263,9 @@ pub(crate) fn run_job(
     };
     if let Some(reason) = host_preflight_override {
         observe("host_preflight_override", json!(reason));
+    }
+    if let Some(domain) = runner.trust_domain {
+        observe("trust_domain", json!(domain));
     }
     if let Err(error) = journal(db, job, "starting", None) {
         session.failure = Some(error);

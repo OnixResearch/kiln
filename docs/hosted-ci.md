@@ -564,6 +564,10 @@ CVE-2026-98432 status, SMT, KSM, MPTCP sysctls/listeners and resctrl mount
 state. An `untrusted_capable` runner refuses a vulnerable or unknown kernel,
 active SMT, running KSM, or residual MPTCP listeners unless the reviewed runner
 sets a non-empty `host_preflight_override`, which is retained in the receipt.
+Firecracker runners also carry a reviewed `trust_domain`. An untrusted-capable
+runner requires a domain, and a domain cannot contain both untrusted-capable and
+workload-bearing runners. The receipt records the domain; this is a static
+runner-pool separation, not a proof of physical host or LLC isolation.
 
 It does **not** claim:
 - hostile multi-tenant or production qualification;
