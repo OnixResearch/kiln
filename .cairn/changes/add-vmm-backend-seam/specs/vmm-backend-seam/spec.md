@@ -33,7 +33,9 @@ protocol. Warm restore MUST remain refused until it is wired and observed. The
 using Linux's 15-byte `comm` truncation, rather than a Firecracker literal.
 The gate MUST aggregate every VMM thread. A Cloud Hypervisor control thread MAY
 be unfiltered only when at least one worker thread has a seccomp filter; the
-receipt MUST record the thread count and filtered-thread count.
+receipt MUST record the thread count and filtered-thread count. A host test MUST
+run the same pipeline and escape suite on Cloud Hypervisor and compare the
+canonical outcome with the namespace backend.
 
 #### Scenario: No guest network
 

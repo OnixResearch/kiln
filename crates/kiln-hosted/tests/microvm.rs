@@ -33,6 +33,7 @@ fn fail(context: &str, error: impl std::fmt::Debug) -> ! {
 
 struct Host {
     guest: Value,
+    guest_ch: Option<Value>,
     tools: Value,
     runtime: PathBuf,
 }
@@ -83,6 +84,13 @@ fn prerequisites() -> Result<Host, String> {
     let uid = fs::metadata("/proc/self")
         .map(|m| std::os::unix::fs::MetadataExt::uid(&m))
         .map_err(|e| e.to_string())?;
+    let guest_ch = std::env::var_os("KILN_MICROVM_GUEST_CH")
+        .map(|path| {
+            let manifest = fs::read(Path::new(&path).join("manifest.json"))
+                .map_err(|e| format!("CH guest manifest unreadable: {e}"))?;
+            serde_json::from_slice(&manifest).map_err(|e| format!("CH guest manifest invalid: {e}"))
+        })
+        .transpose()?;
     let runtime = PathBuf::from(format!("/run/user/{uid}"));
     if !runtime.join("systemd").is_dir() {
         return Err(format!("no systemd user manager at {}", runtime.display()));
@@ -101,6 +109,7 @@ fn prerequisites() -> Result<Host, String> {
     });
     Ok(Host {
         guest: manifest,
+        guest_ch,
         tools,
         runtime,
     })
@@ -355,6 +364,17 @@ fn firecracker(host: &Host, pool: Option<&Path>) -> Value {
     })
 }
 
+fn cloud_hypervisor(host: &Host) -> Value {
+    let guest = host.guest_ch.as_ref().unwrap_or(&Value::Null);
+    json!({
+        "kind": "cloud-hypervisor", "cloud_hypervisor": at(guest, "/cloud-hypervisor"),
+        "kernel": at(guest, "/kernel"), "initrd": at(guest, "/initrd"),
+        "guest_shell": at(guest, "/guest_shell"), "vcpus": 1, "memory_mib": 256,
+        "boot_timeout_ms": 20_000, "source_image_mib": 16,
+        "qualification_identity": null,
+    })
+}
+
 fn vm_observations(receipt: &Value) -> Vec<Value> {
     at(receipt, "/jobs")
         .as_array()
@@ -382,19 +402,32 @@ fn assert_equivalence_receipt(label: &str, receipt: &Value) {
     assert_eq!(at(receipt, "/hostile_isolation_claim"), false);
     let build = job(receipt, "build");
     assert_eq!(at(build, "/state"), "succeeded", "{label}: {build:#}");
-    if at(build, "/microvm/backend") == "firecracker" {
+    if matches!(
+        at(build, "/microvm/backend").as_str(),
+        Some("firecracker" | "cloud-hypervisor")
+    ) {
         assert_eq!(
             at(build, "/microvm/confinement/ok"),
             true,
             "{label}: {build:#}"
         );
-        assert_eq!(at(build, "/microvm/confinement/name"), "firecracker");
+        let backend = at(build, "/microvm/backend");
+        let expected_name = if backend == "cloud-hypervisor" {
+            json!("cloud-hyperviso")
+        } else {
+            backend.clone()
+        };
+        assert_eq!(at(build, "/microvm/confinement/name"), expected_name);
         assert_eq!(
             at(build, "/microvm/confinement/cap_eff"),
             "0000000000000000"
         );
         assert_eq!(at(build, "/microvm/confinement/no_new_privs"), 1);
-        assert_eq!(at(build, "/microvm/confinement/seccomp"), 2);
+        if backend == "cloud-hypervisor" {
+            assert!(at(build, "/microvm/confinement/seccomp_filtered") != json!(0));
+        } else {
+            assert_eq!(at(build, "/microvm/confinement/seccomp"), 2);
+        }
         assert!(
             at(build, "/microvm/confinement/exe_blake3")
                 .as_str()
@@ -557,6 +590,56 @@ fn same_pipeline_matches_on_namespaces_and_firecracker_and_the_guest_denies_esca
         );
     }
     evidence("escape", &receipt);
+}
+
+#[test]
+fn cloud_hypervisor_cold_boot_matches_the_pipeline() {
+    let host = match prerequisites() {
+        Ok(host) => host,
+        Err(reason) => {
+            assert!(
+                std::env::var_os("KILN_MICROVM_REQUIRED").is_none(),
+                "microVM host test required but unavailable: {reason}"
+            );
+            eprintln!("SKIP Cloud Hypervisor host test: {reason}");
+            return;
+        }
+    };
+    if host.guest_ch.is_none() {
+        assert!(
+            std::env::var_os("KILN_MICROVM_REQUIRED").is_none(),
+            "KILN_MICROVM_GUEST_CH unset; build .#microvm-guest-ch"
+        );
+        eprintln!("SKIP Cloud Hypervisor host test: KILN_MICROVM_GUEST_CH unset");
+        return;
+    }
+    let pipeline = equivalence_pipeline();
+    let ch = Deployment::new(&host, cloud_hypervisor(&host), &pipeline);
+    let receipt = ch.run("ch-cold-1");
+    println!("KILN_MICROVM_RECEIPT ch-cold {receipt}");
+    assert_equivalence_receipt("ch-cold", &receipt);
+
+    let boot_id = fs::read_to_string("/proc/sys/kernel/random/boot_id").unwrap_or_default();
+    let hostname = fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
+    let escape_path = ch.directory.path().to_string_lossy().into_owned();
+    let escape = Deployment::new(
+        &host,
+        cloud_hypervisor(&host),
+        &escape_pipeline(boot_id.trim(), hostname.trim(), &escape_path),
+    );
+    let receipt = escape.run("ch-escape-1");
+    println!("KILN_MICROVM_RECEIPT ch-escape {receipt}");
+    let suite = job(&receipt, "escape");
+    assert_eq!(at(&receipt, "/state"), "succeeded", "{receipt:#}");
+    for step in at(suite, "/steps").as_array().unwrap_or(&Vec::new()) {
+        let stdout = at(step, "/stdout");
+        let stdout = stdout.as_str().unwrap_or_default();
+        assert!(
+            !stdout.contains("ESCAPED") && !stdout.contains("connected"),
+            "{stdout}"
+        );
+        assert!(stdout.contains("denied"), "{stdout}");
+    }
 }
 
 /// The hold grace of the host test: long enough for one relayed command.

@@ -23,6 +23,9 @@ pub struct ExpectedProcess<'a> {
     /// Cloud Hypervisor keeps its control thread unfiltered while filtering
     /// worker threads. Firecracker requires every observed thread filtered.
     pub allow_unfiltered_main: bool,
+    /// Worker threads may have per-thread `comm` names; only the main thread
+    /// must match the reviewed backend name.
+    pub require_name: bool,
 }
 
 /// Admitted host-side process facts.
@@ -128,7 +131,7 @@ pub fn admit_status(
     let no_new_privs = parse_u8(fields.no_new_privs.as_deref().ok_or_else(reject)?)?;
     let seccomp = parse_u8(fields.seccomp.as_deref().ok_or_else(reject)?)?;
     let expected_name = &expected.name[..expected.name.len().min(15)];
-    if name != expected_name
+    if expected.require_name && name != expected_name
         || uid != expected.uid
         || gid != expected.gid
         || cap_eff != 0
@@ -167,6 +170,7 @@ mod tests {
             gid: 1000,
             exe: EXE,
             allow_unfiltered_main: false,
+            require_name: true,
         }
     }
 
@@ -257,6 +261,7 @@ mod tests {
             gid: 1000,
             exe,
             allow_unfiltered_main: true,
+            require_name: true,
         };
         assert!(admit_status(&bytes, exe, expected).is_ok());
     }
@@ -274,10 +279,12 @@ mod tests {
             gid: 1000,
             exe: EXE,
             allow_unfiltered_main: true,
+            require_name: true,
         };
         assert!(admit_status(&bytes, EXE, expected).is_ok());
         let strict = ExpectedProcess {
             allow_unfiltered_main: false,
+            require_name: true,
             ..expected
         };
         assert!(admit_status(&bytes, EXE, strict).is_err());

@@ -628,6 +628,7 @@ fn observe_confinement_once(
         gid,
         exe: expected,
         allow_unfiltered_main,
+        require_name: true,
     };
     let mut facts = admit_status(&status, &exe, expected_process).map_err(str::to_owned)?;
     let tasks = Path::new("/proc").join(pid.to_string()).join("task");
@@ -652,18 +653,19 @@ fn observe_confinement_once(
             &tasks.join(tid.to_string()).join("status"),
             MAX_STATUS_BYTES,
         ) else {
-            // Threads can exit while the directory is being read.
             continue;
         };
-        let Ok(worker) = admit_status(
+        let worker = match admit_status(
             &status,
             &exe,
             ExpectedProcess {
                 allow_unfiltered_main: false,
+                require_name: false,
                 ..expected_process
             },
-        ) else {
-            continue;
+        ) {
+            Ok(worker) => worker,
+            Err(_) => continue,
         };
         facts.seccomp_filtered += worker.seccomp_filtered;
     }

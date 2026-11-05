@@ -608,9 +608,11 @@ diagnostics there) and backend observations.
 
 ### Cloud Hypervisor (phase 1, plan only)
 
-Cloud Hypervisor cold boot is wired through the hosted shell. Warm-pool
-restore is not wired yet. No host run or escape-suite result exists, so the
-backend remains unqualified.
+Cloud Hypervisor cold boot is wired through the hosted shell. A host run on the
+reference host now matches the namespace/Firecracker canonical outcome, and the
+retained escape suite passes: `/sys/class/net` is only `lo`, `/sys/block` is
+only `vda`, namespace creation is denied and vsock egress is denied. Warm-pool
+restore and latency measurement are not wired yet.
 
 Intended phase-1 shape:
 
@@ -621,12 +623,14 @@ Intended phase-1 shape:
   a host-side resume only after confinement observation;
 - the same `<vsock>_10240` guest listener and `kiln.microvm.guest.v1` protocol.
 
-Claims if it ships: no guest network device, rootless `systemd-run --user`,
-seccomp, a read-only source disk and the shared vsock protocol.
+Claims: no guest network device, rootless `systemd-run --user`, a read-only
+source disk, the shared vsock protocol, `CapEff 0`, `NoNewPrivs 1`, and at least
+one seccomp-filtered worker thread. The control thread itself reports
+`Seccomp 0`; that is an explicit non-claim.
 
-Non-claims: no escape-suite result, no host confinement observation, no
-measured cold/restore latency, no CET snapshot handling, and no claim that its
-larger device model (PCI, hotplug, VFIO) is as small as Firecracker's.
+Non-claims: no warm-restore result, no measured cold/restore latency, no CET
+snapshot handling, and no claim that its larger device model (PCI, hotplug,
+VFIO) is as small as Firecracker's.
 
 ### Guest networking (non-goal)
 

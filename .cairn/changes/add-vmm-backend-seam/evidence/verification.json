@@ -3,7 +3,8 @@
   "date": "2026-11-05",
   "commands": [
     {"command":"cargo test -p kiln-microvm backend --offline","result":"3 passed"},
-    {"command":"cargo test -p kiln-hosted --lib --offline","result":"69 passed"},
+    {"command":"cargo test -p kiln-hosted --lib --offline","result":"70 passed"},
+    {"command":"KILN_MICROVM_GUEST=... KILN_MICROVM_GUEST_CH=... KILN_MICROVM_REQUIRED=1 cargo test -p kiln-hosted --test microvm cloud_hypervisor_cold_boot_matches -- --nocapture","result":"1 passed; CH cold-boot canonical outcome matched namespaces; escape suite denied network, namespace and vsock egress"},
     {"command":"cargo test -p kiln-microvm --lib --offline","result":"38 passed"},
     {"command":"cargo check --workspace --all-targets --offline","result":"pass"},
     {"command":"nix build .#microvm-guest-ch --no-link --option builders ''","result":"built; guest-image v2 with cloud-hypervisor vmm entry"},

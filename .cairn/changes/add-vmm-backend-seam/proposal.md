@@ -29,6 +29,8 @@ matching a closed runner enum in every consumer.
   15-byte `comm` truncation.
 - Aggregate per-thread confinement facts and allow Cloud Hypervisor's unfiltered
   control thread only when at least one worker thread is seccomp-filtered.
+- Add a host test that runs the Cloud Hypervisor cold-boot pipeline and the
+  retained escape suite.
 
 ## Impact
 
