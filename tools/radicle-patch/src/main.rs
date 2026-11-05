@@ -173,3 +173,90 @@ fn review_patch(
         .map_err(|_| "Radicle review append failed")?;
     Ok(serde_json::json!({"review_id": review.to_string()}))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use radicle::cob::patch::MergeTarget;
+    use radicle::cob::store::access::ReadOnly;
+    use radicle::crypto::Signer as _;
+    use radicle::storage::ReadStorage;
+    use radicle::test::fixtures;
+
+    #[test]
+    fn upstream_patch_reduces_and_accepts_a_review() {
+        let directory = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+        let signer = SigningKey::from_seed(Seed::new([9; Seed::BYTES]));
+        let storage = radicle::storage::git::Storage::open(
+            directory.path().join("storage"),
+            radicle::git::UserInfo {
+                alias: radicle::node::Alias::new("Radcliff"),
+                key: *signer.public_key(),
+            },
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let (rid, _, _, head) =
+            fixtures::project(directory.path().join("project"), &storage, &signer)
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let repository = storage
+            .repository(rid)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let mut patches = Patches::open(&repository, WriteAs::new(&signer))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let title = radicle::cob::Title::from_str("Fixture patch")
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let mut cache = NoCache;
+        let patch = patches
+            .create(
+                title,
+                "fixture description",
+                MergeTarget::default(),
+                head,
+                head,
+                &[],
+                &mut cache,
+            )
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let patch_id = *patch.id();
+        drop(patch);
+
+        let read =
+            Patches::open(&repository, ReadOnly).unwrap_or_else(|error| unreachable!("{error:?}"));
+        let reduced = read
+            .get(&patch_id)
+            .unwrap_or_else(|error| unreachable!("{error:?}"))
+            .unwrap_or_else(|| unreachable!("fixture patch missing"));
+        let revision = reduced
+            .revisions()
+            .next()
+            .map(|(id, _)| id)
+            .unwrap_or_else(|| unreachable!("fixture revision"));
+        drop(read);
+
+        let mut patches = Patches::open(&repository, WriteAs::new(&signer))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let mut cache = NoCache;
+        let mut patch = patches
+            .get_mut(&patch_id, &mut cache)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let review = patch
+            .review(
+                revision,
+                Some(Verdict::Accept),
+                Some("ok".into()),
+                Vec::new(),
+            )
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(!review.to_string().is_empty());
+        drop(patch);
+
+        let read =
+            Patches::open(&repository, ReadOnly).unwrap_or_else(|error| unreachable!("{error:?}"));
+        let reduced = read
+            .get(&patch_id)
+            .unwrap_or_else(|error| unreachable!("{error:?}"))
+            .unwrap_or_else(|| unreachable!("fixture patch missing"));
+        assert_eq!(reduced.revisions().count(), 1);
+        assert_eq!(reduced.reviews_of(revision).count(), 1);
+    }
+}
