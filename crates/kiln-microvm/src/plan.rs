@@ -11,10 +11,13 @@ pub struct VmPaths<'a> {
     pub kernel: &'a str,
     pub initrd: &'a str,
     pub source_image: &'a str,
+    /// Optional read-only cache image, attached as a second drive.
+    pub cache_image: Option<&'a str>,
     pub vsock: &'a str,
 }
 /// The source drive identifier inside the VM configuration.
 pub const SOURCE_DRIVE: &str = "source";
+pub const CACHE_DRIVE: &str = "cache";
 /// CPUID.(EAX=7,ECX=0):ECX.CET_SS and EDX.CET_IBT.
 const CPUID_CET_SS_BIT: u32 = 7;
 const CPUID_CET_IBT_BIT: u32 = 20;
@@ -58,18 +61,27 @@ pub fn cpu_template() -> Value {
 /// acceptable host-mediated egress design and the coupled escape suite are
 /// recorded in `docs/hosted-ci.md#guest-networking-non-goal`.
 pub fn vm_config(paths: &VmPaths<'_>, policy: &MachinePolicy<'_>) -> Value {
+    let mut drives = vec![json!({
+        "drive_id": SOURCE_DRIVE,
+        "path_on_host": paths.source_image,
+        "is_root_device": false,
+        "is_read_only": true,
+    })];
+    if let Some(cache) = paths.cache_image {
+        drives.push(json!({
+            "drive_id": CACHE_DRIVE,
+            "path_on_host": cache,
+            "is_root_device": false,
+            "is_read_only": true,
+        }));
+    }
     json!({
         "boot-source": {
             "kernel_image_path": paths.kernel,
             "initrd_path": paths.initrd,
             "boot_args": BOOT_ARGS,
         },
-        "drives": [{
-            "drive_id": SOURCE_DRIVE,
-            "path_on_host": paths.source_image,
-            "is_root_device": false,
-            "is_read_only": true,
-        }],
+        "drives": drives,
         "machine-config": {
             "vcpu_count": policy.vcpus,
             "mem_size_mib": policy.memory_mib,
@@ -196,6 +208,7 @@ mod tests {
             kernel: "/nix/store/k/vmlinux",
             initrd: "/nix/store/i/initrd",
             source_image: "/tmp/vm/source.img",
+            cache_image: None,
             vsock: "/tmp/vm/v.sock",
         }
     }
@@ -320,5 +333,39 @@ mod tests {
             api_response_length(b"HTTP/1.1 400 \r\nContent-Length: x\r\n\r\n"),
             None
         );
+    }
+    #[test]
+    fn cache_image_is_an_optional_read_only_second_drive() {
+        let policy = MachinePolicy {
+            vcpus: 1,
+            memory_mib: 256,
+            boot_timeout_ms: 10_000,
+            source_image_mib: 16,
+            warm_slots: None,
+            guest_shell: "/bin/bash",
+        };
+        let without = vm_config(
+            &VmPaths {
+                kernel: "/k",
+                initrd: "/i",
+                source_image: "/s",
+                cache_image: None,
+                vsock: "/v",
+            },
+            &policy,
+        );
+        assert_eq!(without["drives"].as_array().map(Vec::len), Some(1));
+        let with = vm_config(
+            &VmPaths {
+                kernel: "/k",
+                initrd: "/i",
+                source_image: "/s",
+                cache_image: Some("/c"),
+                vsock: "/v",
+            },
+            &policy,
+        );
+        assert_eq!(with["drives"].as_array().map(Vec::len), Some(2));
+        assert_eq!(with["drives"][1]["is_read_only"], true);
     }
 }

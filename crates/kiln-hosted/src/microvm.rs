@@ -317,6 +317,7 @@ pub(crate) struct Job<'a> {
     pub(crate) steps: &'a [(String, GuestStep)],
     pub(crate) unit: &'a str,
     pub(crate) timeout_ms: u64,
+    pub(crate) cache_image: Option<&'a Path>,
     /// Credential and trust facts that rule out a debug hold.
     pub(crate) grants: Grants,
     /// Other jobs in this attempt sharing the declared host identity.
@@ -378,7 +379,7 @@ fn journal(
 // r[impl kiln.hosted.microvm.plan]
 /// Write the bounded deterministic source archive into a fresh private image
 /// of exactly `capacity` bytes. Symlinks are archived, never followed.
-fn source_image(workspace: &Path, image: &Path, capacity: u64) -> Result<u64, String> {
+pub(crate) fn source_image(workspace: &Path, image: &Path, capacity: u64) -> Result<u64, String> {
     let mut entries = Vec::new();
     let mut pending = vec![(workspace.to_path_buf(), String::new())];
     while let Some((directory, prefix)) = pending.pop() {
@@ -927,6 +928,7 @@ struct Paths {
 fn vm_config(
     paths: &Paths,
     image: &Path,
+    cache_image: Option<&Path>,
     vsock: &Path,
     runner: &Runner<'_>,
 ) -> Result<Vec<u8>, String> {
@@ -935,6 +937,7 @@ fn vm_config(
             kernel: text(&paths.kernel)?,
             initrd: text(&paths.initrd)?,
             source_image: text(image)?,
+            cache_image: cache_image.map(text).transpose()?,
             vsock: text(vsock)?,
         },
         &runner.policy,
@@ -1109,7 +1112,10 @@ fn build_snapshot(
         .set_len(u64::from(runner.policy.source_image_mib) * MIB)
         .map_err(|_| "warm pool source image size failed")?;
     let config_path = slot.path("vm.json");
-    write_private(&config_path, &vm_config(paths, &image, &vsock, runner)?)?;
+    write_private(
+        &config_path,
+        &vm_config(paths, &image, None, &vsock, runner)?,
+    )?;
     let listener = UnixListener::bind(&listener_path).map_err(|_| "guest listener bind failed")?;
     let stop = AtomicBool::new(false);
     std::thread::scope(|scope| {
@@ -1643,7 +1649,10 @@ pub(crate) fn run_job(
                 arguments.extend(["--api-sock".into(), text(&api_socket)?.into()]);
             } else {
                 let config_path = scratch.path().join("vm.json");
-                write_private(&config_path, &vm_config(&paths, &image, &vsock, runner)?)?;
+                write_private(
+                    &config_path,
+                    &vm_config(&paths, &image, job.cache_image, &vsock, runner)?,
+                )?;
                 arguments.extend([
                     "--no-api".into(),
                     "--config-file".into(),

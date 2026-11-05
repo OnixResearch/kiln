@@ -482,8 +482,11 @@ Actual runner choices are:
     untrusted pull-request runs (see **Untrusted pull-request runs** below).
     Omitted keeps the configuration identity and refuses such runs.
 
-  There is no network or jailer field. Cache policies naming a Firecracker
-  runner are rejected.
+  There is no network or jailer field. A cache policy naming a Firecracker
+  runner enables restore only: the host materializes the cache entry as a
+  read-only second drive (`/dev/vdb`) and the guest extracts it over `/work`.
+  Publication from the guest is not wired, so Firecracker cache policies never
+  write new entries.
 
   The backend is admitted only on x86_64 hosts. Build the guest with
   `nix build path:.#microvm-guest` (x86_64-linux only). It contains the pinned

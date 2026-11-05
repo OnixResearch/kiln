@@ -1,0 +1,19 @@
+{
+  "schema": "kiln.firecracker-cache-drive.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {"command":"cargo test -p kiln-microvm --lib cache_image --offline","result":"1 passed"},
+    {"command":"cargo test -p kiln-hosted --lib --offline","result":"71 passed"},
+    {"command":"cairn validate --root .","result":"valid; 0 issues"}
+  ],
+  "acceptance": {
+    "plan": "optional second read-only cache drive",
+    "guest": "extracts /dev/vdb over /work after source",
+    "publication": "disabled for Firecracker"
+  },
+  "non_claims": [
+    "no guest publication or object-storage tier",
+    "no host-level cache-drive integration test yet",
+    "no cache latency measurement"
+  ]
+}

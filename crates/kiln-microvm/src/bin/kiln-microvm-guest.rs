@@ -246,6 +246,14 @@ fn prepare(
     // Restored snapshots may cache blocks read from the blank template image.
     helper(busybox, &["blockdev", "--flushbufs", source])?;
     helper(busybox, &["tar", "-x", "-f", source, "-C", GUEST_WORKSPACE])?;
+    // A read-only cache drive is optional and overlays its declared outputs.
+    if std::path::Path::new("/dev/vdb").exists() {
+        helper(busybox, &["blockdev", "--flushbufs", "/dev/vdb"])?;
+        helper(
+            busybox,
+            &["tar", "-x", "-f", "/dev/vdb", "-C", GUEST_WORKSPACE],
+        )?;
+    }
     let owner = format!("{GUEST_UID}:{GUEST_GID}");
     helper(busybox, &["chown", "-R", &owner, GUEST_WORKSPACE])
 }

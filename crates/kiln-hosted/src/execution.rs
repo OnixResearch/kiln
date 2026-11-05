@@ -644,7 +644,7 @@ fn admit_cloud_hypervisor(config: &Config, label: &str, backend: &Backend) -> Re
     Ok(())
 }
 
-fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<(), String> {
+fn admit_firecracker(config: &Config, _label: &str, backend: &Backend) -> Result<(), String> {
     let Backend::Firecracker {
         qualification_identity,
         host_preflight_override,
@@ -689,15 +689,6 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
     // r[impl kiln.hosted.microvm.debug_hold.policy.scenario.bounds]
     if let Some(policy) = debug_hold {
         kiln_microvm::debug_hold::admit(policy, config.maximum_concurrent)?;
-    }
-    // Guest writes never reach the host workspace, so publication would cache
-    // unchanged source; restoration would be invisible to the guest.
-    if config
-        .cache
-        .as_ref()
-        .is_some_and(|cache| cache.policies.iter().any(|p| p.runner == label))
-    {
-        return Err("cache policies cannot name a Firecracker runner".into());
     }
     Ok(())
 }
@@ -1110,6 +1101,18 @@ pub fn run_pipeline(
             request.untrusted.is_some(),
         );
         let policy = grants.workload;
+        let firecracker = matches!(
+            config.runners.get(&job.runner),
+            Some(Backend::Firecracker { .. })
+        );
+        let cache_workspace = firecracker
+            .then(tempfile::tempdir)
+            .transpose()
+            .map_err(|e| e.to_string())?;
+        let cache_image_dir = firecracker
+            .then(tempfile::tempdir)
+            .transpose()
+            .map_err(|e| e.to_string())?;
         let job_identity = crate::identity(job)?;
         let cache_now_ms = now_ms
             .checked_add(
@@ -1123,10 +1126,11 @@ pub fn run_pipeline(
             plan_identity: &plan.identity,
             job_identity: &job_identity,
             configuration_identity: &config_id,
-            workspace: &work,
+            workspace: cache_workspace.as_ref().map_or(&work, |d| d.path()),
             now_ms: cache_now_ms,
         };
         let mut cache_key = None;
+        let mut cache_image = None;
         let mut cache_ms = None;
         let mut cache_outcome = "disabled_unconfigured";
         let mut cache_observation = json!({"outcome":cache_outcome,"duration_ms":null});
@@ -1150,6 +1154,23 @@ pub fn run_pipeline(
                         };
                         cache_observation = json!({"restore":observation});
                         cache_key = Some(key);
+                        if let (true, Some(workspace)) = (firecracker, cache_workspace.as_ref()) {
+                            let policy = config
+                                .runners
+                                .get(&job.runner)
+                                .and_then(crate::microvm::machine_policy)
+                                .ok_or("cache runner has no machine policy")?;
+                            let directory = cache_image_dir
+                                .as_ref()
+                                .ok_or("cache image directory unavailable")?;
+                            let image = directory.path().join("cache.img");
+                            crate::microvm::source_image(
+                                workspace.path(),
+                                &image,
+                                u64::from(policy.source_image_mib) * 1_048_576,
+                            )?;
+                            cache_image = Some(image);
+                        }
                     }
                     Err(error) => {
                         cache_outcome = "rejected";
@@ -1317,6 +1338,7 @@ pub fn run_pipeline(
                             steps: &guest_steps,
                             unit: &unit,
                             timeout_ms: remaining,
+                            cache_image: cache_image.as_deref(),
                             grants,
                             attempt_co_residency: &attempt_co_residency,
                         },
@@ -1416,7 +1438,7 @@ pub fn run_pipeline(
         for value in &mut redactions {
             value.zeroize();
         }
-        if state == "succeeded" && cleanup {
+        if state == "succeeded" && cleanup && !firecracker {
             if let (Some(cache), Some(key)) = (&config.cache, &cache_key) {
                 let cache_started = Instant::now();
                 cache_context.now_ms = now_ms
@@ -2566,7 +2588,7 @@ mod tests {
             assert!(admit(&config).is_err(), "{rejected}");
         }
         let cached = firecracker_config(firecracker_backend(json!({})), Some("vm"));
-        assert!(admit(&cached).is_err_and(|error| error.contains("cache")));
+        assert_eq!(admit(&cached), Ok(()));
         let unknown = serde_json::from_value::<Backend>(firecracker_backend(
             json!({"network_interfaces": []}),
         ));
