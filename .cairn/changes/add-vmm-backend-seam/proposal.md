@@ -21,6 +21,8 @@ matching a closed runner enum in every consumer.
 - Add Cloud Hypervisor pause/snapshot requests and restore argv using the
   pinned API schema.
 - Document Cloud Hypervisor phase-1 claims and non-claims.
+- Build a virtio-PCI `microvm-guest-ch` image and move the guest manifest to
+  `kiln.microvm.guest-image.v2` with a `vmm` entry.
 
 ## Impact
 

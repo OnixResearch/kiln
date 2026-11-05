@@ -228,10 +228,13 @@
       # r[impl kiln.hosted.microvm.protocol]
       # r[impl kiln.hosted.microvm.escape]
       # r[impl kiln.hosted.microvm.escape.scenario.suite]
-      microvmGuestPackageFor =
+      microvmGuestFor =
         system:
+        vmm:
         let
           pkgs = import nixpkgs { inherit system; };
+          vmmPackage = if vmm == "firecracker" then pkgs.firecracker else pkgs.cloud-hypervisor;
+          vmmBinary = "${vmmPackage}/bin/${if vmm == "firecracker" then "firecracker" else "cloud-hypervisor"}";
           kernel = pkgs.linuxPackages.kernel;
           agent = (packageFor system).overrideAttrs (_: {
             pname = "kiln-microvm-guest-agent";
@@ -247,7 +250,7 @@
             ];
           });
           rootModules = [
-            "virtio_mmio"
+            (if vmm == "firecracker" then "virtio_mmio" else "virtio_pci")
             "virtio_blk"
             "vmw_vsock_virtio_transport"
             "virtio_rng"
@@ -327,21 +330,33 @@
             ];
           };
         in
-        pkgs.runCommand "kiln-microvm-guest"
+        pkgs.runCommand (if vmm == "firecracker" then "kiln-microvm-guest" else "kiln-microvm-guest-ch")
           {
             nativeBuildInputs = [ pkgs.b3sum ];
-            meta.description = "Firecracker guest kernel, initramfs and pinned VMM for the hosted microVM backend";
+            meta.description = if vmm == "firecracker"
+              then "Firecracker guest kernel, initramfs and pinned VMM for the hosted microVM backend"
+              else "Cloud Hypervisor guest kernel, initramfs and pinned VMM for the hosted microVM backend";
           }
           ''
             mkdir -p "$out"
             ln -s ${vmlinux} "$out/vmlinux"
             ln -s ${initrd}/initrd "$out/initrd"
-            ln -s ${pkgs.firecracker}/bin/firecracker "$out/firecracker"
+            ln -s ${vmmBinary} "$out/vmm"
+            if [ "${vmm}" = "firecracker" ]; then
+              ln -s ${vmmBinary} "$out/firecracker"
+            else
+              ln -s ${vmmBinary} "$out/cloud-hypervisor"
+            fi
             entry() {
               printf '{"path":"%s","blake3":"%s"}' "$1" "$(b3sum --no-names "$1")"
             }
+            if [ "${vmm}" = "firecracker" ]; then
+              vmm_entry="\"firecracker\":$(entry ${vmmBinary})"
+            else
+              vmm_entry="\"cloud-hypervisor\":$(entry ${vmmBinary})"
+            fi
             cat > "$out/manifest.json" <<EOF
-            {"schema":"kiln.microvm.guest-image.v1","kernel_version":"${kernel.version}","firecracker_version":"${pkgs.firecracker.version}","guest_shell":"/bin/bash","firecracker":$(entry ${pkgs.firecracker}/bin/firecracker),"kernel":$(entry ${vmlinux}),"initrd":$(entry "$(readlink -f ${initrd}/initrd)")}
+            {"schema":"kiln.microvm.guest-image.v2","kernel_version":"${kernel.version}","vmm":{"kind":"${vmm}","version":"${vmmPackage.version}","binary":$(entry ${vmmBinary})},$vmm_entry,"guest_shell":"/bin/bash","kernel":$(entry ${vmlinux}),"initrd":$(entry "$(readlink -f ${initrd}/initrd)")}
             EOF
           '';
       kilnAspenHostPackageFor =
@@ -542,7 +557,8 @@
         }
         # The Firecracker guest's CPU template and module set are x86_64-only.
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-          microvm-guest = microvmGuestPackageFor system;
+          microvm-guest = microvmGuestFor system "firecracker";
+          microvm-guest-ch = microvmGuestFor system "cloud-hypervisor";
         }
       );
 

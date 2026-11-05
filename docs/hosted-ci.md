@@ -489,9 +489,12 @@ Actual runner choices are:
   `nix build path:.#microvm-guest` (x86_64-linux only). It contains the pinned
   nixpkgs NixOS kernel (stripped `vmlinux`), a `makeInitrdNG` initramfs
   (busybox, bash, the `kiln-microvm-guest` agent and the virtio/vsock modules)
-  and the pinned `firecracker`. Its `manifest.json` lists the exact paths and
-  BLAKE3 values to copy into Nickel. This is a Nix-built initramfs over the
-  NixOS kernel, not a full NixOS system.
+  and the pinned `firecracker`. Its `manifest.json` is
+  `kiln.microvm.guest-image.v2` and lists the exact paths and BLAKE3 values,
+  including a `vmm` entry, to copy into Nickel. This is a Nix-built initramfs
+  over the NixOS kernel, not a full NixOS system. `nix build
+  path:.#microvm-guest-ch` builds the same agent over `virtio_pci` and the
+  pinned Cloud Hypervisor; it is not executable by the hosted shell yet.
 
   For each job, the service:
   1. Archives the scoped workspace into a deterministic, bounded ustar image.

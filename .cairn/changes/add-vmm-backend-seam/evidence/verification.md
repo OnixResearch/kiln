@@ -15,6 +15,8 @@ cold-boot argv.
   Hypervisor pause/snapshot/restore plans.
 - Hosted documentation now states that Cloud Hypervisor phase 1 is plan-only
   and lists its claims and non-claims.
+- Both guest images build locally: `microvm-guest` and `microvm-guest-ch`.
+  Their manifests are `kiln.microvm.guest-image.v2` with a `vmm` entry.
 - Workspace `--all-targets`: pass.
 - `cairn validate`: zero issues.
 
