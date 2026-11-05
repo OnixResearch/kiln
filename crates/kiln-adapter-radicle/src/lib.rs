@@ -1,6 +1,7 @@
 pub mod defelo;
 pub mod job;
 pub mod mutation;
+pub mod patch_read;
 mod profile;
 mod replay;
 pub mod source;

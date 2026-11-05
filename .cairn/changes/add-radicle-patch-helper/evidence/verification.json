@@ -1,0 +1,14 @@
+{
+  "schema": "kiln.radicle.patch-read.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {"command":"cargo check --manifest-path tools/radicle-patch/Cargo.toml","result":"pass"},
+    {"command":"cargo test -p kiln-adapter-radicle --lib patch_read --offline","result":"2 passed"},
+    {"command":"cairn validate --root .","result":"valid; 0 issues"}
+  ],
+  "non_claims": [
+    "the helper is read-only",
+    "no multi-writer mutation or review append is implemented",
+    "no Kiln review, CI or release authority is granted"
+  ]
+}
