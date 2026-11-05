@@ -5,6 +5,7 @@
     {"command":"cargo check --manifest-path tools/radicle-patch/Cargo.toml","result":"pass"},
     {"command":"cargo test --manifest-path tools/radicle-patch/Cargo.toml","result":"1 passed; upstream fixture reduces a patch and accepts a review"},
     {"command":"cargo test -p kiln-adapter-radicle --lib patch_read --offline","result":"3 passed"},
+    {"command":"cargo test -p kiln-radicle-ci --lib patch_helper_configuration --offline","result":"1 passed"},
     {"command":"cairn validate --root .","result":"valid; 0 issues"}
   ],
   "non_claims": [

@@ -12,6 +12,8 @@ SQLite. A separate process is the compatible boundary.
 - Add a review-append command using the upstream authorization path and a
   signer seed supplied only through the child environment.
 - Expose exact patch revision ids, heads and bases for per-revision CI.
+- Add paired patch-helper and storage-root fields to the Radicle CI worker
+  profile, with a bounded `read_patch` method.
 
 ## Impact
 

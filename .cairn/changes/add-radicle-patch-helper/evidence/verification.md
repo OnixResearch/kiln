@@ -9,6 +9,7 @@ Added a separate upstream patch-reducer helper and a bounded adapter invocation.
 - Helper `cargo check`: pass; read output includes exact revision ids, heads and bases.
 - Helper fixture test: upstream patch reduction and review append pass.
 - Adapter patch-read/review tests: 3 passed.
+- Radicle CI profile helper test: 1 passed.
 - `cairn validate`: zero issues.
 
 ## Non-claims

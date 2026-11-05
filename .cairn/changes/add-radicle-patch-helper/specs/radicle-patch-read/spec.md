@@ -10,7 +10,8 @@ with Kiln's. The adapter MUST bound helper output, reject non-zero exits and
 stderr noise, and parse only one JSON projection. The read helper MUST perform no mutation. A separate review command MAY append
 one review through the upstream authorization path; its signer seed MUST come
 from the child environment, never argv, and it MUST return only a bounded JSON
-review identity.
+review identity. The Radicle CI worker profile MUST configure the helper path
+and storage root together and MUST expose only a bounded read method.
 
 #### Scenario: Valid patch
 
