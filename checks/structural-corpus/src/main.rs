@@ -217,21 +217,54 @@ fn main() -> Result<(), String> {
         clean,
         rows.len() - parsed
     );
-    let mut by_language: std::collections::BTreeMap<&str, Vec<u64>> =
+    #[derive(Default)]
+    struct Stats {
+        fixtures: usize,
+        parsed: usize,
+        fallback: std::collections::BTreeMap<&'static str, usize>,
+        zero: usize,
+        at_most_one_percent: usize,
+        times: Vec<u64>,
+    }
+    let mut by_language: std::collections::BTreeMap<&str, Stats> =
         std::collections::BTreeMap::new();
     for row in &rows {
-        if row.3.is_none() {
-            by_language.entry(row.2).or_default().push(row.8);
+        let stats = by_language.entry(row.2).or_default();
+        stats.fixtures += 1;
+        if let Some(reason) = row.3 {
+            *stats.fallback.entry(reason).or_default() += 1;
+            continue;
+        }
+        stats.parsed += 1;
+        stats.times.push(row.8);
+        let mismatched = row.4 + row.5;
+        let touched = row.6 + row.7;
+        if mismatched == 0 {
+            stats.zero += 1;
+        }
+        let rate = if touched == 0 {
+            if mismatched == 0 { 0.0 } else { 1.0 }
+        } else {
+            mismatched as f64 / touched as f64
+        };
+        if rate <= 0.01 {
+            stats.at_most_one_percent += 1;
         }
     }
-    for (language, mut times) in by_language {
-        times.sort_unstable();
+    eprintln!("language,fixtures,parsed,fallback,zero_mismatch,at_most_1pct,p50_us,p90_us,p99_us");
+    for (language, mut stats) in by_language {
+        stats.times.sort_unstable();
+        let fallback = stats.fallback.values().sum::<usize>();
         eprintln!(
-            "{language}: parsed={} p50={}us p90={}us p99={}us",
-            times.len(),
-            percentile(&times, 50),
-            percentile(&times, 90),
-            percentile(&times, 99)
+            "{language},{},{},{},{},{},{},{},{}",
+            stats.fixtures,
+            stats.parsed,
+            fallback,
+            stats.zero,
+            stats.at_most_one_percent,
+            percentile(&stats.times, 50),
+            percentile(&stats.times, 90),
+            percentile(&stats.times, 99)
         );
     }
     if let Some(path) = baseline {

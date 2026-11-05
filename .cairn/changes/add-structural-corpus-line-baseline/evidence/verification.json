@@ -24,7 +24,9 @@
     "parsed": 611,
     "zero_mismatch": 145,
     "zero_mismatch_rate": "23.7%",
-    "latency": "parsed p99 43ms (bash), slowest p50 1.05ms (rust); reported on stderr, not gated",
+    "latency": "parsed p99 41ms (rust), slowest p50 1.10ms (rust); reported on stderr, not gated",
+    "at_most_one_percent": "145 of 611 parsed fixtures; no fixture between zero and 1%",
+    "per_language_table": "printed on stderr; see checks/structural-corpus/README.md"
     "fallback": {
       "parse_error": 99,
       "too_large": 16,

@@ -36,8 +36,28 @@ At the pinned corpus revision:
 - 611 parsed structurally; 116 fall back (99 parse errors, 16 too large, 1 too
   many nodes).
 - 145 of 611 parsed fixtures (23.7%) have zero mismatched old/new lines.
-- Parsed-fixture p99 latency is 43 ms (bash); the slowest p50 is 1.05 ms
+- No fixture lands between zero and 1% mismatch; the at-most-1% share equals
+  the zero-mismatch share.
+- Parsed-fixture p99 latency is 41 ms (rust); the slowest p50 is 1.10 ms
   (rust). Timing is printed to stderr, not written to the baseline CSV.
+
+Per-language table from the pinned run:
+
+```text
+language,fixtures,parsed,fallback,zero_mismatch,at_most_1pct,p50_us,p90_us,p99_us
+bash,55,49,6,12,12,295,29857,40351
+c,89,37,52,9,9,364,6514,11951
+css,38,30,8,7,7,276,1496,5556
+go,79,77,2,21,21,602,10199,18958
+html,57,47,10,3,3,169,2634,5093
+javascript,53,33,20,11,11,141,1769,12105
+json,52,48,4,13,13,164,4535,10251
+python,71,70,1,16,16,474,6086,15026
+rust,112,105,7,29,29,1095,13918,41440
+tsx,41,40,1,9,9,232,3807,4244
+typescript,43,38,5,4,4,140,4404,8301
+yaml,37,37,0,11,11,191,1982,9560
+```
 
 ## Boundaries
 
