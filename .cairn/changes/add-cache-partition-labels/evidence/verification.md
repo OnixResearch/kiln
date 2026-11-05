@@ -3,8 +3,8 @@
 ## Result
 
 Firecracker runners can declare a reviewed cache-partition label. Admission
-rejects a label shared by untrusted-capable and workload-bearing runners, and
-the receipt records `vm.cache_partition`.
+rejects a label shared by untrusted-capable and workload-bearing runners, refuses
+a label without an observed resctrl mount, and records `vm.cache_partition`.
 
 ## Evidence
 

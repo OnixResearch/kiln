@@ -9,6 +9,7 @@ not state which runners are expected to share an LLC or cache allocation.
 - Reject a partition containing both untrusted-capable and workload-bearing
   runners, matching the existing host/domain separation.
 - Record the label in `vm.cache_partition`.
+- Refuse a declared label when the host has no observed resctrl mount.
 - Document that this is a placement declaration, not resctrl programming or
   proof of LLC isolation.
 

@@ -16,6 +16,12 @@ programming, cache allocation, LLC separation or covert-channel measurement.
 - WHEN execution configuration is admitted
 - THEN admission fails before any effect.
 
+#### Scenario: Missing resctrl
+
+- GIVEN a runner with a cache-partition label and no observed resctrl mount
+- WHEN execution is admitted
+- THEN admission fails before any effect.
+
 #### Scenario: Label is recorded
 
 - GIVEN a runner with a reviewed cache-partition label

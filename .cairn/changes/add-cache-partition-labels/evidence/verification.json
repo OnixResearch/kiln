@@ -8,7 +8,7 @@
     {"command":"cairn validate --root .","result":"valid; 0 issues"}
   ],
   "acceptance": {
-    "admission": "a cache-partition label cannot contain both untrusted and workload-bearing runners",
+    "admission": "a cache-partition label cannot contain both untrusted and workload-bearing runners and requires an observed resctrl mount",
     "receipt": "vm.cache_partition records the reviewed label"
   },
   "non_claims": [

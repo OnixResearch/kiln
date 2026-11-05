@@ -558,6 +558,28 @@ fn backend_capabilities(backend: &Backend) -> Capabilities {
     }
 }
 
+fn cache_partition_admitted(partition: Option<&str>, resctrl_mounted: bool) -> bool {
+    partition.is_none() || resctrl_mounted
+}
+
+fn admit_cache_partition(
+    backend: &Backend,
+    host: &kiln_microvm::host::HostFacts,
+) -> Result<(), String> {
+    let partition = match backend {
+        Backend::Firecracker {
+            cache_partition: partition,
+            ..
+        } => partition.as_deref(),
+        _ => None,
+    };
+    if cache_partition_admitted(partition, host.resctrl_mounted) {
+        Ok(())
+    } else {
+        Err("cache partition labels require an observed resctrl mount".into())
+    }
+}
+
 fn admit_snapshot(capabilities: &Capabilities, requested: bool) -> Result<(), String> {
     if requested && !capabilities.snapshot {
         return Err("warm pool requires a snapshot-capable backend".into());
@@ -919,6 +941,7 @@ pub fn run_pipeline(
         if request.untrusted.is_some() {
             admit_untrusted_host(backend, &host_facts)?;
         }
+        admit_cache_partition(backend, &host_facts)?;
         if request.trust == "trusted"
             && !config
                 .trusted_projects
@@ -3068,5 +3091,11 @@ mod tests {
             secrets: Vec::new(),
         }];
         assert!(validate_trust_domains(&runners, &workload).is_err());
+    }
+    #[test]
+    fn cache_partition_labels_require_resctrl() {
+        assert!(cache_partition_admitted(None, false));
+        assert!(cache_partition_admitted(Some("l3-a"), true));
+        assert!(!cache_partition_admitted(Some("l3-a"), false));
     }
 }
