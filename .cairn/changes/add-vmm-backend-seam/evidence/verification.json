@@ -12,7 +12,7 @@
     "trait": "pure VmmBackend with capabilities, boot args, listener and identity inputs",
     "firecracker": "reference implementation",
     "cloud_hypervisor": "phase-1 pure cold-boot argv with no network or API socket",
-    "receipt": "Firecracker backend kind comes from the trait"
+    "receipt": "Firecracker backend kind, version, binary BLAKE3 and capabilities come from reviewed declarations"
   },
   "non_claims": [
     "Cloud Hypervisor execution is not wired",

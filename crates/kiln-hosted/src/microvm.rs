@@ -1277,6 +1277,7 @@ pub(crate) fn run_job(
         "backend": kiln_microvm::backend::Firecracker.kind(),
         "backend_version": runner.version,
         "vmm_blake3": runner.firecracker.blake3,
+        "capabilities": kiln_microvm::backend::Firecracker.capabilities(),
         "vcpus": runner.policy.vcpus,
         "memory_mib": runner.policy.memory_mib,
         "network": "none",

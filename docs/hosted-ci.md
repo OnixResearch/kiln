@@ -579,7 +579,8 @@ label is truthful. A Firecracker runner may also name a reviewed `cpu_affinity`
 list (for example `0-3,8`); Kiln starts the VMM through the configured `taskset`
 and records the list in `vm.cpu_affinity`. This pins the VMM process, not guest
 vCPUs or cache partitions. A reviewed `version` is recorded as
-`vm.backend_version`; snapshot identity is now
+`vm.backend_version`; the `vm.capabilities` block records the declared network,
+snapshot, arch, confinement and per-job scope. Snapshot identity is now
 `kiln.microvm.snapshot.v2` and binds the VMM kind, version and binary BLAKE3,
 so an old warm snapshot is rebuilt rather than reused across a VMM change.
 

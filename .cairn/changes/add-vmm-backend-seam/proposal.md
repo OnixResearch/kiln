@@ -16,8 +16,8 @@ matching a closed runner enum in every consumer.
 - Add an explicit optional `network` request field and refuse anything other
   than `none`.
 - Expose capability helpers for reviewed arches and snapshot admission.
-- Add reviewed VMM version, receipt `backend_version`/`vmm_blake3`, and
-  snapshot identity v2 binding kind/version/binary.
+- Add reviewed VMM version, receipt `backend_version`/`vmm_blake3`, declared
+  capabilities and snapshot identity v2 binding kind/version/binary.
 
 ## Impact
 
