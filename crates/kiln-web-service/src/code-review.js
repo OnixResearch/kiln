@@ -101,6 +101,13 @@
     }
     return list;
   }
+  function advisoryRequirements(items) {
+    const box = node("div", null, "cr-subsection cr-advisory");
+    box.append(node("h4", "Advisory agent objections (non-binding)"), node("p", "These objections are displayed but never affect the submit checklist, ownership, CI, vetoes, threads or queue admission.", "cr-muted"));
+    const list = node("ul", null, "cr-rows"); list.setAttribute("aria-label", "Advisory agent objections");
+    for (const item of arr(items)) { const li = node("li", null, "list-row"); li.append(node("span", item.detail, "cr-row-title"), chip("Advisory", "cr-chip-advisory")); list.append(li); }
+    box.append(list); return box;
+  }
   // r[impl kiln.monorepo.console] Required CI per project of the review repository: each affected project with its
   // state and exact run; skipped projects read as not required, with the recorded reason.
   function ciProjectList(rows) {
@@ -842,6 +849,7 @@
       facts(receipt, [["Submitted by", outcome.submitted_by], ...(outcome.agent ? [["Agent", `${text(outcome.agent.harness)}${outcome.agent.model ? ` · ${text(outcome.agent.model)}` : ""} (declared)`]] : []), ["Submitted at", when(outcome.submitted_ms)], ["Candidate", outcome.candidate?.id], ["Exact source revision", outcome.candidate?.revision], ["Exact source commit", outcome.candidate?.commit], ["Target ref", outcome.candidate?.target_ref], ["Expected target commit", outcome.candidate?.target], ["Result commit", outcome.result_commit], ["CI run", outcome.candidate?.ci_run], ["Exact dependencies", JSON.stringify(outcome.candidate?.dependencies || [])]]);
     }
     card.append(requirements(items));
+    if (arr(checklist?.advisory).length) card.append(advisoryRequirements(checklist.advisory));
     if (!checklist) card.append(node("p", "Checklist unavailable. Submission is blocked until the service can evaluate exact source, target, dependencies, approval and CI facts.", "cr-notice"));
     card.append(node("p", ready ? "The observed checklist is ready. The service must recheck it at candidate preparation and submission." : "Submission is blocked by the listed requirements. No browser control can override them.", "cr-muted"));
     if (c.candidate) facts(card, [["Prepared candidate", c.candidate.id], ["Candidate revision", c.candidate.revision], ["Commit", c.candidate.commit], ["Expected target", c.candidate.target], ["CI run", c.candidate.ci_run]]);

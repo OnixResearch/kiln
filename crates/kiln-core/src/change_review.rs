@@ -10,6 +10,7 @@
 
 use crate::paths;
 use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -711,10 +712,18 @@ pub struct ChecklistItem {
     pub detail: String,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct AdvisoryItem {
+    pub key: String,
+    pub detail: String,
+}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Checklist {
     pub ready: bool,
     pub items: Vec<ChecklistItem>,
     pub ci_run: Option<String>,
+    /// Non-binding agent objections retained for display; never part of `items`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub advisory: Vec<AdvisoryItem>,
 }
 /// `expected_revision` always names the current Kiln revision ID, not a moving ref.
 /// IDs are unique shell-generated BLAKE3 identities. Source/anchor facts are trusted
@@ -1781,6 +1790,54 @@ fn checklist_at(
             && policy.is_some_and(|p| p.eligible_reviewers.contains(&vote.actor))
     };
     let agent_votes_bind = policy.is_some_and(|policy| policy.agent_votes == AgentVotes::Binding);
+    let agent_actor = |actor: &str| facts.agents.contains(actor);
+    let blocking_vetoes = change.votes.iter().filter(eligible).any(|vote| {
+        (agent_votes_bind || !agent_actor(&vote.actor))
+            && matches!(vote.value, VoteValue::Veto | VoteValue::NeedsRevision)
+    });
+    let blocking_thread = |thread: &Thread| {
+        thread.blocking
+            && !thread.resolved
+            && (agent_votes_bind
+                || thread
+                    .comments
+                    .first()
+                    .is_none_or(|comment| !agent_actor(&comment.author)))
+    };
+    let advisory = if agent_votes_bind {
+        Vec::new()
+    } else {
+        let mut items = Vec::new();
+        for vote in change.votes.iter().filter(eligible) {
+            if !agent_actor(&vote.actor) {
+                continue;
+            }
+            let value = match vote.value {
+                VoteValue::Veto => "veto",
+                VoteValue::NeedsRevision => "needs_revision",
+                _ => continue,
+            };
+            items.push(AdvisoryItem {
+                key: "agent_veto".into(),
+                detail: format!("{} cast {value} on the current revision", vote.actor),
+            });
+        }
+        for thread in &change.threads {
+            if !thread.blocking || thread.resolved {
+                continue;
+            }
+            let Some(comment) = thread.comments.first() else {
+                continue;
+            };
+            if agent_actor(&comment.author) {
+                items.push(AdvisoryItem {
+                    key: "agent_thread".into(),
+                    detail: format!("{} opened blocking thread {}", comment.author, thread.id),
+                });
+            }
+        }
+        items
+    };
     let counts_for_approval =
         |vote: &&Vote| eligible(vote) && (agent_votes_bind || !facts.agents.contains(&vote.actor));
     let approvals = change
@@ -1895,19 +1952,12 @@ fn checklist_at(
         ),
         (
             "vetoes",
-            !change
-                .votes
-                .iter()
-                .filter(eligible)
-                .any(|vote| matches!(vote.value, VoteValue::Veto | VoteValue::NeedsRevision)),
+            !blocking_vetoes,
             "no current veto or needs-revision vote",
         ),
         (
             "threads",
-            !change
-                .threads
-                .iter()
-                .any(|thread| thread.blocking && !thread.resolved),
+            !change.threads.iter().any(blocking_thread),
             "all blocking threads are resolved, including historical anchors",
         ),
         (
@@ -2085,6 +2135,7 @@ fn checklist_at(
         ready: items.iter().all(|item| item.satisfied),
         items,
         ci_run: latest.map(|ci| ci.run_id.clone()),
+        advisory,
     })
 }
 
@@ -4600,16 +4651,42 @@ mod tests {
         let mut state = ReviewState::default();
         create(&mut state, &mut facts, "c")?;
         vote(&mut state, &mut facts, "bob", VoteValue::NeedsRevision)?;
-        let checks = checklist(&state, "c", &facts)?;
-        assert!(!evidence_item(&checks, "vetoes")?);
+        let mut checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "vetoes")?);
+        assert!(checks.advisory.iter().any(|item| item.key == "agent_veto"));
+        let anchor = facts.anchors.first().required()?.clone();
+        send(
+            &mut state,
+            &mut facts,
+            "bob",
+            Command::StartThread {
+                change: "c".into(),
+                expected_revision: "c-r1".into(),
+                id: "agent-thread".into(),
+                comment_id: "agent-thread-comment".into(),
+                anchor,
+                body: "Agent objection".into(),
+                blocking: true,
+            },
+        )?;
+        checks = checklist(&state, "c", &facts)?;
+        assert!(evidence_item(&checks, "threads")?);
+        assert!(
+            checks
+                .advisory
+                .iter()
+                .any(|item| item.key == "agent_thread")
+        );
         vote(&mut state, &mut facts, "bob", VoteValue::Approve)?;
-        let checks = checklist(&state, "c", &facts)?;
+        checks = checklist(&state, "c", &facts)?;
         assert!(!evidence_item(&checks, "approvals")?);
         assert!(!evidence_item(&checks, "owner:core")?);
         facts.policy.as_mut().required()?.agent_votes = AgentVotes::Binding;
-        let checks = checklist(&state, "c", &facts)?;
+        checks = checklist(&state, "c", &facts)?;
         assert!(evidence_item(&checks, "approvals")?);
         assert!(evidence_item(&checks, "owner:core")?);
+        assert!(!evidence_item(&checks, "threads")?);
+        assert!(checks.advisory.is_empty());
         Ok(())
     }
 

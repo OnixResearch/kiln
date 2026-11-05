@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.agent-objections-advisory.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --lib --offline",
+      "result": "185 passed; advisory agent vote and blocking-thread cases pass, binding mode still blocks"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib --offline",
+      "result": "167 passed; 1 ignored"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test code_review --offline",
+      "result": "26 passed"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/code-review.js",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-core -p kiln-web-service",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "advisory default": "an agent NeedsRevision and an agent-opened blocking thread leave the vetoes and threads items satisfied",
+    "binding": "the same agent thread blocks when agent_votes is binding and the advisory list is empty",
+    "display": "Checklist carries a separate non-binding advisory list and the code-review panel renders it separately",
+    "compatibility": "no persisted review or policy schema was changed"
+  },
+  "non_claims": [
+    "typed check evidence and agent comment outcome rates from issue #35 remain unimplemented",
+    "the advisory list is display evidence and grants no submission, merge, gate, or release authority",
+    "agent identity is trusted shell input and is not independently authenticated by this change"
+  ]
+}
