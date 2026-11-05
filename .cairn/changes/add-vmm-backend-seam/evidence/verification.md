@@ -13,6 +13,8 @@ cold-boot argv.
   explicit network refusal and snapshot refusal.
 - MicroVM library tests: 36 passed, including snapshot identity v2 and Cloud
   Hypervisor pause/snapshot/restore plans.
+- Hosted documentation now states that Cloud Hypervisor phase 1 is plan-only
+  and lists its claims and non-claims.
 - Workspace `--all-targets`: pass.
 - `cairn validate`: zero issues.
 

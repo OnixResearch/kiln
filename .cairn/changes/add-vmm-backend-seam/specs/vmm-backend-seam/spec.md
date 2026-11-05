@@ -20,7 +20,9 @@ reviewed version and binary BLAKE3. Warm snapshot identity MUST be
 changes, so a snapshot is never restored under another VMM identity. The Cloud
 Hypervisor phase-1 plan MUST use one `vm.pause` followed by one `vm.snapshot`
 with a `destination_url`, and restore with `--restore
-source_url=file://...,resume=false`; it MUST NOT pass `--net`.
+source_url=file://...,resume=false`; it MUST NOT pass `--net`. Documentation MUST state that phase 1 is not executable
+and MUST list the absent escape-suite, confinement, latency, CET and
+device-model evidence.
 
 #### Scenario: No guest network
 

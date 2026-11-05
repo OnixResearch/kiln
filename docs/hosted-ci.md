@@ -603,6 +603,28 @@ per-job states and per-step name, state, exit code and stdout. It excludes
 timing, cleanup, signals, stderr (the namespace launcher writes `systemd-run`
 diagnostics there) and backend observations.
 
+### Cloud Hypervisor (phase 1, plan only)
+
+Cloud Hypervisor is **not executable** in this tree yet. The pure core has a
+capability declaration, a cold-boot argv plan, pause/snapshot requests and a
+restore argv plan. No hosted runner accepts `kind = "cloud-hypervisor"`.
+
+Intended phase-1 shape:
+
+- cold boot with `--kernel`, `--initramfs`, `--cmdline`, `--cpus`, `--memory`,
+  a read-only `--disk` source image, `--vsock`, `--seccomp true` and no
+  `--net` or `--api-socket`;
+- warm restore with `--restore source_url=file://…,resume=false`, then a
+  host-side resume only after confinement observation;
+- the same `<vsock>_10240` guest listener and `kiln.microvm.guest.v1` protocol.
+
+Claims if it ships: no guest network device, rootless `systemd-run --user`,
+seccomp, a read-only source disk and the shared vsock protocol.
+
+Non-claims: no escape-suite result, no host confinement observation, no
+measured cold/restore latency, no CET snapshot handling, and no claim that its
+larger device model (PCI, hotplug, VFIO) is as small as Firecracker's.
+
 ### Guest networking (non-goal)
 
 <!-- r[impl kiln.hosted.microvm.network.nongoal] -->

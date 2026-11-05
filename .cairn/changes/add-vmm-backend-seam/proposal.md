@@ -20,6 +20,7 @@ matching a closed runner enum in every consumer.
   capabilities and snapshot identity v2 binding kind/version/binary.
 - Add Cloud Hypervisor pause/snapshot requests and restore argv using the
   pinned API schema.
+- Document Cloud Hypervisor phase-1 claims and non-claims.
 
 ## Impact
 
