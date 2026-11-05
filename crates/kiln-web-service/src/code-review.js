@@ -878,6 +878,7 @@
     } else votes.append(node("p", "No votes recorded.", "cr-muted"));
     card.append(votes);
     drawAdvisory(card, c);
+    drawAgentThreadOutcomes(card, c);
     const rules = disclosure(card, "Review policy and ownership rules");
     facts(rules, [["Policy", policy?.id], ["Eligible reviewers", arr(policy?.eligible_reviewers).join(", ")], ["Required approvals", policy?.minimum_approvals], ["Required CI", policy ? String(policy.require_ci) : "Policy unavailable; submit is blocked"]]);
     const agents = arr(state.snapshot.agent_principals), agentMetadata = state.snapshot.agent_metadata || {};
@@ -903,6 +904,26 @@
       box.append(action);
     }
     card.append(box);
+  }
+  function drawAgentThreadOutcomes(card, c) {
+    const threads = arr(c.threads).filter(thread => thread.agent);
+    if (!threads.length) return;
+    const box = node("div", null, "cr-subsection cr-advisory");
+    box.append(node("h4", "Agent thread outcomes (observation only)"), node("p", "Outcome is derived from the exact resolved revision and touched anchored hunks. It is not review acceptance, merge authority or a quality score.", "cr-muted"));
+    const byAgent = new Map();
+    for (const thread of threads) {
+      const agent = thread.comments?.[0]?.author || "unknown", counts = byAgent.get(agent) || { addressed: 0, dismissed: 0, open: 0, unknown: 0 };
+      if (counts[thread.outcome] != null) counts[thread.outcome] += 1; else counts.unknown += 1;
+      byAgent.set(agent, counts);
+    }
+    const list = node("ul", null, "cr-rows"); list.setAttribute("aria-label", "Agent thread outcomes");
+    for (const [agent, counts] of byAgent) {
+      const decided = counts.addressed + counts.dismissed, rate = decided ? Math.round(counts.addressed * 100 / decided) : 0;
+      const item = node("li", null, "list-row");
+      item.append(principalNode(agent, "cr-row-title cr-principal"), chip(`addressed ${counts.addressed}`), chip(`dismissed ${counts.dismissed}`), chip(`open ${counts.open}`), chip(`unknown ${counts.unknown}`), chip(`addressed ${rate}%`));
+      list.append(item);
+    }
+    box.append(list); card.append(box);
   }
   function drawStack(root) {
     const c = state.detail.change, dependencies = arr(c.dependencies), dependents = arr(state.detail.stack?.dependents), card = panel(root, "Stack and exact dependencies", "stack", dependencies.length + dependents.length > 0);
@@ -1186,7 +1207,7 @@
     const target = host.querySelector(".cr-line-selected"); if (target) target.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (file.truncated) host.append(node("p", "This file is truncated. Missing text cannot be anchored, and this display cannot certify the whole file as reviewed.", "cr-notice"));
     const threadBases = [comparison.old_commit, anchorBaseFor(comparison, selectedRev, "revision")]; const related = arr(state.detail.change.threads).filter(thread => thread.anchor.revision === revision() && threadBases.includes(thread.anchor.base_commit) && [file.old_path, file.new_path].includes(thread.anchor.file));
-    if (related.length) { const threads = node("ul", null, "cr-thread-links"); threads.setAttribute("aria-label", "Threads on this file"); for (const thread of related) { const line = thread.anchor.start_line, li = node("li"); const summary = link(`${thread.resolved ? "Resolved" : "Open"}${thread.blocking ? " blocking" : ""} thread · ${thread.anchor.side} ${line}–${thread.anchor.end_line}`, anchorRoute(thread.anchor)); summary.classList.add("cr-thread-link"); summary.dataset.resolved = String(!!thread.resolved); summary.dataset.blocking = String(!!thread.blocking && !thread.resolved); li.append(summary); threads.append(li); } host.append(threads); }
+    if (related.length) { const threads = node("ul", null, "cr-thread-links"); threads.setAttribute("aria-label", "Threads on this file"); for (const thread of related) { const line = thread.anchor.start_line, li = node("li"); const summary = link(`${thread.resolved ? "Resolved" : "Open"}${thread.blocking ? " blocking" : ""} thread · ${thread.anchor.side} ${line}–${thread.anchor.end_line}`, anchorRoute(thread.anchor)); summary.classList.add("cr-thread-link"); summary.dataset.resolved = String(!!thread.resolved); summary.dataset.blocking = String(!!thread.blocking && !thread.resolved); li.append(summary); if (thread.agent) li.append(chip("Agent")); if (thread.outcome) li.append(chip(`Outcome: ${human(thread.outcome)}`)); threads.append(li); } host.append(threads); }
   }
   function drawDiscussion(root) {
     const c = state.detail.change, card = section(root, "Discussion and drafts", "cr-discussion");
@@ -1197,7 +1218,7 @@
       article.dataset.resolved = String(!!thread.resolved);
       // The exact file and range lead; side and comparison base follow as secondary metadata.
       const where = node("div", null, "cr-row-main"), anchorMeta = node("span", `${human(a.side)} side · base `, "cr-muted"); anchorMeta.append(exactId(a.base_commit)); where.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a), "cr-anchor"), anchorMeta);
-      head.append(where, pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"), chip(thread.blocking ? "Blocking" : "Non-blocking")); article.append(head);
+      head.append(where, pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"), chip(thread.blocking ? "Blocking" : "Non-blocking")); if (thread.agent) head.append(chip("Agent thread")); if (thread.outcome) head.append(chip(`Outcome: ${human(thread.outcome)}`)); article.append(head);
       for (const comment of arr(thread.comments)) { const item = node("div", null, "cr-comment"), byline = node("h4", null, "cr-byline"), author = node("strong"); author.append(principalNode(comment.author)); byline.append(author, " · ", when(comment.created_ms)); item.append(byline, markdown(comment.body)); article.append(item); }
       const actions = node("div", null, "cr-actions");
       const reply = field(article, "Private reply", "textarea", "", [], `reply-${thread.id}`); reply.rows = 2; reply.parentElement.classList.add("cr-reply");

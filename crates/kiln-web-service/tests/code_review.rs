@@ -2137,3 +2137,30 @@ fn service_rejects_ownership_links_to_unknown_projects() -> Result<()> {
     assert!(Workspace::for_service(Some(unknown_evidence), &service).is_err());
     Ok(())
 }
+
+#[test]
+fn agent_thread_outcome_window_is_read_only_and_bounded() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let workspace = fixture.workspace()?;
+    let response = get(
+        &workspace,
+        "/api/code-review/agent-thread-outcomes?start_ms=0&end_ms=1000",
+        ALICE,
+        &[],
+    );
+    assert_eq!(response.status, 200);
+    let value = value(&response)?;
+    assert_eq!(value["schema"], "kiln.code-review.agent-thread-outcomes.v1");
+    assert_eq!(value["agents"], json!([]));
+    assert_eq!(
+        get(
+            &workspace,
+            "/api/code-review/agent-thread-outcomes?start_ms=1000&end_ms=0",
+            ALICE,
+            &[]
+        )
+        .status,
+        400
+    );
+    Ok(())
+}

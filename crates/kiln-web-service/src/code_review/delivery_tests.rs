@@ -80,6 +80,7 @@ fn published(before: &domain::ReviewState, text: &str, id: &str) -> domain::Revi
             anchor: anchor(),
             blocking: false,
             resolved: false,
+            resolved_revision: None,
             comments: vec![domain::Comment {
                 id: id.into(),
                 author: "alice".into(),

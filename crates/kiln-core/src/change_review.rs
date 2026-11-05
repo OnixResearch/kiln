@@ -333,6 +333,10 @@ pub struct Thread {
     pub anchor: Anchor,
     pub blocking: bool,
     pub resolved: bool,
+    /// Revision on which the thread was most recently resolved, for outcome
+    /// observation. Omitted on old journals and while open.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_revision: Option<String>,
     pub comments: Vec<Comment>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -2528,6 +2532,7 @@ pub fn apply(
                 anchor,
                 blocking,
                 resolved: false,
+                resolved_revision: None,
                 comments: alloc::vec![Comment {
                     id: comment_id,
                     author: actor.into(),
@@ -2604,19 +2609,25 @@ pub fn apply(
                     "only owner or thread author may resolve or reopen",
                 );
             }
+            let resolved_revision = if resolved {
+                Some(current.current()?.id.clone())
+            } else {
+                None
+            };
             let current = state.changes.get_mut(&change).ok_or_else(|| ReviewError {
                 code: "invalid_state".into(),
                 message: "validated change".into(),
             })?;
-            current
+            let item = current
                 .threads
                 .iter_mut()
                 .find(|item| item.id == thread)
                 .ok_or_else(|| ReviewError {
                     code: "invalid_state".into(),
                     message: "validated thread".into(),
-                })?
-                .resolved = resolved;
+                })?;
+            item.resolved = resolved;
+            item.resolved_revision = resolved_revision;
             current.candidate = None;
             notification = Some((change, "thread_resolution"));
         }
@@ -2760,6 +2771,7 @@ pub fn apply(
                         anchor: draft.anchor,
                         blocking: draft.blocking,
                         resolved: false,
+                        resolved_revision: None,
                         comments: alloc::vec![comment],
                     });
                 }

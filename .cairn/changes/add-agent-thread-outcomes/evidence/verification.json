@@ -1,0 +1,45 @@
+{
+  "schema": "kiln.agent-thread-outcomes.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --lib outcome_tests --offline",
+      "result": "1 passed; addressed/dismissed/open/unknown anchored-hunk cases"
+    },
+    {
+      "command": "cargo test -p kiln-core --lib --offline",
+      "result": "187 passed; resolution revision persists and old thread bytes remain compatible"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib --offline",
+      "result": "168 passed; 1 ignored"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test code_review --offline",
+      "result": "27 passed, including bounded read-only outcome endpoint"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/code-review.js",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-core -p kiln-web-service",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "resolution": "threads record the exact revision used to resolve them; open threads omit the field",
+    "outcomes": "addressed requires a same-base later revision with an overlapping anchored-side hunk; no overlap is dismissed; unavailable history is unknown",
+    "display": "thread detail carries agent/outcome and the review panel aggregates per-agent counts and addressed rate",
+    "window": "the bounded endpoint returns per-agent counts for agent threads created in the half-open window"
+  },
+  "non_claims": [
+    "outcome observation does not prove agent usefulness, review quality, or change correctness",
+    "rebased revisions and unavailable comparisons stay unknown rather than guessing",
+    "outcomes grant no review acceptance, merge, gate, or release authority"
+  ]
+}

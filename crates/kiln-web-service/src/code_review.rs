@@ -26,6 +26,8 @@ mod model;
 pub mod noise;
 #[cfg(test)]
 mod noise_advisory_tests;
+#[cfg(test)]
+mod outcome_tests;
 pub mod queue;
 mod speculation;
 mod store;
@@ -58,6 +60,7 @@ const MAX_OPERATIONS: usize = 4000;
 const MAX_ANCHOR_SPAN: u32 = 1000;
 const RESERVATION_STATE_BYTES: usize = 12 * 1024 * 1024;
 const CHANGE_PAGE_SIZE: usize = 25;
+const MAX_THREAD_OUTCOME_COMPARISONS: usize = 64;
 const NOTIFICATION_PAGE_SIZE: usize = 200;
 const OPERATION_PAGE_SIZE: usize = 100;
 const CI_RUNS_PER_REVISION: usize = 25;
@@ -592,6 +595,7 @@ impl Workspace {
                 | "/api/code-review/commands"
                 | "/api/code-review/targets"
                 | "/api/code-review/review-window"
+                | "/api/code-review/agent-thread-outcomes"
         ) && !detail_route
         {
             return reject(404, "route_missing");
@@ -627,7 +631,9 @@ impl Workspace {
         } else {
             None
         };
-        let window_range = if path == "/api/code-review/review-window" {
+        let window_range = if path == "/api/code-review/review-window"
+            || path == "/api/code-review/agent-thread-outcomes"
+        {
             Some(review_window_range(&query)?)
         } else {
             None
@@ -654,6 +660,16 @@ impl Workspace {
         self.recover(&context, &mut store, &mut state)?;
         if let Some(request) = request {
             return self.command(&context, &mut store, &mut state, request, request_context);
+        }
+        if path == "/api/code-review/agent-thread-outcomes" {
+            let (start_ms, end_ms) = window_range.ok_or(Failure::Unavailable)?;
+            return response(agent_thread_outcomes(
+                &provider,
+                &state.review,
+                profile,
+                start_ms,
+                end_ms,
+            ));
         }
         if let Some((start_ms, end_ms)) = window_range {
             // r[impl kiln.observe.review.window]
@@ -858,8 +874,16 @@ impl Workspace {
             })
             .collect();
         let agents: BTreeSet<String> = profile.agent_principals.iter().cloned().collect();
+        let thread_outcomes: BTreeMap<String, &'static str> = change
+            .threads
+            .iter()
+            .filter(|thread| {
+                first_thread_author(thread).is_some_and(|author| agents.contains(author))
+            })
+            .map(|thread| (thread.id.clone(), thread_outcome(&provider, change, thread)))
+            .collect();
         response(
-            json!({"change":enriched(change,&state,principal,&agents,&profile.agent_metadata),"agent_votes":facts.policy.as_ref().map(|policy| policy.agent_votes).unwrap_or_default(),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
+            json!({"change":enriched(change,&state,principal,&agents,&profile.agent_metadata,&thread_outcomes),"agent_votes":facts.policy.as_ref().map(|policy| policy.agent_votes).unwrap_or_default(),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
                 "subscribed":delivery::subscribed(&state.delivery,principal,id),"delivery_outcomes":delivery::outcomes(&state.delivery,principal,id),
                 "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some(),
                 "noise":noise::published(profile.review.as_ref()),
@@ -1239,6 +1263,163 @@ fn source_fact(
         changed_files: None,
     }
 }
+fn first_thread_author(thread: &domain::Thread) -> Option<&str> {
+    thread
+        .comments
+        .first()
+        .map(|comment| comment.author.as_str())
+}
+
+fn side_path<'a>(file: &'a DiffFile, side: domain::Side) -> Option<&'a str> {
+    match side {
+        domain::Side::Base => file.old_path.as_deref().or(file.new_path.as_deref()),
+        domain::Side::Revision => file.new_path.as_deref().or(file.old_path.as_deref()),
+    }
+}
+
+fn hunk_overlaps(hunk: &DiffHunk, side: domain::Side, start: u32, end: u32) -> bool {
+    let (first, lines) = match side {
+        domain::Side::Base => (hunk.old_start, hunk.old_lines),
+        domain::Side::Revision => (hunk.new_start, hunk.new_lines),
+    };
+    if lines == 0 {
+        return false;
+    }
+    let last = first.saturating_add(lines.saturating_sub(1));
+    first <= end && last >= start
+}
+
+fn thread_outcome<P: ChangeReviewPort>(
+    provider: &P,
+    change: &domain::Change,
+    thread: &domain::Thread,
+) -> &'static str {
+    if !thread.resolved {
+        return "open";
+    }
+    let Some(resolved_revision) = thread.resolved_revision.as_deref() else {
+        return "unknown";
+    };
+    let Some(anchor_index) = change
+        .revisions
+        .iter()
+        .position(|revision| revision.id == thread.anchor.revision)
+    else {
+        return "unknown";
+    };
+    let Some(resolved_index) = change
+        .revisions
+        .iter()
+        .position(|revision| revision.id == resolved_revision)
+    else {
+        return "unknown";
+    };
+    if resolved_index < anchor_index {
+        return "unknown";
+    }
+    if resolved_index == anchor_index {
+        return "dismissed";
+    }
+    let mut compared = false;
+    let mut comparisons = 0usize;
+    for revision in &change.revisions[anchor_index + 1..=resolved_index] {
+        if revision.base != thread.anchor.base_commit {
+            continue;
+        }
+        comparisons += 1;
+        if comparisons > MAX_THREAD_OUTCOME_COMPARISONS {
+            return "unknown";
+        }
+        let Ok(comparison) = provider.compare(&CompareRequest {
+            old_commit: thread.anchor.base_commit.clone(),
+            new_commit: revision.commit.clone(),
+            limits: DiffLimits::default(),
+            whitespace: WhitespaceMode::Exact,
+        }) else {
+            return "unknown";
+        };
+        compared = true;
+        for file in &comparison.files {
+            if side_path(file, thread.anchor.side) != Some(thread.anchor.file.as_str()) {
+                continue;
+            }
+            if file.hunks.iter().any(|hunk| {
+                hunk_overlaps(
+                    hunk,
+                    thread.anchor.side,
+                    thread.anchor.start_line,
+                    thread.anchor.end_line,
+                )
+            }) {
+                return "addressed";
+            }
+        }
+    }
+    if compared { "dismissed" } else { "unknown" }
+}
+
+fn agent_thread_outcomes<P: ChangeReviewPort>(
+    provider: &P,
+    review: &domain::ReviewState,
+    profile: &Profile,
+    start_ms: i64,
+    end_ms: i64,
+) -> Value {
+    let agents: BTreeSet<&str> = profile
+        .agent_principals
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let mut counts: BTreeMap<&str, [u32; 4]> = BTreeMap::new();
+    for change in review.changes.values() {
+        for thread in &change.threads {
+            let Some(agent) = first_thread_author(thread).filter(|agent| agents.contains(agent))
+            else {
+                continue;
+            };
+            let Some(first) = thread.comments.first() else {
+                continue;
+            };
+            if first.created_ms < start_ms || first.created_ms >= end_ms {
+                continue;
+            }
+            let slot = counts.entry(agent).or_default();
+            match thread_outcome(provider, change, thread) {
+                "addressed" => slot[0] = slot[0].saturating_add(1),
+                "dismissed" => slot[1] = slot[1].saturating_add(1),
+                "open" => slot[2] = slot[2].saturating_add(1),
+                _ => slot[3] = slot[3].saturating_add(1),
+            }
+        }
+    }
+    let agents: Vec<Value> = counts
+        .into_iter()
+        .map(|(agent, [addressed, dismissed, open, unknown])| {
+            let decided = addressed.saturating_add(dismissed);
+            let addressed_rate_bps = if decided == 0 {
+                0
+            } else {
+                u32::try_from(u64::from(addressed) * 10_000 / u64::from(decided)).unwrap_or(0)
+            };
+            json!({
+                "agent": agent,
+                "addressed": addressed,
+                "dismissed": dismissed,
+                "open": open,
+                "unknown": unknown,
+                "addressed_rate_bps": addressed_rate_bps,
+            })
+        })
+        .collect();
+    json!({
+        "schema": "kiln.code-review.agent-thread-outcomes.v1",
+        "start_ms": start_ms,
+        "end_ms": end_ms,
+        "agents": agents,
+        "non_claim": "Observation only; addressed/dismissed counts grant no review, merge, gate, or release authority.",
+    })
+}
+
 // r[impl kiln.review.authorship]
 fn enriched(
     change: &domain::Change,
@@ -1246,6 +1427,7 @@ fn enriched(
     principal: &str,
     agents: &BTreeSet<String>,
     agent_metadata: &BTreeMap<String, domain::AgentIdentity>,
+    thread_outcomes: &BTreeMap<String, &'static str>,
 ) -> Value {
     let reviewed: Vec<_> = domain::reviewed(change, principal).collect();
     let reviewed_hunks: Vec<_> = domain::reviewed_hunks(change, principal).collect();
@@ -1267,6 +1449,32 @@ fn enriched(
             })
         })
         .collect();
+    let threads: Vec<Value> = change
+        .threads
+        .iter()
+        .map(|thread| {
+            let mut value = serde_json::to_value(thread).unwrap_or(Value::Null);
+            if let Some(object) = value.as_object_mut() {
+                object.insert(
+                    "agent".into(),
+                    Value::Bool(
+                        first_thread_author(thread).is_some_and(|agent| agents.contains(agent)),
+                    ),
+                );
+                object.insert(
+                    "outcome".into(),
+                    Value::String(
+                        thread_outcomes
+                            .get(&thread.id)
+                            .copied()
+                            .unwrap_or("unknown")
+                            .into(),
+                    ),
+                );
+            }
+            value
+        })
+        .collect();
     let votes: Vec<Value> = change
         .votes
         .iter()
@@ -1278,7 +1486,7 @@ fn enriched(
         "project":change.project,"repository":change.repository,"target_ref":change.target_ref,
         "owner":change.owner,"title":change.title,"description":change.description,"state":change.state,
         "wip":change.wip,"authorship":domain::authorship_class(change),"revisions":change.revisions,"reviewers":change.reviewers,"agent_reviewers":agent_reviewers,"agent_reviewer_metadata":agent_reviewer_metadata,"votes":votes,
-        "threads":change.threads,"reviewed":reviewed,"reviewed_hunks":reviewed_hunks,
+        "threads":threads,"reviewed":reviewed,"reviewed_hunks":reviewed_hunks,
         "last_viewed":change.last_viewed.get(principal),"attention":change.attention,
         "dependencies":change.dependencies,"candidate":change.candidate,"submission":change.submission,
         "maintenance":change.maintenance,

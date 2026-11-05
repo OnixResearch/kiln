@@ -3495,7 +3495,10 @@ Each exact CI fact may also carry typed checks (`name`, `kind`, `outcome`,
 optional artifact digest) derived from the run's nodes and retained reports.
 Policies may require a known check kind or name; only a passing check on the
 exact winning commit satisfies it. Checks are evidence, not gate or release
-authority.
+authority. Agent-opened threads are annotated `open`, `addressed`, `dismissed`,
+or `unknown`; addressed requires a later same-base revision whose exact hunk
+overlaps the anchor before resolution. A read-only window view is available at
+`GET /api/code-review/agent-thread-outcomes?start_ms=<ms>&end_ms=<ms>`.
 
 Markdown uses DOM text nodes, safe inline formatting and fenced code (shown
 plain); supplied HTML does not execute. The diff is highlighted by the
