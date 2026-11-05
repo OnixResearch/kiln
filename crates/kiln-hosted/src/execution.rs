@@ -88,6 +88,9 @@ pub enum Backend {
         /// Reviewed physical-host identity used for static co-residency checks.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         host_identity: Option<String>,
+        /// Reviewed CPU list for this runner's VMM, e.g. `0-3,8,10-11`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cpu_affinity: Option<String>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -126,6 +129,9 @@ pub struct PricingPolicy {
 pub struct Config {
     pub systemd_run: Executable,
     pub systemctl: Executable,
+    /// Absolute taskset path; required only when a Firecracker runner pins CPUs.
+    #[serde(default)]
+    pub taskset: Option<Executable>,
     pub manager_runtime_directory: PathBuf,
     #[serde(default)]
     pub workload: Vec<WorkloadPolicy>,
@@ -145,6 +151,35 @@ pub struct Config {
     pub maximum_timeout_ms: u64,
     pub maximum_output_bytes: usize,
 }
+fn valid_cpu_affinity(value: &str) -> bool {
+    if value.is_empty() || value.len() > 256 || value.contains('\0') {
+        return false;
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for item in value.split(',') {
+        let mut range = item.split('-');
+        let Some(start) = range.next().and_then(|v| v.parse::<u32>().ok()) else {
+            return false;
+        };
+        let end = match range.next() {
+            Some(end) => match end.parse::<u32>() {
+                Ok(end) => end,
+                Err(_) => return false,
+            },
+            None => start,
+        };
+        if range.next().is_some() || start > end || end > 4095 {
+            return false;
+        }
+        for cpu in start..=end {
+            if !seen.insert(cpu) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 fn validate_trust_domains(
     runners: &std::collections::BTreeMap<String, Backend>,
     workload: &[WorkloadPolicy],
@@ -157,6 +192,7 @@ fn validate_trust_domains(
         if let Backend::Firecracker {
             trust_domain,
             host_identity,
+            cpu_affinity,
             untrusted_capable,
             ..
         } = backend
@@ -167,6 +203,11 @@ fn validate_trust_domains(
                 })
             {
                 return Err("untrusted-capable Firecracker runner needs a trust domain".into());
+            }
+            if let Some(affinity) = cpu_affinity
+                && !valid_cpu_affinity(affinity)
+            {
+                return Err("invalid Firecracker CPU affinity".into());
             }
             if *untrusted_capable
                 && host_identity.as_ref().is_none_or(|host| {
@@ -225,6 +266,20 @@ impl Config {
         self.systemd_run.verify()?;
         self.systemctl.verify()?;
         self.env.verify()?;
+        if self.runners.values().any(|backend| {
+            matches!(
+                backend,
+                Backend::Firecracker {
+                    cpu_affinity: Some(_),
+                    ..
+                }
+            )
+        }) {
+            self.taskset
+                .as_ref()
+                .ok_or("CPU affinity requires a configured taskset")?
+                .verify()?;
+        }
         if let Some(cache) = &self.cache {
             cache.validate(&self.work_root)?;
             if cache
@@ -2724,5 +2779,16 @@ mod tests {
             }],
         };
         assert!(reserve_placements(&db, "acme", "next", &plan, "app", &config, true, 2).is_err());
+    }
+    #[test]
+    fn cpu_affinity_is_bounded_and_duplicate_free() {
+        assert!(valid_cpu_affinity("0"));
+        assert!(valid_cpu_affinity("0-3,8,10-11"));
+        assert!(!valid_cpu_affinity(""));
+        assert!(!valid_cpu_affinity("3-1"));
+        assert!(!valid_cpu_affinity("0-3,3"));
+        assert!(!valid_cpu_affinity("4096"));
+        assert!(!valid_cpu_affinity("a"));
+        assert!(!valid_cpu_affinity("0,,1"));
     }
 }

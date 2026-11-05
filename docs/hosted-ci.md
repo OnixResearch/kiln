@@ -575,7 +575,10 @@ receipt records the other same-attempt jobs with the same declared host. A
 durable placement ledger rejects an active cross-attempt overlap between
 untrusted and workload-bearing jobs on one declared host before finance or
 process effects. It does not observe host state outside Kiln or prove the host
-label is truthful.
+label is truthful. A Firecracker runner may also name a reviewed `cpu_affinity`
+list (for example `0-3,8`); Kiln starts the VMM through the configured `taskset`
+and records the list in `vm.cpu_affinity`. This pins the VMM process, not guest
+vCPUs or cache partitions.
 
 It does **not** claim:
 - hostile multi-tenant or production qualification;

@@ -10,6 +10,7 @@
 //! The Firecracker jailer is not used: it needs root for chroot, cgroup and uid
 //! changes. Firecracker runs unprivileged in the user-manager unit with its
 //! built-in seccomp filters.
+use std::ffi::OsString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, ErrorKind, Read, Write};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
@@ -150,6 +151,7 @@ pub(crate) struct Runner<'a> {
     pub(crate) debug_hold: Option<&'a DebugHoldPolicy>,
     pub(crate) trust_domain: Option<&'a str>,
     pub(crate) host_identity: Option<&'a str>,
+    pub(crate) cpu_affinity: Option<&'a str>,
 }
 
 impl<'a> Runner<'a> {
@@ -162,6 +164,7 @@ impl<'a> Runner<'a> {
             debug_hold,
             trust_domain,
             host_identity,
+            cpu_affinity,
             ..
         } = backend
         else {
@@ -176,6 +179,7 @@ impl<'a> Runner<'a> {
             debug_hold: debug_hold.as_ref(),
             trust_domain: trust_domain.as_deref(),
             host_identity: host_identity.as_deref(),
+            cpu_affinity: cpu_affinity.as_deref(),
         })
     }
 }
@@ -411,10 +415,23 @@ fn spawn_vmm<'scope>(
     config: &'scope Config,
     unit: &str,
     timeout_ms: u64,
+    affinity: Option<&str>,
     arguments: Vec<String>,
     stop: &'scope AtomicBool,
 ) -> Result<Vmm<'scope>, String> {
     let mut service = unit_command(config, unit, timeout_ms, true)?;
+    if let Some(affinity) = affinity {
+        let taskset = config
+            .taskset
+            .as_ref()
+            .ok_or("CPU affinity requires a configured taskset")?
+            .verify()?;
+        service.extend([
+            taskset.into_os_string(),
+            OsString::from("-c"),
+            OsString::from(affinity),
+        ]);
+    }
     service.extend(arguments.into_iter().map(Into::into));
     let request = manager_request(
         config,
@@ -880,6 +897,7 @@ fn build_snapshot(
             config,
             job.unit,
             job.timeout_ms,
+            runner.cpu_affinity.as_deref(),
             vec![
                 text(&paths.firecracker)?.into(),
                 "--api-sock".into(),
@@ -1275,6 +1293,9 @@ pub(crate) fn run_job(
     if let Some(host) = runner.host_identity {
         observe("host_identity", json!(host));
     }
+    if let Some(affinity) = runner.cpu_affinity {
+        observe("cpu_affinity", json!(affinity));
+    }
     observe(
         "attempt_co_residency",
         json!(
@@ -1378,7 +1399,15 @@ pub(crate) fn run_job(
             let stop = AtomicBool::new(false);
             std::thread::scope(|scope| -> Result<(), String> {
                 let spawned = Instant::now();
-                let vmm = spawn_vmm(scope, config, job.unit, unit_timeout_ms, arguments, &stop)?;
+                let vmm = spawn_vmm(
+                    scope,
+                    config,
+                    job.unit,
+                    unit_timeout_ms,
+                    runner.cpu_affinity.as_deref(),
+                    arguments,
+                    &stop,
+                )?;
                 lifecycle.advance(Event::Spawned)?;
                 let served = (|| -> Result<UnixStream, String> {
                     if let Some(held) = &slot {

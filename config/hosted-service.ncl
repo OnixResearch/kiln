@@ -177,6 +177,7 @@ in
 let Execution = {
   systemd_run | Executable,
   systemctl | Executable,
+  taskset | Executable | optional,
   manager_runtime_directory | c.AbsolutePath,
   cache | c.Nullable Cache | default = null,
   trusted_projects

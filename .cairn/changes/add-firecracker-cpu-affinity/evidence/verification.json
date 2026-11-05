@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.firecracker-cpu-affinity.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {"command":"cargo test -p kiln-hosted --lib --offline","result":"65 passed"},
+    {"command":"cargo check --workspace --all-targets --offline","result":"pass"},
+    {"command":"nickel typecheck config/hosted-service.ncl config/hosted-execution.ncl","result":"pass"},
+    {"command":"cairn validate --root .","result":"valid; 0 issues"}
+  ],
+  "acceptance": {
+    "configuration": "optional cpu_affinity and taskset fields are typed",
+    "validation": "CPU lists are bounded, duplicate-free and require taskset",
+    "execution": "spawn_vmm prefixes the VMM with taskset -c <list>",
+    "receipt": "vm.cpu_affinity records the reviewed list"
+  },
+  "non_claims": [
+    "taskset pins the VMM process, not guest vCPU placement",
+    "cache and LLC partitioning and covert-channel measurement remain open",
+    "a host with fewer CPUs than the list fails at execution time"
+  ]
+}

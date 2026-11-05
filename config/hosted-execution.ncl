@@ -79,6 +79,15 @@ let Backend = {
   trust_domain | String | optional,
   # Reviewed physical host; untrusted and workload-bearing runners must differ.
   host_identity | String | optional,
+  # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
+  cpu_affinity
+    | std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 256
+      && !(std.string.is_match "\\x00" value)
+    )
+    | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
   qualification_identity | Dyn | optional,
@@ -89,6 +98,7 @@ fun input =>
     | {
       systemd_run | Immutable,
       systemctl | Immutable,
+      taskset | Immutable | optional,
       env | Immutable,
       manager_runtime_directory | Absolute,
       # Only externally acquired customer snapshots below organization/project may
