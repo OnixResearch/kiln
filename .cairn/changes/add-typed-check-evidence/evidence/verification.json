@@ -1,0 +1,49 @@
+{
+  "schema": "kiln.typed-check-evidence.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --lib --offline",
+      "result": "187 passed; exact-commit/kind requirement and policy validation tests pass"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib --offline",
+      "result": "167 passed; 1 ignored"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test code_review --offline",
+      "result": "26 passed"
+    },
+    {
+      "command": "cargo check -p kiln-web-service --all-targets --offline",
+      "result": "pass"
+    },
+    {
+      "command": "cargo check --workspace --all-targets --offline",
+      "result": "pass"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/code-review.js",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-core -p kiln-web-service",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "exact checks": "run nodes and reports become typed checks bound to the exact CI commit",
+    "policy": "required kind/name is satisfied only by a passing check on the exact reviewed commit",
+    "display": "the Canonical CI panel shows name, kind, outcome and artifact digest",
+    "compatibility": "checks and required_checks are omitted when empty, preserving old serialized bytes"
+  },
+  "non_claims": [
+    "agent comment outcome measurement from issue #35 remains unimplemented",
+    "typed checks are evidence and do not grant gate, merge, or release authority",
+    "node kind is used as the check kind; policies only admit test, property, differential, proof, and build"
+  ]
+}

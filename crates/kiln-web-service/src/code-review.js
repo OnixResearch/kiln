@@ -754,6 +754,17 @@
       const gate = ui().untrustedSummary(fact.untrusted);
       if (gate) tags.append(pill(gate.state, "Untrusted run", gate.stateLabel, gate.tone));
       row.append(head, tags);
+      const checks = arr(fact.checks);
+      if (checks.length) {
+        const list = node("ul", null, "cr-rows"); list.setAttribute("aria-label", `Typed checks for run ${fact.run_id}`);
+        for (const check of checks) {
+          const item = node("li", null, "list-row");
+          item.append(node("span", `${check.name} · ${human(check.kind)}`, "cr-row-title"), pill(check.outcome, "Check outcome", human(check.outcome), check.outcome === "pass" ? "success" : check.outcome === "fail" ? "failure" : "warning"));
+          item.append(check.artifact_digest ? exactId(check.artifact_digest) : chip("No artifact digest"));
+          list.append(item);
+        }
+        row.append(list);
+      }
       if (gate) row.append(node("p", untrustedNote(gate), "cr-muted"));
       card.append(row);
     }

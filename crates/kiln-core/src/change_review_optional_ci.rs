@@ -97,6 +97,8 @@ mod tests {
             ownership: OwnershipPolicy::default(),
             optional_ci,
             agent_votes: AgentVotes::Advisory,
+
+            required_checks: Vec::new(),
         }
     }
 
@@ -234,6 +236,8 @@ mod tests {
             scope_identity: None,
             terminal: true,
             untrusted: None,
+
+            checks: Vec::new(),
         });
         assert!(!ci_satisfied(&reviewed, &failed));
     }

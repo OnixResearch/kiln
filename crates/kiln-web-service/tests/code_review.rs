@@ -82,6 +82,8 @@ impl Fixture {
                 ownership: Default::default(),
                 optional_ci: Vec::new(),
                 agent_votes: kiln_core::change_review::AgentVotes::Advisory,
+
+                required_checks: Vec::new(),
             },
             read_principals: vec![ALICE.into(), BOB.into(), CAROL.into()],
             write_principals: vec![ALICE.into(), BOB.into(), CAROL.into()],
@@ -118,6 +120,8 @@ impl Fixture {
             scope_identity: None,
             terminal: true,
             untrusted: None,
+
+            checks: Vec::new(),
         }
     }
     fn target(&self, target: &str) -> Result<String> {
@@ -1613,6 +1617,7 @@ fn monorepo_review_requires_current_scope_ci_for_each_affected_project() -> Resu
         run_id: format!("{project}-{ordinal}"),
         scope_identity: scope,
         terminal: success,
+        checks: Vec::new(),
         ..fixture.ci(&fixture.first, ordinal, success)
     };
     let state = |rows: &[Value], id: &str| {

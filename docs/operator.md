@@ -3491,6 +3491,11 @@ most 128, omitted when zero). The review-friction view reports
 `advisory_approvals` and `advised_changes` per authorship class, rendered
 identically by both shells and the dashboard as non-binding counts. Windows and
 view identities without advisory approvals are byte-identical to earlier ones.
+Each exact CI fact may also carry typed checks (`name`, `kind`, `outcome`,
+optional artifact digest) derived from the run's nodes and retained reports.
+Policies may require a known check kind or name; only a passing check on the
+exact winning commit satisfies it. Checks are evidence, not gate or release
+authority.
 
 Markdown uses DOM text nodes, safe inline formatting and fenced code (shown
 plain); supplied HTML does not execute. The diff is highlighted by the

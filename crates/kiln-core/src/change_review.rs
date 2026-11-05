@@ -33,6 +33,14 @@ fn fail<T>(code: &str, message: &str) -> ReviewResult<T> {
     })
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CiCheck {
+    pub name: String,
+    pub kind: String,
+    pub outcome: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_digest: Option<String>,
+}
 /// Canonical engine evidence, never request-body evidence. Latest exact-source run wins.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CiFact {
@@ -53,6 +61,9 @@ pub struct CiFact {
     /// Untrusted pull-request run gate projection; absent for trusted runs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub untrusted: Option<crate::untrusted::UntrustedSummary>,
+    /// Typed checks observed for this exact CI run; omitted when none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub checks: Vec<CiCheck>,
 }
 fn terminal_default() -> bool {
     true
@@ -539,6 +550,13 @@ impl AgentVotes {
 /// No default policy: missing policy blocks submission. All identities are explicit.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct CheckRequirement {
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Policy {
     pub id: String,
     pub eligible_reviewers: BTreeSet<String>,
@@ -556,6 +574,9 @@ pub struct Policy {
     /// items. Defaults to advisory; absence serializes unchanged.
     #[serde(default, skip_serializing_if = "AgentVotes::is_advisory")]
     pub agent_votes: AgentVotes,
+    /// Typed checks required on the exact winning CI run. Omitted preserves old bytes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_checks: Vec<CheckRequirement>,
 }
 
 #[path = "change_review_optional_ci.rs"]
@@ -1124,6 +1145,22 @@ pub fn validate_policy(policy: &Policy) -> ReviewResult<()> {
         return fail(
             "invalid_policy",
             "policy needs attributable reviewers, submitters and achievable approvals",
+        );
+    }
+    let mut required_checks = BTreeSet::new();
+    if policy.required_checks.len() > 16
+        || policy.required_checks.iter().any(|requirement| {
+            !matches!(
+                requirement.kind.as_str(),
+                "test" | "property" | "differential" | "proof" | "build"
+            ) || requirement.name.as_ref().is_some_and(|name| {
+                name.trim().is_empty() || name.trim() != name || name.len() > 128
+            }) || !required_checks.insert((requirement.kind.as_str(), requirement.name.as_deref()))
+        })
+    {
+        return fail(
+            "invalid_policy",
+            "required typed checks need unique known kinds and bounded names",
         );
     }
     for (team, members) in &policy.ownership.teams {
@@ -1908,7 +1945,23 @@ fn checklist_at(
             (primary.or(first), all)
         }
     };
-    let ci_ok = policy.is_some_and(|p| !p.require_ci || required_ok);
+    let checks_ok = policy.is_none_or(|policy| {
+        policy.required_checks.iter().all(|requirement| {
+            facts.ci.iter().any(|ci| {
+                ci.repository == change.repository
+                    && ci.revision == ci_commit
+                    && ci.checks.iter().any(|check| {
+                        check.kind == requirement.kind
+                            && check.outcome == "pass"
+                            && requirement
+                                .name
+                                .as_deref()
+                                .is_none_or(|name| check.name == name)
+                    })
+            })
+        })
+    });
+    let ci_ok = policy.is_some_and(|p| !p.require_ci || (required_ok && checks_ok));
     let dependencies_ok = dependency_valid(state, change, &change.dependencies).is_ok()
         && change.dependencies.iter().all(|dep| {
             state.changes.get(&dep.change).is_some_and(|node| {
@@ -2130,6 +2183,13 @@ fn checklist_at(
                 }
             }
         }
+    }
+    if policy.is_some_and(|policy| !policy.required_checks.is_empty()) {
+        items.push(ChecklistItem {
+            key: "checks".into(),
+            satisfied: checks_ok,
+            detail: "required typed checks passed on the exact winning CI run".into(),
+        });
     }
     Ok(Checklist {
         ready: items.iter().all(|item| item.satisfied),
@@ -3186,6 +3246,8 @@ mod tests {
                 ownership: OwnershipPolicy::default(),
                 optional_ci: Vec::new(),
                 agent_votes: AgentVotes::Advisory,
+
+                required_checks: Vec::new(),
             }),
             source: Some(SourceFact {
                 project: "project".into(),
@@ -3212,6 +3274,8 @@ mod tests {
                 scope_identity: None,
                 terminal: true,
                 untrusted: None,
+
+                checks: Vec::new(),
             }],
             anchors: vec![Anchor {
                 revision: "c-r1".into(),
@@ -3787,6 +3851,7 @@ mod tests {
                 _ => changed.ci.push(CiFact {
                     ordinal: 2,
                     success: false,
+                    checks: Vec::new(),
                     ..changed.ci.first().required()?.clone()
                 }),
             }
@@ -3838,6 +3903,7 @@ mod tests {
             run_id: "run-web".into(),
             ordinal: 2,
             scope_identity: Some("scope-2".into()),
+            checks: Vec::new(),
             ..primary.clone()
         });
         assert!(!checklist(&state, "c", &facts)?.ready);
@@ -3847,6 +3913,7 @@ mod tests {
             run_id: "run-api-old".into(),
             ordinal: 3,
             scope_identity: Some("scope-1".into()),
+            checks: Vec::new(),
             ..primary.clone()
         });
         assert!(!checklist(&state, "c", &facts)?.ready);
@@ -3858,6 +3925,7 @@ mod tests {
             scope_identity: Some("scope-2".into()),
             success: false,
             terminal: false,
+            checks: Vec::new(),
             ..primary.clone()
         });
         assert!(!checklist(&state, "c", &facts)?.ready);
@@ -3866,6 +3934,7 @@ mod tests {
             run_id: "run-api-2".into(),
             ordinal: 5,
             scope_identity: Some("scope-2".into()),
+            checks: Vec::new(),
             ..primary
         });
         let checks = checklist(&state, "c", &facts)?;
@@ -4429,6 +4498,8 @@ mod tests {
             scope_identity: None,
             terminal: true,
             untrusted: None,
+
+            checks: Vec::new(),
         });
         let mut state = ReviewState::default();
         create(&mut state, &mut facts, "c")?;
@@ -4691,6 +4762,59 @@ mod tests {
     }
 
     #[test]
+    fn typed_check_requirements_reject_unknown_or_duplicate_kinds() -> ReviewResult<()> {
+        let (_, mut facts) = setup()?;
+        let policy = facts.policy.as_mut().required()?;
+        policy.required_checks = vec![CheckRequirement {
+            kind: "property".into(),
+            name: None,
+        }];
+        assert!(validate_policy(policy).is_ok());
+        policy.required_checks[0].kind = "unknown".into();
+        assert_eq!(
+            validate_policy(policy).err().required()?.code,
+            "invalid_policy"
+        );
+        policy.required_checks = vec![
+            CheckRequirement {
+                kind: "test".into(),
+                name: Some("unit".into()),
+            },
+            CheckRequirement {
+                kind: "test".into(),
+                name: Some("unit".into()),
+            },
+        ];
+        assert_eq!(
+            validate_policy(policy).err().required()?.code,
+            "invalid_policy"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn required_typed_checks_bind_exact_commit_and_kind() -> ReviewResult<()> {
+        let (state, mut facts) = setup()?;
+        facts.policy.as_mut().required()?.required_checks = vec![CheckRequirement {
+            kind: "property".into(),
+            name: Some("property-suite".into()),
+        }];
+        facts.ci[0].checks = vec![CiCheck {
+            name: "property-suite".into(),
+            kind: "property".into(),
+            outcome: "pass".into(),
+            artifact_digest: None,
+        }];
+        assert!(evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        facts.ci[0].checks[0].kind = "test".into();
+        assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        facts.ci[0].checks[0].kind = "property".into();
+        facts.ci[0].revision = "other-commit".into();
+        assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        Ok(())
+    }
+
+    #[test]
     fn legacy_principal_only_attestation_deserializes() {
         let mut value = serde_json::to_value(revision("c-r1", 1, "commit-c"))
             .unwrap_or_else(|error| unreachable!("fixture failed: {error}"));
@@ -4841,6 +4965,8 @@ mod tests {
             scope_identity: None,
             terminal: true,
             untrusted: None,
+
+            checks: Vec::new(),
         });
         facts.ci.push(CiFact {
             project: "web".into(),
@@ -4854,6 +4980,8 @@ mod tests {
             scope_identity: None,
             terminal: true,
             untrusted: None,
+
+            checks: Vec::new(),
         });
         let policy = facts.policy.as_mut().required()?;
         policy.require_ci = false;

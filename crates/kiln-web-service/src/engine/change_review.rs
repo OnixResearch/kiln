@@ -1,7 +1,8 @@
 //! Canonical execution observations admitted as review CI evidence.
 
-use kiln_core::change_review::CiFact;
+use kiln_core::change_review::{CiCheck, CiFact};
 use kiln_core::domain::Outcome;
+use kiln_core::workflow::WorkflowNodeState;
 
 use super::Engine;
 
@@ -50,22 +51,76 @@ impl Engine {
         self.state
             .runs
             .values()
-            .map(|run| CiFact {
-                project: run.project_id.clone(),
-                repository: run.source.repository.native_id.as_str().to_owned(),
-                revision: run.source.exact_revision.native_id.as_str().to_owned(),
-                run_id: run.id.clone(),
-                ordinal: run.ordinal,
-                success: !self.storage_failed && run.outcome() == Outcome::Success,
-                full_run: run.selected_nodes.is_empty(),
-                clean: run.dirty_snapshot.is_none(),
-                scope_identity: run.scope.as_ref().map(|scope| scope.identity.clone()),
-                terminal: run.outcome().is_terminal(),
-                // r[impl kiln.untrusted.review]
-                untrusted: run
-                    .untrusted
-                    .as_ref()
-                    .map(kiln_core::untrusted::UntrustedGate::summary),
+            .map(|run| {
+                let checks = run
+                    .plan
+                    .nodes
+                    .iter()
+                    .map(|node| {
+                        let outcome = run
+                            .observation
+                            .as_ref()
+                            .and_then(|observation| {
+                                observation
+                                    .nodes
+                                    .iter()
+                                    .find(|observed| observed.node_id == node.id)
+                            })
+                            .map(|observed| match observed.state {
+                                WorkflowNodeState::Completed => "pass",
+                                WorkflowNodeState::Failed => "fail",
+                                WorkflowNodeState::Cancelled => "cancelled",
+                                WorkflowNodeState::Skipped => "skipped",
+                                WorkflowNodeState::Pending
+                                | WorkflowNodeState::Running
+                                | WorkflowNodeState::Paused
+                                | WorkflowNodeState::Unknown => "unknown",
+                            })
+                            .unwrap_or("unknown")
+                            .to_owned();
+                        let artifact_digest = run
+                            .reports
+                            .iter()
+                            .find(|report| report.node_id == node.id.as_str())
+                            .and_then(|report| {
+                                report
+                                    .report
+                                    .as_ref()
+                                    .map(|parsed| parsed.source_blake3.clone())
+                                    .or_else(|| {
+                                        report
+                                            .artifact
+                                            .as_ref()
+                                            .map(|artifact| artifact.blake3.clone())
+                                    })
+                            });
+                        CiCheck {
+                            name: node.id.as_str().to_owned(),
+                            kind: node.kind.as_str().to_owned(),
+                            outcome,
+                            artifact_digest,
+                        }
+                    })
+                    .collect();
+                CiFact {
+                    project: run.project_id.clone(),
+                    repository: run.source.repository.native_id.as_str().to_owned(),
+                    revision: run.source.exact_revision.native_id.as_str().to_owned(),
+                    run_id: run.id.clone(),
+                    ordinal: run.ordinal,
+                    success: !self.storage_failed && run.outcome() == Outcome::Success,
+                    full_run: run.selected_nodes.is_empty(),
+                    clean: run.dirty_snapshot.is_none(),
+                    scope_identity: run.scope.as_ref().map(|scope| scope.identity.clone()),
+                    terminal: run.outcome().is_terminal(),
+                    // r[impl kiln.untrusted.review]
+                    untrusted: run
+                        .untrusted
+                        .as_ref()
+                        .map(kiln_core::untrusted::UntrustedGate::summary),
+
+                    checks,
+                }
             })
             .collect()
     }

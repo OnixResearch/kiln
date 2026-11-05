@@ -17,6 +17,8 @@ fn base_facts() -> Facts {
             ownership: OwnershipPolicy::default(),
             optional_ci: Vec::new(),
             agent_votes: AgentVotes::Advisory,
+
+            required_checks: Vec::new(),
         }),
         source: Some(SourceFact {
             project: "project".into(),

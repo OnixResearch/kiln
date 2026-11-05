@@ -38,6 +38,8 @@ fn policy(ownership: bool, minimum_approvals: u32) -> Policy {
         },
         optional_ci: Vec::new(),
         agent_votes: AgentVotes::Advisory,
+
+        required_checks: Vec::new(),
     }
 }
 
@@ -54,6 +56,8 @@ fn ci(success: bool) -> CiFact {
         scope_identity: None,
         terminal: true,
         untrusted: None,
+
+        checks: Vec::new(),
     }
 }
 
