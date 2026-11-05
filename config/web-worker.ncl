@@ -118,8 +118,11 @@ fun input =>
                 )
               ),
             # Explicit operator-reviewed data roots; Rust admits only /srv and
-            # /var/lib/kiln, binds them read-only, and rejects links.
+            # /var/lib/kiln by default, binds them read-only, and rejects links.
             read_only_data_mounts | Array AbsolutePath | optional,
+            # Optional reviewed roots for data mounts. Omitted keeps the default
+            # roots; explicit roots must stay in the reviewed data families.
+            read_only_data_mount_roots | Array AbsolutePath | optional,
             network | std.contract.from_predicate (fun value => std.array.elem value ["deny", "host"]),
             cpu_seconds | Integer 86400,
             address_space_bytes | Integer 1099511627776,

@@ -250,6 +250,7 @@ mod tests {
             probe_program: "/usr/bin/true".into(),
             read_only_mounts: vec!["/usr".into()],
             read_only_data_mounts: Vec::new(),
+            read_only_data_mount_roots: None,
             network: crate::execution::NetworkPolicy::Deny,
             cpu_seconds: 60,
             address_space_bytes: 268_435_456,

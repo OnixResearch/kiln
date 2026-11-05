@@ -357,11 +357,14 @@ The checkout supplies the script; `target` supplies `patchgate.json`, its
 policy, the native channels and the pending inbox. The target is an
 operator-provisioned local Pijul repository and need not be the Git checkout.
 Set `execution.read_only_data_mounts` to the target's canonical directory so a
-sandboxed worker can read it. Data mounts are limited to `/srv` and
-`/var/lib/kiln`, must be directories with no symlink resolution, and are bound
-read-only. The target must be inside the declared mount; the checkout, receipt
-output and `/tmp` review home remain the only writable locations. A missing or
-foreign target fails closed without account-authority fallback.
+sandboxed worker can read it. By default mounts are limited to `/srv` and
+`/var/lib/kiln`; a reviewed profile may set
+`execution.read_only_data_mount_roots` to extend the roots within the reviewed
+`/srv`, `/home`, `/mnt`, `/opt`, and `/var/lib/kiln` families. Mounts must be
+canonical directories with no symlink resolution and are bound read-only. The
+target must be inside the declared mount; the checkout, receipt output and
+`/tmp` review home remain the only writable locations. A missing or foreign
+target fails closed without account-authority fallback.
 `path` must resolve `b3sum`; the script passes `HOME` and `PATH` explicitly to
 Patchgate and Pijul. The step declares the receipt as a `review` report, so
 worker report upload binds the exact run, attempt, execution and node. A missing
@@ -3082,8 +3085,8 @@ Offline workers contribute no observed available capacity. Configured project
 slots remain separate from observed worker liveness and are not placement proof.
 
 Optional worker `execution` selects the exact reviewed bubblewrap executable,
-read-only toolchain mounts, optional read-only data mounts under `/srv` or
-`/var/lib/kiln`, network policy and per-command resource limits.
+read-only toolchain mounts, optional read-only data mounts under reviewed
+roots, network policy and per-command resource limits.
 Preflight failure never falls back to account-authority execution. The command
 gets its private writable checkout/temp and explicit environment, not service
 credentials or the worker's repository backing store. This is bounded namespace

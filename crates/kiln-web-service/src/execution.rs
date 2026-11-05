@@ -16,6 +16,11 @@ pub struct IsolationPolicy {
     /// the sandbox and never replace runtime or service-credential mounts.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub read_only_data_mounts: Vec<PathBuf>,
+    /// Optional operator-reviewed roots for data mounts. Omitted keeps the
+    /// narrow default roots; an explicit list may extend them within reviewed
+    /// data families.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_only_data_mount_roots: Option<Vec<PathBuf>>,
     pub network: NetworkPolicy,
     pub cpu_seconds: u64,
     pub address_space_bytes: u64,
@@ -37,29 +42,57 @@ pub(crate) struct ObservationMount<'a> {
 }
 
 const MAX_DATA_MOUNTS: usize = 4;
-const DATA_MOUNT_ROOTS: &[&str] = &["/srv", "/var/lib/kiln"];
+const MAX_DATA_MOUNT_ROOTS: usize = 4;
+const DEFAULT_DATA_MOUNT_ROOTS: &[&str] = &["/srv", "/var/lib/kiln"];
+const DATA_MOUNT_ROOT_FAMILIES: &[&str] = &["/srv", "/home", "/mnt", "/opt", "/var/lib/kiln"];
 
-fn data_mount_allowed(path: &Path) -> bool {
+fn clean_path(path: &Path) -> bool {
     path.is_absolute()
         && path
             .components()
             .all(|component| matches!(component, Component::RootDir | Component::Normal(_)))
         && path != Path::new("/")
-        && DATA_MOUNT_ROOTS.iter().any(|root| {
-            let root = Path::new(root);
-            path == root || path.starts_with(root)
-        })
+}
+
+fn default_data_mount_roots() -> Vec<PathBuf> {
+    DEFAULT_DATA_MOUNT_ROOTS.iter().map(PathBuf::from).collect()
+}
+
+fn data_mount_root_allowed(root: &Path) -> bool {
+    DATA_MOUNT_ROOT_FAMILIES
+        .iter()
+        .any(|family| root == Path::new(family) || root.starts_with(family))
+}
+
+fn data_mount_allowed(path: &Path, roots: &[PathBuf]) -> bool {
+    clean_path(path)
+        && roots
+            .iter()
+            .any(|root| path == root || path.starts_with(root))
 }
 
 impl IsolationPolicy {
+    fn data_mount_roots(&self) -> Vec<PathBuf> {
+        self.read_only_data_mount_roots
+            .clone()
+            .unwrap_or_else(default_data_mount_roots)
+    }
+
     pub fn admit(&self) -> Result<(), String> {
         let clean = |p: &Path| {
             p.is_absolute()
                 && p.components()
                     .all(|c| matches!(c, Component::RootDir | Component::Normal(_)))
         };
+        let roots = self.data_mount_roots();
         let mut mounts = std::collections::BTreeSet::new();
-        if !clean(&self.bubblewrap)
+        let mut data_roots = std::collections::BTreeSet::new();
+        if roots.is_empty()
+            || roots.len() > MAX_DATA_MOUNT_ROOTS
+            || roots.iter().any(|root| {
+                !clean_path(root) || !data_mount_root_allowed(root) || !data_roots.insert(root)
+            })
+            || !clean(&self.bubblewrap)
             || !clean(&self.probe_program)
             || !self
                 .read_only_mounts
@@ -79,7 +112,7 @@ impl IsolationPolicy {
                 let mut data = std::collections::BTreeSet::new();
                 self.read_only_data_mounts
                     .iter()
-                    .any(|p| !data_mount_allowed(p) || !data.insert(p))
+                    .any(|p| !data_mount_allowed(p, &roots) || !data.insert(p))
             }
             || self.cpu_seconds == 0
             || self.cpu_seconds > 86_400
@@ -115,9 +148,10 @@ impl IsolationPolicy {
         if !directory.starts_with(&checkout) {
             return Err("isolated working directory is outside the checkout".into());
         }
+        let roots = self.data_mount_roots();
         let mut data_mounts = Vec::new();
         for mount in &self.read_only_data_mounts {
-            if !data_mount_allowed(mount) {
+            if !data_mount_allowed(mount, &roots) {
                 return Err("worker data mount is outside reviewed roots".into());
             }
             let canonical = std::fs::canonicalize(mount)
@@ -268,6 +302,7 @@ mod tests {
             probe_program: "/usr/bin/true".into(),
             read_only_mounts: vec!["/usr".into()],
             read_only_data_mounts: Vec::new(),
+            read_only_data_mount_roots: None,
             network: NetworkPolicy::Deny,
             cpu_seconds: 60,
             address_space_bytes: 268_435_456,
@@ -298,6 +333,7 @@ mod tests {
         p.read_only_data_mounts = vec!["/var/lib/kiln".into()];
         assert!(p.admit().is_ok());
         p.read_only_data_mounts = vec!["/srv".into()];
+        p.read_only_data_mount_roots = Some(vec!["/srv".into()]);
         let (_, args) = p
             .command(
                 Path::new("/tmp"),
@@ -331,6 +367,38 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn explicit_data_roots_extend_only_reviewed_families() {
+        let mut p = policy();
+        p.read_only_data_mount_roots = Some(vec!["/home".into()]);
+        p.read_only_data_mounts = vec!["/home".into()];
+        assert!(p.admit().is_ok());
+        let (_, args) = p
+            .command(
+                Path::new("/tmp"),
+                Path::new("/tmp"),
+                Path::new("/usr/bin/true"),
+                &[],
+                &std::collections::BTreeMap::new(),
+                ObservationMount {
+                    executable: Path::new("/observer"),
+                    arguments: &[],
+                    directory: Path::new("/metrics"),
+                },
+            )
+            .unwrap_or_else(|_| unreachable!());
+        assert!(
+            args.windows(3)
+                .any(|window| window == ["--ro-bind", "/home", "/home"])
+        );
+        p.read_only_data_mount_roots = Some(vec!["/etc".into()]);
+        assert!(p.admit().is_err());
+        p.read_only_data_mount_roots = Some(vec!["relative".into()]);
+        assert!(p.admit().is_err());
+        p.read_only_data_mount_roots = Some(vec!["/srv".into(), "/srv".into()]);
+        assert!(p.admit().is_err());
     }
 
     #[test]

@@ -11,6 +11,7 @@
     probe_program = "/usr/bin/true",
     read_only_mounts = ["/usr", "/lib", "/lib64"],
     read_only_data_mounts = ["/srv/kiln/patchgate-review-target"],
+    read_only_data_mount_roots = ["/srv"],
     network = "deny",
     cpu_seconds = 60,
     address_space_bytes = 268435456,

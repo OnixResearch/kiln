@@ -1,0 +1,46 @@
+{
+  "schema": "kiln.worker-data-mount-roots.verification.v1",
+  "date": "2026-11-04",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --lib execution::tests --offline",
+      "result": "4 passed; default roots, extended /home root, duplicate/relative/foreign root rejection"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib --offline",
+      "result": "167 passed; 1 ignored"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --test engine --offline",
+      "result": "81 passed"
+    },
+    {
+      "command": "nickel typecheck config/web-worker.ncl && nickel export config/fixtures/web-worker-patchgate.ncl",
+      "result": "pass; optional roots and read-only Patchgate target export"
+    },
+    {
+      "command": "nickel format --check config/web-worker.ncl config/fixtures/web-worker-patchgate.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-web-service",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "default": "omitted roots preserve /srv and /var/lib/kiln",
+    "extended": "an explicit reviewed /home root admits a canonical target under it and binds it read-only",
+    "negative": "foreign, relative, root, duplicate, empty and over-bound root lists fail closed",
+    "mount checks": "individual mounts still reject symlink resolution, non-directories and checkout overlap"
+  },
+  "non_claims": [
+    "selecting /home or /opt can expose sensitive mounted data to the sandbox",
+    "root selection does not add write, network, environment, credential, or arbitrary-path authority",
+    "unavailable isolation still fails closed without account-authority fallback",
+    "this does not prove a live worker execution of the Patchgate step"
+  ]
+}
